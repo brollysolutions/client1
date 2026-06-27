@@ -4,13 +4,13 @@ from datetime import datetime
 from typing import Optional
 
 from sqlalchemy import CheckConstraint, DateTime, ForeignKey, String
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import ENUM, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
 
 
-class UserRole(str, enum.Enum):
+class UserRole(enum.StrEnum):
     ADMIN = "admin"
     SUB_ADMIN = "sub_admin"
     AGENT = "agent"
@@ -19,20 +19,18 @@ class UserRole(str, enum.Enum):
     CLIENT = "client"
 
 
-class BusinessLine(str, enum.Enum):
+class BusinessLine(enum.StrEnum):
     LOANS = "loans"
     REAL_ESTATE = "real_estate"
     BOTH = "both"
 
 
-class UserStatus(str, enum.Enum):
+class UserStatus(enum.StrEnum):
     ACTIVE = "active"
     SUSPENDED = "suspended"
     PENDING_PASSWORD_RESET = "pending_password_reset"
     SOFT_DELETED = "soft_deleted"
 
-
-from sqlalchemy.dialects.postgresql import ENUM
 
 role_enum = ENUM(UserRole, name="role_enum", create_type=False)
 business_line_enum = ENUM(BusinessLine, name="business_line_enum", create_type=False)

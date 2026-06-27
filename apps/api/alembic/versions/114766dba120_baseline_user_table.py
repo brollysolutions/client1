@@ -85,8 +85,10 @@ def upgrade() -> None:
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
         sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False),
         sa.CheckConstraint(
-            "(role IN ('agent', 'telecaller', 'employee') AND business_line IN ('loans', 'real_estate')) "
-            "OR (role IN ('admin', 'sub_admin', 'client') AND business_line IN ('loans', 'real_estate', 'both'))",
+            "(role IN ('agent', 'telecaller', 'employee') "
+            "AND business_line IN ('loans', 'real_estate')) "
+            "OR (role IN ('admin', 'sub_admin', 'client') "
+            "AND business_line IN ('loans', 'real_estate', 'both'))",
             name=op.f("ck_users_business_line_by_role"),
         ),
         sa.ForeignKeyConstraint(
