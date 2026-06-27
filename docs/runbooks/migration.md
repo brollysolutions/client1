@@ -23,3 +23,9 @@
 
 ## RLS note
 - New business-scoped tables must `ENABLE ROW LEVEL SECURITY`, carry immutable `business_line`, and ship policies.
+
+## pgBouncer & Enum DDL note (ADR-0004)
+- **Bypass pgBouncer:** Always run database migrations (Alembic) directly against Postgres (port `5432`), not pgBouncer (port `5433`).
+- **Autocommit:** Perform enum value additions inside an autocommit block (`with_op.get_context().autocommit_block()`).
+- **Rolling Restart:** Trigger a rolling restart of connection-holding services (`api`, `scheduler`) immediately after modifying enums to clear and rebuild `asyncpg` cached type mappings and OID mappings.
+
