@@ -9,7 +9,8 @@ services:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      # postgres:18 stores data in a major-version subdir; mount the parent, not /data.
+      - postgres_data:/var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 10s
@@ -27,39 +28,71 @@ services:
       retries: 5
     restart: always
 
+  pgbouncer:
+    image: edoburu/pgbouncer:v1.23.1-p3
+    environment:
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_USER: ${POSTGRES_USER}
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      DB_NAME: ${POSTGRES_DB}
+      # postgres:18 speaks scram-sha-256; pgbouncer must store the plaintext password
+      # (not md5) so it can SCRAM-authenticate upstream. md5 default -> "wrong password type".
+      AUTH_TYPE: scram-sha-256
+      POOL_MODE: transaction
+      MAX_CLIENT_CONN: "200"
+      DEFAULT_POOL_SIZE: "40"
+      SERVER_RESET_QUERY: "DISCARD ALL"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -p 5432 -U ${POSTGRES_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: always
+
   api:
     build:
       context: ./apps/api
       target: prod
-    command: uv run uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 4
+    command: uv run --no-sync uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 4
     env_file:
       - ./apps/api/.env.prod
     depends_on:
-      postgres:
+      pgbouncer:
         condition: service_healthy
       redis:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-fsS", "http://localhost:8000/health"]
+      test: ["CMD", "python", "-c", "import json,sys,urllib.request; r=urllib.request.urlopen('http://localhost:8000/health', timeout=3); sys.exit(0 if r.status==200 and json.load(r).get('status')=='ok' else 1)"]
       interval: 15s
       timeout: 5s
       retries: 5
+      start_period: 20s
     restart: always
 
   scheduler:
     build:
       context: ./apps/api
       target: prod
-    command: uv run python -m app.scheduler.main
+    command: uv run --no-sync python -m app.scheduler.main
     env_file:
       - ./apps/api/.env.prod
     depends_on:
-      postgres:
+      pgbouncer:
         condition: service_healthy
       redis:
         condition: service_healthy
     deploy:
       replicas: 1   # exactly one scheduler instance — never scale this service
+    healthcheck:
+      test: ["CMD", "python", "-c", "import os,time,sys; f='/tmp/scheduler.alive'; sys.exit(0 if os.path.exists(f) and time.time()-os.path.getmtime(f)<150 else 1)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
     restart: always
 
   web:
@@ -72,10 +105,11 @@ services:
     depends_on:
       - api
     healthcheck:
-      test: ["CMD", "curl", "-fsS", "http://localhost:3000/api/health"]
+      test: ["CMD", "node", "-e", "const net=require('net'); const s=net.connect(3000,'127.0.0.1',()=>process.exit(0)); s.setTimeout(3000,()=>process.exit(1)); s.on('error',()=>process.exit(1));"]
       interval: 15s
       timeout: 5s
       retries: 5
+      start_period: 20s
     restart: always
 
   nginx:
@@ -88,6 +122,11 @@ services:
     depends_on:
       - api
       - web
+    healthcheck:
+      test: ["CMD", "nginx", "-t"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
     restart: always
 
 volumes:

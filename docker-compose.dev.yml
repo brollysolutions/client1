@@ -1,6 +1,12 @@
 # Dev overrides, layered on docker-compose.yml:
 #   docker compose -f docker-compose.yml -f docker-compose.dev.yml up
 services:
+  pgbouncer:
+    environment:
+      MAX_CLIENT_CONN: "50"
+      DEFAULT_POOL_SIZE: "10"
+    restart: unless-stopped
+
   api:
     environment:
       ENV: development

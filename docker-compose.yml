@@ -5,15 +5,17 @@ services:
   postgres:
     image: postgres:18
     environment:
-      POSTGRES_DB: app
-      POSTGRES_USER: app
-      POSTGRES_PASSWORD: app
+      # Sourced from the gitignored root .env (mirrors apps/api/.env.local); falls back to app.
+      POSTGRES_DB: ${POSTGRES_DB:-app}
+      POSTGRES_USER: ${POSTGRES_USER:-app}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-app}
     ports:
       - "5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      # postgres:18 stores data in a major-version subdir; mount the parent, not /data.
+      - postgres_data:/var/lib/postgresql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U app -d app"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-app} -d ${POSTGRES_DB:-app}"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -28,37 +30,80 @@ services:
       timeout: 5s
       retries: 10
 
+  pgbouncer:
+    image: edoburu/pgbouncer:v1.23.1-p3
+    environment:
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_USER: ${POSTGRES_USER:-app}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-app}
+      DB_NAME: ${POSTGRES_DB:-app}
+      # postgres:18 speaks scram-sha-256; pgbouncer must store the plaintext password
+      # (not md5) so it can SCRAM-authenticate upstream. md5 default -> "wrong password type".
+      AUTH_TYPE: scram-sha-256
+      POOL_MODE: transaction
+      MAX_CLIENT_CONN: "100"
+      DEFAULT_POOL_SIZE: "20"
+    ports:
+      - "5433:5432"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -p 5432 -U ${POSTGRES_USER:-app}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
   api:
     build:
       context: ./apps/api
       target: dev
-    command: uv run fastapi dev app/main.py --host 0.0.0.0 --port 8000
+    # --no-sync: deps are baked into the image .venv at build; don't rebuild the project at runtime.
+    command: uv run --no-sync fastapi dev app/main.py --host 0.0.0.0 --port 8000
     env_file:
       - ./apps/api/.env.local
     ports:
       - "8000:8000"
     depends_on:
-      postgres:
+      pgbouncer:
         condition: service_healthy
       redis:
         condition: service_healthy
     volumes:
       - ./apps/api:/app
+      # Keep the image's Linux .venv; don't let the host (Windows) .venv leak through the mount.
+      - api_venv:/app/.venv
+    healthcheck:
+      # python:slim has no curl; use stdlib urllib to hit the readiness probe.
+      test: ["CMD", "python", "-c", "import json,sys,urllib.request; r=urllib.request.urlopen('http://localhost:8000/health', timeout=3); sys.exit(0 if r.status==200 and json.load(r).get('status')=='ok' else 1)"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
 
   scheduler:
     build:
       context: ./apps/api
       target: dev
-    command: uv run python -m app.scheduler.main
+    command: uv run --no-sync python -m app.scheduler.main
     env_file:
       - ./apps/api/.env.local
     depends_on:
-      postgres:
+      pgbouncer:
         condition: service_healthy
       redis:
         condition: service_healthy
     volumes:
       - ./apps/api:/app
+      - api_venv:/app/.venv
+    healthcheck:
+      # No HTTP port; assert the heartbeat job refreshed its liveness marker recently.
+      test: ["CMD", "python", "-c", "import os,time,sys; f='/tmp/scheduler.alive'; sys.exit(0 if os.path.exists(f) and time.time()-os.path.getmtime(f)<150 else 1)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
 
   web:
     build:
@@ -72,7 +117,15 @@ services:
     volumes:
       - ./apps/web:/app
       - web_node_modules:/app/node_modules
+    healthcheck:
+      # node:alpine has no curl; verify the Next.js listener accepts connections.
+      test: ["CMD", "node", "-e", "const net=require('net'); const s=net.connect(3000,'127.0.0.1',()=>process.exit(0)); s.setTimeout(3000,()=>process.exit(1)); s.on('error',()=>process.exit(1));"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
 
 volumes:
   postgres_data:
   web_node_modules:
+  api_venv:
