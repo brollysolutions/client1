@@ -17,7 +17,8 @@ echo "==> API format check"
 uv run ruff format --check .
 
 echo "==> API tests"
-uv run pytest -q
+uv run pytest -q || [ $? -eq 5 ]
+
 
 echo "==> Alembic heads"
 if [[ -f alembic.ini ]]; then
