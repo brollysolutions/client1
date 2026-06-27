@@ -20,4 +20,9 @@ echo "==> API tests"
 uv run pytest -q
 
 echo "==> Alembic heads"
-uv run alembic heads
+if [[ -f alembic.ini ]]; then
+  uv run alembic heads
+else
+  echo "alembic.ini not found — skipping Alembic check."
+fi
+

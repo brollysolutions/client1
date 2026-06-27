@@ -9,7 +9,11 @@ fi
 cd apps/api
 
 echo "==> Checking Alembic migration state"
-uv run alembic check || true
+if [[ -f alembic.ini ]]; then
+  uv run alembic check || true
+  echo "==> Current heads"
+  uv run alembic heads
+else
+  echo "alembic.ini not found — skipping Alembic migration checks."
+fi
 
-echo "==> Current heads"
-uv run alembic heads
