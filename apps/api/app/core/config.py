@@ -1,9 +1,13 @@
+from pathlib import Path
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+_env_file = Path(__file__).resolve().parent.parent.parent / ".env.local"
 
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
-        env_file=".env.local",
+        env_file=_env_file,
         env_file_encoding="utf-8",
         case_sensitive=False,
         extra="ignore",
