@@ -20,7 +20,8 @@ echo "==> Web typecheck"
 pnpm typecheck
 
 echo "==> Web tests"
-pnpm test --if-present
+pnpm test -- --passWithNoTests
+
 
 echo "==> Web build"
 pnpm build
