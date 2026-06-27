@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+# Changed-scope verification before each commit. Enable with: git config core.hooksPath .githooks
+set -euo pipefail
+
+if [[ -x ./scripts/verify.sh ]]; then
+  ./scripts/verify.sh --changed
+fi

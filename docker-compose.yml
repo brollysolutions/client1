@@ -1,0 +1,78 @@
+# Base compose: datastores + app services for local development.
+# NOTE: api/scheduler/web `build:` targets require Dockerfiles that arrive when the apps are
+# implemented. Until then, `docker compose up postgres redis` brings up the datastores alone.
+services:
+  postgres:
+    image: postgres:18
+    environment:
+      POSTGRES_DB: app
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: app
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U app -d app"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:8-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: ./apps/api
+      target: dev
+    command: uv run fastapi dev app/main.py --host 0.0.0.0 --port 8000
+    env_file:
+      - ./apps/api/.env.local
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./apps/api:/app
+
+  scheduler:
+    build:
+      context: ./apps/api
+      target: dev
+    command: uv run python -m app.scheduler.main
+    env_file:
+      - ./apps/api/.env.local
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./apps/api:/app
+
+  web:
+    build:
+      context: ./apps/web
+      target: dev
+    command: pnpm dev --hostname 0.0.0.0
+    ports:
+      - "3000:3000"
+    environment:
+      NEXT_PUBLIC_API_BASE_URL: http://localhost:8000
+    volumes:
+      - ./apps/web:/app
+      - web_node_modules:/app/node_modules
+
+volumes:
+  postgres_data:
+  web_node_modules:

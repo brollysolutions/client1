@@ -1,0 +1,19 @@
+# Dev overrides, layered on docker-compose.yml:
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml up
+services:
+  api:
+    environment:
+      ENV: development
+      LOG_LEVEL: debug
+    restart: unless-stopped
+
+  scheduler:
+    environment:
+      ENV: development
+      LOG_LEVEL: debug
+    restart: unless-stopped
+
+  web:
+    environment:
+      NODE_ENV: development
+    restart: unless-stopped
