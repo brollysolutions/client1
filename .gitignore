@@ -38,3 +38,20 @@ pnpm-debug.log*
 Thumbs.db
 .idea/
 .vscode/
+
+# Assistant files (local instructions only)
+.claude/
+.gemini/
+CLAUDE.md
+GEMINI.md
+.claudeignore
+.geminiignore
+.github/workflows/claude-pr-review.yml
+.github/workflows/gemini-pr-review.yml
+apps/api/CLAUDE.md
+apps/api/GEMINI.md
+apps/web/CLAUDE.md
+apps/web/GEMINI.md
+packages/contracts/CLAUDE.md
+packages/contracts/GEMINI.md
+
