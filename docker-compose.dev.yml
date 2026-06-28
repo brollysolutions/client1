@@ -11,15 +11,27 @@ services:
     environment:
       ENV: development
       LOG_LEVEL: debug
+    volumes:
+      - ./apps/api:/app
+      # Keep the image's Linux .venv; don't let the host (Windows) .venv leak through the mount.
+      - api_venv:/app/.venv
     restart: unless-stopped
 
   scheduler:
     environment:
       ENV: development
       LOG_LEVEL: debug
+    volumes:
+      - ./apps/api:/app
+      - api_venv:/app/.venv
     restart: unless-stopped
 
   web:
     environment:
       NODE_ENV: development
+      WATCHPACK_POLLING: "true"
+      CHOKIDAR_USEPOLLING: "true"
+    volumes:
+      - ./apps/web:/app
+      - web_node_modules:/app/node_modules
     restart: unless-stopped

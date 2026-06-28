@@ -1,0 +1,39 @@
+@import "tailwindcss";
+
+@theme {
+  --font-display: "Newsreader", serif;
+  --font-heading: "Space Grotesk", sans-serif;
+  --font-body: "Inter", sans-serif;
+
+  --color-brand-navy: #293681;
+  --color-brand-blue: #4274D9;
+  --color-brand-sky: #95CCDD;
+  --color-brand-aqua: #D0E7E6;
+
+  --color-background: #F3F3EE;
+  --color-surface: #FFFFFF;
+
+  --color-text-primary: #20242E;
+  --color-text-secondary: #5C5C5C;
+  --color-border: #D9D9D9;
+
+  --color-cta: #C9792B;
+  --color-cta-hover: #A85F1F;
+  --color-cta-soft: #F7E8D8;
+
+  --color-loans-accent: #1F8A5C;
+  --color-loans-soft: #E3F3EB;
+
+  --color-realestate-accent: #C9792B;
+  --color-realestate-soft: #F7E8D8;
+
+  --color-success: #16A34A;
+  --color-warning: #B7791F;
+  --color-error: #DC2626;
+  --color-info: #2563EB;
+}
+
+body {
+  background-color: var(--color-background);
+  color: var(--color-text-primary);
+}
