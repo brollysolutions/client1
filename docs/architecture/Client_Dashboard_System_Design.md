@@ -2,34 +2,33 @@
 
 **Loans & Real Estate Platform**
 Web-only · FastAPI + Next.js · PostgreSQL + Redis
-Status: Design — builds on the Auth subsystem (signed off) and the single-DB + `business_line` discriminator + RLS segregation model.
+Status: Design — builds on the Auth subsystem (signed off) and the single-DB + line-specific client profiles + RLS segregation model.
 
 ---
 
 ## 1. Scope
 
-This document specifies the **Client** dashboard: the authenticated surface a `role = client` account sees. It covers the line-scoped surfaces (loans, real estate, or both), the screens/routes, the loan and property status models, every client-owned table, the key flows, and how client queries wire into Row-Level Security.
+This document specifies the **Client** dashboard: the authenticated surface a `role = client` account sees. It covers the line-scoped surfaces backed by one or two `client_profiles` rows, the screens/routes, the loan and property status models, every client-owned table, the key flows, and how client queries wire into Row-Level Security.
 
 It does **not** redesign auth (covered separately) and treats tables owned by other modules — `properties`, `banks`, `loan_types`, `banners` — as **referenced externals** (stubbed in the ER diagram), to be fully specified by their owning dashboards.
 
 ---
 
-## 2. Dashboard model — line-scoped surfaces, one account
+## 2. Dashboard model — one login, separate line-specific client profiles
 
-A client account holds one or more business lines, chosen at registration (FR-4.3): **Loans**, **Real Estate**, or **both**. The line is *not* a cage around the account — it is a fact about each record. Every lead, application, inquiry, and transaction is tagged to exactly one immutable line, so a "both" client simply holds separate, isolated journeys under one login. The dashboard is therefore composed of **line-scoped surfaces that light up for the line(s) the client holds**:
+A customer has one login identity in `auth_users`, but each business line is represented by a separate row in `client_profiles`.
 
-| Line held | Surface | Accent (locked palette) |
+| Customer selection | Rows created | Surface shown |
 |---|---|---|
-| `loans` | Loan journey screens | **Green** |
-| `real_estate` | Property screens | **Amber** |
-| `both` | Both surfaces, as separate areas | Green in the loans area, amber in the real-estate area |
+| Loans only | one `client_profiles` row with `business_line = loans` | Loan journey screens |
+| Real Estate only | one `client_profiles` row with `business_line = real_estate` | Property screens |
+| Loans + Real Estate | two `client_profiles` rows under the same `auth_user_uuid` | separate Loan and Real Estate areas |
 
-Green and amber never co-occur on a single working screen (locked rule) — a "both" client switches between a green loans area and an amber real-estate area; the accents are never mixed on one screen. There is **no longer a requirement to register a second account on a second mobile** to hold both products; one account suffices. RLS filters every client query to the account's own `user_uuid` (own records), so a client sees their own data across whichever line(s) they hold and cannot reach any other client's data or any record they do not own. Internal staff and Agents remain single-line; only the *client* surface is multi-line.
+There is no `business_line = both`. A customer who uses both products is represented as **two separate customer/profile records** under one mobile login. This preserves the client's requirement that Loans and Real Estate remain completely separate for workflows, dashboards, reports, permissions, and analytics.
 
-**Shell composition (per line surface):** layered banner stack (default / personalized / action, FR-12) → line-appropriate status summary → notifications preview → referral CTA. For a "both" client, the shared/neutral elements (transactions, referrals, profile, notifications) appear once; the line-specific status summaries appear in their respective areas.
+Green and amber never co-occur on a single working screen. A customer with two profiles switches between the green Loans area and the amber Real Estate area. Shared identity actions such as login, password reset, and mobile-number support belong to `auth_users`; line-specific status, transactions, referrals, support context, and workflows belong to `client_profiles`.
 
----
-
+**Shell composition:** identity-level header → profile/line switcher → line-specific banner stack → line-specific status summary → notifications → referral CTA.
 ## 3. Screens / routes
 
 ```
@@ -44,7 +43,7 @@ REAL-ESTATE line only
   /inquiries               my inquiries + their visits
   /inquiries/{id}/visit    request / view a scheduled visit (vehicle arrangement read-only)
 
-SHARED (both lines)
+SHARED (identity-level, with line/profile filters where needed)
   /transactions            cashback + referral payout ledger (read-only)
   /referrals               my referral code, share (wa.me), conversion tracking
   /notifications           list, mark-read, deep-link redirect
@@ -52,7 +51,7 @@ SHARED (both lines)
   /support                 raise ticket (forgot-pwd / OTP / lost-mobile / general)
 ```
 
-The line-specific routes are gated by the line(s) the client holds (carried in the JWT). A loans-only client hitting a real-estate route 404s before any query runs, and vice versa; a **`both` client reaches both groups**. The shared routes are always available. (The JWT carries the held line(s); for a `both` client the gate admits both the loan and the real-estate route groups.)
+The line-specific routes are gated by the active `client_profile_uuid`. A customer without a Loan profile cannot access Loan routes; a customer without a Real Estate profile cannot access Real Estate routes. A customer with both profiles can switch between them, but each query is scoped to one profile and one business line at a time.
 
 ---
 
@@ -86,30 +85,44 @@ Each inquiry may spawn one or more `property_visits` (`scheduled → completed`,
 
 ## 5. Data model
 
-Conventions inherited from Auth: child FK columns are named **`user_uuid`** (UUID → `users.id`); every business-scoped table carries `business_line` for RLS; the public `user_id` string is display-only and never a FK.
+Conventions inherited from Auth v1.4: `auth_users` is the login identity table. Client-owned business records point to `client_profiles.id`, not directly to `auth_users.id`, so Loans and Real Estate remain separately reportable even under one mobile number.
 
 New enums introduced here: `lead_status`, `lead_origin`, `loan_status`, `fee_outcome`, `property_inquiry_status`, `visit_status`, `vehicle_status`, `txn_type`, `txn_method`, `txn_status`, `support_category`, `support_status`.
 
+### 5.0 `client_profiles` — one row per customer per line
+
+| Column | Type | Notes |
+|---|---|---|
+| `id` | UUID PK | line-specific client/customer profile |
+| `auth_user_uuid` | UUID FK → auth_users.id | login identity / mobile owner |
+| `business_line` | business_line NOT NULL | `loans` or `real_estate` only |
+| `customer_code` | TEXT UNIQUE | display/search ID; can include line prefix such as `CL-LN-...` / `CL-RE-...` |
+| `status` | TEXT | active / suspended / soft_deleted |
+| `created_at` / `updated_at` | TIMESTAMPTZ | |
+
+*Constraint:* `UNIQUE (auth_user_uuid, business_line)` — one active Loan profile and one active Real Estate profile per mobile login.
+
 ### 5.1 `leads` — pipeline spine (FR-4.x)
 
-One per requirement-selection. Exists **before** an account when an agent introduces it (`user_uuid` NULL until the person registers/converts).
+One per requirement-selection. An agent-introduced lead may exist before the customer creates a login/profile; it is later bound to the correct `client_profile_uuid` after OTP verification.
 
 | Column | Type | Notes |
 |---|---|---|
 | `id` | UUID PK | |
-| `user_uuid` | UUID NULL FK → users.id | NULL for agent-introduced pre-account leads |
-| `business_line` | business_line NOT NULL | immutable |
+| `client_profile_uuid` | UUID NULL FK → client_profiles.id | NULL until claim/registration |
+| `business_line` | business_line NOT NULL | immutable; `loans` or `real_estate` only |
 | `origin` | lead_origin NOT NULL | `direct` \| `agent` |
-| `origin_agent_uuid` | UUID NULL FK → users.id | set when `origin=agent`; **never transferred** (FR-4.6) |
-| `assigned_telecaller_uuid` | UUID NULL FK → users.id | |
-| `name` | TEXT | captured at creation (agent-supplied or from `users`) |
-| `mobile` | TEXT NOT NULL | E.164; dedupe key (FR-4.5) |
+| `origin_agent_profile_uuid` | UUID NULL FK → agent_profiles.id | set when `origin=agent`; never transferred routinely |
+| `assigned_telecaller_profile_uuid` | UUID NULL FK → staff_profiles.id | assigned line-specific telecaller |
+| `name` | TEXT | captured at creation |
+| `mobile` | TEXT NOT NULL | E.164; dedupe key within line |
 | `requirement` | JSONB | captured requirement detail |
-| `status` | lead_status NOT NULL | `new`/`assigned`/`working`/`converted`/`expired`/`closed` |
-| `expiry_at` | TIMESTAMPTZ NULL | open-pool timer for agent leads (FR-4.6) |
+| `status` | lead_status NOT NULL | `new`/`assigned`/`working`/`converted`/`closed`/`released` |
+| `released_at` | TIMESTAMPTZ NULL | Admin exception only |
+| `release_reason` | TEXT NULL | Admin exception reason |
 | `created_at`/`updated_at` | TIMESTAMPTZ | |
 
-*Constraint:* partial UNIQUE on `mobile` WHERE `status NOT IN ('expired','closed')` — enforces FR-4.5 "already registered" without blocking re-entry of a long-dead lead.
+*Constraint:* partial UNIQUE on `(mobile, business_line)` WHERE `status NOT IN ('closed','released')` — prevents duplicate active leads in the same line without blocking a separate Loan/Real Estate profile.
 
 ### 5.2 `loan_applications` — loan journey (loans line)
 
@@ -117,20 +130,18 @@ One per requirement-selection. Exists **before** an account when an agent introd
 |---|---|---|
 | `id` | UUID PK | |
 | `lead_uuid` | UUID NOT NULL FK → leads.id | |
-| `user_uuid` | UUID NOT NULL FK → users.id | denormalized for RLS |
-| `business_line` | business_line NOT NULL | constant `loans` (RLS uniformity) |
-| `loan_type_id` | UUID FK → loan_types.id | config-driven (FR-6.4) |
-| `bank_id` | UUID NULL FK → banks.id | per-bank availability (FR-6.3) |
-| `amount_requested` | NUMERIC | |
-| `amount_sanctioned` | NUMERIC NULL | |
-| `interest_rate` | NUMERIC NULL | |
-| `processing_fee` | NUMERIC NULL | |
-| `fee_outcome` | fee_outcome NULL | `waived` \| `cashback` \| `none` (FR-6.6) |
+| `client_profile_uuid` | UUID NOT NULL FK → client_profiles.id | line-specific owner |
+| `business_line` | business_line NOT NULL | constant `loans` |
+| `loan_type_id` | UUID FK → loan_types.id | config-driven |
+| `bank_id` | UUID NULL FK → banks.id | per-bank availability |
+| `amount_requested` / `amount_sanctioned` | NUMERIC | |
+| `interest_rate` / `processing_fee` | NUMERIC NULL | |
+| `fee_outcome` | fee_outcome NULL | `waived` \| `cashback` \| `none` |
 | `status` | loan_status NOT NULL | full pipeline (§4.1) |
 | `status_reason` | TEXT NULL | shown to client for `on_hold`/`rejected` |
 | `opened_at`/`closed_at` | TIMESTAMPTZ | |
 
-*Constraint:* partial UNIQUE on `user_uuid` WHERE `status NOT IN ('closed','rejected')` — **one active loan journey at a time**; closed/rejected ones retained as history.
+*Constraint:* partial UNIQUE on `client_profile_uuid` WHERE `status NOT IN ('closed','rejected')` — one active loan journey per Loan profile.
 
 ### 5.3 `loan_txn_history` (FR-6.5)
 
@@ -142,21 +153,23 @@ One per requirement-selection. Exists **before** an account when an agent introd
 | `amount` | NUMERIC | |
 | `interest_rate` | NUMERIC | |
 | `txn_date` | DATE | |
-| `entered_by_uuid` | UUID FK → users.id | telecaller (manual entry) |
+| `entered_by_profile_uuid` | UUID FK → staff_profiles.id | loans telecaller |
 | `created_at` | TIMESTAMPTZ | |
 
-### 5.4 `property_inquiries` (real-estate line) — multiple concurrent allowed
+### 5.4 `property_inquiries` (real-estate line)
 
 | Column | Type | Notes |
 |---|---|---|
 | `id` | UUID PK | |
 | `lead_uuid` | UUID FK → leads.id | |
-| `user_uuid` | UUID FK → users.id | |
+| `client_profile_uuid` | UUID FK → client_profiles.id | line-specific owner |
 | `business_line` | business_line NOT NULL | constant `real_estate` |
-| `property_uuid` | UUID FK → properties.id | external (RE module) |
-| `status` | property_inquiry_status NOT NULL | §4.2 |
-| `notes` | TEXT NULL | client-supplied |
+| `property_uuid` | UUID FK → properties.id | approved property |
+| `status` | property_inquiry_status | full pipeline (§4.2) |
+| `notes` | TEXT | internal/role-gated |
 | `created_at`/`updated_at` | TIMESTAMPTZ | |
+
+Multiple concurrent property inquiries are allowed for one Real Estate profile.
 
 ### 5.5 `property_visits`
 
@@ -164,98 +177,64 @@ One per requirement-selection. Exists **before** an account when an agent introd
 |---|---|---|
 | `id` | UUID PK | |
 | `inquiry_uuid` | UUID FK → property_inquiries.id | |
-| `scheduled_at` | TIMESTAMPTZ | |
-| `visited_at` | TIMESTAMPTZ NULL | |
-| `status` | visit_status NOT NULL | `scheduled`/`completed`/`cancelled`/`no_show` |
-| `employee_uuid` | UUID NULL FK → users.id | conducts visit (FR-7.4) |
+| `scheduled_at` / `visited_at` | TIMESTAMPTZ | |
+| `status` | visit_status | scheduled/completed/cancelled/no_show |
 | `created_at` | TIMESTAMPTZ | |
 
-Vehicle arrangement is **not** a column here — it is a distinct fulfilment workflow (§5.5a) with its own lifecycle, kept separate so the company-managed logistics fields don't mix with the visit record.
-
-### 5.5a `vehicle_arrangements` — mediator-provided site-visit transport (FR-7.1)
-
-One arrangement per visit (1:1). The **existence** of a row means the client requested a pickup; the company then fulfils it. Reachable only via the visit → inquiry chain, so it inherits ownership and line from `property_inquiries`.
+### 5.5a `vehicle_arrangements`
 
 | Column | Type | Notes |
 |---|---|---|
 | `id` | UUID PK | |
-| `visit_uuid` | UUID **UNIQUE** FK → property_visits.id | 1:1 with the visit |
-| `pickup_location` | TEXT NULL | **client-set** at request |
-| `pickup_time` | TIMESTAMPTZ NULL | **client-set** at request |
-| `status` | vehicle_status NOT NULL | `requested`→`arranged`→`assigned`→`completed` (+`cancelled`) — **company-managed** |
-| `vehicle_info` | TEXT NULL | make / model / plate — company-set, client-read |
-| `driver_name` | TEXT NULL | company-set, client-read |
-| `driver_mobile` | TEXT NULL | company's driver contact for pickup coordination (not a lead number — no masking) |
-| `arranged_by_uuid` | UUID NULL FK → users.id | Employee/Admin who arranged it |
+| `visit_uuid` | UUID UNIQUE FK → property_visits.id | one arrangement per visit |
+| `pickup_location` / `pickup_time` | TEXT / TIMESTAMPTZ | client requested |
+| `status` | vehicle_status | requested/arranged/assigned/completed/cancelled |
+| `vehicle_info` / `driver_name` / `driver_mobile` | TEXT | company-filled |
+| `arranged_by_profile_uuid` | UUID FK → staff_profiles.id | Admin/Employee |
 | `created_at`/`updated_at` | TIMESTAMPTZ | |
 
-**Write split:** the client sets only `pickup_location`/`pickup_time` (the request); everything else is written by the company (Employee/Admin) and is **read-only to the client**.
-
-### 5.6 `transactions` — unified ledger (cashback + referral + commission payout)
+### 5.6 `transactions` — line-specific ledger
 
 | Column | Type | Notes |
 |---|---|---|
 | `id` | UUID PK | |
-| `user_uuid` | UUID NULL FK → users.id | **SET NULL on de-linked retention** (see §5.10) |
-| `retained_ref` | TEXT NULL | internal reference kept after PII purge |
-| `business_line` | business_line NOT NULL | |
-| `type` | txn_type NOT NULL | `cashback` \| `referral_payout` \| `commission_payout` (commission added by Agent §5.3) |
-| `amount` | NUMERIC NOT NULL | INR |
-| `method` | txn_method NOT NULL | `razorpay` \| `cheque` |
-| `status` | txn_status NOT NULL | `initiated`/`processing`/`paid`/`failed` |
-| `payment_ref` | TEXT NULL | Razorpay payment id **or** cheque number (generic — renamed from `razorpay_payment_id`) |
-| `paid_at` | TIMESTAMPTZ NULL | real-world settlement date (distinct from `created_at`) |
-| `loan_application_uuid` | UUID NULL FK | source for cashback (cashback has no intermediate record, so the link sits here) |
+| `client_profile_uuid` | UUID NULL FK → client_profiles.id | SET NULL on de-link |
+| `retained_ref` | TEXT | internal ref after PII purge |
+| `business_line` | business_line NOT NULL | `loans` or `real_estate` |
+| `type` | txn_type | cashback/referral_payout/commission_payout |
+| `amount` | NUMERIC | |
+| `method` | txn_method | razorpay/cheque |
+| `status` | txn_status | initiated/processing/paid/failed |
+| `payment_ref` | TEXT | razorpay id or cheque no |
+| `paid_at` | TIMESTAMPTZ | settlement date |
+| `loan_application_uuid` | UUID NULL FK | cashback source |
 | `created_at` | TIMESTAMPTZ | |
 
-> **Payout-link convention.** A payout transaction is linked from its **source record** where one exists — `referrals.reward_txn_uuid` (referral payout) and `commissions.payout_txn_uuid` (commission payout). There is no two-way FK. **Cashback** has no intermediate record, so its single link lives here as `loan_application_uuid`. The earlier `referral_uuid` column was dropped as redundant with `referrals.reward_txn_uuid`. Each source→payout relationship is 1:0..1.
+### 5.7 `referral_codes` — one per client profile or identity
 
-### 5.7 `referral_codes` — one per client (FR-9.2)
+For MVP, one referral code is generated per `auth_user` and may be filtered by line at conversion. If the business later wants separate Loan/Real Estate referral campaigns, this can be moved to one code per `client_profile_uuid`.
 
-| Column | Type | Notes |
-|---|---|---|
-| `user_uuid` | UUID PK FK → users.id | |
-| `code` | TEXT UNIQUE NOT NULL | generated short code; client mobile usable as alias |
-| `created_at` | TIMESTAMPTZ | |
+### 5.8 `referrals` — conversion-gated
 
-### 5.8 `referrals` — conversion-gated (FR-9.3)
-
-| Column | Type | Notes |
-|---|---|---|
-| `id` | UUID PK | |
-| `referrer_user_uuid` | UUID FK → users.id | |
-| `referred_mobile` | TEXT | |
-| `referred_lead_uuid` | UUID NULL FK → leads.id | set when the referred person becomes a lead |
-| `conversion_status` | enum | `pending`/`converted`/`not_converted` |
-| `reward_txn_uuid` | UUID NULL FK → transactions.id | set only on conversion → payout |
-| `created_at` | TIMESTAMPTZ | |
-
-Reward is written **only** when `conversion_status = converted` — refer ten, one converts, one payout (FR-9.3).
+Referrals store `referrer_auth_user_uuid`, `referred_mobile`, optional `referred_lead_uuid`, `business_line`, and `reward_txn_uuid`. Reward payout is executed by Admin.
 
 ### 5.9 `notifications` & `support_tickets`
 
-`notifications`: `id` · `user_uuid` FK · `business_line` · `type` · `title` · `body` · `deep_link` (redirect target, FR-11.2) · `read_at` NULL · `created_at`. Delivery via VAPID web push (stack).
-
-`support_tickets`: `id` · `user_uuid` NULL FK · `category` (`forgot_password`/`otp_issue`/`lost_mobile`/`general`) · `subject` · `body` · `status` (`open`/`in_progress`/`resolved`) · `handled_by_uuid` NULL FK · `created_at`/`updated_at`. **Login/OTP/lost-mobile tickets routed exclusively to Admin** (FR-14.2); lost-mobile is the auth §6.5 number-change path.
+Notifications may be identity-level (`auth_user_uuid`) or line-specific (`client_profile_uuid` + `business_line`). Support tickets use `auth_user_uuid` for login/mobile issues and `client_profile_uuid` when the issue relates to a Loan or Real Estate workflow.
 
 ### 5.10 Soft-delete & de-linked retention (SRS 5.1)
 
-On account deletion: personal fields on `users` are erased and `status → soft_deleted`; **financial rows in `transactions` survive**, with `user_uuid` set NULL and `retained_ref` carrying an internal reference only (no PII). Retained ~7 years (CA-confirmed per record type), then purged. Same path for admin-removed suspicious accounts.
-
----
-
+On account deletion, personal fields on `auth_users` and active profiles are erased/soft-deleted. Financial rows in `transactions` survive with `client_profile_uuid` set NULL and `retained_ref` carrying an internal reference only. Retained ~7 years, then purged.
 ## 6. Key flows
 
-1. **Home load** — resolve the client's line(s) from JWT → fetch active banner per layer (default/personalized/action) matched on user_type/interest/location → status summary for each line held (active loan application and/or open inquiries) → 5 latest notifications → referral CTA. A single-line client sees one status summary; a `both` client sees a loans summary and a real-estate summary in their respective areas.
-2. **Loan status** — render `loan_applications.status` as a full timeline (§4.1); `on_hold`/`rejected` show `status_reason`; transaction history (5.3) listed read-only.
-3. **Property inquiry → visit → vehicle** — raise inquiry on an approved listing → request a visit, optionally requesting a pickup (sets `pickup_location`/`pickup_time`, creating a `vehicle_arrangements` row at `requested`) → Employee/Admin schedules the visit and, if requested, arranges transport (`status` → `arranged`/`assigned`, driver + vehicle filled in) → client sees the arrangement read-only.
-4. **Referral** — view code, share via `wa.me` deep link, track referrals; cashback lands in `transactions` only on conversion.
-5. **Transactions** — unified read-only ledger filtered to own `user_uuid`.
-6. **Notifications** — list, mark-read (`read_at`), deep-link redirect (FR-11.2).
-7. **Support** — raise ticket; lost-mobile/OTP/forgot-password categories auto-route to Admin.
-
----
-
+1. **Home load** — resolve `auth_user_uuid` from JWT → fetch the customer's available `client_profiles` → show profile/line switcher → load the selected profile's banner stack, status summary, notifications, and referral CTA.
+2. **Add missing line** — an existing customer selects the other line → system creates the missing `client_profiles` row after validation → the UI now shows both line surfaces, still as separate profiles.
+3. **Loan status** — render `loan_applications.status` for the active Loan profile as a full timeline; `on_hold`/`rejected` show `status_reason`; transaction history is read-only.
+4. **Property inquiry → visit → vehicle** — raise inquiry on an approved listing through the Real Estate profile → request a visit and optional pickup → Employee/Admin schedules and fulfils the visit/vehicle arrangement → client sees the arrangement read-only.
+5. **Referral** — view code, share via `wa.me` deep link, track referrals; payout lands in `transactions` only after conversion and Admin approval.
+6. **Transactions** — read-only ledger filtered by active `client_profile_uuid` and `business_line`, with optional identity-level combined view.
+7. **Notifications** — list, mark-read, deep-link redirect.
+8. **Support** — raise ticket; lost-mobile/OTP/forgot-password categories use `auth_user_uuid` and route to Admin.
 ## 7. Redis usage
 
 **Nothing new.** The locked Redis scope (atomic OTP rate-limiting + JWT blacklist) is unchanged. Unread-notification count is a cheap indexed `COUNT(*) WHERE read_at IS NULL` — it does not justify a cache. Consistent with the cost-discipline principle.
@@ -264,47 +243,40 @@ On account deletion: personal fields on `users` are erased and `status → soft_
 
 ## 8. RLS handoff
 
-After token validation the FastAPI dependency sets the session context (from Auth §13):
+After token validation the FastAPI dependency sets the identity context and, for line-specific screens, the active profile context:
 
 ```sql
-SET LOCAL app.user_uuid     = '<uuid>';
-SET LOCAL app.role          = '<role>';
-SET LOCAL app.business_line = '<loans|real_estate|both>';
+SET LOCAL app.auth_user_uuid       = '<uuid>';
+SET LOCAL app.role                 = '<role>';
+SET LOCAL app.client_profile_uuid  = '<uuid|null>';
+SET LOCAL app.business_line        = '<loans|real_estate|null>';
 ```
 
-Client-owned tables filter on **own-records only** — `user_uuid` is the client's own UUID:
+Client-owned business tables filter by `client_profile_uuid`, not merely by login identity:
 
 ```sql
--- e.g. on transactions, loan_applications, property_inquiries, notifications…
 USING (
-  user_uuid = current_setting('app.user_uuid')::uuid
+  client_profile_uuid = current_setting('app.client_profile_uuid')::uuid
+  AND business_line = current_setting('app.business_line')::business_line
 )
 ```
 
-The line predicate is **deliberately dropped on client-owned policies**. A client may hold `both` lines, and no business *record* is ever tagged `both` (records are always single-line), so a `business_line = app.business_line` check would match nothing for a `both` client. Because each record the client owns is already individually line-tagged and reachable only through their own `user_uuid`, own-records scoping is sufficient: a client sees exactly their own loan and/or property data and nothing else. Segregation between *teams and lines* is unaffected — it is enforced on the staff/agent policies, which **keep** their single-line predicate.
+This is stricter than the previous own-user policy. A customer with both Loan and Real Estate profiles can access both, but only one profile/line at a time. Admin reporting can count Loan customers from `client_profiles WHERE business_line = 'loans'` and Real Estate customers from `client_profiles WHERE business_line = 'real_estate'`.
 
-> Staff and Agent policies are unchanged and still carry `AND business_line = current_setting('app.business_line')::business_line`. Only the *client* own-data policies drop the line predicate. This is the one place the multi-line-client change touches RLS.
-
-Because `user_uuid` is the client's own, a client physically cannot read another client's data — enforced at the database layer, not just the app. (A "both" client correctly sees their own records across both lines; the UI still presents them as separate green/amber areas.)
-
-`property_visits` and `vehicle_arrangements` carry no `user_uuid` of their own; their RLS policy filters via an `EXISTS` join to the owning `property_inquiries` row, inheriting the same own-records guarantee.
-
----
-
+`property_visits` and `vehicle_arrangements` inherit client visibility through joins to the owning `property_inquiries` row. Identity-level tables such as login events and password reset use `auth_user_uuid`; line-specific workflow tables use `client_profile_uuid`.
 ## 9. Decisions log & open items
 
 ### Locked
-1. **Line-scoped surfaces, one account** — a client holds loans, real estate, or both; the line is a per-record fact, not a cage on the account. Loan surface is green, real-estate surface is amber, never mixed on one working screen. A `both` client switches between the two areas under a single login (no second account / second mobile). *(Revises the earlier "single-line adaptive shell"; Auth decisions 6/8/9 updated accordingly.)*
-2. **One active loan journey** — partial UNIQUE on `loan_applications.user_uuid` for non-terminal status; history retained.
-3. **Full internal pipeline shown** — client sees journey status verbatim (§4); internal actor identity + notes stay role-gated.
-4. **Multiple concurrent property inquiries** — no single-active constraint on the RE side.
-5. **Unified `transactions` ledger** — one table, `type` discriminator (`cashback`/`referral_payout`/`commission_payout`); generic `payment_ref` + `paid_at`; payout links live on the source record (see §5.6).
-6. **Referral identifier** — generated short `code` (one per client), client mobile usable as alias.
-7. **Vehicle arrangement** — dedicated `vehicle_arrangements` table (1:1 with a visit), not columns on `property_visits`. Client sets only the pickup request; the company fulfils it and the client sees it read-only.
-8. **Client RLS is own-records only** (§8) — the line predicate is dropped on client-owned policies (no record is ever tagged `both`); staff/agent policies keep their single-line predicate.
+1. **No `business_line = both`** — customers with both products have two `client_profiles` rows under one login identity.
+2. **One active loan journey per Loan profile** — partial UNIQUE on `loan_applications.client_profile_uuid` for non-terminal status.
+3. **Full internal pipeline shown** — client sees journey status verbatim; internal actor identity and internal notes stay role-gated.
+4. **Multiple concurrent property inquiries** — allowed under the Real Estate profile.
+5. **Unified transactions ledger** — one table, but every row is line-tagged and optionally profile-linked.
+6. **Referral payout execution** — Admin executes payout; Sub Admin may manage content/rules only.
+7. **Vehicle arrangement** — dedicated table, not columns on `property_visits`.
+8. **Client RLS is profile + line scoped** — business queries use `client_profile_uuid` and `business_line`.
+9. **Agent-introduced leads do not auto-expire** — they remain attributed until fulfilled/closed/Admin manual release.
 
 ### Open
-A. **Lead-expiry duration (FR-4.6)** — the `expiry_at` window for agent leads is an operational number to confirm with the client.
-B. **`status_reason` visibility for `rejected`** — confirm whether the bank's rejection reason is surfaced to the client verbatim or softened (compliance/UX call).
-C. **Banner match precedence** — when a user qualifies for multiple personalized banners, confirm the tie-break (most-recent vs priority field). Owned by the Banner module but consumed here.
-D. **When is "both" chosen** — confirm whether a client picks loans / real estate / both only at registration (line set then fixed), or may start single-line and *add* the other line later from their dashboard. The latter is friendlier but makes a client's line set one-directionally mutable (single → both), which affects the "immutable" wording elsewhere. Recommendation: allow add-later, since it rides on the same own-records RLS and only requires issuing the second journey.
+A. **`status_reason` visibility for `rejected`** — confirm whether the bank's rejection reason is surfaced verbatim or softened.
+B. **Banner match precedence** — when a user qualifies for multiple personalized banners, confirm tie-break priority.
