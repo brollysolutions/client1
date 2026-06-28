@@ -15,3 +15,5 @@ class Base(DeclarativeBase):
 
 
 from app.models.user import User  # noqa
+from app.models.auth import RefreshToken, AuthEvent  # noqa
+from app.models.profile import ClientProfile, StaffProfile, AgentApplication, AgentProfile  # noqa

@@ -2,46 +2,55 @@
 
 **Loans & Real Estate Platform**
 Web-only · FastAPI + Next.js · PostgreSQL + Redis
-Status: Design — pending sign-off on open items (Section 12)
+Status: Design — signed off for MVP build, v1.4 profile-based line segregation
 
 ---
 
 ## 1. Scope
 
-This document specifies the complete authentication and account-onboarding subsystem: how each of the six roles gains access, the screens involved, the user identifier scheme, every auth flow, the data model, Redis usage, the API surface, session/JWT design, and the handoff into Row-Level Security.
+This document specifies the complete authentication and account-onboarding subsystem: how login identities are created, how line-specific client/staff/agent profiles are attached, the screens involved, identifier schemes, every auth flow, the data model, Redis usage, the API surface, session/JWT design, and the handoff into Row-Level Security.
 
 Telephony removal does not affect this subsystem — OTP-over-SMS is independent of the call/recording stack that was cut.
 
 ---
 
-## 2. Two access models
+## v1.4 Final Database Segregation Decision
 
-There are exactly **two ways** an account comes into existence:
+The database no longer uses `business_line = both`. The final schema separates **login identity** from **business-line participation**:
 
-| Model | Roles | OTP involved? |
+- `auth_users` stores login identity only: mobile number, password hash, verification state, account status, and audit/security fields.
+- `client_profiles` stores one row per client per business line. A person who uses Loans and Real Estate has two rows under the same `auth_user_uuid`: one `loans`, one `real_estate`.
+- `agent_profiles` stores one row per approved agent per business line. Agent capability is line-specific and never `both`.
+- `staff_profiles` stores Telecaller/Employee/Sub Admin/Admin capability and scope. Telecaller and Employee rows are single-line; Admin and Sub Admin are platform-scoped but do not use a `both` enum value.
+- All business records keep a single immutable `business_line` value: `loans` or `real_estate` only.
+
+This gives the client the required separation: Loans and Real Estate remain separately reportable, separately permissioned, and separately routed, while the user can still log in with one mobile number.
+
+## 2. Account and profile creation models
+
+There is one login identity model and multiple profile models:
+
+| Model | Creates | OTP involved? |
 |---|---|---|
-| **Self-registration** (public) | Client | Yes — phone verification |
-| **Claim an agent-introduced lead** (variant of self-registration) | Client | Yes — OTP to the lead's own number binds the existing lead to the new account (§6.1a) |
-| **Admin-provisioned** | Sub Admin, Telecaller, Employee, Admin | No |
-| **Application + approval** (hybrid) | Agent | Yes at application; account goes live only on Admin approval |
+| **Login identity** | `auth_users` row with mobile/password | Yes for public clients/agents; no for provisioned staff |
+| **Client self-registration** | one or two `client_profiles` rows | Yes — phone verification |
+| **Claim an agent-introduced lead** | missing `auth_users` + correct `client_profiles` row, then binds lead | Yes — OTP to the lead's own number |
+| **Admin-provisioned staff** | `auth_users` + `staff_profiles` | No SMS OTP |
+| **Agent application + approval** | `agent_applications` → `agent_profiles` | Yes at application; account/profile goes live only on Admin approval |
 
-Consequence: **2Factor.in SMS spend is bounded to client registration (including lead claims), client password resets, and agent-application phone verification.** Internal staff accounts never trigger an SMS.
-
----
-
+Consequence: **2Factor.in SMS spend is bounded to public registration/claim flows, password resets, and agent-application phone verification.** Internal staff accounts never trigger an SMS.
 ## 3. Roles → access path
 
-| Role | How the account is created | First credential |
-|---|---|---|
-| **Client** | Self-registers via `/register/*`, **or** claims an agent-introduced lead by registering with that number (§6.1a) | Password they set themselves |
-| **Admin** | Provisioned out-of-band at deployment | Pre-set, forced reset on first login |
-| **Sub Admin** | Admin creates → shares credentials | Temp password, forced reset |
-| **Telecaller** | Admin creates → shares credentials | Temp password, forced reset |
-| **Employee** | Admin creates → shares credentials | Temp password, forced reset |
-| **Agent** | Public application → Admin approval → credentials issued | Temp password, forced reset |
+| Role/capability | How it is created | Stored in | First credential |
+|---|---|---|---|
+| **Client** | Self-registers, or claims an agent-introduced lead | `auth_users` + `client_profiles` | Password they set themselves |
+| **Admin** | Provisioned out-of-band at deployment | `auth_users` + platform `staff_profiles` | Pre-set, forced reset |
+| **Sub Admin** | Admin creates → shares credentials | `auth_users` + platform `staff_profiles` | Temp password, forced reset |
+| **Telecaller** | Admin creates → shares credentials | `auth_users` + line-specific `staff_profiles` | Temp password, forced reset |
+| **Employee** | Admin creates → shares credentials | `auth_users` + line-specific `staff_profiles` | Temp password, forced reset |
+| **Agent** | Public application → Admin approval | `auth_users` + line-specific `agent_profiles` | Temp password or password set after approval |
 
----
-
+A single `auth_users` row can have multiple profile rows, but each profile row is line-specific except platform Admin/Sub Admin profiles.
 ## 4. Screens / routes
 
 Four unique screens. The OTP and set-password steps are shared components driven by a `purpose` param (`register` | `reset`), not duplicated.
@@ -62,38 +71,52 @@ AUTHENTICATED (gate)
 
 ---
 
-## 5. User identifier — "Customer ID" / User ID
+## 5. Identifier scheme — login identity vs profile codes
+
+The public identifier is no longer treated as one universal `users.user_id`. In v1.4, identifiers live at the correct level:
+
+| Identifier | Table | Purpose | Line-specific? |
+|---|---|---|---|
+| `auth_users.id` | `auth_users` | internal login UUID | no |
+| `client_profiles.customer_code` | `client_profiles` | customer-facing profile ID | yes |
+| `agent_profiles.agent_code` | `agent_profiles` | agent-facing code | yes |
+| `staff_profiles.staff_code` | `staff_profiles` | staff/admin display/search code | depends on scope |
 
 ### 5.1 Format
 
+Recommended profile-code format:
+
+```text
+{PREFIX}{4-5 base32 chars}{FIRST_NAME}
+
+Examples:
+  CL-LN7K9FJOHN     Loan client profile
+  CL-RE8Q2MJOHN     Real Estate client profile
+  AG-LNX4MQRAVI     Loan agent profile
+  AG-RE2W8RPRIYA    Real Estate agent profile
+  TC-LNQ8RPPRIYA    Loan telecaller profile
 ```
-{ROLE_PREFIX}{4 base32 chars}{FIRST_NAME}
 
-Examples:  CL7K9FJOHN   AGX4MQRAVI   TCQ8RPPRIYA
-           └┘└──┘└──────┘
-          prefix code  name
-            2    4    rest
+The code is display/search only and is never used as a foreign key. All joins use UUID primary keys.
 
-Parsing is position-based and unambiguous: chars 0–1 = role prefix,
-chars 2–5 = base32 code, chars 6+ = first-name hint.
-```
+### 5.2 Encoding
 
-| Role | Prefix |
+The random middle portion uses Crockford base32, generated with `secrets.randbits`. Collision handling relies on a UNIQUE constraint on the code column; on insert collision, regenerate and retry.
+
+### 5.3 Capacity
+
+Use 5 base32 chars for client profile codes if a million-profile target is realistic. Staff and agent codes can remain 4 characters unless the client expects very large staff/agent counts.
+
+### 5.4 When generated
+
+| Event | Code issued |
 |---|---|
-| Admin | `AD` |
-| Sub Admin | `SA` |
-| Agent | `AG` |
-| Telecaller | `TC` |
-| Employee | `EM` |
-| Client | `CL` |
+| Client creates a Loan profile | `client_profiles.customer_code` with Loan prefix |
+| Client creates a Real Estate profile | `client_profiles.customer_code` with Real Estate prefix |
+| Admin creates staff | `staff_profiles.staff_code` |
+| Agent application approved | `agent_profiles.agent_code` |
 
-### 5.2 Encoding (YouTube-style, opaque)
-
-The 4 middle characters are a **random 20-bit integer encoded in Crockford base32** — this is the only part that carries uniqueness. The trailing first-name is a **cosmetic readability hint**, not part of the uniqueness guarantee (two users named John get different base32 codes). The base32 portion is deliberately opaque: sequential IDs are guessable and leak user counts; encoded random IDs are not.
-
-```python
-import secrets, re
-
+Codes are immutable once issued. A Client → Agent conversion does not rewrite the client profile; it creates an additional `agent_profiles` row.
 # Crockford base32: 32 symbols, excludes I L O U (avoids 0/O, 1/I/L confusion)
 CROCKFORD = "0123456789ABCDEFGHJKMNPQRSTVWXYZ"
 
@@ -161,123 +184,102 @@ The public `user_id` is **immutable** after creation. It is display/search only 
 
 ```
 Step 1 — /register/details
-  Input: first_name, last_name, mobile, line  (line ∈ loans | real_estate | both)
+  Input: first_name, last_name, mobile, selected_lines[]
+         selected_lines ⊆ {loans, real_estate}; may contain one or both
   Server: normalize mobile → E.164
-          check users.mobile uniqueness
-            ├─ taken  → "already registered"
-            └─ free   → generate OTP, store HASH in Redis (TTL 5 min)
-                        send via 2Factor.in → go to Step 2
+          check auth_users.mobile
+            ├─ no auth user → generate OTP, store hash in Redis, send SMS
+            └─ existing auth user → go to add-line flow after login/OTP verification
 
 Step 2 — /register/verify-otp
   Input: otp
-  Server: compare to Redis hash, decrement attempt counter (max 5)
-            ├─ valid   → issue registration_token (JWT, 10 min)
-            │            claims: {first_name, last_name, mobile, line, purpose:register}
-            │            → go to Step 3
-            └─ invalid → error; allow resend (max 2, then 15-min lock)
+  Server: compare to Redis hash, decrement attempt counter
+            ├─ valid   → issue registration_token claims:
+            │            {first_name, last_name, mobile, selected_lines, purpose:register}
+            └─ invalid → error; allow resend limits
 
 Step 3 — /register/set-password
   Input: registration_token, password, confirm
-  Server: validate token → generate user_id (CL……)
-          INSERT users row (status=active, phone_verified_at=now,
-                            business_line = line from token)   -- loans | real_estate | both
+  Server: INSERT auth_users row
+          FOR EACH selected line:
+             INSERT client_profiles(auth_user_uuid, business_line, customer_code)
+             create line-specific lead/application/inquiry shell as required
           issue access + refresh JWTs → client dashboard
 ```
 
-The `line` choice is the client's requirement selection (FR-4.3) and sets `users.business_line`. A client may pick **both** — the account then carries `business_line = both` and can hold a loan journey and a property journey at once (records stay single-line; see §7.5). The `registration_token` is a **signed JWT, not a Redis session** — keeps Redis scope unchanged. It is mandatory: without it, a caller could POST straight to `set-password` and skip OTP entirely.
-
+No row receives `business_line = both`. Selecting both creates two rows in `client_profiles` under one login identity.
 ### 6.1a Claim an agent-introduced lead (variant of self-registration)
 
-An agent-introduced lead exists as a `leads` row with `user_uuid = NULL` (no account yet). The lead gains login access — and binds to that pre-existing lead — by registering with **their own** mobile number. An agent may share an **invite link** to start the flow, but the link is onboarding + attribution only; the **OTP to the lead's own number is the gate** that authorizes the bind.
+An agent-introduced lead exists as a `leads` row with `client_profile_uuid = NULL`. The lead gains login access by registering with the lead's own mobile number. An agent may share an invite link, but OTP to the lead's own number is the authorization gate.
 
 ```
 (Optional) Agent shares invite link
-  link carries a stateless signed token: {lead_uuid, origin_agent_uuid, exp}
-  NO DB row is created for the token.
+  signed token: {lead_uuid, origin_agent_profile_uuid, exp}
+  no DB row required for the token
 
-Lead opens the link  (or simply goes to /register with their number)
-Step 1 — /register/details (pre-filled from the token if present)
-  Input: first_name, last_name, mobile   (line is ADOPTED from the lead — no picker)
-  Server: normalize mobile → E.164
-          look up live lead by mobile
-            └─ generate OTP → send via 2Factor.in → go to Step 2
+Lead opens link or registers normally with the same number
+Step 1 — /register/details
+  Server: find live lead by mobile + business_line
+          generate OTP → send SMS
 
 Step 2 — /register/verify-otp
-  Input: otp                              ← proves the registrant owns the number
-  Server: verify → issue registration_token (claims include matched lead_uuid)
+  Server: OTP proves ownership of the lead's phone number
+          issue registration_token with matched lead_uuid + business_line
 
 Step 3 — /register/set-password
-  Input: registration_token, password, confirm
-  Server: generate user_id (CL……)
-          INSERT users row (status=active, phone_verified_at=now,
-                            business_line = lead.business_line)   -- adopted from the lead
-          UPDATE leads SET user_uuid = <new uuid> WHERE id = <matched lead>   -- the bind
-          issue access + refresh JWTs → client dashboard (status now visible)
+  Server: create auth_users if missing
+          create/find client_profiles(auth_user_uuid, lead.business_line)
+          UPDATE leads SET client_profile_uuid = <profile id>
+          issue tokens → client dashboard
 ```
 
-Why this is safe: the bind keys off the **OTP-verified mobile**, not the token. A forwarded or leaked link cannot claim the lead, because the OTP is delivered to the lead's actual number, not to whoever holds the link. Registering normally with the same number performs the identical bind, so the link is an **accelerant, not load-bearing** — if it never arrives, the lead can still self-register and be bound. The partial-UNIQUE on `leads.mobile` (one live lead per number, Client §5.1) means the registration path must **find and bind** the existing lead rather than insert a duplicate. No new schema; the token is a signed JWT in the same family as `registration_token` / `reset_token`.
-
-> If invite sends/opens ever need tracking (agent analytics, debugging "why didn't my lead link"), a small `lead_invites` table can be added later — not required for v1, consistent with the locked Redis/cost discipline.
-
-### 6.2 Admin-provisioned accounts (Sub Admin / Telecaller / Employee)
+A leaked link cannot claim a lead because the OTP goes to the lead's real number. Registering normally with the same number performs the same bind.
+### 6.2 Admin-provisioned accounts (Admin / Sub Admin / Telecaller / Employee)
 
 No OTP, no SMS.
 
 ```
 Admin → /admin/users/create
-  Input: first_name, last_name, mobile, role, business_line
-  Server: generate user_id ({PREFIX}……)
+  Input: first_name, last_name, mobile, role, scope/business_line
+  Server: create auth_users row if the mobile is new
           generate temp password
-          INSERT users row (status=pending_password_reset,
-                            phone_verified_at=null, created_by=<admin uuid>)
-          return temp credentials ONCE on screen
-Admin shares credentials via WhatsApp/call (out-of-band)
+          INSERT staff_profiles:
+             Admin/Sub Admin → platform scope
+             Telecaller/Employee → single business_line only
+          return temp credentials once on screen
 
-First login → password verified → status forces /change-password
-            → user sets own password → status=active → dashboard
+First login → password verified → forced /change-password → dashboard
 ```
 
+Telecaller and Employee profiles must be line-specific. Admin/Sub Admin are platform-scoped; this does not introduce a `both` business-line value.
 ### 6.3 Agent application + approval (hybrid)
 
 ```
 Public → agent application form
   Input: first_name, last_name, mobile, business_line,
-         Aadhaar, PAN, photo, address proof
-         (+ RERA code if real_estate)
-  (mobile OTP-verified during application)
-  Mobile check at submission:
-    • already an agent on this number                 → reject ("already an agent")
-    • single-line client, SAME line as application    → allowed (in-place upgrade on approval)
-    • single-line client, DIFFERENT line              → reject ("this number is a {line} client; an
-                                                          agent in another line needs a different number")
-    • 'both' client on this number                    → reject ("this number holds a multi-line client
-                                                          account; use a different number for the agent
-                                                          account")
-    • new number                                      → allowed
-  Server: INSERT agent_applications (status=pending)
+         Aadhaar, PAN, photo, address proof,
+         RERA code if real_estate
+  Server: OTP-verify mobile during application
+          INSERT agent_applications(status=pending)
 
 Admin → /admin/agents/{id}/approve
-  Resolve applicant by mobile:
-    • mobile is NEW                                   → INSERT users (role=agent,
-                                                          business_line = application line,
-                                                          status=pending_password_reset)
-    • mobile EXISTS, single-line client, SAME line    → in-place upgrade to agent (§7.5)
-    • mobile EXISTS, 'both' client OR different line   → REJECT — agent identity must be a SEPARATE
-                                                          account on a different mobile (§7.5, FR-3.5)
-  generate user_id (AG…); notify applicant (SMS/WhatsApp)
+  Server: create/find auth_users by mobile
+          create agent_profiles(auth_user_uuid, business_line, agent_code,
+                                application_uuid, converted_from_client flag)
+          do not rewrite existing client_profiles
+          notify applicant
 
-Agent first login → forced /change-password → dashboard
+Agent first login → forced /change-password if provisioned → agent dashboard
 ```
 
-Note: an Agent is always **single-line** (never `both`). A `both` client cannot be upgraded in place — flipping the row to one line would strand their other-line journey — so they obtain a separate, single-line agent account on a different mobile, leaving the client account intact (§7.5).
-
+An Agent profile is always line-specific. A person may have one Loan agent profile and/or one Real Estate agent profile only if the business approves that explicitly, but each is a separate row. There is no agent `both` value.
 ### 6.4 Login (unified, all roles)
 
 ```
 /login
   Input: mobile, password
   Server:
-    1. find user by mobile
+    1. find auth_user by mobile
     2. check status:
          soft_deleted | suspended         → reject
          pending_password_reset           → verify pwd, then force /change-password
@@ -321,103 +323,95 @@ Password reset is OTP-based for **every role** — the OTP goes to the account's
 
 ## 7. Data model
 
-> **Naming note — `user_id` vs `user_uuid` (resolved).** In `users`, `user_id` is the **public display string** (`CL7K9FJOHN`). Foreign keys in child tables are named **`user_uuid`** and hold the UUID referencing `users.id` — this keeps the two clearly distinct. All FK joins use the UUID; the public `user_id` is never a foreign key.
+New/central enums: `business_line` (`loans`, `real_estate` only), `profile_scope` (`platform`, `line`), `staff_role`, `profile_status`.
 
-### 7.1 `users`
+### 7.1 `auth_users` — login identity only
 
 | Column | Type | Notes |
 |---|---|---|
-| `id` | UUID PK | internal, FK target, never shown |
-| `user_id` | TEXT **UNIQUE NOT NULL** | `CL7K9FJOHN` — display/search only |
-| `previous_user_id` | TEXT NULL | prior public code retained on role upgrade (e.g. the `CL…` code kept when a client becomes an agent) — see §7.5 |
-| `first_name` | TEXT NOT NULL | |
-| `last_name` | TEXT NOT NULL | |
-| `mobile` | TEXT **UNIQUE NOT NULL** | E.164 — enforces one-number-one-profile (FR-3.5) |
-| `email` | TEXT NULL | optional (FR-3.3) |
-| `password_hash` | TEXT NULL | null only during register window |
-| `role` | role_enum NOT NULL | admin, sub_admin, agent, telecaller, employee, client |
-| `business_line` | business_line_enum NOT NULL | `loans` / `real_estate` / `both`; `both` allowed for admin, sub_admin, and **client**; single line required for agent/telecaller/employee (CHECK). Per-record `business_line` on business tables is always single + immutable. |
-| `status` | status_enum NOT NULL | active, suspended, pending_password_reset, soft_deleted |
-| `phone_verified_at` | TIMESTAMPTZ NULL | null ⇒ provisioned (no OTP) |
-| `last_login_at` | TIMESTAMPTZ NULL | |
-| `created_by` | UUID NULL | admin who provisioned (FK → users.id) |
+| `id` | UUID PK | internal identity UUID |
+| `first_name` / `last_name` | TEXT | profile/account holder |
+| `mobile` | TEXT UNIQUE NOT NULL | E.164; one login per mobile |
+| `email` | TEXT NULL | optional |
+| `password_hash` | TEXT | null only during registration window |
+| `status` | status_enum | active / suspended / pending_password_reset / soft_deleted |
+| `phone_verified_at` | TIMESTAMPTZ NULL | null for provisioned staff until first verification if required |
+| `last_login_at` | TIMESTAMPTZ | |
+| `created_by_uuid` | UUID NULL FK → auth_users.id | Admin provisioning |
 | `created_at` / `updated_at` | TIMESTAMPTZ | |
 
-### 7.2 `refresh_tokens`
+No `business_line` column exists here.
+
+### 7.2 `client_profiles`
 
 | Column | Type | Notes |
 |---|---|---|
-| `id` | UUID PK | |
-| `user_uuid` | UUID FK → users.id | renamed from `user_id` to avoid clash with the public `user_id` |
-| `token_hash` | TEXT | store hash, never the raw token |
-| `issued_at` / `expires_at` | TIMESTAMPTZ | |
-| `revoked` | BOOLEAN | |
-| `replaced_by` | UUID NULL | rotation lineage |
-| `user_agent` / `ip` | TEXT | device binding |
+| `id` | UUID PK | line-specific customer profile |
+| `auth_user_uuid` | UUID FK → auth_users.id | owner login identity |
+| `business_line` | business_line NOT NULL | `loans` or `real_estate` only |
+| `customer_code` | TEXT UNIQUE | customer-facing ID |
+| `status` | profile_status | active/suspended/soft_deleted |
+| `created_at` / `updated_at` | TIMESTAMPTZ | |
 
-### 7.3 `auth_events` (audit)
+Constraint: `UNIQUE (auth_user_uuid, business_line)`.
+
+### 7.3 `staff_profiles`
 
 | Column | Type | Notes |
 |---|---|---|
-| `id` | UUID PK | |
-| `user_uuid` | UUID NULL | FK → users.id; null if a failed login never resolved to a user |
-| `event_type` | TEXT | register, login, login_fail, otp_send, otp_verify, reset, logout, force_reset |
-| `mobile` / `ip` / `user_agent` | TEXT | |
-| `success` | BOOLEAN | |
-| `detail` | JSONB | |
-| `created_at` | TIMESTAMPTZ | |
+| `id` | UUID PK | staff/admin capability row |
+| `auth_user_uuid` | UUID FK → auth_users.id | login identity |
+| `role` | staff_role | admin/sub_admin/telecaller/employee |
+| `scope` | profile_scope | platform for Admin/Sub Admin, line for Telecaller/Employee |
+| `business_line` | business_line NULL | required when `scope = line`; null when platform scope |
+| `staff_code` | TEXT UNIQUE | display/search code |
+| `status` | profile_status | active/suspended |
+| `created_by_uuid` | UUID FK → auth_users.id | Admin |
+| `created_at` / `updated_at` | TIMESTAMPTZ | |
 
 ### 7.4 `agent_applications`
 
 | Column | Type | Notes |
 |---|---|---|
 | `id` | UUID PK | |
-| `first_name` / `last_name` / `mobile` | | |
-| `business_line` | enum | single line — never `both` (Agents are always single-line) |
-| `aadhaar_ref` / `pan_ref` / `photo_ref` / `address_proof_ref` | TEXT | Spaces object keys |
+| `applicant_auth_user_uuid` | UUID NULL FK → auth_users.id | set when mobile already has login |
+| `first_name` / `last_name` / `mobile` | TEXT | application snapshot |
+| `business_line` | business_line NOT NULL | `loans` or `real_estate` only |
+| `aadhaar_ref` / `pan_ref` / `photo_ref` / `address_proof_ref` | TEXT | KYC references |
 | `rera_code` | TEXT NULL | required for real_estate |
-| `status` | enum | pending, approved, rejected |
-| `reviewed_by` / `reviewed_at` | | |
-| `created_at` | TIMESTAMPTZ | |
+| `status` | submission_status | pending/approved/rejected |
+| `reviewed_by_profile_uuid` | UUID FK → staff_profiles.id | Admin profile |
+| `reviewed_at` / `created_at` | TIMESTAMPTZ | |
 
-> OTP is **never** persisted to Postgres — it lives only in Redis.
+### 7.5 `agent_profiles`
 
-### 7.5 Client multi-line, Client → Agent transition & business-line separation
+| Column | Type | Notes |
+|---|---|---|
+| `id` | UUID PK | line-specific agent capability |
+| `auth_user_uuid` | UUID FK → auth_users.id | login identity |
+| `agent_code` | TEXT UNIQUE | AG display/search code |
+| `business_line` | business_line NOT NULL | `loans` or `real_estate` only |
+| `application_uuid` | UUID FK → agent_applications.id | approval source |
+| `converted_from_client` | BOOLEAN | true when same login already had a client profile |
+| `approved_by_profile_uuid` | UUID FK → staff_profiles.id | Admin profile |
+| `kyc_status` | TEXT | pending/verified/rejected |
+| `rera_code` | TEXT NULL | required for real_estate |
+| `status` | profile_status | active/suspended |
+| `created_at` / `updated_at` | TIMESTAMPTZ | |
 
-**Core principle (revised).** `mobile` is UNIQUE, so **one mobile = one account**. What that account's `business_line` may be depends on the role:
+### 7.6 `refresh_tokens`
 
-- **Clients** may be `loans`, `real_estate`, or **`both`**. A `both` client holds a loan journey *and* a property journey under one account. This does **not** weaken segregation: every *record* (lead, application, inquiry, transaction) is tagged to exactly one immutable line, and client RLS is by `user_uuid` (own records). Segregation is a guarantee about records and teams, not a cap on how many products one customer may hold.
-- **Staff (Telecaller, Employee) and Agents** remain **single-line** — their `business_line` is one line and is what keeps the operational teams cleanly separated. Admin and Sub Admin are `both` (cross-line authority / content).
+References `auth_users.id` as `auth_user_uuid`. Refresh token rotation and revocation are unchanged.
 
-A client's `business_line` is set at registration (loans / real_estate / both). Whether a client may later *add* the second line from their dashboard is an open product question (Client doc Open Item D); if allowed, the only mutation permitted is single → `both` (never a switch between single lines).
+### 7.7 `auth_events`
 
-**Client → Agent, same line — in-place upgrade.** A **single-line** client who becomes an agent in **that same line** is upgraded on the existing row:
+References `auth_users.id` when known; otherwise stores mobile/IP/user-agent for unresolved attempts.
 
-| Field | Change on approval |
-|---|---|
-| `role` | `client` → `agent` |
-| `user_id` | new `AG…` code becomes the current public id |
-| `previous_user_id` | old `CL…` code retained for traceability |
-| `business_line` | **unchanged** (already the account's single line) |
-| `id` (UUID) | unchanged |
+### 7.8 Client multi-line and Client → Agent transition
 
-History never breaks — all FKs reference the immutable UUID. Schema impact: the single `previous_user_id` column.
-
-**Client → Agent, `both` client or cross-line — separate account, different mobile.** An Agent is always single-line, so the in-place upgrade applies **only** to a single-line client matching the agent line. Two cases route to a separate account instead:
-
-- A **`both`** client cannot be upgraded in place — flipping the row to one line would strand their other-line journey. They register a **separate, single-line agent account on a different mobile**; the existing `both` client account is left intact with both journeys.
-- A **single-line** client applying as an agent in the **other** line likewise needs a separate account on a different mobile (an account's line is never switched).
-
-This needs no new mechanism: `mobile` is UNIQUE (a second registration on the same number is rejected — "already registered, use a different number"), and an existing account's line is never flipped. The person ends up with two accounts (e.g. a `both` client on mobile A, a loans agent on mobile B), tracked independently.
-
-**Dual identities, resolved.** Because each distinct identity uses its own mobile/account, a person can simultaneously be a client (possibly `both`) and a single-line agent — as separate accounts — with **no normalized `user_roles` table**. The single-row-per-account model holds.
-
-**Constraints:**
-- `role = 'agent'` ⇒ `business_line` is a single line, NOT NULL and never `both` (e.g. `CHECK (role <> 'agent' OR business_line IN ('loans','real_estate'))`); `business_line` is never updated after agent creation.
-- Single line is likewise required for `telecaller` and `employee`; `both` is permitted only for `admin`, `sub_admin`, and `client`.
-
----
-
+- Multi-line client = multiple `client_profiles` rows under one `auth_user`.
+- Client → Agent = add one `agent_profiles` row; never rewrite or delete the client profile.
+- All business tables reference the correct profile UUID (`client_profile_uuid`, `agent_profile_uuid`, or `staff_profile_uuid`) plus a single `business_line`.
 ## 8. Redis keys
 
 All within the previously locked Redis scope (atomic INCR+EXPIRE rate-limiting + JWT blacklist). Nothing added.
@@ -495,14 +489,26 @@ POST /auth/logout                 (jti)                             → blacklis
 ## 10. JWT & session design
 
 **Access token** — short-lived (15 min), sent as Bearer.
-Claims: `sub` (UUID), `user_id`, `role`, `business_line`, `jti`, `exp`.
 
-**Refresh token** — long-lived (30 days), stored as `httpOnly` + `Secure` + `SameSite=Strict` cookie. Hash persisted in `refresh_tokens`. **Rotated on every use** (old token marked revoked, `replaced_by` set). Reuse of a revoked refresh token ⇒ treat as compromise, revoke the whole chain.
+Recommended claims:
+
+```json
+{
+  "sub": "auth_user_uuid",
+  "roles": ["client", "agent", "telecaller"],
+  "client_profile_ids": ["..."],
+  "agent_profile_ids": ["..."],
+  "staff_profile_ids": ["..."],
+  "jti": "...",
+  "exp": "..."
+}
+```
+
+The active profile and line are chosen per request or route guard, not permanently stored as `both` in the token.
+
+**Refresh token** — long-lived (30 days), stored as `httpOnly` + `Secure` + `SameSite=Strict` cookie. Hash persisted in `refresh_tokens`. Rotated on every use.
 
 **Logout** — add `jti` to `jwt_blacklist` in Redis for the access token's remaining life; revoke the refresh token row.
-
----
-
 ## 11. Security controls
 
 - **OTP**: 6 digits, **hashed** in Redis (never plaintext), single-use, 5-attempt cap then invalidate.
@@ -519,34 +525,43 @@ Claims: `sub` (UUID), `user_id`, `role`, `business_line`, `jti`, `exp`.
 
 ### Resolved (locked for build)
 
-1. **Login model** — password-primary. OTP is used for registration and password reset **only**, never at login.
-2. **No OTP-login fallback.** Forgotten passwords are recovered via OTP-based reset (§6.5), not a passwordless login.
-3. **Refresh-token lifetime** — 30 days (rotated on every use).
-4. **User-id format** — `{prefix}{4 base32}{first_name}` (e.g. `CL7K9FJOHN`); 4 base32 chars (~1.05M per prefix) is sufficient for now; name capped at 10 chars, cosmetic.
-5. **`user_id` naming** — public id stays `user_id`; child-table FK columns are named **`user_uuid`** (UUID → `users.id`). Applied throughout §7 and §13.
-6. **Client → Agent** — branch on the client's lines (§7.5). A **single-line** client applying as an agent in the **same** line is upgraded **in place** (one account, `role` flips to agent, new `AG…` code, old `CL…` in `previous_user_id`, history preserved via the immutable UUID). A **`both`** client, or a single-line client applying in the **other** line, gets a **separate single-line agent account on a different mobile**, leaving the client account intact. Agents are never `both`. Schema impact: the single `previous_user_id` column.
-7. **OTP resend** — 2 resends max, then 15-min lock (§8). **Login** — 5 failed attempts, then 15-min lock (§6.6).
-8. **Staff/Agent business-line separation** — Telecallers, Employees, and Agents are **single-line**; their `business_line` is one immutable line. An Agent identity in a different line requires a separate account on a different mobile (§7.5). Enforced by existing `mobile` UNIQUE + single-line CHECK — **no new schema**. For `role = 'agent'`, `business_line` is a single line, NOT NULL and never `both`.
-9. **Simultaneous identities** — a person can hold a client identity (possibly `both`) and a single-line agent identity at once by using **separate mobiles/accounts**. No normalized `user_roles` table is needed; the single-row-per-account model stands.
-10. **Multi-line clients** — a client account may be `loans`, `real_estate`, or **`both`**, chosen at registration (§6.1, FR-4.3). Records stay single-line and immutable; client RLS is own-records only (line predicate dropped on client policies — Client doc §8). Replaces the earlier "client uses a second mobile for the second line" rule. Staff/agent segregation is unaffected.
-11. **Agent-introduced lead claim** (§6.1a) — an agent shares an invite link (stateless signed token: lead + agent + expiry, no DB row); the lead registers with their own number and is bound to the pre-existing lead by **OTP to that number**. The link is onboarding + attribution only; the OTP is the security gate, so a leaked/forwarded link cannot claim the lead. Registering normally with the same number binds identically. No schema change.
-12. **`business_line` enum** — explicit value set `{loans, real_estate, both}`, NOT NULL on `users` with a role CHECK: `both` for admin/sub_admin/client, single line for agent/telecaller/employee. This **closes former Open Item A** and unblocks final RLS (Admin doc §2.1).
+1. **Login model** — password-primary. OTP is used for registration, lead claim, agent application verification, and password reset only.
+2. **Identity/profile split** — `auth_users` stores mobile/password login only; line-specific access lives in `client_profiles`, `agent_profiles`, and `staff_profiles`.
+3. **No `business_line = both`** — business-line enum contains only `loans` and `real_estate`.
+4. **Multi-line clients** — one `auth_user`, two `client_profiles` rows.
+5. **Client → Agent** — keep client profile immutable; create `agent_profiles` row linked to the same `auth_user`.
+6. **Agent-introduced lead claim** — lead binds to the correct `client_profile_uuid` by OTP-verified mobile.
+7. **Agent-owned lead expiry removed** — no automatic open-pool release; Admin manual release only under exception.
+8. **Staff profile scoping** — Telecaller and Employee are line-specific; Admin/Sub Admin are platform-scoped.
+9. **Referral payout execution** — Admin executes payout; Sub Admin manages content/rules only.
+10. **Employee task creation** — Admin creates Employee tasks for MVP.
+11. **Document verification** — Employee collects; Admin verifies completeness; bank verifies final loan acceptance/sanction.
+12. **Refresh-token lifetime** — 30 days, rotated on every use.
+13. **OTP resend** — 2 resends max, then 15-minute lock.
 
 ### Still open
 
-A. *(closed — see Resolved item 12.)* The `business_line` mapping for every role is settled: `{loans, real_estate, both}`, NOT NULL, `both` for admin/sub_admin/client and single line for agent/telecaller/employee. RLS context (`app.business_line`, §13) can now be finalised.
-B. **When a client may choose `both`** — registration-only (line fixed thereafter) vs. allowing a single-line client to add the other line later from the dashboard (single → `both` only). Friendlier if add-later is allowed; affects "immutable" wording. Tracked in Client doc Open Item D.
-
----
-
+A. **Rejected-status reason wording** — confirm whether bank rejection reasons are shown verbatim or softened.
+B. **Banner precedence** — confirm priority rule when multiple personalized banners match.
 ## 13. RLS handoff (wiring into data segregation)
 
-After token validation, a FastAPI dependency sets per-request Postgres session variables from the JWT claims, so Row-Level Security enforces business-line isolation at the database layer:
+After token validation, a FastAPI dependency sets identity context and the active profile context for the current request:
 
 ```sql
-SET LOCAL app.user_uuid     = '<uuid>';
-SET LOCAL app.role          = '<role>';
-SET LOCAL app.business_line = '<loans|real_estate|both>';
+SET LOCAL app.auth_user_uuid      = '<uuid>';
+SET LOCAL app.role                = '<role>';
+SET LOCAL app.client_profile_uuid = '<uuid|null>';
+SET LOCAL app.agent_profile_uuid  = '<uuid|null>';
+SET LOCAL app.staff_profile_uuid  = '<uuid|null>';
+SET LOCAL app.business_line       = '<loans|real_estate|null>';
+SET LOCAL app.platform_scope      = '<true|false>';
 ```
 
-RLS policies on business-scoped tables filter on `app.business_line` for **staff and agents** (single-line), while **client** policies filter on `app.user_uuid` (own records) and **drop the line predicate** — a `both` client owns records across both lines, and no record is ever tagged `both`, so own-records scoping is both correct and sufficient (Client doc §8). Admin policies bypass the line filter (Admin doc §7). The immutable per-record `business_line` discriminator (set at record creation) remains the segregation anchor. This is the point where auth connects to the broader single-DB + discriminator + RLS segregation design.
+Policies:
+
+- Client tables filter by `client_profile_uuid` and `business_line`.
+- Agent tables filter by `agent_profile_uuid` and `business_line`.
+- Telecaller/Employee tables filter by `staff_profile_uuid` and `business_line`.
+- Admin/Sub Admin platform-scope policies use `platform_scope = true`; Admin may bypass line filters, while Sub Admin still acts only on allowed content/marketing tables.
+
+This is the final v1.4 segregation model: one login identity, separate line-specific profile rows, and no `both` database value.

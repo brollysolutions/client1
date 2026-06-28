@@ -3,7 +3,7 @@ import uuid
 from datetime import datetime
 from typing import Optional
 
-from sqlalchemy import CheckConstraint, DateTime, ForeignKey, String
+from sqlalchemy import DateTime, ForeignKey, String
 from sqlalchemy.dialects.postgresql import ENUM, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -38,23 +38,14 @@ status_enum = ENUM(UserStatus, name="status_enum", create_type=False)
 
 
 class User(Base):
-    __tablename__ = "users"
+    __tablename__ = "auth_users"
 
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         primary_key=True,
         default=uuid.uuid4,
     )
-    user_id: Mapped[str] = mapped_column(
-        String,
-        unique=True,
-        nullable=False,
-        index=True,
-    )
-    previous_user_id: Mapped[str | None] = mapped_column(
-        String,
-        nullable=True,
-    )
+
     first_name: Mapped[str] = mapped_column(
         String,
         nullable=False,
@@ -77,14 +68,7 @@ class User(Base):
         String,
         nullable=True,
     )
-    role: Mapped[UserRole] = mapped_column(
-        role_enum,
-        nullable=False,
-    )
-    business_line: Mapped[BusinessLine] = mapped_column(
-        business_line_enum,
-        nullable=False,
-    )
+
     status: Mapped[UserStatus] = mapped_column(
         status_enum,
         nullable=False,
@@ -98,9 +82,9 @@ class User(Base):
         DateTime(timezone=True),
         nullable=True,
     )
-    created_by: Mapped[uuid.UUID | None] = mapped_column(
+    created_by_auth_user_uuid: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True),
-        ForeignKey("users.id", ondelete="SET NULL"),
+        ForeignKey("auth_users.id", ondelete="SET NULL"),
         nullable=True,
     )
     created_at: Mapped[datetime] = mapped_column(
@@ -115,17 +99,7 @@ class User(Base):
         onupdate=datetime.utcnow,
     )
 
-    creator: Mapped[Optional["User"]] = relationship(
+    created_by_user: Mapped[Optional["User"]] = relationship(
         "User",
         remote_side=[id],
-    )
-
-    __table_args__ = (
-        CheckConstraint(
-            "(role IN ('agent', 'telecaller', 'employee') "
-            "AND business_line IN ('loans', 'real_estate')) "
-            "OR (role IN ('admin', 'sub_admin', 'client') "
-            "AND business_line IN ('loans', 'real_estate', 'both'))",
-            name="business_line_by_role",
-        ),
     )

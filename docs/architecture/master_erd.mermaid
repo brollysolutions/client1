@@ -1,94 +1,54 @@
 %% ============================================================
-%% Loans & Real Estate Platform — MASTER ER DIAGRAM
-%% Consolidated from 9 design docs · Web-only · FastAPI + Next.js
-%% PostgreSQL + RLS (single-DB + business_line discriminator)
-%% Supersedes the per-doc Eraser diagrams.
+%% Loans & Real Estate Platform — MASTER ER DIAGRAM v1.4
+%% Web-only · FastAPI + Next.js · PostgreSQL + Redis
+%% FINAL DATABASE SEGREGATION MODEL
 %% ------------------------------------------------------------
-%% DECISIONS BAKED IN (this round):
-%%  1. business_line_enum = {loans, real_estate, both}; NOT NULL on
-%%     users with a role CHECK. 'both' allowed for admin, sub_admin,
-%%     AND client (a client may hold loan + property journeys under
-%%     ONE account; per-record business_line still single + immutable).
-%%     Single line REQUIRED for agent/telecaller/employee — staff and
-%%     agents stay line-scoped (team-level segregation is the real wall).
-%%  2. property_visits.employee_uuid DROPPED — tasks is the single
-%%     source of truth for assignment (join via property_visit_uuid).
-%%  3. transactions: razorpay_payment_id -> payment_ref (generic),
-%%     + paid_at added. txn_type includes commission_payout.
-%%  4. vehicle_arrangements UNCHANGED — stays on arranged_by_uuid,
-%%     not folded into tasks.
-%%  5. tasks.assigned_by_uuid restricted to Admin (app-level + note).
-%%  6. CLIENT -> AGENT transition (agents are single-line):
-%%     - single-line client applying as agent in the SAME line
-%%       => in-place upgrade: role flips client->agent, business_line
-%%          unchanged, new AG user_id issued, old code kept in
-%%          previous_user_id, UUID unchanged (history preserved).
-%%     - 'both' client (or single-line client applying in the OTHER
-%%       line) => SEPARATE agent account on a DIFFERENT mobile; the
-%%       existing client account is left intact with its journeys.
-%%       Agents are NEVER 'both'. No user_roles table — mobile UNIQUE
-%%       + immutable business_line enforce it (generalizes old rule:
-%%       one person = loan client + RE agent via two mobiles).
-%%  7. AGENT-INTRODUCED LEAD -> CLIENT LOGIN ("claim" flow):
-%%     lead is created with user_uuid NULL. Agent shares an invite LINK
-%%     (stateless signed token: lead + origin_agent + expiry; NO DB row).
-%%     Lead opens it -> pre-filled register -> OTP to THEIR phone ->
-%%     set password -> users row created (business_line ADOPTED from the
-%%     lead, no line-picker) -> leads.user_uuid bound by the OTP-VERIFIED
-%%     mobile. Link = onboarding + attribution only; OTP is the gate (a
-%%     leaked/forwarded link cannot claim — OTP goes to the number).
-%%     Registering normally with the same number binds the lead the same
-%%     way (link is an accelerant, not load-bearing). No schema change.
-%%  8. NOTIFICATIONS + SUPPORT_TICKETS added (were specified in Client
-%%     §5.9 but missing from earlier ERD revisions). notifications =
-%%     per-user web-push feed (deep_link redirect, FR-11.2). support_
-%%     tickets = client/employee/agent issues; login/OTP/lost-mobile
-%%     routed exclusively to Admin (handled_by_uuid, FR-14.2).
-%%  9. PAYOUT-LINK CONVENTION (one direction per pair, no two-way FK):
-%%     the link to a payout transaction lives on the SOURCE record's
-%%     *_txn_uuid where an intermediate record exists —
-%%     referrals.reward_txn_uuid, commissions.payout_txn_uuid. Cashback
-%%     has NO intermediate record, so its single link sits on
-%%     transactions.loan_application_uuid. transactions.referral_uuid
-%%     DROPPED (was redundant with referrals.reward_txn_uuid). Every
-%%     source->payout edge is 1:0..1 (cashback/reward/payout all o|).
+%% v1.4 decisions baked in:
+%%  1. No database row uses business_line = both.
+%%  2. auth_users stores login/mobile/password identity only.
+%%  3. client_profiles stores one row per client per line.
+%%     A customer using Loans + Real Estate has two rows under one auth_user.
+%%  4. agent_profiles stores one row per approved agent per line.
+%%  5. staff_profiles stores Admin/Sub Admin/Telecaller/Employee capability.
+%%     Telecaller/Employee are line-scoped; Admin/Sub Admin are platform-scoped.
+%%  6. Business records carry one immutable business_line: loans or real_estate.
+%%  7. Agent leads do not auto-expire; Admin can manually release attribution.
+%%  8. Employee tasks are Admin-created for MVP.
 %% ============================================================
 
 erDiagram
 
-    %% ---------- AUTH ----------
-    users {
+    %% ---------- AUTH / IDENTITY ----------
+    auth_users {
         uuid id PK
-        text user_id UK "CL7K9FJOHN — display only"
-        text previous_user_id "kept on role upgrade"
         text first_name
         text last_name
-        text mobile UK "E.164 — one-number-one-profile"
+        text mobile UK "E.164; one login identity"
         text email "optional"
-        text password_hash "null only in register window"
-        role_enum role
-        business_line_enum business_line "NOT NULL; both=admin/subadmin/client"
-        status_enum status
-        timestamptz phone_verified_at "null => provisioned"
+        text password_hash
+        status_enum status "active/suspended/pending_reset/soft_deleted"
+        timestamptz phone_verified_at
         timestamptz last_login_at
-        uuid created_by FK
+        uuid created_by_auth_user_uuid FK
         timestamptz created_at
         timestamptz updated_at
     }
+
     refresh_tokens {
         uuid id PK
-        uuid user_uuid FK
+        uuid auth_user_uuid FK
         text token_hash
         timestamptz issued_at
         timestamptz expires_at
         boolean revoked
-        uuid replaced_by "rotation lineage"
+        uuid replaced_by
         text user_agent
         text ip
     }
+
     auth_events {
         uuid id PK
-        uuid user_uuid FK "null if unresolved"
+        uuid auth_user_uuid FK "null if unresolved"
         text event_type
         text mobile
         text ip
@@ -97,48 +57,92 @@ erDiagram
         jsonb detail
         timestamptz created_at
     }
+
+    %% ---------- PROFILE ROWS ----------
+    client_profiles {
+        uuid id PK
+        uuid auth_user_uuid FK
+        business_line_enum business_line "loans | real_estate only"
+        text customer_code UK "line-specific customer ID"
+        profile_status status
+        timestamptz created_at
+        timestamptz updated_at
+    }
+
+    staff_profiles {
+        uuid id PK
+        uuid auth_user_uuid FK
+        staff_role role "admin/sub_admin/telecaller/employee"
+        profile_scope scope "platform | line"
+        business_line_enum business_line "null for platform; loans/real_estate for line scope"
+        text staff_code UK
+        profile_status status
+        uuid created_by_auth_user_uuid FK
+        timestamptz created_at
+        timestamptz updated_at
+    }
+
     agent_applications {
         uuid id PK
+        uuid applicant_auth_user_uuid FK "existing login if matched"
         text first_name
         text last_name
         text mobile
-        business_line_enum business_line "single line — never both"
+        business_line_enum business_line "loans | real_estate only"
         text aadhaar_ref
         text pan_ref
         text photo_ref
         text address_proof_ref
         text rera_code "required for real_estate"
         submission_status status "pending/approved/rejected"
-        uuid reviewed_by FK
+        uuid reviewed_by_staff_profile_uuid FK "Admin"
         timestamptz reviewed_at
         timestamptz created_at
+    }
+
+    agent_profiles {
+        uuid id PK
+        uuid auth_user_uuid FK
+        text agent_code UK "line-specific AG code"
+        business_line_enum business_line "loans | real_estate only"
+        uuid application_uuid FK
+        boolean converted_from_client
+        text kyc_status
+        text rera_code "required for real_estate"
+        profile_status status
+        uuid approved_by_staff_profile_uuid FK "Admin"
+        timestamptz approved_at
+        timestamptz created_at
+        timestamptz updated_at
     }
 
     %% ---------- LEAD SPINE ----------
     leads {
         uuid id PK
-        uuid user_uuid FK "null until claim; bound by OTP-verified mobile"
-        business_line_enum business_line
+        uuid client_profile_uuid FK "null until claimed/registered"
+        business_line_enum business_line "loans | real_estate only"
         lead_origin origin "direct/agent"
-        uuid origin_agent_uuid FK "never transferred (FR-4.6)"
-        uuid assigned_telecaller_uuid FK
+        uuid origin_agent_profile_uuid FK "agent attribution"
+        uuid assigned_telecaller_profile_uuid FK
         text name
-        text mobile "dedupe key (FR-4.5)"
+        text mobile "dedupe within business_line"
         jsonb requirement
-        lead_status status
-        timestamptz expiry_at "open-pool timer"
+        lead_status status "new/assigned/working/converted/closed/released"
+        timestamptz released_at "Admin exception only"
+        text release_reason
         timestamptz created_at
         timestamptz updated_at
     }
+
     lead_activities {
         uuid id PK
         uuid lead_uuid FK
-        uuid telecaller_uuid FK
+        uuid telecaller_profile_uuid FK
         business_line_enum business_line
         call_disposition disposition
-        interest_level interest_level "set when connected"
+        interest_level interest_level
         text notes
-        timestamptz follow_up_at "drives follow-ups-due"
+        timestamptz follow_up_at
         timestamptz created_at
     }
 
@@ -146,7 +150,7 @@ erDiagram
     loan_applications {
         uuid id PK
         uuid lead_uuid FK
-        uuid user_uuid FK "denormalized for RLS"
+        uuid client_profile_uuid FK
         business_line_enum business_line "const loans"
         uuid loan_type_id FK
         uuid bank_id FK
@@ -154,12 +158,13 @@ erDiagram
         numeric amount_sanctioned
         numeric interest_rate
         numeric processing_fee
-        fee_outcome fee_outcome "waived/cashback/none"
+        fee_outcome fee_outcome
         loan_status status
-        text status_reason "shown on hold/rejected"
+        text status_reason
         timestamptz opened_at
         timestamptz closed_at
     }
+
     loan_txn_history {
         uuid id PK
         uuid loan_application_uuid FK
@@ -167,54 +172,90 @@ erDiagram
         numeric amount
         numeric interest_rate
         date txn_date
-        uuid entered_by_uuid FK "telecaller"
+        uuid entered_by_profile_uuid FK "loans telecaller"
         timestamptz created_at
     }
 
+    banks {
+        uuid id PK
+        text name
+        text logo_key
+        boolean active
+        timestamptz created_at
+    }
+
+    loan_types {
+        uuid id PK
+        text name UK
+        text label
+        boolean active
+        jsonb custom_fields "null = shared field set"
+        timestamptz created_at
+    }
+
+    bank_loan_type_availability {
+        uuid bank_id PK,FK
+        uuid loan_type_id PK,FK
+        boolean available
+    }
+
     %% ---------- REAL ESTATE LINE ----------
+    properties {
+        uuid id PK
+        text title
+        text rera_number
+        jsonb details
+        boolean active
+        timestamptz created_at
+    }
+
     property_inquiries {
         uuid id PK
         uuid lead_uuid FK
-        uuid user_uuid FK
+        uuid client_profile_uuid FK
         business_line_enum business_line "const real_estate"
-        uuid property_uuid FK "external (RE module)"
+        uuid property_uuid FK
         property_inquiry_status status
         text notes
         timestamptz created_at
         timestamptz updated_at
     }
+
     property_visits {
         uuid id PK
         uuid inquiry_uuid FK
         timestamptz scheduled_at
         timestamptz visited_at
-        visit_status status "scheduled/completed/cancelled/no_show"
+        visit_status status
         timestamptz created_at
     }
+
     vehicle_arrangements {
         uuid id PK
-        uuid visit_uuid FK "UNIQUE — 1:1 with visit"
-        text pickup_location "client-set"
-        timestamptz pickup_time "client-set"
-        vehicle_status status "company-managed"
-        text vehicle_info "company-set"
-        text driver_name "company-set"
-        text driver_mobile "company driver — no masking"
-        uuid arranged_by_uuid FK "Employee/Admin"
+        uuid visit_uuid FK "UNIQUE; 1:1"
+        text pickup_location
+        timestamptz pickup_time
+        vehicle_status status
+        text vehicle_info
+        text driver_name
+        text driver_mobile
+        uuid arranged_by_profile_uuid FK "staff profile"
         timestamptz created_at
         timestamptz updated_at
     }
+
     property_submissions {
         uuid id PK
-        uuid uploaded_by_uuid FK "agent/subadmin/client"
+        uuid uploaded_by_agent_profile_uuid FK
+        uuid uploaded_by_staff_profile_uuid FK
         business_line_enum business_line "const real_estate"
-        uuid property_uuid FK "set on approval"
+        uuid property_uuid FK
         text title
         jsonb details
-        text rera_number "verified at approval"
-        submission_status status "pending/approved/rejected"
+        text rera_number
+        submission_status status
         text rejection_reason
-        uuid reviewed_by_uuid FK "Admin"
+        uuid reviewed_by_profile_uuid FK "Admin"
         timestamptz reviewed_at
         timestamptz created_at
         timestamptz updated_at
@@ -223,30 +264,32 @@ erDiagram
     %% ---------- MONEY ----------
     transactions {
         uuid id PK
-        uuid user_uuid FK "SET NULL on de-link"
-        text retained_ref "internal ref after PII purge"
+        uuid client_profile_uuid FK "nullable after de-link"
+        uuid agent_profile_uuid FK "for commission payout recipient when needed"
+        text retained_ref
         business_line_enum business_line
         txn_type type "cashback/referral_payout/commission_payout"
         numeric amount
         txn_method method "razorpay/cheque"
-        txn_status status "initiated/processing/paid/failed"
-        text payment_ref "razorpay id OR cheque no"
-        timestamptz paid_at "real-world settlement date"
-        uuid loan_application_uuid FK "cashback source (no intermediate table)"
+        txn_status status
+        text payment_ref
+        timestamptz paid_at
+        uuid loan_application_uuid FK "cashback source"
         timestamptz created_at
     }
+
     commissions {
         uuid id PK
-        uuid agent_user_uuid FK
+        uuid agent_profile_uuid FK
         business_line_enum business_line
         uuid lead_uuid FK
-        uuid loan_application_uuid FK "loans source"
-        uuid property_inquiry_uuid FK "RE source"
-        numeric agreed_amount "manual, Admin-entered"
-        commission_status status "pending/approved/paid/cancelled"
-        txn_method method "set at payout"
-        uuid payout_txn_uuid FK "links to transactions"
-        uuid entered_by_uuid FK "Admin (logged)"
+        uuid loan_application_uuid FK
+        uuid property_inquiry_uuid FK
+        numeric agreed_amount
+        commission_status status
+        txn_method method
+        uuid payout_txn_uuid FK
+        uuid entered_by_profile_uuid FK "Admin"
         text notes
         timestamptz created_at
         timestamptz updated_at
@@ -254,26 +297,29 @@ erDiagram
 
     %% ---------- REFERRALS ----------
     referral_codes {
-        uuid user_uuid PK "one per client"
+        uuid auth_user_uuid PK
         text code UK
         timestamptz created_at
     }
+
     referrals {
         uuid id PK
-        uuid referrer_user_uuid FK
+        uuid referrer_auth_user_uuid FK
         text referred_mobile
+        business_line_enum business_line
         uuid referred_lead_uuid FK
-        text conversion_status "pending/converted/not_converted"
-        uuid reward_txn_uuid FK "set on conversion"
+        text conversion_status
+        uuid reward_txn_uuid FK
         timestamptz created_at
     }
+
     referral_bonus_config {
         uuid id PK
         business_line_enum business_line
         numeric bonus_amount
-        jsonb rule "conditions/caps"
+        jsonb rule
         boolean active
-        uuid created_by_uuid FK "Sub Admin"
+        uuid created_by_profile_uuid FK "Sub Admin"
         timestamptz updated_at
     }
 
@@ -281,20 +327,21 @@ erDiagram
     banners {
         uuid id PK
         business_line_enum business_line
-        banner_type banner_type "default/personalized/action"
+        banner_type banner_type
         text title
         text image_key
         text deep_link
         jsonb audience_rules
-        int priority "tie-break"
+        int priority
         banner_status status
-        uuid created_by_uuid FK "Sub Admin"
-        uuid approved_by_uuid FK "Admin"
+        uuid created_by_profile_uuid FK
+        uuid approved_by_profile_uuid FK
         timestamptz starts_at
         timestamptz ends_at
         timestamptz created_at
         timestamptz updated_at
     }
+
     offers {
         uuid id PK
         business_line_enum business_line
@@ -302,101 +349,87 @@ erDiagram
         text description
         text discount_type
         numeric discount_value
-        text code "optional promo"
+        text code
         offer_status status
-        uuid created_by_uuid FK
+        uuid created_by_profile_uuid FK
         timestamptz starts_at
         timestamptz ends_at
         timestamptz created_at
     }
+
     content_blocks {
         uuid id PK
         text slug UK
         text section
         text title
         text body
-        business_line_enum business_line "null = global"
+        business_line_enum business_line "nullable/global allowed"
         content_status status
-        uuid created_by_uuid FK
+        uuid created_by_profile_uuid FK
         timestamptz updated_at
     }
 
-    %% ---------- ADMIN CONFIG ----------
-    banks {
-        uuid id PK
-        text name
-        text logo_key
-        boolean active
-        timestamptz created_at
-    }
-    loan_types {
-        uuid id PK
-        text name UK
-        text label
-        boolean active
-        jsonb custom_fields "null = shared field set (v1)"
-        timestamptz created_at
-    }
-    bank_loan_type_availability {
-        uuid bank_id PK,FK
-        uuid loan_type_id PK,FK
-        boolean available
-    }
+    %% ---------- ADMIN CONFIG / AUDIT ----------
     field_visibility_config {
         uuid id PK
-        field_target_role target_role "agent/telecaller/employee"
+        field_target_role target_role
         text entity
         text field_key
         boolean visible
-        uuid updated_by_uuid FK
+        uuid updated_by_profile_uuid FK
         timestamptz updated_at
     }
+
     media_assets {
         uuid id PK
         business_line_enum business_line
-        gallery gallery "loans/real_estate — separate"
-        media_type media_type "image/video/pdf"
+        gallery gallery
+        media_type media_type
         text object_key
         text title
-        uuid uploaded_by_uuid FK
+        uuid uploaded_by_profile_uuid FK
         timestamptz created_at
     }
+
     audit_log {
         uuid id PK
-        uuid actor_uuid FK
+        uuid actor_auth_user_uuid FK
         audit_action action
         text entity_type
         uuid entity_uuid
         business_line_enum business_line
-        jsonb detail "before/after, reason"
+        jsonb detail
         timestamptz created_at
     }
 
-    %% ---------- FIELD WORK / TASK SPINE ----------
+    %% ---------- FIELD WORK ----------
     tasks {
         uuid id PK
-        uuid assigned_employee_uuid FK
-        uuid assigned_by_uuid FK "Admin-only (FR-2.6)"
+        uuid assigned_employee_profile_uuid FK
+        uuid assigned_by_profile_uuid FK "Admin-only for MVP"
         business_line_enum business_line
-        task_type task_type "visit/doc_collection/bg_check"
+        task_type task_type
         uuid lead_uuid FK
         uuid loan_application_uuid FK
         uuid property_inquiry_uuid FK
-        uuid property_visit_uuid FK "1:1 for visit tasks"
+        uuid property_visit_uuid FK
         task_status status
-        bg_check_outcome outcome "bg_check only"
+        bg_check_outcome outcome
         text notes
         timestamptz due_at
         timestamptz completed_at
         timestamptz created_at
         timestamptz updated_at
     }
+
     task_documents {
         uuid id PK
         uuid task_uuid FK
         text doc_type
         text object_key
-        boolean verified "set downstream, not employee"
+        boolean verified "Admin completeness check"
+        uuid verified_by_profile_uuid FK "Admin"
+        timestamptz verified_at
         timestamptz uploaded_at
         timestamptz created_at
     }
@@ -404,96 +437,100 @@ erDiagram
     %% ---------- NOTIFICATIONS & SUPPORT ----------
     notifications {
         uuid id PK
-        uuid user_uuid FK "recipient"
+        uuid auth_user_uuid FK "recipient identity"
+        uuid client_profile_uuid FK "optional line-specific context"
         business_line_enum business_line
-        text type "process/status/event"
+        text type
         text title
         text body
-        text deep_link "redirect target (FR-11.2)"
-        timestamptz read_at "null = unread"
+        text deep_link
+        timestamptz read_at
         timestamptz created_at
     }
+
     support_tickets {
         uuid id PK
-        uuid user_uuid FK "null for pre-login issues"
-        support_category category "forgot_password/otp_issue/lost_mobile/general"
+        uuid auth_user_uuid FK "identity-level issue"
+        uuid client_profile_uuid FK "optional line-specific issue"
+        support_category category
         text subject
         text body
-        support_status status "open/in_progress/resolved"
-        uuid handled_by_uuid FK "Admin only (FR-14.2)"
+        support_status status
+        uuid handled_by_profile_uuid FK "Admin"
         timestamptz created_at
         timestamptz updated_at
     }
 
-    %% ---------- EXTERNAL (owned by RE module) ----------
-    properties {
-        uuid id PK
-        text note "stub — owned by RE module"
-    }
+    %% ---------- RELATIONSHIPS ----------
+    auth_users ||--o{ refresh_tokens : has
+    auth_users ||--o{ auth_events : logs
+    auth_users ||--o{ client_profiles : owns
+    auth_users ||--o{ staff_profiles : has
+    auth_users ||--o{ agent_applications : applies
+    auth_users ||--o{ agent_profiles : has
+    agent_applications ||--o| agent_profiles : approved_into
 
-    %% ============================================================
-    %% RELATIONSHIPS
-    %% ============================================================
-    users ||--o{ refresh_tokens : "has"
-    users ||--o{ auth_events : "logs"
-    users ||--o{ agent_applications : "reviews"
+    client_profiles ||--o{ leads : owns
+    agent_profiles ||--o{ leads : introduces
+    staff_profiles ||--o{ leads : assigned_telecaller
+    leads ||--o{ lead_activities : has
+    staff_profiles ||--o{ lead_activities : logs
 
-    users ||--o{ leads : "owns (borrower/buyer)"
-    users ||--o{ leads : "introduced (agent)"
-    users ||--o{ leads : "assigned (telecaller)"
-    leads ||--o{ lead_activities : "has"
-    users ||--o{ lead_activities : "logs (telecaller)"
+    leads ||--o{ loan_applications : spawns
+    client_profiles ||--o{ loan_applications : owns
+    loan_types ||--o{ loan_applications : typed
+    banks ||--o{ loan_applications : via
+    loan_applications ||--o{ loan_txn_history : history
+    staff_profiles ||--o{ loan_txn_history : enters
 
-    leads ||--o{ loan_applications : "spawns"
-    users ||--o{ loan_applications : "owns"
-    loan_types ||--o{ loan_applications : "typed"
-    banks ||--o{ loan_applications : "via"
-    loan_applications ||--o{ loan_txn_history : "history"
-    users ||--o{ loan_txn_history : "enters"
+    leads ||--o{ property_inquiries : spawns
+    client_profiles ||--o{ property_inquiries : owns
+    properties ||--o{ property_inquiries : subject
+    property_inquiries ||--o{ property_visits : schedules
+    property_visits ||--|| vehicle_arrangements : pickup
+    staff_profiles ||--o{ vehicle_arrangements : arranges
+    agent_profiles ||--o{ property_submissions : uploads
+    staff_profiles ||--o{ property_submissions : uploads_reviews
+    properties ||--o| property_submissions : published_from
 
-    leads ||--o{ property_inquiries : "spawns"
-    users ||--o{ property_inquiries : "owns"
-    properties ||--o{ property_inquiries : "subject"
-    property_inquiries ||--o{ property_visits : "schedules"
-    property_visits ||--|| vehicle_arrangements : "1:1 pickup"
-    users ||--o{ vehicle_arrangements : "arranges"
+    client_profiles ||--o{ transactions : receives
+    agent_profiles ||--o{ transactions : commission_recipient
+    loan_applications ||--o| transactions : cashback
+    referrals ||--o| transactions : reward
+    commissions ||--o| transactions : payout
 
-    users ||--o{ property_submissions : "uploads"
-    properties ||--o| property_submissions : "published from"
+    agent_profiles ||--o{ commissions : earns
+    leads ||--o{ commissions : source
+    loan_applications ||--o| commissions : loan_deal
+    property_inquiries ||--o| commissions : re_deal
+    staff_profiles ||--o{ commissions : entered_by
 
-    users ||--o{ transactions : "paid to"
-    loan_applications ||--o| transactions : "cashback"
-    referrals ||--o| transactions : "reward"
+    auth_users ||--|| referral_codes : has
+    auth_users ||--o{ referrals : refers
+    leads ||--o| referrals : converts
+    staff_profiles ||--o{ referral_bonus_config : configures
 
-    users ||--o{ commissions : "earns (agent)"
-    leads ||--o{ commissions : "converted"
-    loan_applications ||--o| commissions : "loans deal"
-    property_inquiries ||--o| commissions : "RE deal"
-    commissions ||--o| transactions : "payout"
+    staff_profiles ||--o{ banners : creates_approves
+    staff_profiles ||--o{ offers : creates
+    staff_profiles ||--o{ content_blocks : authors
 
-    users ||--|| referral_codes : "has one"
-    users ||--o{ referrals : "refers"
-    leads ||--o| referrals : "converts"
+    banks ||--o{ bank_loan_type_availability : offers
+    loan_types ||--o{ bank_loan_type_availability : available_at
+    staff_profiles ||--o{ field_visibility_config : sets
+    staff_profiles ||--o{ media_assets : uploads
+    auth_users ||--o{ audit_log : acts
 
-    users ||--o{ referral_bonus_config : "configures"
-    users ||--o{ banners : "creates/approves"
-    users ||--o{ offers : "creates"
-    users ||--o{ content_blocks : "authors"
+    staff_profiles ||--o{ tasks : assigned_employee
+    staff_profiles ||--o{ tasks : assigned_by_admin
+    leads ||--o{ tasks : context
+    loan_applications ||--o{ tasks : context
+    property_inquiries ||--o{ tasks : context
+    property_visits ||--o| tasks : visit_task
+    tasks ||--o{ task_documents : collects
+    staff_profiles ||--o{ task_documents : verifies
 
-    banks ||--o{ bank_loan_type_availability : "offers"
-    loan_types ||--o{ bank_loan_type_availability : "available at"
-    users ||--o{ field_visibility_config : "sets"
-    users ||--o{ media_assets : "uploads"
-    users ||--o{ audit_log : "acts"
-
-    users ||--o{ tasks : "assigned to (employee)"
-    users ||--o{ tasks : "assigned by (admin)"
-    leads ||--o{ tasks : "context"
-    loan_applications ||--o{ tasks : "context"
-    property_inquiries ||--o{ tasks : "context"
-    property_visits ||--o| tasks : "1:1 visit task"
-    tasks ||--o{ task_documents : "collects"
-
-    users ||--o{ notifications : "receives"
-    users ||--o{ support_tickets : "raises"
-    users ||--o{ support_tickets : "handles (admin)"
+    auth_users ||--o{ notifications : receives
+    client_profiles ||--o{ notifications : line_context
+    auth_users ||--o{ support_tickets : raises
+    client_profiles ||--o{ support_tickets : line_context
+    staff_profiles ||--o{ support_tickets : handles
