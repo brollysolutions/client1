@@ -114,6 +114,7 @@ services:
       - "3000:3000"
     environment:
       NEXT_PUBLIC_API_BASE_URL: http://localhost:8000
+      CI: "true"
     volumes:
       - ./apps/web:/app
       - web_node_modules:/app/node_modules
