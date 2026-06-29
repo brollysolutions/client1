@@ -16,6 +16,7 @@ from fastapi import Depends, FastAPI
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.v1.auth import router as auth_router
 from app.core.config import settings
 from app.db.session import engine, get_db
 
@@ -37,6 +38,8 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
 
 app = FastAPI(title="Loans & Real Estate API", version="0.1.0", lifespan=lifespan)
+
+app.include_router(auth_router, prefix="/auth", tags=["auth"])
 
 
 @app.get("/")

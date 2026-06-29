@@ -1,0 +1,366 @@
+{
+  "info": {
+    "name": "Loans & Real Estate API",
+    "_postman_id": "lr-api-v1",
+    "description": "Full API collection for the Loans & Real Estate platform. Set base_url = http://localhost:8000 in your environment.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://localhost:8000", "type": "string" },
+    { "key": "access_token", "value": "", "type": "string" },
+    { "key": "registration_token", "value": "", "type": "string" },
+    { "key": "reset_token", "value": "", "type": "string" },
+    { "key": "mobile", "value": "+919876543210", "type": "string" },
+    { "key": "otp", "value": "", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Registration",
+          "item": [
+            {
+              "name": "Initiate Registration",
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "url": "{{base_url}}/auth/register/initiate",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"first_name\": \"Test\",\n  \"last_name\": \"User\",\n  \"mobile\": \"{{mobile}}\",\n  \"lines\": [\"loans\"]\n}"
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const res = pm.response.json();",
+                      "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                      "if (res.otp_hint) {",
+                      "  pm.collectionVariables.set('otp', res.otp_hint);",
+                      "  console.log('Mock OTP:', res.otp_hint);",
+                      "}"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Verify OTP",
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "url": "{{base_url}}/auth/register/verify-otp",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"mobile\": \"{{mobile}}\",\n  \"otp\": \"{{otp}}\"\n}"
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const res = pm.response.json();",
+                      "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                      "if (res.registration_token) {",
+                      "  pm.collectionVariables.set('registration_token', res.registration_token);",
+                      "}"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Set Password",
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "url": "{{base_url}}/auth/register/set-password",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"registration_token\": \"{{registration_token}}\",\n  \"password\": \"Test@1234\",\n  \"confirm_password\": \"Test@1234\"\n}"
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const res = pm.response.json();",
+                      "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                      "if (res.access_token) {",
+                      "  pm.collectionVariables.set('access_token', res.access_token);",
+                      "}"
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Login & Session",
+          "item": [
+            {
+              "name": "Login",
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "url": "{{base_url}}/auth/login",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"mobile\": \"{{mobile}}\",\n  \"password\": \"Test@1234\"\n}"
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const res = pm.response.json();",
+                      "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                      "pm.test('Has access_token', () => pm.expect(res.access_token).to.exist);",
+                      "if (res.access_token) {",
+                      "  pm.collectionVariables.set('access_token', res.access_token);",
+                      "}"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Refresh Token",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "url": "{{base_url}}/auth/refresh"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const res = pm.response.json();",
+                      "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                      "if (res.access_token) {",
+                      "  pm.collectionVariables.set('access_token', res.access_token);",
+                      "}"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Logout",
+              "request": {
+                "method": "POST",
+                "header": [
+                  { "key": "Authorization", "value": "Bearer {{access_token}}" }
+                ],
+                "url": "{{base_url}}/auth/logout"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                      "pm.collectionVariables.set('access_token', '');"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Change Password",
+              "request": {
+                "method": "POST",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" },
+                  { "key": "Authorization", "value": "Bearer {{access_token}}" }
+                ],
+                "url": "{{base_url}}/auth/change-password",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"current_password\": \"Test@1234\",\n  \"new_password\": \"NewPass@5678\",\n  \"confirm_password\": \"NewPass@5678\"\n}"
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));"]
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Password Reset",
+          "item": [
+            {
+              "name": "Forgot — Initiate",
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "url": "{{base_url}}/auth/forgot/initiate",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"mobile\": \"{{mobile}}\"\n}"
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const res = pm.response.json();",
+                      "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                      "if (res.otp_hint) {",
+                      "  pm.collectionVariables.set('otp', res.otp_hint);",
+                      "  console.log('Mock Reset OTP:', res.otp_hint);",
+                      "}"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Forgot — Verify OTP",
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "url": "{{base_url}}/auth/forgot/verify",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"mobile\": \"{{mobile}}\",\n  \"otp\": \"{{otp}}\"\n}"
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const res = pm.response.json();",
+                      "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                      "if (res.reset_token) {",
+                      "  pm.collectionVariables.set('reset_token', res.reset_token);",
+                      "}"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Forgot — Reset Password",
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "url": "{{base_url}}/auth/forgot/reset",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"reset_token\": \"{{reset_token}}\",\n  \"new_password\": \"Reset@9999\",\n  \"confirm_password\": \"Reset@9999\"\n}"
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));"]
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "OTP Utility",
+          "item": [
+            {
+              "name": "Resend OTP",
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "url": "{{base_url}}/auth/otp/resend",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"mobile\": \"{{mobile}}\",\n  \"purpose\": \"register\"\n}"
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const res = pm.response.json();",
+                      "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                      "if (res.otp_hint) {",
+                      "  pm.collectionVariables.set('otp', res.otp_hint);",
+                      "  console.log('Resend OTP:', res.otp_hint);",
+                      "}"
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "Root",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));"]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/health"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Status ok', () => pm.expect(pm.response.json().status).to.be.oneOf(['ok', 'degraded']));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
