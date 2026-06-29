@@ -32,9 +32,12 @@ class UserStatus(enum.StrEnum):
     SOFT_DELETED = "soft_deleted"
 
 
-role_enum = ENUM(UserRole, name="role_enum", create_type=False)
-business_line_enum = ENUM(BusinessLine, name="business_line_enum", create_type=False)
-status_enum = ENUM(UserStatus, name="status_enum", create_type=False)
+_ev = lambda x: [e.value for e in x]  # noqa: E731
+role_enum = ENUM(UserRole, name="role_enum", create_type=False, values_callable=_ev)
+business_line_enum = ENUM(
+    BusinessLine, name="business_line_enum", create_type=False, values_callable=_ev
+)
+status_enum = ENUM(UserStatus, name="status_enum", create_type=False, values_callable=_ev)
 
 
 class User(Base):

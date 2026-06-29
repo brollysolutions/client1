@@ -282,9 +282,11 @@ async def forgot_reset(
     req: ResetPasswordRequest,
     request: Request,
     db: AsyncSession = Depends(get_db),
+    cache: RedisCache = Depends(get_cache),
 ) -> MessageResponse:
     await auth_service.forgot_reset(
         db,
+        cache,
         req,
         ip=_get_client_ip(request),
         user_agent=request.headers.get("user-agent"),

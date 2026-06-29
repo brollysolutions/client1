@@ -30,7 +30,7 @@ logger = logging.getLogger(__name__)
 _ph = PasswordHasher()
 
 _OTP_RATE_DAILY_MAX = 5
-_RESEND_LIMIT = 2
+_RESEND_LIMIT = 3
 _LOGIN_FAIL_MAX = 5
 
 
@@ -98,7 +98,14 @@ async def verify_otp(cache: RedisCache, mobile: str, purpose: str, code: str) ->
 
 
 async def resend_otp(cache: RedisCache, mobile: str, purpose: str) -> str:
-    """Resend OTP. Max 2 resends per window, then 15-min lock (Auth Design §8)."""
+    """Resend OTP. Max 3 resends per window, then 1-hour lock (Auth Design §8)."""
+    otp_key = otp_register_key(mobile) if purpose == "register" else otp_reset_key(mobile)
+    if not await cache.exists(otp_key):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No active OTP session. Please initiate first.",
+        )
+
     lock_key = otp_lock_key(mobile)
     if await cache.exists(lock_key):
         ttl = await cache.ttl(lock_key)
@@ -113,7 +120,7 @@ async def resend_otp(cache: RedisCache, mobile: str, purpose: str) -> str:
         await cache.delete(otp_resend_key(mobile))
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-            detail="Too many resends. Try again in 15 min.",
+            detail="Too many resends. Try again in 1 hour.",
         )
 
     return await generate_and_store_otp(cache, mobile, purpose)

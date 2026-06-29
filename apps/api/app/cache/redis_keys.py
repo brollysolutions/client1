@@ -18,10 +18,11 @@ OTP_RATE = "otp_rate:{mobile}"
 LOGIN_FAIL = "login_fail:{mobile}"
 LOGIN_LOCK = "login_lock:{mobile}"
 JWT_BLACKLIST = "jwt_blacklist:{jti}"
+REG_DATA = "reg_data:{mobile}"
 
 # TTLs in seconds
 TTL_OTP = 5 * 60  # 5 min
-TTL_OTP_RESEND = 15 * 60  # 15 min window + lock duration
+TTL_OTP_RESEND = 60 * 60  # 1 hour window + lock duration
 TTL_OTP_RATE = 24 * 60 * 60  # 24 h daily cap
 TTL_LOGIN_LOCK = 15 * 60  # 15 min lockout
 
@@ -41,7 +42,7 @@ class RedisCache:
         return await self._r.get(key)
 
     async def set(self, key: str, value: Any, ttl: int) -> None:
-        await self._r.setex(key, ttl, str(value))
+        await self._r.set(key, str(value), ex=ttl)
 
     async def delete(self, *keys: str) -> None:
         if keys:
@@ -98,3 +99,7 @@ def login_lock_key(mobile: str) -> str:
 
 def jwt_blacklist_key(jti: str) -> str:
     return JWT_BLACKLIST.format(jti=jti)
+
+
+def reg_data_key(mobile: str) -> str:
+    return REG_DATA.format(mobile=mobile)

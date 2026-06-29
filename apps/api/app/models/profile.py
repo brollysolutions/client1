@@ -36,10 +36,17 @@ class SubmissionStatus(enum.StrEnum):
     REJECTED = "rejected"
 
 
-profile_status_enum = ENUM(ProfileStatus, name="profile_status", create_type=False)
-staff_role_enum = ENUM(StaffRole, name="staff_role_enum", create_type=False)
-profile_scope_enum = ENUM(ProfileScope, name="profile_scope_enum", create_type=False)
-submission_status_enum = ENUM(SubmissionStatus, name="submission_status_enum", create_type=False)
+_ev = lambda x: [e.value for e in x]  # noqa: E731
+profile_status_enum = ENUM(
+    ProfileStatus, name="profile_status", create_type=False, values_callable=_ev
+)
+staff_role_enum = ENUM(StaffRole, name="staff_role_enum", create_type=False, values_callable=_ev)
+profile_scope_enum = ENUM(
+    ProfileScope, name="profile_scope_enum", create_type=False, values_callable=_ev
+)
+submission_status_enum = ENUM(
+    SubmissionStatus, name="submission_status_enum", create_type=False, values_callable=_ev
+)
 
 
 class ClientProfile(Base):

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import logging
 from datetime import UTC, datetime, timedelta
 from uuid import UUID
@@ -11,7 +12,7 @@ from jose import JWTError
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.cache.redis_keys import RedisCache, jwt_blacklist_key
+from app.cache.redis_keys import TTL_OTP, RedisCache, jwt_blacklist_key, reg_data_key
 from app.core.config import settings
 from app.core.security import (
     create_access_token,
@@ -144,6 +145,11 @@ async def register_initiate(
         )
 
     otp = await generate_and_store_otp(cache, req.mobile, "register")
+    await cache.set(
+        reg_data_key(req.mobile),
+        json.dumps({"first_name": req.first_name, "last_name": req.last_name, "lines": req.lines}),
+        TTL_OTP,
+    )
     sms_sent = await send_otp_sms(req.mobile, otp)
 
     await _log_event(
@@ -171,8 +177,19 @@ async def register_verify_otp(
 ) -> RegistrationTokenResponse:
     await verify_otp(cache, req.mobile, "register", req.otp)
 
-    # Issue short-lived registration token (not a full access token)
-    reg_token = create_access_token({"purpose": "register", "mobile": req.mobile})
+    raw = await cache.get(reg_data_key(req.mobile))
+    reg_data: dict = json.loads(raw) if raw else {}
+    await cache.delete(reg_data_key(req.mobile))
+
+    reg_token = create_access_token(
+        {
+            "purpose": "register",
+            "mobile": req.mobile,
+            "first_name": reg_data.get("first_name", ""),
+            "last_name": reg_data.get("last_name", ""),
+            "lines": reg_data.get("lines", ["loans"]),
+        }
+    )
     return RegistrationTokenResponse(registration_token=reg_token)
 
 
@@ -199,7 +216,12 @@ async def register_set_password(
         )
 
     mobile: str = claims["mobile"]
-    validate_password_policy(req.password, mobile)
+    try:
+        validate_password_policy(req.password, mobile)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)
+        ) from exc
 
     existing = await db.scalar(select(User).where(User.mobile == mobile))
     if existing:
@@ -456,6 +478,7 @@ async def forgot_verify(
 
 async def forgot_reset(
     db: AsyncSession,
+    cache: RedisCache,
     req: ResetPasswordRequest,
     ip: str | None = None,
     user_agent: str | None = None,
@@ -471,12 +494,32 @@ async def forgot_reset(
     if claims.get("purpose") != "reset":
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid reset token.")
 
+    jti: str = claims.get("jti", "")
+    if jti and await cache.exists(jwt_blacklist_key(jti)):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Reset token already used.",
+        )
+
     mobile: str = claims["mobile"]
-    validate_password_policy(req.new_password, mobile)
+    try:
+        validate_password_policy(req.new_password, mobile)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)
+        ) from exc
 
     user = await db.scalar(select(User).where(User.mobile == mobile))
     if not user:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="User not found.")
+
+    if jti:
+        import math
+        from datetime import UTC, datetime
+
+        exp = claims.get("exp", 0)
+        ttl = max(1, math.ceil(exp - datetime.now(UTC).timestamp()))
+        await cache.set(jwt_blacklist_key(jti), 1, ttl)
 
     user.password_hash = hash_password(req.new_password)
     user.status = UserStatus.ACTIVE
@@ -514,7 +557,12 @@ async def change_password(
             detail="Current password is incorrect.",
         )
 
-    validate_password_policy(req.new_password, user.mobile)
+    try:
+        validate_password_policy(req.new_password, user.mobile)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)
+        ) from exc
     user.password_hash = hash_password(req.new_password)
     user.status = UserStatus.ACTIVE
     await db.commit()
