@@ -32,12 +32,12 @@ class Settings(BaseSettings):
     # JWT
     SECRET_KEY: str = "a630038491ab971b65b3a3f85c91c7ab2e324a818d2deed0c1633a70504444a3"
     ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
-    REFRESH_TOKEN_EXPIRE_DAYS: int = 25
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 15
+    REFRESH_TOKEN_EXPIRE_DAYS: int = 30
 
     # OTP (Redis-backed, hashed, single-use per security rules)
     OTP_EXPIRE_SECONDS: int = 300
-    OTP_MAX_ATTEMPTS: int = 3
+    OTP_MAX_ATTEMPTS: int = 5
     OTP_RATE_LIMIT_PER_MOBILE: int = 3  # max initiation requests per mobile per hour
     OTP_RATE_LIMIT_PER_IP: int = 10  # max initiation requests per IP per hour
 
