@@ -113,30 +113,51 @@ Helper: `RedisCache` thin wrapper on `app.state.redis` with typed `get`, `set`, 
 ### 3 — `app/services/otp.py`
 
 ```python
-generate_and_store_otp(redis, mobile: str, purpose: str) -> None
+generate_and_store_otp(redis, mobile: str, purpose: str) -> str
   # secrets.randbelow(10**6) → 6-digit, argon2 hash, store in otp:{purpose}:{mobile}, TTL 5 min
+  # Returns the plaintext OTP so caller can pass to send_otp() or return in mock response
 
 verify_otp(redis, mobile: str, purpose: str, code: str) -> None
   # compare hash; decrement attempt counter; raise on wrong/expired/exceeded
 
-resend_otp(redis, mobile: str, purpose: str) -> None
-  # check otp_lock; INCR otp_resend; lock on >2; call generate_and_store_otp
+resend_otp(redis, mobile: str, purpose: str) -> str
+  # check otp_lock; INCR otp_resend; lock on >2; call generate_and_store_otp; return otp
 
 check_otp_rate(redis, mobile: str) -> None
   # INCR otp_rate:{mobile}, EXPIRE 24h on first; raise TooManyRequests if >5/day
 ```
 
-### 4 — `app/services/sms.py`
+### 4 — `app/services/sms.py` (mock-first)
+
+**No SMS API keys yet — mock mode enabled by default when keys are absent.**
 
 ```python
-send_sms(mobile: str, message: str) -> None
-  # 1. try 2Factor.in API (settings.TWOFACTOR_API_KEY)
-  # 2. on error → fallback to Fast2SMS (settings.FAST2SMS_API_KEY)
-  # 3. on both fail → log + raise SMSDeliveryError
-  # Never raise if keys are empty in dev (log warning only)
+async def send_otp_sms(mobile: str, otp: str) -> bool:
+  """
+  Returns True if SMS was dispatched, False if mocked.
+  Mock: logs OTP at WARNING level. Never raises.
+  Real: tries 2Factor.in → Fast2SMS failover → raises SMSDeliveryError if both fail.
+  """
+  if not settings.TWOFACTOR_API_KEY and not settings.FAST2SMS_API_KEY:
+      logger.warning("SMS_MOCK mobile=%s otp=%s", mobile, otp)  # dev only
+      return False  # caller knows it was mocked
+
+  # ... real dispatch via httpx ...
 ```
 
-Uses `httpx.AsyncClient`. Async context manager in service.
+**Mock OTP response:** when `sms_sent=False`, the `/auth/register/initiate` response includes
+`"otp_hint"` field containing the OTP plaintext — **only in `ENV != "production"`**. This
+allows full Postman testing without SMS.
+
+```json
+{
+  "message": "OTP sent",
+  "sms_sent": false,
+  "otp_hint": "123456"   // omitted in production
+}
+```
+
+Config: `OTP_MOCK_MODE` setting — defaults `True` when both SMS keys are empty.
 
 ### 5 — `app/schemas/auth.py`
 
@@ -232,6 +253,49 @@ Priority cases:
 Use pytest-asyncio (already in dev deps). Test DB = Postgres service (no mocking per `.claude/rules/testing.md`).
 
 ---
+
+## Postman Collection
+
+Generate `postman/Loans_RealEstate_API.postman_collection.json` (Collection v2.1).
+
+**Environment variables:**
+- `base_url` — `http://localhost:8000`
+- `access_token` — auto-set by login/register test scripts
+- `refresh_token` — auto-set, stored in cookie simulation
+
+**Folder structure:**
+```
+📁 Auth
+  📁 Registration
+    POST  Initiate Registration      /auth/register/initiate
+    POST  Verify OTP                 /auth/register/verify-otp
+    POST  Set Password               /auth/register/set-password
+  📁 Login & Session
+    POST  Login                      /auth/login
+    POST  Refresh Token              /auth/refresh
+    POST  Logout                     /auth/logout
+    POST  Change Password            /auth/change-password
+  📁 Password Reset
+    POST  Forgot — Initiate          /auth/forgot/initiate
+    POST  Forgot — Verify OTP        /auth/forgot/verify
+    POST  Forgot — Reset Password    /auth/forgot/reset
+  📁 OTP Utility
+    POST  Resend OTP                 /auth/otp/resend
+📁 Health
+    GET   Root                       /
+    GET   Health Check               /health
+```
+
+**Auto-extract tokens** via Postman test scripts on Login + Set-Password responses:
+```js
+// in Tests tab of Login request
+const res = pm.response.json();
+pm.environment.set("access_token", res.access_token);
+```
+
+**Pre-request script** on authenticated requests sets `Authorization: Bearer {{access_token}}`.
+
+File location: `postman/` directory at repo root (gitignored `.env` file for secrets, collection JSON committed).
 
 ## Verification
 
