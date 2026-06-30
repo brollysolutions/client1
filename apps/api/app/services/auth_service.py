@@ -31,6 +31,7 @@ from app.models.user import User, UserStatus
 from app.schemas.auth import (
     AuthTokensResponse,
     ChangePasswordRequest,
+    EmailVerifyInitiateResponse,
     ForgotInitiateResponse,
     ForgotVerifyRequest,
     LoginRequest,
@@ -43,6 +44,7 @@ from app.schemas.auth import (
     ResetTokenResponse,
     SetPasswordRequest,
 )
+from app.services.leads import capture_lead
 from app.services.otp import (
     check_login_lock,
     clear_login_failures,
@@ -51,7 +53,7 @@ from app.services.otp import (
     resend_otp,
     verify_otp,
 )
-from app.services.sms import send_otp_sms
+from app.services.otp_delivery import deliver_otp
 
 logger = logging.getLogger(__name__)
 
@@ -62,10 +64,12 @@ def _is_mock_env() -> bool:
     return settings.ENV != "production"
 
 
-def _build_tokens_response(access_token: str) -> AuthTokensResponse:
+def _build_tokens_response(access_token: str, user: User | None = None) -> AuthTokensResponse:
     return AuthTokensResponse(
         access_token=access_token,
         expires_in=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+        phone_verified=bool(user and user.phone_verified_at),
+        email_verified=bool(user and user.email_verified_at),
     )
 
 
@@ -93,7 +97,7 @@ async def _issue_tokens(
     await db.commit()
     await db.refresh(token_row)
 
-    return _build_tokens_response(access_token), raw_refresh
+    return _build_tokens_response(access_token, user), raw_refresh
 
 
 def _resolve_primary_role(user: User) -> str:
@@ -138,20 +142,41 @@ async def register_initiate(
     ip: str | None = None,
     user_agent: str | None = None,
 ) -> RegisterInitiateResponse:
+    # Capture the number first — durable lead even if registration is abandoned.
+    await capture_lead(
+        req.mobile,
+        name=f"{req.first_name} {req.last_name}".strip(),
+        business_line=req.lines[0] if req.lines else None,
+    )
+
     existing = await db.scalar(select(User).where(User.mobile == req.mobile))
     if existing:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Mobile number already registered.",
         )
+    email_taken = await db.scalar(select(User).where(User.email == req.email))
+    if email_taken:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Email already registered.",
+        )
 
     otp = await generate_and_store_otp(cache, req.mobile, "register")
     await cache.set(
         reg_data_key(req.mobile),
-        json.dumps({"first_name": req.first_name, "last_name": req.last_name, "lines": req.lines}),
+        json.dumps(
+            {
+                "first_name": req.first_name,
+                "last_name": req.last_name,
+                "email": req.email,
+                "lines": req.lines,
+            }
+        ),
         TTL_OTP,
     )
-    sms_sent = await send_otp_sms(req.mobile, otp)
+    # Voice call first; email is the same-OTP fallback if the call API hard-errors.
+    channel = await deliver_otp(req.mobile, req.email, otp)
 
     await _log_event(
         db,
@@ -161,13 +186,13 @@ async def register_initiate(
         ip=ip,
         user_agent=user_agent,
         success=True,
-        detail={"purpose": "register"},
+        detail={"purpose": "register", "channel": channel},
     )
 
     return RegisterInitiateResponse(
-        message="OTP sent to your mobile number.",
-        sms_sent=sms_sent,
-        otp_hint=otp if (not sms_sent and _is_mock_env()) else None,
+        message="Verification code sent. Answer the call or check your email.",
+        delivery_channel=channel,
+        otp_hint=otp if (channel == "none" and _is_mock_env()) else None,
     )
 
 
@@ -188,6 +213,7 @@ async def register_verify_otp(
             "mobile": req.mobile,
             "first_name": reg_data.get("first_name", ""),
             "last_name": reg_data.get("last_name", ""),
+            "email": reg_data.get("email", ""),
             "lines": reg_data.get("lines", ["loans"]),
         }
     )
@@ -224,11 +250,24 @@ async def register_set_password(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)
         ) from exc
 
+    email: str = claims.get("email", "")
+    if not email:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid registration token.",
+        )
+
     existing = await db.scalar(select(User).where(User.mobile == mobile))
     if existing:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Mobile number already registered.",
+        )
+    email_taken = await db.scalar(select(User).where(User.email == email))
+    if email_taken:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Email already registered.",
         )
 
     # Extract lines from token — stored during initiate
@@ -238,12 +277,20 @@ async def register_set_password(
         first_name=claims.get("first_name", ""),
         last_name=claims.get("last_name", ""),
         mobile=mobile,
+        email=email,
         password_hash=hash_password(req.password),
         status=UserStatus.ACTIVE,
-        phone_verified_at=datetime.now(UTC),
+        phone_verified_at=datetime.now(UTC),  # mobile proven by the registration OTP
+        # email_verified_at stays NULL — verified later via the post-login banner flow.
     )
     db.add(user)
-    await db.flush()  # get user.id before creating profiles
+    try:
+        await db.flush()  # get user.id before creating profiles
+    except IntegrityError as exc:  # mobile/email UNIQUE race between check and insert
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Mobile number or email already registered.",
+        ) from exc
 
     for line in lines:
         for attempt in range(5):
@@ -292,6 +339,8 @@ async def login(
     user_agent: str | None = None,
 ) -> tuple[AuthTokensResponse, str]:
     await check_login_lock(cache, req.mobile)
+    # Capture every login attempt's number as a lead (unconditional → enumeration-safe).
+    await capture_lead(req.mobile)
 
     user = await db.scalar(select(User).where(User.mobile == req.mobile))
     if not user or not user.password_hash:
@@ -406,7 +455,7 @@ async def refresh_token(
 
     payload = {"sub": str(user.id), "role": _resolve_primary_role(user)}
     access_token = create_access_token(payload)
-    return _build_tokens_response(access_token), new_raw
+    return _build_tokens_response(access_token, user), new_raw
 
 
 # ---------------------------------------------------------------------------
@@ -443,16 +492,19 @@ async def forgot_initiate(
     ip: str | None = None,
     user_agent: str | None = None,
 ) -> ForgotInitiateResponse:
+    # Capture first (unconditional → identical timing/branch for known vs unknown).
+    await capture_lead(mobile)
+
     user = await db.scalar(select(User).where(User.mobile == mobile))
     if not user:
         # Don't reveal whether mobile exists
         return ForgotInitiateResponse(
             message="If this number is registered, an OTP has been sent.",
-            sms_sent=False,
+            delivery_channel="none",
         )
 
     otp = await generate_and_store_otp(cache, mobile, "reset")
-    sms_sent = await send_otp_sms(mobile, otp)
+    channel = await deliver_otp(mobile, user.email, otp)
     await _log_event(
         db,
         auth_user_uuid=user.id,
@@ -461,12 +513,12 @@ async def forgot_initiate(
         ip=ip,
         user_agent=user_agent,
         success=True,
-        detail={"purpose": "reset"},
+        detail={"purpose": "reset", "channel": channel},
     )
     return ForgotInitiateResponse(
         message="If this number is registered, an OTP has been sent.",
-        sms_sent=sms_sent,
-        otp_hint=otp if (not sms_sent and _is_mock_env()) else None,
+        delivery_channel=channel,
+        otp_hint=otp if (channel == "none" and _is_mock_env()) else None,
     )
 
 
@@ -586,17 +638,98 @@ async def change_password(
 # ---------------------------------------------------------------------------
 
 
+async def _resolve_resend_email(
+    db: AsyncSession,
+    cache: RedisCache,
+    mobile: str,
+    purpose: str,
+) -> str | None:
+    """Find the email to use for an email-fallback resend (register=reg_data, reset=user)."""
+    if purpose == "register":
+        raw = await cache.get(reg_data_key(mobile))
+        if raw:
+            return json.loads(raw).get("email") or None
+        return None
+    user = await db.scalar(select(User).where(User.mobile == mobile))
+    return user.email if user else None
+
+
 async def resend_otp_service(
     db: AsyncSession,
     cache: RedisCache,
     mobile: str,
     purpose: str,
     ip: str | None = None,
+    via_email: bool = False,
 ) -> ResendOtpResponse:
     otp = await resend_otp(cache, mobile, purpose)
-    sms_sent = await send_otp_sms(mobile, otp)
+    email = await _resolve_resend_email(db, cache, mobile, purpose)
+    channel = await deliver_otp(mobile, email or "", otp, via_email=via_email and bool(email))
     return ResendOtpResponse(
-        message="OTP resent.",
-        sms_sent=sms_sent,
-        otp_hint=otp if (not sms_sent and _is_mock_env()) else None,
+        message="Code resent.",
+        delivery_channel=channel,
+        otp_hint=otp if (channel == "none" and _is_mock_env()) else None,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Email verification — post-login soft 2FA (Auth Design §6.7)
+# ---------------------------------------------------------------------------
+
+
+async def email_verify_initiate(
+    db: AsyncSession,
+    cache: RedisCache,
+    user: User,
+    ip: str | None = None,
+    user_agent: str | None = None,
+) -> EmailVerifyInitiateResponse:
+    """Send an OTP to the logged-in user's email to verify it (deferred 2FA)."""
+    if user.email_verified_at is not None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Email is already verified.",
+        )
+    otp = await generate_and_store_otp(cache, user.mobile, "email_verify")
+    channel = await deliver_otp(user.mobile, user.email, otp, via_email=True)
+    await _log_event(
+        db,
+        auth_user_uuid=user.id,
+        event_type="otp_sent",
+        mobile=user.mobile,
+        ip=ip,
+        user_agent=user_agent,
+        success=True,
+        detail={"purpose": "email_verify", "channel": channel},
+    )
+    return EmailVerifyInitiateResponse(
+        message="Verification code sent to your email.",
+        delivery_channel=channel,
+        otp_hint=otp if (channel == "none" and _is_mock_env()) else None,
+    )
+
+
+async def email_verify_confirm(
+    db: AsyncSession,
+    cache: RedisCache,
+    user: User,
+    otp: str,
+    ip: str | None = None,
+    user_agent: str | None = None,
+) -> None:
+    """Confirm the email OTP and stamp email_verified_at."""
+    await verify_otp(cache, user.mobile, "email_verify", otp)
+    db_user = await db.get(User, user.id)
+    if db_user is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized.")
+    db_user.email_verified_at = datetime.now(UTC)
+    await db.commit()
+    await _log_event(
+        db,
+        auth_user_uuid=user.id,
+        event_type="email_verified",
+        mobile=user.mobile,
+        ip=ip,
+        user_agent=user_agent,
+        success=True,
     )

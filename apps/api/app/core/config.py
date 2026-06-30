@@ -44,9 +44,21 @@ class Settings(BaseSettings):
     # CORS — set as JSON array: '["http://localhost:3000","https://yourdomain.com"]'
     ALLOWED_ORIGINS: list[str] = ["http://localhost:3000"]
 
-    # SMS — 2Factor.in primary, Fast2SMS failover
-    TWOFACTOR_API_KEY: str = ""
-    FAST2SMS_API_KEY: str = ""
+    # OTP delivery channels — Voice (2Factor.in) primary, Email (SMTP) fallback.
+    # SMS is intentionally NOT used: India DLT registration is out of scope and
+    # operators block non-DLT A2P SMS, so we deliver OTP by voice call + email only.
+    VOICE_OTP_ENABLED: bool = True
+    TWOFACTOR_API_KEY: str = ""  # 2Factor.in — voice OTP
+
+    # Email (transactional OTP + verification). SMTP transport, vendor-neutral.
+    # Point at AWS SES SMTP (email-smtp.<region>.amazonaws.com:587) or any SMTP host.
+    EMAIL_ENABLED: bool = False
+    SMTP_HOST: str = ""
+    SMTP_PORT: int = 587
+    SMTP_USERNAME: str = ""  # secret
+    SMTP_PASSWORD: str = ""  # secret
+    SMTP_FROM: str = ""  # e.g. "Loans & Real Estate <no-reply@yourdomain.com>"
+    SMTP_USE_TLS: bool = True  # STARTTLS on port 587
 
     # Payments — Razorpay (cashback / referral / commission payouts only, never loan principal)
     RAZORPAY_KEY_ID: str = ""

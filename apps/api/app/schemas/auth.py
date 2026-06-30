@@ -4,7 +4,11 @@ from __future__ import annotations
 
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, EmailStr, Field, field_validator
+
+# Channel an OTP was actually delivered through. "none" = all channels mocked/failed
+# (dev only — the response then carries otp_hint in non-production).
+DeliveryChannel = Literal["voice", "email", "none"]
 
 # ---------------------------------------------------------------------------
 # Registration
@@ -15,10 +19,16 @@ class RegisterInitiateRequest(BaseModel):
     first_name: Annotated[str, Field(min_length=1, max_length=100)]
     last_name: Annotated[str, Field(min_length=1, max_length=100)]
     mobile: Annotated[str, Field(pattern=r"^\+[1-9]\d{6,14}$")]
+    email: EmailStr  # mandatory + unique; OTP fallback channel + post-login 2FA target
     lines: list[Literal["loans", "real_estate"]] = Field(
         min_length=1,
         description="One or both business lines to enroll in.",
     )
+
+    @field_validator("email")
+    @classmethod
+    def email_normalize(cls, v: str) -> str:
+        return v.strip().lower()
 
     @field_validator("lines")
     @classmethod
@@ -30,8 +40,8 @@ class RegisterInitiateRequest(BaseModel):
 
 class RegisterInitiateResponse(BaseModel):
     message: str
-    sms_sent: bool
-    otp_hint: str | None = None  # only in non-production when sms_sent=False
+    delivery_channel: DeliveryChannel
+    otp_hint: str | None = None  # only in non-production when delivery_channel == "none"
 
 
 class RegisterVerifyOtpRequest(BaseModel):
@@ -71,6 +81,8 @@ class AuthTokensResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
     expires_in: int  # seconds
+    phone_verified: bool = False
+    email_verified: bool = False  # drives the post-login "verify your email" banner
 
 
 # ---------------------------------------------------------------------------
@@ -84,7 +96,7 @@ class ForgotInitiateRequest(BaseModel):
 
 class ForgotInitiateResponse(BaseModel):
     message: str
-    sms_sent: bool
+    delivery_channel: DeliveryChannel
     otp_hint: str | None = None
 
 
@@ -133,12 +145,28 @@ class ChangePasswordRequest(BaseModel):
 class ResendOtpRequest(BaseModel):
     mobile: Annotated[str, Field(pattern=r"^\+[1-9]\d{6,14}$")]
     purpose: Literal["register", "reset"]
+    via_email: bool = False  # recovery: "didn't get the call? email my code"
 
 
 class ResendOtpResponse(BaseModel):
     message: str
-    sms_sent: bool
+    delivery_channel: DeliveryChannel
     otp_hint: str | None = None
+
+
+# ---------------------------------------------------------------------------
+# Email verification (post-login soft 2FA)
+# ---------------------------------------------------------------------------
+
+
+class EmailVerifyInitiateResponse(BaseModel):
+    message: str
+    delivery_channel: DeliveryChannel
+    otp_hint: str | None = None
+
+
+class EmailVerifyConfirmRequest(BaseModel):
+    otp: Annotated[str, Field(pattern=r"^\d{6}$")]
 
 
 # ---------------------------------------------------------------------------

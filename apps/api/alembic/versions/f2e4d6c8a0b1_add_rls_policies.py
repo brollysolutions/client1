@@ -37,10 +37,8 @@ _TABLES = [
 
 
 def upgrade() -> None:
-    conn = op.get_bind()
-
     # --- Create non-superuser role for authenticated API requests ---
-    conn.execute(
+    op.execute(
         """
         DO $$
         BEGIN
@@ -51,8 +49,8 @@ def upgrade() -> None:
         $$;
         """
     )
-    conn.execute("GRANT USAGE ON SCHEMA public TO api_user;")
-    conn.execute(
+    op.execute("GRANT USAGE ON SCHEMA public TO api_user;")
+    op.execute(
         f"""
         GRANT SELECT, INSERT, UPDATE, DELETE ON
             {", ".join(_TABLES)}
@@ -62,12 +60,12 @@ def upgrade() -> None:
 
     # --- Enable RLS ---
     for table in _TABLES:
-        conn.execute(f"ALTER TABLE {table} ENABLE ROW LEVEL SECURITY;")
+        op.execute(f"ALTER TABLE {table} ENABLE ROW LEVEL SECURITY;")
 
     # --- Policies ---
 
     # auth_users: own row only; platform Admin/Sub Admin see all
-    conn.execute(
+    op.execute(
         """
         CREATE POLICY auth_users_rls ON auth_users
         FOR ALL
@@ -83,7 +81,7 @@ def upgrade() -> None:
     )
 
     # client_profiles: own profiles; line staff see their line; Admin sees all
-    conn.execute(
+    op.execute(
         """
         CREATE POLICY client_profiles_rls ON client_profiles
         FOR ALL
@@ -104,7 +102,7 @@ def upgrade() -> None:
     )
 
     # agent_profiles: own profile; line staff see their line; Admin sees all
-    conn.execute(
+    op.execute(
         """
         CREATE POLICY agent_profiles_rls ON agent_profiles
         FOR ALL
@@ -125,7 +123,7 @@ def upgrade() -> None:
     )
 
     # staff_profiles: own row; Admin sees all; only Admin can create/modify
-    conn.execute(
+    op.execute(
         """
         CREATE POLICY staff_profiles_rls ON staff_profiles
         FOR ALL
@@ -140,7 +138,7 @@ def upgrade() -> None:
     )
 
     # agent_applications: applicant sees own; Admin/Sub Admin see all
-    conn.execute(
+    op.execute(
         """
         CREATE POLICY agent_applications_rls ON agent_applications
         FOR ALL
@@ -162,7 +160,7 @@ def upgrade() -> None:
     )
 
     # refresh_tokens: users see and manage own tokens only
-    conn.execute(
+    op.execute(
         """
         CREATE POLICY refresh_tokens_rls ON refresh_tokens
         FOR ALL
@@ -176,7 +174,7 @@ def upgrade() -> None:
     )
 
     # auth_events: users see own events; Admin sees all; system inserts via superuser
-    conn.execute(
+    op.execute(
         """
         CREATE POLICY auth_events_rls ON auth_events
         FOR ALL
@@ -199,15 +197,13 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    conn = op.get_bind()
-
     for table in _TABLES:
-        conn.execute(f"DROP POLICY IF EXISTS {table}_rls ON {table};")
-        conn.execute(f"ALTER TABLE {table} DISABLE ROW LEVEL SECURITY;")
+        op.execute(f"DROP POLICY IF EXISTS {table}_rls ON {table};")
+        op.execute(f"ALTER TABLE {table} DISABLE ROW LEVEL SECURITY;")
 
-    conn.execute(f"REVOKE SELECT, INSERT, UPDATE, DELETE ON {', '.join(_TABLES)} FROM api_user;")
-    conn.execute("REVOKE USAGE ON SCHEMA public FROM api_user;")
-    conn.execute(
+    op.execute(f"REVOKE SELECT, INSERT, UPDATE, DELETE ON {', '.join(_TABLES)} FROM api_user;")
+    op.execute("REVOKE USAGE ON SCHEMA public FROM api_user;")
+    op.execute(
         """
         DO $$
         BEGIN
