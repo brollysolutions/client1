@@ -132,7 +132,14 @@ async def _set_rls_context(
     staff_profile_uuid: str,
     platform_scope: str,
 ) -> None:
-    """Set 7-variable Postgres session context for RLS policies."""
+    """Drop from superuser to api_user and set 7-variable Postgres session context.
+
+    The API connects as 'app' (superuser) which bypasses RLS unconditionally.
+    SET LOCAL ROLE api_user switches to a non-superuser role for this transaction
+    so that RLS policies on auth/profile tables are enforced.  The role reverts
+    automatically when the transaction ends (pgBouncer transaction mode safe).
+    """
+    await db.execute(text("SET LOCAL ROLE api_user"))
     await db.execute(
         text(
             "SELECT "
