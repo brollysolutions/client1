@@ -1,7 +1,0 @@
-#!/usr/bin/env bash
-# Full verification before pushing. Enable with: git config core.hooksPath .githooks
-set -euo pipefail
-
-if [[ -x ./scripts/verify.sh ]]; then
-  ./scripts/verify.sh
-fi

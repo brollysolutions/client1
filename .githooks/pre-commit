@@ -1,7 +1,13 @@
 #!/usr/bin/env bash
-# Changed-scope verification before each commit. Enable with: git config core.hooksPath .githooks
+# Fast lint + format check only. Full suite runs in CI.
 set -euo pipefail
 
-if [[ -x ./scripts/verify.sh ]]; then
-  ./scripts/verify.sh --changed
+if [[ -f apps/api/pyproject.toml ]]; then
+  echo "==> API lint"
+  (cd apps/api && uv run ruff check . && uv run ruff format --check .)
+fi
+
+if [[ -f apps/web/package.json ]] && command -v pnpm &>/dev/null; then
+  echo "==> Web lint"
+  (cd apps/web && pnpm lint)
 fi
