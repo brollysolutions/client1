@@ -39,6 +39,17 @@ Thumbs.db
 .idea/
 .vscode/
 
+# Docs / tooling (local only)
+docs/
+postman/
+.postman/
+.agents/
+.mcp.json
+AGENTS.md
+
+# pnpm store
+apps/web/.pnpm-store/
+
 # Assistant files (local instructions only)
 .claude/
 .gemini/
