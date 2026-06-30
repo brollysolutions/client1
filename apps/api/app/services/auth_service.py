@@ -10,6 +10,7 @@ from uuid import UUID
 from fastapi import HTTPException, status
 from jose import JWTError
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.cache.redis_keys import TTL_OTP, RedisCache, jwt_blacklist_key, reg_data_key
@@ -245,21 +246,24 @@ async def register_set_password(
     await db.flush()  # get user.id before creating profiles
 
     for line in lines:
-        for _ in range(5):  # retry on UNIQUE collision
+        for attempt in range(5):
             code = generate_profile_code("client", user.first_name, line)
-            profile = ClientProfile(
-                auth_user_uuid=user.id,
-                business_line=line,
-                customer_code=code,
-                status=ProfileStatus.ACTIVE,
-            )
-            db.add(profile)
             try:
-                await db.flush()
-                break
-            except Exception:
-                await db.rollback()
-                raise
+                async with db.begin_nested():
+                    profile = ClientProfile(
+                        auth_user_uuid=user.id,
+                        business_line=line,
+                        customer_code=code,
+                        status=ProfileStatus.ACTIVE,
+                    )
+                    db.add(profile)
+                break  # savepoint committed — next line
+            except IntegrityError:
+                if attempt == 4:
+                    raise HTTPException(
+                        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                        detail="Could not generate unique profile code. Please try again.",
+                    ) from None
 
     await db.commit()
     await _log_event(
