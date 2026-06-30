@@ -36,8 +36,11 @@ async def _raw_select_as_api_user(
     params: dict | None = None,
 ) -> list[dict]:
     """Open a fresh connection, drop to api_user, set RLS context, run query."""
+    # Bypass pgBouncer (transaction-mode pooling intermittently drops the connection
+    # during setup under load) — connect straight to Postgres, same as conftest/alembic.
+    raw_url = settings.DATABASE_URL.replace("pgbouncer:5432", "postgres:5432")
     engine = create_async_engine(
-        settings.DATABASE_URL,
+        raw_url,
         poolclass=NullPool,
         connect_args={
             "statement_cache_size": 0,

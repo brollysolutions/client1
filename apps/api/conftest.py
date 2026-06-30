@@ -21,6 +21,20 @@ from app.main import app
 
 
 @pytest.fixture(scope="session", autouse=True)
+def _force_mock_otp_channels() -> None:
+    """Tests must never place real voice calls or send real email.
+
+    .env.local may carry a real TWOFACTOR_API_KEY; force mock mode so deliver_otp
+    returns 'none' (and otp_hint) without hitting the network. Email is already
+    mock (no SMTP creds) but we pin it for determinism.
+    """
+    settings.VOICE_OTP_ENABLED = False
+    settings.TWOFACTOR_API_KEY = ""
+    settings.EMAIL_ENABLED = False
+    settings.SMTP_HOST = ""
+
+
+@pytest.fixture(scope="session", autouse=True)
 def _patch_db_null_pool() -> None:
     """Replace the module-level SQLAlchemy engine+session with a NullPool version.
 
@@ -31,8 +45,12 @@ def _patch_db_null_pool() -> None:
     """
     import app.db.session as _session_mod
 
+    # Bypass pgBouncer for tests: transaction-mode pooling + asyncpg + NullPool churn
+    # intermittently yields "connection was closed in the middle of operation". Connect
+    # straight to Postgres (same as alembic env.py) for deterministic integration tests.
+    test_url = settings.DATABASE_URL.replace("pgbouncer:5432", "postgres:5432")
     test_engine = create_async_engine(
-        settings.DATABASE_URL,
+        test_url,
         poolclass=NullPool,
         connect_args={
             "statement_cache_size": 0,
@@ -40,14 +58,22 @@ def _patch_db_null_pool() -> None:
             "prepared_statement_name_func": lambda: f"__asyncpg_{uuid.uuid4()}__",
         },
     )
+    import app.services.leads as _leads_mod
+
     original = _session_mod.AsyncSessionLocal
-    _session_mod.AsyncSessionLocal = async_sessionmaker(
+    null_pool_sessionmaker = async_sessionmaker(
         bind=test_engine,
         expire_on_commit=False,
         autoflush=False,
     )
+    _session_mod.AsyncSessionLocal = null_pool_sessionmaker
+    # leads.py did `from app.db.session import AsyncSessionLocal`, binding the original at
+    # import time — rebind it too so lead capture uses the NullPool engine in tests.
+    original_leads = _leads_mod.AsyncSessionLocal
+    _leads_mod.AsyncSessionLocal = null_pool_sessionmaker
     yield
     _session_mod.AsyncSessionLocal = original
+    _leads_mod.AsyncSessionLocal = original_leads
 
 
 # ---------------------------------------------------------------------------
@@ -61,6 +87,11 @@ def unique_mobile() -> str:
     """E.164 Indian mobile — unique per call, avoids cross-test DB collisions."""
     n = uuid.uuid4().int % 900_000_000 + 100_000_000
     return f"+91{n}"
+
+
+def unique_email() -> str:
+    """Unique email — avoids cross-test UNIQUE collisions on auth_users.email."""
+    return f"test_{uuid.uuid4().hex[:12]}@example.com"
 
 
 # ---------------------------------------------------------------------------
@@ -122,20 +153,23 @@ async def initiate_and_get_otp(
     client: AsyncClient,
     mobile: str,
     lines: list[str] | None = None,
+    email: str | None = None,
 ) -> str:
     """POST register/initiate, return OTP hint. Asserts 200 and mock mode."""
     resp = await client.post(
-        "/auth/register/initiate",
+        "/api/v1/auth/register/initiate",
         json={
             "first_name": "Test",
             "last_name": "User",
             "mobile": mobile,
+            "email": email or unique_email(),
             "lines": lines or ["loans"],
         },
     )
     assert resp.status_code == 200, resp.text
     data = resp.json()
-    assert data["sms_sent"] is False
+    # Mock mode (no voice/email creds) → no channel delivered, OTP returned as hint.
+    assert data["delivery_channel"] == "none"
     otp: str = data["otp_hint"]
     assert len(otp) == 6
     return otp
@@ -146,21 +180,22 @@ async def full_registration(
     mobile: str | None = None,
     password: str = PASSWORD,
     lines: list[str] | None = None,
+    email: str | None = None,
 ) -> tuple[str, str]:
     """Complete 3-step registration. Returns (access_token, mobile)."""
     if mobile is None:
         mobile = unique_mobile()
-    otp = await initiate_and_get_otp(client, mobile, lines)
+    otp = await initiate_and_get_otp(client, mobile, lines, email)
 
     verify_resp = await client.post(
-        "/auth/register/verify-otp",
+        "/api/v1/auth/register/verify-otp",
         json={"mobile": mobile, "otp": otp},
     )
     assert verify_resp.status_code == 200, verify_resp.text
     reg_token = verify_resp.json()["registration_token"]
 
     set_pw_resp = await client.post(
-        "/auth/register/set-password",
+        "/api/v1/auth/register/set-password",
         json={
             "registration_token": reg_token,
             "password": password,
@@ -178,7 +213,7 @@ async def do_login(
 ) -> str:
     """POST /auth/login, return access_token. Asserts 200."""
     resp = await client.post(
-        "/auth/login",
+        "/api/v1/auth/login",
         json={"mobile": mobile, "password": password},
     )
     assert resp.status_code == 200, resp.text

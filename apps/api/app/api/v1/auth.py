@@ -12,6 +12,8 @@ from app.db.session import get_db
 from app.schemas.auth import (
     AuthTokensResponse,
     ChangePasswordRequest,
+    EmailVerifyConfirmRequest,
+    EmailVerifyInitiateResponse,
     ForgotInitiateRequest,
     ForgotInitiateResponse,
     ForgotVerifyRequest,
@@ -31,12 +33,15 @@ from app.services import auth_service
 
 router = APIRouter()
 
+# Cookie path must match the mounted endpoint path (router prefix is /api/v1/auth),
+# otherwise the browser/client never sends the refresh cookie back to /refresh.
+_REFRESH_PATH = "/api/v1/auth/refresh"
 _REFRESH_COOKIE = "refresh_token"
 _COOKIE_KWARGS = {
     "httponly": True,
     "secure": True,
     "samesite": "strict",
-    "path": "/auth/refresh",
+    "path": _REFRESH_PATH,
 }
 
 
@@ -50,7 +55,7 @@ def _set_refresh_cookie(response: Response, raw_token: str, max_age: int) -> Non
 
 
 def _clear_refresh_cookie(response: Response) -> None:
-    response.delete_cookie(_REFRESH_COOKIE, path="/auth/refresh")
+    response.delete_cookie(_REFRESH_COOKIE, path=_REFRESH_PATH)
 
 
 def _get_client_ip(request: Request) -> str | None:
@@ -316,4 +321,67 @@ async def resend_otp(
         req.mobile,
         req.purpose,
         ip=_get_client_ip(request),
+        via_email=req.via_email,
     )
+
+
+# ---------------------------------------------------------------------------
+# Email verification — post-login soft 2FA
+# ---------------------------------------------------------------------------
+
+
+@router.post(
+    "/email/verify/initiate",
+    response_model=EmailVerifyInitiateResponse,
+    status_code=status.HTTP_200_OK,
+)
+async def email_verify_initiate(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    cache: RedisCache = Depends(get_cache),
+    current_user: CurrentUser = Depends(get_current_user),
+) -> EmailVerifyInitiateResponse:
+    from app.models.user import User
+
+    user = await db.get(User, current_user.id)
+    if user is None:
+        from fastapi import HTTPException
+
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized.")
+    return await auth_service.email_verify_initiate(
+        db,
+        cache,
+        user,
+        ip=_get_client_ip(request),
+        user_agent=request.headers.get("user-agent"),
+    )
+
+
+@router.post(
+    "/email/verify/confirm",
+    response_model=MessageResponse,
+    status_code=status.HTTP_200_OK,
+)
+async def email_verify_confirm(
+    req: EmailVerifyConfirmRequest,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    cache: RedisCache = Depends(get_cache),
+    current_user: CurrentUser = Depends(get_current_user),
+) -> MessageResponse:
+    from app.models.user import User
+
+    user = await db.get(User, current_user.id)
+    if user is None:
+        from fastapi import HTTPException
+
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized.")
+    await auth_service.email_verify_confirm(
+        db,
+        cache,
+        user,
+        req.otp,
+        ip=_get_client_ip(request),
+        user_agent=request.headers.get("user-agent"),
+    )
+    return MessageResponse(message="Email verified successfully.")

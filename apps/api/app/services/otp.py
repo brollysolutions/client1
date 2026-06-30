@@ -17,6 +17,7 @@ from app.cache.redis_keys import (
     RedisCache,
     login_fail_key,
     login_lock_key,
+    otp_email_verify_key,
     otp_lock_key,
     otp_rate_key,
     otp_register_key,
@@ -39,6 +40,8 @@ def _otp_key(mobile: str, purpose: str) -> str:
         return otp_register_key(mobile)
     if purpose == "reset":
         return otp_reset_key(mobile)
+    if purpose == "email_verify":
+        return otp_email_verify_key(mobile)
     raise ValueError(f"Unknown OTP purpose: {purpose}")
 
 

@@ -12,6 +12,7 @@ import redis.asyncio as aioredis
 
 OTP_REGISTER = "otp:register:{mobile}"
 OTP_RESET = "otp:reset:{mobile}"
+OTP_EMAIL_VERIFY = "otp:email_verify:{mobile}"
 OTP_RESEND = "otp_resend:{mobile}"
 OTP_LOCK = "otp_lock:{mobile}"
 OTP_RATE = "otp_rate:{mobile}"
@@ -75,6 +76,10 @@ def otp_register_key(mobile: str) -> str:
 
 def otp_reset_key(mobile: str) -> str:
     return OTP_RESET.format(mobile=mobile)
+
+
+def otp_email_verify_key(mobile: str) -> str:
+    return OTP_EMAIL_VERIFY.format(mobile=mobile)
 
 
 def otp_resend_key(mobile: str) -> str:

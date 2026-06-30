@@ -63,9 +63,10 @@ class User(Base):
         nullable=False,
         index=True,
     )
-    email: Mapped[str | None] = mapped_column(
+    email: Mapped[str] = mapped_column(
         String,
-        nullable=True,
+        unique=True,
+        nullable=False,
     )
     password_hash: Mapped[str | None] = mapped_column(
         String,
@@ -78,6 +79,10 @@ class User(Base):
         default=UserStatus.ACTIVE,
     )
     phone_verified_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
+    email_verified_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True),
         nullable=True,
     )
