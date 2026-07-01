@@ -42,6 +42,19 @@ def _otp_email_body(otp: str) -> str:
     )
 
 
+def _to_2factor_mobile(e164: str) -> str:
+    """Strip country code for 2Factor.in — it expects a bare 10-digit Indian mobile.
+
+    Input is always E.164 (+91XXXXXXXXXX). The API returns 400 when the leading
+    '+' or country code is present in the URL path.
+    """
+    digits = e164.lstrip("+")
+    # Drop leading 91 (India country code) if present and the remainder is 10 digits.
+    if digits.startswith("91") and len(digits) == 12:
+        return digits[2:]
+    return digits
+
+
 async def _send_via_voice(mobile: str, otp: str) -> bool:
     """Place a 2Factor voice OTP call. Returns True on success, False otherwise.
 
@@ -52,7 +65,11 @@ async def _send_via_voice(mobile: str, otp: str) -> bool:
         logger.warning("VOICE_MOCK mobile=%s otp=%s", mobile, otp)
         return False
 
-    url = _VOICE_URL.format(api_key=settings.TWOFACTOR_API_KEY, mobile=mobile, otp=otp)
+    url = _VOICE_URL.format(
+        api_key=settings.TWOFACTOR_API_KEY,
+        mobile=_to_2factor_mobile(mobile),
+        otp=otp,
+    )
     try:
         async with httpx.AsyncClient(timeout=10.0) as client:
             resp = await client.get(url)

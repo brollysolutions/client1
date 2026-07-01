@@ -190,7 +190,7 @@ async def register_initiate(
     )
 
     return RegisterInitiateResponse(
-        message="Verification code sent. Answer the call or check your email.",
+        message="Verification code sent. You will receive a call shortly.",
         delivery_channel=channel,
         otp_hint=otp if (channel == "none" and _is_mock_env()) else None,
     )
