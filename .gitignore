@@ -26,6 +26,7 @@ dist/
 build/
 .turbo/
 pnpm-debug.log*
+*.tsbuildinfo
 
 # Data / dumps
 *.sqlite
