@@ -1,6 +1,11 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
+/* ------------------------------------------------------------------ *
+ * Brand design tokens — project source of truth.
+ * Exposes utilities like `bg-brand-navy`, `text-loans-accent`,
+ * `bg-realestate-soft`, `font-heading`, etc.
+ * ------------------------------------------------------------------ */
 @theme {
   --font-display: "Newsreader", serif;
   --font-heading: "Space Grotesk", sans-serif;
@@ -12,12 +17,10 @@
   --color-brand-sky: #95CCDD;
   --color-brand-aqua: #D0E7E6;
 
-  --color-background: #F3F3EE;
   --color-surface: #FFFFFF;
 
   --color-text-primary: #20242E;
   --color-text-secondary: #5C5C5C;
-  --color-border: #D9D9D9;
 
   --color-cta: #C9792B;
   --color-cta-hover: #A85F1F;
@@ -35,9 +38,90 @@
   --color-info: #2563EB;
 }
 
-body {
-  background-color: var(--color-background);
-  color: var(--color-text-primary);
+/* ------------------------------------------------------------------ *
+ * shadcn/ui semantic tokens — mapped onto the brand palette above.
+ * Kept as raw vars in :root + exposed via `@theme inline` per the
+ * shadcn Tailwind v4 convention, so primitives resolve `bg-primary`,
+ * `text-foreground`, `border-input`, `ring-ring`, `rounded-lg`, etc.
+ * on-brand instead of the shadcn default (near-black) theme.
+ * ------------------------------------------------------------------ */
+:root {
+  --radius: 0.625rem;
+
+  --background: #F3F3EE;
+  --foreground: #20242E;
+
+  --card: #FFFFFF;
+  --card-foreground: #20242E;
+
+  --popover: #FFFFFF;
+  --popover-foreground: #20242E;
+
+  --primary: #293681; /* brand navy */
+  --primary-foreground: #FFFFFF;
+
+  --secondary: #D0E7E6; /* brand aqua */
+  --secondary-foreground: #20242E;
+
+  --muted: #ECEDE8;
+  --muted-foreground: #5C5C5C;
+
+  --accent: #95CCDD; /* brand sky */
+  --accent-foreground: #20242E;
+
+  --destructive: #DC2626;
+  --destructive-foreground: #FFFFFF;
+
+  --border: #D9D9D9;
+  --input: #D9D9D9;
+  --ring: #4274D9; /* brand blue */
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+@layer base {
+  * {
+    border-color: var(--border);
+    outline-color: color-mix(in srgb, var(--ring) 50%, transparent);
+  }
+
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
+  }
 }
 
 /* Landing navbar tokens. Cream bar + near-black text + Sky-blue accent. */
