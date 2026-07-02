@@ -26,6 +26,10 @@ dist/
 build/
 .turbo/
 pnpm-debug.log*
+*.tsbuildinfo
+
+# Playwright MCP artifacts
+.playwright-mcp/
 
 # Data / dumps
 *.sqlite
