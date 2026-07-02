@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "tw-animate-css";
 
 /* ------------------------------------------------------------------ *
  * Brand design tokens — project source of truth.
@@ -9,6 +10,7 @@
   --font-display: "Newsreader", serif;
   --font-heading: "Space Grotesk", sans-serif;
   --font-body: "Inter", sans-serif;
+  --font-geist: "Geist", sans-serif;
 
   --color-brand-navy: #293681;
   --color-brand-blue: #4274D9;
@@ -120,4 +122,14 @@
     background-color: var(--background);
     color: var(--foreground);
   }
+}
+
+/* Landing navbar tokens. Cream bar + near-black text + Sky-blue accent. */
+:root {
+  --nav-bg: #f3f3ee;
+  --nav-text: #111827;
+  --nav-primary: #0284c7;
+  --nav-primary-hover: #0369a1;
+  --nav-tint: #e0f2fe;
+  --nav-border: #e3e3db;
 }
