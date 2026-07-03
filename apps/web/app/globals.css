@@ -36,6 +36,9 @@
   --color-warning: #B7791F;
   --color-error: #DC2626;
   --color-info: #2563EB;
+
+  /* Announcement/notice bar — global site chrome, not a line accent. */
+  --color-notice: #F3BB1B;
 }
 
 /* ------------------------------------------------------------------ *
@@ -121,6 +124,9 @@
   body {
     background-color: var(--background);
     color: var(--foreground);
+    /* Space Grotesk (loaded as --font-heading) is the default body typeface —
+       paragraphs and long-form copy inherit it unless a component overrides. */
+    font-family: var(--font-heading), "Space Grotesk", sans-serif;
   }
 }
 

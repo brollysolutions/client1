@@ -1,0 +1,154 @@
+<svg viewBox="0 0 2400 800" width="2400" height="800" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- background -->
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f6f6f1"/>
+      <stop offset="0.55" stop-color="#f3f3ee"/>
+      <stop offset="1" stop-color="#ecebe3"/>
+    </linearGradient>
+    <!-- left safe-zone fade so headline text stays clean -->
+    <linearGradient id="leftfade" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#f3f3ee" stop-opacity="1"/>
+      <stop offset="0.34" stop-color="#f3f3ee" stop-opacity="1"/>
+      <stop offset="0.5" stop-color="#f3f3ee" stop-opacity="0"/>
+    </linearGradient>
+
+    <radialGradient id="glow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#95CCDD" stop-opacity="0.55"/>
+      <stop offset="0.55" stop-color="#4274D9" stop-opacity="0.18"/>
+      <stop offset="1" stop-color="#4274D9" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- clay material gradients -->
+    <linearGradient id="navyTop" x1="0" y1="0" x2="0.4" y2="1">
+      <stop offset="0" stop-color="#4a5cab"/>
+      <stop offset="1" stop-color="#293681"/>
+    </linearGradient>
+    <linearGradient id="navySide" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#2c3a86"/>
+      <stop offset="1" stop-color="#212c69"/>
+    </linearGradient>
+    <linearGradient id="blueClay" x1="0" y1="0" x2="0.3" y2="1">
+      <stop offset="0" stop-color="#6c9cf1"/>
+      <stop offset="1" stop-color="#4274D9"/>
+    </linearGradient>
+    <linearGradient id="skyClay" x1="0" y1="0" x2="0.3" y2="1">
+      <stop offset="0" stop-color="#c4e7f1"/>
+      <stop offset="1" stop-color="#95CCDD"/>
+    </linearGradient>
+    <linearGradient id="creamClay" x1="0" y1="0" x2="0.3" y2="1">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#e9e8df"/>
+    </linearGradient>
+    <linearGradient id="screen" x1="0" y1="0" x2="0.2" y2="1">
+      <stop offset="0" stop-color="#f8f8f3"/>
+      <stop offset="1" stop-color="#e7e6dd"/>
+    </linearGradient>
+
+    <!-- soft shadows -->
+    <filter id="softShadow" x="-40%" y="-40%" width="180%" height="200%">
+      <feDropShadow dx="0" dy="26" stdDeviation="30" flood-color="#293681" flood-opacity="0.16"/>
+    </filter>
+    <filter id="tinyShadow" x="-60%" y="-60%" width="220%" height="240%">
+      <feDropShadow dx="0" dy="12" stdDeviation="12" flood-color="#293681" flood-opacity="0.18"/>
+    </filter>
+    <filter id="blurGlow" x="-80%" y="-80%" width="260%" height="260%">
+      <feGaussianBlur stdDeviation="34"/>
+    </filter>
+  </defs>
+
+  <!-- base -->
+  <rect width="2400" height="800" fill="url(#bg)"/>
+  <!-- ambient glow behind subject cluster -->
+  <ellipse cx="1760" cy="400" rx="620" ry="470" fill="url(#glow)"/>
+
+  <!-- ======= FLOATING PLATFORMS ======= -->
+  <!-- helper: iso disc = ellipse top + thin navy side -->
+  <!-- main platform under phone -->
+  <g filter="url(#softShadow)">
+    <ellipse cx="1720" cy="628" rx="256" ry="92" fill="url(#navySide)"/>
+    <ellipse cx="1720" cy="612" rx="256" ry="92" fill="url(#creamClay)"/>
+  </g>
+
+  <!-- coin platform A (upper left of cluster) -->
+  <g filter="url(#tinyShadow)">
+    <ellipse cx="1420" cy="320" rx="96" ry="36" fill="url(#navySide)"/>
+    <ellipse cx="1420" cy="310" rx="96" ry="36" fill="url(#creamClay)"/>
+  </g>
+  <!-- coin platform B (upper right) -->
+  <g filter="url(#tinyShadow)">
+    <ellipse cx="2040" cy="272" rx="92" ry="34" fill="url(#navySide)"/>
+    <ellipse cx="2040" cy="262" rx="92" ry="34" fill="url(#creamClay)"/>
+  </g>
+  <!-- coin platform C (right) -->
+  <g filter="url(#tinyShadow)">
+    <ellipse cx="2110" cy="500" rx="92" ry="34" fill="url(#navySide)"/>
+    <ellipse cx="2110" cy="490" rx="92" ry="34" fill="url(#creamClay)"/>
+  </g>
+  <!-- house platform (lower left) -->
+  <g filter="url(#tinyShadow)">
+    <ellipse cx="1430" cy="560" rx="110" ry="40" fill="url(#navySide)"/>
+    <ellipse cx="1430" cy="548" rx="110" ry="40" fill="url(#creamClay)"/>
+  </g>
+
+  <!-- ======= COINS (iso cylinders) ======= -->
+  <!-- coin A -->
+  <g>
+    <path d="M1372 300 a48 20 0 0 0 96 0 v-26 a48 20 0 0 1 -96 0 z" fill="url(#blueClay)"/>
+    <ellipse cx="1420" cy="274" rx="48" ry="20" fill="#7ba7f2"/>
+    <ellipse cx="1420" cy="274" rx="30" ry="12" fill="#4274D9" opacity="0.55"/>
+  </g>
+  <!-- coin B -->
+  <g>
+    <path d="M1994 250 a46 19 0 0 0 92 0 v-24 a46 19 0 0 1 -92 0 z" fill="url(#skyClay)"/>
+    <ellipse cx="2040" cy="226" rx="46" ry="19" fill="#b3ddec"/>
+    <ellipse cx="2040" cy="226" rx="28" ry="11" fill="#95CCDD" opacity="0.7"/>
+  </g>
+  <!-- coin C -->
+  <g>
+    <path d="M2064 480 a46 19 0 0 0 92 0 v-24 a46 19 0 0 1 -92 0 z" fill="url(#blueClay)"/>
+    <ellipse cx="2110" cy="456" rx="46" ry="19" fill="#7ba7f2"/>
+    <ellipse cx="2110" cy="456" rx="28" ry="11" fill="#4274D9" opacity="0.55"/>
+  </g>
+
+  <!-- ======= HOUSE TOKEN ======= -->
+  <g filter="url(#tinyShadow)" transform="translate(1430 508)">
+    <!-- body -->
+    <rect x="-46" y="-8" width="92" height="70" rx="14" fill="url(#creamClay)"/>
+    <!-- roof -->
+    <path d="M-58 0 L0 -52 L58 0 Z" fill="url(#navyTop)"/>
+    <!-- door -->
+    <rect x="-14" y="24" width="28" height="38" rx="9" fill="url(#blueClay)"/>
+    <!-- window -->
+    <circle cx="-26" cy="20" r="8" fill="#95CCDD"/>
+  </g>
+
+  <!-- ======= PHONE (clay, iso lean) ======= -->
+  <g transform="translate(1720 372) skewY(-8) rotate(-3)" filter="url(#softShadow)">
+    <!-- back edge for thickness -->
+    <rect x="-92" y="-198" width="200" height="404" rx="42" fill="url(#navySide)"/>
+    <!-- body -->
+    <rect x="-108" y="-206" width="200" height="404" rx="42" fill="url(#navyTop)"/>
+    <!-- screen -->
+    <rect x="-86" y="-182" width="156" height="356" rx="26" fill="url(#screen)"/>
+    <!-- abstract card stack -->
+    <rect x="-64" y="-150" width="112" height="70" rx="16" fill="url(#skyClay)"/>
+    <rect x="-64" y="-64" width="112" height="70" rx="16" fill="url(#blueClay)"/>
+    <rect x="-64" y="22" width="112" height="70" rx="16" fill="url(#navyTop)"/>
+    <!-- little rows on top card -->
+    <rect x="-48" y="-134" width="60" height="10" rx="5" fill="#ffffff" opacity="0.75"/>
+    <rect x="-48" y="-116" width="40" height="10" rx="5" fill="#ffffff" opacity="0.5"/>
+    <!-- notch -->
+    <rect x="-16" y="-192" width="32" height="9" rx="4.5" fill="#293681" opacity="0.55"/>
+  </g>
+
+  <!-- ======= ORBIT NODES ======= -->
+  <circle cx="1560" cy="200" r="9" fill="#4274D9" opacity="0.85"/>
+  <circle cx="1930" cy="180" r="7" fill="#95CCDD"/>
+  <circle cx="2180" cy="380" r="8" fill="#4274D9" opacity="0.7"/>
+  <circle cx="1600" cy="470" r="7" fill="#95CCDD"/>
+  <circle cx="1980" cy="600" r="9" fill="#4274D9" opacity="0.6"/>
+
+  <!-- left safe zone reinforcement -->
+  <rect width="1200" height="800" fill="url(#leftfade)"/>
+</svg>

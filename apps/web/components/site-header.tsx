@@ -54,7 +54,10 @@ export function SiteHeader() {
                     <ul className="grid w-[340px] gap-1">
                       {item.children.map((child) => (
                         <li key={child.href}>
-                          <NavigationMenuLink asChild className="group/item">
+                          <NavigationMenuLink
+                            asChild
+                            className="group/item transition-transform duration-200 will-change-transform hover:scale-[1.04] motion-reduce:transition-none motion-reduce:hover:scale-100"
+                          >
                             <Link href={child.href}>
                               <span className="flex items-center gap-2">
                                 <child.icon

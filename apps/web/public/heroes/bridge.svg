@@ -1,0 +1,63 @@
+<svg viewBox="0 0 2400 800" width="2400" height="800" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f6f6f1"/><stop offset="0.55" stop-color="#f3f3ee"/><stop offset="1" stop-color="#ecebe3"/>
+    </linearGradient>
+    <linearGradient id="leftfade" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#f3f3ee" stop-opacity="1"/><stop offset="0.42" stop-color="#f3f3ee" stop-opacity="1"/><stop offset="0.58" stop-color="#f3f3ee" stop-opacity="0"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#95CCDD" stop-opacity="0.55"/><stop offset="0.55" stop-color="#4274D9" stop-opacity="0.18"/><stop offset="1" stop-color="#4274D9" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="navyTop" x1="0" y1="0" x2="0.4" y2="1"><stop offset="0" stop-color="#4a5cab"/><stop offset="1" stop-color="#293681"/></linearGradient>
+    <linearGradient id="navySide" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2c3a86"/><stop offset="1" stop-color="#212c69"/></linearGradient>
+    <linearGradient id="blueClay" x1="0" y1="0" x2="0.3" y2="1"><stop offset="0" stop-color="#6c9cf1"/><stop offset="1" stop-color="#4274D9"/></linearGradient>
+    <linearGradient id="blueArc" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#5a8ee8"/><stop offset="0.5" stop-color="#6c9cf1"/><stop offset="1" stop-color="#4274D9"/></linearGradient>
+    <linearGradient id="skyClay" x1="0" y1="0" x2="0.3" y2="1"><stop offset="0" stop-color="#c4e7f1"/><stop offset="1" stop-color="#95CCDD"/></linearGradient>
+    <linearGradient id="creamClay" x1="0" y1="0" x2="0.3" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#e9e8df"/></linearGradient>
+    <filter id="softShadow" x="-40%" y="-40%" width="180%" height="200%"><feDropShadow dx="0" dy="26" stdDeviation="30" flood-color="#293681" flood-opacity="0.16"/></filter>
+    <filter id="tinyShadow" x="-60%" y="-60%" width="220%" height="240%"><feDropShadow dx="0" dy="12" stdDeviation="12" flood-color="#293681" flood-opacity="0.18"/></filter>
+  </defs>
+
+  <rect width="2400" height="800" fill="url(#bg)"/>
+  <ellipse cx="1560" cy="400" rx="600" ry="460" fill="url(#glow)"/>
+
+  <!-- platforms -->
+  <g filter="url(#softShadow)"><ellipse cx="1310" cy="560" rx="132" ry="46" fill="url(#navySide)"/><ellipse cx="1310" cy="546" rx="132" ry="46" fill="url(#creamClay)"/></g>
+  <g filter="url(#softShadow)"><ellipse cx="1760" cy="560" rx="150" ry="52" fill="url(#navySide)"/><ellipse cx="1760" cy="546" rx="150" ry="52" fill="url(#creamClay)"/></g>
+
+  <!-- bridge arc -->
+  <g filter="url(#tinyShadow)">
+    <path d="M1300 520 Q1535 300 1770 520 L1770 552 Q1535 344 1300 552 Z" fill="url(#blueArc)"/>
+    <path d="M1300 520 Q1535 300 1770 520" fill="none" stroke="#8fb6f5" stroke-width="4" opacity="0.6"/>
+  </g>
+
+  <!-- person figure on left platform -->
+  <g filter="url(#tinyShadow)" transform="translate(1310 500)">
+    <rect x="-30" y="-70" width="60" height="80" rx="26" fill="url(#blueClay)"/>
+    <circle cx="0" cy="-92" r="26" fill="url(#navyTop)"/>
+  </g>
+
+  <!-- bank building on right platform -->
+  <g filter="url(#softShadow)" transform="translate(1760 500)">
+    <rect x="-96" y="-40" width="192" height="40" rx="8" fill="url(#creamClay)"/>
+    <rect x="-78" y="-130" width="20" height="90" rx="5" fill="url(#creamClay)"/>
+    <rect x="-40" y="-130" width="20" height="90" rx="5" fill="url(#creamClay)"/>
+    <rect x="0" y="-130" width="20" height="90" rx="5" fill="url(#creamClay)"/>
+    <rect x="40" y="-130" width="20" height="90" rx="5" fill="url(#creamClay)"/>
+    <rect x="-104" y="-150" width="208" height="24" rx="6" fill="url(#navyTop)"/>
+    <path d="M-112 -150 L0 -206 L112 -150 Z" fill="url(#navyTop)"/>
+    <circle cx="0" cy="-176" r="12" fill="#95CCDD"/>
+  </g>
+
+  <!-- traveling nodes across bridge -->
+  <circle cx="1400" cy="430" r="9" fill="#95CCDD"/>
+  <circle cx="1535" cy="368" r="10" fill="#4274D9"/>
+  <circle cx="1670" cy="430" r="9" fill="#95CCDD"/>
+
+  <!-- ambient nodes -->
+  <circle cx="1470" cy="240" r="7" fill="#4274D9" opacity="0.6"/>
+  <circle cx="1660" cy="220" r="7" fill="#95CCDD"/>
+
+  <rect width="2400" height="800" fill="url(#leftfade)"/>
+</svg>

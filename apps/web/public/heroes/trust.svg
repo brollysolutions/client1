@@ -1,0 +1,68 @@
+<svg viewBox="0 0 2400 800" width="2400" height="800" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f6f6f1"/><stop offset="0.55" stop-color="#f3f3ee"/><stop offset="1" stop-color="#ecebe3"/>
+    </linearGradient>
+    <linearGradient id="leftfade" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#f3f3ee" stop-opacity="1"/><stop offset="0.42" stop-color="#f3f3ee" stop-opacity="1"/><stop offset="0.58" stop-color="#f3f3ee" stop-opacity="0"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#95CCDD" stop-opacity="0.55"/><stop offset="0.55" stop-color="#4274D9" stop-opacity="0.18"/><stop offset="1" stop-color="#4274D9" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="navyTop" x1="0" y1="0" x2="0.4" y2="1"><stop offset="0" stop-color="#4a5cab"/><stop offset="1" stop-color="#293681"/></linearGradient>
+    <linearGradient id="navySide" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2c3a86"/><stop offset="1" stop-color="#212c69"/></linearGradient>
+    <linearGradient id="shieldGrad" x1="0" y1="0" x2="0.5" y2="1"><stop offset="0" stop-color="#4a5cab"/><stop offset="1" stop-color="#293681"/></linearGradient>
+    <linearGradient id="blueClay" x1="0" y1="0" x2="0.3" y2="1"><stop offset="0" stop-color="#6c9cf1"/><stop offset="1" stop-color="#4274D9"/></linearGradient>
+    <linearGradient id="skyClay" x1="0" y1="0" x2="0.3" y2="1"><stop offset="0" stop-color="#c4e7f1"/><stop offset="1" stop-color="#95CCDD"/></linearGradient>
+    <linearGradient id="creamClay" x1="0" y1="0" x2="0.3" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#e9e8df"/></linearGradient>
+    <linearGradient id="screen" x1="0" y1="0" x2="0.2" y2="1"><stop offset="0" stop-color="#f8f8f3"/><stop offset="1" stop-color="#e7e6dd"/></linearGradient>
+    <filter id="softShadow" x="-40%" y="-40%" width="180%" height="200%"><feDropShadow dx="0" dy="26" stdDeviation="30" flood-color="#293681" flood-opacity="0.16"/></filter>
+    <filter id="tinyShadow" x="-60%" y="-60%" width="220%" height="240%"><feDropShadow dx="0" dy="12" stdDeviation="12" flood-color="#293681" flood-opacity="0.18"/></filter>
+    <filter id="ringBlur" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="6"/></filter>
+  </defs>
+
+  <rect width="2400" height="800" fill="url(#bg)"/>
+  <ellipse cx="1560" cy="400" rx="600" ry="460" fill="url(#glow)"/>
+
+  <!-- sky glow ring behind shield -->
+  <circle cx="1520" cy="392" r="248" fill="none" stroke="#95CCDD" stroke-width="16" opacity="0.5" filter="url(#ringBlur)"/>
+
+  <!-- main platform -->
+  <g filter="url(#softShadow)"><ellipse cx="1520" cy="628" rx="248" ry="88" fill="url(#navySide)"/><ellipse cx="1520" cy="612" rx="248" ry="88" fill="url(#creamClay)"/></g>
+
+  <!-- orbit: padlock (upper-left) -->
+  <g filter="url(#tinyShadow)"><ellipse cx="1300" cy="330" rx="80" ry="30" fill="url(#navySide)"/><ellipse cx="1300" cy="320" rx="80" ry="30" fill="url(#creamClay)"/></g>
+  <g filter="url(#tinyShadow)" transform="translate(1300 300)">
+    <path d="M-22 -24 a22 26 0 0 1 44 0 v18 h-14 v-18 a8 12 0 0 0 -16 0 v18 h-14 Z" fill="url(#navyTop)"/>
+    <rect x="-30" y="-8" width="60" height="52" rx="12" fill="url(#blueClay)"/>
+    <circle cx="0" cy="16" r="7" fill="#f3f3ee"/>
+  </g>
+
+  <!-- orbit: phone with OTP dot-row (right) -->
+  <g filter="url(#tinyShadow)"><ellipse cx="1790" cy="490" rx="80" ry="30" fill="url(#navySide)"/><ellipse cx="1790" cy="480" rx="80" ry="30" fill="url(#creamClay)"/></g>
+  <g filter="url(#tinyShadow)" transform="translate(1790 452) rotate(6)">
+    <rect x="-52" y="-92" width="104" height="180" rx="22" fill="url(#navyTop)"/>
+    <rect x="-40" y="-78" width="80" height="152" rx="14" fill="url(#screen)"/>
+    <rect x="-30" y="-58" width="60" height="9" rx="4.5" fill="#95CCDD"/>
+    <g fill="url(#blueClay)"><circle cx="-24" cy="-18" r="9"/><circle cx="-1" cy="-18" r="9"/><circle cx="22" cy="-18" r="9"/></g>
+    <rect x="-30" y="14" width="60" height="9" rx="4.5" fill="#293681" opacity="0.35"/>
+    <rect x="-30" y="34" width="42" height="9" rx="4.5" fill="#293681" opacity="0.25"/>
+  </g>
+
+  <!-- shield -->
+  <g filter="url(#softShadow)" transform="translate(1520 392)">
+    <path d="M0 -168 L118 -126 L118 -8 C118 88 64 158 0 186 C-64 158 -118 88 -118 -8 L-118 -126 Z" fill="url(#shieldGrad)"/>
+    <path d="M0 -138 L92 -104 L92 -6 C92 74 48 132 0 156 C-48 132 -92 74 -92 -6 L-92 -104 Z" fill="url(#blueClay)" opacity="0.92"/>
+    <!-- checkmark emboss: shadow stroke + light stroke -->
+    <path d="M-44 6 L-8 46 L58 -38" fill="none" stroke="#2c3a86" stroke-width="22" stroke-linecap="round" stroke-linejoin="round" opacity="0.55" transform="translate(0 4)"/>
+    <path d="M-44 6 L-8 46 L58 -38" fill="none" stroke="#dbe8fb" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+
+  <!-- orbit nodes -->
+  <circle cx="1440" cy="205" r="8" fill="#4274D9" opacity="0.8"/>
+  <circle cx="1690" cy="200" r="7" fill="#95CCDD"/>
+  <circle cx="1870" cy="360" r="8" fill="#4274D9" opacity="0.55"/>
+  <circle cx="1420" cy="470" r="7" fill="#95CCDD"/>
+
+  <rect width="2400" height="800" fill="url(#leftfade)"/>
+</svg>
