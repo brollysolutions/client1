@@ -157,3 +157,48 @@
     animation: none;
   }
 }
+
+/* ------------------------------------------------------------------ *
+ * Auth left-panel animation (BrandPanel). Ambient motion ported from
+ * the approved auth mockup — drifting dot field, floating glow blobs,
+ * pulsing rings around the avatar node, and bobbing contact badges.
+ * Class names are prefixed `auth-anim*` so the reduced-motion guard
+ * below can switch the whole set off in one selector.
+ * ------------------------------------------------------------------ */
+@keyframes auth-drift {
+  0% { background-position: 0 0; }
+  100% { background-position: 0 -240px; }
+}
+@keyframes auth-float-a {
+  0%, 100% { transform: translate(0, 0) rotate(0deg); }
+  50% { transform: translate(0, -22px) rotate(6deg); }
+}
+@keyframes auth-float-b {
+  0%, 100% { transform: translate(0, 0) rotate(0deg); }
+  50% { transform: translate(0, 18px) rotate(-8deg); }
+}
+@keyframes auth-float-c {
+  0%, 100% { transform: translate(0, 0); }
+  50% { transform: translate(14px, -14px); }
+}
+@keyframes auth-ring {
+  0% { transform: scale(0.6); opacity: 0.55; }
+  80%, 100% { transform: scale(1.9); opacity: 0; }
+}
+@keyframes auth-fade-up {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.auth-anim-drift { animation: auth-drift 9s linear infinite; }
+.auth-anim-float-a { animation: auth-float-a 8s ease-in-out infinite; }
+.auth-anim-float-b { animation: auth-float-b 10s ease-in-out infinite; }
+.auth-anim-float-c { animation: auth-float-c 5s ease-in-out infinite; }
+.auth-anim-badge-mail { animation: auth-float-c 5s ease-in-out infinite; }
+.auth-anim-badge-phone { animation: auth-float-a 6s ease-in-out infinite; }
+.auth-anim-ring { animation: auth-ring 3.4s ease-out infinite; }
+.auth-anim-fade-up { animation: auth-fade-up 0.5s ease both; }
+
+@media (prefers-reduced-motion: reduce) {
+  [class*="auth-anim"] { animation: none !important; }
+}

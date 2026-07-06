@@ -17,6 +17,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { submitLead, type LeadBusinessLine } from "@/lib/leads";
+import { isValidMobile, normalizeMobile } from "@/lib/phone";
 
 // Per-line copy. The public landing page is blue-only (matches the navbar/hero
 // primary); loans-green/realestate-amber are reserved for authenticated role
@@ -42,19 +43,6 @@ const LINE = {
   LeadBusinessLine,
   { label: string; title: string; description: string; triggerClass: string }
 >;
-
-// Indian mobile: 10 digits, leading 6-9. We strip a +91 / 0 prefix first so a
-// pasted number in either form still validates.
-function normalizeMobile(raw: string): string {
-  const digits = raw.replace(/\D/g, "");
-  if (digits.length === 12 && digits.startsWith("91")) return digits.slice(2);
-  if (digits.length === 11 && digits.startsWith("0")) return digits.slice(1);
-  return digits;
-}
-
-function isValidMobile(raw: string): boolean {
-  return /^[6-9]\d{9}$/.test(normalizeMobile(raw));
-}
 
 export function LeadDialog({
   businessLine,

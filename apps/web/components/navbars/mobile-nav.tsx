@@ -14,7 +14,7 @@ import {
 
 import { NAV_ITEMS } from "./nav-items";
 
-/* /login and /register/details aren't implemented yet (navbar-only pass) — CTAs 404 until auth pages land. */
+/* Auth CTAs route into the (auth) route group: /login, /register, /forgot-password. */
 export function MobileNav() {
   const [open, setOpen] = useState(false);
 
@@ -82,7 +82,7 @@ export function MobileNav() {
             className="font-geist bg-[var(--nav-primary)] text-white hover:bg-[var(--nav-primary-hover)] focus-visible:ring-[var(--nav-primary)]"
             onClick={close}
           >
-            <Link href="/register/details">Register</Link>
+            <Link href="/register">Register</Link>
           </Button>
         </div>
       </SheetContent>
