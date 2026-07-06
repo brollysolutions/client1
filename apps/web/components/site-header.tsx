@@ -108,7 +108,7 @@ export function SiteHeader() {
               size="sm"
               className="font-geist bg-[var(--nav-primary)] text-base text-white shadow-sm transition-colors hover:bg-[var(--nav-primary-hover)] focus-visible:ring-[var(--nav-primary)]"
             >
-              <Link href="/register/details">Register</Link>
+              <Link href="/register">Register</Link>
             </Button>
           </div>
           <MobileNav />
