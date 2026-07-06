@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -33,30 +34,30 @@ const BANNERS: Banner[] = [
     id: "loans",
     title: "Find the loan that fits you",
     subtitle:
-      "Home, personal, and business loans from trusted banks, compared and matched to your profile.",
+      "All kinds of loans, credit cards, and insurance, matched to what you need.",
     image: "/heroes/loans.svg",
-    cta: { label: "Explore loans", href: "#loans" },
+    cta: { label: "Explore loans", href: "/loans" },
   },
   {
     id: "real-estate",
     title: "Buy, rent, and list with confidence",
-    subtitle: "Verified properties and agents across the city, all in one place.",
+    subtitle: "Verified homes and trusted agents, all in one place.",
     image: "/heroes/real-estate.svg",
-    cta: { label: "Explore properties", href: "#real-estate" },
+    cta: { label: "Explore properties", href: "/real-estate" },
   },
   {
     id: "why-us",
     title: "One bridge between you and the banks",
     subtitle:
-      "We connect customers with the right lenders and partners, so you stay in control at every step.",
+      "We connect you with the right banks and partners, and stay with you at every step.",
     image: "/heroes/bridge.svg",
     cta: { label: "Get in touch", href: "#contact" },
   },
   {
     id: "trust",
-    title: "Bank-grade security, always verified",
+    title: "Safe and secure, always verified",
     subtitle:
-      "OTP-verified accounts and KYC-checked partners keep every transaction safe.",
+      "OTP login and KYC-verified partners keep every deal safe.",
     image: "/heroes/trust.svg",
     cta: { label: "Learn more", href: "#security" },
   },
@@ -113,16 +114,9 @@ export function HeroCarousel() {
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     if (reduce) return;
 
-    let paused = false;
     let timeoutId: ReturnType<typeof setTimeout>;
 
     const tick = () => {
-      if (paused) {
-        // Mouse is still over the carousel: don't advance, but keep a heartbeat
-        // alive so autoplay resumes on its own once the pointer leaves.
-        schedule();
-        return;
-      }
       const isLastSlide =
         api.selectedScrollSnap() === api.scrollSnapList().length - 1;
       api.scrollNext(isLastSlide);
@@ -135,25 +129,9 @@ export function HeroCarousel() {
     schedule();
     api.on("select", schedule);
 
-    const root = api.rootNode();
-    const pause = () => {
-      paused = true;
-    };
-    const resume = () => {
-      paused = false;
-      // Restart the timer immediately: if the pending tick already fired while
-      // paused it left no follow-up scheduled, so flipping the flag alone would
-      // never advance again.
-      schedule();
-    };
-    root.addEventListener("mouseenter", pause);
-    root.addEventListener("mouseleave", resume);
-
     return () => {
       clearTimeout(timeoutId);
       api.off("select", schedule);
-      root.removeEventListener("mouseenter", pause);
-      root.removeEventListener("mouseleave", resume);
     };
   }, [api]);
 
@@ -161,7 +139,7 @@ export function HeroCarousel() {
     // Cream section spans edge to edge, flush against the sticky NavBar above
     // it (no top padding); the carousel itself is a centered, fixed-size
     // peek-coverflow box (see docs/ai/plans for the sizing math).
-    <section aria-label="Highlights" className="w-full bg-[var(--nav-bg)] pb-8 sm:pb-10 lg:pb-12">
+    <section aria-label="Highlights" className="w-full bg-[var(--nav-bg)] pb-24 sm:pb-32 lg:pb-40">
       <Carousel
         setApi={setApi}
         opts={{ loop: true, align: "center", containScroll: false }}
@@ -178,7 +156,7 @@ export function HeroCarousel() {
                 key={banner.id}
                 aria-hidden={!isSelected}
                 inert={!isSelected || undefined}
-                className="basis-[76vw] pl-0 sm:basis-[560px] lg:basis-[900px]"
+                className="basis-[86vw] pl-0 sm:basis-[680px] lg:basis-[1120px]"
               >
                 {/* Peek scale/opacity/blur lives on this INNER wrapper, not on
                     CarouselItem itself: CarouselItem is the exact node Embla
@@ -244,12 +222,12 @@ export function HeroCarousel() {
                           asChild
                           className="mt-2 h-8 bg-[var(--nav-primary)] px-3 text-xs text-white shadow-sm hover:bg-[var(--nav-primary-hover)] focus-visible:ring-[var(--nav-primary)] sm:mt-5 sm:h-10 sm:px-4 sm:text-sm"
                         >
-                          <a
+                          <Link
                             href={banner.cta.href}
                             tabIndex={isSelected ? undefined : -1}
                           >
                             {banner.cta.label}
-                          </a>
+                          </Link>
                         </Button>
                       )}
                     </div>
@@ -266,16 +244,16 @@ export function HeroCarousel() {
             width from hero's isSelected item) minus a fixed gap, so the arrow
             sits just outside the main banner instead of over the blurred peek.
             Card basis must stay in sync with the CarouselItem basis classes above
-            (76vw / 560px / 900px). */}
+            (86vw / 680px / 1120px). */}
         <CarouselPrevious
           variant="ghost"
           onClick={goPrev}
-          className="left-[calc(50%-38vw-2.75rem)] h-12 w-12 cursor-pointer rounded-full border-none bg-transparent text-brand-blue drop-shadow-sm transition-all duration-300 hover:bg-white/40 hover:text-brand-blue hover:backdrop-blur-md hover:shadow-md [&_svg]:size-7 sm:left-[calc(50%-280px-3rem)] sm:h-14 sm:w-14 sm:[&_svg]:size-8 lg:left-[calc(50%-450px-3rem)]"
+          className="left-[calc(50%-43vw-2.75rem)] h-12 w-12 cursor-pointer rounded-full border-none bg-transparent text-brand-blue drop-shadow-sm transition-all duration-300 hover:bg-white/40 hover:text-brand-blue hover:backdrop-blur-md hover:shadow-md [&_svg]:size-7 sm:left-[calc(50%-340px-3rem)] sm:h-14 sm:w-14 sm:[&_svg]:size-8 lg:left-[calc(50%-560px-3rem)]"
         />
         <CarouselNext
           variant="ghost"
           onClick={goNext}
-          className="right-[calc(50%-38vw-0.75rem)] h-12 w-12 cursor-pointer rounded-full border-none bg-transparent text-brand-blue drop-shadow-sm transition-all duration-300 hover:bg-white/40 hover:text-brand-blue hover:backdrop-blur-md hover:shadow-md [&_svg]:size-7 sm:right-[calc(50%-280px-0.75rem)] sm:h-14 sm:w-14 sm:[&_svg]:size-8 lg:right-[calc(50%-450px-0.75rem)]"
+          className="right-[calc(50%-43vw-0.75rem)] h-12 w-12 cursor-pointer rounded-full border-none bg-transparent text-brand-blue drop-shadow-sm transition-all duration-300 hover:bg-white/40 hover:text-brand-blue hover:backdrop-blur-md hover:shadow-md [&_svg]:size-7 sm:right-[calc(50%-340px-0.75rem)] sm:h-14 sm:w-14 sm:[&_svg]:size-8 lg:right-[calc(50%-560px-0.75rem)]"
         />
       </Carousel>
 

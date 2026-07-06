@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="150" viewBox="0 0 320 150" fill="none" role="img">
+  <circle cx="160" cy="74" r="62" fill="#D0E7E6" opacity="0.35"/>
+  <ellipse cx="160" cy="128" rx="86" ry="12" fill="#293681" opacity="0.07"/>
+  <!-- back card (neutral) -->
+  <g transform="rotate(-10 150 88)">
+    <rect x="98" y="58" width="124" height="72" rx="10" fill="#C7D2DC" stroke="#293681" stroke-width="2"/>
+  </g>
+  <!-- front card (blue accent brand) -->
+  <rect x="100" y="72" width="128" height="66" rx="10" fill="#4274D9"/>
+  <rect x="100" y="84" width="128" height="14" fill="#2A2E37"/>
+  <!-- gold chip -->
+  <rect x="114" y="108" width="22" height="16" rx="3" fill="#E8B54D" stroke="#C08A2E" stroke-width="1.5"/>
+  <text x="212" y="124" font-family="system-ui, sans-serif" font-size="13" font-weight="700" fill="#BFE0EA" text-anchor="end">&#8377;</text>
+  <!-- gold coin -->
+  <g transform="translate(218,58)"><circle r="11" fill="#E8B54D" stroke="#C08A2E" stroke-width="2"/><circle r="7" fill="none" stroke="#F2D28A" stroke-width="1.5"/><text x="0" y="4" font-family="system-ui, sans-serif" font-size="11" font-weight="700" fill="#6B4E16" text-anchor="middle">&#8377;</text></g>
+</svg>

@@ -139,3 +139,21 @@
   --nav-tint: #e0f2fe;
   --nav-border: #e3e3db;
 }
+
+/* Floating finance doodles (home page decor). Gentle bubble drift: a slow bob +
+   slight sway/rotate. Per-element duration/delay set inline via --doodle-dur so
+   the field never moves in lockstep. Disabled under reduced-motion. */
+@keyframes doodleFloat {
+  0% { transform: translateY(0) translateX(0) rotate(0deg); }
+  50% { transform: translateY(-18px) translateX(5px) rotate(4deg); }
+  100% { transform: translateY(0) translateX(0) rotate(0deg); }
+}
+.doodle-float {
+  animation: doodleFloat var(--doodle-dur, 8s) ease-in-out infinite;
+  will-change: transform;
+}
+@media (prefers-reduced-motion: reduce) {
+  .doodle-float {
+    animation: none;
+  }
+}
