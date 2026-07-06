@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="150" viewBox="0 0 320 150" fill="none" role="img">
+  <circle cx="160" cy="74" r="62" fill="#D0E7E6" opacity="0.35"/>
+  <ellipse cx="160" cy="128" rx="86" ry="12" fill="#293681" opacity="0.07"/>
+  <!-- book stack: blue accent + natural covers -->
+  <rect x="108" y="98" width="104" height="12" rx="3" fill="#4274D9"/>
+  <rect x="114" y="110" width="92" height="12" rx="3" fill="#C4633F"/>
+  <rect x="120" y="122" width="80" height="10" rx="3" fill="#4E8E6E"/>
+  <line x1="116" y1="104" x2="204" y2="104" stroke="#F3F3EE" stroke-width="1.5" opacity="0.6"/>
+  <!-- black mortarboard -->
+  <path d="M160 56 L208 74 L160 92 L112 74 Z" fill="#2A2E37" stroke="#2A2E37" stroke-width="2" stroke-linejoin="round"/>
+  <path d="M136 82 L136 98 C136 104 184 104 184 98 L184 82" fill="#3A3F4A"/>
+  <!-- gold tassel -->
+  <path d="M160 74 L202 74 L202 96" fill="none" stroke="#C08A2E" stroke-width="2.5" stroke-linecap="round"/>
+  <circle cx="202" cy="100" r="4" fill="#E8B54D"/>
+  <!-- gold coin -->
+  <g transform="translate(226,66)"><circle r="10" fill="#E8B54D" stroke="#C08A2E" stroke-width="2"/><text x="0" y="4" font-family="system-ui, sans-serif" font-size="10" font-weight="700" fill="#6B4E16" text-anchor="middle">&#8377;</text></g>
+</svg>

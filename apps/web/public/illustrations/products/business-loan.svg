@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="150" viewBox="0 0 320 150" fill="none" role="img">
+  <circle cx="160" cy="74" r="62" fill="#D0E7E6" opacity="0.35"/>
+  <ellipse cx="160" cy="128" rx="86" ry="12" fill="#293681" opacity="0.07"/>
+  <!-- blue accent growth arrow -->
+  <polyline points="196,80 214,62 226,70 244,46" fill="none" stroke="#4274D9" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M232 44 L246 44 L246 58" fill="none" stroke="#4274D9" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- brown briefcase handle -->
+  <path d="M138 74 v-8 a22 22 0 0 1 44 0 v8" fill="none" stroke="#7A4E28" stroke-width="5" stroke-linecap="round"/>
+  <!-- brown leather briefcase -->
+  <rect x="92" y="74" width="136" height="52" rx="10" fill="#B4794A"/>
+  <rect x="92" y="90" width="136" height="4" fill="#7A4E28" opacity="0.7"/>
+  <rect x="148" y="90" width="24" height="14" rx="3" fill="#7A4E28"/>
+  <rect x="156" y="94" width="8" height="6" rx="1.5" fill="#E8B54D"/>
+  <!-- gold coin -->
+  <g transform="translate(196,80)"><circle r="10" fill="#E8B54D" stroke="#C08A2E" stroke-width="2"/><text x="0" y="4" font-family="system-ui, sans-serif" font-size="10" font-weight="700" fill="#6B4E16" text-anchor="middle">&#8377;</text></g>
+</svg>

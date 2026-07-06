@@ -51,7 +51,14 @@ export function SiteHeader() {
                     {item.label}
                   </NavigationMenuTrigger>
                   <NavigationMenuContent>
-                    <ul className="grid w-[340px] gap-1">
+                    <ul
+                      className={cn(
+                        "grid gap-1",
+                        item.children.length > 4
+                          ? "w-[560px] grid-cols-2"
+                          : "w-[340px]"
+                      )}
+                    >
                       {item.children.map((child) => (
                         <li key={child.href}>
                           <NavigationMenuLink

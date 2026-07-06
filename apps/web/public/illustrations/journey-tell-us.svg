@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 360" fill="none">
+  <defs>
+    <radialGradient id="jtuGlow" cx="0.5" cy="0.45" r="0.6">
+      <stop offset="0" stop-color="#D0E7E6" stop-opacity="0.9"/>
+      <stop offset="0.65" stop-color="#D0E7E6" stop-opacity="0.22"/>
+      <stop offset="1" stop-color="#D0E7E6" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="jtuSoft" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="7"/></filter>
+  </defs>
+  <ellipse cx="240" cy="182" rx="205" ry="165" fill="url(#jtuGlow)"/>
+  <ellipse cx="240" cy="300" rx="140" ry="20" fill="#293681" opacity="0.12" filter="url(#jtuSoft)"/>
+
+  <!-- phone -->
+  <rect x="176" y="62" width="128" height="220" rx="22" fill="#293681"/>
+  <rect x="186" y="80" width="108" height="184" rx="10" fill="#FFFFFF"/>
+  <path d="M186 90a10 10 0 0 1 10-10h88a10 10 0 0 1 10 10v22H186z" fill="#4274D9"/>
+  <rect x="198" y="92" width="52" height="7" rx="3.5" fill="#FFFFFF" opacity="0.9"/>
+  <rect x="198" y="103" width="34" height="5" rx="2.5" fill="#FFFFFF" opacity="0.6"/>
+  <!-- form fields -->
+  <rect x="198" y="126" width="84" height="20" rx="6" fill="#EAF1FB" stroke="#4274D9" stroke-width="1.4"/>
+  <rect x="206" y="133" width="40" height="6" rx="3" fill="#93B4E8"/>
+  <rect x="198" y="154" width="84" height="20" rx="6" fill="#EAF1FB" stroke="#4274D9" stroke-width="1.4"/>
+  <rect x="206" y="161" width="52" height="6" rx="3" fill="#93B4E8"/>
+  <!-- amount field with rupee -->
+  <rect x="198" y="182" width="84" height="22" rx="6" fill="#EAF1FB" stroke="#4274D9" stroke-width="1.4"/>
+  <text x="208" y="199" font-family="system-ui,sans-serif" font-size="14" font-weight="700" fill="#293681">&#8377;</text>
+  <rect x="224" y="189" width="40" height="7" rx="3.5" fill="#93B4E8"/>
+  <!-- submit button -->
+  <rect x="198" y="216" width="84" height="26" rx="8" fill="#4274D9"/>
+  <rect x="222" y="226" width="36" height="7" rx="3.5" fill="#FFFFFF"/>
+
+  <!-- floating rupee coin (blue) -->
+  <circle cx="150" cy="120" r="22" fill="#EAF1FB" stroke="#4274D9" stroke-width="3"/>
+  <text x="150" y="128" text-anchor="middle" font-family="system-ui,sans-serif" font-size="20" font-weight="700" fill="#4274D9">&#8377;</text>
+  <!-- floating check badge -->
+  <circle cx="328" cy="208" r="20" fill="#4274D9"/>
+  <path d="M319 208l6 6 11-12" stroke="#FFFFFF" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- sparkle -->
+  <path d="M330 118l3 7 7 3-7 3-3 7-3-7-7-3 7-3z" fill="#95CCDD"/>
+
+  <!-- plant (one warm element) -->
+  <path d="M120 302c-4-16 2-30 10-36-2 12 0 22 6 30" fill="#6FA98C"/>
+  <path d="M128 302c8-12 20-16 30-14-8 8-14 16-16 26" fill="#4E8E6E"/>
+  <path d="M112 302h36l-5 16h-26z" fill="#C4633F"/>
+</svg>

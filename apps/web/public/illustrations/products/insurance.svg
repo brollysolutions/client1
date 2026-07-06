@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="150" viewBox="0 0 320 150" fill="none" role="img">
+  <circle cx="160" cy="74" r="62" fill="#D0E7E6" opacity="0.35"/>
+  <ellipse cx="160" cy="132" rx="70" ry="10" fill="#293681" opacity="0.07"/>
+  <!-- blue accent shield -->
+  <path d="M160 44 L206 60 V92 C206 114 186 126 160 134 C134 126 114 114 114 92 V60 Z" fill="#4274D9" stroke="#293681" stroke-width="2.5" stroke-linejoin="round"/>
+  <path d="M160 44 L160 134 C134 126 114 114 114 92 V60 Z" fill="#293681" opacity="0.18"/>
+  <!-- white check -->
+  <path d="M140 90 L154 104 L184 72" fill="none" stroke="#F3F3EE" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- gold coin guarded -->
+  <g transform="translate(160,120)"><circle r="12" fill="#E8B54D" stroke="#C08A2E" stroke-width="2"/><text x="0" y="4.5" font-family="system-ui, sans-serif" font-size="12" font-weight="700" fill="#6B4E16" text-anchor="middle">&#8377;</text></g>
+</svg>

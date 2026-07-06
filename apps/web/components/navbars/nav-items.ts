@@ -1,8 +1,10 @@
-import { Briefcase, Building2, Home, Key, Tag, Wallet, type LucideIcon } from "lucide-react";
+import { type LucideIcon } from "lucide-react";
 
-// Anchors point at landing sections that don't exist yet (navbar-only pass) —
-// they're intentional no-ops until hero/Loans/Real Estate/etc. land. Children
-// are dropdown sub-links; leaf items (Calculator, Contact) render as plain links.
+// Loans and Real Estate are dedicated pages (/loans, /real-estate); their
+// product lists live on those pages now (see lib/products.ts), not in a navbar
+// dropdown. Calculator and Contact are still landing-section anchors until those
+// sections land. `children` is retained on the type so the generic dropdown
+// renderer in site-header/mobile-nav keeps working if a future item needs it.
 export type NavChild = {
   label: string;
   href: string;
@@ -17,24 +19,10 @@ export type NavItem = {
 };
 
 export const NAV_ITEMS: NavItem[] = [
-  {
-    label: "Loans",
-    href: "#loans",
-    children: [
-      { label: "Home Loan", href: "#home-loan", description: "Buy, build, or transfer your home loan.", icon: Home },
-      { label: "Personal Loan", href: "#personal-loan", description: "Quick funds for planned expenses.", icon: Wallet },
-      { label: "Business Loan", href: "#business-loan", description: "Working capital and growth finance.", icon: Briefcase },
-    ],
-  },
-  {
-    label: "Real Estate",
-    href: "#real-estate",
-    children: [
-      { label: "Buy Property", href: "#buy", description: "Verified plots, flats, and commercial spaces.", icon: Key },
-      { label: "Rent", href: "#rent", description: "Homes and offices ready to move in.", icon: Building2 },
-      { label: "List Property", href: "#list", description: "List your property with our agents.", icon: Tag },
-    ],
-  },
+  { label: "Home", href: "/" },
+  { label: "Loans", href: "/loans" },
+  { label: "Properties", href: "/real-estate" },
+  { label: "Earn with Us", href: "#partners" },
   { label: "Calculator", href: "#calculator" },
   { label: "Contact", href: "#contact" },
 ];

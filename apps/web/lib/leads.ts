@@ -14,6 +14,9 @@ export type LeadInput = {
   mobile: string;
   business_line: LeadBusinessLine;
   origin: string;
+  // Optional product/offering the lead enquired about (e.g. "Personal Loan").
+  // Captured from the per-card Enquire button; the backend can map it later.
+  product?: string;
 };
 
 export type LeadResult = { ok: true } | { ok: false; error: string };
