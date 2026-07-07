@@ -13,6 +13,7 @@ from contextlib import asynccontextmanager
 
 import redis.asyncio as aioredis
 from fastapi import Depends, FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -38,6 +39,17 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
 
 app = FastAPI(title="Loans & Real Estate API", version="0.1.0", lifespan=lifespan)
+
+# Browser calls come from the web app on a different origin (localhost:3000 ->
+# localhost:8000). Credentials are on: the httponly refresh cookie and the Bearer
+# header must be allowed, so the origin list must be explicit (never "*").
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.ALLOWED_ORIGINS,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 app.include_router(auth_router, prefix="/api/v1/auth", tags=["auth"])
 
