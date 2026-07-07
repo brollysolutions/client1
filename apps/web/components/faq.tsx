@@ -38,9 +38,10 @@ export function Faq() {
     <section
       id="faq"
       aria-labelledby="faq-heading"
-      className="w-full scroll-mt-16 border-t border-[var(--nav-border)] bg-[var(--nav-bg)]"
+      className="relative w-full overflow-hidden scroll-mt-16 border-t border-[var(--nav-border)] bg-[var(--nav-bg)]"
     >
-      <div className="mx-auto max-w-3xl px-4 py-16 sm:px-6 sm:py-20 lg:px-8 lg:py-24">
+      <FaqDoodles />
+      <div className="relative mx-auto max-w-3xl px-4 py-16 sm:px-6 sm:py-20 lg:px-8 lg:py-24">
         <div className="text-center">
           <h2
             id="faq-heading"
@@ -78,5 +79,54 @@ export function Faq() {
         </div>
       </div>
     </section>
+  );
+}
+
+// Faint question-mark doodles in the FAQ side gutters, shades of blue, low opacity
+// so they read as a soft background texture (not decoration competing with the copy).
+// Desktop-only (lg+), pointer-events-none, sit behind the accordion.
+type QMark = {
+  top: string;
+  left?: string;
+  right?: string;
+  size: number;
+  color: string;
+  opacity: number;
+  rot: number;
+};
+
+const QMARKS: QMark[] = [
+  { top: "11%", left: "6%", size: 104, color: "#4274D9", opacity: 0.1, rot: -12 },
+  { top: "42%", left: "3%", size: 64, color: "#95CCDD", opacity: 0.2, rot: 8 },
+  { top: "72%", left: "8%", size: 128, color: "#293681", opacity: 0.08, rot: -6 },
+  { top: "15%", right: "5%", size: 84, color: "#293681", opacity: 0.1, rot: 10 },
+  { top: "50%", right: "4%", size: 112, color: "#4274D9", opacity: 0.12, rot: -10 },
+  { top: "80%", right: "8%", size: 60, color: "#95CCDD", opacity: 0.2, rot: 14 },
+];
+
+function FaqDoodles() {
+  return (
+    <div
+      aria-hidden
+      className="pointer-events-none absolute inset-0 hidden overflow-hidden lg:block"
+    >
+      {QMARKS.map((q, i) => (
+        <span
+          key={i}
+          className="absolute select-none font-heading font-bold leading-none"
+          style={{
+            top: q.top,
+            left: q.left,
+            right: q.right,
+            fontSize: q.size,
+            color: q.color,
+            opacity: q.opacity,
+            transform: `rotate(${q.rot}deg)`,
+          }}
+        >
+          ?
+        </span>
+      ))}
+    </div>
   );
 }

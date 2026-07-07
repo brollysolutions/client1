@@ -1,15 +1,12 @@
 import {
   Briefcase,
-  Building2,
   Car,
   CreditCard,
   GraduationCap,
   Handshake,
   Home,
-  Key,
   Lock,
   ShieldCheck,
-  Tag,
   Wallet,
   type LucideIcon,
 } from "lucide-react";
@@ -114,11 +111,9 @@ export const LOAN_TRUST: TrustPoint[] = [
   },
 ];
 
-export const REAL_ESTATE_OFFERINGS: Product[] = [
-  { label: "Buy Property", description: "Verified plots, flats, and commercial spaces.", icon: Key },
-  { label: "Rent", description: "Homes and offices ready to move in.", icon: Building2 },
-  { label: "List Property", description: "List your property with our agents.", icon: Tag },
-];
+// Real estate buy/rent categories and placeholder listings live in
+// lib/properties.ts. Listing a property is an agent-side action, so it is not
+// offered to clients on the public Properties page.
 
 export const LOAN_JOURNEY: JourneyStep[] = [
   {
@@ -151,21 +146,25 @@ export const REAL_ESTATE_JOURNEY: JourneyStep[] = [
   {
     title: "Tell us what you are looking for",
     description:
-      "Let us know whether you want to buy, rent, or list, and the kind of property you have in mind.",
+      "Let us know whether you want to buy or rent, and the kind of property you have in mind.",
+    image: "/illustrations/journey-re-look.svg",
   },
   {
     title: "See only verified options",
     description:
       "We show you homes and agents that are checked and verified before they reach you.",
+    image: "/illustrations/journey-re-verified.svg",
   },
   {
     title: "One person guides you",
     description:
       "A single point of contact stays with you from the first visit to the final paperwork.",
+    image: "/illustrations/journey-re-guide.svg",
   },
   {
     title: "Close with confidence",
     description:
       "Everything is verified in advance, so you reach the finish line with no surprises.",
+    image: "/illustrations/journey-re-close.svg",
   },
 ];

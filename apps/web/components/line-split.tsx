@@ -43,11 +43,11 @@ const LINES: Line[] = [
   {
     id: "real-estate",
     name: "Real Estate",
-    title: "Buy, rent, and list with confidence",
+    title: "Buy or rent with confidence",
     paragraph:
       "Buying or renting a home is a big decision. We show you only verified homes and agents, and guide you at every step so there are no surprises.",
     benefits: [
-      "Buy, rent, or list, all in one place",
+      "Buy or rent, all in one place",
       "Every home and agent is verified before you see it",
       "One person helps you from first visit to final paperwork",
     ],

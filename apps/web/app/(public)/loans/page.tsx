@@ -31,8 +31,8 @@ export default function LoansPage() {
     <ProductPage
       title="Find the loan that fits you"
       intro="From personal and business loans to property, vehicle, and education finance, we bring the options together and help you until the money reaches your account."
-      heroBackdrop="/illustrations/loan-workflow.svg"
-      productsHeading="Explore Loans"
+      heroDoodles
+      productsHeading="Explore our services"
       productColumns={4}
       productDoodles
       productsTrustEyebrow="Why people trust us"

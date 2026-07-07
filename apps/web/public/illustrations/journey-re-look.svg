@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 360" fill="none">
+  <defs>
+    <radialGradient id="jrlGlow" cx="0.5" cy="0.45" r="0.6">
+      <stop offset="0" stop-color="#D0E7E6" stop-opacity="0.9"/>
+      <stop offset="0.65" stop-color="#D0E7E6" stop-opacity="0.22"/>
+      <stop offset="1" stop-color="#D0E7E6" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="jrlSoft" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="7"/></filter>
+  </defs>
+  <ellipse cx="240" cy="182" rx="205" ry="165" fill="url(#jrlGlow)"/>
+  <ellipse cx="240" cy="302" rx="140" ry="20" fill="#293681" opacity="0.12" filter="url(#jrlSoft)"/>
+
+  <!-- map card -->
+  <rect x="140" y="86" width="196" height="172" rx="16" fill="#F3F3EE" stroke="#293681" stroke-width="2.4"/>
+  <!-- park patch -->
+  <path d="M150 210q28-18 58-8 24 8 52 2 16-4 26 6v50q0 8-8 8H158q-8 0-8-8z" fill="#6FA98C" opacity="0.5"/>
+  <!-- roads -->
+  <path d="M140 150h196" stroke="#BFE0EA" stroke-width="8" stroke-linecap="round"/>
+  <path d="M236 86v172" stroke="#BFE0EA" stroke-width="8" stroke-linecap="round"/>
+  <path d="M140 150l60 60" stroke="#95CCDD" stroke-width="5" stroke-linecap="round" opacity="0.7"/>
+
+  <!-- house on the map -->
+  <g transform="translate(178 168)">
+    <path d="M0 22L24 2l24 20z" fill="#C4633F"/>
+    <path d="M0 22L24 2l24 20" stroke="#A24B2C" stroke-width="2" stroke-linejoin="round" fill="none"/>
+    <rect x="7" y="22" width="34" height="26" fill="#F3F3EE" stroke="#293681" stroke-width="1.6"/>
+    <rect x="20" y="33" width="10" height="15" fill="#8A5A34"/>
+    <rect x="12" y="27" width="8" height="7" fill="#95CCDD"/>
+  </g>
+
+  <!-- location pin above the house (blue accent) -->
+  <path d="M228 92c-14 0-24 10-24 24 0 17 24 40 24 40s24-23 24-40c0-14-10-24-24-24z" fill="#4274D9"/>
+  <circle cx="228" cy="116" r="9" fill="#FFFFFF"/>
+
+  <!-- magnifier over the map -->
+  <circle cx="300" cy="196" r="30" fill="#95CCDD" fill-opacity="0.35" stroke="#293681" stroke-width="4"/>
+  <circle cx="300" cy="196" r="30" fill="none" stroke="#4274D9" stroke-width="2" opacity="0.6"/>
+  <rect x="320" y="216" width="34" height="11" rx="5.5" transform="rotate(45 320 216)" fill="#293681"/>
+
+  <!-- sparkle -->
+  <path d="M338 118l3 7 7 3-7 3-3 7-3-7-7-3 7-3z" fill="#95CCDD"/>
+
+  <!-- plant (one warm element) -->
+  <path d="M120 304c-4-16 2-30 10-36-2 12 0 22 6 30" fill="#6FA98C"/>
+  <path d="M128 304c8-12 20-16 30-14-8 8-14 16-16 26" fill="#4E8E6E"/>
+  <path d="M112 304h36l-5 16h-26z" fill="#C4633F"/>
+</svg>

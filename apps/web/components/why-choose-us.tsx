@@ -1,53 +1,140 @@
+import Link from "next/link";
 import {
+  ArrowRight,
   BellOff,
-  Check,
   Gauge,
   HeartHandshake,
   Layers,
   ShieldCheck,
   Wallet,
-  X,
   type LucideIcon,
 } from "lucide-react";
 
-// Home "Why choose us": an honest comparison table (no invented stats) that
-// contrasts the platform against the usual way people handle loans and property,
-// going direct or juggling separate sites. Every row is a promise that is true
-// today or already advertised elsewhere on the public site (see line-split.tsx
-// benefits + the /loans metadata). The "them" column is deliberately generic
-// ("The usual way"): no named competitors.
-//
-// Layout: heading + a hand-coded finance illustration on the left, the table on
-// the right (lg+). Blue-only like the rest of the public site (loans-green /
-// realestate-amber are reserved for authenticated dashboards). The "With us"
-// column is styled as the featured panel (blue header cap + tint + side borders).
-// The illustration is decorative (alt-equivalent: aria-hidden) and desktop-only,
-// per the illustrations-render-lg+ rule (docs/design/illustration-style.md).
-type Row = { text: string; icon: LucideIcon };
+import { Button } from "@/components/ui/button";
 
-const ROWS: Row[] = [
-  { text: "Loans and real estate in one place", icon: Layers },
-  { text: "Partners and listings verified before you see them", icon: ShieldCheck },
-  { text: "Check if you qualify before you apply", icon: Gauge },
-  { text: "One person with you, from first call to done", icon: HeartHandshake },
-  { text: "We never sell your number, so no spam", icon: BellOff },
-  { text: "Free to use, with no hidden charges", icon: Wallet },
+// Home "Why choose us": a bento benefit grid (no invented stats) that turns the
+// platform's honest promises into scannable cards, then closes on a Get started
+// CTA pointing at /register. One large anchor card carries the core "all in one
+// place" message; five supporting cards cover verification, pre-qualify, single
+// point of contact, privacy, and price. Copy is reused from the vetted promises
+// advertised elsewhere on the public site (line-split.tsx benefits, /loans meta).
+//
+// Blue-only like the rest of the public site (loans-green / realestate-amber stay
+// reserved for authenticated dashboards, per docs/design/ui-principles.md). The
+// anchor is a soft blue tint; the closing CTA band is solid blue, so hierarchy
+// reads correctly between them.
+type Benefit = { title: string; detail: string; icon: LucideIcon };
+
+// Supporting cards (the anchor card is authored inline below). Icons carry the
+// meaning; each card is icon -> title -> one honest line.
+const BENEFITS: Benefit[] = [
+  {
+    title: "Verified before you see it",
+    detail:
+      "Every partner and listing is checked first, so you only deal with people we trust.",
+    icon: ShieldCheck,
+  },
+  {
+    title: "Know before you apply",
+    detail:
+      "See whether you are likely to qualify up front, with no impact and no pressure.",
+    icon: Gauge,
+  },
+  {
+    title: "One person, start to finish",
+    detail:
+      "The same contact stays with you from the first call until it is done.",
+    icon: HeartHandshake,
+  },
+  {
+    title: "Your number stays private",
+    detail: "We never sell it on, so you will not be buried in spam calls.",
+    icon: BellOff,
+  },
+  {
+    title: "Free to use",
+    detail: "No hidden charges, and nothing to pay to get started.",
+    icon: Wallet,
+  },
 ];
 
-function Yes() {
+// Small natural-color scene for the anchor card (desktop-only, fills the taller
+// row-span-2 cell). A home (terracotta roof) reads real estate; a rupee money bag
+// with a % badge reads loans; one soft link ties them: both, in one place. Natural
+// real-world colors per docs/design/illustration-style.md (blue only as the link).
+function AnchorScene({ className }: { className?: string }) {
   return (
-    <span className="mx-auto flex h-8 w-8 items-center justify-center rounded-full bg-[var(--nav-primary)] text-white shadow-sm">
-      <Check className="h-4 w-4" strokeWidth={2.5} aria-hidden />
-      <span className="sr-only">Yes</span>
-    </span>
+    <svg
+      viewBox="0 0 260 150"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden
+      className={className}
+    >
+      {/* soft ground */}
+      <ellipse cx="130" cy="134" rx="104" ry="9" fill="#293681" opacity="0.08" />
+      {/* the "one place" link tying home + money together */}
+      <path
+        d="M98 58 Q150 30 196 92"
+        stroke="#4274D9"
+        strokeWidth="1.6"
+        strokeDasharray="2 6"
+        strokeLinecap="round"
+        opacity="0.5"
+      />
+      {/* house */}
+      <path d="M44 74 L92 40 L140 74 Z" fill="#C4633F" />
+      <path d="M92 40 L140 74 L118 74 Z" fill="#A24B2C" />
+      <rect x="54" y="74" width="76" height="52" rx="2" fill="#FBFBF7" stroke="#E3E3DB" strokeWidth="1.4" />
+      <rect x="72" y="98" width="18" height="28" rx="1.5" fill="#8A5A34" />
+      <circle cx="86" cy="112" r="1.6" fill="#E8B54D" />
+      <rect x="100" y="86" width="18" height="16" rx="1.5" fill="#95CCDD" stroke="#293681" strokeWidth="1.4" />
+      <line x1="109" y1="86" x2="109" y2="102" stroke="#293681" strokeWidth="1" />
+      <line x1="100" y1="94" x2="118" y2="94" stroke="#293681" strokeWidth="1" />
+      {/* plant (the one warm natural element) */}
+      <path d="M30 126 H48 L45 112 H33 Z" fill="#C4633F" />
+      <rect x="28" y="109" width="22" height="5" rx="2" fill="#A24B2C" />
+      <path d="M37 109 C33 100 34 92 39 88 C40 96 40 103 40 109 Z" fill="#4E8E6E" />
+      <path d="M42 109 C42 98 46 91 52 88 C50 97 46 104 45 109 Z" fill="#6FA98C" />
+      {/* loan money bag (jute) with a % badge, so the pair reads loans + real estate */}
+      <ellipse cx="181" cy="127" rx="11" ry="4" fill="#E8B54D" stroke="#C08A2E" strokeWidth="1.4" />
+      <ellipse cx="210" cy="128" rx="9" ry="3.5" fill="#E8B54D" stroke="#C08A2E" strokeWidth="1.4" />
+      <path
+        d="M178 104 C172 116 176 128 196 128 C216 128 220 116 214 104 C210 99 182 99 178 104 Z"
+        fill="#C9A26B"
+        stroke="#A07A45"
+        strokeWidth="1.6"
+      />
+      <path d="M184 104 L181 95 L211 95 L208 104 Z" fill="#D8B57E" stroke="#A07A45" strokeWidth="1.4" strokeLinejoin="round" />
+      <path d="M181 95 Q196 89 211 95" fill="none" stroke="#8A5A34" strokeWidth="2.4" strokeLinecap="round" />
+      <text x="196" y="121" textAnchor="middle" fontSize="15" fontWeight={700} fill="#6B4E16" fontFamily="system-ui, sans-serif">
+        &#8377;
+      </text>
+      {/* % badge = the loan / interest signal */}
+      <circle cx="217" cy="99" r="10" fill="#FFFFFF" stroke="#C08A2E" strokeWidth="1.6" />
+      <text x="217" y="103" textAnchor="middle" fontSize="11" fontWeight={700} fill="#293681" fontFamily="system-ui, sans-serif">
+        %
+      </text>
+    </svg>
   );
 }
 
-function No() {
+function IconChip({
+  icon: Icon,
+  large = false,
+}: {
+  icon: LucideIcon;
+  large?: boolean;
+}) {
   return (
-    <span className="mx-auto flex h-8 w-8 items-center justify-center rounded-full bg-foreground/5 text-text-secondary ring-1 ring-[var(--nav-border)]">
-      <X className="h-4 w-4" aria-hidden />
-      <span className="sr-only">No</span>
+    <span
+      className={
+        large
+          ? "flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-[var(--nav-primary)]/10 text-[var(--nav-primary)] ring-1 ring-[var(--nav-primary)]/20"
+          : "flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[var(--nav-tint)] text-brand-blue ring-1 ring-[var(--nav-border)]"
+      }
+    >
+      <Icon className={large ? "h-7 w-7" : "h-5 w-5"} aria-hidden />
     </span>
   );
 }
@@ -60,162 +147,93 @@ export function WhyChooseUs() {
       className="w-full scroll-mt-16 border-t border-[var(--nav-border)] bg-[var(--nav-bg)]"
     >
       <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-20 lg:px-8 lg:py-24">
-        <div className="grid items-center gap-10 lg:grid-cols-[minmax(0,5fr)_minmax(0,8fr)] lg:gap-12">
-          {/* Left: heading + illustration */}
-          <div>
-            <div className="text-center lg:text-left">
-              <h2
-                id="why-choose-us-heading"
-                className="font-heading text-3xl font-semibold text-foreground sm:text-4xl"
-              >
-                Why choose us
-              </h2>
-              <p className="mt-4 max-w-md text-lg text-text-secondary">
-                One platform, built to keep things simple, safe, and on your
-                side.
-              </p>
-            </div>
-            {/* Illustration is decorative + desktop-only (lg+). */}
-            <div className="mt-8 hidden lg:block">
-              <WhyIllustration className="h-auto w-full max-w-[460px] -ml-10" />
-            </div>
-          </div>
+        {/* Header */}
+        <div className="mx-auto max-w-2xl text-center">
+          <h2
+            id="why-choose-us-heading"
+            className="font-heading text-3xl font-semibold text-foreground sm:text-4xl"
+          >
+            Why choose us
+          </h2>
+          <p className="mt-4 text-lg text-text-secondary">
+            One platform, built to keep things simple, safe, and on your side.
+          </p>
+        </div>
 
-          {/* Right: comparison table */}
-          <div className="overflow-hidden rounded-2xl border border-[var(--nav-border)] bg-surface shadow-sm">
-            <table className="w-full border-collapse text-left">
-              <caption className="sr-only">
-                How our platform compares with the usual way of handling loans
-                and real estate
-              </caption>
-              <thead>
-                <tr className="border-b border-[var(--nav-border)]">
-                  <th
-                    scope="col"
-                    className="px-4 py-4 font-geist text-xs font-semibold uppercase tracking-wide text-text-secondary sm:px-5"
-                  >
-                    What you get
-                  </th>
-                  <th
-                    scope="col"
-                    className="w-[24%] border-x border-[var(--nav-primary)]/20 bg-[var(--nav-primary)] px-2 py-4 text-center font-heading text-sm font-semibold text-white"
-                  >
-                    With us
-                  </th>
-                  <th
-                    scope="col"
-                    className="w-[24%] px-2 py-4 text-center font-heading text-sm font-semibold text-text-secondary"
-                  >
-                    The usual way
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {ROWS.map((row, i) => (
-                  <tr
-                    key={row.text}
-                    className={i === 0 ? "" : "border-t border-[var(--nav-border)]"}
-                  >
-                    <th scope="row" className="px-4 py-4 sm:px-5">
-                      <span className="flex items-center gap-3">
-                        <span className="hidden h-9 w-9 shrink-0 items-center justify-center text-brand-blue sm:flex">
-                          <row.icon className="h-5 w-5" aria-hidden />
-                        </span>
-                        <span className="text-sm font-medium text-foreground">
-                          {row.text}
-                        </span>
-                      </span>
-                    </th>
-                    <td className="border-x border-[var(--nav-primary)]/20 bg-[var(--nav-tint)]/60 px-2 py-4 text-center align-middle">
-                      <Yes />
-                    </td>
-                    <td className="px-2 py-4 text-center align-middle">
-                      <No />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        {/* Bento benefit grid: anchor card + supporting cards */}
+        <ul className="mt-12 grid auto-rows-fr gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          {/* Anchor card (core promise) */}
+          <li className="sm:col-span-2 lg:row-span-2">
+            <article className="h-full rounded-2xl border border-[var(--nav-primary)]/20 bg-[var(--nav-tint)]/60 p-6 shadow-sm sm:p-8">
+              <div className="flex h-full flex-col gap-6 lg:flex-row lg:items-center lg:gap-8">
+                {/* Copy */}
+                <div className="lg:flex-1">
+                  <IconChip icon={Layers} large />
+                  <h3 className="mt-6 font-heading text-xl font-semibold text-foreground sm:text-2xl">
+                    Loans and real estate, all in one place
+                  </h3>
+                  <p className="mt-3 max-w-md text-base leading-relaxed text-text-secondary">
+                    One login for both. Compare, apply, and track it all without
+                    juggling separate sites or agents.
+                  </p>
+                  <p className="mt-4 text-sm font-medium text-[var(--nav-primary)]">
+                    Loans and property, one account.
+                  </p>
+                </div>
+                {/* Illustration fills the right half (desktop-only) */}
+                <div className="hidden lg:flex lg:flex-1 lg:items-center lg:justify-center">
+                  <AnchorScene className="h-auto w-full max-w-[360px]" />
+                </div>
+              </div>
+            </article>
+          </li>
+
+          {/* Supporting cards */}
+          {BENEFITS.map((item) => (
+            <li key={item.title}>
+              <article className="group flex h-full flex-col rounded-2xl border border-[var(--nav-border)] bg-surface p-6 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-md">
+                <IconChip icon={item.icon} />
+                <h3 className="mt-5 font-heading text-base font-semibold text-foreground">
+                  {item.title}
+                </h3>
+                <p className="mt-1 text-sm leading-relaxed text-text-secondary">
+                  {item.detail}
+                </p>
+              </article>
+            </li>
+          ))}
+        </ul>
+
+        {/* Closing CTA band -> registration */}
+        <div className="mt-10 flex flex-col items-center justify-between gap-6 rounded-2xl bg-[var(--nav-primary)] p-8 text-center sm:flex-row sm:p-10 sm:text-left">
+          <div>
+            <p className="font-heading text-xl font-semibold text-white sm:text-2xl">
+              Ready when you are
+            </p>
+            <p className="mt-1 text-sm text-white/80">
+              Free to start, and it takes about two minutes.
+            </p>
+          </div>
+          <div className="flex flex-col items-center gap-3 sm:items-end">
+            <Button
+              asChild
+              size="lg"
+              className="w-full bg-white text-[var(--nav-primary)] shadow-sm hover:bg-white/90 focus-visible:ring-white sm:w-auto"
+            >
+              <Link href="/register">
+                Get started
+                <ArrowRight className="ml-1 h-4 w-4" aria-hidden />
+              </Link>
+            </Button>
+            <Link
+              href="/login"
+              className="text-sm text-white/80 underline underline-offset-4 hover:text-white"
+            >
+              Already have an account? Sign in
+            </Link>
           </div>
         </div>
       </div>
     </section>
-  );
-}
-
-// Hand-coded finance illustration for the "Why choose us" left column. Story: on
-// a balance scale, our side (a verified badge + ₹ coin) outweighs the usual way
-// (a dull document), so our pan sits low and wins. Objects-only scene (no faces),
-// hand-coded per the production pipeline in docs/design/illustration-style.md.
-// Blue is the accent (winning pan, verified check), navy is ink (the scale),
-// coins stay warm gold, ₹ not $, one warm plant. Canvas + base plate + defs
-// follow the shared spec; ids are suffixed "Why" to avoid collisions.
-function WhyIllustration({ className }: { className?: string }) {
-  return (
-    <svg
-      className={className}
-      viewBox="120 400 360 260"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      aria-hidden
-    >
-      <defs>
-        <radialGradient id="whyGlow" cx="0.5" cy="0.5" r="0.5">
-          <stop offset="0" stopColor="#F3F3EE" stopOpacity="0.9" />
-          <stop offset="0.6" stopColor="#F3F3EE" stopOpacity="0.28" />
-          <stop offset="1" stopColor="#F3F3EE" stopOpacity="0" />
-        </radialGradient>
-        <linearGradient id="whyGround" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#F8F8F4" />
-          <stop offset="1" stopColor="#E9E5D9" />
-        </linearGradient>
-        <filter id="whySoft" x="-60%" y="-60%" width="220%" height="220%">
-          <feGaussianBlur stdDeviation="9" />
-        </filter>
-      </defs>
-
-      {/* base plate (kept within the tighter viewBox so no hard edges show) */}
-      <ellipse cx="300" cy="486" rx="188" ry="150" fill="url(#whyGlow)" />
-      <ellipse cx="300" cy="644" rx="150" ry="24" fill="#293681" opacity="0.15" filter="url(#whySoft)" />
-      <ellipse cx="300" cy="636" rx="150" ry="26" fill="#F3F3EE" opacity="0.5" />
-      <ellipse cx="300" cy="634" rx="150" ry="25" fill="url(#whyGround)" opacity="0.85" />
-
-      {/* scale stand: pedestal base + riser + post */}
-      <path d="M262 640 L338 640 L328 616 L272 616 Z" fill="#293681" />
-      <rect x="285" y="606" width="30" height="13" rx="3" fill="#293681" />
-      <rect x="294" y="440" width="12" height="180" rx="6" fill="#293681" />
-
-      {/* beam pivots at the fulcrum (300,436); our side (left) tips down */}
-      <circle cx="300" cy="440" r="9" fill="#293681" />
-      <line x1="171" y1="461" x2="429" y2="411" stroke="#293681" strokeWidth="9" strokeLinecap="round" />
-      <circle cx="300" cy="436" r="7" fill="#293681" />
-
-      {/* our side (low, winning): blue pan holding a verified badge + gold coin */}
-      <g stroke="#293681" strokeWidth="2.2" strokeLinecap="round">
-        <line x1="159" y1="463" x2="146" y2="523" />
-        <line x1="183" y1="463" x2="199" y2="523" />
-      </g>
-      <path d="M144 524 Q172 558 200 524 Z" fill="#4274D9" />
-      <line x1="144" y1="524" x2="200" y2="524" stroke="#293681" strokeWidth="2.6" strokeLinecap="round" />
-      {/* gold coin (behind) */}
-      <circle cx="188" cy="512" r="13" fill="#E8B54D" stroke="#C08A2E" strokeWidth="2.6" />
-      <text x="188" y="518" textAnchor="middle" fontSize="14" fontWeight={700} fill="#6B4E16" fontFamily="system-ui, sans-serif">&#8377;</text>
-      {/* verified badge (front) */}
-      <circle cx="164" cy="512" r="16" fill="#FFFFFF" stroke="#293681" strokeWidth="2.6" />
-      <polyline points="157 512 163 518 173 505" fill="none" stroke="#4274D9" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" />
-
-      {/* usual way (high, lighter): grey pan holding a dull document */}
-      <g stroke="#293681" strokeWidth="2.2" strokeLinecap="round">
-        <line x1="417" y1="413" x2="405" y2="475" />
-        <line x1="441" y1="413" x2="455" y2="475" />
-      </g>
-      <path d="M401 476 Q429 508 457 476 Z" fill="#C7C9CE" />
-      <line x1="401" y1="476" x2="457" y2="476" stroke="#293681" strokeWidth="2.6" strokeLinecap="round" />
-      {/* dull document */}
-      <path d="M419 444 H439 L448 453 V474 H419 Z" fill="#E4E6EA" stroke="#9AA0A8" strokeWidth="2.2" strokeLinejoin="round" />
-      <path d="M439 444 V453 H448 Z" fill="#C7C9CE" stroke="#9AA0A8" strokeWidth="1.5" strokeLinejoin="round" />
-      <line x1="425" y1="460" x2="441" y2="460" stroke="#9AA0A8" strokeWidth="1.8" strokeLinecap="round" />
-      <line x1="425" y1="467" x2="441" y2="467" stroke="#9AA0A8" strokeWidth="1.8" strokeLinecap="round" />
-    </svg>
   );
 }
