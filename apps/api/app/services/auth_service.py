@@ -26,15 +26,23 @@ from app.core.security import (
     verify_password,
 )
 from app.models.auth import AuthEvent, RefreshToken
-from app.models.profile import ClientProfile, ProfileStatus
+from app.models.profile import (
+    AgentProfile,
+    ClientProfile,
+    ProfileScope,
+    ProfileStatus,
+    StaffProfile,
+)
 from app.models.user import User, UserStatus
 from app.schemas.auth import (
     AuthTokensResponse,
     ChangePasswordRequest,
+    ClientProfileSummary,
     EmailVerifyInitiateResponse,
     ForgotInitiateResponse,
     ForgotVerifyRequest,
     LoginRequest,
+    MeResponse,
     RegisterInitiateRequest,
     RegisterInitiateResponse,
     RegisterVerifyOtpRequest,
@@ -78,11 +86,7 @@ async def _issue_tokens(
     user: User,
 ) -> tuple[AuthTokensResponse, str]:
     """Issue access + refresh tokens. Returns (response, raw_refresh_token)."""
-    # Build JWT payload
-    payload = {
-        "sub": str(user.id),
-        "role": _resolve_primary_role(user),
-    }
+    payload = await _build_access_claims(db, user)
     access_token = create_access_token(payload)
     raw_refresh, refresh_hash = create_refresh_token()
 
@@ -100,9 +104,69 @@ async def _issue_tokens(
     return _build_tokens_response(access_token, user), raw_refresh
 
 
-def _resolve_primary_role(user: User) -> str:
-    """Placeholder: role resolution will use profile tables once fully wired."""
-    return "client"
+async def _build_access_claims(db: AsyncSession, user: User) -> dict:
+    """Resolve role + RLS claims from the user's profile rows.
+
+    These claims drive the Postgres RLS session context that get_current_user
+    installs before any business query: `app.role`, `app.business_line`,
+    `app.platform_scope`, and the acting `app.*_profile_uuid`. The claim values
+    must line up exactly with the policy predicates in the add_rls_policies
+    migration (platform_scope == 'true' bypasses; role IN
+    ('telecaller','employee','sub_admin') + matching business_line is the
+    line-scoped staff branch).
+
+    Precedence: staff > agent > client. A normal account is exactly one kind;
+    if multiple ever coexist, the most privileged wins.
+    """
+    claims: dict = {"sub": str(user.id)}
+
+    staff = await db.scalar(
+        select(StaffProfile).where(
+            StaffProfile.auth_user_uuid == user.id,
+            StaffProfile.status == ProfileStatus.ACTIVE,
+        )
+    )
+    if staff is not None:
+        claims["role"] = staff.role.value
+        claims["business_line"] = staff.business_line or ""
+        # Platform-scoped staff (admin, platform sub-admin) bypass the line
+        # filter; line-scoped staff are pinned to their one business_line.
+        claims["platform_scope"] = "true" if staff.scope == ProfileScope.PLATFORM else "false"
+        claims["staff_profile_uuid"] = str(staff.id)
+        return claims
+
+    agent = await db.scalar(
+        select(AgentProfile).where(
+            AgentProfile.auth_user_uuid == user.id,
+            AgentProfile.status == ProfileStatus.ACTIVE,
+        )
+    )
+    if agent is not None:
+        claims["role"] = "agent"
+        claims["business_line"] = agent.business_line
+        claims["platform_scope"] = "false"
+        claims["agent_profile_uuid"] = str(agent.id)
+        return claims
+
+    clients = (
+        await db.scalars(
+            select(ClientProfile).where(
+                ClientProfile.auth_user_uuid == user.id,
+                ClientProfile.status == ProfileStatus.ACTIVE,
+            )
+        )
+    ).all()
+    claims["role"] = "client"
+    claims["platform_scope"] = "false"
+    if clients:
+        lines = {c.business_line for c in clients}
+        # A client holding both lines carries "both"; the client policy filters
+        # on own auth_user_uuid regardless, so this is only informational.
+        claims["business_line"] = "both" if len(lines) > 1 else next(iter(lines))
+        claims["client_profile_uuid"] = str(clients[0].id)
+    else:
+        claims["business_line"] = ""
+    return claims
 
 
 async def _log_event(
@@ -143,10 +207,11 @@ async def register_initiate(
     user_agent: str | None = None,
 ) -> RegisterInitiateResponse:
     # Capture the number first — durable lead even if registration is abandoned.
+    # Self-registered clients enroll in both lines; the lead is anchored to loans.
     await capture_lead(
         req.mobile,
         name=f"{req.first_name} {req.last_name}".strip(),
-        business_line=req.lines[0] if req.lines else None,
+        business_line="loans",
     )
 
     existing = await db.scalar(select(User).where(User.mobile == req.mobile))
@@ -170,7 +235,6 @@ async def register_initiate(
                 "first_name": req.first_name,
                 "last_name": req.last_name,
                 "email": req.email,
-                "lines": req.lines,
             }
         ),
         TTL_OTP,
@@ -214,7 +278,6 @@ async def register_verify_otp(
             "first_name": reg_data.get("first_name", ""),
             "last_name": reg_data.get("last_name", ""),
             "email": reg_data.get("email", ""),
-            "lines": reg_data.get("lines", ["loans"]),
         }
     )
     return RegistrationTokenResponse(registration_token=reg_token)
@@ -270,8 +333,10 @@ async def register_set_password(
             detail="Email already registered.",
         )
 
-    # Extract lines from token — stored during initiate
-    lines: list[str] = claims.get("lines", ["loans"])
+    # Every self-registered client is enrolled in both business lines: one User,
+    # two ClientProfiles (each with its own customer_code). See
+    # docs/specs/dual-line-clients.md.
+    lines: list[str] = ["loans", "real_estate"]
 
     user = User(
         first_name=claims.get("first_name", ""),
@@ -324,6 +389,42 @@ async def register_set_password(
     )
 
     return await _issue_tokens(db, user)
+
+
+# ---------------------------------------------------------------------------
+# Current user (dashboard)
+# ---------------------------------------------------------------------------
+
+
+async def get_me(db: AsyncSession, current_user_id: UUID) -> MeResponse:
+    """Return the logged-in user's basic info + one summary per business line."""
+    user = await db.get(User, current_user_id)
+    if user is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized.")
+
+    rows = await db.scalars(
+        select(ClientProfile)
+        .where(ClientProfile.auth_user_uuid == user.id)
+        .order_by(ClientProfile.business_line)
+    )
+    # Client profiles are always created per line ("loans"/"real_estate"); guard
+    # against a stray "both" row so the Literal response never 500s.
+    profiles = [
+        ClientProfileSummary(
+            business_line=p.business_line,
+            customer_code=p.customer_code,
+        )
+        for p in rows.all()
+        if p.business_line in ("loans", "real_estate")
+    ]
+    return MeResponse(
+        first_name=user.first_name,
+        last_name=user.last_name,
+        mobile=user.mobile,
+        email=user.email,
+        email_verified=user.email_verified_at is not None,
+        profiles=profiles,
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -453,7 +554,7 @@ async def refresh_token(
     row.replaced_by = new_row.id
     await db.commit()
 
-    payload = {"sub": str(user.id), "role": _resolve_primary_role(user)}
+    payload = await _build_access_claims(db, user)
     access_token = create_access_token(payload)
     return _build_tokens_response(access_token, user), new_raw
 

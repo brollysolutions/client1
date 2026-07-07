@@ -31,13 +31,13 @@ async def test_register_initiate_captures_lead_with_name_and_line(client: AsyncC
             "last_name": "Rao",
             "mobile": mobile,
             "email": unique_email(),
-            "lines": ["real_estate"],
         },
     )
     leads = await _leads_for(mobile)
     assert len(leads) == 1
     assert leads[0].name == "Asha Rao"
-    assert leads[0].business_line == "real_estate"
+    # Self-registered clients enroll in both lines; the lead is anchored to loans.
+    assert leads[0].business_line == "loans"
     assert leads[0].status == "new"
 
 

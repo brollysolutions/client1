@@ -18,6 +18,7 @@ from app.schemas.auth import (
     ForgotInitiateResponse,
     ForgotVerifyRequest,
     LoginRequest,
+    MeResponse,
     MessageResponse,
     RegisterInitiateRequest,
     RegisterInitiateResponse,
@@ -328,6 +329,14 @@ async def resend_otp(
 # ---------------------------------------------------------------------------
 # Email verification — post-login soft 2FA
 # ---------------------------------------------------------------------------
+
+
+@router.get("/me", response_model=MeResponse, status_code=status.HTTP_200_OK)
+async def me(
+    db: AsyncSession = Depends(get_db),
+    current_user: CurrentUser = Depends(get_current_user),
+) -> MeResponse:
+    return await auth_service.get_me(db, current_user.id)
 
 
 @router.post(
