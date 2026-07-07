@@ -71,9 +71,35 @@ export default function RegisterPage() {
   const [submitting, setSubmitting] = React.useState(false);
   const [e164, setE164] = React.useState("");
   const [registrationToken, setRegistrationToken] = React.useState("");
+  // Name fields validate live once the user has left them once (on blur). Until
+  // then we stay quiet so we don't nag mid-typing on a fresh field.
+  const [touched, setTouched] = React.useState<{ firstName?: boolean; lastName?: boolean }>({});
 
   function set<K extends keyof Details>(key: K, value: Details[K]) {
     setDetails((d) => ({ ...d, [key]: value }));
+    // Live re-validate a name field on every keystroke, but only after it's been
+    // touched — clears the error the moment it's fixed, surfaces it as they type.
+    if ((key === "firstName" || key === "lastName") && touched[key]) {
+      validateName(key, value as string);
+    }
+  }
+
+  // Per-field validation for the name inputs, mirroring the rules in
+  // validateDetails so submit and live checks never disagree.
+  function validateName(key: "firstName" | "lastName", value: string) {
+    const label = key === "firstName" ? "first" : "last";
+    const v = value.trim();
+    const msg = !v
+      ? `Enter your ${label} name.`
+      : !NAME_RE.test(v)
+        ? "Use letters only."
+        : undefined;
+    setErrors((e) => ({ ...e, [key]: msg }));
+  }
+
+  function touchName(key: "firstName" | "lastName") {
+    setTouched((t) => ({ ...t, [key]: true }));
+    validateName(key, details[key]);
   }
 
   function validateDetails() {
@@ -140,27 +166,31 @@ export default function RegisterPage() {
           </Link>
 
           <div className="space-y-2">
-            <h1 className="font-heading text-3xl font-bold text-text-primary">
+            <h1 className="font-heading text-4xl font-bold text-text-primary">
               Sign up
             </h1>
-            <p className="text-sm text-text-secondary">
+            <p className="text-base text-text-secondary">
               Enter your details to get started.
             </p>
           </div>
 
-          <form onSubmit={submitDetails} noValidate className="mt-8 space-y-5">
+          <form onSubmit={submitDetails} noValidate className="mt-10 space-y-6">
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="firstName">First name</Label>
+                <Label htmlFor="firstName" className="text-[15px]">
+                  First name
+                </Label>
                 <Input
                   id="firstName"
                   value={details.firstName}
                   onChange={(e) => set("firstName", e.target.value)}
+                  onBlur={() => touchName("firstName")}
                   autoComplete="given-name"
                   placeholder="Jane"
                   aria-invalid={!!errors.firstName}
                   aria-describedby={errors.firstName ? "firstName-error" : undefined}
                   disabled={submitting}
+                  className="h-12 rounded-lg text-base"
                 />
                 {errors.firstName && (
                   <p id="firstName-error" className="text-sm text-destructive">
@@ -169,16 +199,20 @@ export default function RegisterPage() {
                 )}
               </div>
               <div className="space-y-2">
-                <Label htmlFor="lastName">Last name</Label>
+                <Label htmlFor="lastName" className="text-[15px]">
+                  Last name
+                </Label>
                 <Input
                   id="lastName"
                   value={details.lastName}
                   onChange={(e) => set("lastName", e.target.value)}
+                  onBlur={() => touchName("lastName")}
                   autoComplete="family-name"
                   placeholder="Doe"
                   aria-invalid={!!errors.lastName}
                   aria-describedby={errors.lastName ? "lastName-error" : undefined}
                   disabled={submitting}
+                  className="h-12 rounded-lg text-base"
                 />
                 {errors.lastName && (
                   <p id="lastName-error" className="text-sm text-destructive">
@@ -189,7 +223,9 @@ export default function RegisterPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email" className="text-[15px]">
+                Email
+              </Label>
               <Input
                 id="email"
                 type="email"
@@ -200,6 +236,7 @@ export default function RegisterPage() {
                 aria-invalid={!!errors.email}
                 aria-describedby={errors.email ? "email-error" : undefined}
                 disabled={submitting}
+                className="h-12 rounded-lg text-base"
               />
               {errors.email && (
                 <p id="email-error" className="text-sm text-destructive">
@@ -209,7 +246,9 @@ export default function RegisterPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="mobile">Phone number</Label>
+              <Label htmlFor="mobile" className="text-[15px]">
+                Phone number
+              </Label>
               <MobileInput
                 id="mobile"
                 value={details.mobile}
@@ -227,7 +266,12 @@ export default function RegisterPage() {
               )}
             </div>
 
-            <Button type="submit" size="lg" className="w-full" disabled={submitting}>
+            <Button
+              type="submit"
+              size="lg"
+              className="h-12 w-full text-base"
+              disabled={submitting}
+            >
               {submitting ? "Sending code…" : "Continue"}
             </Button>
           </form>
@@ -255,15 +299,15 @@ export default function RegisterPage() {
             Back
           </button>
 
-          <span className="mb-5 flex h-12 w-12 items-center justify-center rounded-xl bg-brand-sky/25 text-brand-navy">
-            <Smartphone className="h-6 w-6" />
+          <span className="mb-6 flex h-14 w-14 items-center justify-center rounded-xl bg-brand-sky/25 text-brand-navy">
+            <Smartphone className="h-7 w-7" />
           </span>
 
-          <div className="mb-6 space-y-2">
-            <h1 className="font-heading text-3xl font-bold text-text-primary">
+          <div className="mb-8 space-y-2">
+            <h1 className="font-heading text-4xl font-bold text-text-primary">
               Verify your phone
             </h1>
-            <p className="text-sm text-text-secondary">
+            <p className="text-base text-text-secondary">
               We sent a 6-digit code to{" "}
               <span className="font-medium text-text-primary">
                 {formatMobile(details.mobile)}
@@ -289,15 +333,15 @@ export default function RegisterPage() {
 
       {step === 2 && (
         <>
-          <span className="mb-5 flex h-12 w-12 items-center justify-center rounded-xl bg-brand-sky/25 text-brand-navy">
-            <Lock className="h-6 w-6" />
+          <span className="mb-6 flex h-14 w-14 items-center justify-center rounded-xl bg-brand-sky/25 text-brand-navy">
+            <Lock className="h-7 w-7" />
           </span>
 
-          <div className="mb-6 space-y-2">
-            <h1 className="font-heading text-3xl font-bold text-text-primary">
+          <div className="mb-8 space-y-2">
+            <h1 className="font-heading text-4xl font-bold text-text-primary">
               Create a password
             </h1>
-            <p className="text-sm text-text-secondary">
+            <p className="text-base text-text-secondary">
               Set a password to secure your account.
             </p>
           </div>

@@ -87,9 +87,11 @@ export function SetPasswordForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} noValidate className="space-y-5">
+    <form onSubmit={handleSubmit} noValidate className="space-y-6">
       <div className="space-y-2">
-        <Label htmlFor="password">{passwordLabel}</Label>
+        <Label htmlFor="password" className="text-[15px]">
+          {passwordLabel}
+        </Label>
         <PasswordField
           id="password"
           value={password}
@@ -99,6 +101,7 @@ export function SetPasswordForm({
           maxLength={MAX}
           aria-describedby="password-strength"
           disabled={submitting}
+          className="h-12 rounded-lg text-base"
         />
         {password.length > 0 && (
           <div id="password-strength" className="space-y-1.5 pt-1">
@@ -127,7 +130,9 @@ export function SetPasswordForm({
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="confirm-password">Confirm password</Label>
+        <Label htmlFor="confirm-password" className="text-[15px]">
+          Confirm password
+        </Label>
         <PasswordField
           id="confirm-password"
           value={confirm}
@@ -139,12 +144,18 @@ export function SetPasswordForm({
             confirm.length === 0 ? undefined : matchOk ? "valid" : "invalid"
           }
           disabled={submitting}
+          className="h-12 rounded-lg text-base"
         />
       </div>
 
       {serverError && <p className="text-sm text-destructive">{serverError}</p>}
 
-      <Button type="submit" size="lg" className="w-full" disabled={!canSubmit}>
+      <Button
+        type="submit"
+        size="lg"
+        className="h-12 w-full text-base"
+        disabled={!canSubmit}
+      >
         {submitting ? "Saving…" : submitLabel}
       </Button>
     </form>

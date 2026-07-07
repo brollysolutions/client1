@@ -1,13 +1,17 @@
-import { Mail, Phone, User } from "lucide-react";
+import { Check } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
 import { StepIndicator } from "./step-indicator";
 
-// The navy left-hand panel shared by every auth screen. Carries the brand mark,
-// a decorative avatar cluster, the screen's headline + subtext, and (on
-// multi-step flows) the step indicator. Shown only at lg+; AuthShell renders a
-// compact brand header in its place on smaller screens.
+// Short reassurance cues shown at the foot of the panel. Kept factual and
+// generic — no unverifiable claims.
+const TRUST_CUES = ["Bank-grade security", "OTP verified", "Your data stays private"];
+
+// The navy left-hand panel shared by every auth screen. Ambient navy backdrop
+// (radial glows + a drifting dot texture) with the screen's headline + subtext
+// as the hero, the step indicator on multi-step flows, and a slim trust row at
+// the foot. Shown only at lg+; AuthShell renders the form full-width below lg.
 export function BrandPanel({
   title,
   subtitle,
@@ -24,7 +28,7 @@ export function BrandPanel({
   return (
     <div
       className={cn(
-        "relative flex-col overflow-hidden bg-brand-navy p-10 text-white xl:p-14",
+        "relative flex-col overflow-hidden bg-brand-navy p-12 text-white xl:p-16",
         className
       )}
     >
@@ -45,51 +49,32 @@ export function BrandPanel({
         />
       </div>
 
-      {/* Brand lockup */}
-      <div className="relative flex items-center gap-2">
-        <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-sky text-sm font-bold text-brand-navy">
-          LR
-        </span>
-        <span className="font-heading text-lg font-semibold">
-          Loans &amp; Real Estate
-        </span>
-      </div>
-
-      {/* Decorative avatar cluster. Two rings pulse outward from the central
-          node (second offset by half a cycle), and the contact badges bob —
-          all aria-hidden and disabled under prefers-reduced-motion. */}
-      <div className="relative flex flex-1 items-center justify-center py-10">
-        <div className="relative flex h-52 w-52 items-center justify-center">
-          <div className="auth-anim-ring absolute inset-4 rounded-full border border-brand-sky/50" />
-          <div
-            className="auth-anim-ring absolute inset-4 rounded-full border border-brand-sky/50"
-            style={{ animationDelay: "1.7s" }}
-          />
-          <div className="flex h-28 w-28 items-center justify-center rounded-full border border-brand-sky/40 bg-white/10 backdrop-blur-sm">
-            <User className="h-12 w-12 text-brand-sky" strokeWidth={1.5} />
+      {/* Hero: headline + subtitle vertically centred, with the step indicator
+          (multi-step flows) sitting just beneath. */}
+      <div className="auth-anim-fade-up relative flex flex-1 flex-col justify-center">
+        <div className="space-y-6">
+          <div className="space-y-4">
+            <h2 className="max-w-md font-heading text-5xl font-bold leading-[1.1]">
+              {title}
+            </h2>
+            <p className="max-w-md text-base leading-relaxed text-white/70">
+              {subtitle}
+            </p>
           </div>
-          <span className="auth-anim-badge-mail absolute -top-1 right-3 flex h-11 w-11 items-center justify-center rounded-xl bg-brand-sky text-brand-navy shadow-lg">
-            <Mail className="h-5 w-5" />
-          </span>
-          <span className="auth-anim-badge-phone absolute bottom-6 -left-3 flex h-11 w-11 items-center justify-center rounded-xl bg-brand-sky text-brand-navy shadow-lg">
-            <Phone className="h-5 w-5" />
-          </span>
+          {steps && typeof activeStep === "number" && (
+            <StepIndicator steps={steps} activeStep={activeStep} tone="navy" />
+          )}
         </div>
       </div>
 
-      {/* Headline + steps */}
-      <div className="auth-anim-fade-up relative space-y-5">
-        <div className="space-y-3">
-          <h2 className="max-w-sm font-heading text-4xl font-bold leading-tight">
-            {title}
-          </h2>
-          <p className="max-w-sm text-sm leading-relaxed text-white/70">
-            {subtitle}
-          </p>
-        </div>
-        {steps && typeof activeStep === "number" && (
-          <StepIndicator steps={steps} activeStep={activeStep} tone="navy" />
-        )}
+      {/* Slim trust row */}
+      <div className="relative flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-white/60">
+        {TRUST_CUES.map((cue) => (
+          <span key={cue} className="inline-flex items-center gap-1.5">
+            <Check className="h-4 w-4 text-brand-sky" strokeWidth={2.5} />
+            {cue}
+          </span>
+        ))}
       </div>
     </div>
   );

@@ -61,11 +61,11 @@ export function OtpForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} noValidate className="space-y-5">
+    <form onSubmit={handleSubmit} noValidate className="space-y-6">
       <div className="space-y-2">
         <label
           htmlFor="otp-input"
-          className="text-sm font-medium text-text-primary"
+          className="text-[15px] font-medium text-text-primary"
         >
           Enter OTP
         </label>
@@ -79,12 +79,12 @@ export function OtpForm({
           aria-invalid={!!error}
           aria-describedby={error ? "otp-error" : undefined}
         >
-          <InputOTPGroup className="gap-2 sm:gap-3">
+          <InputOTPGroup className="gap-2.5 sm:gap-3">
             {[0, 1, 2, 3, 4, 5].map((i) => (
               <InputOTPSlot
                 key={i}
                 index={i}
-                className="h-12 w-11 rounded-lg border bg-card text-lg sm:w-12"
+                className="h-14 w-12 rounded-lg border bg-card text-xl sm:w-14"
               />
             ))}
           </InputOTPGroup>
@@ -99,7 +99,7 @@ export function OtpForm({
       <Button
         type="submit"
         size="lg"
-        className="w-full"
+        className="h-12 w-full text-base"
         disabled={submitting || otp.length !== 6}
       >
         {submitting ? "Verifying…" : submitLabel}

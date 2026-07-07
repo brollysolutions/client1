@@ -46,13 +46,13 @@ function MobileInput({
     <div
       data-slot="mobile-input"
       className={cn(
-        "flex h-9 w-full min-w-0 items-center rounded-md border border-input bg-transparent shadow-xs transition-[color,box-shadow] dark:bg-input/30",
+        "flex h-12 w-full min-w-0 items-center rounded-lg border border-input bg-transparent shadow-xs transition-[color,box-shadow] dark:bg-input/30",
         "focus-within:border-ring focus-within:ring-[3px] focus-within:ring-ring/50",
         "has-[input[aria-invalid=true]]:border-destructive has-[input[aria-invalid=true]]:ring-destructive/20 dark:has-[input[aria-invalid=true]]:ring-destructive/40",
         "has-[input:disabled]:pointer-events-none has-[input:disabled]:cursor-not-allowed has-[input:disabled]:opacity-50"
       )}
     >
-      <span className="flex items-center gap-1.5 self-stretch border-r border-input pr-2.5 pl-3 text-base text-text-primary select-none md:text-sm">
+      <span className="flex items-center gap-2 self-stretch border-r border-input pr-3.5 pl-4 text-base text-text-primary select-none">
         <IndiaFlag />
         +91
       </span>
@@ -62,7 +62,7 @@ function MobileInput({
         inputMode="numeric"
         disabled={disabled}
         aria-invalid={ariaInvalid}
-        className="h-full w-full min-w-0 rounded-r-md bg-transparent px-2.5 py-1 text-base outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed md:text-sm"
+        className="h-full w-full min-w-0 rounded-r-lg bg-transparent px-3.5 py-1 text-base outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed"
         {...props}
       />
     </div>
