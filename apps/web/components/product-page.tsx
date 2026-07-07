@@ -427,45 +427,29 @@ export function ProductPage({
   );
 }
 
-// Decorative plant doodles for the hero, built from real Storyset plant vectors
-// (gardening/cuate; foliage recolored green, credited in site-footer). Potted plants
-// stand grounded along the bottom edge on both sides at random sizes; monstera leaves
-// grow in horizontally from the side "walls". Desktop-only (lg+), decorative, aria-hidden.
-type GroundPlant = {
-  src: string;
-  ar: number; // viewBox width / height, so height sets width
-  h: number;
-  left?: string;
-  right?: string;
-};
-
-const GROUND_PLANTS: GroundPlant[] = [
-  { src: "plant-monstera", ar: 0.732, h: 124, right: "4%" },
-];
-
+// Decorative hero illustration: a cherry tree (Storyset "pana") grounded on the
+// right edge, scaled to fill the hero height exactly. Square viewBox, so
+// object-contain/object-bottom letterboxes width and grounds it on the baseline.
+// Desktop-only (lg+), decorative, aria-hidden.
 function HeroPlantDoodles() {
   return (
     <div
       aria-hidden
       className="pointer-events-none absolute inset-0 hidden overflow-hidden lg:block"
     >
-      {/* potted plants standing on the bottom edge */}
-      {GROUND_PLANTS.map((p, i) => (
-        <span
-          key={`g${i}`}
-          className="absolute block"
-          style={{ bottom: 0, left: p.left, right: p.right, height: p.h, width: p.h * p.ar }}
-        >
-          <Image
-            src={`/illustrations/doodles/${p.src}.svg`}
-            alt=""
-            aria-hidden
-            fill
-            sizes="160px"
-            className="object-contain object-bottom"
-          />
-        </span>
-      ))}
+      {/* cherry tree grounded on the right; nudged in from the edge and pushed
+          down so its baseline sits on the section divider (empty SVG tail below
+          the ground-line is clipped by the parent's overflow-hidden) */}
+      <span className="absolute inset-y-0 right-[3%] block aspect-square h-full translate-y-[8%]">
+        <Image
+          src="/illustrations/doodles/cherry-tree.svg"
+          alt=""
+          aria-hidden
+          fill
+          sizes="50vw"
+          className="object-contain object-bottom"
+        />
+      </span>
     </div>
   );
 }
