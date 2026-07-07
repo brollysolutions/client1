@@ -150,10 +150,12 @@ async def _build_access_claims(db: AsyncSession, user: User) -> dict:
 
     clients = (
         await db.scalars(
-            select(ClientProfile).where(
+            select(ClientProfile)
+            .where(
                 ClientProfile.auth_user_uuid == user.id,
                 ClientProfile.status == ProfileStatus.ACTIVE,
             )
+            .order_by(ClientProfile.business_line)
         )
     ).all()
     claims["role"] = "client"
@@ -161,7 +163,8 @@ async def _build_access_claims(db: AsyncSession, user: User) -> dict:
     if clients:
         lines = {c.business_line for c in clients}
         # A client holding both lines carries "both"; the client policy filters
-        # on own auth_user_uuid regardless, so this is only informational.
+        # on own auth_user_uuid regardless, so this is only informational. The
+        # ORDER BY makes the acting profile uuid deterministic (loans first).
         claims["business_line"] = "both" if len(lines) > 1 else next(iter(lines))
         claims["client_profile_uuid"] = str(clients[0].id)
     else:
