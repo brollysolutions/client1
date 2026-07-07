@@ -1,16 +1,33 @@
 "use client";
 
 import * as React from "react";
-import { ArrowRight } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { PasswordField } from "@/components/auth/password-field";
+import { cn } from "@/lib/utils";
 import type { AuthResult } from "@/lib/auth";
 
+// Minimum shown to the user; the maximum is enforced silently via the input's
+// maxLength (never surfaced, per product decision).
+const MIN = 8;
+const MAX = 44;
+
+// Live strength rules. `short` is the terse form used in the "Still needed" hint.
+const RULES: { short: string; test: (v: string) => boolean }[] = [
+  { short: "8+ characters", test: (v) => v.length >= MIN },
+  { short: "an uppercase letter", test: (v) => /[A-Z]/.test(v) },
+  { short: "a lowercase letter", test: (v) => /[a-z]/.test(v) },
+  { short: "a number", test: (v) => /[0-9]/.test(v) },
+  { short: "a special character", test: (v) => /[^A-Za-z0-9]/.test(v) },
+];
+
+const SEGMENTS = 4;
+
 // Shared "set a password" form (create + confirm) used by the final register
-// step and the forgot-password reset step. Enforces the backend rule (8-128
-// chars, must match) inline before calling onSubmit.
+// step, the forgot-password reset step, and the forced first-login reset. Shows
+// a live strength meter as the user types and an in-field match indicator; the
+// form only enables submit once every rule passes and the two fields match.
 export function SetPasswordForm({
   passwordLabel = "Create password",
   submitLabel,
@@ -23,30 +40,48 @@ export function SetPasswordForm({
   const [password, setPassword] = React.useState("");
   const [confirm, setConfirm] = React.useState("");
   const [submitting, setSubmitting] = React.useState(false);
-  const [errors, setErrors] = React.useState<{
-    password?: string;
-    confirm?: string;
-  }>({});
+  const [serverError, setServerError] = React.useState<string | null>(null);
 
-  function validate() {
-    const next: { password?: string; confirm?: string } = {};
-    if (password.length < 8) next.password = "Use at least 8 characters.";
-    else if (password.length > 128) next.password = "Password is too long.";
-    if (confirm !== password) next.confirm = "Passwords do not match.";
-    setErrors(next);
-    return Object.keys(next).length === 0;
-  }
+  const metCount = RULES.reduce((n, r) => n + (r.test(password) ? 1 : 0), 0);
+  const unmet = RULES.filter((r) => !r.test(password)).map((r) => r.short);
+  const allRulesMet = metCount === RULES.length && password.length <= MAX;
+  const matchOk = confirm.length > 0 && confirm === password;
+  const canSubmit = allRulesMet && matchOk && !submitting;
+
+  const ratio = metCount / RULES.length;
+  const filled = password.length === 0 ? 0 : Math.max(1, Math.round(ratio * SEGMENTS));
+  const tone = allRulesMet ? "success" : ratio >= 0.5 ? "blue" : "weak";
+  const strengthLabel = allRulesMet
+    ? "Strong"
+    : ratio >= 0.8
+      ? "Good"
+      : ratio >= 0.4
+        ? "Fair"
+        : "Weak";
+
+  const toneText =
+    tone === "success"
+      ? "text-success"
+      : tone === "blue"
+        ? "text-brand-blue"
+        : "text-destructive";
+  const toneBar =
+    tone === "success"
+      ? "bg-success"
+      : tone === "blue"
+        ? "bg-brand-blue"
+        : "bg-destructive";
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
-    if (submitting) return;
-    if (!validate()) return;
+    if (!canSubmit) return;
 
     setSubmitting(true);
+    setServerError(null);
     const result = await onSubmit(password, confirm);
     if (!result.ok) {
       setSubmitting(false);
-      setErrors({ confirm: result.error || "Something went wrong. Please try again." });
+      setServerError(result.error || "Something went wrong. Please try again.");
     }
     // On success the parent handles the toast + navigation.
   }
@@ -60,19 +95,34 @@ export function SetPasswordForm({
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           autoComplete="new-password"
-          placeholder="••••••••"
-          aria-invalid={!!errors.password}
-          aria-describedby={errors.password ? "password-error" : "password-hint"}
+          placeholder="Enter your password"
+          maxLength={MAX}
+          aria-describedby="password-strength"
           disabled={submitting}
         />
-        {errors.password ? (
-          <p id="password-error" className="text-sm text-destructive">
-            {errors.password}
-          </p>
-        ) : (
-          <p id="password-hint" className="text-sm text-text-secondary">
-            At least 8 characters
-          </p>
+        {password.length > 0 && (
+          <div id="password-strength" className="space-y-1.5 pt-1">
+            <div className="flex gap-1.5" aria-hidden="true">
+              {Array.from({ length: SEGMENTS }).map((_, i) => (
+                <span
+                  key={i}
+                  className={cn(
+                    "h-1.5 flex-1 rounded-full transition-colors",
+                    i < filled ? toneBar : "bg-border",
+                  )}
+                />
+              ))}
+            </div>
+            <p className={cn("text-xs font-medium", toneText)}>
+              {strengthLabel}
+              {!allRulesMet && unmet.length > 0 && (
+                <span className="font-normal text-text-secondary">
+                  {" · needs "}
+                  {unmet.join(", ")}
+                </span>
+              )}
+            </p>
+          </div>
         )}
       </div>
 
@@ -83,21 +133,19 @@ export function SetPasswordForm({
           value={confirm}
           onChange={(e) => setConfirm(e.target.value)}
           autoComplete="new-password"
-          placeholder="••••••••"
-          aria-invalid={!!errors.confirm}
-          aria-describedby={errors.confirm ? "confirm-error" : undefined}
+          placeholder="Re-enter your password"
+          maxLength={MAX}
+          status={
+            confirm.length === 0 ? undefined : matchOk ? "valid" : "invalid"
+          }
           disabled={submitting}
         />
-        {errors.confirm && (
-          <p id="confirm-error" className="text-sm text-destructive">
-            {errors.confirm}
-          </p>
-        )}
       </div>
 
-      <Button type="submit" size="lg" className="w-full" disabled={submitting}>
+      {serverError && <p className="text-sm text-destructive">{serverError}</p>}
+
+      <Button type="submit" size="lg" className="w-full" disabled={!canSubmit}>
         {submitting ? "Saving…" : submitLabel}
-        {!submitting && <ArrowRight className="h-4 w-4" />}
       </Button>
     </form>
   );

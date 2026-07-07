@@ -49,6 +49,11 @@
  * on-brand instead of the shadcn default (near-black) theme.
  * ------------------------------------------------------------------ */
 :root {
+  /* This is a light-only design. Declaring the scheme stops browsers (Chrome
+     Auto Dark Mode in particular) from auto-darkening sparse pages like the
+     dashboard to near-black. */
+  color-scheme: light;
+
   --radius: 0.625rem;
 
   --background: #F3F3EE;

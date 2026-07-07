@@ -1,14 +1,17 @@
 // Auth client for the register / login / forgot-password flows.
 //
-// Shapes mirror the backend auth schemas (apps/api/app/schemas/auth.py) and the
-// endpoints under /api/v1/auth/*. This is currently a STUB that fakes success
-// after a short delay so the multi-step UX is fully exercisable without a
-// running API — same pattern as lib/leads.ts. When the typed client is
-// generated into packages/contracts, swap each function body for the real call;
-// the signatures and the `AuthResult` union stay the same so callers don't change.
-//
-// TODO(auth): wire to POST /api/v1/auth/* via the generated packages/contracts
-// client. Add access-token storage + session + post-login redirect at that point.
+// Calls the real backend under /api/v1/auth/* through the typed fetch wrapper in
+// lib/api/client.ts. Request/response wire shapes come from the generated
+// contract (packages/contracts/generated/schema.d.ts) so backend types are never
+// hand-duplicated; this module maps between those snake_case shapes and the
+// camelCase types the UI consumes. The `AuthResult` union is unchanged, so the
+// page components that call these functions did not need to change.
+
+import type { components } from "@contracts/generated/schema";
+
+import { apiRequest, type ApiResponse } from "@/lib/api/client";
+
+type Schemas = components["schemas"];
 
 export type BusinessLine = "loans" | "real_estate";
 
@@ -36,40 +39,104 @@ export type RegisterDetails = {
   lastName: string;
   mobile: string; // E.164, e.g. +919876543210
   email: string;
-  lines: BusinessLine[];
 };
+
+// One client profile per business line (self-registered clients hold both).
+export type ClientLineProfile = {
+  businessLine: BusinessLine;
+  customerCode: string;
+};
+
+export type Me = {
+  firstName: string;
+  lastName: string;
+  mobile: string;
+  email: string;
+  emailVerified: boolean;
+  profiles: ClientLineProfile[];
+};
+
+export type UserRole =
+  | "admin"
+  | "sub_admin"
+  | "agent"
+  | "telecaller"
+  | "employee"
+  | "client";
 
 export type AuthTokens = {
   accessToken: string;
   expiresIn: number;
   phoneVerified: boolean;
   emailVerified: boolean;
+  // Decoded from the access token's `role` claim. Routing hint only (which
+  // surface to show); the DB (RLS) is the real access boundary.
+  role: UserRole;
+  // Decoded from the access token's `force_reset` claim. True for provisioned
+  // accounts that must change their password on first login. The DB enforces
+  // this; the flag is only a client routing hint.
+  forceReset: boolean;
 };
 
-const STUB_DELAY = 700;
-const STUB_OTP = "123456"; // dev-only hint returned while the API is stubbed
+// --- mapping helpers --------------------------------------------------------
 
-function delay(ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+// Turn a wire ApiResponse into the AuthResult callers expect, mapping the data
+// payload on success and passing the friendly error string through on failure.
+function toResult<T, U>(res: ApiResponse<T>, map: (data: T) => U): AuthResult<U> {
+  if (res.ok) return { ok: true, data: map(res.data) };
+  return { ok: false, error: res.error };
 }
 
-function stubDelivery(message: string): OtpDelivery {
+type OtpDeliveryResponse =
+  | Schemas["RegisterInitiateResponse"]
+  | Schemas["ForgotInitiateResponse"]
+  | Schemas["ResendOtpResponse"];
+
+function toOtpDelivery(data: OtpDeliveryResponse): OtpDelivery {
   return {
-    message,
-    deliveryChannel: "none",
-    otpHint: process.env.NODE_ENV !== "production" ? STUB_OTP : undefined,
+    message: data.message,
+    deliveryChannel: data.delivery_channel,
+    otpHint: data.otp_hint ?? undefined,
   };
 }
 
-function log(scope: string, payload: unknown) {
-  if (process.env.NODE_ENV !== "production") {
-    console.info(`[auth] ${scope} (stub)`, payload);
+const ROLES = new Set<UserRole>([
+  "admin",
+  "sub_admin",
+  "agent",
+  "telecaller",
+  "employee",
+  "client",
+]);
+
+// Decode the JWT payload without verifying the signature — the server remains
+// the enforcer; these claims only decide which screen to route to next.
+function readClaims(accessToken: string): Record<string, unknown> {
+  try {
+    const payload = accessToken.split(".")[1];
+    if (!payload || typeof atob !== "function") return {};
+    return JSON.parse(atob(payload.replace(/-/g, "+").replace(/_/g, "/")));
+  } catch {
+    return {};
   }
 }
 
+function toAuthTokens(data: Schemas["AuthTokensResponse"]): AuthTokens {
+  const claims = readClaims(data.access_token);
+  const role = claims.role as UserRole;
+  return {
+    accessToken: data.access_token,
+    expiresIn: data.expires_in,
+    phoneVerified: data.phone_verified,
+    emailVerified: data.email_verified,
+    role: ROLES.has(role) ? role : "client",
+    forceReset: claims.force_reset === true,
+  };
+}
+
 // Mirrors the backend password rules (8-128 chars + confirm must match) so the
-// stub rejects the same inputs the real endpoint would. Returns an error string
-// or null when valid.
+// flow rejects the same inputs before a round-trip. Returns an error string or
+// null when valid.
 function validatePassword(password: string, confirm: string): string | null {
   if (password.length < 8) return "Use at least 8 characters.";
   if (password.length > 128) return "Password is too long.";
@@ -81,42 +148,59 @@ function validatePassword(password: string, confirm: string): string | null {
 
 // POST /auth/register/initiate → sends the phone OTP.
 export async function registerInitiate(
-  input: RegisterDetails
+  input: RegisterDetails,
 ): Promise<AuthResult<OtpDelivery>> {
-  await delay(STUB_DELAY);
-  log("register/initiate", input);
-  return { ok: true, data: stubDelivery("Verification code sent.") };
+  const res = await apiRequest<Schemas["RegisterInitiateResponse"]>(
+    "/api/v1/auth/register/initiate",
+    {
+      method: "POST",
+      body: {
+        first_name: input.firstName,
+        last_name: input.lastName,
+        mobile: input.mobile,
+        email: input.email,
+      } satisfies Schemas["RegisterInitiateRequest"],
+    },
+  );
+  return toResult(res, toOtpDelivery);
 }
 
 // POST /auth/register/verify-otp → returns a short-lived registration token.
 export async function registerVerifyOtp(
   mobile: string,
-  otp: string
+  otp: string,
 ): Promise<AuthResult<{ registrationToken: string }>> {
-  await delay(STUB_DELAY);
-  log("register/verify-otp", { mobile, otp });
-  return { ok: true, data: { registrationToken: "stub-registration-token" } };
+  const res = await apiRequest<Schemas["RegistrationTokenResponse"]>(
+    "/api/v1/auth/register/verify-otp",
+    {
+      method: "POST",
+      body: { mobile, otp } satisfies Schemas["RegisterVerifyOtpRequest"],
+    },
+  );
+  return toResult(res, (data) => ({ registrationToken: data.registration_token }));
 }
 
 // POST /auth/register/set-password → finalizes the account.
 export async function registerSetPassword(
   registrationToken: string,
   password: string,
-  confirmPassword: string
+  confirmPassword: string,
 ): Promise<AuthResult<AuthTokens>> {
-  await delay(STUB_DELAY);
-  log("register/set-password", { registrationToken });
   const invalid = validatePassword(password, confirmPassword);
   if (invalid) return { ok: false, error: invalid };
-  return {
-    ok: true,
-    data: {
-      accessToken: "stub-access-token",
-      expiresIn: 3600,
-      phoneVerified: true,
-      emailVerified: false,
+
+  const res = await apiRequest<Schemas["AuthTokensResponse"]>(
+    "/api/v1/auth/register/set-password",
+    {
+      method: "POST",
+      body: {
+        registration_token: registrationToken,
+        password,
+        confirm_password: confirmPassword,
+      } satisfies Schemas["SetPasswordRequest"],
     },
-  };
+  );
+  return toResult(res, toAuthTokens);
 }
 
 // --- Login ------------------------------------------------------------------
@@ -124,54 +208,131 @@ export async function registerSetPassword(
 // POST /auth/login.
 export async function login(
   mobile: string,
-  password: string
+  password: string,
 ): Promise<AuthResult<AuthTokens>> {
-  await delay(STUB_DELAY);
-  log("login", { mobile });
   if (!password) return { ok: false, error: "Enter your password." };
-  return {
-    ok: true,
-    data: {
-      accessToken: "stub-access-token",
-      expiresIn: 3600,
-      phoneVerified: true,
-      emailVerified: false,
+
+  const res = await apiRequest<Schemas["AuthTokensResponse"]>("/api/v1/auth/login", {
+    method: "POST",
+    body: { mobile, password } satisfies Schemas["LoginRequest"],
+  });
+  return toResult(res, toAuthTokens);
+}
+
+// GET /auth/me → the logged-in user + one profile (with its code) per line.
+export async function getMe(): Promise<AuthResult<Me>> {
+  const res = await apiRequest<Schemas["MeResponse"]>("/api/v1/auth/me", {
+    method: "GET",
+  });
+  return toResult(res, (d) => ({
+    firstName: d.first_name,
+    lastName: d.last_name,
+    mobile: d.mobile,
+    email: d.email,
+    emailVerified: d.email_verified,
+    profiles: d.profiles.map((p) => ({
+      businessLine: p.business_line,
+      customerCode: p.customer_code,
+    })),
+  }));
+}
+
+// POST /auth/refresh → rotates the refresh cookie, returns a fresh access token.
+// No body: the httponly refresh_token cookie rides along via credentials:include.
+export async function refresh(): Promise<AuthResult<AuthTokens>> {
+  const res = await apiRequest<Schemas["AuthTokensResponse"]>("/api/v1/auth/refresh", {
+    method: "POST",
+  });
+  return toResult(res, toAuthTokens);
+}
+
+// POST /auth/logout → blacklists the access token JTI and revokes the refresh row.
+// Needs the Bearer token (attached by the client from the in-memory getter).
+export async function logout(): Promise<AuthResult> {
+  const res = await apiRequest<Schemas["MessageResponse"]>("/api/v1/auth/logout", {
+    method: "POST",
+  });
+  return toResult(res, () => undefined);
+}
+
+// POST /auth/change-password → Bearer-authed. Used for the forced first-login
+// reset: a provisioned account logs in with its temporary password (which we
+// carry over as `currentPassword`) and sets a new one here. The `bearer` token
+// is passed explicitly because the forced-reset access token is deliberately
+// kept out of the app session until the reset succeeds.
+export async function changePassword(
+  currentPassword: string,
+  newPassword: string,
+  confirmPassword: string,
+  bearer?: string,
+): Promise<AuthResult> {
+  const invalid = validatePassword(newPassword, confirmPassword);
+  if (invalid) return { ok: false, error: invalid };
+
+  const res = await apiRequest<Schemas["MessageResponse"]>(
+    "/api/v1/auth/change-password",
+    {
+      method: "POST",
+      bearer,
+      body: {
+        current_password: currentPassword,
+        new_password: newPassword,
+        confirm_password: confirmPassword,
+      } satisfies Schemas["ChangePasswordRequest"],
     },
-  };
+  );
+  return toResult(res, () => undefined);
 }
 
 // --- Forgot password (2 steps + a mobile-entry view) ------------------------
 
 // POST /auth/forgot/initiate → sends the reset OTP.
 export async function forgotInitiate(
-  mobile: string
+  mobile: string,
 ): Promise<AuthResult<OtpDelivery>> {
-  await delay(STUB_DELAY);
-  log("forgot/initiate", { mobile });
-  return { ok: true, data: stubDelivery("Reset code sent.") };
+  const res = await apiRequest<Schemas["ForgotInitiateResponse"]>(
+    "/api/v1/auth/forgot/initiate",
+    {
+      method: "POST",
+      body: { mobile } satisfies Schemas["ForgotInitiateRequest"],
+    },
+  );
+  return toResult(res, toOtpDelivery);
 }
 
 // POST /auth/forgot/verify → returns a short-lived reset token.
 export async function forgotVerify(
   mobile: string,
-  otp: string
+  otp: string,
 ): Promise<AuthResult<{ resetToken: string }>> {
-  await delay(STUB_DELAY);
-  log("forgot/verify", { mobile, otp });
-  return { ok: true, data: { resetToken: "stub-reset-token" } };
+  const res = await apiRequest<Schemas["ResetTokenResponse"]>(
+    "/api/v1/auth/forgot/verify",
+    {
+      method: "POST",
+      body: { mobile, otp } satisfies Schemas["ForgotVerifyRequest"],
+    },
+  );
+  return toResult(res, (data) => ({ resetToken: data.reset_token }));
 }
 
 // POST /auth/forgot/reset → sets the new password.
 export async function forgotReset(
   resetToken: string,
   newPassword: string,
-  confirmPassword: string
+  confirmPassword: string,
 ): Promise<AuthResult> {
-  await delay(STUB_DELAY);
-  log("forgot/reset", { resetToken });
   const invalid = validatePassword(newPassword, confirmPassword);
   if (invalid) return { ok: false, error: invalid };
-  return { ok: true, data: undefined };
+
+  const res = await apiRequest<Schemas["MessageResponse"]>("/api/v1/auth/forgot/reset", {
+    method: "POST",
+    body: {
+      reset_token: resetToken,
+      new_password: newPassword,
+      confirm_password: confirmPassword,
+    } satisfies Schemas["ResetPasswordRequest"],
+  });
+  return toResult(res, () => undefined);
 }
 
 // --- OTP utility ------------------------------------------------------------
@@ -180,9 +341,15 @@ export async function forgotReset(
 export async function resendOtp(
   mobile: string,
   purpose: "register" | "reset",
-  viaEmail = false
+  viaEmail = false,
 ): Promise<AuthResult<OtpDelivery>> {
-  await delay(STUB_DELAY);
-  log("otp/resend", { mobile, purpose, viaEmail });
-  return { ok: true, data: stubDelivery("A new code is on its way.") };
+  const res = await apiRequest<Schemas["ResendOtpResponse"]>("/api/v1/auth/otp/resend", {
+    method: "POST",
+    body: {
+      mobile,
+      purpose,
+      via_email: viaEmail,
+    } satisfies Schemas["ResendOtpRequest"],
+  });
+  return toResult(res, toOtpDelivery);
 }

@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import { ArrowRight } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -104,7 +103,6 @@ export function OtpForm({
         disabled={submitting || otp.length !== 6}
       >
         {submitting ? "Verifying…" : submitLabel}
-        {!submitting && <ArrowRight className="h-4 w-4" />}
       </Button>
 
       <p className="text-center text-sm text-text-secondary">
@@ -116,7 +114,7 @@ export function OtpForm({
             <button
               type="button"
               onClick={handleResend}
-              className="font-medium text-brand-navy underline-offset-4 hover:underline focus-visible:outline-none focus-visible:underline"
+              className="cursor-pointer font-medium text-brand-navy underline-offset-4 hover:underline focus-visible:outline-none focus-visible:underline"
             >
               Resend
             </button>
