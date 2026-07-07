@@ -47,8 +47,14 @@ class Settings(BaseSettings):
     # OTP delivery channels — Voice (2Factor.in) primary, Email (SMTP) fallback.
     # SMS is intentionally NOT used: India DLT registration is out of scope and
     # operators block non-DLT A2P SMS, so we deliver OTP by voice call + email only.
-    VOICE_OTP_ENABLED: bool = True
-    TWOFACTOR_API_KEY: str = ""  # 2Factor.in — voice OTP
+    #
+    # Voice is OFF by default: the mainline (dev/staging) never places real
+    # 2Factor calls, so the code path stays inert without prod credentials. The
+    # long-lived `prod` branch enables it via env (VOICE_OTP_ENABLED=true +
+    # TWOFACTOR_API_KEY in .env.prod / secrets). Even when enabled, an empty
+    # TWOFACTOR_API_KEY falls back to mock+email (see services/otp_delivery).
+    VOICE_OTP_ENABLED: bool = False
+    TWOFACTOR_API_KEY: str = ""  # 2Factor.in — voice OTP (prod only)
 
     # Email (transactional OTP + verification). SMTP transport, vendor-neutral.
     # Point at AWS SES SMTP (email-smtp.<region>.amazonaws.com:587) or any SMTP host.
