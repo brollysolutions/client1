@@ -73,7 +73,7 @@ export default function RegisterPage() {
   const [registrationToken, setRegistrationToken] = React.useState("");
   // Name fields validate live once the user has left them once (on blur). Until
   // then we stay quiet so we don't nag mid-typing on a fresh field.
-  const [touched, setTouched] = React.useState<{ firstName?: boolean; lastName?: boolean }>({});
+  const [touched, setTouched] = React.useState<Partial<Record<keyof Details, boolean>>>({});
 
   function set<K extends keyof Details>(key: K, value: Details[K]) {
     setDetails((d) => ({ ...d, [key]: value }));
