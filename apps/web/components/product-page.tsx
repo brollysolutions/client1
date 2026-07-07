@@ -28,6 +28,8 @@ export type ProductPageProps = {
   intro: string;
   /** Full-bleed decorative illustration behind the hero copy. */
   heroBackdrop?: string;
+  /** Faint finance line-doodles in the hero's right side + corners (lg+ only). */
+  heroDoodles?: boolean;
   productsHeading: string;
   /** Optional supporting line under the products heading. */
   productsSubheading?: string;
@@ -59,6 +61,7 @@ export function ProductPage({
   title,
   intro,
   heroBackdrop,
+  heroDoodles = false,
   productsHeading,
   productsSubheading,
   productColumns = 3,
@@ -98,6 +101,7 @@ export function ProductPage({
             />
           </>
         ) : null}
+        {heroDoodles ? <HeroPlantDoodles /> : null}
         <div className="relative mx-auto max-w-7xl px-4 py-16 sm:px-6 sm:py-20 lg:px-8 lg:py-24">
           {eyebrow ? (
             <p className="font-geist text-sm font-semibold uppercase tracking-wide text-brand-blue">
@@ -420,6 +424,49 @@ export function ProductPage({
         </section>
       )}
     </>
+  );
+}
+
+// Decorative plant doodles for the hero, built from real Storyset plant vectors
+// (gardening/cuate; foliage recolored green, credited in site-footer). Potted plants
+// stand grounded along the bottom edge on both sides at random sizes; monstera leaves
+// grow in horizontally from the side "walls". Desktop-only (lg+), decorative, aria-hidden.
+type GroundPlant = {
+  src: string;
+  ar: number; // viewBox width / height, so height sets width
+  h: number;
+  left?: string;
+  right?: string;
+};
+
+const GROUND_PLANTS: GroundPlant[] = [
+  { src: "plant-monstera", ar: 0.732, h: 124, right: "4%" },
+];
+
+function HeroPlantDoodles() {
+  return (
+    <div
+      aria-hidden
+      className="pointer-events-none absolute inset-0 hidden overflow-hidden lg:block"
+    >
+      {/* potted plants standing on the bottom edge */}
+      {GROUND_PLANTS.map((p, i) => (
+        <span
+          key={`g${i}`}
+          className="absolute block"
+          style={{ bottom: 0, left: p.left, right: p.right, height: p.h, width: p.h * p.ar }}
+        >
+          <Image
+            src={`/illustrations/doodles/${p.src}.svg`}
+            alt=""
+            aria-hidden
+            fill
+            sizes="160px"
+            className="object-contain object-bottom"
+          />
+        </span>
+      ))}
+    </div>
   );
 }
 

@@ -135,13 +135,18 @@ function Glyph({ kind }: { kind: Kind }) {
   }
 }
 
-export function FloatingDoodles() {
+// subset: pick a few doodles by index (e.g. [0, 1, 3]) to thin the field on a
+// smaller section. Omit for the full page-wide scatter.
+export function FloatingDoodles({ subset }: { subset?: number[] } = {}) {
+  const items = subset
+    ? subset.map((i) => DOODLES[i]).filter(Boolean)
+    : DOODLES;
   return (
     <div
       aria-hidden
       className="pointer-events-none absolute inset-0 z-20 hidden overflow-hidden lg:block"
     >
-      {DOODLES.map((d, i) => (
+      {items.map((d, i) => (
         <span
           key={i}
           className="doodle-float absolute block"
