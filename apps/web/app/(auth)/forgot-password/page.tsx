@@ -48,7 +48,7 @@ const PANEL: Record<View, { title: string; subtitle: string; step: number }> = {
 
 function IconBadge({ children }: { children: React.ReactNode }) {
   return (
-    <span className="mb-5 flex h-12 w-12 items-center justify-center rounded-xl bg-brand-sky/25 text-brand-navy">
+    <span className="mb-6 flex h-14 w-14 items-center justify-center rounded-xl bg-brand-sky/25 text-brand-navy">
       {children}
     </span>
   );
@@ -129,14 +129,14 @@ export default function ForgotPasswordPage() {
           </button>
 
           <IconBadge>
-            <Smartphone className="h-6 w-6" />
+            <Smartphone className="h-7 w-7" />
           </IconBadge>
 
-          <div className="mb-6 space-y-2">
-            <h1 className="font-heading text-3xl font-bold text-text-primary">
+          <div className="mb-8 space-y-2">
+            <h1 className="font-heading text-4xl font-bold text-text-primary">
               Reset your password
             </h1>
-            <p className="text-sm text-text-secondary">
+            <p className="text-base text-text-secondary">
               We&apos;ve sent a 6-digit verification code to{" "}
               <span className="font-medium text-text-primary">
                 {formatMobile(mobile)}
@@ -163,14 +163,14 @@ export default function ForgotPasswordPage() {
       {view === "reset" && (
         <>
           <IconBadge>
-            <Lock className="h-6 w-6" />
+            <Lock className="h-7 w-7" />
           </IconBadge>
 
-          <div className="mb-6 space-y-2">
-            <h1 className="font-heading text-3xl font-bold text-text-primary">
+          <div className="mb-8 space-y-2">
+            <h1 className="font-heading text-4xl font-bold text-text-primary">
               Set a new password
             </h1>
-            <p className="text-sm text-text-secondary">
+            <p className="text-base text-text-secondary">
               Create a new password for your account.
             </p>
           </div>

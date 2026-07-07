@@ -97,15 +97,15 @@ export default function LoginPage() {
         panelTitle="One quick step."
         panelSubtitle="Your account uses a temporary password. Set a new one to finish signing in."
       >
-        <span className="mb-5 flex h-12 w-12 items-center justify-center rounded-xl bg-brand-sky/25 text-brand-navy">
-          <Lock className="h-6 w-6" />
+        <span className="mb-6 flex h-14 w-14 items-center justify-center rounded-xl bg-brand-sky/25 text-brand-navy">
+          <Lock className="h-7 w-7" />
         </span>
 
-        <div className="mb-6 space-y-2">
-          <h1 className="font-heading text-3xl font-bold text-text-primary">
+        <div className="mb-8 space-y-2">
+          <h1 className="font-heading text-4xl font-bold text-text-primary">
             Set a new password
           </h1>
-          <p className="text-sm text-text-secondary">
+          <p className="text-base text-text-secondary">
             Choose a new password to secure your account.
           </p>
         </div>
@@ -160,15 +160,17 @@ export default function LoginPage() {
       </Link>
 
       <div className="space-y-2">
-        <h1 className="font-heading text-3xl font-bold text-text-primary">
+        <h1 className="font-heading text-4xl font-bold text-text-primary">
           Welcome back
         </h1>
-        <p className="text-sm text-text-secondary">Log in to your account.</p>
+        <p className="text-base text-text-secondary">Log in to your account.</p>
       </div>
 
-      <form onSubmit={handleSubmit} noValidate className="mt-8 space-y-5">
+      <form onSubmit={handleSubmit} noValidate className="mt-10 space-y-6">
         <div className="space-y-2">
-          <Label htmlFor="mobile">Phone number</Label>
+          <Label htmlFor="mobile" className="text-[15px]">
+            Phone number
+          </Label>
           <MobileInput
             id="mobile"
             value={mobile}
@@ -187,7 +189,9 @@ export default function LoginPage() {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="password">Password</Label>
+          <Label htmlFor="password" className="text-[15px]">
+            Password
+          </Label>
           <PasswordField
             id="password"
             value={password}
@@ -197,6 +201,7 @@ export default function LoginPage() {
             aria-invalid={!!errors.password}
             aria-describedby={errors.password ? "password-error" : undefined}
             disabled={submitting}
+            className="h-12 rounded-lg text-base"
           />
           {errors.password && (
             <p id="password-error" className="text-sm text-destructive">
@@ -215,12 +220,17 @@ export default function LoginPage() {
           </div>
         </div>
 
-        <Button type="submit" size="lg" className="w-full" disabled={submitting}>
+        <Button
+          type="submit"
+          size="lg"
+          className="h-12 w-full text-base"
+          disabled={submitting}
+        >
           {submitting ? "Logging in…" : "Login"}
         </Button>
       </form>
 
-      <p className="mt-6 text-center text-sm text-text-secondary">
+      <p className="mt-8 text-center text-sm text-text-secondary">
         Don&apos;t have an account?{" "}
         <Link
           href="/register"
