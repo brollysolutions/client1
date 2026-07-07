@@ -72,10 +72,12 @@ export default function ForgotPasswordPage() {
       setE164(mobileE164);
       setView("otp");
       if (result.data.otpHint) {
-        toast.info(`Dev code: ${result.data.otpHint}`);
+        toast.info("Dev verification code", { description: result.data.otpHint });
       }
     } else {
-      toast.error(result.error || "Couldn't send a code. Please try again.");
+      toast.error(result.error || "Couldn't send a code", {
+        description: "Please try again in a moment.",
+      });
       router.replace("/login");
     }
   }
@@ -120,7 +122,7 @@ export default function ForgotPasswordPage() {
           <button
             type="button"
             onClick={() => router.push("/login")}
-            className="mb-8 inline-flex items-center gap-2 text-sm text-text-secondary transition-colors hover:text-text-primary focus-visible:text-text-primary focus-visible:outline-none"
+            className="mb-8 inline-flex cursor-pointer items-center gap-2 text-sm text-text-secondary transition-colors hover:text-text-primary focus-visible:text-text-primary focus-visible:outline-none"
           >
             <ArrowLeft className="h-4 w-4" />
             Back to login
@@ -179,7 +181,9 @@ export default function ForgotPasswordPage() {
             onSubmit={async (password, confirm) => {
               const result = await forgotReset(resetToken, password, confirm);
               if (result.ok) {
-                toast.success("Password updated! You can now log in.");
+                toast.success("Password updated", {
+                  description: "You can log in with your new password now.",
+                });
                 router.push("/login");
               }
               return result;

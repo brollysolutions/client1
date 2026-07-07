@@ -10,8 +10,9 @@ import redis.asyncio as aioredis
 from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError
-from sqlalchemy import text
+from sqlalchemy import event, text
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import Session as SyncSession
 
 from app.cache.redis_keys import RedisCache, jwt_blacklist_key
 from app.core.security import decode_access_token
@@ -20,6 +21,40 @@ from app.db.session import get_db
 logger = logging.getLogger(__name__)
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
+
+# The RLS session context (SET LOCAL ROLE + set_config(..., is_local=true)) is
+# TRANSACTION-scoped. Services own their COMMIT, so a query issued after a commit
+# begins a fresh transaction that would otherwise run as the `app` superuser with
+# RLS disabled (fail-open). We stash the context on session.info and re-install it
+# on every transaction via the after_begin listener below. LOCAL (not session)
+# settings are required for pgBouncer transaction-pooling safety.
+_RLS_CONTEXT_KEY = "rls_context"
+
+_SET_ROLE_SQL = text("SET LOCAL ROLE api_user")
+_SET_RLS_CONFIG_SQL = text(
+    "SELECT "
+    "set_config('app.auth_user_uuid', :user_uuid, true), "
+    "set_config('app.role', :role, true), "
+    "set_config('app.business_line', :business_line, true), "
+    "set_config('app.client_profile_uuid', :client_profile_uuid, true), "
+    "set_config('app.agent_profile_uuid', :agent_profile_uuid, true), "
+    "set_config('app.staff_profile_uuid', :staff_profile_uuid, true), "
+    "set_config('app.platform_scope', :platform_scope, true)"
+)
+
+
+@event.listens_for(SyncSession, "after_begin")
+def _reinstall_rls_context(session: SyncSession, transaction, connection) -> None:
+    """Re-apply the RLS context at the start of every transaction on a context-
+    bearing session (no-op for sessions that never set one, e.g. the leads
+    superuser-bypass session and test sessions). This closes the post-commit
+    fail-open window: the implicit transaction after a service commit is dropped
+    back to api_user with the same GUCs instead of the app superuser."""
+    ctx = session.info.get(_RLS_CONTEXT_KEY)
+    if ctx is None:
+        return
+    connection.execute(_SET_ROLE_SQL)
+    connection.execute(_SET_RLS_CONFIG_SQL, ctx)
 
 
 @dataclass
@@ -132,35 +167,29 @@ async def _set_rls_context(
     staff_profile_uuid: str,
     platform_scope: str,
 ) -> None:
-    """Drop from superuser to api_user and set 7-variable Postgres session context.
+    """Drop from superuser to api_user and set the 7-variable Postgres RLS context.
 
     The API connects as 'app' (superuser) which bypasses RLS unconditionally.
-    SET LOCAL ROLE api_user switches to a non-superuser role for this transaction
-    so that RLS policies on auth/profile tables are enforced.  The role reverts
-    automatically when the transaction ends (pgBouncer transaction mode safe).
+    SET LOCAL ROLE api_user switches to a non-superuser role so RLS policies are
+    enforced. Both the role and the GUCs are transaction-local (pgBouncer
+    transaction-mode safe); the context is stashed on session.info so the
+    after_begin listener re-installs it for every subsequent transaction on this
+    session, including the one that begins after a service commit.
     """
-    await db.execute(text("SET LOCAL ROLE api_user"))
-    await db.execute(
-        text(
-            "SELECT "
-            "set_config('app.auth_user_uuid', :user_uuid, true), "
-            "set_config('app.role', :role, true), "
-            "set_config('app.business_line', :business_line, true), "
-            "set_config('app.client_profile_uuid', :client_profile_uuid, true), "
-            "set_config('app.agent_profile_uuid', :agent_profile_uuid, true), "
-            "set_config('app.staff_profile_uuid', :staff_profile_uuid, true), "
-            "set_config('app.platform_scope', :platform_scope, true)"
-        ),
-        {
-            "user_uuid": user_uuid,
-            "role": role,
-            "business_line": business_line,
-            "client_profile_uuid": client_profile_uuid,
-            "agent_profile_uuid": agent_profile_uuid,
-            "staff_profile_uuid": staff_profile_uuid,
-            "platform_scope": platform_scope,
-        },
-    )
+    ctx = {
+        "user_uuid": user_uuid,
+        "role": role,
+        "business_line": business_line,
+        "client_profile_uuid": client_profile_uuid,
+        "agent_profile_uuid": agent_profile_uuid,
+        "staff_profile_uuid": staff_profile_uuid,
+        "platform_scope": platform_scope,
+    }
+    db.sync_session.info[_RLS_CONTEXT_KEY] = ctx
+    # Apply to the current transaction now; the listener only fires for
+    # transactions that begin AFTER the context is stashed.
+    await db.execute(_SET_ROLE_SQL)
+    await db.execute(_SET_RLS_CONFIG_SQL, ctx)
 
 
 def _parse_uuid(val: str | None) -> UUID | None:

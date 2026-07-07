@@ -3,14 +3,14 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, ArrowRight, Lock, Smartphone } from "lucide-react";
+import { ArrowLeft, Lock, Smartphone } from "lucide-react";
 import { toast } from "sonner";
 
 import { AuthShell } from "@/components/auth/auth-shell";
-import { LineSelect } from "@/components/auth/line-select";
 import { MobileInput } from "@/components/auth/mobile-input";
 import { OtpForm } from "@/components/auth/otp-form";
 import { SetPasswordForm } from "@/components/auth/set-password-form";
+import { useAuth } from "@/components/auth/session-provider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,7 +19,6 @@ import {
   registerSetPassword,
   registerVerifyOtp,
   resendOtp,
-  type BusinessLine,
 } from "@/lib/auth";
 import { formatMobile, isValidMobile, toE164 } from "@/lib/phone";
 
@@ -43,18 +42,23 @@ const PANEL = [
   },
 ];
 
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+// Require a proper domain + a 2+ letter TLD so half-typed addresses ("a@b",
+// "a@b.") are rejected.
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[A-Za-z]{2,}$/;
+// Letters only, with spaces / hyphens / apostrophes allowed between them so real
+// names ("Anne-Marie", "O'Brien", "Van Der Berg") still pass. No digits/symbols.
+const NAME_RE = /^[A-Za-z]+(?:[ '-][A-Za-z]+)*$/;
 
 type Details = {
   firstName: string;
   lastName: string;
   email: string;
   mobile: string;
-  lines: BusinessLine[];
 };
 
 export default function RegisterPage() {
   const router = useRouter();
+  const { setSession } = useAuth();
   const [step, setStep] = React.useState(0);
 
   const [details, setDetails] = React.useState<Details>({
@@ -62,7 +66,6 @@ export default function RegisterPage() {
     lastName: "",
     email: "",
     mobile: "",
-    lines: [],
   });
   const [errors, setErrors] = React.useState<Partial<Record<keyof Details, string>>>({});
   const [submitting, setSubmitting] = React.useState(false);
@@ -76,12 +79,15 @@ export default function RegisterPage() {
   function validateDetails() {
     const next: Partial<Record<keyof Details, string>> = {};
     if (!details.firstName.trim()) next.firstName = "Enter your first name.";
+    else if (!NAME_RE.test(details.firstName.trim()))
+      next.firstName = "Use letters only.";
     if (!details.lastName.trim()) next.lastName = "Enter your last name.";
-    if (!EMAIL_RE.test(details.email)) next.email = "Enter a valid email address.";
+    else if (!NAME_RE.test(details.lastName.trim()))
+      next.lastName = "Use letters only.";
+    if (!EMAIL_RE.test(details.email.trim()))
+      next.email = "Enter a valid email address.";
     if (!isValidMobile(details.mobile))
       next.mobile = "Enter a valid 10-digit mobile number.";
-    if (details.lines.length === 0)
-      next.lines = "Choose at least one service.";
     setErrors(next);
     return Object.keys(next).length === 0;
   }
@@ -98,7 +104,6 @@ export default function RegisterPage() {
       lastName: details.lastName.trim(),
       email: details.email.trim().toLowerCase(),
       mobile: mobileE164,
-      lines: details.lines,
     });
     setSubmitting(false);
 
@@ -106,10 +111,14 @@ export default function RegisterPage() {
       setE164(mobileE164);
       setStep(1);
       if (result.data.otpHint) {
-        toast.info(`Dev code: ${result.data.otpHint}`);
+        toast.info("Dev verification code", {
+          description: result.data.otpHint,
+        });
       }
     } else {
-      toast.error(result.error || "Couldn't start sign-up. Please try again.");
+      toast.error(result.error || "Couldn't start sign-up.", {
+        description: "Please check your details and try again.",
+      });
     }
   }
 
@@ -218,22 +227,8 @@ export default function RegisterPage() {
               )}
             </div>
 
-            <div className="space-y-2">
-              <Label>Which services are you interested in?</Label>
-              <LineSelect
-                value={details.lines}
-                onChange={(lines) => set("lines", lines)}
-                disabled={submitting}
-                invalid={!!errors.lines}
-              />
-              {errors.lines && (
-                <p className="text-sm text-destructive">{errors.lines}</p>
-              )}
-            </div>
-
             <Button type="submit" size="lg" className="w-full" disabled={submitting}>
               {submitting ? "Sending code…" : "Continue"}
-              {!submitting && <ArrowRight className="h-4 w-4" />}
             </Button>
           </form>
 
@@ -254,7 +249,7 @@ export default function RegisterPage() {
           <button
             type="button"
             onClick={() => setStep(0)}
-            className="mb-8 inline-flex items-center gap-2 text-sm text-text-secondary transition-colors hover:text-text-primary focus-visible:text-text-primary focus-visible:outline-none"
+            className="mb-8 inline-flex cursor-pointer items-center gap-2 text-sm text-text-secondary transition-colors hover:text-text-primary focus-visible:text-text-primary focus-visible:outline-none"
           >
             <ArrowLeft className="h-4 w-4" />
             Back
@@ -317,8 +312,13 @@ export default function RegisterPage() {
                 confirm
               );
               if (result.ok) {
-                toast.success("Account created! You can now log in.");
-                router.push("/login");
+                // set-password returns tokens (and sets the refresh cookie), so
+                // the account is signed in straight away.
+                setSession(result.data);
+                toast.success("Account created!", {
+                  description: "Welcome aboard. Taking you in now.",
+                });
+                router.replace("/dashboard");
               }
               return result;
             }}

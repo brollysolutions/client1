@@ -109,16 +109,6 @@ async def test_register_initiate_mobile_with_letters_returns_422(client: AsyncCl
     assert resp.status_code == 422
 
 
-async def test_register_initiate_empty_lines_returns_422(client: AsyncClient) -> None:
-    resp = await client.post("/api/v1/auth/register/initiate", json=_payload(lines=[]))
-    assert resp.status_code == 422
-
-
-async def test_register_initiate_invalid_line_value_returns_422(client: AsyncClient) -> None:
-    resp = await client.post("/api/v1/auth/register/initiate", json=_payload(lines=["invalid"]))
-    assert resp.status_code == 422
-
-
 async def test_register_initiate_first_name_empty_returns_422(client: AsyncClient) -> None:
     resp = await client.post("/api/v1/auth/register/initiate", json=_payload(first_name=""))
     assert resp.status_code == 422
@@ -156,13 +146,6 @@ async def test_register_initiate_missing_last_name_returns_422(client: AsyncClie
 async def test_register_initiate_missing_mobile_returns_422(client: AsyncClient) -> None:
     body = _payload()
     del body["mobile"]
-    resp = await client.post("/api/v1/auth/register/initiate", json=body)
-    assert resp.status_code == 422
-
-
-async def test_register_initiate_missing_lines_returns_422(client: AsyncClient) -> None:
-    body = _payload()
-    del body["lines"]
     resp = await client.post("/api/v1/auth/register/initiate", json=body)
     assert resp.status_code == 422
 
@@ -483,15 +466,35 @@ async def test_set_password_missing_confirm_returns_422(client: AsyncClient) -> 
     assert resp.status_code == 422
 
 
-async def test_set_password_real_estate_line_succeeds(client: AsyncClient) -> None:
-    """Regression: lines must be propagated through JWT."""
-    mobile = unique_mobile()
-    token = await _get_reg_token(client, mobile, lines=["real_estate"])
-    resp = await client.post(
-        "/api/v1/auth/register/set-password",
-        json={"registration_token": token, "password": PASSWORD, "confirm_password": PASSWORD},
-    )
-    assert resp.status_code == 201
+async def test_register_creates_both_line_profiles(client: AsyncClient) -> None:
+    """Every self-registered client gets both loans + real_estate profiles, each
+    with its own customer_code (docs/specs/dual-line-clients.md)."""
+    access, _mobile = await full_registration(client)
+    me = await client.get("/api/v1/auth/me", headers={"Authorization": f"Bearer {access}"})
+    assert me.status_code == 200
+    profiles = me.json()["profiles"]
+    assert sorted(p["business_line"] for p in profiles) == ["loans", "real_estate"]
+    codes = [p["customer_code"] for p in profiles]
+    assert len(set(codes)) == 2  # distinct code per line
+    assert all(c for c in codes)
+
+
+async def test_me_requires_auth(client: AsyncClient) -> None:
+    resp = await client.get("/api/v1/auth/me")
+    assert resp.status_code == 401
+
+
+async def test_client_access_token_carries_both_line_claims(client: AsyncClient) -> None:
+    """A dual-line client's JWT resolves role=client, business_line=both, so the
+    RLS session context is populated (not the old placeholder). See
+    docs/adr/ dual-line + role-claim resolution."""
+    from app.core.security import decode_access_token
+
+    access, _mobile = await full_registration(client)
+    claims = decode_access_token(access)
+    assert claims["role"] == "client"
+    assert claims["business_line"] == "both"
+    assert claims["platform_scope"] == "false"
 
 
 async def test_set_password_custom_name_propagated(client: AsyncClient) -> None:

@@ -15,7 +15,7 @@ import uuid
 import pytest
 from httpx import AsyncClient
 from sqlalchemy import text
-from sqlalchemy.ext.asyncio import create_async_engine
+from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from sqlalchemy.pool import NullPool
 
 from app.core.config import settings
@@ -169,6 +169,63 @@ async def test_admin_platform_scope_sees_all(client: AsyncClient) -> None:
 
     assert uuid_a in visible_ids
     assert uuid_b in visible_ids, "Admin cannot see all users — platform_scope bypass broken"
+
+
+@pytest.mark.asyncio
+async def test_rls_context_reinstalled_after_commit(client: AsyncClient) -> None:
+    """Regression: the RLS context must survive a mid-request commit.
+
+    SET LOCAL ROLE + set_config are transaction-local; services own their commit.
+    Without the after_begin re-install, the post-commit transaction runs as the
+    `app` superuser with RLS disabled and would leak every user's row. This drives
+    the app's own session (so the global after_begin listener fires), sets user
+    A's context, commits, then queries again and asserts B is still invisible.
+    """
+    from app.core.deps import _set_rls_context
+    from conftest import unique_mobile
+
+    mobile_a = unique_mobile()
+    mobile_b = unique_mobile()
+    await full_registration(client, mobile=mobile_a)
+    await full_registration(client, mobile=mobile_b)
+    uuid_a = await _get_user_id(client, mobile_a)
+    uuid_b = await _get_user_id(client, mobile_b)
+
+    raw_url = settings.DATABASE_URL.replace("pgbouncer:5432", "postgres:5432")
+    engine = create_async_engine(
+        raw_url,
+        poolclass=NullPool,
+        connect_args={
+            "statement_cache_size": 0,
+            "prepared_statement_cache_size": 0,
+            "prepared_statement_name_func": lambda: f"__asyncpg_{uuid.uuid4()}__",
+        },
+    )
+    session_factory = async_sessionmaker(engine, expire_on_commit=False, autoflush=False)
+    query = text("SELECT id::text AS id FROM auth_users")
+    try:
+        async with session_factory() as db:
+            await _set_rls_context(
+                db,
+                user_uuid=uuid_a,
+                role="client",
+                business_line="both",
+                client_profile_uuid="",
+                agent_profile_uuid="",
+                staff_profile_uuid="",
+                platform_scope="false",
+            )
+            before = {r["id"] for r in (await db.execute(query)).mappings().all()}
+            await db.commit()  # ends the transaction the context was set in
+            after = {r["id"] for r in (await db.execute(query)).mappings().all()}
+    finally:
+        await engine.dispose()
+
+    assert uuid_a in before and uuid_b not in before, "RLS not enforced in the first transaction"
+    assert uuid_a in after, "own row not visible after commit"
+    assert uuid_b not in after, (
+        "post-commit query leaked another user's row — RLS context not re-installed"
+    )
 
 
 @pytest.mark.asyncio
