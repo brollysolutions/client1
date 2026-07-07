@@ -46,14 +46,17 @@ export default function Home() {
         cards, insurance, and verified real estate in one place
       </h1>
       <HeroCarousel />
-      {/* Floating doodles overlay the LineSplit bands only (not the hero, and not
-          the HowItWorks / WhyChooseUs sections below); lg+, pointer-events-none. */}
+      {/* Floating natural-color finance doodles overlay the LineSplit bands and the
+          WhyChooseUs bento (lg+, pointer-events-none), hugging the outer gutters. */}
       <div className="relative">
         <LineSplit />
         <FloatingDoodles />
       </div>
       <HowItWorks />
-      <WhyChooseUs />
+      <div className="relative">
+        <WhyChooseUs />
+        <FloatingDoodles subset={[0, 1, 3]} />
+      </div>
       <PartnerCta />
       <Faq />
       <ClosingCta />
