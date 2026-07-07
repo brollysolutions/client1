@@ -40,7 +40,7 @@ const BANNERS: Banner[] = [
   },
   {
     id: "real-estate",
-    title: "Buy, rent, and list with confidence",
+    title: "Buy or rent with confidence",
     subtitle: "Verified homes and trusted agents, all in one place.",
     image: "/heroes/real-estate.svg",
     cta: { label: "Explore properties", href: "/real-estate" },
@@ -142,7 +142,7 @@ export function HeroCarousel() {
     <section aria-label="Highlights" className="w-full bg-[var(--nav-bg)] pb-24 sm:pb-32 lg:pb-40">
       <Carousel
         setApi={setApi}
-        opts={{ loop: true, align: "center", containScroll: false }}
+        opts={{ loop: true, align: "center", containScroll: false, duration: 40 }}
         className="relative w-full"
       >
         {/* ml-0/pl-0 kill shadcn's inter-slide gutter — zero gap keeps the
@@ -156,7 +156,7 @@ export function HeroCarousel() {
                 key={banner.id}
                 aria-hidden={!isSelected}
                 inert={!isSelected || undefined}
-                className="basis-[86vw] pl-0 sm:basis-[680px] lg:basis-[1120px]"
+                className="basis-[90vw] pl-0 sm:basis-[720px] lg:basis-[1200px]"
               >
                 {/* Peek scale/opacity/blur lives on this INNER wrapper, not on
                     CarouselItem itself: CarouselItem is the exact node Embla
@@ -174,7 +174,7 @@ export function HeroCarousel() {
                     smooth. */}
                 <div
                   className={cn(
-                    "transition-[transform,opacity] duration-700 ease-in-out transform-gpu",
+                    "transition-[transform,opacity] duration-500 ease-out transform-gpu [will-change:transform,opacity]",
                     isSelected
                       ? "opacity-100 blur-0 scale-100"
                       : "pointer-events-none scale-90 opacity-45 blur-[4px]"
@@ -189,7 +189,7 @@ export function HeroCarousel() {
                       alt={banner.title}
                       fill
                       priority={i === 0}
-                      sizes="(min-width: 1024px) 900px, (min-width: 640px) 560px, 76vw"
+                      sizes="(min-width: 1024px) 1200px, (min-width: 640px) 720px, 90vw"
                       className="object-cover"
                     />
                   ) : (
@@ -244,16 +244,16 @@ export function HeroCarousel() {
             width from hero's isSelected item) minus a fixed gap, so the arrow
             sits just outside the main banner instead of over the blurred peek.
             Card basis must stay in sync with the CarouselItem basis classes above
-            (86vw / 680px / 1120px). */}
+            (90vw / 720px / 1200px). */}
         <CarouselPrevious
           variant="ghost"
           onClick={goPrev}
-          className="left-[calc(50%-43vw-2.75rem)] h-12 w-12 cursor-pointer rounded-full border-none bg-transparent text-brand-blue drop-shadow-sm transition-all duration-300 hover:bg-white/40 hover:text-brand-blue hover:backdrop-blur-md hover:shadow-md [&_svg]:size-7 sm:left-[calc(50%-340px-3rem)] sm:h-14 sm:w-14 sm:[&_svg]:size-8 lg:left-[calc(50%-560px-3rem)]"
+          className="left-[calc(50%-45vw-2.75rem)] h-12 w-12 cursor-pointer rounded-full border-none bg-transparent text-brand-blue drop-shadow-sm transition-all duration-300 hover:bg-white/40 hover:text-brand-blue hover:backdrop-blur-md hover:shadow-md [&_svg]:size-7 sm:left-[calc(50%-360px-3rem)] sm:h-14 sm:w-14 sm:[&_svg]:size-8 lg:left-[calc(50%-600px-3rem)]"
         />
         <CarouselNext
           variant="ghost"
           onClick={goNext}
-          className="right-[calc(50%-43vw-0.75rem)] h-12 w-12 cursor-pointer rounded-full border-none bg-transparent text-brand-blue drop-shadow-sm transition-all duration-300 hover:bg-white/40 hover:text-brand-blue hover:backdrop-blur-md hover:shadow-md [&_svg]:size-7 sm:right-[calc(50%-340px-0.75rem)] sm:h-14 sm:w-14 sm:[&_svg]:size-8 lg:right-[calc(50%-560px-0.75rem)]"
+          className="right-[calc(50%-45vw-0.75rem)] h-12 w-12 cursor-pointer rounded-full border-none bg-transparent text-brand-blue drop-shadow-sm transition-all duration-300 hover:bg-white/40 hover:text-brand-blue hover:backdrop-blur-md hover:shadow-md [&_svg]:size-7 sm:right-[calc(50%-360px-0.75rem)] sm:h-14 sm:w-14 sm:[&_svg]:size-8 lg:right-[calc(50%-600px-0.75rem)]"
         />
       </Carousel>
 

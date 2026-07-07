@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import Image from "next/image";
 
 import { JourneyFootTrail } from "@/components/journey-foot-trail";
@@ -30,7 +31,10 @@ export type ProductPageProps = {
   heroBackdrop?: string;
   /** Faint finance line-doodles in the hero's right side + corners (lg+ only). */
   heroDoodles?: boolean;
-  productsHeading: string;
+  /** Grounded hero illustration src (right edge, lg+). Defaults to the cherry tree. */
+  heroPlant?: string;
+  /** Products grid heading. Omit (with no `products`) to skip the grid entirely. */
+  productsHeading?: string;
   /** Optional supporting line under the products heading. */
   productsSubheading?: string;
   /** Cards per row at lg and up. Defaults to 3. */
@@ -43,7 +47,11 @@ export type ProductPageProps = {
   productsTrust?: TrustPoint[];
   /** Solid-blue advisor CTA rendered as the final card in the grid. */
   productsCta?: { title: string; text: string; label: string };
-  products: Product[];
+  /** Product cards. Omit to skip the products grid (e.g. the Properties page,
+   *  which renders its own catalog via `beforeJourney` instead). */
+  products?: Product[];
+  /** Custom sections injected after the products grid and before the journey. */
+  beforeJourney?: ReactNode;
   journeyHeading: string;
   journey: JourneyStep[];
   /** Render the journey as a connected timeline with bespoke glyphs (lg+). Off = plain stacked steps. */
@@ -62,6 +70,7 @@ export function ProductPage({
   intro,
   heroBackdrop,
   heroDoodles = false,
+  heroPlant,
   productsHeading,
   productsSubheading,
   productColumns = 3,
@@ -70,6 +79,7 @@ export function ProductPage({
   productsTrust,
   productsCta,
   products,
+  beforeJourney,
   journeyHeading,
   journey,
   journeyTimeline = false,
@@ -101,14 +111,14 @@ export function ProductPage({
             />
           </>
         ) : null}
-        {heroDoodles ? <HeroPlantDoodles /> : null}
+        {heroDoodles ? <HeroPlantDoodles src={heroPlant} /> : null}
         <div className="relative mx-auto max-w-7xl px-4 py-16 sm:px-6 sm:py-20 lg:px-8 lg:py-24">
           {eyebrow ? (
             <p className="font-geist text-sm font-semibold uppercase tracking-wide text-brand-blue">
               {eyebrow}
             </p>
           ) : null}
-          <h1 className="mt-3 max-w-3xl font-heading text-4xl font-semibold text-[var(--nav-text)] sm:text-5xl lg:text-6xl">
+          <h1 className="mt-3 max-w-4xl font-heading text-4xl font-semibold text-[var(--nav-text)] sm:text-5xl lg:text-6xl">
             {title}
           </h1>
           <p className="mt-5 max-w-2xl text-lg text-[var(--nav-text)] sm:text-xl">
@@ -118,6 +128,7 @@ export function ProductPage({
       </section>
 
       {/* Products */}
+      {products && products.length > 0 ? (
       <section className="relative w-full overflow-hidden border-t border-[var(--nav-border)] bg-[var(--nav-bg)]">
         {productDoodles ? <ProductDoodles /> : null}
         <div className="relative z-10 mx-auto max-w-7xl px-4 py-16 sm:px-6 sm:py-20 lg:px-8">
@@ -273,6 +284,10 @@ export function ProductPage({
           ) : null}
         </div>
       </section>
+      ) : null}
+
+      {/* Custom sections (e.g. the Properties catalog) between products and journey. */}
+      {beforeJourney}
 
       {/* Journey */}
       <section className="w-full border-t border-[var(--nav-border)] bg-[var(--nav-bg)]">
@@ -427,22 +442,26 @@ export function ProductPage({
   );
 }
 
-// Decorative hero illustration: a cherry tree (Storyset "pana") grounded on the
-// right edge, scaled to fill the hero height exactly. Square viewBox, so
-// object-contain/object-bottom letterboxes width and grounds it on the baseline.
-// Desktop-only (lg+), decorative, aria-hidden.
-function HeroPlantDoodles() {
+// Decorative hero illustration grounded on the hero's right edge, scaled to fill
+// the hero height exactly. Square viewBox art, so object-contain/object-bottom
+// letterboxes width and grounds it on the baseline. Loans passes the cherry tree
+// (default); Properties passes the tree-house. Desktop-only (lg+), aria-hidden.
+function HeroPlantDoodles({
+  src = "/illustrations/doodles/cherry-tree.svg",
+}: {
+  src?: string;
+}) {
   return (
     <div
       aria-hidden
       className="pointer-events-none absolute inset-0 hidden overflow-hidden lg:block"
     >
-      {/* cherry tree grounded on the right; nudged in from the edge and pushed
+      {/* illustration grounded on the right; nudged in from the edge and pushed
           down so its baseline sits on the section divider (empty SVG tail below
           the ground-line is clipped by the parent's overflow-hidden) */}
       <span className="absolute inset-y-0 right-[3%] block aspect-square h-full translate-y-[8%]">
         <Image
-          src="/illustrations/doodles/cherry-tree.svg"
+          src={src}
           alt=""
           aria-hidden
           fill
