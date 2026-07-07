@@ -1,8 +1,15 @@
 from pathlib import Path
 
+from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 _env_file = Path(__file__).resolve().parent.parent.parent / ".env.local"
+
+# Committed dev-only signing key. Usable for local development, but the app
+# refuses to boot with it (or any unset/short key) outside ENV=development —
+# HS256 is symmetric, so a known key lets anyone forge admin tokens and bypass
+# every RLS policy. Rotate to a unique per-environment secret in real deploys.
+_INSECURE_DEFAULT_SECRET = "a630038491ab971b65b3a3f85c91c7ab2e324a818d2deed0c1633a70504444a3"
 
 
 class Settings(BaseSettings):
@@ -30,7 +37,7 @@ class Settings(BaseSettings):
     REDIS_URL: str = "redis://redis:6379/0"
 
     # JWT
-    SECRET_KEY: str = "a630038491ab971b65b3a3f85c91c7ab2e324a818d2deed0c1633a70504444a3"
+    SECRET_KEY: str = _INSECURE_DEFAULT_SECRET
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 15
     REFRESH_TOKEN_EXPIRE_DAYS: int = 30
@@ -69,6 +76,21 @@ class Settings(BaseSettings):
     # Payments — Razorpay (cashback / referral / commission payouts only, never loan principal)
     RAZORPAY_KEY_ID: str = ""
     RAZORPAY_KEY_SECRET: str = ""
+
+    @model_validator(mode="after")
+    def _guard_secret_key(self) -> "Settings":
+        # Fail fast outside development if the signing key is the committed
+        # default, empty, or too short to be safe. Dev keeps the default so the
+        # stack boots without extra setup.
+        if self.ENV != "development":
+            if self.SECRET_KEY == _INSECURE_DEFAULT_SECRET:
+                raise ValueError(
+                    "SECRET_KEY is the committed development default. Set a unique, "
+                    "secret SECRET_KEY for this environment."
+                )
+            if len(self.SECRET_KEY) < 32:
+                raise ValueError("SECRET_KEY must be at least 32 characters.")
+        return self
 
 
 settings = Settings()

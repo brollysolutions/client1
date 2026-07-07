@@ -48,7 +48,7 @@ const PANEL: Record<View, { title: string; subtitle: string; step: number }> = {
 
 function IconBadge({ children }: { children: React.ReactNode }) {
   return (
-    <span className="mb-5 flex h-12 w-12 items-center justify-center rounded-xl bg-brand-sky/25 text-brand-navy">
+    <span className="mb-6 flex h-14 w-14 items-center justify-center rounded-xl bg-brand-sky/25 text-brand-navy">
       {children}
     </span>
   );
@@ -72,10 +72,12 @@ export default function ForgotPasswordPage() {
       setE164(mobileE164);
       setView("otp");
       if (result.data.otpHint) {
-        toast.info(`Dev code: ${result.data.otpHint}`);
+        toast.info("Dev verification code", { description: result.data.otpHint });
       }
     } else {
-      toast.error(result.error || "Couldn't send a code. Please try again.");
+      toast.error(result.error || "Couldn't send a code", {
+        description: "Please try again in a moment.",
+      });
       router.replace("/login");
     }
   }
@@ -120,21 +122,21 @@ export default function ForgotPasswordPage() {
           <button
             type="button"
             onClick={() => router.push("/login")}
-            className="mb-8 inline-flex items-center gap-2 text-sm text-text-secondary transition-colors hover:text-text-primary focus-visible:text-text-primary focus-visible:outline-none"
+            className="mb-8 inline-flex cursor-pointer items-center gap-2 text-sm text-text-secondary transition-colors hover:text-text-primary focus-visible:text-text-primary focus-visible:outline-none"
           >
             <ArrowLeft className="h-4 w-4" />
             Back to login
           </button>
 
           <IconBadge>
-            <Smartphone className="h-6 w-6" />
+            <Smartphone className="h-7 w-7" />
           </IconBadge>
 
-          <div className="mb-6 space-y-2">
-            <h1 className="font-heading text-3xl font-bold text-text-primary">
+          <div className="mb-8 space-y-2">
+            <h1 className="font-heading text-4xl font-bold text-text-primary">
               Reset your password
             </h1>
-            <p className="text-sm text-text-secondary">
+            <p className="text-base text-text-secondary">
               We&apos;ve sent a 6-digit verification code to{" "}
               <span className="font-medium text-text-primary">
                 {formatMobile(mobile)}
@@ -161,14 +163,14 @@ export default function ForgotPasswordPage() {
       {view === "reset" && (
         <>
           <IconBadge>
-            <Lock className="h-6 w-6" />
+            <Lock className="h-7 w-7" />
           </IconBadge>
 
-          <div className="mb-6 space-y-2">
-            <h1 className="font-heading text-3xl font-bold text-text-primary">
+          <div className="mb-8 space-y-2">
+            <h1 className="font-heading text-4xl font-bold text-text-primary">
               Set a new password
             </h1>
-            <p className="text-sm text-text-secondary">
+            <p className="text-base text-text-secondary">
               Create a new password for your account.
             </p>
           </div>
@@ -179,7 +181,9 @@ export default function ForgotPasswordPage() {
             onSubmit={async (password, confirm) => {
               const result = await forgotReset(resetToken, password, confirm);
               if (result.ok) {
-                toast.success("Password updated! You can now log in.");
+                toast.success("Password updated", {
+                  description: "You can log in with your new password now.",
+                });
                 router.push("/login");
               }
               return result;

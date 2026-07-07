@@ -20,22 +20,13 @@ class RegisterInitiateRequest(BaseModel):
     last_name: Annotated[str, Field(min_length=1, max_length=100)]
     mobile: Annotated[str, Field(pattern=r"^\+[1-9]\d{6,14}$")]
     email: EmailStr  # mandatory + unique; OTP fallback channel + post-login 2FA target
-    lines: list[Literal["loans", "real_estate"]] = Field(
-        min_length=1,
-        description="One or both business lines to enroll in.",
-    )
+    # No line picker: every client is enrolled in both loans and real_estate at
+    # signup (one User, two ClientProfiles). See docs/specs/dual-line-clients.md.
 
     @field_validator("email")
     @classmethod
     def email_normalize(cls, v: str) -> str:
         return v.strip().lower()
-
-    @field_validator("lines")
-    @classmethod
-    def lines_unique(cls, v: list[str]) -> list[str]:
-        if len(set(v)) != len(v):
-            raise ValueError("lines must be unique")
-        return v
 
 
 class RegisterInitiateResponse(BaseModel):
@@ -176,3 +167,24 @@ class EmailVerifyConfirmRequest(BaseModel):
 
 class MessageResponse(BaseModel):
     message: str
+
+
+# ---------------------------------------------------------------------------
+# Current user (dashboard)
+# ---------------------------------------------------------------------------
+
+
+class ClientProfileSummary(BaseModel):
+    business_line: Literal["loans", "real_estate"]
+    customer_code: str
+
+
+class MeResponse(BaseModel):
+    first_name: str
+    last_name: str
+    mobile: str
+    email: str
+    email_verified: bool
+    # One summary per business line the client holds (both, for self-registered
+    # clients). The dashboard switches between these.
+    profiles: list[ClientProfileSummary]

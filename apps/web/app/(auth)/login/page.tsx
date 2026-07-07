@@ -3,19 +3,22 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, ArrowRight } from "lucide-react";
+import { ArrowLeft, Lock } from "lucide-react";
 import { toast } from "sonner";
 
 import { AuthShell } from "@/components/auth/auth-shell";
 import { MobileInput } from "@/components/auth/mobile-input";
 import { PasswordField } from "@/components/auth/password-field";
+import { SetPasswordForm } from "@/components/auth/set-password-form";
+import { useAuth } from "@/components/auth/session-provider";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { login, RESET_MOBILE_KEY } from "@/lib/auth";
+import { changePassword, login, RESET_MOBILE_KEY } from "@/lib/auth";
 import { isValidMobile, normalizeMobile, toE164 } from "@/lib/phone";
 
 export default function LoginPage() {
   const router = useRouter();
+  const { setSession } = useAuth();
   const [mobile, setMobile] = React.useState("");
   const [password, setPassword] = React.useState("");
   const [submitting, setSubmitting] = React.useState(false);
@@ -23,6 +26,15 @@ export default function LoginPage() {
     mobile?: string;
     password?: string;
   }>({});
+  // A provisioned account that logs in with a temporary password must set a new
+  // one before continuing. We deliberately do NOT open an app session yet (that
+  // would let the guard wave them through to /dashboard and a reload would drop
+  // the force_reset claim). Instead we hold the temporary password + the
+  // force-reset access token locally, drive change-password with them, then log
+  // in fresh so the session carries a clean token.
+  const [forceReset, setForceReset] = React.useState(false);
+  const currentPasswordRef = React.useRef("");
+  const forcedTokenRef = React.useRef("");
 
   function validate() {
     const next: { mobile?: string; password?: string } = {};
@@ -42,12 +54,25 @@ export default function LoginPage() {
     const result = await login(toE164(mobile), password);
 
     if (result.ok) {
-      toast.success("Welcome back! You're logged in.");
-      // TODO(auth): redirect to the role dashboard once sessions land.
-      setSubmitting(false);
+      if (result.data.forceReset) {
+        // Hold the temp password + token locally; stay unauthenticated until the
+        // reset is done so the guard can't be bypassed by reload/navigation.
+        currentPasswordRef.current = password;
+        forcedTokenRef.current = result.data.accessToken;
+        setSubmitting(false);
+        setForceReset(true);
+        return;
+      }
+      setSession(result.data);
+      toast.success("Welcome back!", {
+        description: "You're logged in. Taking you to your dashboard.",
+      });
+      router.replace("/dashboard");
     } else {
       setSubmitting(false);
-      toast.error(result.error || "Couldn't log you in. Please try again.");
+      toast.error(result.error || "Couldn't log you in.", {
+        description: "Please check your details and try again.",
+      });
     }
   }
 
@@ -66,6 +91,61 @@ export default function LoginPage() {
     router.push("/forgot-password");
   }
 
+  if (forceReset) {
+    return (
+      <AuthShell
+        panelTitle="One quick step."
+        panelSubtitle="Your account uses a temporary password. Set a new one to finish signing in."
+      >
+        <span className="mb-6 flex h-14 w-14 items-center justify-center rounded-xl bg-brand-sky/25 text-brand-navy">
+          <Lock className="h-7 w-7" />
+        </span>
+
+        <div className="mb-8 space-y-2">
+          <h1 className="font-heading text-4xl font-bold text-text-primary">
+            Set a new password
+          </h1>
+          <p className="text-base text-text-secondary">
+            Choose a new password to secure your account.
+          </p>
+        </div>
+
+        <SetPasswordForm
+          passwordLabel="New password"
+          submitLabel="Save and continue"
+          onSubmit={async (newPassword, confirm) => {
+            const result = await changePassword(
+              currentPasswordRef.current,
+              newPassword,
+              confirm,
+              forcedTokenRef.current,
+            );
+            if (!result.ok) return result;
+
+            // Reset done: log in fresh with the new password so the session
+            // holds a clean token (no lingering force_reset claim).
+            const relog = await login(toE164(mobile), newPassword);
+            currentPasswordRef.current = "";
+            forcedTokenRef.current = "";
+            if (relog.ok) {
+              setSession(relog.data);
+              toast.success("Password updated", {
+                description: "You're all set. Signing you in now.",
+              });
+              router.replace("/dashboard");
+            } else {
+              toast.success("Password updated", {
+                description: "Please log in with your new password.",
+              });
+              setForceReset(false);
+            }
+            return result;
+          }}
+        />
+      </AuthShell>
+    );
+  }
+
   return (
     <AuthShell
       panelTitle="Welcome back."
@@ -80,15 +160,17 @@ export default function LoginPage() {
       </Link>
 
       <div className="space-y-2">
-        <h1 className="font-heading text-3xl font-bold text-text-primary">
+        <h1 className="font-heading text-4xl font-bold text-text-primary">
           Welcome back
         </h1>
-        <p className="text-sm text-text-secondary">Log in to your account.</p>
+        <p className="text-base text-text-secondary">Log in to your account.</p>
       </div>
 
-      <form onSubmit={handleSubmit} noValidate className="mt-8 space-y-5">
+      <form onSubmit={handleSubmit} noValidate className="mt-10 space-y-6">
         <div className="space-y-2">
-          <Label htmlFor="mobile">Phone number</Label>
+          <Label htmlFor="mobile" className="text-[15px]">
+            Phone number
+          </Label>
           <MobileInput
             id="mobile"
             value={mobile}
@@ -107,16 +189,19 @@ export default function LoginPage() {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="password">Password</Label>
+          <Label htmlFor="password" className="text-[15px]">
+            Password
+          </Label>
           <PasswordField
             id="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             autoComplete="current-password"
-            placeholder="••••••••"
+            placeholder="Enter your password"
             aria-invalid={!!errors.password}
             aria-describedby={errors.password ? "password-error" : undefined}
             disabled={submitting}
+            className="h-12 rounded-lg text-base"
           />
           {errors.password && (
             <p id="password-error" className="text-sm text-destructive">
@@ -128,20 +213,24 @@ export default function LoginPage() {
               type="button"
               onClick={handleForgotPassword}
               disabled={submitting}
-              className="text-sm font-medium text-brand-navy underline-offset-4 hover:underline focus-visible:underline focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50"
+              className="cursor-pointer text-sm font-medium text-brand-navy underline-offset-4 hover:underline focus-visible:underline focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50"
             >
               Forgot password?
             </button>
           </div>
         </div>
 
-        <Button type="submit" size="lg" className="w-full" disabled={submitting}>
+        <Button
+          type="submit"
+          size="lg"
+          className="h-12 w-full text-base"
+          disabled={submitting}
+        >
           {submitting ? "Logging in…" : "Login"}
-          {!submitting && <ArrowRight className="h-4 w-4" />}
         </Button>
       </form>
 
-      <p className="mt-6 text-center text-sm text-text-secondary">
+      <p className="mt-8 text-center text-sm text-text-secondary">
         Don&apos;t have an account?{" "}
         <Link
           href="/register"
