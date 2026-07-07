@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 360" fill="none">
+  <defs>
+    <radialGradient id="jrvGlow" cx="0.5" cy="0.45" r="0.6">
+      <stop offset="0" stop-color="#D0E7E6" stop-opacity="0.9"/>
+      <stop offset="0.65" stop-color="#D0E7E6" stop-opacity="0.22"/>
+      <stop offset="1" stop-color="#D0E7E6" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="jrvSoft" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="7"/></filter>
+  </defs>
+  <ellipse cx="240" cy="182" rx="205" ry="165" fill="url(#jrvGlow)"/>
+  <ellipse cx="240" cy="302" rx="150" ry="20" fill="#293681" opacity="0.12" filter="url(#jrvSoft)"/>
+
+  <!-- house -->
+  <g transform="translate(150 92)">
+    <!-- roof -->
+    <path d="M-8 78L90 6l98 72z" fill="#C4633F"/>
+    <path d="M-8 78L90 6l98 72" stroke="#A24B2C" stroke-width="2.4" stroke-linejoin="round" fill="none"/>
+    <!-- walls -->
+    <rect x="18" y="78" width="144" height="120" fill="#F3F3EE" stroke="#293681" stroke-width="2.4"/>
+    <!-- door -->
+    <rect x="72" y="140" width="36" height="58" rx="2" fill="#8A5A34"/>
+    <circle cx="101" cy="170" r="2.6" fill="#E8B54D"/>
+    <!-- windows -->
+    <rect x="34" y="104" width="34" height="30" fill="#95CCDD" stroke="#293681" stroke-width="1.8"/>
+    <path d="M51 104v30M34 119h34" stroke="#293681" stroke-width="1.4"/>
+    <rect x="112" y="104" width="34" height="30" fill="#95CCDD" stroke="#293681" stroke-width="1.8"/>
+    <path d="M129 104v30M112 119h34" stroke="#293681" stroke-width="1.4"/>
+  </g>
+
+  <!-- verified shield badge (blue accent) overlapping the roof -->
+  <g transform="translate(300 96)">
+    <path d="M32 0l32 11v22c0 22-16 36-32 43-16-7-32-21-32-43V11z" fill="#4274D9"/>
+    <path d="M32 0l32 11v22c0 22-16 36-32 43-16-7-32-21-32-43V11z" fill="#FFFFFF" fill-opacity="0.14"/>
+    <path d="M18 36l10 10 20-22" stroke="#FFFFFF" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+
+  <!-- sparkle -->
+  <path d="M138 150l3 7 7 3-7 3-3 7-3-7-7-3 7-3z" fill="#95CCDD"/>
+
+  <!-- plant (one warm element) -->
+  <path d="M356 304c-4-16 2-30 10-36-2 12 0 22 6 30" fill="#6FA98C"/>
+  <path d="M364 304c8-12 20-16 30-14-8 8-14 16-16 26" fill="#4E8E6E"/>
+  <path d="M348 304h36l-5 16h-26z" fill="#C4633F"/>
+</svg>
