@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 
-import { emi } from "@/lib/finance";
+import { amortizationSchedule } from "@/lib/finance";
 import { formatINR } from "@/lib/format";
 import { ResultCard } from "../result-card";
 import { SliderField } from "../slider-field";
@@ -77,8 +77,15 @@ export function LoanComparisonCalculator() {
   const results = useMemo<Computed[]>(
     () =>
       clamped.map((offer) => {
-        const e = emi(offer.amount, offer.rate, offer.months);
-        const totalInterest = e * offer.months - offer.amount;
+        // Use the amortization schedule's totals (not EMI x n) so this island's
+        // interest agrees to the rupee with the EMI and LAP calculators.
+        const schedule = amortizationSchedule({
+          principal: offer.amount,
+          annualRate: offer.rate,
+          months: offer.months,
+        });
+        const e = schedule.emi;
+        const totalInterest = schedule.totalInterest;
         const fee = Math.round((offer.amount * offer.feePct) / 100);
         const allInCost = offer.amount + totalInterest + fee;
         return { emi: e, totalInterest, fee, allInCost };
