@@ -77,7 +77,7 @@ function Band({ line, paddingClassName }: { line: Line; paddingClassName: string
           {/* Illustration */}
           <div
             className={cn(
-              "mx-auto w-full max-w-[320px] sm:max-w-[420px] lg:max-w-[560px]",
+              "mx-auto hidden w-full max-w-[560px] lg:block",
               imageOnRight ? "lg:order-2" : "lg:order-1"
             )}
           >
@@ -88,7 +88,7 @@ function Band({ line, paddingClassName }: { line: Line; paddingClassName: string
               alt=""
               width={500}
               height={500}
-              sizes="(min-width: 1024px) 560px, (min-width: 640px) 420px, 320px"
+              sizes="560px"
               className="h-auto w-full"
               priority={false}
             />

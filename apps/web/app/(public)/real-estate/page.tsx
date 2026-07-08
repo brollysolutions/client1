@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 
-import { ProductPage } from "@/components/product-page";
+import { ProductPage, PropertyDoodles } from "@/components/product-page";
 import { PropertyRow } from "@/components/property-row";
-import { REAL_ESTATE_JOURNEY } from "@/lib/products";
+import { TrustStrip } from "@/components/trust-strip";
+import { RE_TRUST, REAL_ESTATE_JOURNEY } from "@/lib/products";
 import { BUY_LISTINGS, RENT_LISTINGS } from "@/lib/properties";
 
 export const metadata: Metadata = {
@@ -35,17 +36,23 @@ export default function RealEstatePage() {
       heroDoodles
       heroPlant="/illustrations/doodles/tree-house.svg"
       beforeJourney={
-        <div className="w-full space-y-20 border-t border-[var(--nav-border)] bg-[var(--nav-bg)] py-20 sm:space-y-24 sm:py-24 lg:py-28">
-          <PropertyRow
-            heading="Properties to buy"
-            types="Flats, plots, villas, and commercial spaces."
-            listings={BUY_LISTINGS}
-          />
-          <PropertyRow
-            heading="Properties for rent"
-            types="Homes, PGs, offices, and shops ready to move in."
-            listings={RENT_LISTINGS}
-          />
+        <div className="relative w-full border-t border-[var(--nav-border)] bg-[var(--nav-bg)] py-20 sm:py-24 lg:py-28">
+          <PropertyDoodles />
+          <div className="relative z-10 space-y-20 sm:space-y-24">
+            <PropertyRow
+              heading="Properties to buy"
+              types="Flats, plots, villas, and commercial spaces."
+              listings={BUY_LISTINGS}
+            />
+            <PropertyRow
+              heading="Properties for rent"
+              types="Homes, PGs, offices, and shops ready to move in."
+              listings={RENT_LISTINGS}
+            />
+            <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+              <TrustStrip eyebrow="Why people trust us" points={RE_TRUST} />
+            </div>
+          </div>
         </div>
       }
       journeyHeading="What happens when you reach out"

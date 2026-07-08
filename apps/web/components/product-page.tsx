@@ -3,6 +3,7 @@ import Image from "next/image";
 
 import { JourneyFootTrail } from "@/components/journey-foot-trail";
 import { LeadDialog } from "@/components/lead-dialog";
+import { TrustStrip } from "@/components/trust-strip";
 import {
   Card,
   CardDescription,
@@ -196,7 +197,7 @@ export function ProductPage({
             ))}
 
             {productsCta ? (
-              <div className="flex h-full flex-col rounded-xl bg-[var(--nav-primary)] p-6 text-white shadow-sm">
+              <div className="hidden h-full flex-col rounded-xl bg-[var(--nav-primary)] p-6 text-white shadow-sm sm:flex">
                 <div>
                   <h3 className="font-heading text-lg font-semibold">
                     {productsCta.title}
@@ -254,33 +255,7 @@ export function ProductPage({
           </div>
 
           {productsTrust && productsTrust.length > 0 ? (
-            <div className="mt-14 overflow-hidden rounded-2xl border border-[var(--nav-border)] bg-[var(--nav-tint)]/40 shadow-sm">
-              <div className="px-6 py-9 sm:px-10">
-                {productsTrustEyebrow ? (
-                  <p className="text-center font-geist text-xs font-semibold uppercase tracking-[0.2em] text-brand-blue">
-                    {productsTrustEyebrow}
-                  </p>
-                ) : null}
-                <div className="mt-7 grid gap-10 sm:grid-cols-3 sm:gap-0 sm:divide-x sm:divide-[var(--nav-border)]">
-                  {productsTrust.map((point) => (
-                    <div
-                      key={point.label}
-                      className="flex flex-col items-center px-6 text-center"
-                    >
-                      <span className="flex h-12 w-12 items-center justify-center rounded-full bg-[var(--nav-bg)] text-brand-blue ring-1 ring-[var(--nav-border)]">
-                        <point.icon className="h-5 w-5" aria-hidden />
-                      </span>
-                      <h3 className="mt-4 font-heading text-base font-semibold text-foreground">
-                        {point.label}
-                      </h3>
-                      <p className="mt-1.5 max-w-[16rem] text-sm text-text-secondary">
-                        {point.note}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
+            <TrustStrip eyebrow={productsTrustEyebrow} points={productsTrust} />
           ) : null}
         </div>
       </section>
@@ -596,6 +571,80 @@ function ProductDoodles() {
           <circle cx="8" cy="8" r="6" />
           <circle cx="30" cy="30" r="6" />
           <line x1="34" y1="4" x2="4" y2="34" />
+        </g>
+      </svg>
+    </div>
+  );
+}
+
+// Faint real-estate line-doodles for the Properties catalog area (buy/rent
+// rows). Same family and treatment as ProductDoodles (navy line ink, low
+// opacity, lg+ only) but with housing-themed glyphs instead of finance ones.
+// Two clusters: beside the "Properties to buy" heading, and in the left
+// gutter between the buy and rent rows. Exported (unlike the other doodle
+// helpers here) because it's consumed from app/(public)/real-estate/page.tsx,
+// not from ProductPage's own render tree.
+export function PropertyDoodles() {
+  return (
+    <div
+      aria-hidden
+      className="pointer-events-none absolute inset-0 z-0 hidden overflow-hidden text-[#293681] opacity-[0.08] lg:block"
+    >
+      {/* top: beside the "Properties to buy" heading */}
+      <svg
+        className="absolute right-6 top-16 h-24 w-[280px]"
+        viewBox="0 0 280 96"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        {/* land plot: fenced rectangle with corner posts + a small flag */}
+        <g transform="translate(10,20)">
+          <rect x="0" y="14" width="54" height="36" />
+          <path d="M0 14 L0 2 M54 14 L54 2 M0 50 L0 62 M54 50 L54 62" />
+          <path d="M0 2 L16 -4 L0 -10 Z" fill="currentColor" stroke="none" />
+        </g>
+        {/* key */}
+        <g transform="translate(150,30)">
+          <circle cx="12" cy="12" r="10" />
+          <line x1="20" y1="18" x2="46" y2="44" />
+          <line x1="36" y1="34" x2="30" y2="40" />
+          <line x1="42" y1="40" x2="36" y2="46" />
+        </g>
+      </svg>
+
+      {/* middle: left gutter, beside the "Properties for rent" heading */}
+      <svg
+        className="absolute left-6 top-[700px] h-40 w-40 lg:left-10"
+        viewBox="0 0 140 90"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        {/* apartment building: window grid */}
+        <g transform="translate(6,8)">
+          <rect x="0" y="0" width="46" height="66" />
+          <rect x="8" y="10" width="8" height="8" />
+          <rect x="24" y="10" width="8" height="8" />
+          <rect x="8" y="26" width="8" height="8" />
+          <rect x="24" y="26" width="8" height="8" />
+          <rect x="8" y="42" width="8" height="8" />
+          <rect x="24" y="42" width="8" height="8" />
+        </g>
+        {/* folded blueprint with a crosshair mark */}
+        <g transform="translate(70,10)">
+          <path d="M0 0 H34 L44 10 V60 H0 Z" />
+          <path d="M34 0 V10 H44" />
+          <line x1="8" y1="20" x2="30" y2="20" />
+          <line x1="8" y1="30" x2="30" y2="30" />
+          <line x1="8" y1="40" x2="20" y2="40" />
+          <circle cx="30" cy="46" r="4" />
+          <line x1="26" y1="46" x2="34" y2="46" />
+          <line x1="30" y1="42" x2="30" y2="50" />
         </g>
       </svg>
     </div>
