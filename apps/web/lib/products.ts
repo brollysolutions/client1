@@ -2,6 +2,7 @@ import {
   Briefcase,
   Car,
   CreditCard,
+  FileCheck,
   GraduationCap,
   Handshake,
   Home,
@@ -108,6 +109,24 @@ export const LOAN_TRUST: TrustPoint[] = [
     icon: Lock,
     label: "Private by default",
     note: "Your details are shared only with your consent.",
+  },
+];
+
+export const RE_TRUST: TrustPoint[] = [
+  {
+    icon: ShieldCheck,
+    label: "Verified listings",
+    note: "Every property and agent passes a background check first.",
+  },
+  {
+    icon: Handshake,
+    label: "A dedicated point of contact",
+    note: "No new agent every time you call. One person handles your search.",
+  },
+  {
+    icon: FileCheck,
+    label: "Paperwork sorted early",
+    note: "We check every document before you see the listing.",
   },
 ];
 

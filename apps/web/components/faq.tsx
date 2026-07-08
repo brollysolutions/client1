@@ -96,12 +96,13 @@ type QMark = {
 };
 
 const QMARKS: QMark[] = [
-  { top: "11%", left: "6%", size: 104, color: "#4274D9", opacity: 0.1, rot: -12 },
-  { top: "42%", left: "3%", size: 64, color: "#95CCDD", opacity: 0.2, rot: 8 },
-  { top: "72%", left: "8%", size: 128, color: "#293681", opacity: 0.08, rot: -6 },
-  { top: "15%", right: "5%", size: 84, color: "#293681", opacity: 0.1, rot: 10 },
-  { top: "50%", right: "4%", size: 112, color: "#4274D9", opacity: 0.12, rot: -10 },
-  { top: "80%", right: "8%", size: 60, color: "#95CCDD", opacity: 0.2, rot: 14 },
+  { top: "8%", left: "7%", size: 92, color: "#4274D9", opacity: 0.09, rot: -15 },
+  { top: "28%", left: "3%", size: 56, color: "#95CCDD", opacity: 0.22, rot: 22 },
+  { top: "63%", left: "9%", size: 118, color: "#293681", opacity: 0.07, rot: -4 },
+  { top: "89%", left: "4%", size: 48, color: "#4274D9", opacity: 0.16, rot: 18 },
+  { top: "18%", right: "6%", size: 76, color: "#293681", opacity: 0.11, rot: -20 },
+  { top: "46%", right: "9%", size: 130, color: "#95CCDD", opacity: 0.13, rot: 6 },
+  { top: "74%", right: "3%", size: 58, color: "#4274D9", opacity: 0.19, rot: -9 },
 ];
 
 function FaqDoodles() {
