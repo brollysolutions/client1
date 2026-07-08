@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Cookie, Depends, Request, Response, status
+from fastapi import APIRouter, BackgroundTasks, Cookie, Depends, Request, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.cache.redis_keys import RedisCache
@@ -263,6 +263,7 @@ async def change_password(
 async def forgot_initiate(
     req: ForgotInitiateRequest,
     request: Request,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
     cache: RedisCache = Depends(get_cache),
 ) -> ForgotInitiateResponse:
@@ -270,6 +271,7 @@ async def forgot_initiate(
         db,
         cache,
         req.mobile,
+        background_tasks,
         ip=_get_client_ip(request),
         user_agent=request.headers.get("user-agent"),
     )

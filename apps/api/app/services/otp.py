@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 import secrets
 
+import anyio
 from argon2 import PasswordHasher
 from argon2.exceptions import VerifyMismatchError
 from fastapi import HTTPException, status
@@ -28,6 +29,7 @@ from app.cache.redis_keys import (
 )
 from app.core.config import settings
 from app.core.masking import mask_mobile
+from app.core.security import ARGON2_LIMITER
 
 logger = logging.getLogger(__name__)
 
@@ -52,7 +54,8 @@ async def generate_and_store_otp(cache: RedisCache, mobile: str, purpose: str) -
     """Generate 6-digit OTP, hash+store in Redis, return plaintext."""
     await check_otp_rate(cache, mobile)
     otp = f"{secrets.randbelow(10**6):06d}"
-    otp_hash = _ph.hash(otp)
+    # argon2 is CPU-heavy even for a 6-digit OTP — hash off the event loop.
+    otp_hash = await anyio.to_thread.run_sync(_ph.hash, otp, limiter=ARGON2_LIMITER)
     key = _otp_key(mobile, purpose)
     attempts_key = f"{key}:attempts"
     await cache.set(key, otp_hash, TTL_OTP)
@@ -83,7 +86,7 @@ async def verify_otp(cache: RedisCache, mobile: str, purpose: str, code: str) ->
         )
 
     try:
-        _ph.verify(stored_hash, code)
+        await anyio.to_thread.run_sync(_ph.verify, stored_hash, code, limiter=ARGON2_LIMITER)
     except VerifyMismatchError as exc:
         new_remaining = remaining - 1
         if new_remaining <= 0:
