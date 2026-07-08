@@ -23,6 +23,6 @@ export const NAV_ITEMS: NavItem[] = [
   { label: "Loans", href: "/loans" },
   { label: "Properties", href: "/real-estate" },
   { label: "Earn with Us", href: "#partners" },
-  { label: "Calculator", href: "#calculator" },
+  { label: "Calculator", href: "/calculators" },
   { label: "Contact", href: "#contact" },
 ];
