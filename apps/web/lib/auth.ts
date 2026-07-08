@@ -237,13 +237,32 @@ export async function getMe(): Promise<AuthResult<Me>> {
   }));
 }
 
+// Serialize /auth/refresh across all tabs of this origin. The refresh cookie is
+// shared per-origin and rotated on every use; if two tabs refresh at once they
+// send the same cookie, and the second (now stale) one trips server-side reuse
+// detection — which revokes the entire token chain and logs BOTH tabs out. The
+// Web Locks API lets only one refresh run at a time; each subsequent waiter then
+// sends the freshly-rotated cookie and succeeds. Falls back to running directly
+// where locks are unavailable (older browsers, SSR).
+async function withRefreshLock<T>(fn: () => Promise<T>): Promise<T> {
+  const locks = typeof navigator !== "undefined" ? navigator.locks : undefined;
+  if (!locks) return fn();
+  let result!: T;
+  await locks.request("auth-refresh", async () => {
+    result = await fn();
+  });
+  return result;
+}
+
 // POST /auth/refresh → rotates the refresh cookie, returns a fresh access token.
 // No body: the httponly refresh_token cookie rides along via credentials:include.
 export async function refresh(): Promise<AuthResult<AuthTokens>> {
-  const res = await apiRequest<Schemas["AuthTokensResponse"]>("/api/v1/auth/refresh", {
-    method: "POST",
+  return withRefreshLock(async () => {
+    const res = await apiRequest<Schemas["AuthTokensResponse"]>("/api/v1/auth/refresh", {
+      method: "POST",
+    });
+    return toResult(res, toAuthTokens);
   });
-  return toResult(res, toAuthTokens);
 }
 
 // POST /auth/logout → blacklists the access token JTI and revokes the refresh row.
