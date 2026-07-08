@@ -197,7 +197,7 @@ export function ProductPage({
             ))}
 
             {productsCta ? (
-              <div className="flex h-full flex-col rounded-xl bg-[var(--nav-primary)] p-6 text-white shadow-sm">
+              <div className="hidden h-full flex-col rounded-xl bg-[var(--nav-primary)] p-6 text-white shadow-sm sm:flex">
                 <div>
                   <h3 className="font-heading text-lg font-semibold">
                     {productsCta.title}
