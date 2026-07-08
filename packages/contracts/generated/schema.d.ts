@@ -4,102 +4,17 @@
  */
 
 export interface paths {
-    "/api/v1/auth/register/initiate": {
+    "/": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /** Root */
+        get: operations["root__get"];
         put?: never;
-        /** Register Initiate */
-        post: operations["register_initiate_api_v1_auth_register_initiate_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/auth/register/verify-otp": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Register Verify Otp */
-        post: operations["register_verify_otp_api_v1_auth_register_verify_otp_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/auth/register/set-password": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Register Set Password */
-        post: operations["register_set_password_api_v1_auth_register_set_password_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/auth/login": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Login */
-        post: operations["login_api_v1_auth_login_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/auth/refresh": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Refresh Token */
-        post: operations["refresh_token_api_v1_auth_refresh_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/auth/logout": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Logout */
-        post: operations["logout_api_v1_auth_logout_post"];
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -123,7 +38,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/auth/forgot/initiate": {
+    "/api/v1/auth/email/verify/confirm": {
         parameters: {
             query?: never;
             header?: never;
@@ -132,76 +47,8 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Forgot Initiate */
-        post: operations["forgot_initiate_api_v1_auth_forgot_initiate_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/auth/forgot/verify": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Forgot Verify */
-        post: operations["forgot_verify_api_v1_auth_forgot_verify_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/auth/forgot/reset": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Forgot Reset */
-        post: operations["forgot_reset_api_v1_auth_forgot_reset_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/auth/otp/resend": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Resend Otp */
-        post: operations["resend_otp_api_v1_auth_otp_resend_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/auth/me": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Me */
-        get: operations["me_api_v1_auth_me_get"];
-        put?: never;
-        post?: never;
+        /** Email Verify Confirm */
+        post: operations["email_verify_confirm_api_v1_auth_email_verify_confirm_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -225,7 +72,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/auth/email/verify/confirm": {
+    "/api/v1/auth/forgot/initiate": {
         parameters: {
             query?: never;
             header?: never;
@@ -234,25 +81,178 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Email Verify Confirm */
-        post: operations["email_verify_confirm_api_v1_auth_email_verify_confirm_post"];
+        /** Forgot Initiate */
+        post: operations["forgot_initiate_api_v1_auth_forgot_initiate_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/": {
+    "/api/v1/auth/forgot/reset": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Root */
-        get: operations["root__get"];
+        get?: never;
+        put?: never;
+        /** Forgot Reset */
+        post: operations["forgot_reset_api_v1_auth_forgot_reset_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/forgot/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Forgot Verify */
+        post: operations["forgot_verify_api_v1_auth_forgot_verify_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/login": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Login */
+        post: operations["login_api_v1_auth_login_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/logout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Logout */
+        post: operations["logout_api_v1_auth_logout_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Me */
+        get: operations["me_api_v1_auth_me_get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/otp/resend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Resend Otp */
+        post: operations["resend_otp_api_v1_auth_otp_resend_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/refresh": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Refresh Token */
+        post: operations["refresh_token_api_v1_auth_refresh_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/register/initiate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Register Initiate */
+        post: operations["register_initiate_api_v1_auth_register_initiate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/register/set-password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Register Set Password */
+        post: operations["register_set_password_api_v1_auth_register_set_password_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/register/verify-otp": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Register Verify Otp */
+        post: operations["register_verify_otp_api_v1_auth_register_verify_otp_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -288,10 +288,10 @@ export interface components {
             /** Access Token */
             access_token: string;
             /**
-             * Token Type
-             * @default bearer
+             * Email Verified
+             * @default false
              */
-            token_type: string;
+            email_verified: boolean;
             /** Expires In */
             expires_in: number;
             /**
@@ -300,19 +300,19 @@ export interface components {
              */
             phone_verified: boolean;
             /**
-             * Email Verified
-             * @default false
+             * Token Type
+             * @default bearer
              */
-            email_verified: boolean;
+            token_type: string;
         };
         /** ChangePasswordRequest */
         ChangePasswordRequest: {
+            /** Confirm Password */
+            confirm_password: string;
             /** Current Password */
             current_password: string;
             /** New Password */
             new_password: string;
-            /** Confirm Password */
-            confirm_password: string;
         };
         /** ClientProfileSummary */
         ClientProfileSummary: {
@@ -331,13 +331,13 @@ export interface components {
         };
         /** EmailVerifyInitiateResponse */
         EmailVerifyInitiateResponse: {
-            /** Message */
-            message: string;
             /**
              * Delivery Channel
              * @enum {string}
              */
             delivery_channel: "voice" | "email" | "none";
+            /** Message */
+            message: string;
             /** Otp Hint */
             otp_hint?: string | null;
         };
@@ -348,13 +348,13 @@ export interface components {
         };
         /** ForgotInitiateResponse */
         ForgotInitiateResponse: {
-            /** Message */
-            message: string;
             /**
              * Delivery Channel
              * @enum {string}
              */
             delivery_channel: "voice" | "email" | "none";
+            /** Message */
+            message: string;
             /** Otp Hint */
             otp_hint?: string | null;
         };
@@ -379,16 +379,16 @@ export interface components {
         };
         /** MeResponse */
         MeResponse: {
+            /** Email */
+            email: string;
+            /** Email Verified */
+            email_verified: boolean;
             /** First Name */
             first_name: string;
             /** Last Name */
             last_name: string;
             /** Mobile */
             mobile: string;
-            /** Email */
-            email: string;
-            /** Email Verified */
-            email_verified: boolean;
             /** Profiles */
             profiles: components["schemas"]["ClientProfileSummary"][];
         };
@@ -399,27 +399,27 @@ export interface components {
         };
         /** RegisterInitiateRequest */
         RegisterInitiateRequest: {
+            /**
+             * Email
+             * Format: email
+             */
+            email: string;
             /** First Name */
             first_name: string;
             /** Last Name */
             last_name: string;
             /** Mobile */
             mobile: string;
-            /**
-             * Email
-             * Format: email
-             */
-            email: string;
         };
         /** RegisterInitiateResponse */
         RegisterInitiateResponse: {
-            /** Message */
-            message: string;
             /**
              * Delivery Channel
              * @enum {string}
              */
             delivery_channel: "voice" | "email" | "none";
+            /** Message */
+            message: string;
             /** Otp Hint */
             otp_hint?: string | null;
         };
@@ -452,24 +452,24 @@ export interface components {
         };
         /** ResendOtpResponse */
         ResendOtpResponse: {
-            /** Message */
-            message: string;
             /**
              * Delivery Channel
              * @enum {string}
              */
             delivery_channel: "voice" | "email" | "none";
+            /** Message */
+            message: string;
             /** Otp Hint */
             otp_hint?: string | null;
         };
         /** ResetPasswordRequest */
         ResetPasswordRequest: {
-            /** Reset Token */
-            reset_token: string;
-            /** New Password */
-            new_password: string;
             /** Confirm Password */
             confirm_password: string;
+            /** New Password */
+            new_password: string;
+            /** Reset Token */
+            reset_token: string;
         };
         /** ResetTokenResponse */
         ResetTokenResponse: {
@@ -478,25 +478,25 @@ export interface components {
         };
         /** SetPasswordRequest */
         SetPasswordRequest: {
-            /** Registration Token */
-            registration_token: string;
-            /** Password */
-            password: string;
             /** Confirm Password */
             confirm_password: string;
+            /** Password */
+            password: string;
+            /** Registration Token */
+            registration_token: string;
         };
         /** ValidationError */
         ValidationError: {
+            /** Context */
+            ctx?: Record<string, never>;
+            /** Input */
+            input?: unknown;
             /** Location */
             loc: (string | number)[];
             /** Message */
             msg: string;
             /** Error Type */
             type: string;
-            /** Input */
-            input?: unknown;
-            /** Context */
-            ctx?: Record<string, never>;
         };
     };
     responses: never;
@@ -507,7 +507,29 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
-    register_initiate_api_v1_auth_register_initiate_post: {
+    root__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: string;
+                    };
+                };
+            };
+        };
+    };
+    change_password_api_v1_auth_change_password_post: {
         parameters: {
             query?: never;
             header?: never;
@@ -516,7 +538,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["RegisterInitiateRequest"];
+                "application/json": components["schemas"]["ChangePasswordRequest"];
             };
         };
         responses: {
@@ -526,7 +548,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["RegisterInitiateResponse"];
+                    "application/json": components["schemas"]["MessageResponse"];
                 };
             };
             /** @description Validation Error */
@@ -540,7 +562,7 @@ export interface operations {
             };
         };
     };
-    register_verify_otp_api_v1_auth_register_verify_otp_post: {
+    email_verify_confirm_api_v1_auth_email_verify_confirm_post: {
         parameters: {
             query?: never;
             header?: never;
@@ -549,7 +571,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["RegisterVerifyOtpRequest"];
+                "application/json": components["schemas"]["EmailVerifyConfirmRequest"];
             };
         };
         responses: {
@@ -559,7 +581,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["RegistrationTokenResponse"];
+                    "application/json": components["schemas"]["MessageResponse"];
                 };
             };
             /** @description Validation Error */
@@ -573,7 +595,27 @@ export interface operations {
             };
         };
     };
-    register_set_password_api_v1_auth_register_set_password_post: {
+    email_verify_initiate_api_v1_auth_email_verify_initiate_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmailVerifyInitiateResponse"];
+                };
+            };
+        };
+    };
+    forgot_initiate_api_v1_auth_forgot_initiate_post: {
         parameters: {
             query?: never;
             header?: never;
@@ -582,17 +624,83 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["SetPasswordRequest"];
+                "application/json": components["schemas"]["ForgotInitiateRequest"];
             };
         };
         responses: {
             /** @description Successful Response */
-            201: {
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["AuthTokensResponse"];
+                    "application/json": components["schemas"]["ForgotInitiateResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    forgot_reset_api_v1_auth_forgot_reset_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ResetPasswordRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MessageResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    forgot_verify_api_v1_auth_forgot_verify_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ForgotVerifyRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResetTokenResponse"];
                 };
             };
             /** @description Validation Error */
@@ -618,37 +726,6 @@ export interface operations {
                 "application/json": components["schemas"]["LoginRequest"];
             };
         };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AuthTokensResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    refresh_token_api_v1_auth_refresh_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: {
-                refresh_token?: string | null;
-            };
-        };
-        requestBody?: never;
         responses: {
             /** @description Successful Response */
             200: {
@@ -701,18 +778,14 @@ export interface operations {
             };
         };
     };
-    change_password_api_v1_auth_change_password_post: {
+    me_api_v1_auth_me_get: {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ChangePasswordRequest"];
-            };
-        };
+        requestBody?: never;
         responses: {
             /** @description Successful Response */
             200: {
@@ -720,115 +793,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["MessageResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    forgot_initiate_api_v1_auth_forgot_initiate_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ForgotInitiateRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ForgotInitiateResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    forgot_verify_api_v1_auth_forgot_verify_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ForgotVerifyRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ResetTokenResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    forgot_reset_api_v1_auth_forgot_reset_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ResetPasswordRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["MessageResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/json": components["schemas"]["MeResponse"];
                 };
             };
         };
@@ -866,12 +831,14 @@ export interface operations {
             };
         };
     };
-    me_api_v1_auth_me_get: {
+    refresh_token_api_v1_auth_refresh_post: {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
-            cookie?: never;
+            cookie?: {
+                refresh_token?: string | null;
+            };
         };
         requestBody?: never;
         responses: {
@@ -881,51 +848,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["MeResponse"];
-                };
-            };
-        };
-    };
-    email_verify_initiate_api_v1_auth_email_verify_initiate_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["EmailVerifyInitiateResponse"];
-                };
-            };
-        };
-    };
-    email_verify_confirm_api_v1_auth_email_verify_confirm_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["EmailVerifyConfirmRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["MessageResponse"];
+                    "application/json": components["schemas"]["AuthTokensResponse"];
                 };
             };
             /** @description Validation Error */
@@ -939,14 +862,18 @@ export interface operations {
             };
         };
     };
-    root__get: {
+    register_initiate_api_v1_auth_register_initiate_post: {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RegisterInitiateRequest"];
+            };
+        };
         responses: {
             /** @description Successful Response */
             200: {
@@ -954,9 +881,82 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: string;
-                    };
+                    "application/json": components["schemas"]["RegisterInitiateResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    register_set_password_api_v1_auth_register_set_password_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SetPasswordRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthTokensResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    register_verify_otp_api_v1_auth_register_verify_otp_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RegisterVerifyOtpRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RegistrationTokenResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

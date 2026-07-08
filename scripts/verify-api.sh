@@ -17,7 +17,10 @@ echo "==> API format check"
 uv run ruff format --check .
 
 echo "==> API tests"
-uv run pytest -q || [ $? -eq 5 ]
+# No exit-5 tolerance: the app is initialized and has tests, so "no tests
+# collected" (exit 5) is a real failure (bad testpaths / broken collection), not
+# an acceptable no-op. Skips (unreachable services locally) still exit 0.
+uv run pytest -q
 
 
 echo "==> Alembic heads"
