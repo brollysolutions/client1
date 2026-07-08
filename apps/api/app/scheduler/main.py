@@ -15,8 +15,11 @@ from contextlib import suppress
 from pathlib import Path
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from sqlalchemy import delete, func
 
+import app.db.session as db_session
 from app.core.config import settings
+from app.models.auth import RefreshToken
 
 logger = logging.getLogger("scheduler")
 logging.basicConfig(level=settings.LOG_LEVEL.upper())
@@ -43,6 +46,40 @@ async def heartbeat() -> None:
         logger.info("job.heartbeat.success duration_ms=%d", (time.monotonic() - started) * 1000)
 
 
+async def prune_expired_refresh_tokens() -> None:
+    """Delete naturally-expired refresh tokens so the table cannot grow unbounded.
+
+    Every rotation inserts a new row and only flips the old one to revoked=True, so
+    without pruning the table grows one row per refresh forever, degrading the
+    token_hash lookup on every /refresh + /logout. Deleting only rows past
+    expires_at is safe: an expired token is already rejected by the expiry check
+    (revoked or not), so this removes nothing a live request could still use.
+    Idempotent — a second run finds nothing new. Runs on the app superuser session
+    (bypasses RLS), same as lead capture.
+    """
+    started = time.monotonic()
+    logger.info("job.prune_refresh_tokens.start")
+    try:
+        # Resolve the sessionmaker at call time (not an import-bound name) so the
+        # test suite's NullPool rebind is honoured; in production this is the
+        # normal pooled engine.
+        async with db_session.AsyncSessionLocal() as session:
+            result = await session.execute(
+                delete(RefreshToken).where(RefreshToken.expires_at < func.now())
+            )
+            await session.commit()
+            deleted = result.rowcount
+    except Exception:
+        logger.exception("job.prune_refresh_tokens.failed")
+        raise
+    else:
+        logger.info(
+            "job.prune_refresh_tokens.success deleted=%d duration_ms=%d",
+            deleted,
+            (time.monotonic() - started) * 1000,
+        )
+
+
 def build_scheduler() -> AsyncIOScheduler:
     scheduler = AsyncIOScheduler(timezone="UTC")
     scheduler.add_job(
@@ -53,6 +90,15 @@ def build_scheduler() -> AsyncIOScheduler:
         max_instances=1,  # no overlapping runs
         coalesce=True,  # collapse missed runs into one
         replace_existing=True,  # idempotent registration on restart
+    )
+    scheduler.add_job(
+        prune_expired_refresh_tokens,
+        trigger="interval",
+        hours=24,  # daily housekeeping; expired tokens are not time-critical
+        id="prune_refresh_tokens",
+        max_instances=1,
+        coalesce=True,
+        replace_existing=True,
     )
     return scheduler
 
