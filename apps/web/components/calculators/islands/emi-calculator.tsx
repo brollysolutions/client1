@@ -1,0 +1,151 @@
+"use client";
+
+import { useMemo } from "react";
+import {
+  parseAsFloat,
+  parseAsInteger,
+  parseAsStringLiteral,
+  useQueryStates,
+} from "nuqs";
+
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { LOAN_DEFAULTS } from "@/lib/calculators/rates";
+import { amortizationSchedule, type Schedule } from "@/lib/finance";
+import { formatCompactINR, formatINR } from "@/lib/format";
+import { AmortizationTable } from "../amortization-table";
+import { DonutChart } from "../donut-chart";
+import { ExportShareBar } from "../export-share-bar";
+import { RateDisclaimer } from "../rate-disclaimer";
+import { ResultCard } from "../result-card";
+import { SliderField } from "../slider-field";
+
+const TYPES = ["home", "car", "personal"] as const;
+type LoanType = (typeof TYPES)[number];
+const TYPE_LABELS: Record<LoanType, string> = { home: "Home", car: "Car", personal: "Personal" };
+
+function clamp(value: number, min: number, max: number): number {
+  if (!Number.isFinite(value)) return min;
+  return Math.min(max, Math.max(min, value));
+}
+
+function tenureHelper(months: number): string {
+  const years = Math.floor(months / 12);
+  const rem = months % 12;
+  if (years === 0) return `${months} months`;
+  return rem ? `${years} yr ${rem} mo` : `${years} years`;
+}
+
+function buildCsv(schedule: Schedule): string {
+  const header = "Month,EMI,Principal,Interest,Balance";
+  const lines = schedule.rows.map((r) =>
+    [r.index, r.emi, r.principal, r.interest, r.closingBalance].join(","),
+  );
+  return [header, ...lines].join("\n");
+}
+
+// The EMI calculator, and the reference island every other calculator follows:
+// inputs -> pure engine (via useMemo) -> result cards + donut + schedule +
+// export. All state lives in the URL through nuqs, so results are shareable and
+// deep links hydrate correctly.
+export function EmiCalculator() {
+  const [state, setState] = useQueryStates(
+    {
+      type: parseAsStringLiteral(TYPES).withDefault("home"),
+      amount: parseAsInteger.withDefault(LOAN_DEFAULTS.home.amount),
+      rate: parseAsFloat.withDefault(LOAN_DEFAULTS.home.rate),
+      months: parseAsInteger.withDefault(LOAN_DEFAULTS.home.months),
+    },
+    { history: "replace", clearOnDefault: true },
+  );
+
+  const bounds = LOAN_DEFAULTS[state.type];
+  const amount = clamp(state.amount, bounds.amountMin, bounds.amountMax);
+  const rate = clamp(state.rate, bounds.rateMin, bounds.rateMax);
+  const months = clamp(state.months, bounds.monthsMin, bounds.monthsMax);
+
+  const schedule = useMemo(
+    () => amortizationSchedule({ principal: amount, annualRate: rate, months }),
+    [amount, rate, months],
+  );
+
+  function selectType(next: string) {
+    const type = next as LoanType;
+    const d = LOAN_DEFAULTS[type];
+    setState({ type, amount: d.amount, rate: d.rate, months: d.months });
+  }
+
+  return (
+    <div className="grid gap-8 lg:grid-cols-2">
+      {/* Inputs */}
+      <div className="grid content-start gap-6">
+        <Tabs value={state.type} onValueChange={selectType}>
+          <TabsList className="w-full">
+            {TYPES.map((t) => (
+              <TabsTrigger key={t} value={t} className="flex-1">
+                {TYPE_LABELS[t]}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </Tabs>
+
+        <SliderField
+          id="emi-amount"
+          label="Loan amount"
+          prefix="₹"
+          value={amount}
+          min={bounds.amountMin}
+          max={bounds.amountMax}
+          step={bounds.amountStep}
+          onChange={(v) => setState({ amount: Math.round(v) })}
+          helper={formatINR(amount)}
+        />
+        <SliderField
+          id="emi-rate"
+          label="Interest rate"
+          suffix="% p.a."
+          value={rate}
+          min={bounds.rateMin}
+          max={bounds.rateMax}
+          step={bounds.rateStep}
+          onChange={(v) => setState({ rate: v })}
+          helper={`${rate.toFixed(2)}% per year`}
+        />
+        <SliderField
+          id="emi-months"
+          label="Tenure"
+          suffix="months"
+          value={months}
+          min={bounds.monthsMin}
+          max={bounds.monthsMax}
+          step={1}
+          onChange={(v) => setState({ months: Math.round(v) })}
+          helper={tenureHelper(months)}
+        />
+        <RateDisclaimer />
+      </div>
+
+      {/* Results */}
+      <div className="grid content-start gap-6">
+        <div className="grid gap-4 sm:grid-cols-3">
+          <ResultCard emphasis label="Monthly EMI" value={formatINR(schedule.emi)} />
+          <ResultCard label="Total interest" value={formatCompactINR(schedule.totalInterest)} />
+          <ResultCard label="Total payment" value={formatCompactINR(schedule.totalPayment)} />
+        </div>
+        <div className="rounded-xl border border-[var(--nav-border)] bg-white p-5">
+          <DonutChart principal={amount} interest={schedule.totalInterest} />
+        </div>
+        <ExportShareBar buildCsv={() => buildCsv(schedule)} filename={`emi-schedule-${state.type}.csv`} />
+      </div>
+
+      {/* Schedule */}
+      <div className="lg:col-span-2">
+        <h2 className="font-heading text-xl font-semibold text-[var(--nav-text)]">
+          Repayment schedule
+        </h2>
+        <div className="mt-4">
+          <AmortizationTable schedule={schedule} />
+        </div>
+      </div>
+    </div>
+  );
+}
