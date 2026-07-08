@@ -1,0 +1,10 @@
+# Normalize line endings so the CI contract-drift gate (git diff --exit-code on a
+# Linux runner) never trips on CRLF introduced by a Windows checkout/commit.
+* text=auto eol=lf
+
+# Generated contracts are diffed byte-for-byte by CI — pin them to LF explicitly.
+packages/contracts/openapi/*.json text eol=lf
+packages/contracts/generated/*.d.ts text eol=lf
+
+# Shell scripts must stay LF regardless of platform.
+*.sh text eol=lf

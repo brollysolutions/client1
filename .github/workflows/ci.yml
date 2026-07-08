@@ -9,6 +9,14 @@ jobs:
   verify:
     runs-on: ubuntu-latest
 
+    # Point the app at the GitHub service containers (reachable on localhost),
+    # not the Docker-compose hostnames the app defaults to. Without this the
+    # integration tests could not reach Postgres/Redis and silently skipped.
+    env:
+      ENV: development
+      DATABASE_URL: postgresql+asyncpg://app:app@localhost:5432/app_test
+      REDIS_URL: redis://localhost:6379/0
+
     services:
       postgres:
         image: postgres:18
@@ -51,5 +59,20 @@ jobs:
       - name: Install pnpm
         run: corepack enable
 
+      # Apply migrations before the test suite so the RLS policies, api_user role,
+      # and constraints the integration tests depend on actually exist.
+      - name: Apply migrations
+        working-directory: apps/api
+        run: uv run alembic upgrade head
+
       - name: Verify
         run: ./scripts/verify.sh --ci
+
+      # Contract truth: regenerate the OpenAPI spec + typed client and fail if the
+      # committed contracts drift from the FastAPI schema.
+      - name: Contract drift check
+        run: |
+          ./scripts/generate-openapi.sh
+          ./scripts/generate-client.sh
+          git diff --exit-code packages/contracts/ \
+            || { echo "::error::Contracts are stale. Run ./scripts/generate-openapi.sh && ./scripts/generate-client.sh and commit packages/contracts/."; exit 1; }
