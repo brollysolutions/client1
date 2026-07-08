@@ -14,6 +14,7 @@ from email.message import EmailMessage
 import aiosmtplib
 
 from app.core.config import settings
+from app.core.masking import mask_email
 
 logger = logging.getLogger(__name__)
 
@@ -26,7 +27,7 @@ async def send_email(to: str, subject: str, body: str) -> bool:
     returns False so the auth flow is never broken by an email failure.
     """
     if not settings.EMAIL_ENABLED or not settings.SMTP_HOST:
-        logger.warning("EMAIL_MOCK to=%s subject=%s", to, subject)
+        logger.warning("EMAIL_MOCK to=%s subject=%s", mask_email(to), subject)
         return False
 
     message = EmailMessage()
@@ -45,8 +46,8 @@ async def send_email(to: str, subject: str, body: str) -> bool:
             start_tls=settings.SMTP_USE_TLS,
             timeout=10.0,
         )
-        logger.info("email.sent to=%s subject=%s", to, subject)
+        logger.info("email.sent to=%s subject=%s", mask_email(to), subject)
         return True
     except Exception as exc:  # delivery failure must not break the auth flow
-        logger.warning("email.failed to=%s error=%s", to, exc)
+        logger.warning("email.failed to=%s error=%s", mask_email(to), exc)
         return False

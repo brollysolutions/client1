@@ -80,6 +80,23 @@ async def test_refresh_token_reuse_attack_rejected(client: AsyncClient) -> None:
     assert resp.status_code == 401
 
 
+async def test_refresh_reuse_revokes_entire_chain(client: AsyncClient) -> None:
+    """Replaying a rotated token must kill the WHOLE chain, including the live
+    token the attacker rotated to (audit finding S1)."""
+    _, mobile = await full_registration(client)
+    await client.post("/api/v1/auth/login", json={"mobile": mobile, "password": PASSWORD})
+    old_token = client.cookies.get("refresh_token")
+    await client.post("/api/v1/auth/refresh")  # rotate → live token now in jar
+    live_token = client.cookies.get("refresh_token")
+
+    client.cookies.set("refresh_token", old_token)  # replay the rotated-away token
+    assert (await client.post("/api/v1/auth/refresh")).status_code == 401
+
+    # The live token must now be dead too — reuse revoked the entire chain.
+    client.cookies.set("refresh_token", live_token)
+    assert (await client.post("/api/v1/auth/refresh")).status_code == 401
+
+
 # ---------------------------------------------------------------------------
 # POST /auth/logout
 # ---------------------------------------------------------------------------
@@ -160,3 +177,48 @@ async def test_logout_without_refresh_cookie_still_succeeds(client: AsyncClient)
         "/api/v1/auth/logout", headers={"Authorization": f"Bearer {access_token}"}
     )
     assert resp.status_code == 200
+
+
+async def test_logout_revokes_refresh_even_without_cookie(client: AsyncClient) -> None:
+    """The refresh cookie is scoped to /refresh and never reaches /logout, yet
+    logout must still end the session server-side (audit finding S2)."""
+    _, mobile = await full_registration(client)
+    login = await client.post("/api/v1/auth/login", json={"mobile": mobile, "password": PASSWORD})
+    access_token = login.json()["access_token"]
+    live_cookie = client.cookies.get("refresh_token")
+
+    # Drop the cookie so logout provably cannot rely on it, then log out.
+    client.cookies.clear()
+    logout = await client.post(
+        "/api/v1/auth/logout", headers={"Authorization": f"Bearer {access_token}"}
+    )
+    assert logout.status_code == 200
+
+    # The refresh token issued at login must now be revoked.
+    client.cookies.set("refresh_token", live_cookie)
+    assert (await client.post("/api/v1/auth/refresh")).status_code == 401
+
+
+# ---------------------------------------------------------------------------
+# Password change / reset evicts existing sessions
+# ---------------------------------------------------------------------------
+
+
+async def test_change_password_revokes_existing_refresh(client: AsyncClient) -> None:
+    """Rotating the password must drop other live sessions (audit finding S6)."""
+    access_token, _ = await full_registration(client)
+    live_cookie = client.cookies.get("refresh_token")
+
+    changed = await client.post(
+        "/api/v1/auth/change-password",
+        headers={"Authorization": f"Bearer {access_token}"},
+        json={
+            "current_password": PASSWORD,
+            "new_password": "New@Pass1",
+            "confirm_password": "New@Pass1",
+        },
+    )
+    assert changed.status_code == 200
+
+    client.cookies.set("refresh_token", live_cookie)
+    assert (await client.post("/api/v1/auth/refresh")).status_code == 401

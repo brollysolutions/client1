@@ -25,6 +25,7 @@ import logging
 from sqlalchemy import func, text
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 
+from app.core.masking import mask_mobile
 from app.db.session import AsyncSessionLocal
 from app.models.lead import Lead
 
@@ -55,11 +56,16 @@ async def capture_lead(
                 index_where=text(_ACTIVE_PREDICATE),
                 set_={
                     "name": func.coalesce(stmt.excluded.name, Lead.name),
-                    "business_line": func.coalesce(stmt.excluded.business_line, Lead.business_line),
+                    # Keep the FIRST-set line: only fill business_line when the
+                    # existing lead has none. business_line is immutable once set
+                    # (a DB trigger enforces this), so preferring the incoming value
+                    # would raise on a cross-line re-enquiry and — since capture is
+                    # best-effort/swallowed — silently drop the lead.
+                    "business_line": func.coalesce(Lead.business_line, stmt.excluded.business_line),
                     "updated_at": func.now(),
                 },
             )
             await session.execute(stmt)
             await session.commit()
     except Exception:  # capture is best-effort; never break the auth flow
-        logger.warning("lead.capture_failed mobile=%s", mobile, exc_info=True)
+        logger.warning("lead.capture_failed mobile=%s", mask_mobile(mobile), exc_info=True)

@@ -46,7 +46,19 @@ class Settings(BaseSettings):
     OTP_EXPIRE_SECONDS: int = 300
     OTP_MAX_ATTEMPTS: int = 5
     OTP_RATE_LIMIT_PER_MOBILE: int = 3  # max initiation requests per mobile per hour
-    OTP_RATE_LIMIT_PER_IP: int = 10  # max initiation requests per IP per hour
+    # Max OTP initiations per client IP per hour. IMPORTANT: this is only per-CLIENT
+    # when TRUST_PROXY_HEADERS is on. Behind a reverse proxy with it OFF, every
+    # request carries the proxy's IP, so this collapses to a single global bucket
+    # and would throttle all users after this many initiations/hour. Keep it
+    # generous and set TRUST_PROXY_HEADERS=True in any proxied deployment.
+    OTP_RATE_LIMIT_PER_IP: int = 50
+
+    # Trust X-Forwarded-For only when the app runs behind a single reverse proxy
+    # (e.g. nginx) that sets it. Default False: the header is client-controlled and
+    # would let a caller forge the IP used for audit logging + per-IP OTP limits.
+    # PRODUCTION (the documented nginx topology): set this True, otherwise the
+    # per-IP OTP cap above degrades to a global cap (see OTP_RATE_LIMIT_PER_IP).
+    TRUST_PROXY_HEADERS: bool = False
 
     # CORS — set as JSON array: '["http://localhost:3000","https://yourdomain.com"]'
     ALLOWED_ORIGINS: list[str] = ["http://localhost:3000"]

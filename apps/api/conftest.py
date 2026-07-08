@@ -32,6 +32,11 @@ def _force_mock_otp_channels() -> None:
     settings.TWOFACTOR_API_KEY = ""
     settings.EMAIL_ENABLED = False
     settings.SMTP_HOST = ""
+    # Every ASGITransport request shares one client IP (127.0.0.1) and Redis is not
+    # flushed between tests, so the real per-IP OTP cap would trip mid-suite. Raise
+    # it out of the way here; test_otp_rate_ip.py drives the cap explicitly with a
+    # low override + a flushed key.
+    settings.OTP_RATE_LIMIT_PER_IP = 1_000_000
 
 
 @pytest.fixture(scope="session", autouse=True)
