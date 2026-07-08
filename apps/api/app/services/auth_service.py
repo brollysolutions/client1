@@ -7,7 +7,7 @@ import logging
 from datetime import UTC, datetime, timedelta
 from uuid import UUID
 
-from fastapi import HTTPException, status
+from fastapi import BackgroundTasks, HTTPException, status
 from jose import JWTError
 from sqlalchemy import select, update
 from sqlalchemy.exc import IntegrityError
@@ -236,7 +236,10 @@ async def register_initiate(
 ) -> RegisterInitiateResponse:
     # Per-IP cap first — stop one host iterating numbers before any DB / OTP work.
     await check_otp_rate_ip(cache, ip)
-    # Capture the number first — durable lead even if registration is abandoned.
+    # Capture the number first, IN-LINE (not deferred): the duplicate-email / duplicate-
+    # mobile (400) and rate-limit (429) branches below raise HTTPException, and FastAPI
+    # never runs a BackgroundTask on a raised response — a deferred capture would be
+    # dropped there, losing a genuinely new number that merely reused an existing email.
     # Self-registered clients enroll in both lines; the lead is anchored to loans.
     await capture_lead(
         req.mobile,
@@ -373,7 +376,7 @@ async def register_set_password(
         last_name=claims.get("last_name", ""),
         mobile=mobile,
         email=email,
-        password_hash=hash_password(req.password),
+        password_hash=await hash_password(req.password),
         status=UserStatus.ACTIVE,
         phone_verified_at=datetime.now(UTC),  # mobile proven by the registration OTP
         # email_verified_at stays NULL — verified later via the post-login banner flow.
@@ -471,6 +474,10 @@ async def login(
 ) -> tuple[AuthTokensResponse, str]:
     await check_login_lock(cache, req.mobile)
     # Capture every login attempt's number as a lead (unconditional → enumeration-safe).
+    # Kept IN-LINE, not deferred to a BackgroundTask: FastAPI runs background tasks only
+    # when the endpoint returns a response, and the unknown-mobile / wrong-password paths
+    # raise HTTPException — a deferred capture would be silently dropped there, which is
+    # exactly the failed-login lead we most want to keep.
     await capture_lead(req.mobile)
 
     user = await db.scalar(select(User).where(User.mobile == req.mobile))
@@ -480,7 +487,7 @@ async def login(
             detail=_GENERIC_LOGIN_ERROR,
         )
 
-    if not verify_password(req.password, user.password_hash):
+    if not await verify_password(req.password, user.password_hash):
         await record_login_failure(cache, req.mobile)
         await _log_event(
             db,
@@ -633,13 +640,16 @@ async def forgot_initiate(
     db: AsyncSession,
     cache: RedisCache,
     mobile: str,
+    background_tasks: BackgroundTasks,
     ip: str | None = None,
     user_agent: str | None = None,
 ) -> ForgotInitiateResponse:
     # Per-IP cap first (uniform for known/unknown mobile → enumeration-safe).
     await check_otp_rate_ip(cache, ip)
-    # Capture first (unconditional → identical timing/branch for known vs unknown).
-    await capture_lead(mobile)
+    # Capture unconditionally, but deferred to a background task — the response path
+    # stays identical for known vs unknown mobile (enumeration-safe) and no longer
+    # pays the lead-write round-trip in-line.
+    background_tasks.add_task(capture_lead, mobile)
 
     user = await db.scalar(select(User).where(User.mobile == mobile))
     if not user:
@@ -723,7 +733,7 @@ async def forgot_reset(
         ttl = max(1, math.ceil(exp - datetime.now(UTC).timestamp()))
         await cache.set(jwt_blacklist_key(jti), 1, ttl)
 
-    user.password_hash = hash_password(req.new_password)
+    user.password_hash = await hash_password(req.new_password)
     user.status = UserStatus.ACTIVE
     # Evict any pre-existing session (e.g. an attacker's) atomically with the
     # password rotation — one transaction, so a revoke failure can't leave the new
@@ -757,7 +767,7 @@ async def change_password(
     if not user or not user.password_hash:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized.")
 
-    if not verify_password(req.current_password, user.password_hash):
+    if not await verify_password(req.current_password, user.password_hash):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Current password is incorrect.",
@@ -769,7 +779,7 @@ async def change_password(
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)
         ) from exc
-    user.password_hash = hash_password(req.new_password)
+    user.password_hash = await hash_password(req.new_password)
     user.status = UserStatus.ACTIVE
     # Password rotated → drop any other live sessions atomically with the write.
     await _revoke_all_refresh_tokens(db, user.id, commit=False)
