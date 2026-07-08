@@ -11,7 +11,9 @@ fi
 
 echo "==> Generating typed TypeScript client from $SPEC -> $OUT"
 
-# Default generator: openapi-typescript (swap for your chosen tool).
-pnpm dlx openapi-typescript "$SPEC" -o "$OUT/schema.d.ts"
+# Default generator: openapi-typescript. Pin the version so regeneration is
+# deterministic — the CI contract-drift gate diffs this output against the
+# committed client, so an unpinned "latest" would produce spurious drift.
+pnpm dlx openapi-typescript@7.13.0 "$SPEC" -o "$OUT/schema.d.ts"
 
 echo "==> Client generated. Commit $OUT alongside $SPEC."

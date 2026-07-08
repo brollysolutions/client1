@@ -85,6 +85,14 @@ async def get_current_user(
     db: AsyncSession = Depends(get_db),
     redis_client: aioredis.Redis = Depends(get_redis),
 ) -> CurrentUser:
+    """Authenticate the bearer token and install the RLS context.
+
+    WARNING: this accepts a `force_reset` session (a user who still owes a forced
+    password reset). Use it ONLY for the change-password and logout endpoints. For
+    every other authenticated surface — /me, email-verify, and all future business
+    endpoints — depend on `get_active_user`, which rejects force_reset so the reset
+    cannot be skipped.
+    """
     credentials_error = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials.",
@@ -154,6 +162,23 @@ async def get_current_user(
         platform_scope=claims.get("platform_scope"),
         force_reset=claims.get("force_reset", False),
     )
+
+
+async def get_active_user(
+    current_user: CurrentUser = Depends(get_current_user),
+) -> CurrentUser:
+    """Like get_current_user, but rejects a force-reset session.
+
+    A user still owing a forced password reset carries a restricted access token
+    (`force_reset`). That token may reach ONLY the change-password endpoint; every
+    other authenticated surface must deny it so the reset cannot be skipped.
+    """
+    if current_user.force_reset:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Password reset required before continuing.",
+        )
+    return current_user
 
 
 async def _set_rls_context(

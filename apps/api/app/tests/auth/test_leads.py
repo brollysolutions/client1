@@ -47,6 +47,31 @@ async def test_forgot_initiate_captures_lead(client: AsyncClient) -> None:
     assert len(await _leads_for(mobile)) == 1
 
 
+async def test_register_initiate_captures_new_mobile_even_on_duplicate_email(
+    client: AsyncClient,
+) -> None:
+    """A brand-new mobile that reuses an existing email 400s — but the number is still
+    captured. Guards the invariant that register's lead capture stays IN-LINE: a
+    deferred BackgroundTask would be dropped on the raised 400 and lose the prospect."""
+    from conftest import full_registration, unique_email
+
+    email = unique_email()
+    await full_registration(client, email=email)  # email now taken
+
+    new_mobile = unique_mobile()
+    resp = await client.post(
+        "/api/v1/auth/register/initiate",
+        json={
+            "first_name": "Neha",
+            "last_name": "Iyer",
+            "mobile": new_mobile,
+            "email": email,  # collision → 400
+        },
+    )
+    assert resp.status_code == 400
+    assert len(await _leads_for(new_mobile)) == 1
+
+
 async def test_repeated_capture_is_deduped(client: AsyncClient) -> None:
     """Multiple entries for the same mobile keep exactly one active lead."""
     mobile = unique_mobile()
@@ -67,3 +92,21 @@ async def test_capture_enriches_line_on_later_register(client: AsyncClient) -> N
     assert len(after) == 1  # still one lead — enriched, not duplicated
     assert after[0].business_line == "loans"
     assert after[0].name == "Test User"
+
+
+async def test_capture_keeps_first_set_business_line(client: AsyncClient) -> None:
+    """business_line is immutable once set: a later capture with a DIFFERENT line
+    must not overwrite it (keep-first-set COALESCE). Otherwise the immutability
+    trigger rejects the write and, since capture is best-effort/swallowed, the
+    re-enquiry is silently lost."""
+    from app.services.leads import capture_lead
+
+    mobile = unique_mobile()
+    await capture_lead(mobile, business_line="loans")
+    assert (await _leads_for(mobile))[0].business_line == "loans"
+
+    # A cross-line re-enquiry must keep the original line, not flip to real_estate.
+    await capture_lead(mobile, business_line="real_estate")
+    after = await _leads_for(mobile)
+    assert len(after) == 1
+    assert after[0].business_line == "loans"

@@ -7,9 +7,9 @@ import logging
 from datetime import UTC, datetime, timedelta
 from uuid import UUID
 
-from fastapi import HTTPException, status
+from fastapi import BackgroundTasks, HTTPException, status
 from jose import JWTError
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -55,6 +55,7 @@ from app.schemas.auth import (
 from app.services.leads import capture_lead
 from app.services.otp import (
     check_login_lock,
+    check_otp_rate_ip,
     clear_login_failures,
     generate_and_store_otp,
     record_login_failure,
@@ -102,6 +103,30 @@ async def _issue_tokens(
     await db.refresh(token_row)
 
     return _build_tokens_response(access_token, user), raw_refresh
+
+
+async def _revoke_all_refresh_tokens(
+    db: AsyncSession, auth_user_uuid: UUID, *, commit: bool = True
+) -> None:
+    """Revoke every live refresh token for a user.
+
+    Used on (a) refresh-token reuse detection — revoke the whole chain so a stolen
+    token can never mint again; (b) logout — terminate the session server-side
+    regardless of whether the cookie reached this endpoint; (c) password
+    change/reset — evict any pre-existing session (e.g. an attacker's) after the
+    credential rotates. Pass commit=False to fold the revoke into the caller's own
+    transaction (e.g. atomically with a password write); default commits its UPDATE.
+    """
+    await db.execute(
+        update(RefreshToken)
+        .where(
+            RefreshToken.auth_user_uuid == auth_user_uuid,
+            RefreshToken.revoked.is_(False),
+        )
+        .values(revoked=True)
+    )
+    if commit:
+        await db.commit()
 
 
 async def _build_access_claims(db: AsyncSession, user: User) -> dict:
@@ -209,7 +234,12 @@ async def register_initiate(
     ip: str | None = None,
     user_agent: str | None = None,
 ) -> RegisterInitiateResponse:
-    # Capture the number first — durable lead even if registration is abandoned.
+    # Per-IP cap first — stop one host iterating numbers before any DB / OTP work.
+    await check_otp_rate_ip(cache, ip)
+    # Capture the number first, IN-LINE (not deferred): the duplicate-email / duplicate-
+    # mobile (400) and rate-limit (429) branches below raise HTTPException, and FastAPI
+    # never runs a BackgroundTask on a raised response — a deferred capture would be
+    # dropped there, losing a genuinely new number that merely reused an existing email.
     # Self-registered clients enroll in both lines; the lead is anchored to loans.
     await capture_lead(
         req.mobile,
@@ -346,7 +376,7 @@ async def register_set_password(
         last_name=claims.get("last_name", ""),
         mobile=mobile,
         email=email,
-        password_hash=hash_password(req.password),
+        password_hash=await hash_password(req.password),
         status=UserStatus.ACTIVE,
         phone_verified_at=datetime.now(UTC),  # mobile proven by the registration OTP
         # email_verified_at stays NULL — verified later via the post-login banner flow.
@@ -444,6 +474,10 @@ async def login(
 ) -> tuple[AuthTokensResponse, str]:
     await check_login_lock(cache, req.mobile)
     # Capture every login attempt's number as a lead (unconditional → enumeration-safe).
+    # Kept IN-LINE, not deferred to a BackgroundTask: FastAPI runs background tasks only
+    # when the endpoint returns a response, and the unknown-mobile / wrong-password paths
+    # raise HTTPException — a deferred capture would be silently dropped there, which is
+    # exactly the failed-login lead we most want to keep.
     await capture_lead(req.mobile)
 
     user = await db.scalar(select(User).where(User.mobile == req.mobile))
@@ -453,7 +487,7 @@ async def login(
             detail=_GENERIC_LOGIN_ERROR,
         )
 
-    if not verify_password(req.password, user.password_hash):
+    if not await verify_password(req.password, user.password_hash):
         await record_login_failure(cache, req.mobile)
         await _log_event(
             db,
@@ -491,15 +525,18 @@ async def login(
         success=True,
     )
 
-    response, raw_refresh = await _issue_tokens(db, user)
-
-    # Flag forced password reset
+    # A user still owing a forced password reset gets a restricted, short-lived
+    # access token (force_reset) and NO refresh token — they cannot obtain a full
+    # session until they change the password. Emitting no refresh token (empty
+    # string → no cookie set) also closes the old /refresh bypass; refresh
+    # additionally rejects non-ACTIVE users as defence in depth.
     if user.status == UserStatus.PENDING_PASSWORD_RESET:
-        response.access_token = create_access_token(
+        access_token = create_access_token(
             {"sub": str(user.id), "role": "client", "force_reset": True}
         )
+        return _build_tokens_response(access_token, user), ""
 
-    return response, raw_refresh
+    return await _issue_tokens(db, user)
 
 
 # ---------------------------------------------------------------------------
@@ -521,11 +558,10 @@ async def refresh_token(
             detail="Invalid refresh token.",
         )
 
-    # Revoked token = possible token reuse — revoke chain
+    # Revoked token = token reuse — revoke the entire chain so the live token the
+    # attacker rotated to can never mint again (security.md: reuse revokes chain).
     if row.revoked:
-        await db.execute(
-            select(RefreshToken).where(RefreshToken.auth_user_uuid == row.auth_user_uuid)
-        )
+        await _revoke_all_refresh_tokens(db, row.auth_user_uuid)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Refresh token already used. Please log in again.",
@@ -540,6 +576,16 @@ async def refresh_token(
     user = await db.get(User, row.auth_user_uuid)
     if not user:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found.")
+
+    # A suspended/soft-deleted account, or one still owing a forced password
+    # reset, must not be able to mint fresh access tokens by rotating refresh
+    # tokens. Login already blocks these; the refresh path must too.
+    if user.status != UserStatus.ACTIVE:
+        await _revoke_all_refresh_tokens(db, user.id)
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Session is no longer valid. Please log in again.",
+        )
 
     # Rotate: revoke old, issue new
     new_raw, new_hash = create_refresh_token()
@@ -571,17 +617,18 @@ async def logout(
     db: AsyncSession,
     cache: RedisCache,
     jti: str,
-    refresh_token_hash: str,
+    auth_user_uuid: UUID,
     access_token_exp: int,
 ) -> None:
     now_ts = int(datetime.now(UTC).timestamp())
     ttl = max(access_token_exp - now_ts, 1)
     await cache.set(jwt_blacklist_key(jti), 1, ttl)
 
-    row = await db.scalar(select(RefreshToken).where(RefreshToken.token_hash == refresh_token_hash))
-    if row and not row.revoked:
-        row.revoked = True
-        await db.commit()
+    # Revoke by user id, not by the presented cookie: the refresh cookie is scoped
+    # to /refresh and is never sent to /logout, so a hash lookup would revoke
+    # nothing and leave the 30-day refresh token live. Kill all of the user's
+    # refresh tokens so logout actually ends the session.
+    await _revoke_all_refresh_tokens(db, auth_user_uuid)
 
 
 # ---------------------------------------------------------------------------
@@ -593,11 +640,16 @@ async def forgot_initiate(
     db: AsyncSession,
     cache: RedisCache,
     mobile: str,
+    background_tasks: BackgroundTasks,
     ip: str | None = None,
     user_agent: str | None = None,
 ) -> ForgotInitiateResponse:
-    # Capture first (unconditional → identical timing/branch for known vs unknown).
-    await capture_lead(mobile)
+    # Per-IP cap first (uniform for known/unknown mobile → enumeration-safe).
+    await check_otp_rate_ip(cache, ip)
+    # Capture unconditionally, but deferred to a background task — the response path
+    # stays identical for known vs unknown mobile (enumeration-safe) and no longer
+    # pays the lead-write round-trip in-line.
+    background_tasks.add_task(capture_lead, mobile)
 
     user = await db.scalar(select(User).where(User.mobile == mobile))
     if not user:
@@ -681,8 +733,12 @@ async def forgot_reset(
         ttl = max(1, math.ceil(exp - datetime.now(UTC).timestamp()))
         await cache.set(jwt_blacklist_key(jti), 1, ttl)
 
-    user.password_hash = hash_password(req.new_password)
+    user.password_hash = await hash_password(req.new_password)
     user.status = UserStatus.ACTIVE
+    # Evict any pre-existing session (e.g. an attacker's) atomically with the
+    # password rotation — one transaction, so a revoke failure can't leave the new
+    # password committed while old sessions stay live.
+    await _revoke_all_refresh_tokens(db, user.id, commit=False)
     await db.commit()
     await _log_event(
         db,
@@ -711,7 +767,7 @@ async def change_password(
     if not user or not user.password_hash:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized.")
 
-    if not verify_password(req.current_password, user.password_hash):
+    if not await verify_password(req.current_password, user.password_hash):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Current password is incorrect.",
@@ -723,8 +779,10 @@ async def change_password(
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)
         ) from exc
-    user.password_hash = hash_password(req.new_password)
+    user.password_hash = await hash_password(req.new_password)
     user.status = UserStatus.ACTIVE
+    # Password rotated → drop any other live sessions atomically with the write.
+    await _revoke_all_refresh_tokens(db, user.id, commit=False)
     await db.commit()
     await _log_event(
         db,
@@ -766,6 +824,8 @@ async def resend_otp_service(
     ip: str | None = None,
     via_email: bool = False,
 ) -> ResendOtpResponse:
+    # Per-IP cap — resend is an initiate path (places a call / sends email).
+    await check_otp_rate_ip(cache, ip)
     otp = await resend_otp(cache, mobile, purpose)
     email = await _resolve_resend_email(db, cache, mobile, purpose)
     channel = await deliver_otp(mobile, email or "", otp, via_email=via_email and bool(email))

@@ -7,6 +7,7 @@ import secrets
 from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 
+import anyio
 from argon2 import PasswordHasher
 from argon2.exceptions import VerifyMismatchError
 from jose import JWTError, jwt
@@ -14,6 +15,12 @@ from jose import JWTError, jwt
 from app.core.config import settings
 
 _ph = PasswordHasher()
+
+# argon2id costs ~64 MiB per hash. anyio's default thread limiter (40) would let an
+# auth burst allocate ~2.5 GiB of transient RAM and OOM a small replica. Cap concurrent
+# argon2 work well under the memory budget; shared across password + OTP hashing so the
+# ceiling bounds ALL argon2 threads, not each call site independently.
+ARGON2_LIMITER = anyio.CapacityLimiter(8)
 
 # ---------------------------------------------------------------------------
 # Password
@@ -24,15 +31,20 @@ _COMMON_PASSWORDS = frozenset(
 )
 
 
-def hash_password(plain: str) -> str:
-    return _ph.hash(plain)
+async def hash_password(plain: str) -> str:
+    # argon2id is deliberately CPU/memory-heavy; run it in a worker thread so a
+    # single login/registration doesn't stall the event loop for other requests.
+    return await anyio.to_thread.run_sync(_ph.hash, plain, limiter=ARGON2_LIMITER)
 
 
-def verify_password(plain: str, hashed: str) -> bool:
-    try:
-        return _ph.verify(hashed, plain)
-    except VerifyMismatchError:
-        return False
+async def verify_password(plain: str, hashed: str) -> bool:
+    def _verify() -> bool:
+        try:
+            return _ph.verify(hashed, plain)
+        except VerifyMismatchError:
+            return False
+
+    return await anyio.to_thread.run_sync(_verify, limiter=ARGON2_LIMITER)
 
 
 def validate_password_policy(password: str, mobile: str) -> None:

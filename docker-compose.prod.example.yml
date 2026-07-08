@@ -119,6 +119,16 @@ services:
     build:
       context: ./apps/web
       target: prod
+      args:
+        # Baked into the browser bundle at build time (NEXT_PUBLIC_*). This is the
+        # ORIGIN only — the client already appends /api/v1/... itself, so do NOT
+        # include a path (…/api would produce /api/api/v1/... and 404). Use:
+        #   - a same-origin deploy behind nginx: leave it EMPTY (requests go to
+        #     /api/v1/... on the current origin, which nginx proxies to the API);
+        #   - a separate API host: its origin, e.g. https://api.example.com
+        # The ? guard (not :?) errors only when UNSET, so the empty same-origin
+        # value is allowed. The env_file below only sets RUNTIME (SSR) values.
+        NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL?set NEXT_PUBLIC_API_BASE_URL for the prod web build (empty = same-origin behind nginx)}
     command: pnpm start
     env_file:
       - ./apps/web/.env.prod

@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 import secrets
 
+import anyio
 from argon2 import PasswordHasher
 from argon2.exceptions import VerifyMismatchError
 from fastapi import HTTPException, status
@@ -13,18 +14,22 @@ from app.cache.redis_keys import (
     TTL_LOGIN_LOCK,
     TTL_OTP,
     TTL_OTP_RATE,
+    TTL_OTP_RATE_IP,
     TTL_OTP_RESEND,
     RedisCache,
     login_fail_key,
     login_lock_key,
     otp_email_verify_key,
     otp_lock_key,
+    otp_rate_ip_key,
     otp_rate_key,
     otp_register_key,
     otp_resend_key,
     otp_reset_key,
 )
 from app.core.config import settings
+from app.core.masking import mask_mobile
+from app.core.security import ARGON2_LIMITER
 
 logger = logging.getLogger(__name__)
 
@@ -49,12 +54,13 @@ async def generate_and_store_otp(cache: RedisCache, mobile: str, purpose: str) -
     """Generate 6-digit OTP, hash+store in Redis, return plaintext."""
     await check_otp_rate(cache, mobile)
     otp = f"{secrets.randbelow(10**6):06d}"
-    otp_hash = _ph.hash(otp)
+    # argon2 is CPU-heavy even for a 6-digit OTP — hash off the event loop.
+    otp_hash = await anyio.to_thread.run_sync(_ph.hash, otp, limiter=ARGON2_LIMITER)
     key = _otp_key(mobile, purpose)
     attempts_key = f"{key}:attempts"
     await cache.set(key, otp_hash, TTL_OTP)
     await cache.set(attempts_key, settings.OTP_MAX_ATTEMPTS, TTL_OTP)
-    logger.debug("otp.generated mobile=%s purpose=%s", mobile, purpose)
+    logger.debug("otp.generated mobile=%s purpose=%s", mask_mobile(mobile), purpose)
     return otp
 
 
@@ -80,7 +86,7 @@ async def verify_otp(cache: RedisCache, mobile: str, purpose: str, code: str) ->
         )
 
     try:
-        _ph.verify(stored_hash, code)
+        await anyio.to_thread.run_sync(_ph.verify, stored_hash, code, limiter=ARGON2_LIMITER)
     except VerifyMismatchError as exc:
         new_remaining = remaining - 1
         if new_remaining <= 0:
@@ -97,7 +103,7 @@ async def verify_otp(cache: RedisCache, mobile: str, purpose: str, code: str) ->
 
     # Success — burn the OTP
     await cache.delete(key, attempts_key, otp_resend_key(mobile), otp_lock_key(mobile))
-    logger.debug("otp.verified mobile=%s purpose=%s", mobile, purpose)
+    logger.debug("otp.verified mobile=%s purpose=%s", mask_mobile(mobile), purpose)
 
 
 async def resend_otp(cache: RedisCache, mobile: str, purpose: str) -> str:
@@ -139,6 +145,25 @@ async def check_otp_rate(cache: RedisCache, mobile: str) -> None:
         )
 
 
+async def check_otp_rate_ip(cache: RedisCache, ip: str | None) -> None:
+    """Per-IP OTP initiation cap (OTP_RATE_LIMIT_PER_IP / hour).
+
+    Complements the per-mobile daily cap: without it one host can iterate mobile
+    numbers and burn real 2Factor voice-call / email spend (and enumerate which
+    numbers are registered via the delivery_channel response). No-op when the
+    client IP is unknown — the caller must supply a proxy-trusted IP, never a
+    spoofable header value.
+    """
+    if not ip:
+        return
+    count = await cache.incr_with_expire(otp_rate_ip_key(ip), TTL_OTP_RATE_IP)
+    if count > settings.OTP_RATE_LIMIT_PER_IP:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Too many OTP requests from this network. Try again later.",
+        )
+
+
 async def record_login_failure(cache: RedisCache, mobile: str) -> None:
     """Increment login failure counter. Lock account on 5th failure (Auth Design §6.6)."""
     fail_key = login_fail_key(mobile)
@@ -147,7 +172,7 @@ async def record_login_failure(cache: RedisCache, mobile: str) -> None:
     if count >= _LOGIN_FAIL_MAX:
         await cache.set(lock_key, 1, TTL_LOGIN_LOCK)
         await cache.delete(fail_key)
-        logger.warning("login.locked mobile=%s", mobile)
+        logger.warning("login.locked mobile=%s", mask_mobile(mobile))
 
 
 async def check_login_lock(cache: RedisCache, mobile: str) -> None:

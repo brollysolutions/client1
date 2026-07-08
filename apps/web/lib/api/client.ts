@@ -87,6 +87,19 @@ function safeParse(text: string): unknown {
 
 const NETWORK_ERROR = "Can't reach the server. Check your connection and try again.";
 
+// Every request is time-bounded. This matters most for /auth/refresh: it runs
+// inside a cross-tab Web Lock (lib/auth.withRefreshLock), so a stalled refresh
+// would otherwise hold the exclusive lock and freeze auth recovery in every tab
+// until the browser's own (minutes-long) network timeout. A bounded fetch means
+// the lock is always released promptly.
+const REQUEST_TIMEOUT_MS = 15_000;
+
+function timeoutSignal(): AbortSignal | undefined {
+  return typeof AbortSignal !== "undefined" && "timeout" in AbortSignal
+    ? AbortSignal.timeout(REQUEST_TIMEOUT_MS)
+    : undefined;
+}
+
 export async function apiRequest<TResponse = undefined>(
   path: string,
   { method = "GET", body, bearer }: RequestOptions = {},
@@ -103,8 +116,11 @@ export async function apiRequest<TResponse = undefined>(
         headers,
         credentials: "include",
         body: body !== undefined ? JSON.stringify(body) : undefined,
+        signal: timeoutSignal(),
       });
     } catch {
+      // Includes the AbortError thrown when REQUEST_TIMEOUT_MS elapses — treated
+      // as a network failure so the caller (and the refresh lock) unblocks.
       return null;
     }
   };

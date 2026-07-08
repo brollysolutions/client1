@@ -16,6 +16,11 @@ FROM base AS builder
 COPY package.json pnpm-lock.yaml* pnpm-workspace.yaml* ./
 RUN pnpm install --frozen-lockfile
 COPY . .
+# NEXT_PUBLIC_* vars are inlined into the browser bundle at BUILD time, so the API
+# base URL must be provided here — a runtime env_file is too late and the client
+# would fall back to http://localhost:8000. Supplied via compose build.args.
+ARG NEXT_PUBLIC_API_BASE_URL
+ENV NEXT_PUBLIC_API_BASE_URL=${NEXT_PUBLIC_API_BASE_URL}
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN pnpm build
 

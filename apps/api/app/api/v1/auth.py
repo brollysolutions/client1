@@ -1,13 +1,13 @@
-"""Auth router — 11 endpoints (Auth Design §9)."""
+"""Auth router (Auth Design §9)."""
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Cookie, Depends, Request, Response, status
+from fastapi import APIRouter, BackgroundTasks, Cookie, Depends, Request, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.cache.redis_keys import RedisCache
-from app.core.deps import CurrentUser, get_cache, get_current_user
-from app.core.security import hash_refresh_token
+from app.core.config import settings
+from app.core.deps import CurrentUser, get_active_user, get_cache, get_current_user
 from app.db.session import get_db
 from app.schemas.auth import (
     AuthTokensResponse,
@@ -60,9 +60,17 @@ def _clear_refresh_cookie(response: Response) -> None:
 
 
 def _get_client_ip(request: Request) -> str | None:
-    forwarded = request.headers.get("X-Forwarded-For")
-    if forwarded:
-        return forwarded.split(",")[0].strip()
+    # Only honour X-Forwarded-For when explicitly configured to trust the proxy;
+    # otherwise it is attacker-controlled and would forge the IP used for audit
+    # logging and per-IP OTP rate limiting. When trusted, take the RIGHTMOST entry
+    # — the hop our own reverse proxy appended (the real peer it saw) — not the
+    # leftmost, which any client can set freely. Assumes a single trusted proxy.
+    if settings.TRUST_PROXY_HEADERS:
+        forwarded = request.headers.get("X-Forwarded-For")
+        if forwarded:
+            parts = [p.strip() for p in forwarded.split(",") if p.strip()]
+            if parts:
+                return parts[-1]
     return request.client.host if request.client else None
 
 
@@ -159,11 +167,14 @@ async def login(
         ip=_get_client_ip(request),
         user_agent=request.headers.get("user-agent"),
     )
-    _set_refresh_cookie(
-        response,
-        raw_refresh,
-        max_age=settings.REFRESH_TOKEN_EXPIRE_DAYS * 86400,
-    )
+    # A force-reset login returns no refresh token (empty string) — do not set a
+    # session cookie for an account that still owes a password reset.
+    if raw_refresh:
+        _set_refresh_cookie(
+            response,
+            raw_refresh,
+            max_age=settings.REFRESH_TOKEN_EXPIRE_DAYS * 86400,
+        )
     return tokens
 
 
@@ -206,14 +217,12 @@ async def logout(
     db: AsyncSession = Depends(get_db),
     cache: RedisCache = Depends(get_cache),
     current_user: CurrentUser = Depends(get_current_user),
-    raw_token: str | None = Cookie(default=None, alias=_REFRESH_COOKIE),
 ) -> MessageResponse:
-    refresh_hash = hash_refresh_token(raw_token) if raw_token else ""
     await auth_service.logout(
         db,
         cache,
         jti=current_user.jti,
-        refresh_token_hash=refresh_hash,
+        auth_user_uuid=current_user.id,
         access_token_exp=current_user.exp,
     )
     _clear_refresh_cookie(response)
@@ -254,6 +263,7 @@ async def change_password(
 async def forgot_initiate(
     req: ForgotInitiateRequest,
     request: Request,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
     cache: RedisCache = Depends(get_cache),
 ) -> ForgotInitiateResponse:
@@ -261,6 +271,7 @@ async def forgot_initiate(
         db,
         cache,
         req.mobile,
+        background_tasks,
         ip=_get_client_ip(request),
         user_agent=request.headers.get("user-agent"),
     )
@@ -334,7 +345,7 @@ async def resend_otp(
 @router.get("/me", response_model=MeResponse, status_code=status.HTTP_200_OK)
 async def me(
     db: AsyncSession = Depends(get_db),
-    current_user: CurrentUser = Depends(get_current_user),
+    current_user: CurrentUser = Depends(get_active_user),
 ) -> MeResponse:
     return await auth_service.get_me(db, current_user.id)
 
@@ -348,7 +359,7 @@ async def email_verify_initiate(
     request: Request,
     db: AsyncSession = Depends(get_db),
     cache: RedisCache = Depends(get_cache),
-    current_user: CurrentUser = Depends(get_current_user),
+    current_user: CurrentUser = Depends(get_active_user),
 ) -> EmailVerifyInitiateResponse:
     from app.models.user import User
 
@@ -376,7 +387,7 @@ async def email_verify_confirm(
     request: Request,
     db: AsyncSession = Depends(get_db),
     cache: RedisCache = Depends(get_cache),
-    current_user: CurrentUser = Depends(get_current_user),
+    current_user: CurrentUser = Depends(get_active_user),
 ) -> MessageResponse:
     from app.models.user import User
 

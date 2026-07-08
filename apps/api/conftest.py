@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import contextlib
+import os
 import uuid
 
 import pytest
@@ -32,6 +33,11 @@ def _force_mock_otp_channels() -> None:
     settings.TWOFACTOR_API_KEY = ""
     settings.EMAIL_ENABLED = False
     settings.SMTP_HOST = ""
+    # Every ASGITransport request shares one client IP (127.0.0.1) and Redis is not
+    # flushed between tests, so the real per-IP OTP cap would trip mid-suite. Raise
+    # it out of the way here; test_otp_rate_ip.py drives the cap explicitly with a
+    # low override + a flushed key.
+    settings.OTP_RATE_LIMIT_PER_IP = 1_000_000
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -121,6 +127,15 @@ async def live_app():
     Use this fixture in tests that need running Docker services (Postgres + Redis).
     """
     if not await _redis_reachable():
+        # In CI the services are declared, so an unreachable Redis means the wiring
+        # is broken — fail loudly instead of silently skipping the whole suite (the
+        # bug that let the RLS / refresh-rotation tests pass without ever running).
+        if os.environ.get("CI"):
+            pytest.fail(
+                "Redis unreachable under CI — integration tests must run, not skip. "
+                "Check the service containers and REDIS_URL.",
+                pytrace=False,
+            )
         pytest.skip("Redis not reachable — start Docker stack to run integration tests")
 
     redis_client = aioredis.from_url(settings.REDIS_URL, decode_responses=True)
