@@ -22,6 +22,7 @@ from typing import Literal
 import httpx
 
 from app.core.config import settings
+from app.core.masking import mask_mobile
 from app.services.email import send_email
 
 logger = logging.getLogger(__name__)
@@ -62,7 +63,9 @@ async def _send_via_voice(mobile: str, otp: str) -> bool:
     — logs the OTP at WARNING (dev only) and returns False so email fallback runs.
     """
     if not settings.VOICE_OTP_ENABLED or not settings.TWOFACTOR_API_KEY:
-        logger.warning("VOICE_MOCK mobile=%s otp=%s", mobile, otp)
+        # Do NOT log the OTP: if voice is misconfigured-off in prod this would leak
+        # live codes. Dev still gets the code via the API response's otp_hint.
+        logger.warning("VOICE_MOCK mobile=%s (voice disabled)", mask_mobile(mobile))
         return False
 
     url = _VOICE_URL.format(
@@ -76,12 +79,14 @@ async def _send_via_voice(mobile: str, otp: str) -> bool:
         resp.raise_for_status()
         # 2Factor signals real success in the body, not just HTTP 200.
         if resp.json().get("Status") == "Success":
-            logger.info("voice.sent provider=2factor mobile=%s", mobile)
+            logger.info("voice.sent provider=2factor mobile=%s", mask_mobile(mobile))
             return True
-        logger.warning("voice.2factor_rejected mobile=%s body=%s", mobile, resp.text[:200])
+        logger.warning(
+            "voice.2factor_rejected mobile=%s body=%s", mask_mobile(mobile), resp.text[:200]
+        )
         return False
     except Exception as exc:
-        logger.warning("voice.2factor_failed mobile=%s error=%s", mobile, exc)
+        logger.warning("voice.2factor_failed mobile=%s error=%s", mask_mobile(mobile), exc)
         return False
 
 

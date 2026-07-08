@@ -16,6 +16,7 @@ OTP_EMAIL_VERIFY = "otp:email_verify:{mobile}"
 OTP_RESEND = "otp_resend:{mobile}"
 OTP_LOCK = "otp_lock:{mobile}"
 OTP_RATE = "otp_rate:{mobile}"
+OTP_RATE_IP = "otp_rate_ip:{ip}"
 LOGIN_FAIL = "login_fail:{mobile}"
 LOGIN_LOCK = "login_lock:{mobile}"
 JWT_BLACKLIST = "jwt_blacklist:{jti}"
@@ -25,6 +26,7 @@ REG_DATA = "reg_data:{mobile}"
 TTL_OTP = 5 * 60  # 5 min
 TTL_OTP_RESEND = 60 * 60  # 1 hour window + lock duration
 TTL_OTP_RATE = 24 * 60 * 60  # 24 h daily cap
+TTL_OTP_RATE_IP = 60 * 60  # 1 h rolling per-IP window
 TTL_LOGIN_LOCK = 15 * 60  # 15 min lockout
 
 
@@ -92,6 +94,10 @@ def otp_lock_key(mobile: str) -> str:
 
 def otp_rate_key(mobile: str) -> str:
     return OTP_RATE.format(mobile=mobile)
+
+
+def otp_rate_ip_key(ip: str) -> str:
+    return OTP_RATE_IP.format(ip=ip)
 
 
 def login_fail_key(mobile: str) -> str:
