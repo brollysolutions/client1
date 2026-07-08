@@ -18,7 +18,18 @@ fi
 
 # API deps (once apps/api is initialized).
 if [[ -f apps/api/pyproject.toml ]]; then
+  # docker-compose.yml's env_file: requires this to exist; safe to be empty,
+  # every setting has a dev-safe default (see .env.local.example).
+  if [[ ! -f apps/api/.env.local ]]; then
+    cp apps/api/.env.local.example apps/api/.env.local
+    echo "==> created apps/api/.env.local from .env.local.example"
+  fi
   ( cd apps/api && uv sync )
+  # Fresh Postgres volumes have no tables. Without this, the first API write
+  # (e.g. register) throws an unhandled 500 that Starlette returns without
+  # CORS headers, which the browser reports as a CORS error instead of the
+  # real "relation does not exist" cause.
+  ( cd apps/api && uv run alembic upgrade head )
 fi
 
 # Web deps (once apps/web is initialized).

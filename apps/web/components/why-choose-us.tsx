@@ -166,8 +166,10 @@ export function WhyChooseUs() {
           <li className="sm:col-span-2 lg:row-span-2">
             <article className="h-full rounded-2xl border border-[var(--nav-primary)]/20 bg-[var(--nav-tint)]/60 p-6 shadow-sm sm:p-8">
               <div className="flex h-full flex-col gap-6 lg:flex-row lg:items-center lg:gap-8">
-                {/* Copy */}
-                <div className="lg:flex-1">
+                {/* Copy. Narrower than a 50/50 split so the illustration column
+                    (below) gets more width to grow into the row-span-2 height
+                    instead of leaving dead space. */}
+                <div className="lg:basis-[42%]">
                   <IconChip icon={Layers} large />
                   <h3 className="mt-6 font-heading text-xl font-semibold text-foreground sm:text-2xl">
                     Loans and real estate, all in one place
@@ -180,9 +182,11 @@ export function WhyChooseUs() {
                     Loans and property, one account.
                   </p>
                 </div>
-                {/* Illustration fills the right half (desktop-only) */}
-                <div className="hidden lg:flex lg:flex-1 lg:items-center lg:justify-center">
-                  <AnchorScene className="h-auto w-full max-w-[360px]" />
+                {/* Illustration fills the right half (desktop-only). h-full lets the
+                    scene grow with the card's row-span-2 height instead of staying
+                    width-capped and leaving dead space when the card is tall. */}
+                <div className="hidden lg:flex lg:h-full lg:basis-[58%] lg:items-center lg:justify-center">
+                  <AnchorScene className="h-full max-h-[280px] w-auto max-w-full" />
                 </div>
               </div>
             </article>
