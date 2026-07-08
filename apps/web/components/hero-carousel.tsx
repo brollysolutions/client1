@@ -35,14 +35,12 @@ const BANNERS: Banner[] = [
     title: "Find the loan that fits you",
     subtitle:
       "All kinds of loans, credit cards, and insurance, matched to what you need.",
-    image: "/heroes/loans.svg",
     cta: { label: "Explore loans", href: "/loans" },
   },
   {
     id: "real-estate",
     title: "Buy or rent with confidence",
     subtitle: "Verified homes and trusted agents, all in one place.",
-    image: "/heroes/real-estate.svg",
     cta: { label: "Explore properties", href: "/real-estate" },
   },
   {
@@ -50,7 +48,6 @@ const BANNERS: Banner[] = [
     title: "One bridge between you and the banks",
     subtitle:
       "We connect you with the right banks and partners, and stay with you at every step.",
-    image: "/heroes/bridge.svg",
     cta: { label: "Get in touch", href: "#contact" },
   },
   {
@@ -58,7 +55,6 @@ const BANNERS: Banner[] = [
     title: "Safe and secure, always verified",
     subtitle:
       "OTP login and KYC-verified partners keep every deal safe.",
-    image: "/heroes/trust.svg",
     cta: { label: "Learn more", href: "#security" },
   },
 ];
@@ -196,7 +192,7 @@ export function HeroCarousel() {
                     <>
                       <div className="absolute inset-0 bg-[var(--nav-bg)]" />
                       <span className="pointer-events-none absolute right-4 top-3 z-10 rounded border border-dashed border-border px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
-                        Banner (landscape 3:1)
+                        Sample
                       </span>
                     </>
                   )}
