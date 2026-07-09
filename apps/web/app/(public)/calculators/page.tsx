@@ -56,10 +56,7 @@ export default function CalculatorsHubPage() {
         <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 sm:py-20 lg:px-8">
           <div className="grid items-center gap-8 lg:grid-cols-[1fr_auto]">
             <div>
-              <p className="font-geist text-sm font-semibold uppercase tracking-wide text-brand-blue">
-                Free tools
-              </p>
-              <h1 className="mt-3 max-w-3xl font-heading text-4xl font-semibold text-[var(--nav-text)] sm:text-5xl lg:text-6xl">
+              <h1 className="max-w-3xl font-heading text-4xl font-semibold text-[var(--nav-text)] sm:text-5xl lg:text-6xl">
                 Financial calculators
               </h1>
               <p className="mt-4 max-w-2xl text-lg text-[var(--nav-text)] sm:text-xl">
@@ -74,14 +71,12 @@ export default function CalculatorsHubPage() {
 
       <CalculatorGroup
         id="loans"
-        eyebrow="Loans"
         title="Loan calculators"
         description="Work out your EMI, how much you can borrow, and the impact of prepaying."
         items={loans}
       />
       <CalculatorGroup
         id="real-estate"
-        eyebrow="Real estate"
         title="Property calculators"
         description="From affordability and stamp duty to rental yield and appreciation."
         items={realEstate}
@@ -92,13 +87,11 @@ export default function CalculatorsHubPage() {
 
 function CalculatorGroup({
   id,
-  eyebrow,
   title,
   description,
   items,
 }: {
   id: string;
-  eyebrow: string;
   title: string;
   description: string;
   items: CalculatorDef[];
@@ -106,10 +99,7 @@ function CalculatorGroup({
   return (
     <section id={id} className="w-full border-t border-[var(--nav-border)] bg-surface">
       <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 sm:py-16 lg:px-8">
-        <p className="font-geist text-sm font-semibold uppercase tracking-wide text-brand-blue">
-          {eyebrow}
-        </p>
-        <h2 className="mt-2 font-heading text-3xl font-semibold text-[var(--nav-text)] sm:text-4xl">
+        <h2 className="font-heading text-3xl font-semibold text-[var(--nav-text)] sm:text-4xl">
           {title}
         </h2>
         <p className="mt-3 max-w-2xl text-lg text-text-secondary">{description}</p>
