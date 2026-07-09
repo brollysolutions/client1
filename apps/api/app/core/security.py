@@ -48,14 +48,28 @@ async def verify_password(plain: str, hashed: str) -> bool:
 
 
 def validate_password_policy(password: str, mobile: str) -> None:
-    """Raise ValueError if password fails policy (Auth Design §6.6)."""
+    """Raise ValueError if password fails policy (Auth Design §6.6).
+
+    Complexity mirrors the UI strength meter (audit L1): the server is the real
+    gate, so it must enforce the same rules the UI advertises rather than a weaker
+    subset. Rules: 8-128 chars, an uppercase letter, a lowercase letter, a digit,
+    a special character, and it must not contain the mobile number or be common.
+    """
     if len(password) < 8 or len(password) > 128:
-        raise ValueError("Password must be 8–128 characters.")
-    if not re.search(r"[A-Za-z]", password):
-        raise ValueError("Password must contain at least one letter.")
+        raise ValueError("Password must be 8 to 128 characters.")
+    if not re.search(r"[A-Z]", password):
+        raise ValueError("Password must contain an uppercase letter.")
+    if not re.search(r"[a-z]", password):
+        raise ValueError("Password must contain a lowercase letter.")
     if not re.search(r"\d", password):
-        raise ValueError("Password must contain at least one digit.")
-    digits_only = re.sub(r"\D", "", mobile)
+        raise ValueError("Password must contain a digit.")
+    if not re.search(r"[^A-Za-z0-9]", password):
+        raise ValueError("Password must contain a special character.")
+    # Check the bare subscriber number (last 10 digits), not the full E164 with
+    # the country code: `mobile` arrives as "+9198765..." so the raw digit string
+    # carries a leading "91" that a user embedding just their 10-digit number would
+    # never type, letting it slip past. Matches the client-side check (L1).
+    digits_only = re.sub(r"\D", "", mobile)[-10:]
     if digits_only and digits_only in password:
         raise ValueError("Password must not contain your mobile number.")
     if password.lower() in _COMMON_PASSWORDS:

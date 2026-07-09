@@ -22,9 +22,25 @@ export const RESET_MOBILE_KEY = "auth:reset-mobile";
 
 // Discriminated union every call returns — callers branch on `ok` and surface
 // `error` via a toast / inline message (see the house pattern in lead-dialog).
+// The failure arm carries the originating HTTP `status` so pages can tailor the
+// toast description (403/429/5xx read differently than a credentials error).
+// Client-side validation failures (no round-trip) use 422 so they fall through
+// to the caller's default "check your details" hint.
 export type AuthResult<T = undefined> =
   | { ok: true; data: T }
-  | { ok: false; error: string };
+  | { ok: false; error: string; status: number };
+
+// Map an HTTP status to a description that matches the real failure. Returns
+// undefined for credential/validation errors (400/401/422) so the caller keeps
+// its own "check your details" line; only the cases where that hint would
+// misdirect (network, suspension, rate-limit, server fault) get bespoke copy.
+export function describeAuthError(status: number): string | undefined {
+  if (status === 0) return "Check your connection and try again.";
+  if (status === 403) return "This account isn't active. Contact support if you need help.";
+  if (status === 429) return "Too many attempts. Please wait a bit and try again.";
+  if (status >= 500) return "This one's on us. Please try again shortly.";
+  return undefined;
+}
 
 export type OtpDelivery = {
   message: string;
@@ -84,7 +100,7 @@ export type AuthTokens = {
 // payload on success and passing the friendly error string through on failure.
 function toResult<T, U>(res: ApiResponse<T>, map: (data: T) => U): AuthResult<U> {
   if (res.ok) return { ok: true, data: map(res.data) };
-  return { ok: false, error: res.error };
+  return { ok: false, error: res.error, status: res.status };
 }
 
 type OtpDeliveryResponse =
@@ -187,7 +203,7 @@ export async function registerSetPassword(
   confirmPassword: string,
 ): Promise<AuthResult<AuthTokens>> {
   const invalid = validatePassword(password, confirmPassword);
-  if (invalid) return { ok: false, error: invalid };
+  if (invalid) return { ok: false, error: invalid, status: 422 };
 
   const res = await apiRequest<Schemas["AuthTokensResponse"]>(
     "/api/v1/auth/register/set-password",
@@ -210,7 +226,7 @@ export async function login(
   mobile: string,
   password: string,
 ): Promise<AuthResult<AuthTokens>> {
-  if (!password) return { ok: false, error: "Enter your password." };
+  if (!password) return { ok: false, error: "Enter your password.", status: 422 };
 
   const res = await apiRequest<Schemas["AuthTokensResponse"]>("/api/v1/auth/login", {
     method: "POST",
@@ -286,7 +302,7 @@ export async function changePassword(
   bearer?: string,
 ): Promise<AuthResult> {
   const invalid = validatePassword(newPassword, confirmPassword);
-  if (invalid) return { ok: false, error: invalid };
+  if (invalid) return { ok: false, error: invalid, status: 422 };
 
   const res = await apiRequest<Schemas["MessageResponse"]>(
     "/api/v1/auth/change-password",
@@ -341,7 +357,7 @@ export async function forgotReset(
   confirmPassword: string,
 ): Promise<AuthResult> {
   const invalid = validatePassword(newPassword, confirmPassword);
-  if (invalid) return { ok: false, error: invalid };
+  if (invalid) return { ok: false, error: invalid, status: 422 };
 
   const res = await apiRequest<Schemas["MessageResponse"]>("/api/v1/auth/forgot/reset", {
     method: "POST",
@@ -371,4 +387,29 @@ export async function resendOtp(
     } satisfies Schemas["ResendOtpRequest"],
   });
   return toResult(res, toOtpDelivery);
+}
+
+// --- Email verification (post-login soft 2FA) ------------------------------
+
+// POST /auth/email/verify/initiate → Bearer-authed; sends a 6-digit code to the
+// account email. Returns the same OTP-delivery shape as the phone flows so the
+// UI can reuse OtpForm.
+export async function emailVerifyInitiate(): Promise<AuthResult<OtpDelivery>> {
+  const res = await apiRequest<Schemas["EmailVerifyInitiateResponse"]>(
+    "/api/v1/auth/email/verify/initiate",
+    { method: "POST" },
+  );
+  return toResult(res, toOtpDelivery);
+}
+
+// POST /auth/email/verify/confirm → Bearer-authed; marks the email verified.
+export async function emailVerifyConfirm(otp: string): Promise<AuthResult> {
+  const res = await apiRequest<Schemas["MessageResponse"]>(
+    "/api/v1/auth/email/verify/confirm",
+    {
+      method: "POST",
+      body: { otp } satisfies Schemas["EmailVerifyConfirmRequest"],
+    },
+  );
+  return toResult(res, () => undefined);
 }

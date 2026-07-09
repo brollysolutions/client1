@@ -53,6 +53,14 @@ class Settings(BaseSettings):
     # generous and set TRUST_PROXY_HEADERS=True in any proxied deployment.
     OTP_RATE_LIMIT_PER_IP: int = 50
 
+    # Return the plaintext OTP in the API response (otp_hint) when delivery is
+    # mocked, so local/dev flows are testable without a real voice/email channel.
+    # SECURITY: fail-closed. Must be explicitly turned on; never enable in any
+    # environment reachable by real users — it discloses a live login/reset code.
+    # Gating on "ENV != production" alone was unsafe: any misread ENV (prod/staging/
+    # unset) would leak the code (audit L3).
+    OTP_EXPOSE_HINT: bool = False
+
     # Trust X-Forwarded-For only when the app runs behind a single reverse proxy
     # (e.g. nginx) that sets it. Default False: the header is client-controlled and
     # would let a caller forge the IP used for audit logging + per-IP OTP limits.

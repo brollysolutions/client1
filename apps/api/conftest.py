@@ -33,6 +33,10 @@ def _force_mock_otp_channels() -> None:
     settings.TWOFACTOR_API_KEY = ""
     settings.EMAIL_ENABLED = False
     settings.SMTP_HOST = ""
+    # otp_hint is now gated on an explicit opt-in flag (fail-closed, audit L3), so
+    # pin it on here rather than relying on ENV=="development" for the hint to
+    # appear in test responses.
+    settings.OTP_EXPOSE_HINT = True
     # Every ASGITransport request shares one client IP (127.0.0.1) and Redis is not
     # flushed between tests, so the real per-IP OTP cap would trip mid-suite. Raise
     # it out of the way here; test_otp_rate_ip.py drives the cap explicitly with a
