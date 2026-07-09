@@ -1,23 +1,18 @@
 import { type CSSProperties } from "react";
 import Image from "next/image";
+import Link from "next/link";
 
+import { Button } from "@/components/ui/button";
 import { LeadDialog } from "@/components/lead-dialog";
 
-// Home "Earn with Us": the supply-side pitch (agents), as a single split editorial
-// band, content on the left, a colorful Storyset illustration on the right. Recruits
-// for BOTH lines; agents are single-line, so the apply dialog lets the applicant pick
-// one at submit time (LeadDialog's lineSelectable). Flow: apply -> admin manual KYC
-// verification -> account provisioned (no public backend yet; the origin tag routes it
-// later). Illustration is Storyset "consulting/cuate" (kept colorful, natural; credit
+// Home "Earn with Us" teaser: the supply-side pitch (agents), as a single split
+// editorial band, content on the left, a colorful Storyset illustration on the
+// right. Recruits for BOTH lines; agents are single-line. This is a short
+// teaser that points at the full /earn-with-us page for eligibility, how
+// earning works, the loans-vs-real-estate breakdown, and the expanded FAQ; a
+// secondary "Apply now" shortcut stays here for visitors who already decided.
+// Illustration is Storyset "consulting/cuate" (kept colorful, natural; credit
 // in site-footer); UI accents stay blue. No invented numbers.
-type Step = { n: string; title: string; text: string };
-
-const STEPS: Step[] = [
-  { n: "1", title: "Apply", text: "Tell us about yourself and pick your line, loans or real estate." },
-  { n: "2", title: "We verify", text: "We check your KYC so the clients you bring can trust you." },
-  { n: "3", title: "Start earning", text: "Refer clients and earn commission on what closes." },
-];
-
 export function PartnerCta() {
   return (
     <section
@@ -26,7 +21,7 @@ export function PartnerCta() {
       className="relative w-full overflow-hidden scroll-mt-16 border-t border-[var(--nav-border)] bg-[var(--nav-bg)]"
     >
       <EarnDoodles />
-      <div className="relative mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-20 lg:px-8 lg:py-24">
+      <div className="relative mx-auto max-w-6xl px-4 py-12 sm:px-6 sm:py-16 lg:px-8 lg:py-20">
         <div className="grid items-center gap-10 lg:grid-cols-[minmax(0,5fr)_minmax(0,8fr)] lg:gap-16">
           {/* Content */}
           <div className="lg:order-1">
@@ -37,45 +32,33 @@ export function PartnerCta() {
               Earn with us
             </h2>
             <p className="mt-4 max-w-md text-lg text-text-secondary">
-              Bring people the right loan or the right home, and earn on every
-              referral. Apply in minutes, we verify your KYC, and you start
-              earning.
+              Bring people the right loan or the right home, and earn
+              commission on what closes. Apply for free, we verify your KYC,
+              and you start earning.
             </p>
 
-            {/* Steps */}
-            <ol className="mt-8 space-y-5">
-              {STEPS.map((step) => (
-                <li key={step.n} className="flex items-start gap-4">
-                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--nav-primary)] font-heading text-sm font-semibold text-white shadow-sm">
-                    {step.n}
-                  </span>
-                  <div>
-                    <h3 className="font-heading text-base font-semibold text-foreground">
-                      {step.title}
-                    </h3>
-                    <p className="mt-0.5 text-sm leading-relaxed text-text-secondary">
-                      {step.text}
-                    </p>
-                  </div>
-                </li>
-              ))}
-            </ol>
-
             {/* CTA */}
-            <div className="mt-10 flex flex-col items-start gap-3">
+            <div className="mt-8 flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:gap-4">
+              <Button
+                asChild
+                className="w-full bg-[var(--nav-primary)] text-white hover:bg-[var(--nav-primary-hover)] sm:w-auto"
+              >
+                <Link href="/earn-with-us">Learn how it works</Link>
+              </Button>
               <LeadDialog
                 businessLine="loans"
                 lineSelectable
                 origin="agent-application"
-                triggerLabel="Apply to become an agent"
+                triggerVariant="outline"
+                triggerLabel="Apply now"
                 title="Apply to become an agent"
                 description="Tell us your details and pick a line. We'll verify your KYC and get you started."
                 submitLabel="Submit application"
               />
-              <p className="text-sm text-text-secondary">
-                Free to apply. We verify every agent before they go live.
-              </p>
             </div>
+            <p className="mt-3 text-sm text-text-secondary">
+              Free to apply. We verify every agent before they go live.
+            </p>
           </div>
 
           {/* Illustration (decorative + desktop-only, lg+). Transparent, sits
