@@ -15,12 +15,17 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
+  describeAuthError,
   registerInitiate,
   registerSetPassword,
   registerVerifyOtp,
   resendOtp,
 } from "@/lib/auth";
 import { formatMobile, isValidMobile, toE164 } from "@/lib/phone";
+
+// Defense-in-depth: never render a dev OTP hint in a production build, even if
+// the backend (which is the real gate) were ever misconfigured to send one (L3).
+const OTP_HINT_ALLOWED = process.env.NEXT_PUBLIC_ENV !== "production";
 
 const STEPS = ["Your details", "Verify phone", "Set password"];
 
@@ -136,14 +141,16 @@ export default function RegisterPage() {
     if (result.ok) {
       setE164(mobileE164);
       setStep(1);
-      if (result.data.otpHint) {
+      if (result.data.otpHint && OTP_HINT_ALLOWED) {
         toast.info("Dev verification code", {
           description: result.data.otpHint,
         });
       }
     } else {
       toast.error(result.error || "Couldn't start sign-up.", {
-        description: "Please check your details and try again.",
+        description:
+          describeAuthError(result.status) ??
+          "Please check your details and try again.",
       });
     }
   }
@@ -326,7 +333,17 @@ export default function RegisterPage() {
               }
               return result;
             }}
-            onResend={() => resendOtp(e164, "register")}
+            onResend={async () => {
+              const result = await resendOtp(e164, "register");
+              // Resend regenerates the OTP, so the code shown on initiate is now
+              // dead. Surface the fresh dev hint (L7), same gate as initiate.
+              if (result.ok && result.data.otpHint && OTP_HINT_ALLOWED) {
+                toast.info("Dev verification code", {
+                  description: result.data.otpHint,
+                });
+              }
+              return result;
+            }}
           />
         </>
       )}
@@ -349,6 +366,7 @@ export default function RegisterPage() {
           <SetPasswordForm
             passwordLabel="Create password"
             submitLabel="Create account"
+            mobile={details.mobile}
             onSubmit={async (password, confirm) => {
               const result = await registerSetPassword(
                 registrationToken,

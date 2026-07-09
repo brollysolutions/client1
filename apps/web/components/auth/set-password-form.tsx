@@ -8,10 +8,11 @@ import { PasswordField } from "@/components/auth/password-field";
 import { cn } from "@/lib/utils";
 import type { AuthResult } from "@/lib/auth";
 
-// Minimum shown to the user; the maximum is enforced silently via the input's
-// maxLength (never surfaced, per product decision).
+// Bounds mirror the backend policy (8-128) so the form never silently truncates
+// a passphrase the login field would later send in full (audit L6). MIN is shown
+// to the user; MAX just caps the input.
 const MIN = 8;
-const MAX = 44;
+const MAX = 128;
 
 // Live strength rules. `short` is the terse form used in the "Still needed" hint.
 const RULES: { short: string; test: (v: string) => boolean }[] = [
@@ -32,10 +33,15 @@ export function SetPasswordForm({
   passwordLabel = "Create password",
   submitLabel,
   onSubmit,
+  mobile,
 }: {
   passwordLabel?: string;
   submitLabel: string;
   onSubmit: (password: string, confirm: string) => Promise<AuthResult<unknown>>;
+  // When provided, the password is checked live against the account mobile so the
+  // form matches the backend's "must not contain your mobile number" rule instead
+  // of only learning it from a post-submit 422 (audit L1).
+  mobile?: string;
 }) {
   const [password, setPassword] = React.useState("");
   const [confirm, setConfirm] = React.useState("");
@@ -45,8 +51,12 @@ export function SetPasswordForm({
   const metCount = RULES.reduce((n, r) => n + (r.test(password) ? 1 : 0), 0);
   const unmet = RULES.filter((r) => !r.test(password)).map((r) => r.short);
   const allRulesMet = metCount === RULES.length && password.length <= MAX;
+  // Bare 10-digit subscriber number; a match anywhere in the password fails the
+  // backend policy, so gate on it here too.
+  const mobileDigits = (mobile ?? "").replace(/\D/g, "").slice(-10);
+  const mobileOk = !(mobileDigits && password.includes(mobileDigits));
   const matchOk = confirm.length > 0 && confirm === password;
-  const canSubmit = allRulesMet && matchOk && !submitting;
+  const canSubmit = allRulesMet && mobileOk && matchOk && !submitting;
 
   const ratio = metCount / RULES.length;
   const filled = password.length === 0 ? 0 : Math.max(1, Math.round(ratio * SEGMENTS));
@@ -125,6 +135,11 @@ export function SetPasswordForm({
                 </span>
               )}
             </p>
+            {!mobileOk && (
+              <p className="text-xs font-medium text-destructive">
+                Don&apos;t use your mobile number in the password.
+              </p>
+            )}
           </div>
         )}
       </div>
