@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { Suspense } from "react";
 
 import { CalculatorShell } from "@/components/calculators/calculator-shell";
 import { calculatorJsonLd } from "@/lib/calculators/jsonld";
@@ -53,7 +54,9 @@ export default async function CalculatorPage({
       />
       <CalculatorShell def={def}>
         {Island ? (
-          <Island />
+          <Suspense fallback={null}>
+            <Island />
+          </Suspense>
         ) : (
           <p className="rounded-xl border border-[var(--nav-border)] bg-white p-6 text-text-secondary">
             This calculator is being finalized. In the meantime, leave your number below and our
