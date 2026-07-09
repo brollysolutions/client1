@@ -96,6 +96,23 @@ async def test_resend_fourth_exceeds_limit_returns_429(client: AsyncClient) -> N
     assert resp.status_code == 429
 
 
+async def test_resend_after_attempts_exhausted_succeeds(client: AsyncClient) -> None:
+    """Exhausting wrong-OTP attempts must not strand the user: resend still
+    works, since the backend's own "No attempts remaining" message tells them
+    to do exactly that."""
+    mobile = unique_mobile()
+    await initiate_and_get_otp(client, mobile)
+    for _ in range(5):
+        await client.post(
+            "/api/v1/auth/register/verify-otp", json={"mobile": mobile, "otp": "000000"}
+        )
+    resp = await client.post(
+        "/api/v1/auth/otp/resend", json={"mobile": mobile, "purpose": "register"}
+    )
+    assert resp.status_code == 200
+    assert resp.json()["otp_hint"] and len(resp.json()["otp_hint"]) == 6
+
+
 async def test_resend_no_prior_otp_returns_400(client: AsyncClient) -> None:
     resp = await client.post(
         "/api/v1/auth/otp/resend",
