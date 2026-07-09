@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 import { Inter, Space_Grotesk, Newsreader } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
+import { SITE_URL } from "@/lib/site";
 import "./globals.css";
 
 const inter = Inter({
@@ -24,6 +25,8 @@ const newsreader = Newsreader({
 });
 
 export const metadata: Metadata = {
+  // Absolute base for canonical URLs, Open Graph, the sitemap, and JSON-LD.
+  metadataBase: new URL(SITE_URL),
   title: "Loans & Real Estate Platform",
   description: "Role-based loans and real estate operations platform.",
 };
