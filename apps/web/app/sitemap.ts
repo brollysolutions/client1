@@ -6,7 +6,7 @@ import { SITE_URL } from "@/lib/site";
 // Public URLs for crawlers. The calculator suite is generated from the registry
 // so new calculators appear here automatically.
 export default function sitemap(): MetadataRoute.Sitemap {
-  const staticPaths = ["", "/loans", "/real-estate", "/calculators"];
+  const staticPaths = ["", "/loans", "/real-estate", "/calculators", "/earn-with-us"];
   const calculatorPaths = CALCULATOR_SLUGS.map((slug) => `/calculators/${slug}`);
   return [...staticPaths, ...calculatorPaths].map((path) => ({
     url: `${SITE_URL}${path}`,

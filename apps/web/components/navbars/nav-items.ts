@@ -22,7 +22,7 @@ export const NAV_ITEMS: NavItem[] = [
   { label: "Home", href: "/" },
   { label: "Loans", href: "/loans" },
   { label: "Properties", href: "/real-estate" },
-  { label: "Earn with Us", href: "#partners" },
+  { label: "Earn with Us", href: "/earn-with-us" },
   { label: "Calculator", href: "/calculators" },
   { label: "Contact", href: "#contact" },
 ];
