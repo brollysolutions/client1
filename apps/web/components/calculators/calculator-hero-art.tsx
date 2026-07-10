@@ -1,36 +1,55 @@
+import { existsSync } from "node:fs";
+import { join } from "node:path";
+
 import { cn } from "@/lib/utils";
 
-// Decorative hero illustration for a calculator, hand-coded monoline in the
-// brand blue so it needs no asset and stays on the blue-only public palette.
-// Desktop-only (lg+), aria-hidden, per the illustrations rule. Two motifs: a
-// finance scene for loan calculators, a house scene for property calculators.
-// (Storyset Rafiki art can be swapped in here later without touching callers.)
+// Decorative hero illustration for a calculator. Prefers a Storyset (Rafiki)
+// SVG dropped into /public (recolored to the brand blue accent per
+// docs/design/illustration-style.md), and falls back to a hand-coded monoline
+// motif when the asset is not present yet, so pages always render. Desktop-only
+// (lg+) and aria-hidden, per the illustrations rule.
+//
+// Server Component: it checks the public asset on disk at build time (pages are
+// SSG'd), so no client JS and no layout shift.
 export function CalculatorHeroArt({
   group,
+  src,
   className,
 }: {
   group: "loans" | "real_estate";
+  /** Path under /public, e.g. "/illustrations/calculators/emi.svg". */
+  src?: string;
   className?: string;
 }) {
+  // process.cwd() is apps/web during `next build`/dev and in the web container,
+  // so /public resolves correctly. If a future monorepo-root build broke that,
+  // the check simply fails safe to the coded fallback below (no crash).
+  const asset = src && existsSync(join(process.cwd(), "public", src)) ? src : null;
+
   return (
     <div
       aria-hidden
       className={cn(
-        "hidden w-[320px] shrink-0 rounded-2xl border border-[var(--nav-border)] bg-white/60 p-6 lg:block",
+        "hidden shrink-0 items-center justify-center rounded-2xl border border-[var(--nav-border)] bg-gradient-to-br from-white to-[var(--nav-tint)]/50 p-6 shadow-sm lg:flex lg:w-[340px]",
         className,
       )}
     >
-      <svg
-        viewBox="0 0 240 180"
-        className="h-auto w-full text-[var(--nav-primary)]"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth={3}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        {group === "loans" ? <LoansArt /> : <RealEstateArt />}
-      </svg>
+      {asset ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={asset} alt="" className="h-auto w-full max-w-[300px]" loading="lazy" />
+      ) : (
+        <svg
+          viewBox="0 0 240 180"
+          className="h-auto w-full max-w-[280px] text-brand-blue"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth={3}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          {group === "loans" ? <LoansArt /> : <RealEstateArt />}
+        </svg>
+      )}
     </div>
   );
 }

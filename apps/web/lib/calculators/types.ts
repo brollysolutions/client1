@@ -44,6 +44,12 @@ export interface CalculatorDef {
   intro: string;
   /** "How it's calculated" explainer (plain text, may contain the formula). */
   howItWorks: string;
+  /**
+   * Hero illustration path under /public (Storyset Rafiki, recolored to the
+   * public blue). Optional: the hero art component falls back to a hand-coded
+   * SVG motif when absent, so the page renders before assets land.
+   */
+  heroArt?: string;
   faq: CalculatorFaq[];
   relatedSlugs: CalculatorSlug[];
   /** Lead origin tag, e.g. "calculator-emi". */
