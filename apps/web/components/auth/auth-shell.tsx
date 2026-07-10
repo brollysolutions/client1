@@ -19,18 +19,18 @@ export function AuthShell({
   children: ReactNode;
 }) {
   return (
-    <div className="min-h-screen w-full bg-background lg:grid lg:grid-cols-2">
+    <div className="min-h-dvh w-full bg-background lg:grid lg:grid-cols-[minmax(0,3fr)_minmax(400px,2fr)]">
       <BrandPanel
         title={panelTitle}
         subtitle={panelSubtitle}
         steps={steps}
         activeStep={activeStep}
-        className="hidden min-h-screen lg:flex"
+        className="hidden lg:flex"
       />
 
-      <div className="relative flex min-h-screen flex-col px-6 py-10 sm:px-10 lg:px-20 xl:px-24">
-        <div className="flex flex-1 flex-col justify-center pb-6">
-          <div className="mx-auto w-full max-w-lg">{children}</div>
+      <div className="relative px-6 sm:px-10 lg:px-12 xl:px-16">
+        <div className="flex min-h-dvh flex-col justify-center py-6">
+          <div className="auth-anim-fade-up mx-auto w-full max-w-md">{children}</div>
         </div>
       </div>
     </div>
