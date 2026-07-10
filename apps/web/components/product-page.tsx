@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import Image from "next/image";
 
+import { FaqSection } from "@/components/faq-section";
 import { JourneyFootTrail } from "@/components/journey-foot-trail";
 import { LeadDialog } from "@/components/lead-dialog";
 import { TrustStrip } from "@/components/trust-strip";
@@ -11,6 +12,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import type { FaqItem } from "@/lib/faq";
 import type { LeadBusinessLine } from "@/lib/leads";
 import type { JourneyStep, Product, TrustPoint } from "@/lib/products";
 import { cn } from "@/lib/utils";
@@ -57,6 +59,8 @@ export type ProductPageProps = {
   journey: JourneyStep[];
   /** Render the journey as a connected timeline with bespoke glyphs (lg+). Off = plain stacked steps. */
   journeyTimeline?: boolean;
+  /** FAQ accordion between the journey and the closing CTA. Omit to skip. */
+  faq?: { heading: string; subheading?: string; items: FaqItem[] };
   ctaHeading: string;
   ctaText: string;
   ctaLabel: string;
@@ -84,6 +88,7 @@ export function ProductPage({
   journeyHeading,
   journey,
   journeyTimeline = false,
+  faq,
   ctaHeading,
   ctaText,
   ctaLabel,
@@ -374,6 +379,15 @@ export function ProductPage({
         </div>
       </section>
 
+      {/* FAQ */}
+      {faq ? (
+        <FaqSection
+          heading={faq.heading}
+          subheading={faq.subheading}
+          items={faq.items}
+        />
+      ) : null}
+
       {/* Closing CTA */}
       {ctaBanner ? (
         // Bold full-bleed navy band: page-closer for the Loans surface. Reuses
@@ -577,13 +591,12 @@ function ProductDoodles() {
   );
 }
 
-// Faint real-estate line-doodles for the Properties catalog area (buy/rent
-// rows). Same family and treatment as ProductDoodles (navy line ink, low
-// opacity, lg+ only) but with housing-themed glyphs instead of finance ones.
-// Two clusters: beside the "Properties to buy" heading, and in the left
-// gutter between the buy and rent rows. Exported (unlike the other doodle
-// helpers here) because it's consumed from app/(public)/real-estate/page.tsx,
-// not from ProductPage's own render tree.
+// Faint real-estate line-doodles for the Properties catalog area (buy row).
+// Same family and treatment as ProductDoodles (navy line ink, low opacity,
+// lg+ only) but with housing-themed glyphs instead of finance ones. One
+// cluster beside the "Properties to buy" heading. Exported (unlike the other
+// doodle helpers here) because it's consumed from
+// app/(public)/real-estate/page.tsx, not from ProductPage's own render tree.
 export function PropertyDoodles() {
   return (
     <div
@@ -612,39 +625,6 @@ export function PropertyDoodles() {
           <line x1="20" y1="18" x2="46" y2="44" />
           <line x1="36" y1="34" x2="30" y2="40" />
           <line x1="42" y1="40" x2="36" y2="46" />
-        </g>
-      </svg>
-
-      {/* middle: left gutter, beside the "Properties for rent" heading */}
-      <svg
-        className="absolute left-6 top-[700px] h-40 w-40 lg:left-10"
-        viewBox="0 0 140 90"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth={2}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        {/* apartment building: window grid */}
-        <g transform="translate(6,8)">
-          <rect x="0" y="0" width="46" height="66" />
-          <rect x="8" y="10" width="8" height="8" />
-          <rect x="24" y="10" width="8" height="8" />
-          <rect x="8" y="26" width="8" height="8" />
-          <rect x="24" y="26" width="8" height="8" />
-          <rect x="8" y="42" width="8" height="8" />
-          <rect x="24" y="42" width="8" height="8" />
-        </g>
-        {/* folded blueprint with a crosshair mark */}
-        <g transform="translate(70,10)">
-          <path d="M0 0 H34 L44 10 V60 H0 Z" />
-          <path d="M34 0 V10 H44" />
-          <line x1="8" y1="20" x2="30" y2="20" />
-          <line x1="8" y1="30" x2="30" y2="30" />
-          <line x1="8" y1="40" x2="20" y2="40" />
-          <circle cx="30" cy="46" r="4" />
-          <line x1="26" y1="46" x2="34" y2="46" />
-          <line x1="30" y1="42" x2="30" y2="50" />
         </g>
       </svg>
     </div>

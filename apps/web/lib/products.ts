@@ -130,7 +130,7 @@ export const RE_TRUST: TrustPoint[] = [
   },
 ];
 
-// Real estate buy/rent categories and placeholder listings live in
+// Real estate buy categories and placeholder listings live in
 // lib/properties.ts. Listing a property is an agent-side action, so it is not
 // offered to clients on the public Properties page.
 
@@ -165,13 +165,13 @@ export const REAL_ESTATE_JOURNEY: JourneyStep[] = [
   {
     title: "Tell us what you are looking for",
     description:
-      "Let us know whether you want to buy or rent, and the kind of property you have in mind.",
+      "Tell us the kind of property you want to buy, your budget, and the areas you like.",
     image: "/illustrations/journey-re-look.svg",
   },
   {
     title: "See only verified options",
     description:
-      "We show you homes and agents that are checked and verified before they reach you.",
+      "We show you properties and agents that are checked and verified before they reach you.",
     image: "/illustrations/journey-re-verified.svg",
   },
   {

@@ -3,6 +3,7 @@ import {
   ArrowRight,
   BellOff,
   Gauge,
+  Gift,
   HeartHandshake,
   Layers,
   ShieldCheck,
@@ -207,6 +208,32 @@ export function WhyChooseUs() {
             </li>
           ))}
         </ul>
+
+        {/* Referral program: a slim standalone band, not a grid cell, so its
+            height comes purely from its own content instead of the bento
+            grid's auto-rows-fr (which would stretch it to match the tall
+            anchor row). Sits between the grid and the closing CTA band. */}
+        <article className="mt-5 flex flex-col gap-3 rounded-2xl border border-[var(--nav-border)] bg-surface px-6 py-6 shadow-sm sm:flex-row sm:items-center sm:gap-6">
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[var(--nav-tint)] text-brand-blue ring-1 ring-[var(--nav-border)]">
+            <Gift className="h-4 w-4" aria-hidden />
+          </span>
+          <div className="flex-1">
+            <h3 className="font-heading text-base font-semibold text-foreground">
+              Refer and earn cashback
+            </h3>
+            <p className="text-sm leading-snug text-text-secondary">
+              Share your referral code with friends. When someone you refer
+              buys a property or closes a loan, you earn cashback.
+            </p>
+          </div>
+          <Link
+            href="/earn-with-us#refer-and-earn"
+            className="flex shrink-0 items-center gap-1 text-sm font-semibold text-[var(--nav-primary)] hover:underline"
+          >
+            See how it works
+            <ArrowRight className="h-4 w-4" aria-hidden />
+          </Link>
+        </article>
 
         {/* Closing CTA band -> registration */}
         <div className="mt-10 flex flex-col items-center justify-between gap-6 rounded-2xl bg-[var(--nav-primary)] p-8 text-center sm:flex-row sm:p-10 sm:text-left">
