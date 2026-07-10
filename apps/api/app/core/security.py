@@ -136,10 +136,9 @@ _LINE_PREFIX: dict[str, str] = {
     "real_estate": "RE",
 }
 
-# Clients use 5 chars (32^5 = 33.5M) to handle million-client target;
-# staff/agent roles use 4 chars (32^4 = 1.05M, ample for those counts).
+# All roles use 4 chars (32^4 = 1.05M per role+line namespace).
 _CODE_LENGTH: dict[str, int] = {
-    "client": 5,
+    "client": 4,
 }
 
 
@@ -151,7 +150,7 @@ def _encode_crockford(n: int, length: int = 4) -> str:
     return "".join(reversed(out))
 
 
-def _clean_name(name: str, cap: int = 10) -> str:
+def _clean_name(name: str, cap: int = 4) -> str:
     return re.sub(r"[^A-Z]", "", name.upper())[:cap]
 
 
@@ -159,7 +158,7 @@ def generate_profile_code(role: str, first_name: str, business_line: str | None 
     """
     Generate a Crockford base32 profile code.
     Format: {ROLE_PREFIX}-{LINE_PREFIX}{CODE}{NAME}
-    Example: CL-LN7K9FJOHN (5-char code for clients), AG-LN7K9FRAVI (4-char for agents)
+    Example: CL-LN7K9JOHN, AG-LN7K9RAVI (4-char code, 4-char name for all roles)
 
     Caller must catch IntegrityError and retry on UNIQUE collision.
     """
