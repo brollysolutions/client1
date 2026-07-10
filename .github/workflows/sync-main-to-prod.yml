@@ -1,0 +1,62 @@
+name: Sync main to prod (upstream)
+
+# Runs in the fork (vamshisaideep9/client1). On every push to main here,
+# opens/keeps-open a PR from this fork's main into upstream's prod branch
+# (brollysolutions/client1). Company account merges it there — this workflow
+# never pushes or merges anything itself, only opens the PR.
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+env:
+  UPSTREAM_REPO: brollysolutions/client1
+  FORK_OWNER: vamshisaideep9
+
+jobs:
+  sync-pr:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Open/refresh main -> prod PR on upstream
+        env:
+          GH_TOKEN: ${{ secrets.UPSTREAM_REPO_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${GH_TOKEN:-}" ]; then
+            echo "::error::UPSTREAM_REPO_TOKEN secret not set. Add a PAT with write access to $UPSTREAM_REPO (repo secret on the fork)."
+            exit 1
+          fi
+
+          if ! git ls-remote --exit-code --heads "https://github.com/$UPSTREAM_REPO.git" prod >/dev/null 2>&1; then
+            echo "No 'prod' branch on $UPSTREAM_REPO; skipping sync."
+            exit 0
+          fi
+
+          git fetch --quiet "https://github.com/$UPSTREAM_REPO.git" prod:refs/remotes/upstream-prod
+          AHEAD=$(git rev-list --count refs/remotes/upstream-prod..origin/main)
+          if [ "$AHEAD" -eq 0 ]; then
+            echo "upstream prod already up to date with fork main."
+            exit 0
+          fi
+
+          EXISTING_PR=$(gh pr list --repo "$UPSTREAM_REPO" --base prod --head "$FORK_OWNER:main" --state open --json number --jq '.[0].number' || true)
+
+          if [ -n "${EXISTING_PR:-}" ]; then
+            echo "PR #$EXISTING_PR already open ($FORK_OWNER:main -> prod on $UPSTREAM_REPO); it tracks new commits automatically."
+            exit 0
+          fi
+
+          gh pr create \
+            --repo "$UPSTREAM_REPO" \
+            --base prod \
+            --head "$FORK_OWNER:main" \
+            --title "Sync main into prod" \
+            --body "Automated sync PR from fork. main has $AHEAD commit(s) not yet in prod. Review and merge from the company account to deploy."
