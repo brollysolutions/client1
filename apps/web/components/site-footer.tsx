@@ -1,7 +1,8 @@
-// Minimal public-site footer. The home-page line illustrations are Storyset
-// (Freepik) vectors, recolored to our palette, so the free tier owes an
-// attribution link. Keep the credit until they are replaced or a Freepik
-// Premium license is bought. When a full footer is designed, expand this.
+// Minimal public-site footer. The home-page line illustrations and the Earn
+// with Us illustration (earn-with-us.svg) are Storyset (Freepik) vectors,
+// recolored to our palette, so the free tier owes an attribution link. Keep
+// the credit until they are replaced or a Freepik Premium license is bought.
+// When a full footer is designed, expand this.
 export function SiteFooter() {
   const year = new Date().getFullYear();
 

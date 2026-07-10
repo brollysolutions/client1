@@ -7,11 +7,11 @@ import { ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
 import { PropertyCard } from "@/components/property-card";
 import type { PropertyListing } from "@/lib/properties";
 
-// A titled horizontal-scroll row of property cards (used once for buy, once for
-// rent). Native scroll on trackpad/drag/touch, plus chevron buttons that page
-// the row on click. The last item is a "register to see more" card: the full
-// catalog is gated behind sign-up. Client component: the chevrons drive the
-// scroller imperatively.
+// A titled horizontal-scroll row of property cards (buy listings). Native
+// scroll on trackpad/drag/touch, plus chevron buttons that page the row on
+// click. The last item is a "register to see more" card: the full catalog is
+// gated behind sign-up. Client component: the chevrons drive the scroller
+// imperatively.
 
 export function PropertyRow({
   heading,

@@ -1,7 +1,7 @@
 import type { TrustPoint } from "@/lib/products";
 
 // Premium trust strip shown under a products grid (Loans) or standalone under
-// a catalog section (Properties, "Properties for rent"). Reused across both
+// a catalog section (Properties, "Properties to buy"). Reused across both
 // public marketing pages, so it lives here rather than co-located inside
 // product-page.tsx like the decorative doodle helpers. Server Component.
 

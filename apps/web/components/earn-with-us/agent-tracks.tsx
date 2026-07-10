@@ -49,8 +49,8 @@ export function EarnAgentTracks() {
               Real estate agent
             </h3>
             <p className="mt-2 text-sm leading-relaxed text-text-secondary">
-              Bring us buyers, renters, or listings. A valid RERA agent code
-              is required as part of your KYC for this line.
+              Bring us property buyers or new listings. A valid RERA agent
+              code is required as part of your KYC for this line.
             </p>
           </article>
         </div>
