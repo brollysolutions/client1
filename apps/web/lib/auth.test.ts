@@ -69,7 +69,11 @@ describe("login()", () => {
   it("surfaces the backend detail string on a 4xx", async () => {
     vi.stubGlobal("fetch", mockFetch(401, { detail: "Invalid mobile number or password." }));
     const res = await login("+919000000007", "pw");
-    expect(res).toEqual({ ok: false, error: "Invalid mobile number or password." });
+    expect(res).toEqual({
+      ok: false,
+      error: "Invalid mobile number or password.",
+      status: 401,
+    });
   });
 
   it("extracts detail[].msg on a 422 and strips the 'Value error, ' prefix", async () => {

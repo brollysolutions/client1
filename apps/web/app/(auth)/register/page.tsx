@@ -15,12 +15,71 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
+  describeAuthError,
   registerInitiate,
   registerSetPassword,
   registerVerifyOtp,
   resendOtp,
 } from "@/lib/auth";
 import { formatMobile, isValidMobile, toE164 } from "@/lib/phone";
+
+// Defense-in-depth: never render a dev OTP hint in a production build, even if
+// the backend (which is the real gate) were ever misconfigured to send one (L3).
+const OTP_HINT_ALLOWED = process.env.NEXT_PUBLIC_ENV !== "production";
+
+// Steps 1-2 (OTP verify, set password) rest on server-side sessions (OTP +
+// reg_data, both TTL_OTP = 5 min) that a refresh doesn't touch — only this
+// component's local state did, sending a mid-wizard refresh all the way back
+// to step 0 for no reason. Mirrors the RESET_MOBILE_KEY handoff already used
+// for forgot-password. expiresAt is a client-side hint only; the backend
+// still rejects a genuinely expired registration token on its own.
+const WIZARD_KEY = "auth:register-wizard";
+const WIZARD_TTL_MS = 10 * 60 * 1000;
+
+type WizardState = {
+  step: number;
+  mobile: string;
+  e164: string;
+  registrationToken: string;
+  expiresAt: number;
+};
+
+function loadWizard(): WizardState | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.sessionStorage.getItem(WIZARD_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as WizardState;
+    if (typeof parsed.expiresAt !== "number" || parsed.expiresAt < Date.now()) {
+      window.sessionStorage.removeItem(WIZARD_KEY);
+      return null;
+    }
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function saveWizard(state: Omit<WizardState, "expiresAt">) {
+  if (typeof window === "undefined") return;
+  try {
+    window.sessionStorage.setItem(
+      WIZARD_KEY,
+      JSON.stringify({ ...state, expiresAt: Date.now() + WIZARD_TTL_MS }),
+    );
+  } catch {
+    /* storage unavailable — refresh just falls back to step 0 */
+  }
+}
+
+function clearWizard() {
+  if (typeof window === "undefined") return;
+  try {
+    window.sessionStorage.removeItem(WIZARD_KEY);
+  } catch {
+    /* no-op */
+  }
+}
 
 const STEPS = ["Your details", "Verify phone", "Set password"];
 
@@ -71,50 +130,65 @@ export default function RegisterPage() {
   const [submitting, setSubmitting] = React.useState(false);
   const [e164, setE164] = React.useState("");
   const [registrationToken, setRegistrationToken] = React.useState("");
-  // Name fields validate live once the user has left them once (on blur). Until
+  // Every field validates live once the user has left it once (on blur). Until
   // then we stay quiet so we don't nag mid-typing on a fresh field.
   const [touched, setTouched] = React.useState<Partial<Record<keyof Details, boolean>>>({});
 
+  const hydrated = React.useRef(false);
+  React.useEffect(() => {
+    if (hydrated.current) return;
+    hydrated.current = true;
+    const saved = loadWizard();
+    if (saved && saved.step > 0) {
+      setStep(saved.step);
+      setE164(saved.e164);
+      setRegistrationToken(saved.registrationToken);
+      setDetails((d) => ({ ...d, mobile: saved.mobile }));
+    }
+  }, []);
+
+  // Single source of truth for a field's error, shared by the live (on-change)
+  // check and the full pre-submit check so the two never disagree.
+  function fieldError(key: keyof Details, value: string): string | undefined {
+    if (key === "firstName" || key === "lastName") {
+      const label = key === "firstName" ? "first" : "last";
+      const v = value.trim();
+      if (!v) return `Enter your ${label} name.`;
+      if (!NAME_RE.test(v)) return "Use letters only.";
+      return undefined;
+    }
+    if (key === "email") {
+      return EMAIL_RE.test(value.trim()) ? undefined : "Enter a valid email address.";
+    }
+    return isValidMobile(value) ? undefined : "Enter a valid 10-digit mobile number.";
+  }
+
+  function validateField(key: keyof Details, value: string) {
+    setErrors((e) => ({ ...e, [key]: fieldError(key, value) }));
+  }
+
+  function touchField(key: keyof Details) {
+    setTouched((t) => ({ ...t, [key]: true }));
+    validateField(key, details[key]);
+  }
+
   function set<K extends keyof Details>(key: K, value: Details[K]) {
     setDetails((d) => ({ ...d, [key]: value }));
-    // Live re-validate a name field on every keystroke, but only after it's been
+    // Live re-validate on every keystroke, but only after the field has been
     // touched — clears the error the moment it's fixed, surfaces it as they type.
-    if ((key === "firstName" || key === "lastName") && touched[key]) {
-      validateName(key, value as string);
-    }
-  }
-
-  // Per-field validation for the name inputs, mirroring the rules in
-  // validateDetails so submit and live checks never disagree.
-  function validateName(key: "firstName" | "lastName", value: string) {
-    const label = key === "firstName" ? "first" : "last";
-    const v = value.trim();
-    const msg = !v
-      ? `Enter your ${label} name.`
-      : !NAME_RE.test(v)
-        ? "Use letters only."
-        : undefined;
-    setErrors((e) => ({ ...e, [key]: msg }));
-  }
-
-  function touchName(key: "firstName" | "lastName") {
-    setTouched((t) => ({ ...t, [key]: true }));
-    validateName(key, details[key]);
+    if (touched[key]) validateField(key, value as string);
   }
 
   function validateDetails() {
     const next: Partial<Record<keyof Details, string>> = {};
-    if (!details.firstName.trim()) next.firstName = "Enter your first name.";
-    else if (!NAME_RE.test(details.firstName.trim()))
-      next.firstName = "Use letters only.";
-    if (!details.lastName.trim()) next.lastName = "Enter your last name.";
-    else if (!NAME_RE.test(details.lastName.trim()))
-      next.lastName = "Use letters only.";
-    if (!EMAIL_RE.test(details.email.trim()))
-      next.email = "Enter a valid email address.";
-    if (!isValidMobile(details.mobile))
-      next.mobile = "Enter a valid 10-digit mobile number.";
+    (Object.keys(details) as (keyof Details)[]).forEach((key) => {
+      const msg = fieldError(key, details[key]);
+      if (msg) next[key] = msg;
+    });
     setErrors(next);
+    // A submit attempt makes every field "touched" so edits from here on
+    // live-clear immediately, even for a field the user never blurred.
+    setTouched({ firstName: true, lastName: true, email: true, mobile: true });
     return Object.keys(next).length === 0;
   }
 
@@ -136,14 +210,17 @@ export default function RegisterPage() {
     if (result.ok) {
       setE164(mobileE164);
       setStep(1);
-      if (result.data.otpHint) {
+      saveWizard({ step: 1, mobile: details.mobile, e164: mobileE164, registrationToken: "" });
+      if (result.data.otpHint && OTP_HINT_ALLOWED) {
         toast.info("Dev verification code", {
           description: result.data.otpHint,
         });
       }
     } else {
       toast.error(result.error || "Couldn't start sign-up.", {
-        description: "Please check your details and try again.",
+        description:
+          describeAuthError(result.status) ??
+          "Please check your details and try again.",
       });
     }
   }
@@ -184,7 +261,7 @@ export default function RegisterPage() {
                   id="firstName"
                   value={details.firstName}
                   onChange={(e) => set("firstName", e.target.value)}
-                  onBlur={() => touchName("firstName")}
+                  onBlur={() => touchField("firstName")}
                   autoComplete="given-name"
                   placeholder="Jane"
                   aria-invalid={!!errors.firstName}
@@ -206,7 +283,7 @@ export default function RegisterPage() {
                   id="lastName"
                   value={details.lastName}
                   onChange={(e) => set("lastName", e.target.value)}
-                  onBlur={() => touchName("lastName")}
+                  onBlur={() => touchField("lastName")}
                   autoComplete="family-name"
                   placeholder="Doe"
                   aria-invalid={!!errors.lastName}
@@ -231,6 +308,7 @@ export default function RegisterPage() {
                 type="email"
                 value={details.email}
                 onChange={(e) => set("email", e.target.value)}
+                onBlur={() => touchField("email")}
                 autoComplete="email"
                 placeholder="jane@company.com"
                 aria-invalid={!!errors.email}
@@ -253,6 +331,7 @@ export default function RegisterPage() {
                 id="mobile"
                 value={details.mobile}
                 onChange={(e) => set("mobile", e.target.value)}
+                onBlur={() => touchField("mobile")}
                 autoComplete="tel"
                 placeholder="98765 43210"
                 aria-invalid={!!errors.mobile}
@@ -292,7 +371,10 @@ export default function RegisterPage() {
         <>
           <button
             type="button"
-            onClick={() => setStep(0)}
+            onClick={() => {
+              clearWizard();
+              setStep(0);
+            }}
             className="mb-6 inline-flex cursor-pointer items-center gap-2 text-sm text-text-secondary transition-colors hover:text-text-primary focus-visible:text-text-primary focus-visible:outline-none"
           >
             <ArrowLeft className="h-4 w-4" />
@@ -323,10 +405,26 @@ export default function RegisterPage() {
               if (result.ok) {
                 setRegistrationToken(result.data.registrationToken);
                 setStep(2);
+                saveWizard({
+                  step: 2,
+                  mobile: details.mobile,
+                  e164,
+                  registrationToken: result.data.registrationToken,
+                });
               }
               return result;
             }}
-            onResend={() => resendOtp(e164, "register")}
+            onResend={async () => {
+              const result = await resendOtp(e164, "register");
+              // Resend regenerates the OTP, so the code shown on initiate is now
+              // dead. Surface the fresh dev hint (L7), same gate as initiate.
+              if (result.ok && result.data.otpHint && OTP_HINT_ALLOWED) {
+                toast.info("Dev verification code", {
+                  description: result.data.otpHint,
+                });
+              }
+              return result;
+            }}
           />
         </>
       )}
@@ -349,6 +447,7 @@ export default function RegisterPage() {
           <SetPasswordForm
             passwordLabel="Create password"
             submitLabel="Create account"
+            mobile={details.mobile}
             onSubmit={async (password, confirm) => {
               const result = await registerSetPassword(
                 registrationToken,
@@ -358,6 +457,7 @@ export default function RegisterPage() {
               if (result.ok) {
                 // set-password returns tokens (and sets the refresh cookie), so
                 // the account is signed in straight away.
+                clearWizard();
                 setSession(result.data);
                 toast.success("Account created!", {
                   description: "Welcome aboard. Taking you in now.",

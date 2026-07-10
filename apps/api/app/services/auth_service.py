@@ -70,7 +70,12 @@ _GENERIC_LOGIN_ERROR = "Invalid mobile number or password."
 
 
 def _is_mock_env() -> bool:
-    return settings.ENV != "production"
+    # Fail-closed OTP-hint gate (audit L3). The old check was `ENV != "production"`,
+    # which fails OPEN: any misread ENV (staging / "prod" / unset) leaked a live
+    # code. Expose the hint only for the exact "development" sentinel — which the
+    # SECRET_KEY guard already forbids in real deploys — or an explicit opt-in flag
+    # for a controlled non-dev test box. Anything else never returns the code.
+    return settings.OTP_EXPOSE_HINT or settings.ENV == "development"
 
 
 def _build_tokens_response(access_token: str, user: User | None = None) -> AuthTokensResponse:
@@ -247,17 +252,17 @@ async def register_initiate(
         business_line="loans",
     )
 
+    # Enumeration-safe: one neutral message for either a duplicate mobile OR a
+    # duplicate email. Distinct "mobile already registered" vs "email already
+    # registered" strings turned the public sign-up form into an account-existence
+    # oracle that also leaked which field was taken (audit M1). Signup inherently
+    # signals that *some* detail exists; we no longer reveal which one.
     existing = await db.scalar(select(User).where(User.mobile == req.mobile))
-    if existing:
+    email_taken = None if existing else await db.scalar(select(User).where(User.email == req.email))
+    if existing or email_taken:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Mobile number already registered.",
-        )
-    email_taken = await db.scalar(select(User).where(User.email == req.email))
-    if email_taken:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Email already registered.",
+            detail="Mobile number or email already registered.",
         )
 
     otp = await generate_and_store_otp(cache, req.mobile, "register")

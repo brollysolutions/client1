@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { REGEXP_ONLY_DIGITS } from "input-otp";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -26,6 +27,7 @@ export function OtpForm({
 }) {
   const [otp, setOtp] = React.useState("");
   const [submitting, setSubmitting] = React.useState(false);
+  const [resending, setResending] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [seconds, setSeconds] = React.useState(RESEND_SECONDS);
 
@@ -51,12 +53,20 @@ export function OtpForm({
   }
 
   async function handleResend() {
-    const result = await onResend();
-    if (result.ok) {
-      setSeconds(RESEND_SECONDS);
-      setError(null);
-    } else {
-      setError(result.error || "Couldn't resend the code. Please try again.");
+    // Guard re-entrancy: without it, rapid clicks each fire POST /otp/resend and
+    // trip the backend's 3-per-window cap -> a 1-hour lock mid-flow (audit M2).
+    if (resending) return;
+    setResending(true);
+    try {
+      const result = await onResend();
+      if (result.ok) {
+        setSeconds(RESEND_SECONDS);
+        setError(null);
+      } else {
+        setError(result.error || "Couldn't resend the code. Please try again.");
+      }
+    } finally {
+      setResending(false);
     }
   }
 
@@ -72,6 +82,8 @@ export function OtpForm({
         <InputOTP
           id="otp-input"
           maxLength={6}
+          pattern={REGEXP_ONLY_DIGITS}
+          inputMode="numeric"
           value={otp}
           onChange={setOtp}
           disabled={submitting}
@@ -114,9 +126,10 @@ export function OtpForm({
             <button
               type="button"
               onClick={handleResend}
-              className="cursor-pointer font-medium text-brand-navy underline-offset-4 hover:underline focus-visible:outline-none focus-visible:underline"
+              disabled={resending}
+              className="cursor-pointer font-medium text-brand-navy underline-offset-4 hover:underline focus-visible:outline-none focus-visible:underline disabled:pointer-events-none disabled:opacity-50"
             >
-              Resend
+              {resending ? "Resending…" : "Resend"}
             </button>
           </>
         )}

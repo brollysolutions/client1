@@ -9,6 +9,7 @@ import { AuthShell } from "@/components/auth/auth-shell";
 import { OtpForm } from "@/components/auth/otp-form";
 import { SetPasswordForm } from "@/components/auth/set-password-form";
 import {
+  describeAuthError,
   forgotInitiate,
   forgotReset,
   forgotVerify,
@@ -16,6 +17,9 @@ import {
   RESET_MOBILE_KEY,
 } from "@/lib/auth";
 import { formatMobile, isValidMobile, toE164 } from "@/lib/phone";
+
+// Defense-in-depth: never render a dev OTP hint in a production build (L3).
+const OTP_HINT_ALLOWED = process.env.NEXT_PUBLIC_ENV !== "production";
 
 const STEPS = ["Verify number", "New password"];
 
@@ -71,12 +75,14 @@ export default function ForgotPasswordPage() {
     if (result.ok) {
       setE164(mobileE164);
       setView("otp");
-      if (result.data.otpHint) {
+      if (result.data.otpHint && OTP_HINT_ALLOWED) {
         toast.info("Dev verification code", { description: result.data.otpHint });
       }
     } else {
       toast.error(result.error || "Couldn't send a code", {
-        description: "Please try again in a moment.",
+        description:
+          describeAuthError(result.status) ??
+          "Please try again in a moment.",
       });
       router.replace("/login");
     }
@@ -155,7 +161,15 @@ export default function ForgotPasswordPage() {
               }
               return result;
             }}
-            onResend={() => resendOtp(e164, "reset")}
+            onResend={async () => {
+              const result = await resendOtp(e164, "reset");
+              if (result.ok && result.data.otpHint && OTP_HINT_ALLOWED) {
+                toast.info("Dev verification code", {
+                  description: result.data.otpHint,
+                });
+              }
+              return result;
+            }}
           />
         </>
       )}
@@ -178,6 +192,7 @@ export default function ForgotPasswordPage() {
           <SetPasswordForm
             passwordLabel="New password"
             submitLabel="Reset password"
+            mobile={mobile}
             onSubmit={async (password, confirm) => {
               const result = await forgotReset(resetToken, password, confirm);
               if (result.ok) {

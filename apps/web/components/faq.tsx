@@ -1,10 +1,15 @@
+import type { ReactNode } from "react";
+import Link from "next/link";
 import { ChevronDown } from "lucide-react";
 
 // Home page FAQ: objection handling + an SEO surface. Native <details>/<summary>
 // accordion, no client JS or shadcn accordion needed (that primitive isn't
 // installed and its CLI needs container pnpm). Accessible and keyboard-native
 // by default (Enter/Space toggles the native <summary>).
-type Item = { q: string; a: string };
+//
+// The agent item's answer is JSX (not a plain string) so it can link to the
+// full /earn-with-us page; every other item stays a plain string.
+type Item = { q: string; a: ReactNode };
 
 const ITEMS: Item[] = [
   {
@@ -29,7 +34,19 @@ const ITEMS: Item[] = [
   },
   {
     q: "How do I become an agent?",
-    a: "Apply through the Earn with Us section below, we verify your KYC, and once you're approved you can start earning commission.",
+    a: (
+      <>
+        Visit our{" "}
+        <Link
+          href="/earn-with-us"
+          className="font-medium text-[var(--nav-primary)] underline underline-offset-4"
+        >
+          Earn with Us
+        </Link>{" "}
+        page to see the requirements and apply. We verify your KYC, and once
+        you&apos;re approved you can start earning commission.
+      </>
+    ),
   },
 ];
 

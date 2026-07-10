@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { LogOut } from "lucide-react";
 import { toast } from "sonner";
 
+import { EmailVerifyBanner } from "@/components/auth/email-verify-banner";
 import { useAuth } from "@/components/auth/session-provider";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -33,6 +34,9 @@ export default function DashboardPage() {
   const [error, setError] = React.useState<string | null>(null);
   const [activeLine, setActiveLine] = React.useState<BusinessLine>("loans");
   const [signingOut, setSigningOut] = React.useState(false);
+  const [emailJustVerified, setEmailJustVerified] = React.useState(false);
+  // Soft 2FA: prompt any logged-in user whose email isn't verified yet.
+  const showEmailBanner = session?.emailVerified === false && !emailJustVerified;
 
   // Restore the last-viewed line before the first paint of the switch.
   React.useEffect(() => {
@@ -68,10 +72,13 @@ export default function DashboardPage() {
     if (signingOut) return;
     setSigningOut(true);
     const result = await logout();
+    // clear() + redirect run regardless, so the user IS signed out locally even
+    // when the server call fails. Frame that as a benign sign-out, not a red error
+    // (audit L4); the server-side token is cleaned up on its next use / expiry.
     clear();
     if (!result.ok) {
-      toast.error(result.error || "Signed out locally", {
-        description: "Please log in again.",
+      toast.info("Signed out.", {
+        description: "You've been signed out on this device.",
       });
     }
     router.replace("/login");
@@ -97,7 +104,10 @@ export default function DashboardPage() {
         </Button>
       </header>
 
-      <div className="mx-auto max-w-3xl px-6 py-10">
+      <div className="mx-auto max-w-3xl space-y-6 px-6 py-10">
+        {showEmailBanner && (
+          <EmailVerifyBanner onVerified={() => setEmailJustVerified(true)} />
+        )}
         {!isClient ? (
           <div className="rounded-xl border border-border bg-card p-6">
             <p className="text-sm text-text-secondary">

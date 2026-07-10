@@ -1,0 +1,61 @@
+name: Sync main to prod
+
+# Every push to main is merged into the prod branch.
+# prod is NOT a plain mirror of main: it carries prod-only commits (e.g. the
+# production voice-OTP config), so we MERGE main into prod rather than
+# fast-forward — that preserves prod's own history while pulling in main.
+# If the merge conflicts, the job fails red and you resolve prod by hand.
+on:
+  push:
+    branches: [main]
+
+# One sync at a time; a newer main push waits rather than racing.
+concurrency:
+  group: sync-main-to-prod
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    # Run in both the fork and the upstream repo. Each sees only its OWN main and
+    # pushes its OWN prod, using that repo's own SYNC_PAT secret. Any other
+    # clone/fork skips (green) instead of failing on a missing secret.
+    if: contains(fromJSON('["vamshisaideep9/client1", "brollysolutions/client1"]'), github.repository)
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Full history so the merge has both branches and their merge base.
+          fetch-depth: 0
+          # Push prod with a PAT (not GITHUB_TOKEN) so the resulting prod push
+          # TRIGGERS the downstream deploy. GITHUB_TOKEN pushes do not fire other
+          # workflows/deploys — that's the whole reason this token exists here.
+          token: ${{ secrets.SYNC_PAT }}
+
+      - name: Merge main into prod
+        run: |
+          set -euo pipefail
+
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git fetch origin main prod
+
+          # Move onto prod (keeping its prod-only commits) and merge main in.
+          git checkout -B prod origin/prod
+
+          # Already up to date → nothing to do, exit clean.
+          if git merge-base --is-ancestor origin/main HEAD; then
+            echo "prod already contains main ($(git rev-parse --short origin/main)); nothing to sync."
+            exit 0
+          fi
+
+          # Non-fast-forward merge commit, matching the historical sync style.
+          if ! git merge --no-ff --no-edit \
+                 -m "Merge main into prod (sync)" origin/main; then
+            git merge --abort || true
+            echo "::error::main and prod conflict — resolve the merge manually, then push prod."
+            exit 1
+          fi
+
+          git push origin prod
+          echo "merged main ($(git rev-parse --short origin/main)) into prod"
