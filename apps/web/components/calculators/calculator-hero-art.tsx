@@ -26,6 +26,21 @@ export function CalculatorHeroArt({
   // the check simply fails safe to the coded fallback below (no crash).
   const asset = src && existsSync(join(process.cwd(), "public", src)) ? src : null;
 
+  // With a real Storyset illustration, render it transparent so it blends into
+  // the cream hero band (no card, border, or shadow). The coded fallback keeps
+  // a soft tinted card so the thin monoline motif still reads.
+  if (asset) {
+    return (
+      <div
+        aria-hidden
+        className={cn("hidden shrink-0 items-center justify-center lg:flex lg:w-[380px]", className)}
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={asset} alt="" className="h-auto w-full max-w-[380px]" loading="lazy" />
+      </div>
+    );
+  }
+
   return (
     <div
       aria-hidden
@@ -34,22 +49,17 @@ export function CalculatorHeroArt({
         className,
       )}
     >
-      {asset ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={asset} alt="" className="h-auto w-full max-w-[300px]" loading="lazy" />
-      ) : (
-        <svg
-          viewBox="0 0 240 180"
-          className="h-auto w-full max-w-[280px] text-brand-blue"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth={3}
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          {group === "loans" ? <LoansArt /> : <RealEstateArt />}
-        </svg>
-      )}
+      <svg
+        viewBox="0 0 240 180"
+        className="h-auto w-full max-w-[280px] text-brand-blue"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={3}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        {group === "loans" ? <LoansArt /> : <RealEstateArt />}
+      </svg>
     </div>
   );
 }
