@@ -1,16 +1,13 @@
 name: Sync main to prod
 
-# Every push to main fast-forwards the prod branch to match.
-# prod is treated as strictly downstream of main: if it has diverged (a direct
-# commit prod doesn't share with main), the fast-forward push is REJECTED and
-# this job fails red on purpose — resolve it by hand rather than force-pushing prod.
+# Every push to main is merged into the prod branch.
+# prod is NOT a plain mirror of main: it carries prod-only commits (e.g. the
+# production voice-OTP config), so we MERGE main into prod rather than
+# fast-forward — that preserves prod's own history while pulling in main.
+# If the merge conflicts, the job fails red and you resolve prod by hand.
 on:
   push:
     branches: [main]
-
-# Allow the built-in GITHUB_TOKEN to push branches.
-permissions:
-  contents: write
 
 # One sync at a time; a newer main push waits rather than racing.
 concurrency:
@@ -27,21 +24,38 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          # Full history so the fast-forward check has the merge base.
+          # Full history so the merge has both branches and their merge base.
           fetch-depth: 0
           # Push prod with a PAT (not GITHUB_TOKEN) so the resulting prod push
           # TRIGGERS the downstream deploy. GITHUB_TOKEN pushes do not fire other
           # workflows/deploys — that's the whole reason this token exists here.
           token: ${{ secrets.SYNC_PAT }}
 
-      - name: Fast-forward prod to main
+      - name: Merge main into prod
         run: |
           set -euo pipefail
-          # Non-force push: GitHub accepts it only if prod can fast-forward to
-          # this commit. A "non-fast-forward" rejection here means prod diverged.
-          if git push origin "HEAD:refs/heads/prod"; then
-            echo "prod fast-forwarded to $(git rev-parse --short HEAD)"
-          else
-            echo "::error::prod could not be fast-forwarded from main — it has diverging commits. Reconcile prod manually."
+
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git fetch origin main prod
+
+          # Move onto prod (keeping its prod-only commits) and merge main in.
+          git checkout -B prod origin/prod
+
+          # Already up to date → nothing to do, exit clean.
+          if git merge-base --is-ancestor origin/main HEAD; then
+            echo "prod already contains main ($(git rev-parse --short origin/main)); nothing to sync."
+            exit 0
+          fi
+
+          # Non-fast-forward merge commit, matching the historical sync style.
+          if ! git merge --no-ff --no-edit \
+                 -m "Merge main into prod (sync)" origin/main; then
+            git merge --abort || true
+            echo "::error::main and prod conflict — resolve the merge manually, then push prod."
             exit 1
           fi
+
+          git push origin prod
+          echo "merged main ($(git rev-parse --short origin/main)) into prod"
