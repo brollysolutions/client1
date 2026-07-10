@@ -20,6 +20,9 @@ concurrency:
 jobs:
   sync:
     runs-on: ubuntu-latest
+    # Only the upstream repo holds SYNC_PAT and deploys prod. On the fork this
+    # job is skipped (green), not failed, so fork main pushes don't error out.
+    if: github.repository == 'brollysolutions/client1'
     steps:
       - uses: actions/checkout@v4
         with:
