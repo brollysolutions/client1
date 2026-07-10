@@ -21,7 +21,7 @@ jobs:
   sync:
     runs-on: ubuntu-latest
     # Run in both the fork and the upstream repo. Each sees only its OWN main and
-    # pushes its OWN prod, using that repo's own CLIENT1 secret. Any other
+    # pushes its OWN prod, using that repo's own SYNC_PAT secret. Any other
     # clone/fork skips (green) instead of failing on a missing secret.
     if: contains(fromJSON('["vamshisaideep9/client1", "brollysolutions/client1"]'), github.repository)
     steps:
@@ -32,7 +32,7 @@ jobs:
           # Push prod with a PAT (not GITHUB_TOKEN) so the resulting prod push
           # TRIGGERS the downstream deploy. GITHUB_TOKEN pushes do not fire other
           # workflows/deploys — that's the whole reason this token exists here.
-          token: ${{ secrets.CLIENT1 }}
+          token: ${{ secrets.SYNC_PAT }}
 
       - name: Fast-forward prod to main
         run: |
