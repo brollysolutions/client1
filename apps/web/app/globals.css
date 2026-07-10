@@ -207,3 +207,16 @@
 @media (prefers-reduced-motion: reduce) {
   [class*="auth-anim"] { animation: none !important; }
 }
+
+/* Print / "Save as PDF" from a calculator page: drop the site chrome and the
+   interactive controls so the printed sheet is just the result and schedule. */
+@media print {
+  header,
+  footer,
+  .print\:hidden {
+    display: none !important;
+  }
+  main {
+    padding: 0 !important;
+  }
+}

@@ -4,10 +4,26 @@ import { LeadDialog } from "@/components/lead-dialog";
 // ctaBanner treatment (product-page.tsx), so the last thing a visitor sees
 // matches the last thing they'd see on either product page. Line picker in
 // the dialog since the home page speaks to both lines equally.
-export function ClosingCta() {
+//
+// Optional props let other pages (e.g. /earn-with-us) reuse the same band
+// with different copy/origin without duplicating the SVG doodles. Absent
+// props keep the original home-page behavior unchanged.
+export function ClosingCta({
+  heading = "Ready to get started?",
+  text = "Leave your number and we'll call you back, whether you're after a loan or a home.",
+  ctaLabel = "Get a callback",
+  origin = "closing-cta",
+  id = "get-started",
+}: {
+  heading?: string;
+  text?: string;
+  ctaLabel?: string;
+  origin?: string;
+  id?: string;
+}) {
   return (
     <section
-      id="get-started"
+      id={id}
       aria-labelledby="closing-cta-heading"
       className="relative w-full scroll-mt-16 overflow-hidden bg-[var(--nav-primary)]"
     >
@@ -17,18 +33,15 @@ export function ClosingCta() {
           id="closing-cta-heading"
           className="font-heading text-3xl font-semibold text-white sm:text-4xl"
         >
-          Ready to get started?
+          {heading}
         </h2>
-        <p className="mx-auto mt-4 max-w-xl text-lg text-white/85">
-          Leave your number and we&apos;ll call you back, whether you&apos;re
-          after a loan or a home.
-        </p>
+        <p className="mx-auto mt-4 max-w-xl text-lg text-white/85">{text}</p>
         <div className="mt-8 flex justify-center">
           <LeadDialog
             businessLine="loans"
             lineSelectable
-            origin="closing-cta"
-            triggerLabel="Get a callback"
+            origin={origin}
+            triggerLabel={ctaLabel}
             triggerVariant="invert"
           />
         </div>
