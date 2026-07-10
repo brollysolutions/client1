@@ -1,0 +1,43 @@
+name: Sync main to prod
+
+# Every push to main fast-forwards the prod branch to match.
+# prod is treated as strictly downstream of main: if it has diverged (a direct
+# commit prod doesn't share with main), the fast-forward push is REJECTED and
+# this job fails red on purpose — resolve it by hand rather than force-pushing prod.
+on:
+  push:
+    branches: [main]
+
+# Allow the built-in GITHUB_TOKEN to push branches.
+permissions:
+  contents: write
+
+# One sync at a time; a newer main push waits rather than racing.
+concurrency:
+  group: sync-main-to-prod
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Full history so the fast-forward check has the merge base.
+          fetch-depth: 0
+          # Push prod with a PAT (not GITHUB_TOKEN) so the resulting prod push
+          # TRIGGERS the downstream deploy. GITHUB_TOKEN pushes do not fire other
+          # workflows/deploys — that's the whole reason this token exists here.
+          token: ${{ secrets.SYNC_PAT }}
+
+      - name: Fast-forward prod to main
+        run: |
+          set -euo pipefail
+          # Non-force push: GitHub accepts it only if prod can fast-forward to
+          # this commit. A "non-fast-forward" rejection here means prod diverged.
+          if git push origin "HEAD:refs/heads/prod"; then
+            echo "prod fast-forwarded to $(git rev-parse --short HEAD)"
+          else
+            echo "::error::prod could not be fast-forwarded from main — it has diverging commits. Reconcile prod manually."
+            exit 1
+          fi
