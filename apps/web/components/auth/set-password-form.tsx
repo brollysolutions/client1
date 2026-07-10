@@ -87,7 +87,7 @@ export function SetPasswordForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} noValidate className="space-y-6">
+    <form onSubmit={handleSubmit} noValidate className="space-y-4">
       <div className="space-y-2">
         <Label htmlFor="password" className="text-[15px]">
           {passwordLabel}
@@ -103,30 +103,32 @@ export function SetPasswordForm({
           disabled={submitting}
           className="h-12 rounded-lg text-base"
         />
-        {password.length > 0 && (
-          <div id="password-strength" className="space-y-1.5 pt-1">
-            <div className="flex gap-1.5" aria-hidden="true">
-              {Array.from({ length: SEGMENTS }).map((_, i) => (
-                <span
-                  key={i}
-                  className={cn(
-                    "h-1.5 flex-1 rounded-full transition-colors",
-                    i < filled ? toneBar : "bg-border",
-                  )}
-                />
-              ))}
+        <div id="password-strength" className="min-h-[1.75rem] pt-1">
+          {password.length > 0 && (
+            <div className="space-y-1.5">
+              <div className="flex gap-1.5" aria-hidden="true">
+                {Array.from({ length: SEGMENTS }).map((_, i) => (
+                  <span
+                    key={i}
+                    className={cn(
+                      "h-1.5 flex-1 rounded-full transition-colors",
+                      i < filled ? toneBar : "bg-border",
+                    )}
+                  />
+                ))}
+              </div>
+              <p className={cn("text-xs font-medium", toneText)}>
+                {strengthLabel}
+                {!allRulesMet && unmet.length > 0 && (
+                  <span className="font-normal text-text-secondary">
+                    {" · needs "}
+                    {unmet.join(", ")}
+                  </span>
+                )}
+              </p>
             </div>
-            <p className={cn("text-xs font-medium", toneText)}>
-              {strengthLabel}
-              {!allRulesMet && unmet.length > 0 && (
-                <span className="font-normal text-text-secondary">
-                  {" · needs "}
-                  {unmet.join(", ")}
-                </span>
-              )}
-            </p>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
       <div className="space-y-2">

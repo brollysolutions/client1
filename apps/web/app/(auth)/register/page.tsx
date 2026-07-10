@@ -159,14 +159,14 @@ export default function RegisterPage() {
         <>
           <Link
             href="/"
-            className="mb-8 inline-flex items-center gap-2 text-sm text-text-secondary transition-colors hover:text-text-primary focus-visible:text-text-primary focus-visible:outline-none"
+            className="mb-6 inline-flex items-center gap-2 text-sm text-text-secondary transition-colors hover:text-text-primary focus-visible:text-text-primary focus-visible:outline-none"
           >
             <ArrowLeft className="h-4 w-4" />
             Back to home
           </Link>
 
           <div className="space-y-2">
-            <h1 className="font-heading text-4xl font-bold text-text-primary">
+            <h1 className="font-heading text-3xl font-bold text-text-primary">
               Sign up
             </h1>
             <p className="text-base text-text-secondary">
@@ -174,7 +174,7 @@ export default function RegisterPage() {
             </p>
           </div>
 
-          <form onSubmit={submitDetails} noValidate className="mt-10 space-y-6">
+          <form onSubmit={submitDetails} noValidate className="mt-6 space-y-4">
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="firstName" className="text-[15px]">
@@ -293,18 +293,18 @@ export default function RegisterPage() {
           <button
             type="button"
             onClick={() => setStep(0)}
-            className="mb-8 inline-flex cursor-pointer items-center gap-2 text-sm text-text-secondary transition-colors hover:text-text-primary focus-visible:text-text-primary focus-visible:outline-none"
+            className="mb-6 inline-flex cursor-pointer items-center gap-2 text-sm text-text-secondary transition-colors hover:text-text-primary focus-visible:text-text-primary focus-visible:outline-none"
           >
             <ArrowLeft className="h-4 w-4" />
             Back
           </button>
 
-          <span className="mb-6 flex h-14 w-14 items-center justify-center rounded-xl bg-brand-sky/25 text-brand-navy">
-            <Smartphone className="h-7 w-7" />
+          <span className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-brand-sky/25 text-brand-navy">
+            <Smartphone className="h-6 w-6" />
           </span>
 
-          <div className="mb-8 space-y-2">
-            <h1 className="font-heading text-4xl font-bold text-text-primary">
+          <div className="mb-5 space-y-2">
+            <h1 className="font-heading text-3xl font-bold text-text-primary">
               Verify your phone
             </h1>
             <p className="text-base text-text-secondary">
@@ -333,12 +333,12 @@ export default function RegisterPage() {
 
       {step === 2 && (
         <>
-          <span className="mb-6 flex h-14 w-14 items-center justify-center rounded-xl bg-brand-sky/25 text-brand-navy">
-            <Lock className="h-7 w-7" />
+          <span className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-brand-sky/25 text-brand-navy">
+            <Lock className="h-6 w-6" />
           </span>
 
-          <div className="mb-8 space-y-2">
-            <h1 className="font-heading text-4xl font-bold text-text-primary">
+          <div className="mb-5 space-y-2">
+            <h1 className="font-heading text-3xl font-bold text-text-primary">
               Create a password
             </h1>
             <p className="text-base text-text-secondary">

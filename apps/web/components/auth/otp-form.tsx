@@ -61,7 +61,7 @@ export function OtpForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} noValidate className="space-y-6">
+    <form onSubmit={handleSubmit} noValidate className="space-y-4">
       <div className="space-y-2">
         <label
           htmlFor="otp-input"
@@ -79,12 +79,12 @@ export function OtpForm({
           aria-invalid={!!error}
           aria-describedby={error ? "otp-error" : undefined}
         >
-          <InputOTPGroup className="gap-2.5 sm:gap-3">
+          <InputOTPGroup className="grid w-full grid-cols-6 gap-2 sm:gap-2.5">
             {[0, 1, 2, 3, 4, 5].map((i) => (
               <InputOTPSlot
                 key={i}
                 index={i}
-                className="h-14 w-12 rounded-lg border bg-card text-xl sm:w-14"
+                className="h-12 w-full rounded-lg border bg-card text-xl"
               />
             ))}
           </InputOTPGroup>
