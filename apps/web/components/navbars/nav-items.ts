@@ -1,9 +1,9 @@
 import { type LucideIcon } from "lucide-react";
 
-// Loans and Real Estate are dedicated pages (/loans, /real-estate); their
+// Loans, Real Estate, Earn with Us, and Calculator are dedicated pages; their
 // product lists live on those pages now (see lib/products.ts), not in a navbar
-// dropdown. Calculator and Contact are still landing-section anchors until those
-// sections land. `children` is retained on the type so the generic dropdown
+// dropdown. Contact is still a landing-section anchor until that section gets
+// its own page. `children` is retained on the type so the generic dropdown
 // renderer in site-header/mobile-nav keeps working if a future item needs it.
 export type NavChild = {
   label: string;
@@ -22,7 +22,7 @@ export const NAV_ITEMS: NavItem[] = [
   { label: "Home", href: "/" },
   { label: "Loans", href: "/loans" },
   { label: "Properties", href: "/real-estate" },
-  { label: "Earn with Us", href: "#partners" },
-  { label: "Calculator", href: "#calculator" },
-  { label: "Contact", href: "#contact" },
+  { label: "Earn with Us", href: "/earn-with-us" },
+  { label: "Calculator", href: "/calculators" },
+  { label: "Contact", href: "/#contact" },
 ];

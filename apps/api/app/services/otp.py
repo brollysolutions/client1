@@ -79,7 +79,6 @@ async def verify_otp(cache: RedisCache, mobile: str, purpose: str, code: str) ->
     remaining_str = await cache.get(attempts_key)
     remaining = int(remaining_str) if remaining_str else 0
     if remaining <= 0:
-        await cache.delete(key, attempts_key)
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="OTP attempts exhausted. Request a new one.",
@@ -88,14 +87,17 @@ async def verify_otp(cache: RedisCache, mobile: str, purpose: str, code: str) ->
     try:
         await anyio.to_thread.run_sync(_ph.verify, stored_hash, code, limiter=ARGON2_LIMITER)
     except VerifyMismatchError as exc:
+        # Zero the attempts counter but keep both keys alive (same TTL_OTP
+        # window) rather than deleting them — resend_otp's session check
+        # needs the key to still exist so "Request a new one" (below) can
+        # actually be satisfied by hitting resend, instead of dead-ending.
         new_remaining = remaining - 1
+        await cache.set(attempts_key, new_remaining, TTL_OTP)
         if new_remaining <= 0:
-            await cache.delete(key, attempts_key)
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Incorrect OTP. No attempts remaining. Request a new one.",
             ) from exc
-        await cache.set(attempts_key, new_remaining, TTL_OTP)
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Incorrect OTP. {new_remaining} attempt(s) remaining.",

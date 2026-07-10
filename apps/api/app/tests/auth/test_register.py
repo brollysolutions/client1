@@ -380,7 +380,8 @@ async def test_set_password_129_chars_too_long_returns_422(client: AsyncClient) 
 async def test_set_password_128_chars_boundary_valid(client: AsyncClient) -> None:
     mobile = unique_mobile()
     token = await _get_reg_token(client, mobile)
-    pw = "A1" + "x" * 126
+    # 128 chars, satisfies full policy (upper, lower, digit, special).
+    pw = "Aa1!" + "x" * 124
     resp = await client.post(
         "/api/v1/auth/register/set-password",
         json={"registration_token": token, "password": pw, "confirm_password": pw},

@@ -13,7 +13,12 @@ import { SetPasswordForm } from "@/components/auth/set-password-form";
 import { useAuth } from "@/components/auth/session-provider";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { changePassword, login, RESET_MOBILE_KEY } from "@/lib/auth";
+import {
+  changePassword,
+  describeAuthError,
+  login,
+  RESET_MOBILE_KEY,
+} from "@/lib/auth";
 import { isValidMobile, normalizeMobile, toE164 } from "@/lib/phone";
 
 export default function LoginPage() {
@@ -71,7 +76,9 @@ export default function LoginPage() {
     } else {
       setSubmitting(false);
       toast.error(result.error || "Couldn't log you in.", {
-        description: "Please check your details and try again.",
+        description:
+          describeAuthError(result.status) ??
+          "Please check your details and try again.",
       });
     }
   }
@@ -113,6 +120,7 @@ export default function LoginPage() {
         <SetPasswordForm
           passwordLabel="New password"
           submitLabel="Save and continue"
+          mobile={mobile}
           onSubmit={async (newPassword, confirm) => {
             const result = await changePassword(
               currentPasswordRef.current,
@@ -120,7 +128,23 @@ export default function LoginPage() {
               confirm,
               forcedTokenRef.current,
             );
-            if (!result.ok) return result;
+            if (!result.ok) {
+              // The force-reset token is short-lived and never auto-refreshed
+              // (explicit bearer). If it lapsed mid-form the backend returns a
+              // bare 401 "Unauthorized.", so replace that developer string with a
+              // friendly line and send the user back to log in fresh (audit L8).
+              if (result.status === 401) {
+                currentPasswordRef.current = "";
+                forcedTokenRef.current = "";
+                setForceReset(false);
+                toast.error("Your reset session expired.", {
+                  description: "Please log in again to continue.",
+                });
+                router.replace("/login");
+                return { ok: false, error: "Your reset session expired.", status: 401 };
+              }
+              return result;
+            }
 
             // Reset done: log in fresh with the new password so the session
             // holds a clean token (no lingering force_reset claim).
