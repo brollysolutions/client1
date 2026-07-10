@@ -20,9 +20,10 @@ concurrency:
 jobs:
   sync:
     runs-on: ubuntu-latest
-    # Only the upstream repo holds SYNC_PAT and deploys prod. On the fork this
-    # job is skipped (green), not failed, so fork main pushes don't error out.
-    if: github.repository == 'brollysolutions/client1'
+    # Run in both the fork and the upstream repo. Each sees only its OWN main and
+    # pushes its OWN prod, using that repo's own SYNC_PAT secret. Any other
+    # clone/fork skips (green) instead of failing on a missing secret.
+    if: contains(fromJSON('["vamshisaideep9/client1", "brollysolutions/client1"]'), github.repository)
     steps:
       - uses: actions/checkout@v4
         with:
