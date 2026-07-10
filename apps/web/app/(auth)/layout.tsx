@@ -9,7 +9,7 @@ import { AuthProvider } from "@/components/auth/session-provider";
 export default function AuthLayout({ children }: { children: ReactNode }) {
   return (
     <AuthProvider>
-      <main className="min-h-screen">{children}</main>
+      <main className="min-h-dvh overflow-x-hidden">{children}</main>
     </AuthProvider>
   );
 }

@@ -52,7 +52,7 @@ const PANEL: Record<View, { title: string; subtitle: string; step: number }> = {
 
 function IconBadge({ children }: { children: React.ReactNode }) {
   return (
-    <span className="mb-6 flex h-14 w-14 items-center justify-center rounded-xl bg-brand-sky/25 text-brand-navy">
+    <span className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-brand-sky/25 text-brand-navy">
       {children}
     </span>
   );
@@ -117,7 +117,7 @@ export default function ForgotPasswordPage() {
       activeStep={panel.step}
     >
       {view === "loading" && (
-        <div className="flex flex-col items-center justify-center gap-3 py-16 text-center">
+        <div className="flex flex-col items-center justify-center gap-3 py-10 text-center">
           <Loader2 className="h-8 w-8 animate-spin text-brand-navy" />
           <p className="text-sm text-text-secondary">Sending your code…</p>
         </div>
@@ -128,18 +128,18 @@ export default function ForgotPasswordPage() {
           <button
             type="button"
             onClick={() => router.push("/login")}
-            className="mb-8 inline-flex cursor-pointer items-center gap-2 text-sm text-text-secondary transition-colors hover:text-text-primary focus-visible:text-text-primary focus-visible:outline-none"
+            className="mb-6 inline-flex cursor-pointer items-center gap-2 text-sm text-text-secondary transition-colors hover:text-text-primary focus-visible:text-text-primary focus-visible:outline-none"
           >
             <ArrowLeft className="h-4 w-4" />
             Back to login
           </button>
 
           <IconBadge>
-            <Smartphone className="h-7 w-7" />
+            <Smartphone className="h-6 w-6" />
           </IconBadge>
 
-          <div className="mb-8 space-y-2">
-            <h1 className="font-heading text-4xl font-bold text-text-primary">
+          <div className="mb-5 space-y-2">
+            <h1 className="font-heading text-3xl font-bold text-text-primary">
               Reset your password
             </h1>
             <p className="text-base text-text-secondary">
@@ -177,11 +177,11 @@ export default function ForgotPasswordPage() {
       {view === "reset" && (
         <>
           <IconBadge>
-            <Lock className="h-7 w-7" />
+            <Lock className="h-6 w-6" />
           </IconBadge>
 
-          <div className="mb-8 space-y-2">
-            <h1 className="font-heading text-4xl font-bold text-text-primary">
+          <div className="mb-5 space-y-2">
+            <h1 className="font-heading text-3xl font-bold text-text-primary">
               Set a new password
             </h1>
             <p className="text-base text-text-secondary">
