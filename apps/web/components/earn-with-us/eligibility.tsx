@@ -58,7 +58,7 @@ export function EarnEligibility() {
             id="eligibility-heading"
             className="font-heading text-3xl font-semibold text-foreground sm:text-4xl"
           >
-            What you need to apply
+            What you need to apply as an agent
           </h2>
           <p className="mt-4 text-lg text-text-secondary">
             A short list. Nothing to pay, nothing hidden.

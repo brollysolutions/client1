@@ -1,17 +1,19 @@
 import type { Metadata } from "next";
 
 import { ClosingCta } from "@/components/closing-cta";
-import { AGENT_FAQ_ITEMS, EarnFaq } from "@/components/earn-with-us/agent-faq";
 import { EarnAgentTracks } from "@/components/earn-with-us/agent-tracks";
 import { EarnEligibility } from "@/components/earn-with-us/eligibility";
 import { EarnHero } from "@/components/earn-with-us/hero";
 import { EarnHowItWorks } from "@/components/earn-with-us/how-earning-works";
+import { ReferAndEarn } from "@/components/earn-with-us/refer-and-earn";
+import { FaqSection } from "@/components/faq-section";
+import { AGENT_FAQ_ITEMS, faqPageJsonLd } from "@/lib/faq";
 import { SITE_NAME, SITE_URL } from "@/lib/site";
 
 export const metadata: Metadata = {
-  title: "Become a Loan Agent or Real Estate Agent | Earn with Us",
+  title: "Earn with Us: Agent Commission and Referral Cashback",
   description:
-    "Apply to become a loan DSA or real estate referral agent in India. Free to apply, KYC verified, and you earn commission on every deal you bring us.",
+    "Become a loan DSA or real estate agent and earn commission, or refer friends and earn cashback when their deal completes. Free to join, KYC verified.",
   keywords: [
     "become a loan agent",
     "loan DSA registration",
@@ -20,12 +22,14 @@ export const metadata: Metadata = {
     "real estate referral agent",
     "loan agent commission",
     "agent partner program",
+    "refer and earn",
+    "referral cashback",
   ],
   alternates: { canonical: "/earn-with-us" },
   openGraph: {
-    title: "Become a Loan Agent or Real Estate Agent | Earn with Us",
+    title: "Earn with Us: Agent Commission and Referral Cashback",
     description:
-      "Apply to become a loan DSA or real estate referral agent in India. Free to apply, KYC verified, and you earn commission on every deal you bring us.",
+      "Become a loan DSA or real estate agent and earn commission, or refer friends and earn cashback when their deal completes. Free to join, KYC verified.",
     type: "website",
     url: "/earn-with-us",
   },
@@ -46,14 +50,7 @@ const earnWithUsJsonLd = {
         },
       ],
     },
-    {
-      "@type": "FAQPage",
-      mainEntity: AGENT_FAQ_ITEMS.map((f) => ({
-        "@type": "Question",
-        name: f.q,
-        acceptedAnswer: { "@type": "Answer", text: f.a },
-      })),
-    },
+    faqPageJsonLd(AGENT_FAQ_ITEMS),
   ],
   publisher: { "@type": "Organization", name: SITE_NAME, url: SITE_URL },
 };
@@ -66,13 +63,19 @@ export default function EarnWithUsPage() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(earnWithUsJsonLd) }}
       />
       <EarnHero />
+      <ReferAndEarn />
       <EarnEligibility />
       <EarnHowItWorks />
       <EarnAgentTracks />
-      <EarnFaq />
+      <FaqSection
+        id="agent-faq"
+        heading="Questions, answered"
+        subheading="Agents and referrals, everything people usually ask."
+        items={AGENT_FAQ_ITEMS}
+      />
       <ClosingCta
         heading="Ready to start earning?"
-        text="Apply in a few minutes. We'll verify your KYC and get you started."
+        text="Apply as an agent in a few minutes, or sign in to use your referral code."
         ctaLabel="Apply to become an agent"
         origin="agent-application-page"
         id="apply"
