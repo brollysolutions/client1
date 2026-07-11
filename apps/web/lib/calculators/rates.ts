@@ -66,3 +66,12 @@ export const LOAN_DEFAULTS: Record<"home" | "car" | "personal", LoanDefaults> = 
 /** Shown next to every prefilled rate. Config-driven so it updates in one place. */
 export const RATE_DISCLAIMER =
   "Rates shown are indicative examples for illustration only and are not an offer. Your actual rate, fees, and eligibility depend on the lender's assessment of your profile and are subject to change.";
+
+/**
+ * Last time every drift-prone constant in this file, stamp-duty-rates.ts, and
+ * lib/finance/{gst,ltv,eligibility,affordability}.ts was checked against its
+ * source (RBI, state stamp duty portals, GST council). Shown in the
+ * Indicative callout so staleness is visible, not silent. Review cadence and
+ * per-value sources: docs/runbooks/calculator-rates-review.md.
+ */
+export const RATES_LAST_REVIEWED = "July 2026";

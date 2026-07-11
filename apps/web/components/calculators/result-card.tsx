@@ -18,7 +18,7 @@ export function ResultCard({
   return (
     <div
       className={cn(
-        "rounded-xl border p-5",
+        "min-w-0 rounded-xl border p-5",
         emphasis
           ? "border-transparent bg-[var(--nav-primary)] text-white shadow-sm"
           : "border-[var(--nav-border)] bg-white",
@@ -30,7 +30,7 @@ export function ResultCard({
       </p>
       <p
         className={cn(
-          "mt-1 font-heading text-2xl font-semibold sm:text-3xl",
+          "mt-1 break-words font-heading text-lg font-semibold tabular-nums [overflow-wrap:anywhere] sm:text-xl lg:text-2xl",
           emphasis ? "text-white" : "text-[var(--nav-text)]",
         )}
       >

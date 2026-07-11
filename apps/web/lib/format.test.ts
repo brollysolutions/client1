@@ -11,8 +11,8 @@ describe("formatINR()", () => {
 
 describe("formatCompactINR()", () => {
   it("switches to lakh and crore for big numbers", () => {
-    expect(formatCompactINR(1_234_567)).toBe("₹12.35 L");
-    expect(formatCompactINR(12_500_000)).toBe("₹1.25 Cr");
+    expect(formatCompactINR(1_234_567)).toBe("₹12.35 L");
+    expect(formatCompactINR(12_500_000)).toBe("₹1.25 Cr");
     expect(formatCompactINR(50_000)).toBe("₹50,000");
   });
 });

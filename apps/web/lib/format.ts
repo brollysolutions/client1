@@ -15,11 +15,16 @@ export function formatINR(value: number): string {
   return inr.format(Math.round(value));
 }
 
-/** Compact rupees for big headline numbers: 1234567 -> "₹12.35 L", 12500000 -> "₹1.25 Cr". */
+/**
+ * Compact rupees for big headline numbers: 1234567 -> "₹12.35 L", 12500000 ->
+ * "₹1.25 Cr". Joins the amount and its unit with a non-breaking space so the
+ * figure never wraps onto two lines inside a narrow result card.
+ */
 export function formatCompactINR(value: number): string {
   const abs = Math.abs(value);
-  if (abs >= 1_00_00_000) return `₹${(value / 1_00_00_000).toFixed(2)} Cr`;
-  if (abs >= 1_00_000) return `₹${(value / 1_00_000).toFixed(2)} L`;
+  const nbsp = " ";
+  if (abs >= 1_00_00_000) return `₹${(value / 1_00_00_000).toFixed(2)}${nbsp}Cr`;
+  if (abs >= 1_00_000) return `₹${(value / 1_00_000).toFixed(2)}${nbsp}L`;
   return formatINR(value);
 }
 
