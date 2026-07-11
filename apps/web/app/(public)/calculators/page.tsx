@@ -169,7 +169,7 @@ function CalculatorGroup({
   items: CalculatorDef[];
 }) {
   return (
-    <section id={id} className="w-full scroll-mt-16 border-t border-[var(--nav-border)] bg-surface">
+    <section id={id} className="w-full scroll-mt-16 border-t border-[var(--nav-border)] bg-[var(--nav-bg)]">
       <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 sm:py-16 lg:px-8">
         <div className="flex items-center gap-3">
           <span

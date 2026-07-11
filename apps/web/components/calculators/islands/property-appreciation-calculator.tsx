@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 import { parseAsFloat, parseAsInteger, useQueryStates } from "nuqs";
 
+import { INFO } from "@/lib/calculators/glossary";
 import { futureValue } from "@/lib/finance";
 import { formatCompactINR, formatPercent } from "@/lib/format";
 import { ResultCard } from "../result-card";
@@ -50,6 +51,7 @@ export function PropertyAppreciationCalculator() {
         <SliderField
           id="appr-value"
           label="Current value"
+          info={INFO.currentValue}
           prefix="₹"
           value={value}
           min={100000}
@@ -61,6 +63,7 @@ export function PropertyAppreciationCalculator() {
         <SliderField
           id="appr-growth"
           label="Expected annual growth"
+          info={INFO.growthRate}
           suffix="% p.a."
           value={growth}
           min={0}
@@ -72,6 +75,7 @@ export function PropertyAppreciationCalculator() {
         <SliderField
           id="appr-years"
           label="Holding period"
+          info={INFO.holdingPeriod}
           suffix="years"
           value={years}
           min={1}
@@ -85,9 +89,23 @@ export function PropertyAppreciationCalculator() {
       {/* Results */}
       <div className="grid content-start gap-6">
         <div className="grid gap-4 sm:grid-cols-3">
-          <ResultCard emphasis label="Future value" value={formatCompactINR(fv)} />
-          <ResultCard label="Total gain" value={formatCompactINR(gain)} />
-          <ResultCard label="Growth" value={formatPercent(growth)} sub="per year" />
+          <ResultCard
+            emphasis
+            label="Future value"
+            info={INFO.futureValue}
+            value={formatCompactINR(fv)}
+          />
+          <ResultCard
+            label="Total gain"
+            info={INFO.totalGain}
+            value={formatCompactINR(gain)}
+          />
+          <ResultCard
+            label="Growth"
+            info={INFO.growthPerYear}
+            value={formatPercent(growth)}
+            sub="per year"
+          />
         </div>
         <p className="text-sm text-text-secondary">
           Grows to {multiple.toFixed(2)}x over {yearsHelper(years)}. Shows gross appreciation, before

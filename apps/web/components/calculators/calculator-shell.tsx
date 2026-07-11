@@ -37,9 +37,12 @@ export function CalculatorShell({
               <li>
                 <Link
                   href="/"
-                  className="flex items-center gap-1.5 hover:text-[var(--nav-primary)]"
+                  className="group flex items-center gap-1.5 hover:text-[var(--nav-primary)]"
                 >
-                  <HomeIcon className="h-4 w-4 shrink-0 text-[var(--nav-text)]" aria-hidden />
+                  <HomeIcon
+                    className="h-4 w-4 shrink-0 text-[var(--nav-text)] transition-colors group-hover:text-[var(--nav-primary)]"
+                    aria-hidden
+                  />
                   Home
                 </Link>
               </li>
@@ -47,9 +50,12 @@ export function CalculatorShell({
               <li>
                 <Link
                   href="/calculators"
-                  className="flex items-center gap-1.5 hover:text-[var(--nav-primary)]"
+                  className="group flex items-center gap-1.5 hover:text-[var(--nav-primary)]"
                 >
-                  <Calculator className="h-4 w-4 shrink-0 text-[var(--nav-text)]" aria-hidden />
+                  <Calculator
+                    className="h-4 w-4 shrink-0 text-[var(--nav-text)] transition-colors group-hover:text-[var(--nav-primary)]"
+                    aria-hidden
+                  />
                   Calculators
                 </Link>
               </li>
@@ -85,7 +91,7 @@ export function CalculatorShell({
       </section>
 
       {/* FAQ */}
-      <section className="relative w-full overflow-hidden border-t border-[var(--nav-border)] bg-surface">
+      <section className="relative w-full overflow-hidden border-t border-[var(--nav-border)] bg-[var(--nav-bg)]">
         <FaqDoodles />
         <div className="relative mx-auto max-w-3xl px-4 py-14 sm:px-6 lg:px-8">
           <h2 className="font-heading text-2xl font-semibold text-[var(--nav-text)] sm:text-3xl">

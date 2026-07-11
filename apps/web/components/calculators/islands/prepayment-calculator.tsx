@@ -3,8 +3,10 @@
 import { useMemo } from "react";
 import { parseAsFloat, parseAsInteger, useQueryStates } from "nuqs";
 
+import { INFO } from "@/lib/calculators/glossary";
 import { prepayment } from "@/lib/finance";
 import { formatINR } from "@/lib/format";
+import { InfoHint } from "../info-hint";
 import { RateDisclaimer } from "../rate-disclaimer";
 import { ResultCard } from "../result-card";
 import { SliderField } from "../slider-field";
@@ -62,6 +64,7 @@ export function PrepaymentCalculator() {
         <SliderField
           id="prepay-amount"
           label="Loan amount"
+          info={INFO.loanAmount}
           prefix="₹"
           value={amount}
           min={100000}
@@ -73,6 +76,7 @@ export function PrepaymentCalculator() {
         <SliderField
           id="prepay-rate"
           label="Interest rate"
+          info={INFO.interestRate}
           suffix="% p.a."
           value={rate}
           min={5}
@@ -84,6 +88,7 @@ export function PrepaymentCalculator() {
         <SliderField
           id="prepay-months"
           label="Tenure"
+          info={INFO.tenure}
           suffix="months"
           value={months}
           min={12}
@@ -95,6 +100,7 @@ export function PrepaymentCalculator() {
         <SliderField
           id="prepay-at"
           label="Prepay after"
+          info={INFO.prepayAfter}
           suffix="months"
           value={at}
           min={1}
@@ -106,6 +112,7 @@ export function PrepaymentCalculator() {
         <SliderField
           id="prepay-lump"
           label="Lump sum"
+          info={INFO.lumpSum}
           prefix="₹"
           value={lump}
           min={0}
@@ -122,6 +129,7 @@ export function PrepaymentCalculator() {
         <ResultCard
           emphasis
           label="Outstanding before prepay"
+          info={INFO.outstandingBefore}
           value={formatINR(result.outstandingBefore)}
           sub={`Regular EMI ${formatINR(result.regularEmi)}`}
         />
@@ -140,12 +148,18 @@ export function PrepaymentCalculator() {
                 <p className="font-heading text-base font-semibold text-[var(--nav-text)]">
                   Option A: Reduce tenure
                 </p>
-                <p className="mt-3 text-sm text-text-secondary">New tenure</p>
-                <p className="mt-1 break-words font-heading text-xl font-semibold tabular-nums [overflow-wrap:anywhere] text-[var(--nav-text)]">
+                <div className="mt-3 flex items-center gap-1.5">
+                  <p className="text-sm text-text-secondary">New tenure</p>
+                  <InfoHint label="New tenure" text={INFO.newTenureAfterPrepay} />
+                </div>
+                <p className="mt-1 whitespace-nowrap font-heading text-xl font-semibold tabular-nums text-[var(--nav-text)]">
                   {tenureHelper(result.reduceTenure.newMonths)}
                 </p>
-                <p className="mt-3 text-sm text-text-secondary">Interest saved</p>
-                <p className="mt-1 break-words font-heading text-xl font-semibold tabular-nums [overflow-wrap:anywhere] text-brand-blue">
+                <div className="mt-3 flex items-center gap-1.5">
+                  <p className="text-sm text-text-secondary">Interest saved</p>
+                  <InfoHint label="Interest saved" text={INFO.interestSavedTenure} />
+                </div>
+                <p className="mt-1 whitespace-nowrap font-heading text-xl font-semibold tabular-nums text-brand-blue">
                   {formatINR(result.reduceTenure.interestSaved)}
                 </p>
               </div>
@@ -154,12 +168,18 @@ export function PrepaymentCalculator() {
                 <p className="font-heading text-base font-semibold text-[var(--nav-text)]">
                   Option B: Reduce EMI
                 </p>
-                <p className="mt-3 text-sm text-text-secondary">New EMI</p>
-                <p className="mt-1 break-words font-heading text-xl font-semibold tabular-nums [overflow-wrap:anywhere] text-[var(--nav-text)]">
+                <div className="mt-3 flex items-center gap-1.5">
+                  <p className="text-sm text-text-secondary">New EMI</p>
+                  <InfoHint label="New EMI" text={INFO.newEmiAfterPrepay} />
+                </div>
+                <p className="mt-1 whitespace-nowrap font-heading text-xl font-semibold tabular-nums text-[var(--nav-text)]">
                   {formatINR(result.reduceEmi.newEmi)}
                 </p>
-                <p className="mt-3 text-sm text-text-secondary">Interest saved</p>
-                <p className="mt-1 break-words font-heading text-xl font-semibold tabular-nums [overflow-wrap:anywhere] text-brand-blue">
+                <div className="mt-3 flex items-center gap-1.5">
+                  <p className="text-sm text-text-secondary">Interest saved</p>
+                  <InfoHint label="Interest saved" text={INFO.interestSavedEmi} />
+                </div>
+                <p className="mt-1 whitespace-nowrap font-heading text-xl font-semibold tabular-nums text-brand-blue">
                   {formatINR(result.reduceEmi.interestSaved)}
                 </p>
               </div>
