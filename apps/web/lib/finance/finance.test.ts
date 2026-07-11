@@ -153,14 +153,18 @@ describe("real-estate helpers", () => {
     expect(r.total).toBe(350_000);
   });
 
-  it("only taxes under-construction property, on two-thirds of value", () => {
+  it("taxes only under-construction property, at the effective rate on full value", () => {
     expect(gstOnProperty(5_000_000, "ready").gst).toBe(0);
+    // 1% and 5% are effective rates on the full sale value (the one-third land
+    // abatement is already baked in), so no separate 2/3 deduction is applied.
     expect(gstOnProperty(4_000_000, "affordable")).toEqual({
       rate: 0.01,
-      taxableValue: 2_666_667,
-      gst: 26_667,
+      gst: 40_000,
     });
-    expect(gstOnProperty(10_000_000, "non-affordable").rate).toBe(0.05);
+    expect(gstOnProperty(6_000_000, "non-affordable")).toEqual({
+      rate: 0.05,
+      gst: 300_000,
+    });
   });
 
   it("compounds property appreciation and derives CAGR", () => {

@@ -124,7 +124,7 @@ export function LoanAgainstPropertyCalculator() {
       </div>
 
       {/* Schedule */}
-      <div className="lg:col-span-2">
+      <div className="min-w-0 lg:col-span-2">
         <h2 className="font-heading text-xl font-semibold text-[var(--nav-text)]">
           Repayment schedule
         </h2>

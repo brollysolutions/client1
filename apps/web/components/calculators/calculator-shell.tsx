@@ -2,10 +2,13 @@ import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 
 import { LeadDialog } from "@/components/lead-dialog";
+import { FaqDoodles } from "@/components/faq-doodles";
 import { getCalculator } from "@/lib/calculators/registry";
 import type { CalculatorDef } from "@/lib/calculators/types";
+import { CalculatorCard } from "./calculator-card";
 import { CalculatorFaq } from "./calculator-faq";
 import { CalculatorHeroArt } from "./calculator-hero-art";
+import { HowItsCalculated } from "./how-its-calculated";
 
 // The server scaffold shared by every calculator page: hero (SEO copy) -> the
 // interactive island -> "how it's calculated" -> FAQ -> related calculators ->
@@ -49,37 +52,28 @@ export function CalculatorShell({
 
           <div className="mt-6 grid items-center gap-8 lg:grid-cols-[1fr_auto]">
             <div>
-              <p className="font-geist text-sm font-semibold uppercase tracking-wide text-brand-blue">
-                {def.eyebrow}
-              </p>
-              <h1 className="mt-3 max-w-3xl font-heading text-4xl font-semibold text-[var(--nav-text)] sm:text-5xl">
+              <h1 className="font-heading text-4xl font-semibold text-[var(--nav-text)] sm:text-5xl">
                 {def.h1}
               </h1>
               <p className="mt-4 max-w-2xl text-lg text-[var(--nav-text)]">{def.intro}</p>
             </div>
-            <CalculatorHeroArt group={def.group} />
+            <CalculatorHeroArt group={def.group} src={def.heroArt} />
           </div>
         </div>
       </section>
 
-      {/* Calculator island */}
+      {/* Calculator island + collapsed "how it's calculated" footnote */}
       <section className="w-full border-t border-[var(--nav-border)] bg-surface">
-        <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8 lg:py-14">{children}</div>
-      </section>
-
-      {/* How it's calculated */}
-      <section className="w-full border-t border-[var(--nav-border)] bg-[var(--nav-bg)]">
-        <div className="mx-auto max-w-3xl px-4 py-14 sm:px-6 lg:px-8">
-          <h2 className="font-heading text-2xl font-semibold text-[var(--nav-text)] sm:text-3xl">
-            How it&apos;s calculated
-          </h2>
-          <p className="mt-4 text-lg text-[var(--nav-text)]">{def.howItWorks}</p>
+        <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8 lg:py-14">
+          {children}
+          <HowItsCalculated content={def.howItWorks} />
         </div>
       </section>
 
       {/* FAQ */}
-      <section className="w-full border-t border-[var(--nav-border)] bg-surface">
-        <div className="mx-auto max-w-3xl px-4 py-14 sm:px-6 lg:px-8">
+      <section className="relative w-full overflow-hidden border-t border-[var(--nav-border)] bg-surface">
+        <FaqDoodles />
+        <div className="relative mx-auto max-w-3xl px-4 py-14 sm:px-6 lg:px-8">
           <h2 className="font-heading text-2xl font-semibold text-[var(--nav-text)] sm:text-3xl">
             Frequently asked questions
           </h2>
@@ -98,16 +92,7 @@ export function CalculatorShell({
             </h2>
             <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               {related.map((item) => (
-                <Link
-                  key={item.slug}
-                  href={`/calculators/${item.slug}`}
-                  className="group flex h-full flex-col rounded-xl border border-[var(--nav-border)] bg-white p-5 transition hover:-translate-y-0.5 hover:shadow-md motion-reduce:transition-none motion-reduce:hover:translate-y-0"
-                >
-                  <h3 className="font-heading text-base font-semibold text-[var(--nav-text)] transition-colors group-hover:text-[var(--nav-primary)]">
-                    {item.navLabel}
-                  </h3>
-                  <p className="mt-2 text-sm text-text-secondary">{item.cardSummary}</p>
-                </Link>
+                <CalculatorCard key={item.slug} def={item} compact />
               ))}
             </div>
           </div>
