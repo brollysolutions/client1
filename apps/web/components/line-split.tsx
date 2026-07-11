@@ -16,6 +16,10 @@ type Line = {
   paragraph: string;
   benefits: string[];
   image: string;
+  /** Visual balancing knob: the two illustrations share the same 500x500
+   *  canvas and container, but their hand-drawn content fills different
+   *  amounts of it, so one can visually read smaller. Defaults to 1. */
+  imageScale?: number;
   imageSide: "left" | "right";
   tint: "cream" | "white";
   ctaLabel: string;
@@ -26,11 +30,11 @@ const LINES: Line[] = [
   {
     id: "loans",
     name: "Loans",
-    title: "Find the loan that fits you",
+    title: "Loans, cards, and insurance that fit you",
     paragraph:
-      "Every lender shows a different rate, and it gets confusing fast. Tell us what you need once, and we find loan offers that suit you and help you until the money reaches your account.",
+      "Every bank and insurer quotes something different, and comparing them gets confusing fast. Tell us what you need once. We find the offers that fit you and stay with you until it is done.",
     benefits: [
-      "Compare offers from many banks and lenders",
+      "Compare offers from banks, lenders, and insurers",
       "Check if you qualify before you apply",
       "KYC-verified partners keep your documents safe",
     ],
@@ -43,15 +47,16 @@ const LINES: Line[] = [
   {
     id: "real-estate",
     name: "Real Estate",
-    title: "Buy or rent with confidence",
+    title: "Buy your property with confidence",
     paragraph:
-      "Buying or renting a home is a big decision. We show you only verified homes and agents, and guide you at every step so there are no surprises.",
+      "Buying a property is a big decision. We show you only verified properties and trusted agents, and guide you at every step so there are no surprises.",
     benefits: [
-      "Buy or rent, all in one place",
-      "Every home and agent is verified before you see it",
+      "Flats, plots, villas, and commercial spaces",
+      "Every property and agent is verified before you see it",
       "One person helps you from first visit to final paperwork",
     ],
     image: "/illustrations/real-estate.svg",
+    imageScale: 1.18,
     imageSide: "right",
     tint: "cream",
     ctaLabel: "Explore properties",
@@ -82,7 +87,9 @@ function Band({ line, paddingClassName }: { line: Line; paddingClassName: string
             )}
           >
             {/* Illustration is decorative (alt=""); the band heading carries the
-                line name, so no separate DOM label here. */}
+                line name, so no separate DOM label here. imageScale corrects for
+                the two illustrations filling their shared 500x500 canvas at
+                different visual densities (see Line type comment). */}
             <Image
               src={line.image}
               alt=""
@@ -90,6 +97,7 @@ function Band({ line, paddingClassName }: { line: Line; paddingClassName: string
               height={500}
               sizes="560px"
               className="h-auto w-full"
+              style={line.imageScale ? { transform: `scale(${line.imageScale})` } : undefined}
               priority={false}
             />
           </div>
