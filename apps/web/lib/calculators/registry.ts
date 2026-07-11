@@ -12,7 +12,6 @@ export const CALCULATORS: CalculatorDef[] = [
     slug: "emi",
     group: "loans",
     businessLine: "loans",
-    eyebrow: "Loan calculators",
     navLabel: "EMI Calculator",
     cardSummary: "Work out the monthly EMI, total interest, and full repayment schedule for any loan.",
     h1: "EMI Calculator",
@@ -23,7 +22,7 @@ export const CALCULATORS: CalculatorDef[] = [
     intro:
       "Use this EMI calculator to find your monthly EMI on any home, car, or personal loan. Enter the loan amount, interest rate, and tenure to see the EMI, the total interest you will pay, and a full month by month repayment schedule.",
     howItWorks:
-      "EMI is calculated on a reducing balance with the formula EMI = P x r x (1+r)^n / ((1+r)^n - 1), where P is the loan amount, r is the monthly interest rate (the annual rate divided by 12), and n is the tenure in months. For example, a 30 lakh loan at 9 percent for 20 years works out to an EMI of about 26,992. Early EMIs are mostly interest and the principal share grows over time, which is why the schedule below shows the split changing every month.",
+      "EMI is calculated on a reducing balance, so every payment first covers interest on what you still owe, then repays a little principal.\n\n```\nEMI = P x r x (1 + r)^n / ((1 + r)^n - 1)\n```\n\n- **P** is the loan amount\n- **r** is the monthly interest rate (annual rate divided by 12)\n- **n** is the tenure in months\n\n**Example:** a ₹30 lakh loan at 9% for 20 years works out to an EMI of about ₹26,992.\n\nEarly EMIs are mostly interest and the principal share grows every month, which is why the schedule below shows the split changing over time.",
     heroArt: `${ART}/emi.svg`,
     faq: [
       { q: "How is home loan EMI calculated?", a: "EMI = P x r x (1+r)^n / ((1+r)^n - 1), where P is the principal, r the monthly interest rate, and n the tenure in months. Our calculator applies this on a reducing balance and rounds each installment to the nearest rupee." },
@@ -46,7 +45,6 @@ export const CALCULATORS: CalculatorDef[] = [
     slug: "loan-eligibility",
     group: "loans",
     businessLine: "loans",
-    eyebrow: "Loan calculators",
     navLabel: "Loan Eligibility",
     cardSummary: "Find out how much loan you can get from your income, obligations, and tenure.",
     h1: "Loan Eligibility Calculator",
@@ -57,7 +55,7 @@ export const CALCULATORS: CalculatorDef[] = [
     intro:
       "Use this loan eligibility calculator to see how much loan you can get from your monthly income, existing EMIs, interest rate, and tenure. It applies the same FOIR and income multiplier rules Indian banks use to decide your home loan eligibility.",
     howItWorks:
-      "Banks cap your total EMIs at a share of income called FOIR (Fixed Obligation to Income Ratio), usually around 50 percent. Your maximum EMI is income times FOIR minus your existing EMIs. That EMI is converted back into a loan amount at your rate and tenure, and the bank sanctions the lower of that figure and a flat multiple of your monthly income. A longer tenure and a co-applicant both push the eligible amount up.",
+      "Banks cap your total EMIs at a share of your income called FOIR (Fixed Obligation to Income Ratio), usually around 50%.\n\n```\nMax EMI = (Income x FOIR) - Existing EMIs\n```\n\nThat maximum EMI is then converted back into a loan amount at your interest rate and tenure. The bank sanctions the lower of that figure and a flat multiple of your monthly income (typically around 60x).\n\n**Example:** a ₹1 lakh monthly income with no existing EMIs and a 50% FOIR gives a maximum EMI of ₹50,000, which converts into the loan amount shown above at your chosen rate and tenure.\n\nA longer tenure and a co-applicant's income both push the eligible amount up.",
     heroArt: `${ART}/loan-eligibility.svg`,
     faq: [
       { q: "How is home loan eligibility calculated?", a: "Lenders work out the maximum EMI you can afford as your income times FOIR (around 50 percent) minus your current EMIs, then convert that EMI into a loan at your rate and tenure. The final sanction is the lower of that amount and a multiple of your monthly income." },
@@ -80,7 +78,6 @@ export const CALCULATORS: CalculatorDef[] = [
     slug: "prepayment",
     group: "loans",
     businessLine: "loans",
-    eyebrow: "Loan calculators",
     navLabel: "Prepayment",
     cardSummary: "See how a part-payment cuts your tenure or your EMI, and how much interest you save.",
     h1: "Loan Prepayment Calculator",
@@ -91,7 +88,7 @@ export const CALCULATORS: CalculatorDef[] = [
     intro:
       "Use this loan prepayment calculator to see how a lump sum part-payment on your home loan reduces the tenure or the EMI, and how much interest you save. Compare keeping the EMI and finishing sooner against keeping the tenure and paying a lower EMI.",
     howItWorks:
-      "A prepayment goes straight to your outstanding principal, so the interest on every future month is charged on a smaller balance. You then choose between two outcomes. Keep the same EMI and the loan ends sooner, or keep the same tenure and pay a smaller EMI. Reducing the tenure almost always saves more interest, because the balance clears faster. A prepayment made early in the loan, when the balance is highest, saves the most.",
+      "A prepayment goes straight to your outstanding principal, so interest on every future month is charged on a smaller balance.\n\nYou choose between two outcomes:\n\n- Keep the same EMI, and the loan ends sooner\n- Keep the same tenure, and pay a smaller EMI\n\nReducing the tenure almost always saves more interest, because the balance clears faster. A prepayment made early in the loan, when the outstanding balance is highest, saves the most.",
     heroArt: `${ART}/prepayment.svg`,
     faq: [
       { q: "Should I reduce the tenure or the EMI when I prepay?", a: "Reducing the tenure usually saves more interest, because the outstanding balance is cleared faster. Reducing the EMI eases your monthly cash flow instead. The calculator shows the interest saved for both so you can choose." },
@@ -114,7 +111,6 @@ export const CALCULATORS: CalculatorDef[] = [
     slug: "loan-comparison",
     group: "loans",
     businessLine: "loans",
-    eyebrow: "Loan calculators",
     navLabel: "Loan Comparison",
     cardSummary: "Compare up to three loan offers side by side on EMI, total interest, and cost.",
     h1: "Loan Comparison Calculator",
@@ -125,7 +121,7 @@ export const CALCULATORS: CalculatorDef[] = [
     intro:
       "Use this loan comparison calculator to compare up to three loan offers side by side and find which loan is genuinely cheaper. See the EMI, total interest, and total cost for each, so you can look past the advertised rate and pick the offer that actually costs less.",
     howItWorks:
-      "Each offer is run through the same reducing balance EMI formula, then the processing fee is added to show the true all in cost. A lower advertised rate is not always the cheaper loan once the fee and the tenure are counted, which is why the calculator ranks offers by total cost, not by headline rate.",
+      "Each offer is run through the same reducing balance EMI formula, then the processing fee is added on top to show the true all-in cost.\n\n```\nTotal cost = Principal + Total interest + Processing fee\n```\n\nA lower advertised rate is not always the cheaper loan once the fee and the tenure are counted, which is why the calculator ranks offers by total cost, not by headline rate.",
     heroArt: `${ART}/loan-comparison.svg`,
     faq: [
       { q: "How do I know which loan is cheaper?", a: "Compare the total cost, not just the interest rate. A loan with a slightly higher rate but a lower processing fee, or a shorter tenure, can cost less overall. The calculator adds fees to interest so the cheapest offer is clear." },
@@ -147,7 +143,6 @@ export const CALCULATORS: CalculatorDef[] = [
     slug: "loan-against-property",
     group: "loans",
     businessLine: "loans",
-    eyebrow: "Loan calculators",
     navLabel: "Loan Against Property",
     cardSummary: "See how much you can borrow against a property you own, and the EMI on it.",
     h1: "Loan Against Property Calculator",
@@ -158,7 +153,7 @@ export const CALCULATORS: CalculatorDef[] = [
     intro:
       "Use this loan against property calculator to see how much you can borrow against a property you own and the EMI on it. A loan against property (LAP) typically funds 50 to 70 percent of the market value at a lower rate than an unsecured loan.",
     howItWorks:
-      "The maximum loan is the loan to value ratio times your property's market value. For example, a 1 crore property at a 60 percent LTV supports a loan of up to 60 lakh. That amount, at your interest rate and tenure, gives the EMI on a reducing balance, exactly as any other loan. Lenders also check your income, so your final sanction is the lower of the LTV limit and your repayment capacity.",
+      "The maximum loan is your loan-to-value (LTV) ratio times the property's market value.\n\n```\nMax loan = LTV x Property value\n```\n\n**Example:** a ₹1 crore property at a 60% LTV supports a loan of up to ₹60 lakh.\n\nThat amount, at your interest rate and tenure, gives the EMI on a reducing balance, exactly as any other loan. Lenders also check your income, so your final sanction is the lower of the LTV limit and your repayment capacity.",
     heroArt: `${ART}/loan-against-property.svg`,
     faq: [
       { q: "How much loan can I get against my property?", a: "Usually 50 to 70 percent of the market value, depending on the lender, the property type, and your income and repayment capacity. Enter your property value above to see the amount and the EMI." },
@@ -181,7 +176,6 @@ export const CALCULATORS: CalculatorDef[] = [
     slug: "home-affordability",
     group: "real_estate",
     businessLine: "real_estate",
-    eyebrow: "Property calculators",
     navLabel: "Home Affordability",
     cardSummary: "Find the property price you can afford from your income and down payment.",
     h1: "Home Affordability Calculator",
@@ -192,7 +186,7 @@ export const CALCULATORS: CalculatorDef[] = [
     intro:
       "Use this home affordability calculator to find out how much house you can afford in India. Enter your income, existing EMIs, and the down payment you can make to see the property price you can comfortably manage, along with the loan and monthly EMI behind it.",
     howItWorks:
-      "Your income sets the EMI you can afford through the FOIR rule, and that EMI converts into a maximum loan at current rates. Add the down payment you have saved to get the property price you can reach, capped by how much the lender will finance against the value (the LTV limit). As a rule of thumb, keep all your EMIs within about half of your net take home pay so the home stays comfortable, not stretched.",
+      "Your income sets the EMI you can afford through the FOIR rule, and that EMI converts into a maximum loan at current rates.\n\n```\nProperty price = (Max loan / LTV) + Down payment\n```\n\nThe loan is capped by how much the lender will finance against the property's value (the LTV limit). As a rule of thumb, keep all your EMIs within about half of your net take-home pay so the home stays comfortable, not stretched.",
     heroArt: `${ART}/home-affordability.svg`,
     faq: [
       { q: "How much house can I afford on my salary?", a: "As a rule of thumb, keep all your EMIs within about half of your net monthly income. The calculator turns that affordable EMI into a loan and, with your down payment, into a property price you can comfortably manage." },
@@ -214,7 +208,6 @@ export const CALCULATORS: CalculatorDef[] = [
     slug: "stamp-duty",
     group: "real_estate",
     businessLine: "real_estate",
-    eyebrow: "Property calculators",
     navLabel: "Stamp Duty",
     cardSummary: "Estimate stamp duty and registration charges for your state on a property purchase.",
     h1: "Stamp Duty & Registration Calculator",
@@ -225,7 +218,7 @@ export const CALCULATORS: CalculatorDef[] = [
     intro:
       "Use this stamp duty calculator to estimate the stamp duty and registration charges you will pay on a property purchase in your state. Rates vary from state to state, and many states offer a lower rate for women buyers, which the calculator applies where it exists.",
     howItWorks:
-      "Stamp duty is a percentage of the property value set by each state government, usually 4 to 7 percent, and registration is typically about 1 percent. Both are charged on the higher of the agreement value and the state's ready reckoner or circle rate. These are upfront costs paid on top of the price, and they cannot be added to your home loan.",
+      "Stamp duty and registration are both a percentage of the property value, set by each state government.\n\n```\nStamp duty + Registration = (Stamp duty % + Registration %) x Property value\n```\n\n- Stamp duty is usually 4% to 7%, and varies by state\n- Registration is typically about 1%\n- Both are charged on the higher of the agreement value and the state's ready reckoner (circle) rate\n\nThese are upfront costs paid on top of the price, and cannot be added to your home loan.",
     heroArt: `${ART}/stamp-duty.svg`,
     faq: [
       { q: "How much is stamp duty in my state?", a: "It varies by state. Most states charge 4 to 7 percent stamp duty plus about 1 percent registration. Select your state above to see an estimate for your property value." },
@@ -248,7 +241,6 @@ export const CALCULATORS: CalculatorDef[] = [
     slug: "gst",
     group: "real_estate",
     businessLine: "real_estate",
-    eyebrow: "Property calculators",
     navLabel: "GST on Property",
     cardSummary: "Work out the GST on an under-construction property purchase.",
     h1: "GST on Property Calculator",
@@ -259,7 +251,7 @@ export const CALCULATORS: CalculatorDef[] = [
     intro:
       "Use this GST on property calculator to work out the GST payable on an under-construction flat. Enter the property value and type to see the tax. Under-construction homes attract GST, while ready to move properties with a completion certificate are exempt.",
     howItWorks:
-      "GST on residential property is an effective 1 percent for affordable homes and 5 percent otherwise, both without input tax credit. These headline rates already account for a one-third deduction for the value of the land, so you apply 1 percent or 5 percent to the full sale value shown on the cost sheet, not to two-thirds of it. For example, a 60 lakh non affordable flat carries 5 percent GST, which is 3 lakh. A completed, ready to move home with a completion certificate attracts no GST at all.",
+      "GST on residential property is an effective 1% for affordable homes and 5% otherwise, both without input tax credit.\n\n```\nGST = GST rate x Full sale value\n```\n\nThese headline rates already account for a one-third deduction for the value of land, so the rate applies to the full sale value on the cost sheet, not to two-thirds of it.\n\n**Example:** a ₹60 lakh non-affordable flat carries 5% GST, which is ₹3 lakh.\n\nA completed, ready-to-move home with a completion certificate attracts no GST at all.",
     heroArt: `${ART}/gst.svg`,
     faq: [
       { q: "How much is GST on a property purchase?", a: "For an under-construction home, GST is an effective 1 percent for affordable housing and 5 percent for other homes, charged on the full sale value. A 60 lakh non affordable flat therefore carries 3 lakh of GST, and a 60 lakh affordable home carries 60,000." },
@@ -282,7 +274,6 @@ export const CALCULATORS: CalculatorDef[] = [
     slug: "property-appreciation",
     group: "real_estate",
     businessLine: "real_estate",
-    eyebrow: "Property calculators",
     navLabel: "Property Appreciation",
     cardSummary: "Project the future value of a property and its annual growth rate.",
     h1: "Property Appreciation Calculator",
@@ -293,7 +284,7 @@ export const CALCULATORS: CalculatorDef[] = [
     intro:
       "Use this property appreciation calculator to project the future value of a property from an expected annual growth rate, or to work out the CAGR between two values. Enter a value, a growth rate, and a holding period to see the future value and the total gain.",
     howItWorks:
-      "Property value grows by compounding, with the formula FV = PV x (1 + g)^n, where g is the annual growth rate and n is the number of years. For example, a 50 lakh property growing at 7 percent a year is worth about 98 lakh after 10 years. The calculator can also reverse this to find the CAGR, the steady annual rate that took a property from one value to another.",
+      "Property value grows by compounding.\n\n```\nFV = PV x (1 + g)^n\n```\n\n- **PV** is the property's current value\n- **g** is the annual growth rate\n- **n** is the number of years\n\n**Example:** a ₹50 lakh property growing at 7% a year is worth about ₹98 lakh after 10 years.\n\nThe calculator can also reverse this to find the CAGR, the single steady annual rate that took a property from one value to another.",
     heroArt: `${ART}/property-appreciation.svg`,
     faq: [
       { q: "How do I calculate property appreciation?", a: "Compound the current value forward with FV = PV x (1 + g)^n, where g is the annual growth rate and n is the number of years. Enter your figures above and the calculator does it and shows the total gain." },
@@ -315,7 +306,6 @@ export const CALCULATORS: CalculatorDef[] = [
     slug: "rental-yield",
     group: "real_estate",
     businessLine: "real_estate",
-    eyebrow: "Property calculators",
     navLabel: "Rental Yield",
     cardSummary: "Calculate the gross and net rental yield on a property investment.",
     h1: "Rental Yield Calculator",
@@ -326,7 +316,7 @@ export const CALCULATORS: CalculatorDef[] = [
     intro:
       "Use this rental yield calculator to work out the gross and net rental yield on a property. Enter the property value, the monthly rent, and annual expenses to see your yield, the annual rental return as a percentage of the property's value.",
     howItWorks:
-      "Gross yield is the annual rent divided by the property value, shown as a percentage. Net yield goes further and subtracts annual costs like maintenance, property tax, insurance, and a vacancy allowance before dividing, so it reflects what you actually keep. For example, a 50 lakh flat rented at 20,000 a month earns 2.4 lakh a year, a gross yield of 4.8 percent, and rather less once costs are counted.",
+      "Gross yield is the annual rent divided by the property value.\n\n```\nGross yield = (Monthly rent x 12) / Property value\n```\n\nNet yield goes further and subtracts annual costs, maintenance, property tax, insurance, and a vacancy allowance, before dividing, so it reflects what you actually keep.\n\n**Example:** a ₹50 lakh flat rented at ₹20,000 a month earns ₹2.4 lakh a year, a gross yield of 4.8%, and rather less once costs are counted.",
     heroArt: `${ART}/rental-yield.svg`,
     faq: [
       { q: "What is a good rental yield in India?", a: "Residential rental yields of 3.5 to 5 percent are common in India, and a net yield above 4 percent is generally considered healthy. Commercial property usually yields more, often 6 to 9 percent." },
@@ -349,7 +339,6 @@ export const CALCULATORS: CalculatorDef[] = [
     slug: "down-payment-planner",
     group: "real_estate",
     businessLine: "real_estate",
-    eyebrow: "Property calculators",
     navLabel: "Down Payment Planner",
     cardSummary: "Plan the monthly saving needed to reach your property down payment.",
     h1: "Down Payment Planner",
@@ -360,7 +349,7 @@ export const CALCULATORS: CalculatorDef[] = [
     intro:
       "Use this down payment planner to work out how much to save each month to reach your home down payment by your target date. Enter the property value, the down payment share, your timeline, and an expected return on savings to see your monthly target.",
     howItWorks:
-      "The down payment you need is the property value minus the loan the bank will give, bounded by the LTV limit, usually 10 to 25 percent of the price. To reach that by your target date, the required monthly saving is derived from a SIP style formula that allows for growth on what you invest, so a higher expected return means a smaller monthly outlay.",
+      "The down payment you need is the property value minus the loan the bank will give, bounded by the LTV limit, usually 10% to 25% of the price.\n\n```\nDown payment = Property value - (LTV x Property value)\n```\n\nTo reach that amount by your target date, the required monthly saving is derived from a SIP-style formula that allows for growth on what you invest, so a higher expected return means a smaller monthly outlay.",
     heroArt: `${ART}/down-payment-planner.svg`,
     faq: [
       { q: "How much down payment do I need for a house in India?", a: "Lenders finance 75 to 90 percent of the property value, so plan for a down payment of 10 to 25 percent, plus stamp duty and registration on top. The planner works out the exact amount from your property value." },

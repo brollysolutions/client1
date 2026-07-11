@@ -29,8 +29,6 @@ export interface CalculatorDef {
   /** Which hub column and which lead team this belongs to. */
   group: "loans" | "real_estate";
   businessLine: LeadBusinessLine;
-  /** Small uppercase eyebrow above the H1. */
-  eyebrow: string;
   /** Short label for hub cards, breadcrumbs, and related-links. */
   navLabel: string;
   /** One-line hub-card description. */

@@ -1,13 +1,14 @@
 import Link from "next/link";
-import { ChevronRight, HelpCircle, LayoutGrid, Sparkles } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 
 import { LeadDialog } from "@/components/lead-dialog";
-import { calculatorIcon } from "@/lib/calculators/icons";
+import { FaqDoodles } from "@/components/faq-doodles";
 import { getCalculator } from "@/lib/calculators/registry";
 import type { CalculatorDef } from "@/lib/calculators/types";
 import { CalculatorCard } from "./calculator-card";
 import { CalculatorFaq } from "./calculator-faq";
 import { CalculatorHeroArt } from "./calculator-hero-art";
+import { HowItsCalculated } from "./how-its-calculated";
 
 // The server scaffold shared by every calculator page: hero (SEO copy) -> the
 // interactive island -> "how it's calculated" -> FAQ -> related calculators ->
@@ -23,7 +24,6 @@ export function CalculatorShell({
   const related = def.relatedSlugs
     .map((slug) => getCalculator(slug))
     .filter((c): c is CalculatorDef => Boolean(c));
-  const HeroIcon = calculatorIcon(def.slug);
 
   return (
     <>
@@ -52,11 +52,7 @@ export function CalculatorShell({
 
           <div className="mt-6 grid items-center gap-8 lg:grid-cols-[1fr_auto]">
             <div>
-              <span className="inline-flex items-center gap-2 rounded-full bg-[var(--nav-tint)] px-3 py-1 font-geist text-xs font-semibold uppercase tracking-wide text-[var(--nav-primary)] ring-1 ring-inset ring-[var(--nav-primary)]/10">
-                <HeroIcon className="h-3.5 w-3.5" aria-hidden />
-                {def.eyebrow}
-              </span>
-              <h1 className="mt-4 max-w-3xl font-heading text-4xl font-semibold text-[var(--nav-text)] sm:text-5xl">
+              <h1 className="font-heading text-4xl font-semibold text-[var(--nav-text)] sm:text-5xl">
                 {def.h1}
               </h1>
               <p className="mt-4 max-w-2xl text-lg text-[var(--nav-text)]">{def.intro}</p>
@@ -66,23 +62,21 @@ export function CalculatorShell({
         </div>
       </section>
 
-      {/* Calculator island */}
+      {/* Calculator island + collapsed "how it's calculated" footnote */}
       <section className="w-full border-t border-[var(--nav-border)] bg-surface">
-        <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8 lg:py-14">{children}</div>
-      </section>
-
-      {/* How it's calculated */}
-      <section className="w-full border-t border-[var(--nav-border)] bg-[var(--nav-bg)]">
-        <div className="mx-auto max-w-3xl px-4 py-14 sm:px-6 lg:px-8">
-          <SectionHeading icon={Sparkles} title="How it's calculated" />
-          <p className="mt-5 text-lg leading-relaxed text-[var(--nav-text)]">{def.howItWorks}</p>
+        <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8 lg:py-14">
+          {children}
+          <HowItsCalculated content={def.howItWorks} />
         </div>
       </section>
 
       {/* FAQ */}
-      <section className="w-full border-t border-[var(--nav-border)] bg-surface">
-        <div className="mx-auto max-w-3xl px-4 py-14 sm:px-6 lg:px-8">
-          <SectionHeading icon={HelpCircle} title="Frequently asked questions" />
+      <section className="relative w-full overflow-hidden border-t border-[var(--nav-border)] bg-surface">
+        <FaqDoodles />
+        <div className="relative mx-auto max-w-3xl px-4 py-14 sm:px-6 lg:px-8">
+          <h2 className="font-heading text-2xl font-semibold text-[var(--nav-text)] sm:text-3xl">
+            Frequently asked questions
+          </h2>
           <div className="mt-6">
             <CalculatorFaq items={def.faq} />
           </div>
@@ -93,7 +87,9 @@ export function CalculatorShell({
       {related.length > 0 ? (
         <section className="w-full border-t border-[var(--nav-border)] bg-[var(--nav-bg)]">
           <div className="mx-auto max-w-6xl px-4 py-14 sm:px-6 lg:px-8">
-            <SectionHeading icon={LayoutGrid} title="Related calculators" />
+            <h2 className="font-heading text-2xl font-semibold text-[var(--nav-text)] sm:text-3xl">
+              Related calculators
+            </h2>
             <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               {related.map((item) => (
                 <CalculatorCard key={item.slug} def={item} compact />
@@ -123,28 +119,5 @@ export function CalculatorShell({
         </div>
       </section>
     </>
-  );
-}
-
-// Section header with a tinted icon badge, matching the hub and card treatment.
-function SectionHeading({
-  icon: Icon,
-  title,
-}: {
-  icon: React.ComponentType<{ className?: string }>;
-  title: string;
-}) {
-  return (
-    <div className="flex items-center gap-3">
-      <span
-        aria-hidden
-        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--nav-tint)] text-[var(--nav-primary)] ring-1 ring-inset ring-[var(--nav-primary)]/10"
-      >
-        <Icon className="h-5 w-5" />
-      </span>
-      <h2 className="font-heading text-2xl font-semibold text-[var(--nav-text)] sm:text-3xl">
-        {title}
-      </h2>
-    </div>
   );
 }

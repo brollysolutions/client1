@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
-import { Building2, HelpCircle, Wallet } from "lucide-react";
+import { Building2, Wallet } from "lucide-react";
 
 import { CalculatorCard } from "@/components/calculators/calculator-card";
 import { CalculatorFaq } from "@/components/calculators/calculator-faq";
 import { CalculatorHeroArt } from "@/components/calculators/calculator-hero-art";
+import { FaqDoodles } from "@/components/faq-doodles";
 import { LeadDialog } from "@/components/lead-dialog";
 import { CALCULATORS, HUB_FAQ } from "@/lib/calculators/registry";
 import type { CalculatorDef } from "@/lib/calculators/types";
@@ -71,10 +72,7 @@ export default function CalculatorsHubPage() {
         <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 sm:py-20 lg:px-8">
           <div className="grid items-center gap-8 lg:grid-cols-[1fr_auto]">
             <div>
-              <span className="inline-flex items-center rounded-full bg-[var(--nav-tint)] px-3 py-1 font-geist text-xs font-semibold uppercase tracking-wide text-[var(--nav-primary)] ring-1 ring-inset ring-[var(--nav-primary)]/10">
-                Free calculators, no login
-              </span>
-              <h1 className="mt-4 max-w-3xl font-heading text-4xl font-semibold text-[var(--nav-text)] sm:text-5xl lg:text-6xl">
+              <h1 className="font-heading text-4xl font-semibold text-[var(--nav-text)] sm:text-5xl lg:text-6xl">
                 Financial calculators for loans and property
               </h1>
               <p className="mt-4 max-w-2xl text-lg text-[var(--nav-text)] sm:text-xl">
@@ -118,19 +116,12 @@ export default function CalculatorsHubPage() {
       />
 
       {/* Hub FAQ */}
-      <section className="w-full border-t border-[var(--nav-border)] bg-[var(--nav-bg)]">
-        <div className="mx-auto max-w-3xl px-4 py-16 sm:px-6 sm:py-20 lg:px-8">
-          <div className="flex items-center gap-3">
-            <span
-              aria-hidden
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--nav-tint)] text-[var(--nav-primary)] ring-1 ring-inset ring-[var(--nav-primary)]/10"
-            >
-              <HelpCircle className="h-5 w-5" />
-            </span>
-            <h2 className="font-heading text-2xl font-semibold text-[var(--nav-text)] sm:text-3xl">
-              Frequently asked questions
-            </h2>
-          </div>
+      <section className="relative w-full overflow-hidden border-t border-[var(--nav-border)] bg-[var(--nav-bg)]">
+        <FaqDoodles />
+        <div className="relative mx-auto max-w-3xl px-4 py-16 sm:px-6 sm:py-20 lg:px-8">
+          <h2 className="font-heading text-2xl font-semibold text-[var(--nav-text)] sm:text-3xl">
+            Frequently asked questions
+          </h2>
           <div className="mt-6">
             <CalculatorFaq items={HUB_FAQ} />
           </div>

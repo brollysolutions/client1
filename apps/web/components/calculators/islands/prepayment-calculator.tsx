@@ -136,30 +136,30 @@ export function PrepaymentCalculator() {
         ) : (
           <>
             <div className="grid gap-4 sm:grid-cols-2">
-              <div className="rounded-xl border border-[var(--nav-border)] bg-white p-5">
+              <div className="min-w-0 rounded-xl border border-[var(--nav-border)] bg-white p-5">
                 <p className="font-heading text-base font-semibold text-[var(--nav-text)]">
                   Option A: Reduce tenure
                 </p>
                 <p className="mt-3 text-sm text-text-secondary">New tenure</p>
-                <p className="mt-1 font-heading text-xl font-semibold text-[var(--nav-text)]">
+                <p className="mt-1 break-words font-heading text-xl font-semibold tabular-nums [overflow-wrap:anywhere] text-[var(--nav-text)]">
                   {tenureHelper(result.reduceTenure.newMonths)}
                 </p>
                 <p className="mt-3 text-sm text-text-secondary">Interest saved</p>
-                <p className="mt-1 font-heading text-2xl font-semibold text-brand-blue">
+                <p className="mt-1 break-words font-heading text-xl font-semibold tabular-nums [overflow-wrap:anywhere] text-brand-blue">
                   {formatINR(result.reduceTenure.interestSaved)}
                 </p>
               </div>
 
-              <div className="rounded-xl border border-[var(--nav-border)] bg-white p-5">
+              <div className="min-w-0 rounded-xl border border-[var(--nav-border)] bg-white p-5">
                 <p className="font-heading text-base font-semibold text-[var(--nav-text)]">
                   Option B: Reduce EMI
                 </p>
                 <p className="mt-3 text-sm text-text-secondary">New EMI</p>
-                <p className="mt-1 font-heading text-xl font-semibold text-[var(--nav-text)]">
+                <p className="mt-1 break-words font-heading text-xl font-semibold tabular-nums [overflow-wrap:anywhere] text-[var(--nav-text)]">
                   {formatINR(result.reduceEmi.newEmi)}
                 </p>
                 <p className="mt-3 text-sm text-text-secondary">Interest saved</p>
-                <p className="mt-1 font-heading text-2xl font-semibold text-brand-blue">
+                <p className="mt-1 break-words font-heading text-xl font-semibold tabular-nums [overflow-wrap:anywhere] text-brand-blue">
                   {formatINR(result.reduceEmi.interestSaved)}
                 </p>
               </div>
