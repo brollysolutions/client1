@@ -33,10 +33,10 @@ export function CalculatorHeroArt({
     return (
       <div
         aria-hidden
-        className={cn("hidden shrink-0 items-center justify-center lg:flex lg:w-[380px]", className)}
+        className={cn("hidden shrink-0 items-center justify-center lg:flex lg:w-[460px]", className)}
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={asset} alt="" className="h-auto w-full max-w-[380px]" loading="lazy" />
+        <img src={asset} alt="" className="h-auto w-full max-w-[460px]" loading="lazy" />
       </div>
     );
   }
@@ -45,13 +45,13 @@ export function CalculatorHeroArt({
     <div
       aria-hidden
       className={cn(
-        "hidden shrink-0 items-center justify-center rounded-2xl border border-[var(--nav-border)] bg-gradient-to-br from-white to-[var(--nav-tint)]/50 p-6 shadow-sm lg:flex lg:w-[340px]",
+        "hidden shrink-0 items-center justify-center rounded-2xl border border-[var(--nav-border)] bg-gradient-to-br from-white to-[var(--nav-tint)]/50 p-6 shadow-sm lg:flex lg:w-[420px]",
         className,
       )}
     >
       <svg
         viewBox="0 0 240 180"
-        className="h-auto w-full max-w-[280px] text-brand-blue"
+        className="h-auto w-full max-w-[340px] text-brand-blue"
         fill="none"
         stroke="currentColor"
         strokeWidth={3}

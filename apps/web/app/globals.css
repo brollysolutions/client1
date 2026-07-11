@@ -143,6 +143,11 @@
   --nav-primary-hover: #0369a1;
   --nav-tint: #e0f2fe;
   --nav-border: #e3e3db;
+
+  /* Light info-yellow, for the "Indicative" disclaimer badge (road-sign feel,
+     distinct from the blue used for neutral/explainer content). */
+  --nav-info-tint: #fef3c7;
+  --nav-info-text: #92400e;
 }
 
 /* Floating finance doodles (home page decor). Gentle bubble drift: a slow bob +
