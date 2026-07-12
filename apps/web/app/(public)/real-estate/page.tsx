@@ -61,7 +61,7 @@ export default function RealEstatePage() {
         title="Find the property that fits you"
         intro="From flats and plots to offices and shops, we bring only verified listings and trusted agents together in one place. We stay with you at every step, from the first visit until you hold the keys."
         heroDoodles
-        heroPlant="/illustrations/doodles/tree-house.svg"
+        heroPlant="/illustrations/heroes/real-estate.svg"
         beforeJourney={
           <div className="relative w-full border-t border-[var(--nav-border)] bg-[var(--nav-bg)] py-20 sm:py-24 lg:py-28">
             <PropertyDoodles />

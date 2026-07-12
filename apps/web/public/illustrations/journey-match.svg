@@ -1,1 +1,54 @@
-<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 480 360"><defs><radialGradient id="jmGlow" cx=".5" cy=".45" r=".6"><stop offset="0" stop-color="#d0e7e6" stop-opacity=".9"/><stop offset=".65" stop-color="#d0e7e6" stop-opacity=".22"/><stop offset="1" stop-color="#d0e7e6" stop-opacity="0"/></radialGradient><filter id="jmSoft" width="180%" height="180%" x="-40%" y="-40%"><feGaussianBlur stdDeviation="7"/></filter></defs><ellipse cx="240" cy="182" fill="url(#jmGlow)" rx="205" ry="165"/><ellipse cx="240" cy="302" fill="#293681" filter="url(#jmSoft)" opacity=".12" rx="145" ry="20"/><rect width="140" height="152" x="150" y="122" fill="#f1f5fc" stroke="#dce6f5" stroke-width="2" rx="14" transform="rotate(-11 250 205)"/><rect width="140" height="152" x="168" y="114" fill="#fafcfe" stroke="#dce6f5" stroke-width="2" rx="14" transform="rotate(-5 250 198)"/><rect width="148" height="158" x="188" y="104" fill="#fff" stroke="#4274d9" stroke-width="3" rx="16"/><path stroke="#293681" stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M206 140h44m-40 0 18-11 18 11m-33 2v16m8-16v16m14-16v16m8-16v16m-37 2h44"/><text x="272" y="152" fill="#4274d9" font-family="system-ui,sans-serif" font-size="30" font-weight="800">₹</text><rect width="112" height="8" x="206" y="178" fill="#dce6f5" rx="4"/><rect width="78" height="8" x="206" y="194" fill="#dce6f5" rx="4"/><circle cx="304" cy="198" r="16" fill="#eaf1fb"/><text x="304" y="204" fill="#4274d9" font-family="system-ui,sans-serif" font-size="15" font-weight="800" text-anchor="middle">%</text><circle cx="214" cy="234" r="13" fill="#4274d9"/><path stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="m208 234 4 4 8-9"/><rect width="84" height="8" x="234" y="228" fill="#dce6f5" rx="4"/><g stroke="#293681" stroke-linecap="round" stroke-width="5"><circle cx="332" cy="118" r="26" fill="#eaf1fb" fill-opacity=".65"/><path d="m351 137 19 19"/></g><path fill="#95ccdd" d="m156 96 3.5 8 8 3.5-8 3.5-3.5 8-3.5-8-8-3.5 8-3.5z"/><path fill="#6fa98c" d="M126 304c-4-16 2-30 10-36q-3 18 6 30"/><path fill="#4e8e6e" d="M134 304c8-12 20-16 30-14-8 8-14 16-16 26"/><path fill="#c4633f" d="M118 304h36l-5 16h-26z"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 360" fill="none">
+  <defs>
+    <radialGradient id="jmGlow" cx="0.5" cy="0.45" r="0.6">
+      <stop offset="0" stop-color="#D0E7E6" stop-opacity="0.9"/>
+      <stop offset="0.65" stop-color="#D0E7E6" stop-opacity="0.22"/>
+      <stop offset="1" stop-color="#D0E7E6" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="jmSoft" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="7"/></filter>
+  </defs>
+  <ellipse cx="240" cy="182" rx="205" ry="165" fill="url(#jmGlow)"/>
+  <ellipse cx="240" cy="302" rx="145" ry="20" fill="#293681" opacity="0.12" filter="url(#jmSoft)"/>
+
+  <!-- fanned offer cards behind -->
+  <g transform="rotate(-11 250 205)"><rect x="150" y="122" width="140" height="152" rx="14" fill="#F1F5FC" stroke="#DCE6F5" stroke-width="2"/></g>
+  <g transform="rotate(-5 250 198)"><rect x="168" y="114" width="140" height="152" rx="14" fill="#FAFCFE" stroke="#DCE6F5" stroke-width="2"/></g>
+
+  <!-- front, chosen offer card -->
+  <rect x="188" y="104" width="148" height="158" rx="16" fill="#FFFFFF" stroke="#4274D9" stroke-width="3"/>
+  <!-- bank glyph -->
+  <g stroke="#293681" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <path d="M206 140h44"/>
+    <path d="M210 140l18-11 18 11"/>
+    <path d="M213 142v16M221 142v16M235 142v16M243 142v16"/>
+    <path d="M206 160h44"/>
+  </g>
+  <!-- rupee amount -->
+  <text x="272" y="152" font-family="system-ui,sans-serif" font-size="30" font-weight="800" fill="#4274D9">&#8377;</text>
+  <!-- rate lines -->
+  <rect x="206" y="178" width="112" height="8" rx="4" fill="#DCE6F5"/>
+  <rect x="206" y="194" width="78" height="8" rx="4" fill="#DCE6F5"/>
+  <!-- percent badge -->
+  <circle cx="304" cy="198" r="16" fill="#EAF1FB" stroke="#93B4E8" stroke-width="1.6"/>
+  <text x="304" y="204" text-anchor="middle" font-family="system-ui,sans-serif" font-size="15" font-weight="800" fill="#4274D9">%</text>
+  <!-- matched check -->
+  <circle cx="214" cy="234" r="13" fill="#4274D9"/>
+  <path d="M208 234l4 4 8-9" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="234" y="228" width="84" height="8" rx="4" fill="#DCE6F5"/>
+
+  <!-- magnifier over the match -->
+  <circle cx="332" cy="118" r="26" fill="#EAF1FB" fill-opacity="0.65" stroke="#293681" stroke-width="5"/>
+  <path d="M318 106a19 19 0 0 1 11-5" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" fill="none" opacity="0.8"/>
+  <path d="M351 137l12 12" stroke="#293681" stroke-width="7" stroke-linecap="round"/>
+  <path d="M362 148l9 9" stroke="#4274D9" stroke-width="9" stroke-linecap="round"/>
+
+  <!-- sparkle + dots -->
+  <path d="M156 96l3.5 8 8 3.5-8 3.5-3.5 8-3.5-8-8-3.5 8-3.5z" fill="#95CCDD"/>
+  <circle cx="140" cy="196" r="3" fill="#95CCDD" opacity="0.8"/>
+  <circle cx="368" cy="220" r="2.5" fill="#95CCDD" opacity="0.7"/>
+
+  <!-- plant -->
+  <path d="M126 304c-4-16 2-30 10-36-2 12 0 22 6 30" fill="#6FA98C"/>
+  <path d="M134 304c8-12 20-16 30-14-8 8-14 16-16 26" fill="#4E8E6E"/>
+  <path d="M118 304h36l-5 16h-26z" fill="#C4633F"/>
+</svg>

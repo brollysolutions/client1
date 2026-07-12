@@ -1,1 +1,43 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="320" height="150" fill="none" viewBox="0 0 320 150"><circle cx="160" cy="74" r="62" fill="#d0e7e6" opacity=".35"/><ellipse cx="160" cy="128" fill="#293681" opacity=".07" rx="86" ry="12"/><path stroke="#2a2e37" stroke-dasharray="2 12" stroke-linecap="round" stroke-width="3" d="M84 126h152" opacity=".5"/><path fill="#3763be" stroke="#293681" stroke-linejoin="round" stroke-width="2" d="m118 84 16-22h54l18 22Z"/><path fill="#bfe0ea" d="m136 82 10-14h14v14Zm30 0V68h16l10 14Z"/><rect width="140" height="30" x="92" y="82" fill="#4274d9" rx="12"/><circle cx="124" cy="114" r="13" fill="#2a2e37"/><circle cx="124" cy="114" r="5" fill="#9aa3ae"/><circle cx="200" cy="114" r="13" fill="#2a2e37"/><circle cx="200" cy="114" r="5" fill="#9aa3ae"/><circle cx="226" cy="94" r="4" fill="#f6e7a6"/><g transform="translate(214 58)"><circle r="11" fill="#e8b54d" stroke="#c08a2e" stroke-width="2"/><circle r="7" stroke="#f2d28a" stroke-width="1.5"/><text y="4" fill="#6b4e16" font-family="system-ui, sans-serif" font-size="11" font-weight="700" text-anchor="middle">₹</text></g></svg>
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="240" viewBox="0 0 320 240" fill="none" role="img">
+  <defs><filter id="vlS" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="5"/></filter></defs>
+  <circle cx="160" cy="112" r="90" fill="#D0E7E6" opacity="0.4"/>
+  <ellipse cx="160" cy="200" rx="100" ry="12" fill="#293681" opacity="0.1" filter="url(#vlS)"/>
+
+  <!-- tar road -->
+  <line x1="66" y1="199" x2="254" y2="199" stroke="#2A2E37" stroke-width="3" stroke-linecap="round" stroke-dasharray="2 12" opacity="0.45"/>
+
+  <!-- cabin + glass -->
+  <path d="M116 147l18-26h56l20 26z" fill="#3763BE"/>
+  <path d="M138 145l12-19h16v19z" fill="#BFE0EA"/>
+  <path d="M172 145v-19h16l12 19z" fill="#BFE0EA"/>
+  <path d="M144 143l10-15h6l-10 15z" fill="#FFFFFF" opacity="0.5"/>
+  <!-- blue body -->
+  <rect x="84" y="145" width="156" height="36" rx="14" fill="#4274D9"/>
+  <path d="M88 172h148a14 14 0 0 1-12 9H100a14 14 0 0 1-12-9z" fill="#2F54C6"/>
+  <rect x="94" y="149" width="56" height="4" rx="2" fill="#7DA3EF"/>
+  <!-- door line + handle -->
+  <path d="M160 147v34" stroke="#2F54C6" stroke-width="2"/>
+  <rect x="167" y="155" width="13" height="4" rx="2" fill="#BFE0EA"/>
+  <!-- lights -->
+  <circle cx="234" cy="157" r="5" fill="#F6E7A6"/>
+  <rect x="84" y="152" width="6" height="9" rx="2" fill="#D96C57"/>
+  <!-- black tyres -->
+  <circle cx="122" cy="181" r="15" fill="#2A2E37"/>
+  <circle cx="122" cy="181" r="6.5" fill="#9AA3AE"/>
+  <circle cx="122" cy="181" r="2" fill="#6B737D"/>
+  <circle cx="202" cy="181" r="15" fill="#2A2E37"/>
+  <circle cx="202" cy="181" r="6.5" fill="#9AA3AE"/>
+  <circle cx="202" cy="181" r="2" fill="#6B737D"/>
+
+  <!-- gold coin -->
+  <g transform="translate(252,108)">
+    <circle r="15" fill="#E8B54D" stroke="#C08A2E" stroke-width="2.4"/>
+    <circle r="10" fill="none" stroke="#F2D28A" stroke-width="1.4"/>
+    <text x="0" y="5" font-family="system-ui, sans-serif" font-size="12" font-weight="700" fill="#6B4E16" text-anchor="middle">&#8377;</text>
+  </g>
+
+  <!-- sparkle + dots -->
+  <path d="M76 80l3 7 7 3-7 3-3 7-3-7-7-3 7-3z" fill="#95CCDD"/>
+  <circle cx="246" cy="70" r="3" fill="#95CCDD"/>
+  <circle cx="60" cy="128" r="2.5" fill="#95CCDD" opacity="0.7"/>
+</svg>

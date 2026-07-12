@@ -117,7 +117,7 @@ export function ProductPage({
             />
           </>
         ) : null}
-        {heroDoodles ? <HeroPlantDoodles src={heroPlant} /> : null}
+        {heroDoodles ? <HeroIllustration src={heroPlant} /> : null}
         <div className="relative mx-auto max-w-7xl px-4 py-16 sm:px-6 sm:py-20 lg:px-8 lg:py-24">
           {eyebrow ? (
             <p className="font-geist text-sm font-semibold uppercase tracking-wide text-brand-blue">
@@ -433,10 +433,11 @@ export function ProductPage({
 
 // Decorative hero illustration grounded on the hero's right edge, scaled to fill
 // the hero height exactly. Square viewBox art, so object-contain/object-bottom
-// letterboxes width and grounds it on the baseline. Loans passes the cherry tree
-// (default); Properties passes the tree-house. Desktop-only (lg+), aria-hidden.
-function HeroPlantDoodles({
-  src = "/illustrations/doodles/cherry-tree.svg",
+// letterboxes width and grounds it on the baseline. Loans passes the credit
+// scene (default); Properties passes the house-search scene. Desktop-only
+// (lg+), aria-hidden.
+function HeroIllustration({
+  src = "/illustrations/heroes/loans.svg",
 }: {
   src?: string;
 }) {
