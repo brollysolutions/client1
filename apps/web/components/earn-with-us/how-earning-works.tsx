@@ -1,6 +1,7 @@
 import Image from "next/image";
 
-import { JourneyFootTrail } from "@/components/journey-foot-trail";
+import { CoinTrail } from "@/components/earn-with-us/coin-trail";
+import { PayoutConfetti } from "@/components/earn-with-us/earn-decor";
 import { cn } from "@/lib/utils";
 
 // Qualitative earning steps, no invented numbers or percentages. Commission is
@@ -73,11 +74,13 @@ export function EarnHowItWorks() {
           ))}
         </ol>
 
-        {/* lg+: alternating illustrated bands with the curvy footprint trail
-            overlaid behind them. Illustrations (alt="") and trail (aria-hidden)
-            are decorative; the numbered badge + heading + text carry content. */}
+        {/* lg+: alternating illustrated bands with the curvy coin money-trail
+            overlaid behind them (the lead becomes money). Illustrations
+            (alt="") and trail (aria-hidden) are decorative; the numbered badge
+            + heading + text carry content. */}
         <ol className="relative mt-12 hidden lg:block">
-          <JourneyFootTrail />
+          <CoinTrail />
+          <PayoutConfetti />
           {STEPS.map((step, index) => {
             const imageOnRight = index % 2 === 1;
             return (
