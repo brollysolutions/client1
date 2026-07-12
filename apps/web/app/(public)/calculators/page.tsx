@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { Building2, Wallet } from "lucide-react";
 
 import { CalculatorCard } from "@/components/calculators/calculator-card";
 import { CalculatorFaq } from "@/components/calculators/calculator-faq";
@@ -102,14 +101,12 @@ export default function CalculatorsHubPage() {
 
       <CalculatorGroup
         id="loans"
-        icon={Wallet}
         title="Loan calculators"
         description="Work out your EMI, check how much you can borrow, compare offers, and see the impact of prepaying."
         items={loans}
       />
       <CalculatorGroup
         id="real-estate"
-        icon={Building2}
         title="Property calculators"
         description="From affordability and stamp duty to GST, rental yield, appreciation, and down payment planning."
         items={realEstate}
@@ -157,13 +154,11 @@ export default function CalculatorsHubPage() {
 
 function CalculatorGroup({
   id,
-  icon: Icon,
   title,
   description,
   items,
 }: {
   id: string;
-  icon: React.ComponentType<{ className?: string }>;
   title: string;
   description: string;
   items: CalculatorDef[];
@@ -171,17 +166,9 @@ function CalculatorGroup({
   return (
     <section id={id} className="w-full scroll-mt-16 border-t border-[var(--nav-border)] bg-[var(--nav-bg)]">
       <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 sm:py-16 lg:px-8">
-        <div className="flex items-center gap-3">
-          <span
-            aria-hidden
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[var(--nav-tint)] text-[var(--nav-primary)] ring-1 ring-inset ring-[var(--nav-primary)]/10"
-          >
-            <Icon className="h-6 w-6" />
-          </span>
-          <h2 className="font-heading text-3xl font-semibold text-[var(--nav-text)] sm:text-4xl">
-            {title}
-          </h2>
-        </div>
+        <h2 className="font-heading text-3xl font-semibold text-[var(--nav-text)] sm:text-4xl">
+          {title}
+        </h2>
         <p className="mt-3 max-w-2xl text-lg text-text-secondary">{description}</p>
         <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {items.map((item) => (
