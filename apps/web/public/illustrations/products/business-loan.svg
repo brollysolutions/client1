@@ -1,16 +1,1 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="320" height="150" viewBox="0 0 320 150" fill="none" role="img">
-  <circle cx="160" cy="74" r="62" fill="#D0E7E6" opacity="0.35"/>
-  <ellipse cx="160" cy="128" rx="86" ry="12" fill="#293681" opacity="0.07"/>
-  <!-- blue accent growth arrow -->
-  <polyline points="196,80 214,62 226,70 244,46" fill="none" stroke="#4274D9" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M232 44 L246 44 L246 58" fill="none" stroke="#4274D9" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
-  <!-- brown briefcase handle -->
-  <path d="M138 74 v-8 a22 22 0 0 1 44 0 v8" fill="none" stroke="#7A4E28" stroke-width="5" stroke-linecap="round"/>
-  <!-- brown leather briefcase -->
-  <rect x="92" y="74" width="136" height="52" rx="10" fill="#B4794A"/>
-  <rect x="92" y="90" width="136" height="4" fill="#7A4E28" opacity="0.7"/>
-  <rect x="148" y="90" width="24" height="14" rx="3" fill="#7A4E28"/>
-  <rect x="156" y="94" width="8" height="6" rx="1.5" fill="#E8B54D"/>
-  <!-- gold coin -->
-  <g transform="translate(196,80)"><circle r="10" fill="#E8B54D" stroke="#C08A2E" stroke-width="2"/><text x="0" y="4" font-family="system-ui, sans-serif" font-size="10" font-weight="700" fill="#6B4E16" text-anchor="middle">&#8377;</text></g>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="150" fill="none" viewBox="0 0 320 150"><circle cx="160" cy="74" r="62" fill="#d0e7e6" opacity=".35"/><ellipse cx="160" cy="128" fill="#293681" opacity=".07" rx="86" ry="12"/><path stroke="#4274d9" stroke-linecap="round" stroke-linejoin="round" stroke-width="4" d="m196 80 18-18 12 8 18-24"/><path stroke="#4274d9" stroke-linecap="round" stroke-linejoin="round" stroke-width="4" d="M232 44h14v14"/><path stroke="#7a4e28" stroke-linecap="round" stroke-width="5" d="M138 74v-8a22 22 0 0 1 44 0v8"/><rect width="136" height="52" x="92" y="74" fill="#b4794a" rx="10"/><path fill="#7a4e28" d="M92 90h136v4H92z" opacity=".7"/><rect width="24" height="14" x="148" y="90" fill="#7a4e28" rx="3"/><rect width="8" height="6" x="156" y="94" fill="#e8b54d" rx="1.5"/><g transform="translate(196 80)"><circle r="10" fill="#e8b54d" stroke="#c08a2e" stroke-width="2"/><text y="4" fill="#6b4e16" font-family="system-ui, sans-serif" font-size="10" font-weight="700" text-anchor="middle">₹</text></g></svg>
