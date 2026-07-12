@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="150" viewBox="0 0 320 150" fill="none" role="img">
+  <circle cx="160" cy="74" r="62" fill="#D0E7E6" opacity="0.35"/>
+  <ellipse cx="160" cy="134" rx="60" ry="10" fill="#293681" opacity="0.07"/>
+  <!-- phone body -->
+  <rect x="126" y="24" width="68" height="108" rx="14" fill="#293681"/>
+  <rect x="132" y="34" width="56" height="88" rx="5" fill="#FFFFFF"/>
+  <!-- header -->
+  <path d="M132 39 a5 5 0 0 1 5 -5 h46 a5 5 0 0 1 5 5 v9 h-56 Z" fill="#4274D9"/>
+  <circle cx="160" cy="129" r="3.5" fill="#95CCDD"/>
+  <!-- "enter OTP" hint line -->
+  <rect x="144" y="56" width="32" height="4" rx="2" fill="#C9D4E8"/>
+  <!-- 4 OTP boxes: first two entered (blue), last two empty -->
+  <rect x="138" y="70" width="10" height="16" rx="3" fill="#4274D9"/>
+  <rect x="151" y="70" width="10" height="16" rx="3" fill="#4274D9"/>
+  <rect x="164" y="70" width="10" height="16" rx="3" fill="#D0E7E6" stroke="#4274D9" stroke-width="1.6"/>
+  <rect x="177" y="70" width="10" height="16" rx="3" fill="#D0E7E6" stroke="#4274D9" stroke-width="1.6"/>
+  <!-- verified submit -->
+  <rect x="140" y="96" width="40" height="13" rx="6.5" fill="#293681"/>
+  <path d="M153 102.5 l3 3 l6 -7" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- signal check badge -->
+  <g transform="translate(196,40)">
+    <circle r="13" fill="#E8B54D" stroke="#C08A2E" stroke-width="2"/>
+    <path d="M-6 0 L-1.5 5 L7 -5" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+</svg>

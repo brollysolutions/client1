@@ -9,19 +9,23 @@ import type { PropertyListing } from "@/lib/properties";
 
 // A titled horizontal-scroll row of property cards (buy listings). Native
 // scroll on trackpad/drag/touch, plus chevron buttons that page the row on
-// click. The last item is a "register to see more" card: the full catalog is
-// gated behind sign-up. Client component: the chevrons drive the scroller
-// imperatively.
+// click. When `showMore` is set, the last item is a "register to see more"
+// card: the full catalog is gated behind sign-up. With several category rows
+// stacked, only the last row shows the gate so it appears once. Client
+// component: the chevrons drive the scroller imperatively.
 
 export function PropertyRow({
   heading,
   types,
   listings,
+  showMore = true,
 }: {
   heading: string;
   /** Optional supporting line, e.g. "Flats, plots, villas, and commercial spaces." */
   types?: string;
   listings: PropertyListing[];
+  /** Render the trailing "register to see more" gate card. Default true. */
+  showMore?: boolean;
 }) {
   const scrollerRef = useRef<HTMLDivElement>(null);
 
@@ -113,23 +117,25 @@ export function PropertyRow({
           ))}
 
           {/* Trailing gate: the full catalog needs an account. */}
-          <Link
-            href="/register"
-            className="flex w-[280px] shrink-0 flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-[var(--nav-primary)]/40 bg-[var(--nav-tint)]/40 p-6 text-center transition hover:bg-[var(--nav-tint)] sm:w-[300px]"
-          >
-            <span className="flex h-12 w-12 items-center justify-center rounded-full bg-[var(--nav-primary)] text-white">
-              <ArrowRight className="h-6 w-6" aria-hidden />
-            </span>
-            <span className="font-heading text-lg font-semibold text-[var(--nav-text)]">
-              See more properties
-            </span>
-            <span className="text-sm text-text-secondary">
-              Register to explore the full list of verified properties.
-            </span>
-            <span className="mt-1 font-geist text-sm font-semibold text-brand-blue">
-              Create a free account
-            </span>
-          </Link>
+          {showMore ? (
+            <Link
+              href="/register"
+              className="flex w-[280px] shrink-0 flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-[var(--nav-primary)]/40 bg-[var(--nav-tint)]/40 p-6 text-center transition hover:bg-[var(--nav-tint)] sm:w-[300px]"
+            >
+              <span className="flex h-12 w-12 items-center justify-center rounded-full bg-[var(--nav-primary)] text-white">
+                <ArrowRight className="h-6 w-6" aria-hidden />
+              </span>
+              <span className="font-heading text-lg font-semibold text-[var(--nav-text)]">
+                See more properties
+              </span>
+              <span className="text-sm text-text-secondary">
+                Register to explore the full list of verified properties.
+              </span>
+              <span className="mt-1 font-geist text-sm font-semibold text-brand-blue">
+                Create a free account
+              </span>
+            </Link>
+          ) : null}
         </div>
       </div>
     </section>

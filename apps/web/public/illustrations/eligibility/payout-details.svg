@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="150" viewBox="0 0 320 150" fill="none" role="img">
+  <circle cx="160" cy="74" r="62" fill="#D0E7E6" opacity="0.35"/>
+  <ellipse cx="160" cy="132" rx="82" ry="11" fill="#293681" opacity="0.07"/>
+  <!-- cheque slip behind -->
+  <g transform="rotate(-7 172 60)">
+    <rect x="140" y="38" width="92" height="50" rx="5" fill="#FFFFFF" stroke="#293681" stroke-width="2"/>
+    <rect x="148" y="46" width="34" height="5" rx="2.5" fill="#4274D9"/>
+    <rect x="148" y="58" width="60" height="4" rx="2" fill="#DDE4F0"/>
+    <rect x="148" y="67" width="48" height="4" rx="2" fill="#DDE4F0"/>
+    <text x="214" y="82" font-family="system-ui, sans-serif" font-size="13" font-weight="700" fill="#C08A2E" text-anchor="end">&#8377;</text>
+  </g>
+  <!-- gold coins -->
+  <g transform="translate(112,66)">
+    <circle r="12" fill="#E8B54D" stroke="#C08A2E" stroke-width="2"/>
+    <circle r="8" fill="none" stroke="#F2D28A" stroke-width="1.5"/>
+    <text x="0" y="4" font-family="system-ui, sans-serif" font-size="11" font-weight="700" fill="#6B4E16" text-anchor="middle">&#8377;</text>
+  </g>
+  <!-- wallet -->
+  <rect x="108" y="82" width="104" height="52" rx="11" fill="#4274D9"/>
+  <path d="M108 100 h104 v23 a11 11 0 0 1 -11 11 h-82 a11 11 0 0 1 -11 -11 Z" fill="#293681"/>
+  <rect x="176" y="104" width="40" height="20" rx="6" fill="#E8F2F1"/>
+  <circle cx="196" cy="114" r="5" fill="#E8B54D" stroke="#C08A2E" stroke-width="1.5"/>
+</svg>

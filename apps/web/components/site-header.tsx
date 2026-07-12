@@ -49,7 +49,7 @@ export function SiteHeader() {
             {NAV_ITEMS.map((item) => {
               // Active when the URL is the item's page or any child route under
               // it (e.g. /calculators/emi keeps "Calculator" lit). Home matches
-              // only "/"; hash anchors (Contact) never light up.
+              // only "/". Every nav item is a real route now (Contact -> /contact).
               const isActive =
                 item.href === "/"
                   ? pathname === "/"
