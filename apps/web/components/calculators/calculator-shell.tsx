@@ -3,6 +3,7 @@ import { Calculator, ChevronRight, Home as HomeIcon } from "lucide-react";
 
 import { LeadDialog } from "@/components/lead-dialog";
 import { FaqDoodles } from "@/components/faq-doodles";
+import { contactHref } from "@/lib/leads";
 import { calculatorIcon } from "@/lib/calculators/icons";
 import { getCalculator } from "@/lib/calculators/registry";
 import type { CalculatorDef } from "@/lib/calculators/types";
@@ -137,6 +138,10 @@ export function CalculatorShell({
               submitLabel={def.leadCta.submitLabel}
               description={def.leadCta.text}
               triggerVariant="invert"
+              href={contactHref({
+                line: def.businessLine,
+                product: def.navLabel,
+              })}
             />
           </div>
         </div>

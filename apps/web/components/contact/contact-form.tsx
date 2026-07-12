@@ -23,12 +23,22 @@ const LINES: { value: LeadBusinessLine; label: string }[] = [
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-export function ContactForm() {
-  const [line, setLine] = useState<LeadBusinessLine>("loans");
+export function ContactForm({
+  initialLine,
+  initialProduct,
+}: {
+  // Prefilled from the /contact query string when a visitor arrives via an
+  // Enquire / callback CTA, so the telecaller sees what they came for.
+  initialLine?: LeadBusinessLine;
+  initialProduct?: string;
+} = {}) {
+  const [line, setLine] = useState<LeadBusinessLine>(initialLine ?? "loans");
   const [name, setName] = useState("");
   const [mobile, setMobile] = useState("");
   const [email, setEmail] = useState("");
-  const [message, setMessage] = useState("");
+  const [message, setMessage] = useState(
+    initialProduct ? `I'm interested in ${initialProduct}.` : "",
+  );
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
   const [errors, setErrors] = useState<{
@@ -59,6 +69,7 @@ export function ContactForm() {
       mobile: normalizeMobile(mobile),
       business_line: line,
       origin: "contact",
+      ...(initialProduct ? { product: initialProduct } : {}),
       ...(email.trim() ? { email: email.trim() } : {}),
       ...(message.trim() ? { message: message.trim() } : {}),
     });
@@ -108,6 +119,15 @@ export function ContactForm() {
       noValidate
       className="grid gap-5 rounded-2xl border border-[var(--nav-border)] bg-surface p-6 shadow-sm sm:p-8"
     >
+      {initialProduct ? (
+        <div className="grid gap-1.5">
+          <span className="text-sm text-text-secondary">Enquiring about</span>
+          <span className="inline-flex w-fit max-w-full items-center rounded-full bg-[var(--nav-tint)] px-3 py-1 text-sm font-medium text-[var(--nav-primary)]">
+            {initialProduct}
+          </span>
+        </div>
+      ) : null}
+
       <div className="grid gap-2">
         <Label id="contact-line-label">What is this about?</Label>
         <div
