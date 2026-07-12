@@ -13,7 +13,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import type { FaqItem } from "@/lib/faq";
-import type { LeadBusinessLine } from "@/lib/leads";
+import { contactHref, type LeadBusinessLine } from "@/lib/leads";
 import type { JourneyStep, Product, TrustPoint } from "@/lib/products";
 import { cn } from "@/lib/utils";
 
@@ -200,6 +200,10 @@ export function ProductPage({
                     product={product.label}
                     triggerLabel="Enquire now"
                     triggerVariant="outline"
+                    href={contactHref({
+                      line: businessLine,
+                      product: product.label,
+                    })}
                   />
                 </CardFooter>
               </Card>
@@ -257,6 +261,7 @@ export function ProductPage({
                     businessLine={businessLine}
                     triggerLabel={productsCta.label}
                     triggerVariant="invert"
+                    href={contactHref({ line: businessLine })}
                   />
                 </div>
               </div>
@@ -412,6 +417,7 @@ export function ProductPage({
                 businessLine={businessLine}
                 triggerLabel={ctaLabel}
                 triggerVariant="invert"
+                href={contactHref({ line: businessLine })}
               />
             </div>
           </div>

@@ -9,6 +9,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { contactHref } from "@/lib/leads";
 import type { PropertyListing } from "@/lib/properties";
 
 // A single placeholder property card for the Properties catalog rows. Mirrors
@@ -68,6 +69,10 @@ export function PropertyCard({ listing }: { listing: PropertyListing }) {
           product={`${listing.title}, ${listing.location}`}
           triggerLabel="Enquire"
           triggerVariant="outline"
+          href={contactHref({
+            line: "real_estate",
+            product: `${listing.title}, ${listing.location}`,
+          })}
         />
       </CardFooter>
     </Card>

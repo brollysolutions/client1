@@ -75,7 +75,7 @@ export default function Home() {
         subheading="Answers to what people usually ask before they get started."
         items={HOME_FAQ_ITEMS}
       />
-      <ClosingCta />
+      <ClosingCta href="/contact" />
     </>
   );
 }

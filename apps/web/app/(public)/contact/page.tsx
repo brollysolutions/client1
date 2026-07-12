@@ -49,7 +49,17 @@ const contactJsonLd = {
   publisher: { "@type": "Organization", name: SITE_NAME, url: SITE_URL },
 };
 
-export default function ContactPage() {
+export default async function ContactPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ line?: string; product?: string }>;
+}) {
+  const { line, product } = await searchParams;
+  // Only honor a valid business line from the CTA; otherwise let the form
+  // default. `product` is free text (loan type / property / calculator name).
+  const initialLine =
+    line === "loans" || line === "real_estate" ? line : undefined;
+
   return (
     <>
       <script
@@ -82,7 +92,10 @@ export default function ContactPage() {
                 Pick a line, share your details, and we will be in touch.
               </p>
               <div className="mt-6">
-                <ContactForm />
+                <ContactForm
+                  initialLine={initialLine}
+                  initialProduct={product}
+                />
               </div>
             </div>
 

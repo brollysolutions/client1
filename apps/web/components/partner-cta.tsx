@@ -68,13 +68,9 @@ export function PartnerCta() {
               </Button>
               <LeadDialog
                 businessLine="loans"
-                lineSelectable
-                origin="agent-application"
                 triggerVariant="outline"
                 triggerLabel="Apply as an agent"
-                title="Apply to become an agent"
-                description="Tell us your details and pick a line. We'll verify your KYC and get you started."
-                submitLabel="Submit application"
+                href="/apply-as-agent"
               />
             </div>
             <p className="mt-3 text-sm text-text-secondary">
