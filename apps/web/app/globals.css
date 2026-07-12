@@ -18,6 +18,9 @@
   --color-brand-aqua: #D0E7E6;
 
   --color-surface: #FFFFFF;
+  /* Silver-white section wash, cooler than the cream --nav-bg. Used on the
+     Earn page process sections so white cards read with a subtle depth. */
+  --color-surface-silver: #F4F6F8;
 
   --color-text-primary: #20242E;
   --color-text-secondary: #5C5C5C;

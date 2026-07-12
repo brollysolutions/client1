@@ -5,7 +5,7 @@ import { PropertyRow } from "@/components/property-row";
 import { TrustStrip } from "@/components/trust-strip";
 import { faqPageJsonLd, REAL_ESTATE_FAQ_ITEMS } from "@/lib/faq";
 import { RE_TRUST, REAL_ESTATE_JOURNEY } from "@/lib/products";
-import { BUY_LISTINGS } from "@/lib/properties";
+import { getListingsByCategory, PROPERTY_CATEGORIES } from "@/lib/properties";
 import { SITE_NAME, SITE_URL } from "@/lib/site";
 
 export const metadata: Metadata = {
@@ -50,6 +50,12 @@ const realEstateJsonLd = {
   publisher: { "@type": "Organization", name: SITE_NAME, url: SITE_URL },
 };
 
+// Only render category rows that actually have listings (empty-state guard, so
+// a category with no mock data does not render an empty scroller).
+const POPULATED_CATEGORIES = PROPERTY_CATEGORIES.filter(
+  (category) => getListingsByCategory(category.key).length > 0,
+);
+
 export default function RealEstatePage() {
   return (
     <>
@@ -65,12 +71,24 @@ export default function RealEstatePage() {
         beforeJourney={
           <div className="relative w-full border-t border-[var(--nav-border)] bg-[var(--nav-bg)] py-20 sm:py-24 lg:py-28">
             <PropertyDoodles />
-            <div className="relative z-10 space-y-20 sm:space-y-24">
-              <PropertyRow
-                heading="Properties to buy"
-                types="Flats, plots, villas, and commercial spaces."
-                listings={BUY_LISTINGS}
-              />
+            <div className="relative z-10 space-y-16 sm:space-y-20">
+              <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+                <h2 className="font-heading text-3xl font-semibold text-foreground sm:text-4xl">
+                  Properties to buy
+                </h2>
+                <p className="mt-3 max-w-2xl text-lg text-text-secondary">
+                  Browse verified listings by category. Sign in to see the full catalog.
+                </p>
+              </div>
+              {POPULATED_CATEGORIES.map((category, index) => (
+                <PropertyRow
+                  key={category.key}
+                  heading={category.label}
+                  types={category.blurb}
+                  listings={getListingsByCategory(category.key)}
+                  showMore={index === POPULATED_CATEGORIES.length - 1}
+                />
+              ))}
               <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
                 <TrustStrip eyebrow="Why people trust us" points={RE_TRUST} />
               </div>

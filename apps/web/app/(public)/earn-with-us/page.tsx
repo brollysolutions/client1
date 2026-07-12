@@ -72,6 +72,7 @@ export default function EarnWithUsPage() {
         heading="Questions, answered"
         subheading="Agents and referrals, everything people usually ask."
         items={AGENT_FAQ_ITEMS}
+        columns={2}
       />
       <ClosingCta
         heading="Ready to start earning?"

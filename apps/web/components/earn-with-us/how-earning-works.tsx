@@ -1,6 +1,8 @@
 // Qualitative earning steps, no invented numbers or percentages. Commission is
 // set per deal by Admin (SRS FR-8.1/8.2), not a fixed slab, so this stays
 // deliberately general.
+import { StepTimeline } from "@/components/earn-with-us/step-timeline";
+
 type Step = { n: string; title: string; text: string };
 
 const STEPS: Step[] = [
@@ -31,7 +33,7 @@ export function EarnHowItWorks() {
     <section
       id="how-earning-works"
       aria-labelledby="how-earning-works-heading"
-      className="w-full scroll-mt-16 border-t border-[var(--nav-border)] bg-surface"
+      className="w-full scroll-mt-16 border-t border-[var(--nav-border)] bg-surface-silver"
     >
       <div className="mx-auto max-w-4xl px-4 py-16 sm:px-6 sm:py-20 lg:px-8 lg:py-24">
         <div className="mx-auto max-w-2xl text-center">
@@ -46,23 +48,7 @@ export function EarnHowItWorks() {
           </p>
         </div>
 
-        <ol className="mx-auto mt-12 max-w-xl space-y-6">
-          {STEPS.map((step) => (
-            <li key={step.n} className="flex items-start gap-4">
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--nav-primary)] font-heading text-sm font-semibold text-white shadow-sm">
-                {step.n}
-              </span>
-              <div>
-                <h3 className="font-heading text-base font-semibold text-foreground">
-                  {step.title}
-                </h3>
-                <p className="mt-0.5 text-sm leading-relaxed text-text-secondary">
-                  {step.text}
-                </p>
-              </div>
-            </li>
-          ))}
-        </ol>
+        <StepTimeline steps={STEPS} />
       </div>
     </section>
   );
