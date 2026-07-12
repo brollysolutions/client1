@@ -2,7 +2,6 @@ import Image from "next/image";
 import Link from "next/link";
 
 import { EarnHeroDoodles } from "@/components/earn-with-us/earn-decor";
-import { LeadDialog } from "@/components/lead-dialog";
 
 // Earn with Us page hero. The page's only <h1> (see page.tsx). Matches the
 // calculators hub hero layout: a text column beside a fixed-width illustration
@@ -25,17 +24,14 @@ export function EarnHero() {
               through. Both are free.
             </p>
             <div className="mt-8 flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:gap-4">
-              <LeadDialog
-                businessLine="loans"
-                lineSelectable
-                origin="agent-application-page"
-                triggerLabel="Apply to become an agent"
-                title="Apply to become an agent"
-                description="Tell us your details and pick a line. We'll verify your KYC and get you started."
-                submitLabel="Submit application"
-              />
               <Link
-                href="#refer-and-earn"
+                href="/apply-as-agent"
+                className="inline-flex h-10 w-full items-center justify-center rounded-md bg-[var(--nav-primary)] px-4 text-sm font-medium text-white transition hover:bg-[var(--nav-primary-hover)] sm:w-auto"
+              >
+                Apply to become an agent
+              </Link>
+              <Link
+                href="/register"
                 className="inline-flex h-10 w-full items-center justify-center rounded-md border border-[var(--nav-primary)] px-4 text-sm font-medium text-[var(--nav-primary)] transition hover:bg-[var(--nav-tint)] sm:w-auto"
               >
                 Refer and earn

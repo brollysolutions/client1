@@ -19,6 +19,8 @@ export type FaqSectionProps = {
   doodles?: boolean;
   /** Split into two side-by-side cards on lg+ for long lists. Default 1. */
   columns?: 1 | 2;
+  /** "lg" widens the container and bumps question/answer text size. Default "default". */
+  size?: "default" | "lg";
 };
 
 export function FaqSection({
@@ -28,9 +30,11 @@ export function FaqSection({
   items,
   doodles = true,
   columns = 1,
+  size = "default",
 }: FaqSectionProps) {
   const headingId = `${id}-heading`;
   const twoCol = columns === 2 && items.length > 1;
+  const isLg = size === "lg";
   const mid = Math.ceil(items.length / 2);
   const groups = twoCol ? [items.slice(0, mid), items.slice(mid)] : [items];
 
@@ -44,7 +48,13 @@ export function FaqSection({
       <div
         className={cn(
           "relative mx-auto px-4 py-16 sm:px-6 sm:py-20 lg:px-8 lg:py-24",
-          twoCol ? "max-w-5xl" : "max-w-3xl",
+          twoCol
+            ? isLg
+              ? "max-w-6xl"
+              : "max-w-5xl"
+            : isLg
+              ? "max-w-4xl"
+              : "max-w-3xl",
         )}
       >
         <div className="text-center">
@@ -66,7 +76,7 @@ export function FaqSection({
           )}
         >
           {groups.map((group, groupIndex) => (
-            <FaqCard key={groupIndex} items={group} />
+            <FaqCard key={groupIndex} items={group} size={size} />
           ))}
         </div>
       </div>
@@ -77,7 +87,14 @@ export function FaqSection({
 // One rounded card holding a vertical stack of native <details> rows. The
 // "no top border on the first row" rule is keyed on the per-card index so each
 // column reads as its own clean card.
-function FaqCard({ items }: { items: FaqItem[] }) {
+function FaqCard({
+  items,
+  size = "default",
+}: {
+  items: FaqItem[];
+  size?: "default" | "lg";
+}) {
+  const isLg = size === "lg";
   return (
     <div className="overflow-hidden rounded-2xl border border-[var(--nav-border)] bg-surface shadow-sm">
       {items.map((item, index) => (
@@ -89,7 +106,12 @@ function FaqCard({ items }: { items: FaqItem[] }) {
               : "faq-details group border-t border-[var(--nav-border)]"
           }
         >
-          <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-6 py-5 font-heading text-base font-semibold text-foreground transition-colors duration-200 marker:content-none hover:bg-[var(--nav-tint)]/40 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--nav-primary)]">
+          <summary
+            className={cn(
+              "flex cursor-pointer list-none items-center justify-between gap-4 px-6 py-5 font-heading font-semibold text-foreground transition-colors duration-200 marker:content-none hover:bg-[var(--nav-tint)]/40 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--nav-primary)]",
+              isLg ? "text-lg" : "text-base",
+            )}
+          >
             {item.q}
             <ChevronDown
               className="h-5 w-5 shrink-0 text-brand-blue transition-transform duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] group-open:rotate-180 motion-reduce:transition-none"
@@ -97,7 +119,12 @@ function FaqCard({ items }: { items: FaqItem[] }) {
             />
           </summary>
           <div className="px-6 pb-5">
-            <p className="text-base text-text-secondary">
+            <p
+              className={cn(
+                "text-text-secondary",
+                isLg ? "text-lg" : "text-base",
+              )}
+            >
               {item.aRich ?? item.a}
             </p>
           </div>

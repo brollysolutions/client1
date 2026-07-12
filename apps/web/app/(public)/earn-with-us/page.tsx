@@ -73,12 +73,13 @@ export default function EarnWithUsPage() {
         subheading="Agents and referrals, everything people usually ask."
         items={AGENT_FAQ_ITEMS}
         columns={2}
+        size="lg"
       />
       <ClosingCta
         heading="Ready to start earning?"
         text="Apply as an agent in a few minutes, or sign in to use your referral code."
         ctaLabel="Apply to become an agent"
-        origin="agent-application-page"
+        href="/apply-as-agent"
         id="apply"
       />
     </>
