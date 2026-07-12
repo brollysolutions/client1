@@ -137,12 +137,12 @@ export function ProductPage({
       {products && products.length > 0 ? (
       <section className="relative w-full overflow-hidden border-t border-[var(--nav-border)] bg-[var(--nav-bg)]">
         {productDoodles ? <ProductDoodles /> : null}
-        <div className="relative z-10 mx-auto max-w-7xl px-4 py-16 sm:px-6 sm:py-20 lg:px-8">
-          <h2 className="font-heading text-3xl font-semibold text-foreground sm:text-4xl">
+        <div className="relative z-10 mx-auto max-w-7xl px-4 py-20 sm:px-6 sm:py-24 lg:px-8">
+          <h2 className="mx-auto max-w-2xl text-center font-heading text-3xl font-semibold text-foreground sm:text-4xl">
             {productsHeading}
           </h2>
           {productsSubheading ? (
-            <p className="mt-3 max-w-2xl text-lg text-text-secondary">
+            <p className="mx-auto mt-3 max-w-2xl text-center text-lg text-text-secondary">
               {productsSubheading}
             </p>
           ) : null}
@@ -272,7 +272,7 @@ export function ProductPage({
       {/* Journey */}
       <section className="w-full border-t border-[var(--nav-border)] bg-[var(--nav-bg)]">
         <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 sm:py-20 lg:px-8">
-          <h2 className="max-w-2xl font-heading text-3xl font-semibold text-[var(--nav-text)] sm:text-4xl">
+          <h2 className="mx-auto max-w-2xl text-center font-heading text-3xl font-semibold text-[var(--nav-text)] sm:text-4xl">
             {journeyHeading}
           </h2>
           {journeyTimeline ? (
