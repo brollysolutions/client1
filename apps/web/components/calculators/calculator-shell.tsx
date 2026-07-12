@@ -70,7 +70,10 @@ export function CalculatorShell({
             </ol>
           </nav>
 
-          <div className="mt-6 grid items-center gap-8 lg:grid-cols-[1fr_auto]">
+          {/* lg:min-h keeps every calculator hero the same height: the art
+              column drives the row height, and emi.svg is 3:2 (shorter) while
+              the rest are 1:1, so without a floor the EMI band collapses. */}
+          <div className="mt-6 grid items-center gap-8 lg:min-h-[460px] lg:grid-cols-[1fr_auto]">
             <div>
               <h1 className="font-heading text-4xl font-semibold text-[var(--nav-text)] sm:text-5xl">
                 {def.h1}

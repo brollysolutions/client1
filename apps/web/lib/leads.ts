@@ -17,6 +17,11 @@ export type LeadInput = {
   // Optional product/offering the lead enquired about (e.g. "Personal Loan").
   // Captured from the per-card Enquire button; the backend can map it later.
   product?: string;
+  // Optional extras from the /contact page form. The backend can map these
+  // later (email → profile, message → Lead.requirement JSONB). Ignored by the
+  // stub below.
+  email?: string;
+  message?: string;
 };
 
 export type LeadResult = { ok: true } | { ok: false; error: string };

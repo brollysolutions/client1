@@ -48,7 +48,7 @@ const BANNERS: Banner[] = [
     title: "One bridge between you and the banks",
     subtitle:
       "We connect you with the right banks and partners, and stay with you at every step.",
-    cta: { label: "Get in touch", href: "#contact" },
+    cta: { label: "Get in touch", href: "/contact" },
   },
   {
     id: "trust",

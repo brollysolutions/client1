@@ -1,47 +1,38 @@
-import {
-  BadgeCheck,
-  Banknote,
-  Building2,
-  Smartphone,
-  Sparkles,
-  type LucideIcon,
-} from "lucide-react";
+import Image from "next/image";
 
-// White cards on the page's cream sections, matching the icon-chip card
-// pattern from why-choose-us.tsx / trust-strip.tsx. Requirements only, no
-// invented numbers or timelines.
-type Requirement = { title: string; detail: string; icon: LucideIcon };
+// Requirements to apply as an agent. Five cards sit in a single row on desktop
+// (2 / 1 columns on smaller screens), each enriched like the loans "Explore
+// our services" cards: a thin brand-blue top accent bar, a hand-coded
+// illustration in a soft-tinted band, then a number, title and short detail.
+// Illustrations use natural colors with a blue accent (docs/design/
+// illustration-style.md). Requirements only, no invented numbers or timelines.
+type Requirement = { title: string; detail: string; illustration: string };
 
 const REQUIREMENTS: Requirement[] = [
   {
     title: "KYC documents",
-    detail:
-      "A valid ID and address proof, plus a photo. This is how we verify who you are before you go live.",
-    icon: BadgeCheck,
+    detail: "A valid ID, address proof, and a photo so we can verify you.",
+    illustration: "/illustrations/eligibility/kyc-documents.svg",
   },
   {
     title: "Mobile number",
-    detail:
-      "One mobile number, verified by OTP. It is how we reach you and how your account is identified.",
-    icon: Smartphone,
+    detail: "One mobile number, verified by OTP. That is your account.",
+    illustration: "/illustrations/eligibility/mobile-number.svg",
   },
   {
     title: "Payout details",
-    detail:
-      "We pay commission through Razorpay or by cheque, so have your bank details or a cheque option ready.",
-    icon: Banknote,
+    detail: "Bank details ready. We pay commission by Razorpay or cheque.",
+    illustration: "/illustrations/eligibility/payout-details.svg",
   },
   {
-    title: "RERA agent code (real estate only)",
-    detail:
-      "If you are applying for the real estate line, a valid RERA agent code is part of your KYC.",
-    icon: Building2,
+    title: "RERA agent code",
+    detail: "For the real estate line only, a valid RERA agent code.",
+    illustration: "/illustrations/eligibility/rera-code.svg",
   },
   {
-    title: "No fixed experience required",
-    detail:
-      "You do not need prior experience as an agent or broker. Anyone who can bring us genuine leads can apply.",
-    icon: Sparkles,
+    title: "Beginners welcome",
+    detail: "No broker background required. Bring genuine leads and apply.",
+    illustration: "/illustrations/eligibility/no-experience.svg",
   },
 ];
 
@@ -52,7 +43,7 @@ export function EarnEligibility() {
       aria-labelledby="eligibility-heading"
       className="w-full scroll-mt-16 border-t border-[var(--nav-border)] bg-[var(--nav-bg)]"
     >
-      <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-20 lg:px-8 lg:py-24">
+      <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 sm:py-20 lg:px-8 lg:py-24">
         <div className="mx-auto max-w-2xl text-center">
           <h2
             id="eligibility-heading"
@@ -65,20 +56,34 @@ export function EarnEligibility() {
           </p>
         </div>
 
-        <ul className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        <ul className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-5">
           {REQUIREMENTS.map((item) => (
-            <li key={item.title}>
-              <article className="flex h-full flex-col rounded-2xl border border-[var(--nav-border)] bg-surface p-6 shadow-sm">
-                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[var(--nav-tint)] text-brand-blue ring-1 ring-[var(--nav-border)]">
-                  <item.icon className="h-5 w-5" aria-hidden />
-                </span>
-                <h3 className="mt-5 font-heading text-base font-semibold text-foreground">
+            <li
+              key={item.title}
+              className="group flex h-full flex-col overflow-hidden rounded-2xl border border-[var(--nav-border)] bg-surface shadow-sm transition duration-200 hover:-translate-y-1 hover:shadow-md"
+            >
+              <span
+                aria-hidden
+                className="h-1 w-full bg-[var(--nav-primary)] transition-colors duration-200 group-hover:bg-[var(--nav-primary-hover)]"
+              />
+              <div className="relative aspect-[5/4] w-full bg-[var(--nav-tint)]/40">
+                <Image
+                  src={item.illustration}
+                  alt=""
+                  aria-hidden
+                  fill
+                  sizes="(min-width: 1024px) 260px, (min-width: 640px) 50vw, 100vw"
+                  className="object-contain p-5"
+                />
+              </div>
+              <div className="flex flex-1 flex-col p-6">
+                <h3 className="font-heading text-lg font-semibold text-foreground">
                   {item.title}
                 </h3>
-                <p className="mt-1 text-sm leading-relaxed text-text-secondary">
+                <p className="mt-2 text-sm leading-relaxed text-text-secondary">
                   {item.detail}
                 </p>
-              </article>
+              </div>
             </li>
           ))}
         </ul>

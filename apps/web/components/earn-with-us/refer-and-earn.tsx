@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { ReferFlowScene } from "@/components/earn-with-us/refer-flow-scene";
 import { Button } from "@/components/ui/button";
 
 // Consumer earning track: any registered user, no agent application needed.
@@ -12,17 +13,17 @@ const STEPS: Step[] = [
   {
     n: "1",
     title: "Get your code",
-    text: "Create an account or sign in. Your referral code lives in your account.",
+    text: "Sign in and grab the referral code sitting in your account.",
   },
   {
     n: "2",
     title: "Share it",
-    text: "Send your code to friends and family who need a loan or a property.",
+    text: "Send it to friends and family who need a loan or a property.",
   },
   {
     n: "3",
     title: "Get cashback",
-    text: "When their property purchase completes or their loan is disbursed, your cashback is paid through Razorpay or by cheque.",
+    text: "When their loan or purchase closes, paid by Razorpay or cheque.",
   },
 ];
 
@@ -31,9 +32,9 @@ export function ReferAndEarn() {
     <section
       id="refer-and-earn"
       aria-labelledby="refer-and-earn-heading"
-      className="w-full scroll-mt-16 border-t border-[var(--nav-border)] bg-surface"
+      className="relative w-full scroll-mt-16 border-t border-[var(--nav-border)] bg-[var(--nav-bg)]"
     >
-      <div className="mx-auto max-w-4xl px-4 py-16 sm:px-6 sm:py-20 lg:px-8 lg:py-24">
+      <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 sm:py-20 lg:px-8 lg:py-24">
         <div className="mx-auto max-w-2xl text-center">
           <h2
             id="refer-and-earn-heading"
@@ -46,23 +47,7 @@ export function ReferAndEarn() {
           </p>
         </div>
 
-        <ol className="mx-auto mt-12 max-w-xl space-y-6">
-          {STEPS.map((step) => (
-            <li key={step.n} className="flex items-start gap-4">
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--nav-primary)] font-heading text-sm font-semibold text-white shadow-sm">
-                {step.n}
-              </span>
-              <div>
-                <h3 className="font-heading text-base font-semibold text-foreground">
-                  {step.title}
-                </h3>
-                <p className="mt-0.5 text-sm leading-relaxed text-text-secondary">
-                  {step.text}
-                </p>
-              </div>
-            </li>
-          ))}
-        </ol>
+        <ReferFlowScene steps={STEPS} />
 
         <div className="mx-auto mt-10 flex max-w-xl flex-col items-center gap-3 text-center">
           <Button asChild className="w-full bg-[var(--nav-primary)] text-white hover:bg-[var(--nav-primary-hover)] sm:w-auto">

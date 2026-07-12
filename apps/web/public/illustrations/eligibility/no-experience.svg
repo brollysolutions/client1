@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="150" viewBox="0 0 320 150" fill="none" role="img">
+  <circle cx="160" cy="74" r="62" fill="#D0E7E6" opacity="0.35"/>
+  <ellipse cx="160" cy="132" rx="66" ry="11" fill="#293681" opacity="0.07"/>
+  <!-- friendly person -->
+  <path d="M120 132 C120 104 200 104 200 132 Z" fill="#4274D9"/>
+  <path d="M132 132 C132 112 188 112 188 132 Z" fill="#293681" opacity="0.18"/>
+  <circle cx="160" cy="70" r="24" fill="#F3E7D8" stroke="#293681" stroke-width="2"/>
+  <!-- hair -->
+  <path d="M137 66 C138 46 182 46 183 66 C176 58 144 58 137 66 Z" fill="#3A2E26"/>
+  <!-- welcoming smile -->
+  <path d="M150 76 q10 9 20 0" fill="none" stroke="#293681" stroke-width="2.4" stroke-linecap="round"/>
+  <circle cx="151" cy="66" r="2.2" fill="#293681"/>
+  <circle cx="169" cy="66" r="2.2" fill="#293681"/>
+  <!-- gold welcome star -->
+  <g transform="translate(206,44)">
+    <path d="M0 -14 L4 -4 L15 -3 L6 4 L9 15 L0 8 L-9 15 L-6 4 L-15 -3 L-4 -4 Z" fill="#E8B54D" stroke="#C08A2E" stroke-width="1.5" stroke-linejoin="round"/>
+  </g>
+  <path d="M112 52 l2 6 l6 2 l-6 2 l-2 6 l-2 -6 l-6 -2 l6 -2 Z" fill="#95CCDD"/>
+</svg>

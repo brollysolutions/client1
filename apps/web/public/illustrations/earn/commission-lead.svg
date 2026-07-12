@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="480" height="360" viewBox="0 0 480 360" fill="none" role="img">
+  <circle cx="240" cy="176" r="140" fill="#D0E7E6" opacity="0.35"/>
+  <ellipse cx="240" cy="314" rx="150" ry="18" fill="#293681" opacity="0.06"/>
+  <!-- lead contact card, centered -->
+  <rect x="128" y="96" width="224" height="150" rx="20" fill="#FFFFFF" stroke="#293681" stroke-width="3"/>
+  <!-- avatar -->
+  <circle cx="184" cy="150" r="30" fill="#D0E7E6"/>
+  <circle cx="184" cy="141" r="14" fill="#F3E7D8" stroke="#293681" stroke-width="2"/>
+  <path d="M168 172 C168 154 200 154 200 172 Z" fill="#4274D9"/>
+  <!-- name lines -->
+  <rect x="228" y="132" width="94" height="13" rx="6.5" fill="#4274D9"/>
+  <rect x="228" y="155" width="70" height="10" rx="5" fill="#DDE4F0"/>
+  <!-- needs a loan / property chip -->
+  <rect x="150" y="204" width="180" height="28" rx="9" fill="#D0E7E6"/>
+  <path d="M170 224 v-11 l9 -7 l9 7 v11 Z" fill="#4274D9" stroke="#293681" stroke-width="1.6" stroke-linejoin="round"/>
+  <text x="228" y="223" font-family="system-ui, sans-serif" font-size="13" font-weight="600" fill="#293681" text-anchor="middle">loan or property</text>
+  <!-- add-lead badge -->
+  <g transform="translate(340,100)">
+    <circle r="27" fill="#4274D9" stroke="#293681" stroke-width="3"/>
+    <path d="M0 -12 V12 M-12 0 H12" stroke="#FFFFFF" stroke-width="4.5" stroke-linecap="round"/>
+  </g>
+  <!-- small sparkles -->
+  <path d="M118 120 l3 8 l8 3 l-8 3 l-3 8 l-3 -8 l-8 -3 l8 -3 Z" fill="#95CCDD"/>
+  <path d="M360 210 l2.5 6 l6 2.5 l-6 2.5 l-2.5 6 l-2.5 -6 l-6 -2.5 l6 -2.5 Z" fill="#E8B54D"/>
+</svg>
