@@ -10,14 +10,14 @@ export function RateDisclaimer({ text, className }: { text?: string; className?:
   return (
     <div
       className={cn(
-        "flex gap-3 rounded-lg bg-[var(--nav-tint)] px-4 py-3",
+        "flex gap-3 rounded-lg bg-[var(--nav-info-tint)] px-4 py-3",
         className,
       )}
     >
-      <Info className="mt-0.5 h-4 w-4 shrink-0 text-[var(--nav-primary)]" aria-hidden />
+      <Info className="mt-0.5 h-4 w-4 shrink-0 text-[var(--nav-info-text)]" aria-hidden />
       <div className="grid gap-1 text-sm text-[var(--nav-text)]">
         <p>
-          <span className="font-semibold text-[var(--nav-primary)]">Indicative. </span>
+          <span className="font-semibold text-[var(--nav-info-text)]">Indicative. </span>
           {text ?? RATE_DISCLAIMER}
         </p>
         <p className="text-xs text-text-secondary">Rates last reviewed {RATES_LAST_REVIEWED}.</p>

@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { cn } from "@/lib/utils";
+import { InfoHint } from "./info-hint";
 
 // The shared calculator input: a slider for quick adjustment paired with a
 // numeric field for precise entry, kept in sync. The winning pattern across
@@ -20,6 +21,7 @@ export function SliderField({
   prefix,
   suffix,
   helper,
+  info,
   className,
 }: {
   id: string;
@@ -35,6 +37,8 @@ export function SliderField({
   suffix?: string;
   /** Formatted read-out under the slider, e.g. "₹30,00,000". */
   helper?: string;
+  /** Plain-language explanation shown in an info tooltip next to the label. */
+  info?: string;
   className?: string;
 }) {
   function clamp(next: number): number {
@@ -45,9 +49,12 @@ export function SliderField({
   return (
     <div className={cn("grid gap-2", className)}>
       <div className="flex items-center justify-between gap-3">
-        <Label htmlFor={id} className="text-sm text-[var(--nav-text)]">
-          {label}
-        </Label>
+        <div className="flex min-w-0 items-center gap-1.5">
+          <Label htmlFor={id} className="text-sm text-[var(--nav-text)]">
+            {label}
+          </Label>
+          {info ? <InfoHint label={label} text={info} /> : null}
+        </div>
         <div className="flex items-center gap-1 rounded-md border border-[var(--nav-border)] bg-white px-2 py-1">
           {prefix ? (
             <span className="text-sm text-text-secondary">{prefix}</span>

@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 import { parseAsFloat, parseAsInteger, useQueryStates } from "nuqs";
 
+import { INFO } from "@/lib/calculators/glossary";
 import { affordability } from "@/lib/finance";
 import { formatCompactINR, formatINR } from "@/lib/format";
 import { RateDisclaimer } from "../rate-disclaimer";
@@ -64,6 +65,7 @@ export function HomeAffordabilityCalculator() {
         <SliderField
           id="afford-inc"
           label="Net monthly income"
+          info={INFO.netMonthlyIncome}
           prefix="₹"
           value={inc}
           min={10000}
@@ -75,6 +77,7 @@ export function HomeAffordabilityCalculator() {
         <SliderField
           id="afford-emi"
           label="Existing EMIs"
+          info={INFO.existingEmis}
           prefix="₹"
           value={emi}
           min={0}
@@ -86,6 +89,7 @@ export function HomeAffordabilityCalculator() {
         <SliderField
           id="afford-dp"
           label="Down payment"
+          info={INFO.downPayment}
           prefix="₹"
           value={dp}
           min={0}
@@ -97,6 +101,7 @@ export function HomeAffordabilityCalculator() {
         <SliderField
           id="afford-rate"
           label="Interest rate"
+          info={INFO.interestRate}
           suffix="% p.a."
           value={rate}
           min={5}
@@ -108,6 +113,7 @@ export function HomeAffordabilityCalculator() {
         <SliderField
           id="afford-months"
           label="Tenure"
+          info={INFO.tenure}
           suffix="months"
           value={months}
           min={12}
@@ -125,10 +131,19 @@ export function HomeAffordabilityCalculator() {
           <ResultCard
             emphasis
             label="You can afford a home up to"
+            info={INFO.maxProperty}
             value={formatCompactINR(result.maxProperty)}
           />
-          <ResultCard label="Loan you can take" value={formatCompactINR(result.maxLoan)} />
-          <ResultCard label="Comfortable EMI" value={formatINR(result.maxEmi)} />
+          <ResultCard
+            label="Loan you can take"
+            info={INFO.loanYouCanTake}
+            value={formatCompactINR(result.maxLoan)}
+          />
+          <ResultCard
+            label="Comfortable EMI"
+            info={INFO.comfortableEmi}
+            value={formatINR(result.maxEmi)}
+          />
         </div>
         <p className="text-sm text-text-secondary">
           Stamp duty and registration are extra, on top of the price.

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -28,6 +29,7 @@ const linkClass =
   "group/navlink inline-flex h-9 flex-row items-center rounded-md px-3 text-base font-medium text-[var(--nav-text)] transition-colors hover:bg-transparent hover:text-[var(--nav-primary)] focus:bg-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nav-primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--nav-bg)]";
 
 export function SiteHeader() {
+  const pathname = usePathname() ?? "";
   const scrolled = useScrolled(8);
 
   return (
@@ -44,8 +46,15 @@ export function SiteHeader() {
 
         <NavigationMenu className="col-start-2 hidden justify-self-center md:flex">
           <NavigationMenuList>
-            {NAV_ITEMS.map((item) =>
-              item.children ? (
+            {NAV_ITEMS.map((item) => {
+              // Active when the URL is the item's page or any child route under
+              // it (e.g. /calculators/emi keeps "Calculator" lit). Home matches
+              // only "/"; hash anchors (Contact) never light up.
+              const isActive =
+                item.href === "/"
+                  ? pathname === "/"
+                  : pathname === item.href || pathname.startsWith(`${item.href}/`);
+              return item.children ? (
                 <NavigationMenuItem key={item.href}>
                   <NavigationMenuTrigger className="text-base text-[var(--nav-text)]">
                     {item.label}
@@ -87,16 +96,24 @@ export function SiteHeader() {
                 </NavigationMenuItem>
               ) : (
                 <NavigationMenuItem key={item.href}>
-                  <NavigationMenuLink asChild className={linkClass}>
-                    <Link href={item.href}>
-                      <span className="relative font-geist after:absolute after:inset-x-0 after:-bottom-1 after:h-0.5 after:origin-left after:scale-x-0 after:rounded-full after:bg-[var(--nav-primary)] after:transition-transform after:duration-200 group-hover/navlink:after:scale-x-100 group-focus-visible/navlink:after:scale-x-100 motion-reduce:after:transition-none">
+                  <NavigationMenuLink
+                    asChild
+                    className={cn(linkClass, isActive && "text-[var(--nav-primary)]")}
+                  >
+                    <Link href={item.href} aria-current={isActive ? "page" : undefined}>
+                      <span
+                        className={cn(
+                          "relative font-geist after:absolute after:inset-x-0 after:-bottom-1 after:h-0.5 after:origin-left after:rounded-full after:bg-[var(--nav-primary)] after:transition-transform after:duration-200 group-hover/navlink:after:scale-x-100 group-focus-visible/navlink:after:scale-x-100 motion-reduce:after:transition-none",
+                          isActive ? "after:scale-x-100" : "after:scale-x-0",
+                        )}
+                      >
                         {item.label}
                       </span>
                     </Link>
                   </NavigationMenuLink>
                 </NavigationMenuItem>
-              )
-            )}
+              );
+            })}
           </NavigationMenuList>
         </NavigationMenu>
 
