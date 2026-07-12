@@ -7,8 +7,8 @@ import { LeadDialog } from "@/components/lead-dialog";
 // Earn with Us page hero. The page's only <h1> (see page.tsx). Matches the
 // calculators hub hero layout: a text column beside a fixed-width illustration
 // box on an in-flow grid (lg+), so the illustration drives the hero's height
-// instead of floating as a background overlay. Keeps two CTAs, the two ways to
-// earn (apply as an agent, refer a friend).
+// instead of floating as a background overlay. Keeps two CTAs for the two ways
+// to earn (apply as an agent, refer a friend).
 export function EarnHero() {
   return (
     <section className="relative w-full overflow-hidden bg-[var(--nav-bg)]">
@@ -17,7 +17,7 @@ export function EarnHero() {
         <div className="grid items-center gap-8 lg:grid-cols-[1fr_auto]">
           <div>
             <h1 className="max-w-3xl font-heading text-4xl font-semibold text-[var(--nav-text)] sm:text-5xl lg:text-6xl">
-              Two ways to earn with us
+              Become an agent, or refer and earn
             </h1>
             <p className="mt-5 max-w-2xl text-lg text-[var(--nav-text)] sm:text-xl">
               Become an agent and earn commission on the deals you bring. Or refer
