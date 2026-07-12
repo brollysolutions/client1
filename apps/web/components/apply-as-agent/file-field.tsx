@@ -80,14 +80,15 @@ export function FileField({
     if (inputRef.current) inputRef.current.value = "";
     if (!file) return;
 
+    // A rejected pick keeps the previously accepted file (if any): losing a
+    // valid Aadhaar scan because a replacement was 6 MB would force the user
+    // to re-locate the original for no reason. Only the error is surfaced.
     if (!acceptedTypes.includes(file.type)) {
       setLocalError(`Unsupported file type. Use ${hint}.`);
-      onChange(null);
       return;
     }
     if (file.size > maxBytes) {
       setLocalError(`File is too large. Max ${formatBytes(maxBytes)}.`);
-      onChange(null);
       return;
     }
     setLocalError(undefined);
@@ -109,6 +110,11 @@ export function FileField({
 
   const displayError = error ?? localError;
   const errorId = `${id}-error`;
+  const hintId = `${id}-hint`;
+  // aria-label replaces the button's inner text as its accessible name, so
+  // the format/size hint must be re-attached via aria-describedby or screen
+  // readers never hear it. The hint node only exists in the empty state.
+  const describedBy = displayError ? errorId : !value ? hintId : undefined;
 
   return (
     <div className="grid content-start gap-2">
@@ -135,12 +141,18 @@ export function FileField({
           onClick={() => inputRef.current?.click()}
           disabled={disabled}
           aria-label={value ? `Replace ${label}` : `Upload ${label}`}
-          aria-describedby={displayError ? errorId : undefined}
+          aria-describedby={describedBy}
           onDragOver={(event) => {
             event.preventDefault();
             if (!disabled) setDragging(true);
           }}
-          onDragLeave={() => setDragging(false)}
+          onDragLeave={(event) => {
+            // dragleave also fires when the pointer crosses onto a child
+            // (the preview img/spans); only clear when truly leaving the tile.
+            if (!event.currentTarget.contains(event.relatedTarget as Node)) {
+              setDragging(false);
+            }
+          }}
           onDrop={handleDrop}
           className={cn(
             "group relative flex aspect-square w-full flex-col items-center justify-center gap-2 overflow-hidden rounded-xl border-2 border-dashed p-3 text-center transition-colors",
@@ -206,7 +218,10 @@ export function FileField({
                 <Plus className="h-3.5 w-3.5" aria-hidden />
                 Upload
               </span>
-              <span className="text-[11px] leading-tight text-text-secondary">
+              <span
+                id={hintId}
+                className="text-[11px] leading-tight text-text-secondary"
+              >
                 {hint}, up to {formatBytes(maxBytes)}
               </span>
             </>

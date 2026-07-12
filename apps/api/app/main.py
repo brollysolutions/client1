@@ -28,6 +28,16 @@ logging.basicConfig(level=settings.LOG_LEVEL.upper())
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """Open shared clients on startup, dispose them on shutdown."""
+    # Fail fast on a silently-broken production topology: behind the documented
+    # nginx proxy with TRUST_PROXY_HEADERS off, every request resolves to the
+    # proxy's IP and the per-IP OTP/login limits collapse into one global
+    # bucket (any abuser then exhausts them for every user at once).
+    if settings.ENV == "production" and not settings.TRUST_PROXY_HEADERS:
+        raise RuntimeError(
+            "TRUST_PROXY_HEADERS must be enabled in production: the API runs "
+            "behind a reverse proxy there, and per-IP rate limits are keyed on "
+            "the forwarded client IP."
+        )
     app.state.redis = aioredis.from_url(settings.REDIS_URL, decode_responses=True)
     logger.info("api.startup env=%s", settings.ENV)
     try:
