@@ -1,5 +1,7 @@
 import Image from "next/image";
 
+import { EligibilityCornerObjects } from "@/components/earn-with-us/earn-decor";
+
 // Requirements to apply as an agent. Five cards sit in a single row on desktop
 // (2 / 1 columns on smaller screens), each enriched like the loans "Explore
 // our services" cards: a thin brand-blue top accent bar, a hand-coded
@@ -41,9 +43,10 @@ export function EarnEligibility() {
     <section
       id="eligibility"
       aria-labelledby="eligibility-heading"
-      className="w-full scroll-mt-16 border-t border-[var(--nav-border)] bg-[var(--nav-bg)]"
+      className="relative w-full scroll-mt-16 border-t border-[var(--nav-border)] bg-[var(--nav-bg)]"
     >
-      <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 sm:py-20 lg:px-8 lg:py-24">
+      <EligibilityCornerObjects />
+      <div className="relative z-10 mx-auto max-w-7xl px-4 py-16 sm:px-6 sm:py-20 lg:px-8 lg:py-24">
         <div className="mx-auto max-w-2xl text-center">
           <h2
             id="eligibility-heading"

@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 
+import { EarnHeroDoodles } from "@/components/earn-with-us/earn-decor";
 import { LeadDialog } from "@/components/lead-dialog";
 
 // Earn with Us page hero. The page's only <h1> (see page.tsx). Matches the
@@ -11,6 +12,7 @@ import { LeadDialog } from "@/components/lead-dialog";
 export function EarnHero() {
   return (
     <section className="relative w-full overflow-hidden bg-[var(--nav-bg)]">
+      <EarnHeroDoodles />
       {/* Right-edge decorative illustration, desktop-only (locked rule:
           illustrations render lg+, never phone/tablet). */}
       <div

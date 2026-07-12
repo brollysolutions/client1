@@ -65,6 +65,7 @@ export const BUY_LISTINGS: PropertyListing[] = [
     type: "Apartment",
     category: "apartments",
     meta: "2 bed · 1,120 sqft",
+    image: "/illustrations/properties/apartment-1.svg",
   },
   {
     id: "a2",
@@ -74,6 +75,7 @@ export const BUY_LISTINGS: PropertyListing[] = [
     type: "Apartment",
     category: "apartments",
     meta: "1 bed · 640 sqft",
+    image: "/illustrations/properties/apartment-2.svg",
   },
   {
     id: "a3",
@@ -83,6 +85,7 @@ export const BUY_LISTINGS: PropertyListing[] = [
     type: "Apartment",
     category: "apartments",
     meta: "3 bed · 1,750 sqft",
+    image: "/illustrations/properties/apartment-3.svg",
   },
   {
     id: "a4",
@@ -92,6 +95,27 @@ export const BUY_LISTINGS: PropertyListing[] = [
     type: "Apartment",
     category: "apartments",
     meta: "2 bed · 980 sqft",
+    image: "/illustrations/properties/apartment-1.svg",
+  },
+  {
+    id: "a5",
+    title: "3 BHK Apartment",
+    location: "Miyapur, Hyderabad",
+    price: "₹92 L",
+    type: "Apartment",
+    category: "apartments",
+    meta: "3 bed · 1,450 sqft",
+    image: "/illustrations/properties/apartment-2.svg",
+  },
+  {
+    id: "a6",
+    title: "2 BHK Apartment",
+    location: "Electronic City, Bengaluru",
+    price: "₹58 L",
+    type: "Apartment",
+    category: "apartments",
+    meta: "2 bed · 1,050 sqft",
+    image: "/illustrations/properties/apartment-3.svg",
   },
   // Villas
   {
@@ -102,6 +126,7 @@ export const BUY_LISTINGS: PropertyListing[] = [
     type: "Villa",
     category: "villas",
     meta: "3 bed · 2,400 sqft",
+    image: "/illustrations/properties/villa-1.svg",
   },
   {
     id: "v2",
@@ -111,6 +136,7 @@ export const BUY_LISTINGS: PropertyListing[] = [
     type: "Villa",
     category: "villas",
     meta: "4 bed · 3,200 sqft",
+    image: "/illustrations/properties/villa-2.svg",
   },
   {
     id: "v3",
@@ -120,6 +146,37 @@ export const BUY_LISTINGS: PropertyListing[] = [
     type: "House",
     category: "villas",
     meta: "3 bed · 2,100 sqft",
+    image: "/illustrations/properties/villa-3.svg",
+  },
+  {
+    id: "v4",
+    title: "3 BHK Villa",
+    location: "Tellapur, Hyderabad",
+    price: "₹1.8 Cr",
+    type: "Villa",
+    category: "villas",
+    meta: "3 bed · 2,650 sqft",
+    image: "/illustrations/properties/villa-1.svg",
+  },
+  {
+    id: "v5",
+    title: "4 BHK Villa",
+    location: "Sarjapur Road, Bengaluru",
+    price: "₹2.4 Cr",
+    type: "Villa",
+    category: "villas",
+    meta: "4 bed · 3,500 sqft",
+    image: "/illustrations/properties/villa-2.svg",
+  },
+  {
+    id: "v6",
+    title: "3 BHK Row House",
+    location: "Bavdhan, Pune",
+    price: "₹1.15 Cr",
+    type: "House",
+    category: "villas",
+    meta: "3 bed · 1,900 sqft",
+    image: "/illustrations/properties/villa-3.svg",
   },
   // Plots and Land
   {
@@ -130,6 +187,7 @@ export const BUY_LISTINGS: PropertyListing[] = [
     type: "Plot",
     category: "plots",
     meta: "200 sq yd",
+    image: "/illustrations/properties/plot-1.svg",
   },
   {
     id: "p2",
@@ -139,6 +197,7 @@ export const BUY_LISTINGS: PropertyListing[] = [
     type: "Land",
     category: "plots",
     meta: "1 acre",
+    image: "/illustrations/properties/plot-2.svg",
   },
   {
     id: "p3",
@@ -148,6 +207,7 @@ export const BUY_LISTINGS: PropertyListing[] = [
     type: "Plot",
     category: "plots",
     meta: "300 sq yd",
+    image: "/illustrations/properties/plot-3.svg",
   },
   {
     id: "p4",
@@ -157,6 +217,27 @@ export const BUY_LISTINGS: PropertyListing[] = [
     type: "Plot",
     category: "plots",
     meta: "167 sq yd",
+    image: "/illustrations/properties/plot-1.svg",
+  },
+  {
+    id: "p5",
+    title: "Gated Community Plot",
+    location: "Maheshwaram, Hyderabad",
+    price: "₹52 L",
+    type: "Plot",
+    category: "plots",
+    meta: "267 sq yd",
+    image: "/illustrations/properties/plot-2.svg",
+  },
+  {
+    id: "p6",
+    title: "Residential Plot",
+    location: "Devanahalli, Bengaluru",
+    price: "₹48 L",
+    type: "Plot",
+    category: "plots",
+    meta: "150 sq yd",
+    image: "/illustrations/properties/plot-3.svg",
   },
   // Commercial
   {
@@ -167,6 +248,7 @@ export const BUY_LISTINGS: PropertyListing[] = [
     type: "Shop",
     category: "commercial",
     meta: "650 sqft",
+    image: "/illustrations/properties/commercial-1.svg",
   },
   {
     id: "c2",
@@ -176,6 +258,7 @@ export const BUY_LISTINGS: PropertyListing[] = [
     type: "Office",
     category: "commercial",
     meta: "1,200 sqft",
+    image: "/illustrations/properties/commercial-2.svg",
   },
   {
     id: "c3",
@@ -185,6 +268,37 @@ export const BUY_LISTINGS: PropertyListing[] = [
     type: "Showroom",
     category: "commercial",
     meta: "1,800 sqft",
+    image: "/illustrations/properties/commercial-3.svg",
+  },
+  {
+    id: "c4",
+    title: "Office Space",
+    location: "HITEC City, Hyderabad",
+    price: "₹2.6 Cr",
+    type: "Office",
+    category: "commercial",
+    meta: "2,400 sqft",
+    image: "/illustrations/properties/commercial-1.svg",
+  },
+  {
+    id: "c5",
+    title: "Commercial Shop",
+    location: "Viman Nagar, Pune",
+    price: "₹85 L",
+    type: "Shop",
+    category: "commercial",
+    meta: "520 sqft",
+    image: "/illustrations/properties/commercial-2.svg",
+  },
+  {
+    id: "c6",
+    title: "Warehouse Unit",
+    location: "Medchal, Hyderabad",
+    price: "₹1.4 Cr",
+    type: "Warehouse",
+    category: "commercial",
+    meta: "4,000 sqft",
+    image: "/illustrations/properties/commercial-3.svg",
   },
 ];
 

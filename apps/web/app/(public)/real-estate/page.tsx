@@ -72,21 +72,12 @@ export default function RealEstatePage() {
           <div className="relative w-full border-t border-[var(--nav-border)] bg-[var(--nav-bg)] py-20 sm:py-24 lg:py-28">
             <PropertyDoodles />
             <div className="relative z-10 space-y-16 sm:space-y-20">
-              <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-                <h2 className="font-heading text-3xl font-semibold text-foreground sm:text-4xl">
-                  Properties to buy
-                </h2>
-                <p className="mt-3 max-w-2xl text-lg text-text-secondary">
-                  Browse verified listings by category. Sign in to see the full catalog.
-                </p>
-              </div>
-              {POPULATED_CATEGORIES.map((category, index) => (
+              {POPULATED_CATEGORIES.map((category) => (
                 <PropertyRow
                   key={category.key}
                   heading={category.label}
                   types={category.blurb}
                   listings={getListingsByCategory(category.key)}
-                  showMore={index === POPULATED_CATEGORIES.length - 1}
                 />
               ))}
               <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
