@@ -117,19 +117,23 @@ export function ProductPage({
             />
           </>
         ) : null}
-        {heroDoodles ? <HeroIllustration src={heroPlant} /> : null}
-        <div className="relative mx-auto max-w-7xl px-4 py-16 sm:px-6 sm:py-20 lg:px-8 lg:py-24">
-          {eyebrow ? (
-            <p className="font-geist text-sm font-semibold uppercase tracking-wide text-brand-blue">
-              {eyebrow}
-            </p>
-          ) : null}
-          <h1 className="mt-3 max-w-4xl font-heading text-4xl font-semibold text-[var(--nav-text)] sm:text-5xl lg:text-6xl">
-            {title}
-          </h1>
-          <p className="mt-5 max-w-2xl text-lg text-[var(--nav-text)] sm:text-xl">
-            {intro}
-          </p>
+        <div className="relative mx-auto max-w-7xl px-4 py-14 sm:px-6 sm:py-20 lg:px-8">
+          <div className="grid items-center gap-8 lg:grid-cols-[1fr_auto]">
+            <div>
+              {eyebrow ? (
+                <p className="font-geist text-sm font-semibold uppercase tracking-wide text-brand-blue">
+                  {eyebrow}
+                </p>
+              ) : null}
+              <h1 className="mt-3 max-w-4xl font-heading text-4xl font-semibold text-[var(--nav-text)] sm:text-5xl lg:text-6xl">
+                {title}
+              </h1>
+              <p className="mt-5 max-w-2xl text-lg text-[var(--nav-text)] sm:text-xl">
+                {intro}
+              </p>
+            </div>
+            {heroDoodles ? <HeroIllustration src={heroPlant} /> : null}
+          </div>
         </div>
       </section>
 
@@ -137,12 +141,12 @@ export function ProductPage({
       {products && products.length > 0 ? (
       <section className="relative w-full overflow-hidden border-t border-[var(--nav-border)] bg-[var(--nav-bg)]">
         {productDoodles ? <ProductDoodles /> : null}
-        <div className="relative z-10 mx-auto max-w-7xl px-4 py-16 sm:px-6 sm:py-20 lg:px-8">
-          <h2 className="font-heading text-3xl font-semibold text-foreground sm:text-4xl">
+        <div className="relative z-10 mx-auto max-w-7xl px-4 py-20 sm:px-6 sm:py-24 lg:px-8">
+          <h2 className="mx-auto max-w-2xl text-center font-heading text-3xl font-semibold text-foreground sm:text-4xl">
             {productsHeading}
           </h2>
           {productsSubheading ? (
-            <p className="mt-3 max-w-2xl text-lg text-text-secondary">
+            <p className="mx-auto mt-3 max-w-2xl text-center text-lg text-text-secondary">
               {productsSubheading}
             </p>
           ) : null}
@@ -272,7 +276,7 @@ export function ProductPage({
       {/* Journey */}
       <section className="w-full border-t border-[var(--nav-border)] bg-[var(--nav-bg)]">
         <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 sm:py-20 lg:px-8">
-          <h2 className="max-w-2xl font-heading text-3xl font-semibold text-[var(--nav-text)] sm:text-4xl">
+          <h2 className="mx-auto max-w-2xl text-center font-heading text-3xl font-semibold text-[var(--nav-text)] sm:text-4xl">
             {journeyHeading}
           </h2>
           {journeyTimeline ? (
@@ -431,11 +435,11 @@ export function ProductPage({
   );
 }
 
-// Decorative hero illustration grounded on the hero's right edge, scaled to fill
-// the hero height exactly. Square viewBox art, so object-contain/object-bottom
-// letterboxes width and grounds it on the baseline. Loans passes the credit
-// scene (default); Properties passes the house-search scene. Desktop-only
-// (lg+), aria-hidden.
+// Decorative hero illustration, in-flow beside the hero copy (matches the
+// calculators hub hero: CalculatorHeroArt). Square viewBox art in a fixed-width
+// box, so it drives the hero row's height instead of floating as a background
+// overlay. Loans passes the credit scene (default); Properties passes the
+// house-search scene. Desktop-only (lg+), aria-hidden.
 function HeroIllustration({
   src = "/illustrations/heroes/loans.svg",
 }: {
@@ -444,21 +448,18 @@ function HeroIllustration({
   return (
     <div
       aria-hidden
-      className="pointer-events-none absolute inset-0 hidden overflow-hidden lg:block"
+      className="hidden shrink-0 items-center justify-center lg:flex lg:w-[460px]"
     >
-      {/* illustration grounded on the right; nudged in from the edge and pushed
-          down so its baseline sits on the section divider (empty SVG tail below
-          the ground-line is clipped by the parent's overflow-hidden) */}
-      <span className="absolute inset-y-0 right-[3%] block aspect-square h-full translate-y-[8%]">
-        <Image
-          src={src}
-          alt=""
-          aria-hidden
-          fill
-          sizes="50vw"
-          className="object-contain object-bottom"
-        />
-      </span>
+      <Image
+        src={src}
+        alt=""
+        aria-hidden
+        width={500}
+        height={500}
+        sizes="460px"
+        className="h-auto w-full max-w-[460px]"
+        priority
+      />
     </div>
   );
 }

@@ -5,8 +5,8 @@
 //     family as ProductDoodles (megaphone, chat bubble, trend arrow).
 //   - EligibilityCornerObjects: small flat natural-color objects pinned to the
 //     band corners (coin stack, paper plane, envelope with a rupee note).
-//   - PayoutConfetti: a tiny celebration cluster for the payout end of the
-//     commission timeline.
+//   - AgentTracksDoodles: signpost with two diverging arrows plus a briefcase
+//     and house pairing, corner-pinned around the two agent-track cards.
 // All aria-hidden, pointer-events-none, hidden below lg.
 
 export function EarnHeroDoodles() {
@@ -124,25 +124,57 @@ export function EligibilityCornerObjects() {
   );
 }
 
-export function PayoutConfetti() {
+export function AgentTracksDoodles() {
   return (
     <div
       aria-hidden
-      className="pointer-events-none absolute bottom-6 right-6 z-0 hidden lg:block"
+      className="pointer-events-none absolute inset-0 z-0 hidden overflow-hidden lg:block"
     >
-      <svg className="h-24 w-28" viewBox="0 0 112 96" fill="none" opacity="0.8">
-        <rect x="18" y="20" width="8" height="8" rx="2" fill="#C4633F" transform="rotate(22 22 24)"/>
-        <rect x="78" y="10" width="8" height="8" rx="2" fill="#6FA98C" transform="rotate(-18 82 14)"/>
-        <rect x="96" y="48" width="7" height="7" rx="2" fill="#4274D9" transform="rotate(30 99 51)"/>
-        <circle cx="52" cy="14" r="4" fill="#95CCDD"/>
-        <circle cx="10" cy="56" r="3.5" fill="#C4633F"/>
-        <path d="M34 44 q5 -8 10 0" stroke="#E8B54D" strokeWidth="2.5" strokeLinecap="round"/>
-        <path d="M66 34 q6 -6 12 -2" stroke="#4274D9" strokeWidth="2.5" strokeLinecap="round"/>
-        <circle cx="60" cy="66" r="12" fill="#E8B54D" stroke="#C08A2E" strokeWidth="2"/>
-        <text x="60" y="71" textAnchor="middle" fontFamily="system-ui, sans-serif" fontSize="12" fontWeight={700} fill="#6B4E16">&#8377;</text>
-        <circle cx="86" cy="78" r="8" fill="#E8B54D" stroke="#C08A2E" strokeWidth="1.8"/>
-        <path d="M28 76 l-6 -4 M40 84 l-4 6 M100 68 l6 -5" stroke="#C08A2E" strokeWidth="2" strokeLinecap="round"/>
+      {/* top-left: signpost with two diverging arrows, picking a track */}
+      <svg
+        className="absolute left-10 top-10 h-20 w-20"
+        viewBox="0 0 80 80"
+        fill="none"
+        opacity="0.75"
+      >
+        <rect x="37" y="18" width="6" height="46" rx="2" fill="#8C6E4A" />
+        <path
+          d="M8 22 L38 14 L38 30 L8 22 Z"
+          fill="#95CCDD"
+          stroke="#293681"
+          strokeWidth="2"
+          strokeLinejoin="round"
+          opacity="0.85"
+        />
+        <path
+          d="M72 30 L42 22 L42 38 L72 30 Z"
+          fill="#E8B54D"
+          stroke="#C08A2E"
+          strokeWidth="2"
+          strokeLinejoin="round"
+          opacity="0.85"
+        />
+        <ellipse cx="40" cy="66" rx="10" ry="3" fill="#C9C2B0" opacity="0.6" />
+      </svg>
+      {/* bottom-right: briefcase and house paired, the two lines */}
+      <svg
+        className="absolute bottom-10 right-10 h-16 w-28"
+        viewBox="0 0 112 64"
+        fill="none"
+        opacity="0.75"
+      >
+        <g transform="translate(0,10)">
+          <rect x="4" y="14" width="38" height="26" rx="4" fill="#4274D9" opacity="0.85" />
+          <rect x="16" y="6" width="14" height="10" rx="2" fill="none" stroke="#293681" strokeWidth="2" />
+          <path d="M4 26 h38" stroke="#293681" strokeWidth="1.6" />
+        </g>
+        <g transform="translate(58,0)">
+          <path d="M4 26 L27 8 L50 26" stroke="#C4633F" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+          <rect x="12" y="24" width="30" height="24" rx="2" fill="#F2D28A" stroke="#C08A2E" strokeWidth="1.6" />
+          <rect x="23" y="34" width="8" height="14" fill="#6B4E16" opacity="0.7" />
+        </g>
       </svg>
     </div>
   );
 }
+

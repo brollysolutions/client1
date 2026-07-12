@@ -64,7 +64,7 @@ export default function RealEstatePage() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(realEstateJsonLd) }}
       />
       <ProductPage
-        title="Find the property that fits you"
+        title="Buy your property with confidence"
         intro="From flats and plots to offices and shops, we bring only verified listings and trusted agents together in one place. We stay with you at every step, from the first visit until you hold the keys."
         heroDoodles
         heroPlant="/illustrations/heroes/real-estate.svg"

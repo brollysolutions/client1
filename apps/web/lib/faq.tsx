@@ -62,7 +62,7 @@ export const HOME_FAQ_ITEMS: FaqItem[] = [
 export const AGENT_FAQ_ITEMS: FaqItem[] = [
   {
     q: "Who can apply to become an agent?",
-    a: "Anyone who can bring loan or real estate leads and pass our KYC check. No fixed prior experience is required.",
+    a: "Anyone who can bring loan or real estate leads and pass our KYC check. No prior experience needed.",
   },
   {
     q: "Can I be an agent for both loans and real estate?",
@@ -70,19 +70,19 @@ export const AGENT_FAQ_ITEMS: FaqItem[] = [
   },
   {
     q: "Do real estate agents need to be RERA registered?",
-    a: "Yes, a valid RERA agent code is required as part of KYC for the real estate track.",
+    a: "Yes. A valid RERA agent code is required as part of your KYC for the real estate track.",
   },
   {
     q: "I am already a client. Can I convert to an agent?",
-    a: "Yes, existing clients can apply to convert to an agent account through the same KYC process.",
+    a: "Yes. Existing clients can apply to convert to an agent account through the same KYC process.",
   },
   {
     q: "How is my commission decided?",
-    a: "There is no fixed slab. Commission is set for each deal individually once it closes, based on that specific loan or property.",
+    a: "No fixed slab. It's set per deal once it closes, based on that loan or property.",
   },
   {
     q: "How and when do I get paid?",
-    a: "Once a deal is approved, payout is made either through Razorpay or by cheque.",
+    a: "Once a deal is approved, payout is made through Razorpay or by cheque.",
   },
   {
     q: "Is there any cost to apply?",
@@ -90,15 +90,15 @@ export const AGENT_FAQ_ITEMS: FaqItem[] = [
   },
   {
     q: "What happens after I apply?",
-    a: "We review your KYC, and once you are verified, your agent account is activated so you can start referring clients.",
+    a: "We review your KYC. Once verified, your agent account is activated and you can start referring clients.",
   },
   {
     q: "Do I need to become an agent to refer someone?",
-    a: "No. Any registered user gets a referral code and can earn cashback. Agents are a separate program that earns commission on the deals they work.",
+    a: "No. Any registered user gets a referral code and earns cashback. Agents earn commission on the deals they work.",
   },
   {
     q: "How does referral cashback work?",
-    a: "Share your referral code. When a person you referred completes a property purchase or their loan is disbursed, you earn cashback, paid through Razorpay or by cheque.",
+    a: "Share your referral code. When your referral's purchase or loan goes through, you get cashback via Razorpay or cheque.",
   },
 ];
 
