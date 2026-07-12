@@ -5,7 +5,12 @@
 // rule; pointer-events-none so they never block clicks; aria-hidden. Positions
 // hug the left/right margins (content is centered) so the glyphs float in the
 // gutters and stay off the body copy. Reduced-motion users get them static.
-import { type CSSProperties } from "react";
+//
+// Also the shared engine for any other page's doodle field: pass `items` (own
+// kind/position data) and `renderGlyph` (own glyph renderer) to reuse the same
+// wrapper, drift animation, and desktop-only/reduced-motion handling with a
+// different, page-specific glyph set. See apply-as-agent/application-doodles.tsx.
+import { type CSSProperties, type ReactNode } from "react";
 
 type Kind =
   | "coin"
@@ -20,8 +25,8 @@ type Kind =
   | "pin"
   | "star";
 
-type Doodle = {
-  kind: Kind;
+export type Doodle = {
+  kind: string;
   top: string;
   left?: string;
   right?: string;
@@ -137,16 +142,27 @@ function Glyph({ kind }: { kind: Kind }) {
 
 // subset: pick a few doodles by index (e.g. [0, 1, 3]) to thin the field on a
 // smaller section. Omit for the full page-wide scatter.
-export function FloatingDoodles({ subset }: { subset?: number[] } = {}) {
-  const items = subset
-    ? subset.map((i) => DOODLES[i]).filter(Boolean)
-    : DOODLES;
+// items/renderGlyph: supply a different, page-specific doodle set through the
+// same wrapper/positioning/motion engine. Omit both for today's home-page
+// behavior unchanged (subset still applies to the built-in DOODLES in that case).
+export function FloatingDoodles({
+  subset,
+  items,
+  renderGlyph,
+}: {
+  subset?: number[];
+  items?: Doodle[];
+  renderGlyph?: (kind: string) => ReactNode;
+} = {}) {
+  const data =
+    items ?? (subset ? subset.map((i) => DOODLES[i]).filter(Boolean) : DOODLES);
+  const glyphOf = renderGlyph ?? ((kind: string) => <Glyph kind={kind as Kind} />);
   return (
     <div
       aria-hidden
       className="pointer-events-none absolute inset-0 z-20 hidden overflow-hidden lg:block"
     >
-      {items.map((d, i) => (
+      {data.map((d, i) => (
         <span
           key={i}
           className="doodle-float absolute block"
@@ -162,7 +178,7 @@ export function FloatingDoodles({ subset }: { subset?: number[] } = {}) {
             "--doodle-dur": d.dur,
           } as CSSProperties}
         >
-          <Glyph kind={d.kind} />
+          {glyphOf(d.kind)}
         </span>
       ))}
     </div>

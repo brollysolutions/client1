@@ -2,19 +2,17 @@
 
 import * as React from "react";
 import {
-  AtSign,
   BadgeCheck,
-  Briefcase,
   Camera,
   Check,
   CreditCard,
   FileText,
   IdCard,
+  Loader2,
   type LucideIcon,
   Mail,
   ShieldCheck,
   User,
-  UserRound,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -61,6 +59,12 @@ const EMPTY_FIELDS: Fields = {
   rera: "",
 };
 
+// Icon color is a rule, not a per-element choice: muted gray marks a static,
+// decorative icon (the inline field-prefix icons below); brand blue marks
+// something interactive or trust-earned (this header's own icon, the
+// business-line toggle, file-upload buttons, progress, submit, success).
+// Headings never get a boxed icon-badge, no matter how many sections there
+// are, so a repeated icon-square doesn't become the section-divider pattern.
 function SectionHeader({
   id,
   icon: Icon,
@@ -68,23 +72,24 @@ function SectionHeader({
   description,
 }: {
   id?: string;
-  icon: LucideIcon;
+  icon?: LucideIcon;
   title: string;
   description?: string;
 }) {
   return (
-    <div className="flex items-start gap-3">
-      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[var(--nav-tint)] text-[var(--nav-primary)]">
-        <Icon className="h-4 w-4" aria-hidden />
-      </span>
-      <div>
-        <h3 id={id} className="font-heading text-lg font-semibold text-foreground">
-          {title}
-        </h3>
-        {description && (
-          <p className="mt-0.5 text-sm text-text-secondary">{description}</p>
+    <div className="grid gap-0.5">
+      <h3
+        id={id}
+        className="flex items-center gap-2 font-heading text-lg font-semibold text-foreground"
+      >
+        {Icon && (
+          <Icon className="h-5 w-5 shrink-0 text-[var(--nav-primary)]" aria-hidden />
         )}
-      </div>
+        {title}
+      </h3>
+      {description && (
+        <p className="text-sm text-text-secondary">{description}</p>
+      )}
     </div>
   );
 }
@@ -289,14 +294,15 @@ export function AgentApplicationForm({
 
       {/* Business line */}
       <fieldset className="grid min-w-0 gap-4 border-0 p-0">
-        <SectionHeader id="apply-line-heading" icon={Briefcase} title="Which line?" />
-        <p className="-mt-2 ml-12 text-sm text-text-secondary">
-          Agent accounts work one line. Pick the one you want.
-        </p>
+        <SectionHeader
+          id="apply-line-heading"
+          title="Which line?"
+          description="Agent accounts work one line. Pick the one you want."
+        />
         <div
           role="group"
           aria-labelledby="apply-line-heading"
-          className="ml-12 grid grid-cols-2 gap-2"
+          className="grid grid-cols-2 gap-2"
         >
           {LINES.map((option) => (
             <button
@@ -307,6 +313,7 @@ export function AgentApplicationForm({
               disabled={submitting}
               className={cn(
                 "h-12 rounded-lg border px-3 text-sm font-medium transition",
+                "focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[var(--nav-primary)]/50",
                 line === option.value
                   ? "border-[var(--nav-primary)] bg-[var(--nav-primary)] text-white"
                   : "border-[var(--nav-border)] bg-transparent text-foreground hover:bg-[var(--nav-tint)]",
@@ -320,8 +327,8 @@ export function AgentApplicationForm({
 
       {/* Your details */}
       <fieldset className="grid min-w-0 gap-4 border-0 border-t border-[var(--nav-border)] p-0 pt-8">
-        <SectionHeader icon={UserRound} title="Your details" />
-        <div className="ml-12 grid gap-5 sm:grid-cols-2">
+        <SectionHeader title="Your details" />
+        <div className="grid gap-5 sm:grid-cols-2">
           <div className="grid gap-2">
             <Label htmlFor="apply-first-name">First name</Label>
             <IconInput
@@ -367,8 +374,8 @@ export function AgentApplicationForm({
 
       {/* Contact */}
       <fieldset className="grid min-w-0 gap-4 border-0 border-t border-[var(--nav-border)] p-0 pt-8">
-        <SectionHeader icon={AtSign} title="Contact" />
-        <div className="ml-12 grid gap-5 sm:grid-cols-2">
+        <SectionHeader title="Contact" />
+        <div className="grid gap-5 sm:grid-cols-2">
           <div className="grid gap-2">
             <Label htmlFor="apply-mobile">Phone number</Label>
             <MobileInput
@@ -412,86 +419,123 @@ export function AgentApplicationForm({
         </div>
       </fieldset>
 
-      {/* KYC documents */}
-      <fieldset className="grid min-w-0 gap-4 border-0 border-t border-[var(--nav-border)] p-0 pt-8">
-        <SectionHeader
-          icon={ShieldCheck}
-          title="KYC documents"
-          description="We verify these after you apply."
-        />
-        <div className="ml-12 grid gap-5 sm:grid-cols-2">
-          <FileField
-            id="apply-aadhaar"
-            label="Aadhaar card"
-            icon={IdCard}
-            value={aadhaar}
-            onChange={setAadhaar}
-            error={fileErrors.aadhaar}
-            disabled={submitting}
+      {/* KYC documents. The highest-anxiety step (handing over Aadhaar/PAN),
+          so it gets a distinct container instead of the plain header every
+          other section uses. Still no white card, per this form's blended-
+          background convention: a low-opacity nav-tint wash + hairline
+          nav-border, not bg-surface + shadow. rounded-xl is deliberately
+          bigger than the rounded-lg controls inside it (container > content)
+          but smaller than the rounded-2xl actual cards use elsewhere
+          (contact-form.tsx, calculator-card.tsx), so this reads as a wash,
+          not a card. Border stays neutral, not blue-tinted, so blue stays
+          reserved for interactive/trust elements, not a static container. */}
+      <fieldset className="border-0 border-t border-[var(--nav-border)] p-0 pt-8">
+        <div className="rounded-xl border border-[var(--nav-border)] bg-[var(--nav-tint)]/30 p-5 sm:p-6">
+          <SectionHeader
+            icon={ShieldCheck}
+            title="KYC documents"
+            description="We verify these after you apply."
           />
-          <FileField
-            id="apply-pan"
-            label="PAN card"
-            icon={CreditCard}
-            value={pan}
-            onChange={setPan}
-            error={fileErrors.pan}
-            disabled={submitting}
-          />
-          <FileField
-            id="apply-photo"
-            label="Your photo"
-            icon={Camera}
-            value={photo}
-            onChange={setPhoto}
-            accept="image/jpeg,image/png,image/webp"
-            hint="JPG, PNG or WEBP, up to 5 MB"
-            error={fileErrors.photo}
-            disabled={submitting}
-          />
-          <FileField
-            id="apply-address-proof"
-            label="Address proof"
-            icon={FileText}
-            value={addressProof}
-            onChange={setAddressProof}
-            error={fileErrors.addressProof}
-            disabled={submitting}
-          />
+          <div className="mt-5 grid min-w-0 gap-5 sm:grid-cols-2">
+            <FileField
+              id="apply-aadhaar"
+              label="Aadhaar card"
+              icon={IdCard}
+              value={aadhaar}
+              onChange={setAadhaar}
+              error={fileErrors.aadhaar}
+              disabled={submitting}
+            />
+            <FileField
+              id="apply-pan"
+              label="PAN card"
+              icon={CreditCard}
+              value={pan}
+              onChange={setPan}
+              error={fileErrors.pan}
+              disabled={submitting}
+            />
+            <FileField
+              id="apply-photo"
+              label="Your photo"
+              icon={Camera}
+              value={photo}
+              onChange={setPhoto}
+              accept="image/jpeg,image/png,image/webp"
+              hint="JPG, PNG or WEBP, up to 5 MB"
+              error={fileErrors.photo}
+              disabled={submitting}
+            />
+            <FileField
+              id="apply-address-proof"
+              label="Address proof"
+              icon={FileText}
+              value={addressProof}
+              onChange={setAddressProof}
+              error={fileErrors.addressProof}
+              disabled={submitting}
+            />
+          </div>
         </div>
       </fieldset>
 
-      {/* RERA code, real estate only */}
-      {line === "real_estate" && (
-        <fieldset className="grid min-w-0 gap-4 border-0 border-t border-[var(--nav-border)] p-0 pt-8">
-          <SectionHeader icon={BadgeCheck} title="RERA code" />
-          <div className="ml-12 grid gap-2">
-            <Label htmlFor="apply-rera">RERA agent code</Label>
-            <IconInput
-              id="apply-rera"
-              icon={BadgeCheck}
-              value={fields.rera}
-              onChange={(e) => set("rera", e.target.value)}
-              onBlur={() => touchField("rera")}
-              placeholder="e.g. A51900012345"
-              aria-invalid={!!errors.rera}
-              aria-describedby={errors.rera ? "apply-rera-error" : undefined}
-              disabled={submitting}
-            />
-            {errors.rera && (
-              <p id="apply-rera-error" className="text-sm text-destructive">
-                {errors.rera}
-              </p>
+      {/* RERA code, real estate only. Always mounted (not conditionally
+          rendered) so both directions of the business-line toggle animate:
+          collapsed via grid-template-rows 0fr -> 1fr, which transitions to
+          the row's intrinsic height with pure CSS (the overflow-hidden div
+          must be the direct grid item for the 0fr trick to clamp it below
+          content size). inert removes it from the tab order and
+          accessibility tree while collapsed, same technique already used by
+          hero-carousel.tsx for off-screen slides; aria-hidden stays alongside
+          for assistive tech that predates inert. fieldError('rera', ...)
+          already returns undefined when line !== "real_estate", so no
+          validation/progress-bar logic needs to change for this. */}
+      <div
+        className={cn(
+          "grid transition-[grid-template-rows] duration-300 ease-out motion-reduce:transition-none",
+          line === "real_estate" ? "grid-rows-[1fr]" : "grid-rows-[0fr]",
+        )}
+      >
+        <div className="overflow-hidden">
+          <fieldset
+            aria-hidden={line !== "real_estate"}
+            inert={line !== "real_estate" || undefined}
+            className={cn(
+              "grid min-w-0 gap-4 border-0 border-t border-[var(--nav-border)] p-0 pt-8",
+              "transition-opacity duration-200 ease-out motion-reduce:transition-none",
+              line === "real_estate" ? "opacity-100" : "opacity-0",
             )}
-          </div>
-        </fieldset>
-      )}
+          >
+            <SectionHeader title="RERA code" />
+            <div className="grid gap-2">
+              <Label htmlFor="apply-rera">RERA agent code</Label>
+              <IconInput
+                id="apply-rera"
+                icon={BadgeCheck}
+                value={fields.rera}
+                onChange={(e) => set("rera", e.target.value)}
+                onBlur={() => touchField("rera")}
+                placeholder="e.g. A51900012345"
+                aria-invalid={!!errors.rera}
+                aria-describedby={errors.rera ? "apply-rera-error" : undefined}
+                disabled={submitting}
+              />
+              {errors.rera && (
+                <p id="apply-rera-error" className="text-sm text-destructive">
+                  {errors.rera}
+                </p>
+              )}
+            </div>
+          </fieldset>
+        </div>
+      </div>
 
       <Button
         type="submit"
         disabled={submitting}
         className="h-12 bg-[var(--nav-primary)] text-base text-white hover:bg-[var(--nav-primary-hover)] focus-visible:ring-[var(--nav-primary)]"
       >
+        {submitting && <Loader2 className="h-4 w-4 animate-spin" aria-hidden />}
         {submitting ? "Submitting..." : "Submit application"}
       </Button>
     </form>

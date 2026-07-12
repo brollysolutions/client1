@@ -116,6 +116,7 @@ export function FileField({
         <div
           className={cn(
             "flex h-12 items-center gap-3 rounded-lg border px-3.5",
+            "animate-in fade-in-0 slide-in-from-bottom-1 duration-200 ease-out motion-reduce:animate-none",
             displayError ? "border-destructive" : "border-[var(--nav-border)]",
           )}
         >
@@ -144,7 +145,7 @@ export function FileField({
             onClick={handleRemove}
             disabled={disabled}
             aria-label={`Remove ${label}`}
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-[var(--nav-tint)] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+            className="-mr-1.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-[var(--nav-tint)] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
           >
             <X className="h-4 w-4" />
           </button>
