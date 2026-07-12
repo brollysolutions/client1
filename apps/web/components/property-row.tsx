@@ -9,10 +9,10 @@ import type { PropertyListing } from "@/lib/properties";
 
 // A titled horizontal-scroll row of property cards (buy listings). Native
 // scroll on trackpad/drag/touch, plus chevron buttons that page the row on
-// click. When `showMore` is set, the last item is a "register to see more"
-// card: the full catalog is gated behind sign-up. With several category rows
-// stacked, only the last row shows the gate so it appears once. Client
-// component: the chevrons drive the scroller imperatively.
+// click. When `showMore` is set (the default), the last item is a "register to
+// see more" card: the full catalog is gated behind sign-up, and every category
+// row ends on that gate. Client component: the chevrons drive the scroller
+// imperatively.
 
 export function PropertyRow({
   heading,
