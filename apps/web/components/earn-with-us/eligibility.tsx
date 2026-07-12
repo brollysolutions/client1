@@ -1,47 +1,41 @@
-import {
-  BadgeCheck,
-  Banknote,
-  Building2,
-  Smartphone,
-  Sparkles,
-  type LucideIcon,
-} from "lucide-react";
+import Image from "next/image";
 
-// White cards on the page's cream sections, matching the icon-chip card
-// pattern from why-choose-us.tsx / trust-strip.tsx. Requirements only, no
-// invented numbers or timelines.
-type Requirement = { title: string; detail: string; icon: LucideIcon };
+// Requirements sit flat on the section's cream background, no card boxes.
+// Each item is identified by a sourced Storyset illustration (recolored to
+// the brand blue accent) rather than a lucide icon chip. Requirements only,
+// no invented numbers or timelines.
+type Requirement = { title: string; detail: string; illustration: string };
 
 const REQUIREMENTS: Requirement[] = [
   {
     title: "KYC documents",
     detail:
       "A valid ID and address proof, plus a photo. This is how we verify who you are before you go live.",
-    icon: BadgeCheck,
+    illustration: "/illustrations/earn/kyc-documents.svg",
   },
   {
     title: "Mobile number",
     detail:
       "One mobile number, verified by OTP. It is how we reach you and how your account is identified.",
-    icon: Smartphone,
+    illustration: "/illustrations/earn/mobile-verification.svg",
   },
   {
     title: "Payout details",
     detail:
       "We pay commission through Razorpay or by cheque, so have your bank details or a cheque option ready.",
-    icon: Banknote,
+    illustration: "/illustrations/earn/payout-details.svg",
   },
   {
     title: "RERA agent code (real estate only)",
     detail:
       "If you are applying for the real estate line, a valid RERA agent code is part of your KYC.",
-    icon: Building2,
+    illustration: "/illustrations/earn/rera-agent-code.svg",
   },
   {
     title: "No fixed experience required",
     detail:
       "You do not need prior experience as an agent or broker. Anyone who can bring us genuine leads can apply.",
-    icon: Sparkles,
+    illustration: "/illustrations/earn/no-experience-required.svg",
   },
 ];
 
@@ -65,20 +59,22 @@ export function EarnEligibility() {
           </p>
         </div>
 
-        <ul className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        <ul className="mt-12 grid gap-x-8 gap-y-12 sm:grid-cols-2 lg:grid-cols-3">
           {REQUIREMENTS.map((item) => (
-            <li key={item.title}>
-              <article className="flex h-full flex-col rounded-2xl border border-[var(--nav-border)] bg-surface p-6 shadow-sm">
-                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[var(--nav-tint)] text-brand-blue ring-1 ring-[var(--nav-border)]">
-                  <item.icon className="h-5 w-5" aria-hidden />
-                </span>
-                <h3 className="mt-5 font-heading text-base font-semibold text-foreground">
-                  {item.title}
-                </h3>
-                <p className="mt-1 text-sm leading-relaxed text-text-secondary">
-                  {item.detail}
-                </p>
-              </article>
+            <li key={item.title} className="flex flex-col items-center text-center">
+              <Image
+                src={item.illustration}
+                alt=""
+                width={140}
+                height={140}
+                className="h-24 w-24 sm:h-28 sm:w-28 lg:h-32 lg:w-32"
+              />
+              <h3 className="mt-5 font-heading text-base font-semibold text-foreground">
+                {item.title}
+              </h3>
+              <p className="mt-1 max-w-xs text-sm leading-relaxed text-text-secondary">
+                {item.detail}
+              </p>
             </li>
           ))}
         </ul>
