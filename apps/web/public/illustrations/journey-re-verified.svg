@@ -15,27 +15,35 @@
     <!-- roof -->
     <path d="M-8 78L90 6l98 72z" fill="#C4633F"/>
     <path d="M-8 78L90 6l98 72" stroke="#A24B2C" stroke-width="2.4" stroke-linejoin="round" fill="none"/>
+    <path d="M6 78h168l-5 8H11z" fill="#A24B2C"/>
     <!-- walls -->
-    <rect x="18" y="78" width="144" height="120" fill="#F3F3EE" stroke="#293681" stroke-width="2.4"/>
+    <rect x="18" y="78" width="144" height="120" fill="#F6F1E4" stroke="#293681" stroke-width="2.4"/>
+    <rect x="148" y="80" width="13" height="117" fill="#EAE2CD"/>
     <!-- door -->
     <rect x="72" y="140" width="36" height="58" rx="2" fill="#8A5A34"/>
+    <rect x="72" y="140" width="17" height="58" rx="2" fill="#9C6A40"/>
     <circle cx="101" cy="170" r="2.6" fill="#E8B54D"/>
     <!-- windows -->
     <rect x="34" y="104" width="34" height="30" fill="#95CCDD" stroke="#293681" stroke-width="1.8"/>
     <path d="M51 104v30M34 119h34" stroke="#293681" stroke-width="1.4"/>
+    <rect x="31" y="134" width="40" height="5" rx="2" fill="#EAE2CD"/>
     <rect x="112" y="104" width="34" height="30" fill="#95CCDD" stroke="#293681" stroke-width="1.8"/>
     <path d="M129 104v30M112 119h34" stroke="#293681" stroke-width="1.4"/>
+    <rect x="109" y="134" width="40" height="5" rx="2" fill="#EAE2CD"/>
   </g>
 
   <!-- verified shield badge (blue accent) overlapping the roof -->
   <g transform="translate(300 96)">
     <path d="M32 0l32 11v22c0 22-16 36-32 43-16-7-32-21-32-43V11z" fill="#4274D9"/>
-    <path d="M32 0l32 11v22c0 22-16 36-32 43-16-7-32-21-32-43V11z" fill="#FFFFFF" fill-opacity="0.14"/>
+    <path d="M32 0L0 11v22c0 22 16 36 32 43z" fill="#2F54C6"/>
+    <path d="M32 7l25 9v17c0 17-12 28-25 34-13-6-25-17-25-34V16z" stroke="#FFFFFF" stroke-width="1.8" opacity="0.4" fill="none"/>
     <path d="M18 36l10 10 20-22" stroke="#FFFFFF" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
   </g>
 
-  <!-- sparkle -->
+  <!-- sparkle + dots -->
   <path d="M138 150l3 7 7 3-7 3-3 7-3-7-7-3 7-3z" fill="#95CCDD"/>
+  <circle cx="120" cy="220" r="3" fill="#95CCDD" opacity="0.8"/>
+  <circle cx="368" cy="200" r="2.5" fill="#95CCDD" opacity="0.7"/>
 
   <!-- plant (one warm element) -->
   <path d="M356 304c-4-16 2-30 10-36-2 12 0 22 6 30" fill="#6FA98C"/>

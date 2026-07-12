@@ -12,6 +12,9 @@
 
   <!-- phone -->
   <rect x="176" y="62" width="128" height="220" rx="22" fill="#293681"/>
+  <rect x="304" y="112" width="4" height="24" rx="2" fill="#1F2A66"/>
+  <rect x="304" y="144" width="4" height="16" rx="2" fill="#1F2A66"/>
+  <rect x="180" y="70" width="3" height="204" rx="1.5" fill="#4A5AA8" opacity="0.5"/>
   <rect x="186" y="80" width="108" height="184" rx="10" fill="#FFFFFF"/>
   <path d="M186 90a10 10 0 0 1 10-10h88a10 10 0 0 1 10 10v22H186z" fill="#4274D9"/>
   <rect x="198" y="92" width="52" height="7" rx="3.5" fill="#FFFFFF" opacity="0.9"/>
@@ -29,14 +32,17 @@
   <rect x="198" y="216" width="84" height="26" rx="8" fill="#4274D9"/>
   <rect x="222" y="226" width="36" height="7" rx="3.5" fill="#FFFFFF"/>
 
-  <!-- floating rupee coin (blue) -->
-  <circle cx="150" cy="120" r="22" fill="#EAF1FB" stroke="#4274D9" stroke-width="3"/>
-  <text x="150" y="128" text-anchor="middle" font-family="system-ui,sans-serif" font-size="20" font-weight="700" fill="#4274D9">&#8377;</text>
+  <!-- floating gold rupee coin -->
+  <circle cx="150" cy="120" r="22" fill="#E8B54D" stroke="#C08A2E" stroke-width="3"/>
+  <circle cx="150" cy="120" r="14.5" fill="none" stroke="#F2D28A" stroke-width="2"/>
+  <text x="150" y="127" text-anchor="middle" font-family="system-ui,sans-serif" font-size="19" font-weight="700" fill="#6B4E16">&#8377;</text>
   <!-- floating check badge -->
   <circle cx="328" cy="208" r="20" fill="#4274D9"/>
   <path d="M319 208l6 6 11-12" stroke="#FFFFFF" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/>
-  <!-- sparkle -->
+  <!-- sparkle + dots -->
   <path d="M330 118l3 7 7 3-7 3-3 7-3-7-7-3 7-3z" fill="#95CCDD"/>
+  <circle cx="356" cy="160" r="3" fill="#95CCDD" opacity="0.8"/>
+  <circle cx="132" cy="172" r="2.5" fill="#95CCDD" opacity="0.7"/>
 
   <!-- plant (one warm element) -->
   <path d="M120 302c-4-16 2-30 10-36-2 12 0 22 6 30" fill="#6FA98C"/>

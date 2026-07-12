@@ -13,8 +13,10 @@
   <!-- house behind (context) -->
   <g transform="translate(96 118)" opacity="0.95">
     <path d="M-4 46L52 4l56 42z" fill="#C4633F"/>
-    <rect x="10" y="46" width="84" height="72" fill="#F3F3EE" stroke="#293681" stroke-width="2"/>
+    <path d="M2 46h100l-4 6H6z" fill="#A24B2C"/>
+    <rect x="10" y="46" width="84" height="72" fill="#F6F1E4" stroke="#293681" stroke-width="2"/>
     <rect x="44" y="82" width="22" height="36" fill="#8A5A34"/>
+    <rect x="44" y="82" width="10" height="36" fill="#9C6A40"/>
     <rect x="20" y="58" width="20" height="18" fill="#95CCDD" stroke="#293681" stroke-width="1.4"/>
   </g>
 
@@ -30,28 +32,36 @@
 
   <!-- agent (faceless), gesturing toward the house -->
   <g transform="translate(198 0)">
-    <path d="M-18 214c0-18 9-30 18-30s18 12 18 30l0 76h-36z" fill="#293681"/>
-    <path d="M-18 214c0-18 9-30 18-30 -6 6 -10 16 -10 30l0 76h-8z" fill="#95CCDD" opacity="0.35"/>
+    <path d="M-26 296v-58c0-22 11-36 26-36s26 14 26 36v58z" fill="#293681"/>
+    <path d="M-26 296v-58c0-22 11-36 26-36-8 8-12 20-12 36v58z" fill="#95CCDD" opacity="0.3"/>
+    <path d="M-8 204c2 4 5 6 8 6s6-2 8-6l-4 12h-8z" fill="#EAF1FB"/>
     <!-- pointing arm -->
-    <path d="M-14 196c-16 2-30 8-40 18l8 10c10-8 22-12 34-12z" fill="#293681"/>
-    <circle cx="-46" cy="222" r="6" fill="#EAD9C4"/>
+    <path d="M-20 214c-13 3-25 9-33 17l7 9c9-8 19-12 30-14z" fill="#293681"/>
+    <circle cx="-49" cy="244" r="5.5" fill="#EAD9C4"/>
     <!-- clipboard arm -->
+    <circle cx="14" cy="228" r="4.5" fill="#EAD9C4"/>
     <rect x="12" y="198" width="22" height="30" rx="3" fill="#F3F3EE" stroke="#293681" stroke-width="1.6"/>
     <path d="M16 208h14M16 216h10" stroke="#93B4E8" stroke-width="2.4" stroke-linecap="round"/>
-    <circle cx="0" cy="166" r="16" fill="#EAD9C4"/>
-    <path d="M-16 164a16 16 0 0 1 32 0c0-11-7-19-16-19s-16 8-16 19z" fill="#2A2E37"/>
+    <!-- neck + head -->
+    <rect x="-5" y="180" width="10" height="26" fill="#EAD9C4"/>
+    <circle cx="0" cy="168" r="16" fill="#EAD9C4"/>
+    <path d="M-16 166c0-11 7-18 16-18s16 7 16 18c-3-7-9-11-16-11s-13 4-16 11z" fill="#2A2E37"/>
   </g>
 
   <!-- client (faceless) -->
   <g transform="translate(288 0)">
-    <path d="M-16 220c0-16 8-27 16-27s16 11 16 27l0 70h-32z" fill="#4274D9"/>
-    <path d="M-16 220c0-16 8-27 16-27 -5 5 -9 14 -9 27l0 70h-7z" fill="#95CCDD" opacity="0.4"/>
-    <circle cx="0" cy="176" r="15" fill="#EAD9C4"/>
-    <path d="M-15 174a15 15 0 0 1 30 0c0-10-6-18-15-18s-15 8-15 18z" fill="#7A4E28"/>
+    <path d="M-22 300v-54c0-20 10-32 22-32s22 12 22 32v54z" fill="#4274D9"/>
+    <path d="M-22 300v-54c0-20 10-32 22-32-7 7-10 18-10 32v54z" fill="#95CCDD" opacity="0.35"/>
+    <path d="M-7 216c2 3 4 5 7 5s5-2 7-5l-3 11h-7z" fill="#EAF1FB"/>
+    <rect x="-4.5" y="192" width="9" height="26" fill="#EAD9C4"/>
+    <circle cx="0" cy="180" r="15" fill="#EAD9C4"/>
+    <path d="M-15 178c0-10 6-17 15-17s15 7 15 17c-3-6-8-10-15-10s-12 4-15 10z" fill="#7A4E28"/>
   </g>
 
-  <!-- sparkle -->
+  <!-- sparkle + dots -->
   <path d="M150 210l3 7 7 3-7 3-3 7-3-7-7-3 7-3z" fill="#95CCDD"/>
+  <circle cx="352" cy="196" r="3" fill="#95CCDD" opacity="0.8"/>
+  <circle cx="128" cy="268" r="2.5" fill="#95CCDD" opacity="0.7"/>
 
   <!-- plant (one warm element) -->
   <path d="M382 306c-4-16 2-30 10-36-2 12 0 22 6 30" fill="#6FA98C"/>

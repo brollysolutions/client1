@@ -14,29 +14,34 @@
   <rect x="176" y="70" width="128" height="188" rx="6" fill="#F3F3EE" stroke="#293681" stroke-width="2.4"/>
   <rect x="192" y="86" width="96" height="172" rx="4" fill="#8A5A34"/>
   <rect x="192" y="86" width="96" height="172" rx="4" fill="#7A4E28" fill-opacity="0.35"/>
+  <rect x="274" y="88" width="14" height="168" rx="3" fill="#5E3D22" opacity="0.45"/>
   <!-- door panels -->
   <rect x="204" y="100" width="30" height="70" rx="3" fill="#F3F3EE" fill-opacity="0.12" stroke="#F3F3EE" stroke-opacity="0.25"/>
   <rect x="246" y="100" width="30" height="70" rx="3" fill="#F3F3EE" fill-opacity="0.12" stroke="#F3F3EE" stroke-opacity="0.25"/>
   <rect x="204" y="182" width="30" height="60" rx="3" fill="#F3F3EE" fill-opacity="0.12" stroke="#F3F3EE" stroke-opacity="0.25"/>
   <rect x="246" y="182" width="30" height="60" rx="3" fill="#F3F3EE" fill-opacity="0.12" stroke="#F3F3EE" stroke-opacity="0.25"/>
-  <!-- knob -->
+  <!-- knob + threshold -->
   <circle cx="238" cy="176" r="5" fill="#E8B54D" stroke="#C08A2E" stroke-width="1.4"/>
+  <rect x="172" y="258" width="136" height="7" rx="3" fill="#D9D2BE"/>
 
   <!-- big handover key (gold, natural color) -->
   <g transform="rotate(28 330 150)">
-    <circle cx="330" cy="150" r="26" fill="none" stroke="#E8B54D" stroke-width="12"/>
-    <circle cx="330" cy="150" r="26" fill="none" stroke="#C08A2E" stroke-width="12" stroke-opacity="0.35"/>
-    <rect x="352" y="144" width="74" height="12" rx="4" fill="#E8B54D"/>
-    <rect x="408" y="156" width="10" height="16" rx="2" fill="#E8B54D"/>
-    <rect x="392" y="156" width="8" height="14" rx="2" fill="#E8B54D"/>
+    <circle cx="330" cy="150" r="24" fill="none" stroke="#E8B54D" stroke-width="11"/>
+    <path d="M306 150a24 24 0 0 0 48 0" stroke="#C08A2E" stroke-width="11" fill="none" opacity="0.4"/>
+    <rect x="352" y="144" width="70" height="12" rx="6" fill="#E8B54D"/>
+    <rect x="352" y="150" width="70" height="6" rx="3" fill="#C08A2E" opacity="0.45"/>
+    <rect x="396" y="154" width="9" height="17" rx="2" fill="#E8B54D"/>
+    <rect x="410" y="154" width="9" height="13" rx="2" fill="#E8B54D"/>
   </g>
 
   <!-- verified check badge (blue accent) -->
   <circle cx="150" cy="150" r="22" fill="#4274D9"/>
   <path d="M140 150l7 7 13-14" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
 
-  <!-- sparkle -->
+  <!-- sparkle + dots -->
   <path d="M296 96l3 7 7 3-7 3-3 7-3-7-7-3 7-3z" fill="#95CCDD"/>
+  <circle cx="138" cy="210" r="3" fill="#95CCDD" opacity="0.8"/>
+  <circle cx="352" cy="250" r="2.5" fill="#95CCDD" opacity="0.7"/>
 
   <!-- plant (one warm element) -->
   <path d="M116 304c-4-16 2-30 10-36-2 12 0 22 6 30" fill="#6FA98C"/>

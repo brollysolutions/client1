@@ -17,21 +17,24 @@
   <circle cx="352" cy="112" r="3" fill="#95CCDD"/>
 
   <!-- advisor bust (faceless) -->
-  <path d="M138 300c0-44 24-66 56-66s56 22 56 66z" fill="#4274D9"/>
-  <path d="M158 262h72v14a10 10 0 0 1-10 10h-52a10 10 0 0 1-10-10z" fill="#EAF1FB" opacity="0.4"/>
-  <circle cx="194" cy="196" r="40" fill="#F3E7D8"/>
-  <path d="M156 196c0-6-2-42 38-42s38 36 38 42a34 34 0 0 0-76 0z" fill="#293681"/>
+  <path d="M138 300c0-42 25-64 56-64s56 22 56 64z" fill="#4274D9"/>
+  <path d="M250 300c0-42-25-64-56-64 20 10 30 32 30 64z" fill="#2F54C6"/>
+  <path d="M180 240c4 6 9 9 14 9s10-3 14-9l-5 17h-18z" fill="#EAF1FB"/>
+  <circle cx="194" cy="196" r="38" fill="#F3E7D8"/>
+  <path d="M156 194c0-26 16-42 38-42s38 16 38 42c-7-16-21-25-38-25s-31 9-38 25z" fill="#2A2E37"/>
   <!-- headset -->
-  <path d="M156 198a38 38 0 0 1 76 0" stroke="#293681" stroke-width="6" fill="none"/>
-  <rect x="150" y="192" width="15" height="28" rx="7.5" fill="#4274D9"/>
-  <rect x="223" y="192" width="15" height="28" rx="7.5" fill="#4274D9"/>
-  <path d="M223 218q6 20-16 22" stroke="#293681" stroke-width="4" fill="none" stroke-linecap="round"/>
-  <circle cx="206" cy="240" r="4" fill="#4274D9"/>
+  <path d="M158 190a36 36 0 0 1 72 0" stroke="#2A2E37" stroke-width="6" fill="none"/>
+  <rect x="150" y="186" width="14" height="28" rx="7" fill="#4274D9"/>
+  <rect x="224" y="186" width="14" height="28" rx="7" fill="#4274D9"/>
+  <path d="M164 212c-2 16 8 25 24 26" stroke="#2A2E37" stroke-width="4" fill="none" stroke-linecap="round"/>
+  <circle cx="192" cy="238" r="4.5" fill="#4274D9"/>
 
   <!-- incoming call handset badge -->
   <circle cx="360" cy="232" r="22" fill="#4274D9"/>
   <path d="M350 224c0 11 9 20 20 20 2 0 4-2 4-4v-4c0-2-2-4-4-4l-5 1-5-5 1-5c0-2-2-4-4-4h-4c-2 0-4 2-4 4z" fill="#FFFFFF"/>
 
-  <!-- sparkle -->
+  <!-- sparkle + dots -->
   <path d="M250 200l3 7 7 3-7 3-3 7-3-7-7-3 7-3z" fill="#95CCDD"/>
+  <circle cx="126" cy="214" r="3" fill="#95CCDD" opacity="0.8"/>
+  <circle cx="330" cy="286" r="2.5" fill="#95CCDD" opacity="0.7"/>
 </svg>
