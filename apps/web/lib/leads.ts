@@ -26,6 +26,21 @@ export type LeadInput = {
 
 export type LeadResult = { ok: true } | { ok: false; error: string };
 
+// Builds a /contact URL carrying the source line + product so the contact form
+// can prefill and the telecaller sees what the visitor came for. Used by the
+// public CTAs (Enquire / callback / advisor) that route to the contact page
+// instead of opening the inline lead modal.
+export function contactHref(params?: {
+  line?: LeadBusinessLine;
+  product?: string;
+}): string {
+  const sp = new URLSearchParams();
+  if (params?.line) sp.set("line", params.line);
+  if (params?.product) sp.set("product", params.product);
+  const qs = sp.toString();
+  return qs ? `/contact?${qs}` : "/contact";
+}
+
 // TODO(leads): wire to POST /api/v1/leads once the public endpoint exists
 // (unauthenticated write → needs rate-limit + security review). Until then this
 // resolves to success after a short delay so the form UX is exercisable.

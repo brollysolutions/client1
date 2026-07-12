@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -54,11 +55,16 @@ export function LeadDialog({
   title,
   description,
   submitLabel = "Request callback",
+  href,
 }: {
   businessLine: LeadBusinessLine;
   triggerLabel?: string;
   // When set, the lead is tagged with this product and the dialog names it.
   product?: string;
+  // When set, the trigger renders as a plain link to this URL (e.g. the
+  // /contact funnel or /apply-as-agent) instead of opening the lead modal.
+  // Styling matches the three trigger variants below.
+  href?: string;
   // "solid" = the primary section CTA; "outline" = the per-card secondary
   // button; "invert" = a white button for use on a solid blue surface.
   triggerVariant?: "solid" | "outline" | "invert";
@@ -122,6 +128,44 @@ export function LeadDialog({
       setSubmitting(false);
       toast.error(result.error || "Something went wrong. Please try again.");
     }
+  }
+
+  // Link mode: route to href (e.g. /contact) instead of the modal, keeping the
+  // same per-variant styling as the DialogTrigger button below.
+  if (href) {
+    const linkAriaLabel = product ? `Enquire about ${product}` : triggerLabel;
+    if (triggerVariant === "outline") {
+      return (
+        <Button
+          asChild
+          variant="outline"
+          className="w-full border-[var(--nav-primary)] text-[var(--nav-primary)] hover:bg-[var(--nav-tint)] hover:text-[var(--nav-primary-hover)]"
+        >
+          <Link href={href} aria-label={linkAriaLabel}>
+            {triggerLabel}
+          </Link>
+        </Button>
+      );
+    }
+    if (triggerVariant === "invert") {
+      return (
+        <Button
+          asChild
+          className="w-full bg-white text-[var(--nav-primary)] hover:bg-white/90 focus-visible:ring-white sm:w-auto"
+        >
+          <Link href={href} aria-label={linkAriaLabel}>
+            {triggerLabel}
+          </Link>
+        </Button>
+      );
+    }
+    return (
+      <Button asChild className={cn("w-full sm:w-auto", line.triggerClass)}>
+        <Link href={href} aria-label={linkAriaLabel}>
+          {triggerLabel}
+        </Link>
+      </Button>
+    );
   }
 
   return (

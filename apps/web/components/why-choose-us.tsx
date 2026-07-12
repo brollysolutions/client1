@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import {
   ArrowRight,
@@ -59,67 +60,6 @@ const BENEFITS: Benefit[] = [
   },
 ];
 
-// Small natural-color scene for the anchor card (desktop-only, fills the taller
-// row-span-2 cell). A home (terracotta roof) reads real estate; a rupee money bag
-// with a % badge reads loans; one soft link ties them: both, in one place. Natural
-// real-world colors per docs/design/illustration-style.md (blue only as the link).
-function AnchorScene({ className }: { className?: string }) {
-  return (
-    <svg
-      viewBox="0 0 260 150"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      aria-hidden
-      className={className}
-    >
-      {/* soft ground */}
-      <ellipse cx="130" cy="134" rx="104" ry="9" fill="#293681" opacity="0.08" />
-      {/* the "one place" link tying home + money together */}
-      <path
-        d="M98 58 Q150 30 196 92"
-        stroke="#4274D9"
-        strokeWidth="1.6"
-        strokeDasharray="2 6"
-        strokeLinecap="round"
-        opacity="0.5"
-      />
-      {/* house */}
-      <path d="M44 74 L92 40 L140 74 Z" fill="#C4633F" />
-      <path d="M92 40 L140 74 L118 74 Z" fill="#A24B2C" />
-      <rect x="54" y="74" width="76" height="52" rx="2" fill="#FBFBF7" stroke="#E3E3DB" strokeWidth="1.4" />
-      <rect x="72" y="98" width="18" height="28" rx="1.5" fill="#8A5A34" />
-      <circle cx="86" cy="112" r="1.6" fill="#E8B54D" />
-      <rect x="100" y="86" width="18" height="16" rx="1.5" fill="#95CCDD" stroke="#293681" strokeWidth="1.4" />
-      <line x1="109" y1="86" x2="109" y2="102" stroke="#293681" strokeWidth="1" />
-      <line x1="100" y1="94" x2="118" y2="94" stroke="#293681" strokeWidth="1" />
-      {/* plant (the one warm natural element) */}
-      <path d="M30 126 H48 L45 112 H33 Z" fill="#C4633F" />
-      <rect x="28" y="109" width="22" height="5" rx="2" fill="#A24B2C" />
-      <path d="M37 109 C33 100 34 92 39 88 C40 96 40 103 40 109 Z" fill="#4E8E6E" />
-      <path d="M42 109 C42 98 46 91 52 88 C50 97 46 104 45 109 Z" fill="#6FA98C" />
-      {/* loan money bag (jute) with a % badge, so the pair reads loans + real estate */}
-      <ellipse cx="181" cy="127" rx="11" ry="4" fill="#E8B54D" stroke="#C08A2E" strokeWidth="1.4" />
-      <ellipse cx="210" cy="128" rx="9" ry="3.5" fill="#E8B54D" stroke="#C08A2E" strokeWidth="1.4" />
-      <path
-        d="M178 104 C172 116 176 128 196 128 C216 128 220 116 214 104 C210 99 182 99 178 104 Z"
-        fill="#C9A26B"
-        stroke="#A07A45"
-        strokeWidth="1.6"
-      />
-      <path d="M184 104 L181 95 L211 95 L208 104 Z" fill="#D8B57E" stroke="#A07A45" strokeWidth="1.4" strokeLinejoin="round" />
-      <path d="M181 95 Q196 89 211 95" fill="none" stroke="#8A5A34" strokeWidth="2.4" strokeLinecap="round" />
-      <text x="196" y="121" textAnchor="middle" fontSize="15" fontWeight={700} fill="#6B4E16" fontFamily="system-ui, sans-serif">
-        &#8377;
-      </text>
-      {/* % badge = the loan / interest signal */}
-      <circle cx="217" cy="99" r="10" fill="#FFFFFF" stroke="#C08A2E" strokeWidth="1.6" />
-      <text x="217" y="103" textAnchor="middle" fontSize="11" fontWeight={700} fill="#293681" fontFamily="system-ui, sans-serif">
-        %
-      </text>
-    </svg>
-  );
-}
-
 function IconChip({
   icon: Icon,
   large = false,
@@ -173,21 +113,29 @@ export function WhyChooseUs() {
                 <div className="lg:basis-[42%]">
                   <IconChip icon={Layers} large />
                   <h3 className="mt-6 font-heading text-xl font-semibold text-foreground sm:text-2xl">
-                    Loans and real estate, all in one place
+                    One partner for loans and property
                   </h3>
                   <p className="mt-3 max-w-md text-base leading-relaxed text-text-secondary">
-                    One login for both. Compare, apply, and track it all without
-                    juggling separate sites or agents.
+                    Compare, apply, and close both from one login. The same team
+                    stays with you, whether it is a loan or a home.
                   </p>
                   <p className="mt-4 text-sm font-medium text-[var(--nav-primary)]">
                     Loans and property, one account.
                   </p>
                 </div>
-                {/* Illustration fills the right half (desktop-only). h-full lets the
-                    scene grow with the card's row-span-2 height instead of staying
-                    width-capped and leaving dead space when the card is tall. */}
+                {/* Illustration fills the right half (desktop-only, per the
+                    illustrations lg+ rule). Storyset scene recolored to the public
+                    blue palette; decorative, so alt="". */}
                 <div className="hidden lg:flex lg:h-full lg:basis-[58%] lg:items-center lg:justify-center">
-                  <AnchorScene className="h-full max-h-[280px] w-auto max-w-full" />
+                  <Image
+                    src="/illustrations/why-choose-us.svg"
+                    alt=""
+                    width={480}
+                    height={360}
+                    sizes="480px"
+                    className="h-full max-h-[280px] w-auto max-w-full"
+                    aria-hidden
+                  />
                 </div>
               </div>
             </article>
