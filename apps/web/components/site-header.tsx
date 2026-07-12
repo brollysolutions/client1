@@ -142,8 +142,8 @@ export function SiteHeader() {
               className="font-geist bg-[var(--nav-primary)] text-base text-white shadow-sm transition-colors hover:bg-[var(--nav-primary-hover)] focus-visible:ring-[var(--nav-primary)]"
             >
               <Link href="/contact" className="inline-flex items-center gap-2">
-                <Phone className="h-4 w-4 text-white" aria-hidden />
                 Contact
+                <Phone className="h-4 w-4 text-white" aria-hidden />
               </Link>
             </Button>
           </div>

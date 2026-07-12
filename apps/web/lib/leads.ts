@@ -9,10 +9,15 @@
 
 export type LeadBusinessLine = "loans" | "real_estate";
 
+// What a public enquiry is about. The contact form also fields questions
+// about the agent program, which is not a business line; the backend maps
+// "agent" leads to its own bucket when the public endpoint lands.
+export type LeadTopic = LeadBusinessLine | "agent";
+
 export type LeadInput = {
   name: string;
   mobile: string;
-  business_line: LeadBusinessLine;
+  business_line: LeadTopic;
   origin: string;
   // Optional product/offering the lead enquired about (e.g. "Personal Loan").
   // Captured from the per-card Enquire button; the backend can map it later.
@@ -31,7 +36,7 @@ export type LeadResult = { ok: true } | { ok: false; error: string };
 // public CTAs (Enquire / callback / advisor) that route to the contact page
 // instead of opening the inline lead modal.
 export function contactHref(params?: {
-  line?: LeadBusinessLine;
+  line?: LeadTopic;
   product?: string;
 }): string {
   const sp = new URLSearchParams();

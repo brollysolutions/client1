@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 
 import { ContactForm } from "@/components/contact/contact-form";
 import { ContactInfo } from "@/components/contact/contact-info";
 import { SITE_NAME, SITE_URL } from "@/lib/site";
+import type { LeadTopic } from "@/lib/leads";
 
 export const metadata: Metadata = {
   title: "Contact Us: Talk to Our Loans and Real Estate Team",
@@ -55,10 +57,12 @@ export default async function ContactPage({
   searchParams: Promise<{ line?: string; product?: string }>;
 }) {
   const { line, product } = await searchParams;
-  // Only honor a valid business line from the CTA; otherwise let the form
-  // default. `product` is free text (loan type / property / calculator name).
-  const initialLine =
-    line === "loans" || line === "real_estate" ? line : undefined;
+  // Only honor a valid topic from the CTA; otherwise let the form default.
+  // `product` is free text (loan type / property / calculator name).
+  const initialLine: LeadTopic | undefined =
+    line === "loans" || line === "real_estate" || line === "agent"
+      ? line
+      : undefined;
 
   return (
     <>
@@ -67,31 +71,55 @@ export default async function ContactPage({
         dangerouslySetInnerHTML={{ __html: JSON.stringify(contactJsonLd) }}
       />
 
-      {/* Hero */}
-      <section className="w-full bg-[var(--nav-bg)]">
-        <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 sm:py-20 lg:px-8 lg:py-24">
-          <h1 className="font-heading text-4xl font-semibold text-[var(--nav-text)] sm:text-5xl">
-            Get in touch
-          </h1>
-          <p className="mt-5 max-w-2xl text-lg text-[var(--nav-text)] sm:text-xl">
-            Have a question about a loan or a property? Leave your number and our
-            team will call you back, or reach us directly by phone or email.
-          </p>
+      {/* Hero. Same composition as the apply-as-agent hero used to carry:
+          copy on the left, a decorative calling scene filling the right
+          gutter on large screens only. */}
+      <section className="relative w-full overflow-hidden bg-[var(--nav-bg)]">
+        <div className="relative mx-auto max-w-7xl px-4 py-14 sm:px-6 sm:py-20 lg:px-8">
+          <div className="grid items-center gap-8 lg:grid-cols-[1fr_auto]">
+            <div>
+              <h1 className="max-w-3xl font-heading text-4xl font-semibold text-[var(--nav-text)] sm:text-5xl lg:text-6xl">
+                Talk to a real person
+              </h1>
+              <p className="mt-5 max-w-2xl text-lg text-[var(--nav-text)] sm:text-xl">
+                A loan, a property, or becoming an agent. Whatever brought you
+                here, leave your number and our team will call you back. No
+                bots, no hold music.
+              </p>
+            </div>
+            <div
+              aria-hidden
+              className="hidden shrink-0 items-center justify-center lg:flex lg:w-[420px]"
+            >
+              <Image
+                src="/illustrations/heroes/contact.svg"
+                alt=""
+                aria-hidden
+                width={500}
+                height={500}
+                sizes="420px"
+                className="h-auto w-full max-w-[420px]"
+                priority
+              />
+            </div>
+          </div>
         </div>
       </section>
 
-      {/* Form + contact details */}
+      {/* Form + contact details. Both columns sit flat on the cream band,
+          no card chrome on either side. */}
       <section className="w-full border-t border-[var(--nav-border)] bg-[var(--nav-bg)]">
-        <div className="mx-auto max-w-7xl px-4 pb-20 sm:px-6 sm:pb-24 lg:px-8">
-          <div className="grid gap-10 lg:grid-cols-[1.1fr_0.9fr] lg:gap-14">
+        <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 sm:py-20 lg:px-8">
+          <div className="grid gap-12 lg:grid-cols-[1.1fr_0.9fr] lg:gap-20">
             <div>
               <h2 className="font-heading text-2xl font-semibold text-foreground sm:text-3xl">
                 Send us a message
               </h2>
               <p className="mt-2 text-text-secondary">
-                Pick a line, share your details, and we will be in touch.
+                Tell us what it is about, share your details, and we will be in
+                touch.
               </p>
-              <div className="mt-6">
+              <div className="mt-8">
                 <ContactForm
                   initialLine={initialLine}
                   initialProduct={product}
@@ -99,14 +127,15 @@ export default async function ContactPage({
               </div>
             </div>
 
-            <div>
+            <div className="lg:pt-1">
               <h2 className="font-heading text-2xl font-semibold text-foreground sm:text-3xl">
-                Other ways to reach us
+                Reach us directly
               </h2>
               <p className="mt-2 text-text-secondary">
-                Prefer to talk now? Call or email us during office hours.
+                Prefer to talk now? Call or email us during office hours, or
+                drop by the office.
               </p>
-              <div className="mt-6">
+              <div className="mt-8">
                 <ContactInfo />
               </div>
             </div>

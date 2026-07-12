@@ -1,7 +1,6 @@
 // Small floating doodles for the apply-as-agent application form: an ID card,
-// a signature, a verification seal, and a briefcase. Right-gutter only (the
-// form left-anchors flush with the hero's own left edge above it, so there is
-// no left gutter to use here, unlike the home page's left+right scatter).
+// a signature, a verification seal, and a briefcase. The form is centered, so
+// the glyphs split across both side gutters like the home page's scatter.
 // Reuses the FloatingDoodles engine (wrapper, .doodle-float drift,
 // desktop-only, reduced-motion-safe) from components/floating-doodles.tsx
 // with a page-specific glyph set instead of the home page's generic finance
@@ -13,10 +12,10 @@ import { FloatingDoodles, type Doodle } from "@/components/floating-doodles";
 type ApplyKind = "idcard" | "signature" | "seal" | "briefcase";
 
 const DOODLES: (Doodle & { kind: ApplyKind })[] = [
-  { kind: "idcard", top: "6%", right: "4%", size: 44, dur: "8s", delay: "0s", opacity: 0.6 },
-  { kind: "signature", top: "30%", right: "7%", size: 38, dur: "9.5s", delay: "0.8s", opacity: 0.55 },
-  { kind: "seal", top: "58%", right: "3%", size: 46, dur: "7.5s", delay: "1.4s", opacity: 0.6 },
-  { kind: "briefcase", top: "82%", right: "6%", size: 40, dur: "10s", delay: "0.4s", opacity: 0.55 },
+  { kind: "idcard", top: "8%", left: "5%", size: 44, dur: "8s", delay: "0s", opacity: 0.6 },
+  { kind: "signature", top: "26%", right: "6%", size: 38, dur: "9.5s", delay: "0.8s", opacity: 0.55 },
+  { kind: "seal", top: "56%", left: "6%", size: 46, dur: "7.5s", delay: "1.4s", opacity: 0.6 },
+  { kind: "briefcase", top: "78%", right: "5%", size: 40, dur: "10s", delay: "0.4s", opacity: 0.55 },
 ];
 
 function ApplyGlyph({ kind }: { kind: string }) {

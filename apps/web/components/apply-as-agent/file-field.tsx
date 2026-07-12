@@ -1,16 +1,22 @@
 "use client";
 
 import * as React from "react";
-import { type LucideIcon, Paperclip, X } from "lucide-react";
+import { FileText, Plus, UploadCloud, X, type LucideIcon } from "lucide-react";
 
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 
-// Dependency-free KYC file picker. The native <input type="file"> stays
-// mounted but sr-only + tabIndex=-1 (proxy target only); the visible trigger
-// is a real <button> so there is exactly one focusable/tabbable control and
-// one accessible name, with <Label htmlFor> pointing at the button (labels
-// can target any labelable element, buttons included, per the HTML spec).
+// Square dashed KYC upload tile. The native <input type="file"> stays mounted
+// but sr-only + tabIndex=-1 (proxy target only); the visible tile is a real
+// <button> so there is exactly one focusable/tabbable control and one
+// accessible name, with <Label htmlFor> pointing at the button (labels can
+// target any labelable element, buttons included, per the HTML spec). The
+// remove control is a sibling positioned over the tile, never a nested button.
+//
+// Image uploads preview inside the tile (object-cover fills the square, name +
+// size on a bottom scrim); PDFs get a document glyph + name since there is no
+// cheap thumbnail. Clicking a filled tile replaces the file. Drag and drop
+// works on the tile itself; the dashed border doubles as the drop target.
 export type FileFieldProps = {
   id: string;
   label: string;
@@ -31,7 +37,9 @@ function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
   const kb = bytes / 1024;
   if (kb < 1024) return `${kb.toFixed(0)} KB`;
-  return `${(kb / 1024).toFixed(1)} MB`;
+  const mb = kb / 1024;
+  // Whole megabytes stay whole ("5 MB", not "5.0 MB").
+  return `${Number.isInteger(mb) ? mb : mb.toFixed(1)} MB`;
 }
 
 export function FileField({
@@ -42,13 +50,14 @@ export function FileField({
   onChange,
   accept = DEFAULT_ACCEPT,
   maxBytes = DEFAULT_MAX_BYTES,
-  hint = "JPG, PNG or PDF, up to 5 MB",
+  hint = "JPG, PNG or PDF",
   error,
   disabled,
 }: FileFieldProps) {
   const inputRef = React.useRef<HTMLInputElement>(null);
   const [previewUrl, setPreviewUrl] = React.useState<string | null>(null);
   const [localError, setLocalError] = React.useState<string | undefined>();
+  const [dragging, setDragging] = React.useState(false);
 
   React.useEffect(() => {
     if (!value || !value.type.startsWith("image/")) {
@@ -72,7 +81,7 @@ export function FileField({
     if (!file) return;
 
     if (!acceptedTypes.includes(file.type)) {
-      setLocalError("Unsupported file type. Use JPG, PNG or PDF.");
+      setLocalError(`Unsupported file type. Use ${hint}.`);
       onChange(null);
       return;
     }
@@ -91,14 +100,21 @@ export function FileField({
     if (inputRef.current) inputRef.current.value = "";
   }
 
+  function handleDrop(event: React.DragEvent) {
+    event.preventDefault();
+    setDragging(false);
+    if (disabled) return;
+    handleFiles(event.dataTransfer.files);
+  }
+
   const displayError = error ?? localError;
   const errorId = `${id}-error`;
-  const hintId = `${id}-hint`;
-  const describedBy = displayError ? errorId : hint ? hintId : undefined;
 
   return (
-    <div className="grid gap-2">
-      <Label htmlFor={id}>{label}</Label>
+    <div className="grid content-start gap-2">
+      <Label htmlFor={id} className="justify-self-center text-sm">
+        {label}
+      </Label>
 
       <input
         ref={inputRef}
@@ -112,70 +128,109 @@ export function FileField({
         className="sr-only"
       />
 
-      {value ? (
-        <div
-          className={cn(
-            "flex h-12 items-center gap-3 rounded-lg border px-3.5",
-            "animate-in fade-in-0 slide-in-from-bottom-1 duration-200 ease-out motion-reduce:animate-none",
-            displayError ? "border-destructive" : "border-[var(--nav-border)]",
-          )}
-        >
-          {previewUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={previewUrl}
-              alt=""
-              className="h-8 w-8 shrink-0 rounded object-cover"
-            />
-          ) : (
-            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded bg-[var(--nav-tint)] text-[var(--nav-primary)]">
-              <Paperclip className="h-4 w-4" aria-hidden />
-            </span>
-          )}
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-medium text-foreground">
-              {value.name}
-            </p>
-            <p className="text-xs text-text-secondary">
-              {formatBytes(value.size)}
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={handleRemove}
-            disabled={disabled}
-            aria-label={`Remove ${label}`}
-            className="-mr-1.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-[var(--nav-tint)] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-      ) : (
+      <div className="relative">
         <button
           type="button"
           id={id}
           onClick={() => inputRef.current?.click()}
           disabled={disabled}
-          aria-describedby={describedBy}
+          aria-label={value ? `Replace ${label}` : `Upload ${label}`}
+          aria-describedby={displayError ? errorId : undefined}
+          onDragOver={(event) => {
+            event.preventDefault();
+            if (!disabled) setDragging(true);
+          }}
+          onDragLeave={() => setDragging(false)}
+          onDrop={handleDrop}
           className={cn(
-            "flex h-12 w-full items-center gap-3 rounded-lg border border-dashed px-3.5 text-left text-sm text-text-secondary transition-colors hover:bg-[var(--nav-tint)]/40 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50",
-            displayError ? "border-destructive" : "border-[var(--nav-border)]",
+            "group relative flex aspect-square w-full flex-col items-center justify-center gap-2 overflow-hidden rounded-xl border-2 border-dashed p-3 text-center transition-colors",
+            "focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[var(--nav-primary)]/50",
+            "disabled:pointer-events-none disabled:opacity-50",
+            displayError
+              ? "border-destructive"
+              : dragging
+                ? "border-[var(--nav-primary)] bg-[var(--nav-tint)]/60"
+                : value
+                  ? "border-transparent"
+                  : "border-[var(--nav-border)] bg-surface/60 hover:border-[var(--nav-primary)]/50 hover:bg-[var(--nav-tint)]/40",
           )}
         >
-          <Icon className="h-4 w-4 shrink-0 text-[var(--nav-primary)]" aria-hidden />
-          <span>Choose file</span>
+          {value ? (
+            previewUrl ? (
+              <>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={previewUrl}
+                  alt=""
+                  className="absolute inset-0 h-full w-full rounded-[10px] object-cover"
+                />
+                <span
+                  aria-hidden
+                  className="absolute inset-x-0 bottom-0 flex flex-col gap-0.5 bg-gradient-to-t from-black/70 via-black/40 to-transparent px-2.5 pb-2 pt-6 text-left"
+                >
+                  <span className="truncate text-xs font-medium text-white">
+                    {value.name}
+                  </span>
+                  <span className="text-[11px] text-white/80">
+                    {formatBytes(value.size)}
+                  </span>
+                </span>
+                <span
+                  aria-hidden
+                  className="absolute inset-0 rounded-[10px] ring-1 ring-inset ring-black/10 transition group-hover:ring-[var(--nav-primary)]/60"
+                />
+              </>
+            ) : (
+              <span className="flex flex-col items-center gap-2">
+                <span className="flex h-11 w-11 items-center justify-center rounded-full bg-[var(--nav-tint)] text-[var(--nav-primary)]">
+                  <FileText className="h-5 w-5" aria-hidden />
+                </span>
+                <span className="max-w-full truncate px-1 text-xs font-medium text-foreground">
+                  {value.name}
+                </span>
+                <span className="text-[11px] text-text-secondary">
+                  {formatBytes(value.size)}
+                </span>
+              </span>
+            )
+          ) : (
+            <>
+              <span className="flex h-11 w-11 items-center justify-center rounded-full bg-[var(--nav-tint)] text-[var(--nav-primary)] transition-transform group-hover:scale-105">
+                {dragging ? (
+                  <UploadCloud className="h-5 w-5" aria-hidden />
+                ) : (
+                  <Icon className="h-5 w-5" aria-hidden />
+                )}
+              </span>
+              <span className="inline-flex items-center gap-1 text-xs font-medium text-[var(--nav-primary)]">
+                <Plus className="h-3.5 w-3.5" aria-hidden />
+                Upload
+              </span>
+              <span className="text-[11px] leading-tight text-text-secondary">
+                {hint}, up to {formatBytes(maxBytes)}
+              </span>
+            </>
+          )}
         </button>
-      )}
 
-      {displayError ? (
-        <p id={errorId} className="text-sm text-destructive">
+        {value && (
+          <button
+            type="button"
+            onClick={handleRemove}
+            disabled={disabled}
+            aria-label={`Remove ${label}`}
+            className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full bg-white/95 text-foreground shadow-sm transition hover:bg-white hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nav-primary)]/50"
+          >
+            <X className="h-4 w-4" aria-hidden />
+          </button>
+        )}
+      </div>
+
+      {displayError && (
+        <p id={errorId} className="text-center text-xs text-destructive">
           {displayError}
         </p>
-      ) : hint ? (
-        <p id={hintId} className="text-xs text-text-secondary">
-          {hint}
-        </p>
-      ) : null}
+      )}
     </div>
   );
 }
