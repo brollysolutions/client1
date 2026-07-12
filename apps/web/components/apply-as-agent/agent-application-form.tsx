@@ -1,80 +1,254 @@
 "use client";
 
-import { useState } from "react";
-import { Check } from "lucide-react";
+import * as React from "react";
+import {
+  AtSign,
+  BadgeCheck,
+  Briefcase,
+  Camera,
+  Check,
+  CreditCard,
+  FileText,
+  IdCard,
+  type LucideIcon,
+  Mail,
+  ShieldCheck,
+  User,
+  UserRound,
+} from "lucide-react";
 import { toast } from "sonner";
 
+import { MobileInput } from "@/components/auth/mobile-input";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
-import { submitLead, type LeadBusinessLine } from "@/lib/leads";
-import { isValidMobile, normalizeMobile } from "@/lib/phone";
+import { submitAgentApplication } from "@/lib/agent-application";
+import type { LeadBusinessLine } from "@/lib/leads";
+import { isValidMobile } from "@/lib/phone";
+import { FileField } from "@/components/apply-as-agent/file-field";
+import { FormProgress } from "@/components/apply-as-agent/form-progress";
 
-// Public agent-application form for /apply-as-agent. Same building blocks as the
-// /contact form and the LeadDialog modal (lib/leads submitLead + lib/phone
-// helpers), so there is one lead pipeline. This is lead capture only: KYC docs
-// (Aadhaar/PAN/photo/RERA) are verified after applying, per the Auth spec, and
-// there is no public upload. Blue-only, per the public-site palette. submitLead
-// is a stub until the public POST /api/v1/leads endpoint lands.
+// Public agent-application form for /apply-as-agent. Collects everything
+// agent_applications expects (apps/api/app/models/profile.py): name, mobile,
+// business_line, the 4 KYC documents, and rera_code for the real estate line.
+// Email has no column yet, held client-side until that migration lands. This
+// is frontend-complete: files are selected/validated/previewed here but not
+// transmitted, see lib/agent-application.ts for the submit seam. Blue-only,
+// per the public-site palette.
 const LINES: { value: LeadBusinessLine; label: string }[] = [
   { value: "loans", label: "Loans" },
   { value: "real_estate", label: "Real Estate" },
 ];
 
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+// Same idiom as app/(auth)/register/page.tsx: a 2+ letter TLD so half-typed
+// addresses are rejected; names allow spaces/hyphens/apostrophes, no digits.
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[A-Za-z]{2,}$/;
+const NAME_RE = /^[A-Za-z]+(?:[ '-][A-Za-z]+)*$/;
+// No authoritative RERA format in the repo: check it's alnum and a plausible
+// length, and let the backend validate for real when that endpoint lands.
+const RERA_RE = /^[A-Za-z0-9]{5,20}$/;
+
+type FieldKey = "firstName" | "lastName" | "mobile" | "email" | "rera";
+type Fields = Record<FieldKey, string>;
+type FileKey = "aadhaar" | "pan" | "photo" | "addressProof";
+
+const EMPTY_FIELDS: Fields = {
+  firstName: "",
+  lastName: "",
+  mobile: "",
+  email: "",
+  rera: "",
+};
+
+function SectionHeader({
+  id,
+  icon: Icon,
+  title,
+  description,
+}: {
+  id?: string;
+  icon: LucideIcon;
+  title: string;
+  description?: string;
+}) {
+  return (
+    <div className="flex items-start gap-3">
+      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[var(--nav-tint)] text-[var(--nav-primary)]">
+        <Icon className="h-4 w-4" aria-hidden />
+      </span>
+      <div>
+        <h3 id={id} className="font-heading text-lg font-semibold text-foreground">
+          {title}
+        </h3>
+        {description && (
+          <p className="mt-0.5 text-sm text-text-secondary">{description}</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+type IconInputProps = React.ComponentProps<typeof Input> & { icon: LucideIcon };
+
+// In-field icon, same absolute-positioned technique as password-field.tsx.
+function IconInput({ icon: Icon, className, ...props }: IconInputProps) {
+  return (
+    <div className="relative">
+      <span
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-muted-foreground"
+      >
+        <Icon className="h-4 w-4" />
+      </span>
+      <Input
+        className={cn("h-12 rounded-lg pl-9 text-base", className)}
+        {...props}
+      />
+    </div>
+  );
+}
 
 export function AgentApplicationForm({
   defaultLine = "loans",
 }: {
   defaultLine?: LeadBusinessLine;
 }) {
-  const [line, setLine] = useState<LeadBusinessLine>(defaultLine);
-  const [name, setName] = useState("");
-  const [mobile, setMobile] = useState("");
-  const [email, setEmail] = useState("");
-  const [message, setMessage] = useState("");
-  const [submitting, setSubmitting] = useState(false);
-  const [done, setDone] = useState(false);
-  const [errors, setErrors] = useState<{
-    name?: string;
-    mobile?: string;
-    email?: string;
-  }>({});
+  const [line, setLine] = React.useState<LeadBusinessLine>(defaultLine);
+  const [fields, setFields] = React.useState<Fields>(EMPTY_FIELDS);
+  const [errors, setErrors] = React.useState<Partial<Record<FieldKey, string>>>({});
+  const [touched, setTouched] = React.useState<Partial<Record<FieldKey, boolean>>>({});
 
-  function validate() {
-    const next: { name?: string; mobile?: string; email?: string } = {};
-    if (!name.trim()) next.name = "Please enter your name.";
-    if (!isValidMobile(mobile))
-      next.mobile = "Enter a valid 10-digit mobile number.";
-    if (email.trim() && !EMAIL_RE.test(email.trim()))
-      next.email = "Enter a valid email address.";
+  const [aadhaar, setAadhaar] = React.useState<File | null>(null);
+  const [pan, setPan] = React.useState<File | null>(null);
+  const [photo, setPhoto] = React.useState<File | null>(null);
+  const [addressProof, setAddressProof] = React.useState<File | null>(null);
+  const [fileErrors, setFileErrors] = React.useState<Partial<Record<FileKey, string>>>({});
+
+  const [submitting, setSubmitting] = React.useState(false);
+  const [done, setDone] = React.useState(false);
+
+  // Single source of truth for a field's error, shared by the live (on-change)
+  // check, the pre-submit check, and the progress meter, so none disagree.
+  function fieldError(key: FieldKey, value: string): string | undefined {
+    if (key === "firstName" || key === "lastName") {
+      const person = key === "firstName" ? "first" : "last";
+      const v = value.trim();
+      if (!v) return `Enter your ${person} name.`;
+      if (!NAME_RE.test(v)) return "Use letters only.";
+      return undefined;
+    }
+    if (key === "email") {
+      return EMAIL_RE.test(value.trim())
+        ? undefined
+        : "Enter a valid email address.";
+    }
+    if (key === "rera") {
+      if (line !== "real_estate") return undefined;
+      const v = value.trim().replace(/[\s/-]/g, "");
+      if (!v) return "Enter your RERA agent code.";
+      if (!RERA_RE.test(v)) return "Enter a valid RERA agent code.";
+      return undefined;
+    }
+    return isValidMobile(value)
+      ? undefined
+      : "Enter a valid 10-digit mobile number.";
+  }
+
+  function validateField(key: FieldKey, value: string) {
+    setErrors((e) => ({ ...e, [key]: fieldError(key, value) }));
+  }
+
+  function touchField(key: FieldKey) {
+    setTouched((t) => ({ ...t, [key]: true }));
+    validateField(key, fields[key]);
+  }
+
+  function set<K extends FieldKey>(key: K, value: Fields[K]) {
+    setFields((f) => ({ ...f, [key]: value }));
+    if (touched[key]) validateField(key, value);
+  }
+
+  function validateFields(): boolean {
+    const next: Partial<Record<FieldKey, string>> = {};
+    (Object.keys(fields) as FieldKey[]).forEach((key) => {
+      const msg = fieldError(key, fields[key]);
+      if (msg) next[key] = msg;
+    });
     setErrors(next);
+    setTouched({
+      firstName: true,
+      lastName: true,
+      mobile: true,
+      email: true,
+      rera: true,
+    });
     return Object.keys(next).length === 0;
+  }
+
+  function validateFiles(): boolean {
+    const next: Partial<Record<FileKey, string>> = {};
+    if (!aadhaar) next.aadhaar = "Upload your Aadhaar card.";
+    if (!pan) next.pan = "Upload your PAN card.";
+    if (!photo) next.photo = "Upload your photo.";
+    if (!addressProof) next.addressProof = "Upload an address proof.";
+    setFileErrors(next);
+    return Object.keys(next).length === 0;
+  }
+
+  // Derived on every render, never stored: the bar can never drift from the
+  // fields it measures. Toggling to real_estate adds rera to both the
+  // numerator and denominator, so the % drops honestly, then refills.
+  const requiredFlags = [
+    true, // business line always has a value
+    !fieldError("firstName", fields.firstName),
+    !fieldError("lastName", fields.lastName),
+    !fieldError("mobile", fields.mobile),
+    !fieldError("email", fields.email),
+    aadhaar !== null,
+    pan !== null,
+    photo !== null,
+    addressProof !== null,
+    ...(line === "real_estate" ? [!fieldError("rera", fields.rera)] : []),
+  ];
+  const progressPercent = Math.round(
+    (requiredFlags.filter(Boolean).length / requiredFlags.length) * 100,
+  );
+
+  function resetForm() {
+    setFields(EMPTY_FIELDS);
+    setErrors({});
+    setTouched({});
+    setAadhaar(null);
+    setPan(null);
+    setPhoto(null);
+    setAddressProof(null);
+    setFileErrors({});
   }
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
     if (submitting) return;
-    if (!validate()) return;
+    const fieldsOk = validateFields();
+    const filesOk = validateFiles();
+    if (!fieldsOk || !filesOk || !aadhaar || !pan || !photo || !addressProof) return;
 
     setSubmitting(true);
-    const result = await submitLead({
-      name: name.trim(),
-      mobile: normalizeMobile(mobile),
-      business_line: line,
-      origin: "agent-application-page",
-      ...(email.trim() ? { email: email.trim() } : {}),
-      ...(message.trim() ? { message: message.trim() } : {}),
+    const result = await submitAgentApplication({
+      firstName: fields.firstName.trim(),
+      lastName: fields.lastName.trim(),
+      mobile: fields.mobile,
+      email: fields.email.trim(),
+      businessLine: line,
+      rera: line === "real_estate" ? fields.rera.trim() : undefined,
+      aadhaar,
+      pan,
+      photo,
+      addressProof,
     });
 
     if (result.ok) {
-      setName("");
-      setMobile("");
-      setEmail("");
-      setMessage("");
-      setErrors({});
+      resetForm();
       setSubmitting(false);
       setDone(true);
       toast.success("Application received. We'll be in touch shortly.");
@@ -86,7 +260,7 @@ export function AgentApplicationForm({
 
   if (done) {
     return (
-      <div className="flex flex-col items-center justify-center gap-4 rounded-2xl border border-[var(--nav-border)] bg-surface p-8 text-center shadow-sm sm:p-10">
+      <div className="flex flex-col items-center gap-4 py-10 text-center">
         <span className="flex h-14 w-14 items-center justify-center rounded-full bg-[var(--nav-tint)] text-[var(--nav-primary)]">
           <Check className="h-7 w-7" aria-hidden />
         </span>
@@ -110,17 +284,19 @@ export function AgentApplicationForm({
   }
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      noValidate
-      className="grid gap-5 rounded-2xl border border-[var(--nav-border)] bg-surface p-6 shadow-sm sm:p-8"
-    >
-      <div className="grid gap-2">
-        <Label id="apply-line-label">Which line?</Label>
+    <form onSubmit={handleSubmit} noValidate className="grid gap-8">
+      <FormProgress value={progressPercent} />
+
+      {/* Business line */}
+      <fieldset className="grid min-w-0 gap-4 border-0 p-0">
+        <SectionHeader id="apply-line-heading" icon={Briefcase} title="Which line?" />
+        <p className="-mt-2 ml-12 text-sm text-text-secondary">
+          Agent accounts work one line. Pick the one you want.
+        </p>
         <div
           role="group"
-          aria-labelledby="apply-line-label"
-          className="grid grid-cols-2 gap-2"
+          aria-labelledby="apply-line-heading"
+          className="ml-12 grid grid-cols-2 gap-2"
         >
           {LINES.map((option) => (
             <button
@@ -130,7 +306,7 @@ export function AgentApplicationForm({
               onClick={() => setLine(option.value)}
               disabled={submitting}
               className={cn(
-                "rounded-md border px-3 py-2 text-sm font-medium transition",
+                "h-12 rounded-lg border px-3 text-sm font-medium transition",
                 line === option.value
                   ? "border-[var(--nav-primary)] bg-[var(--nav-primary)] text-white"
                   : "border-[var(--nav-border)] bg-transparent text-foreground hover:bg-[var(--nav-tint)]",
@@ -140,87 +316,181 @@ export function AgentApplicationForm({
             </button>
           ))}
         </div>
-      </div>
+      </fieldset>
 
-      <div className="grid gap-2">
-        <Label htmlFor="apply-name">Name</Label>
-        <Input
-          id="apply-name"
-          value={name}
-          onChange={(event) => setName(event.target.value)}
-          autoComplete="name"
-          aria-invalid={!!errors.name}
-          aria-describedby={errors.name ? "apply-name-error" : undefined}
-          disabled={submitting}
-        />
-        {errors.name && (
-          <p id="apply-name-error" className="text-sm text-destructive">
-            {errors.name}
-          </p>
-        )}
-      </div>
+      {/* Your details */}
+      <fieldset className="grid min-w-0 gap-4 border-0 border-t border-[var(--nav-border)] p-0 pt-8">
+        <SectionHeader icon={UserRound} title="Your details" />
+        <div className="ml-12 grid gap-5 sm:grid-cols-2">
+          <div className="grid gap-2">
+            <Label htmlFor="apply-first-name">First name</Label>
+            <IconInput
+              id="apply-first-name"
+              icon={User}
+              value={fields.firstName}
+              onChange={(e) => set("firstName", e.target.value)}
+              onBlur={() => touchField("firstName")}
+              autoComplete="given-name"
+              placeholder="Jane"
+              aria-invalid={!!errors.firstName}
+              aria-describedby={errors.firstName ? "apply-first-name-error" : undefined}
+              disabled={submitting}
+            />
+            {errors.firstName && (
+              <p id="apply-first-name-error" className="text-sm text-destructive">
+                {errors.firstName}
+              </p>
+            )}
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="apply-last-name">Last name</Label>
+            <IconInput
+              id="apply-last-name"
+              icon={User}
+              value={fields.lastName}
+              onChange={(e) => set("lastName", e.target.value)}
+              onBlur={() => touchField("lastName")}
+              autoComplete="family-name"
+              placeholder="Doe"
+              aria-invalid={!!errors.lastName}
+              aria-describedby={errors.lastName ? "apply-last-name-error" : undefined}
+              disabled={submitting}
+            />
+            {errors.lastName && (
+              <p id="apply-last-name-error" className="text-sm text-destructive">
+                {errors.lastName}
+              </p>
+            )}
+          </div>
+        </div>
+      </fieldset>
 
-      <div className="grid gap-2">
-        <Label htmlFor="apply-mobile">Mobile number</Label>
-        <Input
-          id="apply-mobile"
-          type="tel"
-          inputMode="numeric"
-          value={mobile}
-          onChange={(event) => setMobile(event.target.value)}
-          autoComplete="tel"
-          placeholder="98765 43210"
-          aria-invalid={!!errors.mobile}
-          aria-describedby={errors.mobile ? "apply-mobile-error" : undefined}
-          disabled={submitting}
-        />
-        {errors.mobile && (
-          <p id="apply-mobile-error" className="text-sm text-destructive">
-            {errors.mobile}
-          </p>
-        )}
-      </div>
+      {/* Contact */}
+      <fieldset className="grid min-w-0 gap-4 border-0 border-t border-[var(--nav-border)] p-0 pt-8">
+        <SectionHeader icon={AtSign} title="Contact" />
+        <div className="ml-12 grid gap-5 sm:grid-cols-2">
+          <div className="grid gap-2">
+            <Label htmlFor="apply-mobile">Phone number</Label>
+            <MobileInput
+              id="apply-mobile"
+              value={fields.mobile}
+              onChange={(e) => set("mobile", e.target.value)}
+              onBlur={() => touchField("mobile")}
+              autoComplete="tel"
+              placeholder="98765 43210"
+              aria-invalid={!!errors.mobile}
+              aria-describedby={errors.mobile ? "apply-mobile-error" : undefined}
+              disabled={submitting}
+            />
+            {errors.mobile && (
+              <p id="apply-mobile-error" className="text-sm text-destructive">
+                {errors.mobile}
+              </p>
+            )}
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="apply-email">Email</Label>
+            <IconInput
+              id="apply-email"
+              icon={Mail}
+              type="email"
+              value={fields.email}
+              onChange={(e) => set("email", e.target.value)}
+              onBlur={() => touchField("email")}
+              autoComplete="email"
+              placeholder="jane@company.com"
+              aria-invalid={!!errors.email}
+              aria-describedby={errors.email ? "apply-email-error" : undefined}
+              disabled={submitting}
+            />
+            {errors.email && (
+              <p id="apply-email-error" className="text-sm text-destructive">
+                {errors.email}
+              </p>
+            )}
+          </div>
+        </div>
+      </fieldset>
 
-      <div className="grid gap-2">
-        <Label htmlFor="apply-email">
-          Email <span className="text-text-secondary">(optional)</span>
-        </Label>
-        <Input
-          id="apply-email"
-          type="email"
-          value={email}
-          onChange={(event) => setEmail(event.target.value)}
-          autoComplete="email"
-          placeholder="you@example.com"
-          aria-invalid={!!errors.email}
-          aria-describedby={errors.email ? "apply-email-error" : undefined}
-          disabled={submitting}
+      {/* KYC documents */}
+      <fieldset className="grid min-w-0 gap-4 border-0 border-t border-[var(--nav-border)] p-0 pt-8">
+        <SectionHeader
+          icon={ShieldCheck}
+          title="KYC documents"
+          description="We verify these after you apply."
         />
-        {errors.email && (
-          <p id="apply-email-error" className="text-sm text-destructive">
-            {errors.email}
-          </p>
-        )}
-      </div>
+        <div className="ml-12 grid gap-5 sm:grid-cols-2">
+          <FileField
+            id="apply-aadhaar"
+            label="Aadhaar card"
+            icon={IdCard}
+            value={aadhaar}
+            onChange={setAadhaar}
+            error={fileErrors.aadhaar}
+            disabled={submitting}
+          />
+          <FileField
+            id="apply-pan"
+            label="PAN card"
+            icon={CreditCard}
+            value={pan}
+            onChange={setPan}
+            error={fileErrors.pan}
+            disabled={submitting}
+          />
+          <FileField
+            id="apply-photo"
+            label="Your photo"
+            icon={Camera}
+            value={photo}
+            onChange={setPhoto}
+            accept="image/jpeg,image/png,image/webp"
+            hint="JPG, PNG or WEBP, up to 5 MB"
+            error={fileErrors.photo}
+            disabled={submitting}
+          />
+          <FileField
+            id="apply-address-proof"
+            label="Address proof"
+            icon={FileText}
+            value={addressProof}
+            onChange={setAddressProof}
+            error={fileErrors.addressProof}
+            disabled={submitting}
+          />
+        </div>
+      </fieldset>
 
-      <div className="grid gap-2">
-        <Label htmlFor="apply-message">
-          Anything to add <span className="text-text-secondary">(optional)</span>
-        </Label>
-        <Textarea
-          id="apply-message"
-          value={message}
-          onChange={(event) => setMessage(event.target.value)}
-          placeholder="Tell us about the leads you can bring, or ask a question."
-          rows={4}
-          disabled={submitting}
-        />
-      </div>
+      {/* RERA code, real estate only */}
+      {line === "real_estate" && (
+        <fieldset className="grid min-w-0 gap-4 border-0 border-t border-[var(--nav-border)] p-0 pt-8">
+          <SectionHeader icon={BadgeCheck} title="RERA code" />
+          <div className="ml-12 grid gap-2">
+            <Label htmlFor="apply-rera">RERA agent code</Label>
+            <IconInput
+              id="apply-rera"
+              icon={BadgeCheck}
+              value={fields.rera}
+              onChange={(e) => set("rera", e.target.value)}
+              onBlur={() => touchField("rera")}
+              placeholder="e.g. A51900012345"
+              aria-invalid={!!errors.rera}
+              aria-describedby={errors.rera ? "apply-rera-error" : undefined}
+              disabled={submitting}
+            />
+            {errors.rera && (
+              <p id="apply-rera-error" className="text-sm text-destructive">
+                {errors.rera}
+              </p>
+            )}
+          </div>
+        </fieldset>
+      )}
 
       <Button
         type="submit"
         disabled={submitting}
-        className="bg-[var(--nav-primary)] text-white hover:bg-[var(--nav-primary-hover)] focus-visible:ring-[var(--nav-primary)]"
+        className="h-12 bg-[var(--nav-primary)] text-base text-white hover:bg-[var(--nav-primary-hover)] focus-visible:ring-[var(--nav-primary)]"
       >
         {submitting ? "Submitting..." : "Submit application"}
       </Button>

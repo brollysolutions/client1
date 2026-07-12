@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import { Check } from "lucide-react";
 
 import { AgentApplicationForm } from "@/components/apply-as-agent/agent-application-form";
@@ -52,14 +53,11 @@ const applyJsonLd = {
   publisher: { "@type": "Organization", name: SITE_NAME, url: SITE_URL },
 };
 
-// What an applicant needs. Informational only: KYC docs are verified after
-// applying (Auth spec: captured on agent_applications, Admin-approved), there is
-// no public upload. Mirrors the earn-with-us eligibility requirements.
-const REQUIREMENTS: string[] = [
-  "KYC documents: a valid ID, address proof, and a photo",
+// Closing reassurances under the form. KYC docs and the RERA code are no
+// longer listed here: they are real fields/uploads on the form now.
+const REASSURANCES: string[] = [
   "One mobile number, verified by OTP. That is your account",
-  "Bank details for payouts. We pay by Razorpay or cheque",
-  "A valid RERA agent code, for the real estate line only",
+  "Bank details come later, in your agent dashboard. We pay by Razorpay or cheque",
   "No broker background needed. Beginners are welcome",
 ];
 
@@ -84,57 +82,65 @@ export default async function ApplyAsAgentPage({
       />
 
       {/* Hero */}
-      <section className="w-full bg-[var(--nav-bg)]">
-        <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 sm:py-20 lg:px-8 lg:py-24">
-          <h1 className="font-heading text-4xl font-semibold text-[var(--nav-text)] sm:text-5xl">
-            Apply to become an agent
-          </h1>
-          <p className="mt-5 max-w-2xl text-lg text-[var(--nav-text)] sm:text-xl">
-            Earn commission on the deals you bring. Applying is free, every agent
-            account works one line, and we verify your KYC after you apply.
-          </p>
+      <section className="relative w-full overflow-hidden bg-[var(--nav-bg)]">
+        <div className="relative mx-auto max-w-7xl px-4 py-14 sm:px-6 sm:py-20 lg:px-8">
+          <div className="grid items-center gap-8 lg:grid-cols-[1fr_auto]">
+            <div>
+              <h1 className="max-w-3xl font-heading text-4xl font-semibold text-[var(--nav-text)] sm:text-5xl lg:text-6xl">
+                Apply to become an agent
+              </h1>
+              <p className="mt-5 max-w-2xl text-lg text-[var(--nav-text)] sm:text-xl">
+                Earn commission on the deals you bring. Applying is free, every
+                agent account works one line, and we verify your KYC after you
+                apply.
+              </p>
+            </div>
+            <div
+              aria-hidden
+              className="hidden shrink-0 items-center justify-center lg:flex lg:w-[460px]"
+            >
+              <Image
+                src="/illustrations/heroes/apply-as-agent.svg"
+                alt=""
+                aria-hidden
+                width={500}
+                height={500}
+                sizes="460px"
+                className="h-auto w-full max-w-[460px]"
+                priority
+              />
+            </div>
+          </div>
         </div>
       </section>
 
-      {/* Form + what you'll need */}
+      {/* Application form */}
       <section className="w-full border-t border-[var(--nav-border)] bg-[var(--nav-bg)]">
-        <div className="mx-auto max-w-7xl px-4 pb-20 sm:px-6 sm:pb-24 lg:px-8">
-          <div className="grid gap-10 lg:grid-cols-[1.1fr_0.9fr] lg:gap-14">
-            <div>
-              <h2 className="font-heading text-2xl font-semibold text-foreground sm:text-3xl">
-                Send us your application
-              </h2>
-              <p className="mt-2 text-text-secondary">
-                Pick a line, share your details, and our team will call you back.
-              </p>
-              <div className="mt-6">
-                <AgentApplicationForm defaultLine={defaultLine} />
-              </div>
-            </div>
-
-            <div>
-              <h2 className="font-heading text-2xl font-semibold text-foreground sm:text-3xl">
-                What you&apos;ll need
-              </h2>
-              <p className="mt-2 text-text-secondary">
-                Keep these handy. We verify them after you apply, there is
-                nothing to upload here.
-              </p>
-              <ul className="mt-6 grid gap-4 rounded-2xl border border-[var(--nav-border)] bg-surface p-6 shadow-sm sm:p-8">
-                {REQUIREMENTS.map((item) => (
-                  <li key={item} className="flex items-start gap-3">
-                    <span
-                      aria-hidden
-                      className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--nav-tint)] text-[var(--nav-primary)]"
-                    >
-                      <Check className="h-4 w-4" />
-                    </span>
-                    <span className="text-text-secondary">{item}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
+        <div className="mx-auto max-w-2xl px-4 py-14 sm:px-6 sm:py-20 lg:px-8">
+          <h2 className="font-heading text-2xl font-semibold text-foreground sm:text-3xl">
+            Send us your application
+          </h2>
+          <p className="mt-2 text-text-secondary">
+            Pick a line, share your details, and upload your KYC documents.
+            Our team will call you back.
+          </p>
+          <div className="mt-8">
+            <AgentApplicationForm defaultLine={defaultLine} />
           </div>
+
+          <ul className="mt-10 grid gap-4 border-t border-[var(--nav-border)] pt-8">
+            {REASSURANCES.map((item) => (
+              <li key={item} className="flex items-start gap-3">
+                <span
+                  aria-hidden
+                  className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--nav-tint)] text-[var(--nav-primary)]"
+                >
+                  <Check className="h-4 w-4" />
+                </span>
+                <span className="text-text-secondary">{item}</span>
+              </li>
+            ))}
+          </ul>
         </div>
       </section>
     </>
