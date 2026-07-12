@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Menu } from "lucide-react";
+import { Menu, Phone } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -95,6 +95,17 @@ export function MobileNav() {
             onClick={close}
           >
             <Link href="/register">Register</Link>
+          </Button>
+          <Button
+            asChild
+            size="lg"
+            className="font-geist bg-[var(--nav-primary)] text-white hover:bg-[var(--nav-primary-hover)] focus-visible:ring-[var(--nav-primary)]"
+            onClick={close}
+          >
+            <Link href="/contact" className="inline-flex items-center justify-center gap-2">
+              <Phone className="h-4 w-4 text-white" aria-hidden />
+              Contact
+            </Link>
           </Button>
         </div>
       </SheetContent>

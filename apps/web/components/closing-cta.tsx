@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import { LeadDialog } from "@/components/lead-dialog";
 
 // Home page closer. Same bold full-bleed navy band as the Loans page's
@@ -7,19 +9,22 @@ import { LeadDialog } from "@/components/lead-dialog";
 //
 // Optional props let other pages (e.g. /earn-with-us) reuse the same band
 // with different copy/origin without duplicating the SVG doodles. Absent
-// props keep the original home-page behavior unchanged.
+// props keep the original home-page behavior unchanged. When `href` is set the
+// CTA is a plain link (e.g. to /apply-as-agent) instead of the lead modal.
 export function ClosingCta({
   heading = "Ready to get started?",
   text = "Leave your number and we'll call you back, whether you're after a loan or a home.",
   ctaLabel = "Get a callback",
   origin = "closing-cta",
   id = "get-started",
+  href,
 }: {
   heading?: string;
   text?: string;
   ctaLabel?: string;
   origin?: string;
   id?: string;
+  href?: string;
 }) {
   return (
     <section
@@ -37,13 +42,22 @@ export function ClosingCta({
         </h2>
         <p className="mx-auto mt-4 max-w-xl text-lg text-white/85">{text}</p>
         <div className="mt-8 flex justify-center">
-          <LeadDialog
-            businessLine="loans"
-            lineSelectable
-            origin={origin}
-            triggerLabel={ctaLabel}
-            triggerVariant="invert"
-          />
+          {href ? (
+            <Link
+              href={href}
+              className="inline-flex h-10 w-full items-center justify-center rounded-md bg-white px-4 text-sm font-medium text-[var(--nav-primary)] transition hover:bg-white/90 sm:w-auto"
+            >
+              {ctaLabel}
+            </Link>
+          ) : (
+            <LeadDialog
+              businessLine="loans"
+              lineSelectable
+              origin={origin}
+              triggerLabel={ctaLabel}
+              triggerVariant="invert"
+            />
+          )}
         </div>
       </div>
     </section>

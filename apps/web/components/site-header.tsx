@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { Phone } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -17,7 +18,7 @@ import { NAV_ITEMS } from "@/components/navbars/nav-items";
 import { useScrolled } from "@/components/navbars/use-scrolled";
 import { cn } from "@/lib/utils";
 
-// A plain top-level link (Calculator, Contact): matches the dropdown triggers'
+// A plain top-level link (Calculator, Application): matches the dropdown triggers'
 // size/spacing and gains an animated underline on hover/focus. Passed through
 // NavigationMenuLink's own cn()/twMerge so it cleanly overrides that component's
 // dropdown-item base — including its hover:bg, which we neutralize so these bar
@@ -39,9 +40,10 @@ export function SiteHeader() {
         scrolled && "shadow-sm"
       )}
     >
-      {/* 3-column grid (equal 1fr flanks) keeps the nav dead-centered on the bar
-          regardless of logo / actions widths. */}
-      <div className="mx-auto grid h-16 max-w-7xl grid-cols-[1fr_auto_1fr] items-center px-4 sm:px-6 lg:px-8">
+      {/* Full-bleed 3-column grid (equal 1fr flanks) keeps the nav dead-centered
+          on the bar while the actions sit flush against the page's right edge
+          (only the page gutter padding separates them from the corner). */}
+      <div className="grid h-16 w-full grid-cols-[1fr_auto_1fr] items-center px-4 sm:px-6 lg:px-8">
         <div className="col-start-1 justify-self-start" />
 
         <NavigationMenu className="col-start-2 hidden justify-self-center md:flex">
@@ -49,7 +51,7 @@ export function SiteHeader() {
             {NAV_ITEMS.map((item) => {
               // Active when the URL is the item's page or any child route under
               // it (e.g. /calculators/emi keeps "Calculator" lit). Home matches
-              // only "/". Every nav item is a real route now (Contact -> /contact).
+              // only "/". Every nav item is a real route (Application -> /apply-as-agent).
               const isActive =
                 item.href === "/"
                   ? pathname === "/"
@@ -133,6 +135,16 @@ export function SiteHeader() {
               className="font-geist bg-[var(--nav-primary)] text-base text-white shadow-sm transition-colors hover:bg-[var(--nav-primary-hover)] focus-visible:ring-[var(--nav-primary)]"
             >
               <Link href="/register">Register</Link>
+            </Button>
+            <Button
+              asChild
+              size="sm"
+              className="font-geist bg-[var(--nav-primary)] text-base text-white shadow-sm transition-colors hover:bg-[var(--nav-primary-hover)] focus-visible:ring-[var(--nav-primary)]"
+            >
+              <Link href="/contact" className="inline-flex items-center gap-2">
+                <Phone className="h-4 w-4 text-white" aria-hidden />
+                Contact
+              </Link>
             </Button>
           </div>
           <MobileNav />
