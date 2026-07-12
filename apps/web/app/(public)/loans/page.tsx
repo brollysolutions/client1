@@ -56,7 +56,7 @@ export default function LoansPage() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(loansJsonLd) }}
       />
       <ProductPage
-        title="Find the loan that fits you"
+        title="Loans, cards, and insurance that fit you"
         intro="From personal and business loans to property, vehicle, and education finance, we bring the options together and help you until the money reaches your account."
         heroDoodles
         productsHeading="Explore our services"
