@@ -1,1 +1,45 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="320" height="150" fill="none" viewBox="0 0 320 150"><circle cx="160" cy="74" r="62" fill="#d0e7e6" opacity=".35"/><ellipse cx="160" cy="128" fill="#293681" opacity=".07" rx="86" ry="12"/><path fill="#a24b2c" d="M180 52h12v22h-12z"/><path fill="#c4633f" stroke="#a24b2c" stroke-linejoin="round" stroke-width="2" d="m104 88 48-40 48 40Z"/><path fill="#f3f3ee" stroke="#293681" stroke-width="2" d="M116 86h72v40h-72z"/><path fill="#8a5a34" d="M146 102h20v24h-20z"/><circle cx="162" cy="114" r="1.6" fill="#e8b54d"/><path fill="#95ccdd" stroke="#293681" stroke-width="1.5" d="M124 94h16v16h-16z"/><g transform="rotate(12 214 74)"><path fill="#4274d9" stroke="#293681" stroke-linejoin="round" stroke-width="2" d="M198 62h28v24l-14 10-14-10Z"/><circle cx="212" cy="70" r="3.5" fill="#f3f3ee" stroke="#293681" stroke-width="1.5"/><text x="212" y="88" fill="#fff" font-family="system-ui, sans-serif" font-size="12" font-weight="700" text-anchor="middle">₹</text></g></svg>
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="240" viewBox="0 0 320 240" fill="none" role="img">
+  <defs><filter id="prS" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="5"/></filter></defs>
+  <circle cx="160" cy="112" r="90" fill="#D0E7E6" opacity="0.4"/>
+  <ellipse cx="160" cy="202" rx="95" ry="12" fill="#293681" opacity="0.1" filter="url(#prS)"/>
+
+  <!-- chimney -->
+  <rect x="196" y="70" width="14" height="28" fill="#A24B2C"/>
+  <rect x="193" y="64" width="20" height="8" rx="2" fill="#8A3E23"/>
+  <!-- terracotta roof -->
+  <path d="M96 112L160 58l64 54z" fill="#C4633F"/>
+  <path d="M96 112h128l-5 8H101z" fill="#A24B2C"/>
+  <!-- cream walls with a shaded side -->
+  <rect x="110" y="112" width="100" height="84" fill="#F6F1E4"/>
+  <rect x="196" y="112" width="14" height="84" fill="#EAE2CD"/>
+  <!-- wood door -->
+  <rect x="147" y="150" width="28" height="46" rx="2" fill="#8A5A34"/>
+  <rect x="147" y="150" width="13" height="46" rx="2" fill="#9C6A40"/>
+  <circle cx="169" cy="174" r="2.2" fill="#E8B54D"/>
+  <!-- glass windows -->
+  <rect x="120" y="128" width="22" height="20" rx="2" fill="#95CCDD"/>
+  <path d="M131 128v20M120 138h22" stroke="#FFFFFF" stroke-width="2"/>
+  <rect x="118" y="148" width="26" height="4" rx="1.5" fill="#EAE2CD"/>
+  <rect x="178" y="128" width="22" height="20" rx="2" fill="#95CCDD"/>
+  <path d="M189 128v20M178 138h22" stroke="#FFFFFF" stroke-width="2"/>
+  <rect x="176" y="148" width="26" height="4" rx="1.5" fill="#EAE2CD"/>
+  <!-- doorstep -->
+  <rect x="141" y="196" width="40" height="6" rx="2" fill="#D9D2BE"/>
+
+  <!-- bush -->
+  <circle cx="96" cy="186" r="13" fill="#6FA98C"/>
+  <circle cx="110" cy="190" r="9" fill="#4E8E6E"/>
+
+  <!-- hanging price tag with rupee -->
+  <path d="M224 96q14 -4 24 4" stroke="#293681" stroke-width="1.6" fill="none"/>
+  <g transform="rotate(12 252 118)">
+    <path d="M238 96h28a6 6 0 0 1 6 6v22l-20 14-20-14v-22a6 6 0 0 1 6-6z" fill="#4274D9"/>
+    <circle cx="252" cy="106" r="4" fill="#F3F3EE"/>
+    <text x="252" y="129" font-family="system-ui, sans-serif" font-size="13" font-weight="700" fill="#FFFFFF" text-anchor="middle">&#8377;</text>
+  </g>
+
+  <!-- sparkle + dots -->
+  <path d="M78 84l3 7 7 3-7 3-3 7-3-7-7-3 7-3z" fill="#95CCDD"/>
+  <circle cx="256" cy="164" r="3" fill="#95CCDD"/>
+  <circle cx="70" cy="140" r="2.5" fill="#95CCDD" opacity="0.7"/>
+</svg>

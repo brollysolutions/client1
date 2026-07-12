@@ -1,1 +1,45 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="320" height="150" fill="none" viewBox="0 0 320 150"><circle cx="160" cy="74" r="62" fill="#d0e7e6" opacity=".35"/><ellipse cx="160" cy="128" fill="#293681" opacity=".07" rx="86" ry="12"/><rect width="58" height="24" x="126" y="50" fill="#4274d9" stroke="#293681" stroke-width="2" rx="4"/><text x="140" y="67" fill="#fff" font-family="system-ui, sans-serif" font-size="12" font-weight="700">₹</text><rect width="120" height="60" x="100" y="62" fill="#b4794a" rx="12"/><rect width="120" height="36" x="100" y="86" fill="#7a4e28" rx="12"/><rect width="42" height="22" x="150" y="90" fill="#c08a2e" rx="8"/><circle cx="160" cy="101" r="5" fill="#e8b54d"/><g transform="translate(212 58)"><circle r="11" fill="#e8b54d" stroke="#c08a2e" stroke-width="2"/><circle r="7" stroke="#f2d28a" stroke-width="1.5"/><text y="4" fill="#6b4e16" font-family="system-ui, sans-serif" font-size="11" font-weight="700" text-anchor="middle">₹</text></g><g transform="translate(228 74)"><circle r="9" fill="#e8b54d" stroke="#c08a2e" stroke-width="2"/><text y="3.5" fill="#6b4e16" font-family="system-ui, sans-serif" font-size="9" font-weight="700" text-anchor="middle">₹</text></g></svg>
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="240" viewBox="0 0 320 240" fill="none" role="img">
+  <defs><filter id="plS" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="5"/></filter></defs>
+  <circle cx="160" cy="112" r="90" fill="#D0E7E6" opacity="0.4"/>
+  <ellipse cx="160" cy="200" rx="95" ry="12" fill="#293681" opacity="0.1" filter="url(#plS)"/>
+
+  <!-- banknotes peeking out of the wallet -->
+  <g transform="rotate(-9 140 100)">
+    <rect x="106" y="80" width="66" height="42" rx="5" fill="#9CC7AC"/>
+    <rect x="112" y="86" width="54" height="30" rx="3" fill="#C9E3D2"/>
+    <circle cx="139" cy="101" r="10" fill="#9CC7AC"/>
+    <text x="139" y="105.5" font-family="system-ui, sans-serif" font-size="12" font-weight="700" fill="#3E7257" text-anchor="middle">&#8377;</text>
+  </g>
+  <g transform="rotate(7 182 96)">
+    <rect x="152" y="78" width="60" height="40" rx="5" fill="#7FB694"/>
+    <rect x="158" y="84" width="48" height="28" rx="3" fill="#AFD4BC"/>
+  </g>
+
+  <!-- leather wallet -->
+  <rect x="92" y="112" width="136" height="74" rx="14" fill="#B4794A"/>
+  <path d="M92 148h136v24a14 14 0 0 1-14 14H106a14 14 0 0 1-14-14z" fill="#8F5B33"/>
+  <path d="M106 112h108a14 14 0 0 1 12 7H94a14 14 0 0 1 12-7z" fill="#C98F5F"/>
+  <rect x="99" y="119" width="122" height="60" rx="9" stroke="#EAD9C4" stroke-width="1.4" stroke-dasharray="4 5" opacity="0.5"/>
+  <!-- gold snap clasp -->
+  <rect x="188" y="138" width="46" height="24" rx="9" fill="#8F5B33"/>
+  <rect x="192" y="141" width="38" height="18" rx="7" fill="#A0663A"/>
+  <circle cx="211" cy="150" r="6" fill="#E8B54D" stroke="#C08A2E" stroke-width="1.6"/>
+
+  <!-- gold coins -->
+  <ellipse cx="252" cy="184" rx="16" ry="5.5" fill="#C08A2E"/>
+  <ellipse cx="252" cy="181" rx="16" ry="5.5" fill="#E8B54D"/>
+  <g transform="translate(258,158)">
+    <circle r="16" fill="#E8B54D" stroke="#C08A2E" stroke-width="2.4"/>
+    <circle r="10.5" fill="none" stroke="#F2D28A" stroke-width="1.5"/>
+    <text x="0" y="5" font-family="system-ui, sans-serif" font-size="13" font-weight="700" fill="#6B4E16" text-anchor="middle">&#8377;</text>
+  </g>
+  <g transform="translate(70,176)">
+    <circle r="10" fill="#E8B54D" stroke="#C08A2E" stroke-width="2"/>
+    <text x="0" y="3.5" font-family="system-ui, sans-serif" font-size="9" font-weight="700" fill="#6B4E16" text-anchor="middle">&#8377;</text>
+  </g>
+
+  <!-- sparkle + dots -->
+  <path d="M82 66l3 7 7 3-7 3-3 7-3-7-7-3 7-3z" fill="#95CCDD"/>
+  <circle cx="244" cy="66" r="3" fill="#95CCDD"/>
+  <circle cx="62" cy="122" r="2.5" fill="#95CCDD" opacity="0.7"/>
+</svg>

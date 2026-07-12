@@ -1,1 +1,52 @@
-<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 480 360"><defs><radialGradient id="jmoGlow" cx=".5" cy=".45" r=".6"><stop offset="0" stop-color="#d0e7e6" stop-opacity=".9"/><stop offset=".65" stop-color="#d0e7e6" stop-opacity=".22"/><stop offset="1" stop-color="#d0e7e6" stop-opacity="0"/></radialGradient><filter id="jmoSoft" width="180%" height="180%" x="-40%" y="-40%"><feGaussianBlur stdDeviation="7"/></filter></defs><ellipse cx="240" cy="182" fill="url(#jmoGlow)" rx="205" ry="165"/><ellipse cx="256" cy="300" fill="#293681" filter="url(#jmoSoft)" opacity=".12" rx="140" ry="20"/><path fill="#eaf1fb" stroke="#293681" stroke-linejoin="round" stroke-width="4" d="m182 152 74-42 74 42z"/><circle cx="256" cy="128" r="5" fill="#4274d9"/><path fill="#293681" d="M196 152h120v8H196z"/><path fill="#fff" stroke="#293681" stroke-width="3" d="M204 164h15v66h-15zm26 0h15v66h-15zm36 0h15v66h-15zm26 0h15v66h-15z"/><path fill="#293681" d="M190 230h132v12H190z"/><text x="256" y="206" fill="#4274d9" font-family="system-ui,sans-serif" font-size="26" font-weight="800" text-anchor="middle">₹</text><ellipse cx="352" cy="256" fill="#4274d9" rx="30" ry="11"/><path fill="#4274d9" d="M322 244h60v12h-60z"/><ellipse cx="352" cy="244" fill="#5a88e4" rx="30" ry="11"/><ellipse cx="352" cy="230" fill="#4274d9" rx="26" ry="10"/><path fill="#4274d9" d="M326 220h52v10h-52z"/><ellipse cx="352" cy="220" fill="#5a88e4" rx="26" ry="10"/><text x="352" y="225" fill="#fff" font-family="system-ui,sans-serif" font-size="12" font-weight="800" text-anchor="middle">₹</text><path stroke="#4274d9" stroke-dasharray="1.5 9" stroke-linecap="round" stroke-width="3" d="M120 150q50-54 116-32"/><path fill="#4274d9" d="m230 108 10 10-14 4z"/><circle cx="120" cy="150" r="18" fill="#eaf1fb" stroke="#4274d9" stroke-width="3"/><text x="120" y="157" fill="#4274d9" font-family="system-ui,sans-serif" font-size="16" font-weight="700" text-anchor="middle">₹</text><path fill="#95ccdd" d="m300 106 3 7 7 3-7 3-3 7-3-7-7-3 7-3z"/><path fill="#6fa98c" d="M140 302c-4-16 2-30 10-36q-3 18 6 30"/><path fill="#4e8e6e" d="M148 302c8-12 20-16 30-14-8 8-14 16-16 26"/><path fill="#c4633f" d="M132 302h36l-5 16h-26z"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 360" fill="none">
+  <defs>
+    <radialGradient id="jmoGlow" cx="0.5" cy="0.45" r="0.6">
+      <stop offset="0" stop-color="#D0E7E6" stop-opacity="0.9"/>
+      <stop offset="0.65" stop-color="#D0E7E6" stop-opacity="0.22"/>
+      <stop offset="1" stop-color="#D0E7E6" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="jmoSoft" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="7"/></filter>
+  </defs>
+  <ellipse cx="240" cy="182" rx="205" ry="165" fill="url(#jmoGlow)"/>
+  <ellipse cx="256" cy="300" rx="140" ry="20" fill="#293681" opacity="0.12" filter="url(#jmoSoft)"/>
+
+  <!-- bank building -->
+  <path d="M182 152l74-42 74 42z" fill="#EAF1FB" stroke="#293681" stroke-width="4" stroke-linejoin="round"/>
+  <circle cx="256" cy="128" r="5" fill="#4274D9"/>
+  <rect x="196" y="152" width="120" height="8" fill="#293681"/>
+  <g fill="#FFFFFF" stroke="#293681" stroke-width="3">
+    <rect x="204" y="164" width="15" height="66"/>
+    <rect x="230" y="164" width="15" height="66"/>
+    <rect x="266" y="164" width="15" height="66"/>
+    <rect x="292" y="164" width="15" height="66"/>
+  </g>
+  <rect x="190" y="230" width="132" height="12" fill="#293681"/>
+  <!-- rupee on the middle -->
+  <text x="256" y="206" text-anchor="middle" font-family="system-ui,sans-serif" font-size="26" font-weight="800" fill="#4274D9">&#8377;</text>
+
+  <!-- gold coin stacks, bottom-right -->
+  <g>
+    <ellipse cx="352" cy="256" rx="30" ry="11" fill="#C08A2E"/>
+    <rect x="322" y="244" width="60" height="12" fill="#E8B54D"/>
+    <ellipse cx="352" cy="244" rx="30" ry="11" fill="#F2D28A" stroke="#C08A2E" stroke-width="1.5"/>
+    <ellipse cx="352" cy="230" rx="26" ry="10" fill="#C08A2E"/>
+    <rect x="326" y="220" width="52" height="10" fill="#E8B54D"/>
+    <ellipse cx="352" cy="220" rx="26" ry="10" fill="#F2D28A" stroke="#C08A2E" stroke-width="1.5"/>
+    <text x="352" y="225" text-anchor="middle" font-family="system-ui,sans-serif" font-size="12" font-weight="800" fill="#6B4E16">&#8377;</text>
+  </g>
+
+  <!-- arc arrow: money flows toward the bank -->
+  <path d="M120 150 Q170 96 236 118" stroke="#4274D9" stroke-width="3" stroke-linecap="round" stroke-dasharray="1.5 9" fill="none"/>
+  <path d="M230 108l10 10-14 4z" fill="#4274D9"/>
+  <!-- gold coin at the start of the arc -->
+  <circle cx="120" cy="150" r="18" fill="#E8B54D" stroke="#C08A2E" stroke-width="3"/>
+  <circle cx="120" cy="150" r="11.5" fill="none" stroke="#F2D28A" stroke-width="1.8"/>
+  <text x="120" y="156" text-anchor="middle" font-family="system-ui,sans-serif" font-size="15" font-weight="700" fill="#6B4E16">&#8377;</text>
+
+  <!-- sparkle + plant -->
+  <path d="M300 106l3 7 7 3-7 3-3 7-3-7-7-3 7-3z" fill="#95CCDD"/>
+  <circle cx="160" cy="252" r="3" fill="#95CCDD" opacity="0.8"/>
+  <path d="M140 302c-4-16 2-30 10-36-2 12 0 22 6 30" fill="#6FA98C"/>
+  <path d="M148 302c8-12 20-16 30-14-8 8-14 16-16 26" fill="#4E8E6E"/>
+  <path d="M132 302h36l-5 16h-26z" fill="#C4633F"/>
+</svg>

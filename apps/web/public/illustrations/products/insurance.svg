@@ -1,1 +1,25 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="320" height="150" fill="none" viewBox="0 0 320 150"><circle cx="160" cy="74" r="62" fill="#d0e7e6" opacity=".35"/><ellipse cx="160" cy="132" fill="#293681" opacity=".07" rx="70" ry="10"/><path fill="#4274d9" stroke="#293681" stroke-linejoin="round" stroke-width="2.5" d="m160 44 46 16v32c0 22-20 34-46 42-26-8-46-20-46-42V60Z"/><path fill="#293681" d="M160 44v90c-26-8-46-20-46-42V60Z" opacity=".18"/><path stroke="#f3f3ee" stroke-linecap="round" stroke-linejoin="round" stroke-width="7" d="m140 90 14 14 30-32"/><g transform="translate(160 120)"><circle r="12" fill="#e8b54d" stroke="#c08a2e" stroke-width="2"/><text y="4.5" fill="#6b4e16" font-family="system-ui, sans-serif" font-size="12" font-weight="700" text-anchor="middle">₹</text></g></svg>
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="240" viewBox="0 0 320 240" fill="none" role="img">
+  <defs><filter id="inS" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="5"/></filter></defs>
+  <circle cx="160" cy="112" r="90" fill="#D0E7E6" opacity="0.4"/>
+  <ellipse cx="160" cy="200" rx="90" ry="12" fill="#293681" opacity="0.1" filter="url(#inS)"/>
+
+  <!-- blue shield with a shaded half -->
+  <path d="M160 56l58 20v42c0 34-27 55-58 68-31-13-58-34-58-68V76z" fill="#4274D9"/>
+  <path d="M160 56l-58 20v42c0 34 27 55 58 68z" fill="#2F54C6"/>
+  <path d="M160 67l48 16v35c0 28-22 46-48 57-26-11-48-29-48-57V83z" stroke="#FFFFFF" stroke-width="2" opacity="0.35" fill="none"/>
+  <!-- white check -->
+  <path d="M136 118l18 18 34-40" stroke="#FFFFFF" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- guarded gold coin -->
+  <ellipse cx="212" cy="186" rx="13" ry="4.5" fill="#293681" opacity="0.12"/>
+  <g transform="translate(212,168)">
+    <circle r="14" fill="#E8B54D" stroke="#C08A2E" stroke-width="2.2"/>
+    <circle r="9" fill="none" stroke="#F2D28A" stroke-width="1.4"/>
+    <text x="0" y="4.5" font-family="system-ui, sans-serif" font-size="12" font-weight="700" fill="#6B4E16" text-anchor="middle">&#8377;</text>
+  </g>
+
+  <!-- sparkle + dots -->
+  <path d="M84 84l3 7 7 3-7 3-3 7-3-7-7-3 7-3z" fill="#95CCDD"/>
+  <circle cx="248" cy="98" r="3" fill="#95CCDD"/>
+  <circle cx="72" cy="152" r="2.5" fill="#95CCDD" opacity="0.7"/>
+</svg>
