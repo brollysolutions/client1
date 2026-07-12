@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="480" height="360" viewBox="0 0 480 360" fill="none" role="img">
+  <circle cx="248" cy="172" r="146" fill="#D0E7E6" opacity="0.35"/>
+  <ellipse cx="240" cy="316" rx="188" ry="20" fill="#293681" opacity="0.06"/>
+  <!-- advisor working behind the desk -->
+  <circle cx="240" cy="120" r="30" fill="#F3E7D8" stroke="#293681" stroke-width="3"/>
+  <path d="M211 114 C213 88 267 88 269 114 C258 104 222 104 211 114 Z" fill="#3A2E26"/>
+  <path d="M225 126 q15 9 30 0" fill="none" stroke="#293681" stroke-width="2.6" stroke-linecap="round"/>
+  <circle cx="230" cy="114" r="2.6" fill="#293681"/>
+  <circle cx="250" cy="114" r="2.6" fill="#293681"/>
+  <path d="M196 196 C196 158 284 158 284 196 Z" fill="#4274D9"/>
+  <!-- laptop -->
+  <rect x="176" y="196" width="128" height="82" rx="8" fill="#293681"/>
+  <rect x="186" y="206" width="108" height="62" rx="4" fill="#FFFFFF"/>
+  <rect x="196" y="216" width="52" height="8" rx="4" fill="#4274D9"/>
+  <rect x="196" y="232" width="88" height="6" rx="3" fill="#DDE4F0"/>
+  <rect x="196" y="246" width="72" height="6" rx="3" fill="#DDE4F0"/>
+  <rect x="160" y="278" width="160" height="12" rx="6" fill="#95CCDD"/>
+  <!-- document stack, left -->
+  <g transform="rotate(-9 120 214)">
+    <rect x="84" y="176" width="84" height="104" rx="8" fill="#FFFFFF" stroke="#293681" stroke-width="2.5"/>
+    <rect x="96" y="192" width="44" height="8" rx="4" fill="#4274D9"/>
+    <rect x="96" y="208" width="60" height="5" rx="2.5" fill="#DDE4F0"/>
+    <rect x="96" y="220" width="52" height="5" rx="2.5" fill="#DDE4F0"/>
+    <rect x="96" y="232" width="58" height="5" rx="2.5" fill="#DDE4F0"/>
+  </g>
+  <!-- gears, right (working the deal) -->
+  <g transform="translate(346,168)" fill="#4274D9" stroke="#293681" stroke-width="2.5" stroke-linejoin="round">
+    <path d="M0 -26 l7 4 l8 -3 l3 8 l7 5 l-3 8 l3 8 l-7 5 l-3 8 l-8 -3 l-7 4 l-7 -4 l-8 3 l-3 -8 l-7 -5 l3 -8 l-3 -8 l7 -5 l3 -8 l8 3 l7 -4 Z"/>
+    <circle r="9" fill="#D0E7E6"/>
+  </g>
+  <circle cx="356" cy="222" r="14" fill="#E8B54D" stroke="#C08A2E" stroke-width="2.5"/>
+  <text x="356" y="228" font-family="system-ui, sans-serif" font-size="14" font-weight="700" fill="#6B4E16" text-anchor="middle">&#8377;</text>
+</svg>

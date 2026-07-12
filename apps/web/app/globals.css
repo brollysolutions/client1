@@ -243,6 +243,192 @@
   [class*="auth-anim"] { animation: none !important; }
 }
 
+/* ------------------------------------------------------------------ *
+ * Refer-and-earn flow scene (components/earn-with-us/refer-flow-scene).
+ * One "app window" mock plays a single 12s loop in three 4s beats:
+ *   A 0-33%  get your code, tap Copy -> "Copied"
+ *   B 33-66% Share it -> code flies out to friends
+ *   C 66-100% Collect your rewards -> coin burst + Razorpay/cheque + confetti
+ * No floating cursor: interactions are shown by the element itself
+ * pressing (scale) with a ripple. Every animated node runs the same 12s
+ * cycle; per-element keyframe windows place each action inside its beat,
+ * so the whole scene stays in sync. transform/opacity only. Paused by
+ * default; the scene's IntersectionObserver adds `.is-playing` to run it
+ * only while on screen. All classes are prefixed `refer-anim-` so the
+ * reduced-motion guard switches the set off in one selector.
+ * ------------------------------------------------------------------ */
+@keyframes refer-scene-a {
+  0% { opacity: 0; }
+  2% { opacity: 1; }
+  31% { opacity: 1; }
+  35% { opacity: 0; }
+  100% { opacity: 0; }
+}
+@keyframes refer-scene-b {
+  0%, 33% { opacity: 0; }
+  36% { opacity: 1; }
+  64% { opacity: 1; }
+  68% { opacity: 0; }
+  100% { opacity: 0; }
+}
+@keyframes refer-scene-c {
+  0%, 66% { opacity: 0; }
+  69% { opacity: 1; }
+  99% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* Beat A: gentle fade-in of the code chip, Copy button press + ripple,
+   then the "Copied" badge pops. */
+@keyframes refer-fade-in {
+  0% { opacity: 0; } 5% { opacity: 1; } 100% { opacity: 1; }
+}
+@keyframes refer-press-a {
+  0%, 16% { transform: scale(1); }
+  19% { transform: scale(0.92); }
+  23% { transform: scale(1); }
+  100% { transform: scale(1); }
+}
+@keyframes refer-ripple-a {
+  0%, 16% { opacity: 0; transform: scale(0.3); }
+  19% { opacity: 0.45; }
+  27% { opacity: 0; transform: scale(2); }
+  100% { opacity: 0; }
+}
+@keyframes refer-copied {
+  0%, 23% { opacity: 0; transform: translateY(6px) scale(0.85); }
+  27% { opacity: 1; transform: translateY(0) scale(1); }
+  31% { opacity: 1; }
+  35% { opacity: 0; }
+  100% { opacity: 0; }
+}
+
+/* Beat B: Share button press, a paper-plane flies out, three friend
+   avatars pop in sequence, then a "Shared" caption. */
+@keyframes refer-press-b {
+  0%, 38% { transform: scale(1); }
+  41% { transform: scale(0.92); }
+  45% { transform: scale(1); }
+  100% { transform: scale(1); }
+}
+@keyframes refer-plane {
+  0%, 40% { opacity: 0; transform: translate(0, 0) scale(0.5) rotate(0deg); }
+  44% { opacity: 1; transform: translate(0, -6px) scale(1) rotate(8deg); }
+  54% { opacity: 0; transform: translate(64px, -44px) scale(0.8) rotate(22deg); }
+  100% { opacity: 0; }
+}
+@keyframes refer-friend-1 {
+  0%, 44% { opacity: 0; transform: translateY(10px) scale(0.4); }
+  49% { opacity: 1; transform: translateY(0) scale(1); }
+  64% { opacity: 1; } 68% { opacity: 0; } 100% { opacity: 0; }
+}
+@keyframes refer-friend-2 {
+  0%, 49% { opacity: 0; transform: translateY(10px) scale(0.4); }
+  54% { opacity: 1; transform: translateY(0) scale(1); }
+  64% { opacity: 1; } 68% { opacity: 0; } 100% { opacity: 0; }
+}
+@keyframes refer-friend-3 {
+  0%, 54% { opacity: 0; transform: translateY(10px) scale(0.4); }
+  59% { opacity: 1; transform: translateY(0) scale(1); }
+  64% { opacity: 1; } 68% { opacity: 0; } 100% { opacity: 0; }
+}
+@keyframes refer-shared {
+  0%, 58% { opacity: 0; transform: translateY(6px); }
+  62% { opacity: 1; transform: translateY(0); }
+  64% { opacity: 1; } 68% { opacity: 0; } 100% { opacity: 0; }
+}
+
+/* Beat C: the "Collect" button pulses then presses and fades, the rewards
+   group fades in, coins burst outward, a "+ Rs" counter pops, and confetti
+   rains. Coins/confetti take per-piece target vars set inline. */
+@keyframes refer-collect {
+  0%, 68% { opacity: 1; transform: scale(1); }
+  70% { transform: scale(1.05); }
+  72% { transform: scale(1); }
+  74% { transform: scale(1.06); }
+  76% { transform: scale(0.9); }
+  78% { opacity: 1; transform: scale(1.02); }
+  80% { opacity: 0; transform: scale(0.9); }
+  100% { opacity: 0; }
+}
+@keyframes refer-reward {
+  0%, 78% { opacity: 0; transform: translateY(10px) scale(0.9); }
+  84% { opacity: 1; transform: translateY(0) scale(1); }
+  99% { opacity: 1; } 100% { opacity: 0; }
+}
+@keyframes refer-burst {
+  0%, 78% { opacity: 0; transform: translate(0, 0) scale(0.3) rotate(0deg); }
+  82% { opacity: 1; }
+  92% { opacity: 1; transform: translate(var(--tx, 0), var(--ty, 0)) scale(1) rotate(var(--r, 0deg)); }
+  96% { opacity: 0; }
+  100% { opacity: 0; }
+}
+@keyframes refer-count {
+  0%, 85% { opacity: 0; transform: translateY(8px) scale(0.7); }
+  90% { opacity: 1; transform: translateY(0) scale(1.1); }
+  92% { transform: scale(1); }
+  99% { opacity: 1; } 100% { opacity: 0; }
+}
+@keyframes refer-confetti {
+  0%, 78% { opacity: 0; transform: translate(0, -8px) rotate(0deg); }
+  82% { opacity: 1; }
+  100% { opacity: 0; transform: translate(var(--dx, 0), 120px) rotate(var(--rot, 300deg)); }
+}
+
+/* Step-strip highlight: active step is full opacity in its beat window,
+   others dim. Base opacity is 1 so the reduced-motion fallback (below)
+   leaves every step fully readable. */
+@keyframes refer-step-1 {
+  0% { opacity: 1; } 31% { opacity: 1; } 35% { opacity: 0.45; }
+  100% { opacity: 0.45; }
+}
+@keyframes refer-step-2 {
+  0%, 33% { opacity: 0.45; } 36% { opacity: 1; } 64% { opacity: 1; }
+  68% { opacity: 0.45; } 100% { opacity: 0.45; }
+}
+@keyframes refer-step-3 {
+  0%, 66% { opacity: 0.45; } 69% { opacity: 1; } 97% { opacity: 1; }
+  100% { opacity: 0.45; }
+}
+
+.refer-anim-scene-a { animation: refer-scene-a 12s linear infinite; }
+.refer-anim-scene-b { animation: refer-scene-b 12s linear infinite; }
+.refer-anim-scene-c { animation: refer-scene-c 12s linear infinite; }
+.refer-anim-fade-in { animation: refer-fade-in 12s linear infinite; }
+.refer-anim-press-a { animation: refer-press-a 12s ease-out infinite; }
+.refer-anim-ripple-a { animation: refer-ripple-a 12s ease-out infinite; }
+.refer-anim-copied { animation: refer-copied 12s ease-out infinite; }
+.refer-anim-press-b { animation: refer-press-b 12s ease-out infinite; }
+.refer-anim-plane { animation: refer-plane 12s ease-out infinite; will-change: transform; }
+.refer-anim-friend-1 { animation: refer-friend-1 12s ease-out infinite; }
+.refer-anim-friend-2 { animation: refer-friend-2 12s ease-out infinite; }
+.refer-anim-friend-3 { animation: refer-friend-3 12s ease-out infinite; }
+.refer-anim-shared { animation: refer-shared 12s ease-out infinite; }
+.refer-anim-collect { animation: refer-collect 12s ease-out infinite; }
+.refer-anim-reward { animation: refer-reward 12s ease-out infinite; }
+.refer-anim-burst { animation: refer-burst 12s ease-out infinite; will-change: transform; }
+.refer-anim-count { animation: refer-count 12s ease-out infinite; }
+.refer-anim-confetti { animation: refer-confetti 12s ease-in infinite; will-change: transform; }
+.refer-anim-step-1 { animation: refer-step-1 12s linear infinite; }
+.refer-anim-step-2 { animation: refer-step-2 12s linear infinite; }
+.refer-anim-step-3 { animation: refer-step-3 12s linear infinite; }
+
+/* Paused until the scene scrolls into view (IntersectionObserver adds
+   `.is-playing`). Keeps the loop from burning cycles off screen. */
+[class*="refer-anim-"] { animation-play-state: paused; }
+.refer-flow.is-playing [class*="refer-anim-"] { animation-play-state: running; }
+
+/* Below lg the animated scene is hidden and the step strip is a plain
+   static list, so the highlight-dim animation must not apply there. */
+@media (max-width: 1023px) {
+  .refer-steps [class*="refer-anim-step-"] { animation: none !important; opacity: 1 !important; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [class*="refer-anim-"] { animation: none !important; opacity: 1 !important; }
+  .refer-scene { display: none !important; }
+}
+
 /* FAQ accordion open/close (components/calculators/calculator-faq.tsx and the
    public faq-section pattern). Progressive enhancement: browsers that support
    interpolate-size animate the native <details> content height from 0 to auto;
