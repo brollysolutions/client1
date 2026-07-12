@@ -49,9 +49,10 @@ export function ContactInfo() {
         const Icon = row.icon;
         const body = (
           <>
-            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-[var(--nav-tint)] text-[var(--nav-primary)]">
-              <Icon className="h-5 w-5" aria-hidden />
-            </span>
+            <Icon
+              className="mt-0.5 h-5 w-5 shrink-0 text-[var(--nav-primary)]"
+              aria-hidden
+            />
             <div>
               <p className="font-heading text-sm font-semibold text-foreground">
                 {row.label}
