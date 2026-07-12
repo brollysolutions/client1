@@ -21,8 +21,9 @@ Design notes:
 from __future__ import annotations
 
 import logging
+from typing import Any
 
-from sqlalchemy import func, text
+from sqlalchemy import case, func, text
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 
 from app.core.masking import mask_mobile
@@ -40,8 +41,16 @@ async def capture_lead(
     name: str | None = None,
     business_line: str | None = None,
     origin: str = "direct",
-) -> None:
-    """Insert-or-enrich a lead for this mobile. Never raises."""
+    requirement: dict[str, Any] | None = None,
+) -> bool:
+    """Insert-or-enrich a lead for this mobile. Never raises.
+
+    Returns True when the write committed, False when it was swallowed — auth
+    callers ignore this (capture must never break the auth flow); the public
+    leads endpoint logs on False but still answers 202 (the visitor can do
+    nothing useful with a storage error, and the failure is already logged
+    with a traceback here for ops).
+    """
     try:
         async with AsyncSessionLocal() as session:
             stmt = pg_insert(Lead).values(
@@ -50,6 +59,7 @@ async def capture_lead(
                 business_line=business_line,
                 origin=origin,
                 status="new",
+                requirement=requirement,
             )
             stmt = stmt.on_conflict_do_update(
                 index_elements=[Lead.mobile],
@@ -62,10 +72,20 @@ async def capture_lead(
                     # would raise on a cross-line re-enquiry and — since capture is
                     # best-effort/swallowed — silently drop the lead.
                     "business_line": func.coalesce(Lead.business_line, stmt.excluded.business_line),
+                    # Merge requirement JSONB, newest value wins per key; an
+                    # incoming NULL leaves the stored blob untouched.
+                    "requirement": case(
+                        (stmt.excluded.requirement.is_(None), Lead.requirement),
+                        else_=func.coalesce(Lead.requirement, text("'{}'::jsonb")).op("||")(
+                            stmt.excluded.requirement
+                        ),
+                    ),
                     "updated_at": func.now(),
                 },
             )
             await session.execute(stmt)
             await session.commit()
+            return True
     except Exception:  # capture is best-effort; never break the auth flow
         logger.warning("lead.capture_failed mobile=%s", mask_mobile(mobile), exc_info=True)
+        return False

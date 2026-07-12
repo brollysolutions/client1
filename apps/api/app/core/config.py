@@ -58,6 +58,11 @@ class Settings(BaseSettings):
     # share one IP; only failures count, successful logins never do.
     LOGIN_RATE_LIMIT_PER_IP: int = 30
 
+    # Public lead form (POST /api/v1/leads) abuse caps, hourly windows. Same
+    # proxy caveat as the other per-IP limits.
+    LEAD_RATE_LIMIT_PER_IP: int = 10
+    LEAD_RATE_LIMIT_PER_MOBILE: int = 5
+
     # Return the plaintext OTP in the API response (otp_hint) when delivery is
     # mocked, so local/dev flows are testable without a real voice/email channel.
     # SECURITY: fail-closed. Must be explicitly turned on; never enable in any

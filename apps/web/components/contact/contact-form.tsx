@@ -39,6 +39,8 @@ export function ContactForm({
   const [name, setName] = useState("");
   const [mobile, setMobile] = useState("");
   const [email, setEmail] = useState("");
+  // Honeypot. Humans never see or fill this; bots auto-filling every field do.
+  const [company, setCompany] = useState("");
   const [message, setMessage] = useState(
     initialProduct ? `I'm interested in ${initialProduct}.` : "",
   );
@@ -75,6 +77,7 @@ export function ContactForm({
       ...(initialProduct ? { product: initialProduct } : {}),
       ...(email.trim() ? { email: email.trim() } : {}),
       ...(message.trim() ? { message: message.trim() } : {}),
+      ...(company ? { company } : {}),
     });
 
     if (result.ok) {
@@ -118,6 +121,20 @@ export function ContactForm({
 
   return (
     <form onSubmit={handleSubmit} noValidate className="grid gap-5">
+      {/* Honeypot: off-screen, out of the tab order, invisible to AT. */}
+      <div aria-hidden className="absolute -left-[9999px] top-auto h-px w-px overflow-hidden">
+        <label htmlFor="contact-company">Company</label>
+        <input
+          id="contact-company"
+          name="company"
+          type="text"
+          tabIndex={-1}
+          autoComplete="off"
+          value={company}
+          onChange={(event) => setCompany(event.target.value)}
+        />
+      </div>
+
       {initialProduct ? (
         <div className="grid gap-1.5">
           <span className="text-sm text-text-secondary">Enquiring about</span>

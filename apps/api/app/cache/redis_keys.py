@@ -22,6 +22,11 @@ LOGIN_LOCK = "login_lock:{mobile}"
 # Per-IP failed-login counter: the per-mobile lock alone lets one host spray a
 # credential list across many numbers (max 4 tries each) without ever locking.
 LOGIN_RATE_IP = "login_rate_ip:{ip}"
+# Public lead-form abuse caps (unauthenticated write → both dimensions needed:
+# per-IP stops one host flooding, per-mobile stops one number being spammed
+# into the telecaller queue from many hosts).
+LEAD_RATE_IP = "lead_rate_ip:{ip}"
+LEAD_RATE_MOBILE = "lead_rate_mobile:{mobile}"
 JWT_BLACKLIST = "jwt_blacklist:{jti}"
 REG_DATA = "reg_data:{mobile}"
 
@@ -32,6 +37,7 @@ TTL_OTP_RATE = 24 * 60 * 60  # 24 h daily cap
 TTL_OTP_RATE_IP = 60 * 60  # 1 h rolling per-IP window
 TTL_LOGIN_LOCK = 15 * 60  # 15 min lockout
 TTL_LOGIN_RATE_IP = 60 * 60  # 1 h rolling per-IP failed-login window
+TTL_LEAD_RATE = 60 * 60  # 1 h rolling window, both lead-form caps
 
 
 # ---------------------------------------------------------------------------
@@ -130,6 +136,14 @@ def login_lock_key(mobile: str) -> str:
 
 def login_rate_ip_key(ip: str) -> str:
     return LOGIN_RATE_IP.format(ip=ip)
+
+
+def lead_rate_ip_key(ip: str) -> str:
+    return LEAD_RATE_IP.format(ip=ip)
+
+
+def lead_rate_mobile_key(mobile: str) -> str:
+    return LEAD_RATE_MOBILE.format(mobile=mobile)
 
 
 def jwt_blacklist_key(jti: str) -> str:
