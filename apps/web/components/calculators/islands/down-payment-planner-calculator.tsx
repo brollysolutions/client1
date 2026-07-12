@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 import { parseAsFloat, parseAsInteger, useQueryStates } from "nuqs";
 
+import { INFO } from "@/lib/calculators/glossary";
 import { sipForGoal } from "@/lib/finance";
 import { formatCompactINR, formatINR } from "@/lib/format";
 import { ResultCard } from "../result-card";
@@ -56,6 +57,7 @@ export function DownPaymentPlannerCalculator() {
         <SliderField
           id="dp-value"
           label="Property value"
+          info={INFO.propertyValue}
           prefix="₹"
           value={value}
           min={500000}
@@ -67,6 +69,7 @@ export function DownPaymentPlannerCalculator() {
         <SliderField
           id="dp-pct"
           label="Down payment"
+          info={INFO.downPaymentPct}
           suffix="%"
           value={pct}
           min={10}
@@ -78,6 +81,7 @@ export function DownPaymentPlannerCalculator() {
         <SliderField
           id="dp-months"
           label="Months to goal"
+          info={INFO.monthsToGoal}
           suffix="months"
           value={months}
           min={6}
@@ -89,6 +93,7 @@ export function DownPaymentPlannerCalculator() {
         <SliderField
           id="dp-ret"
           label="Expected return on savings"
+          info={INFO.expectedReturn}
           suffix="% p.a."
           value={ret}
           min={0}
@@ -102,9 +107,22 @@ export function DownPaymentPlannerCalculator() {
       {/* Results */}
       <div className="grid content-start gap-6">
         <div className="grid gap-4 sm:grid-cols-3">
-          <ResultCard emphasis label="Save each month" value={formatINR(monthlySip)} />
-          <ResultCard label="Down payment target" value={formatCompactINR(downPayment)} />
-          <ResultCard label="Loan you will need" value={formatCompactINR(loanNeeded)} />
+          <ResultCard
+            emphasis
+            label="Save each month"
+            info={INFO.saveEachMonth}
+            value={formatINR(monthlySip)}
+          />
+          <ResultCard
+            label="Down payment target"
+            info={INFO.downPaymentTarget}
+            value={formatCompactINR(downPayment)}
+          />
+          <ResultCard
+            label="Loan you will need"
+            info={INFO.loanNeeded}
+            value={formatCompactINR(loanNeeded)}
+          />
         </div>
         <p className="text-sm text-text-secondary">
           Budget for stamp duty and registration on top of the down payment.

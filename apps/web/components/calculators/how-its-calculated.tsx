@@ -9,7 +9,7 @@ import { ChevronDown } from "lucide-react";
 // of running together in one paragraph.
 export function HowItsCalculated({ content }: { content: string }) {
   return (
-    <details className="faq-details group mt-8 rounded-xl border border-[var(--nav-border)] bg-[var(--nav-bg)]">
+    <details className="faq-details group mt-8 rounded-xl border border-[var(--nav-border)] bg-[var(--nav-tint)]">
       <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-5 py-3 text-sm font-medium text-text-secondary marker:content-none hover:text-[var(--nav-text)]">
         How it&apos;s calculated
         <ChevronDown

@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import { parseAsInteger, parseAsStringLiteral, useQueryStates } from "nuqs";
 
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { INFO } from "@/lib/calculators/glossary";
 import { gstOnProperty } from "@/lib/finance";
 import { formatCompactINR, formatINR, formatPercent } from "@/lib/format";
 import { ResultCard } from "../result-card";
@@ -61,6 +62,7 @@ export function GstCalculator() {
         <SliderField
           id="gst-value"
           label="Property value"
+          info={INFO.propertyValue}
           prefix="₹"
           value={value}
           min={VALUE_MIN}
@@ -81,14 +83,21 @@ export function GstCalculator() {
       {/* Results */}
       <div className="grid content-start gap-6">
         <div className="grid gap-4 sm:grid-cols-3">
-          <ResultCard emphasis label="GST payable" value={formatINR(result.gst)} />
+          <ResultCard
+            emphasis
+            label="GST payable"
+            info={INFO.gstPayable}
+            value={formatINR(result.gst)}
+          />
           <ResultCard
             label="GST rate"
+            info={INFO.gstRate}
             value={formatPercent(result.rate * 100)}
             sub="Effective, on full value"
           />
           <ResultCard
             label="Total incl. GST"
+            info={INFO.totalInclGst}
             value={formatCompactINR(value + result.gst)}
             sub="Property value plus GST"
           />

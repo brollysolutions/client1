@@ -1,8 +1,9 @@
 import Link from "next/link";
-import { ChevronRight } from "lucide-react";
+import { Calculator, ChevronRight, Home as HomeIcon } from "lucide-react";
 
 import { LeadDialog } from "@/components/lead-dialog";
 import { FaqDoodles } from "@/components/faq-doodles";
+import { calculatorIcon } from "@/lib/calculators/icons";
 import { getCalculator } from "@/lib/calculators/registry";
 import type { CalculatorDef } from "@/lib/calculators/types";
 import { CalculatorCard } from "./calculator-card";
@@ -24,27 +25,46 @@ export function CalculatorShell({
   const related = def.relatedSlugs
     .map((slug) => getCalculator(slug))
     .filter((c): c is CalculatorDef => Boolean(c));
+  const CurrentIcon = calculatorIcon(def.slug);
 
   return (
     <>
       {/* Hero */}
       <section className="relative w-full overflow-hidden bg-[var(--nav-bg)]">
         <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 sm:py-16 lg:px-8">
-          <nav aria-label="Breadcrumb" className="text-sm text-text-secondary">
-            <ol className="flex flex-wrap items-center gap-1">
+          <nav aria-label="Breadcrumb" className="text-base text-text-secondary">
+            <ol className="flex flex-wrap items-center gap-1.5">
               <li>
-                <Link href="/" className="hover:text-[var(--nav-primary)]">
+                <Link
+                  href="/"
+                  className="group flex items-center gap-1.5 hover:text-[var(--nav-primary)]"
+                >
+                  <HomeIcon
+                    className="h-4 w-4 shrink-0 text-[var(--nav-text)] transition-colors group-hover:text-[var(--nav-primary)]"
+                    aria-hidden
+                  />
                   Home
                 </Link>
               </li>
               <ChevronRight className="h-4 w-4" aria-hidden />
               <li>
-                <Link href="/calculators" className="hover:text-[var(--nav-primary)]">
+                <Link
+                  href="/calculators"
+                  className="group flex items-center gap-1.5 hover:text-[var(--nav-primary)]"
+                >
+                  <Calculator
+                    className="h-4 w-4 shrink-0 text-[var(--nav-text)] transition-colors group-hover:text-[var(--nav-primary)]"
+                    aria-hidden
+                  />
                   Calculators
                 </Link>
               </li>
               <ChevronRight className="h-4 w-4" aria-hidden />
-              <li className="text-[var(--nav-text)]" aria-current="page">
+              <li
+                className="flex items-center gap-1.5 text-[var(--nav-text)]"
+                aria-current="page"
+              >
+                <CurrentIcon className="h-4 w-4 shrink-0" aria-hidden />
                 {def.navLabel}
               </li>
             </ol>
@@ -71,7 +91,7 @@ export function CalculatorShell({
       </section>
 
       {/* FAQ */}
-      <section className="relative w-full overflow-hidden border-t border-[var(--nav-border)] bg-surface">
+      <section className="relative w-full overflow-hidden border-t border-[var(--nav-border)] bg-[var(--nav-bg)]">
         <FaqDoodles />
         <div className="relative mx-auto max-w-3xl px-4 py-14 sm:px-6 lg:px-8">
           <h2 className="font-heading text-2xl font-semibold text-[var(--nav-text)] sm:text-3xl">

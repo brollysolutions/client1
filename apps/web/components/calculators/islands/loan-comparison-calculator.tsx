@@ -2,8 +2,10 @@
 
 import { useMemo, useState } from "react";
 
+import { INFO } from "@/lib/calculators/glossary";
 import { amortizationSchedule } from "@/lib/finance";
 import { formatINR } from "@/lib/format";
+import { InfoHint } from "../info-hint";
 import { ResultCard } from "../result-card";
 import { SliderField } from "../slider-field";
 
@@ -101,11 +103,11 @@ export function LoanComparisonCalculator() {
     return best;
   }, [results]);
 
-  const rows: { key: keyof Computed; label: string }[] = [
-    { key: "emi", label: "EMI" },
-    { key: "totalInterest", label: "Total interest" },
-    { key: "fee", label: "Processing fee" },
-    { key: "allInCost", label: "Total cost" },
+  const rows: { key: keyof Computed; label: string; info: string }[] = [
+    { key: "emi", label: "EMI", info: INFO.emi },
+    { key: "totalInterest", label: "Total interest", info: INFO.totalInterest },
+    { key: "fee", label: "Processing fee", info: INFO.processingFee },
+    { key: "allInCost", label: "Total cost", info: INFO.compareTotalCost },
   ];
 
   return (
@@ -133,6 +135,7 @@ export function LoanComparisonCalculator() {
               <SliderField
                 id={`loan-amount-${index}`}
                 label="Loan amount"
+                info={INFO.loanAmount}
                 prefix="₹"
                 value={offer.amount}
                 min={AMOUNT_MIN}
@@ -144,6 +147,7 @@ export function LoanComparisonCalculator() {
               <SliderField
                 id={`loan-rate-${index}`}
                 label="Interest rate"
+                info={INFO.interestRate}
                 suffix="% p.a."
                 value={offer.rate}
                 min={RATE_MIN}
@@ -155,6 +159,7 @@ export function LoanComparisonCalculator() {
               <SliderField
                 id={`loan-months-${index}`}
                 label="Tenure"
+                info={INFO.tenure}
                 suffix="months"
                 value={offer.months}
                 min={MONTHS_MIN}
@@ -166,6 +171,7 @@ export function LoanComparisonCalculator() {
               <SliderField
                 id={`loan-fee-${index}`}
                 label="Processing fee"
+                info={INFO.processingFee}
                 suffix="%"
                 value={offer.feePct}
                 min={FEE_MIN}
@@ -183,6 +189,7 @@ export function LoanComparisonCalculator() {
       <ResultCard
         emphasis
         label={`Best value: Offer ${bestIndex + 1}`}
+        info={INFO.compareTotalCost}
         value={formatINR(results[bestIndex].allInCost)}
         sub="Lowest total cost across all three offers"
       />
@@ -219,7 +226,10 @@ export function LoanComparisonCalculator() {
                 className="border-b border-[var(--nav-border)] last:border-b-0"
               >
                 <td className="px-4 py-3 text-left text-text-secondary">
-                  {row.label}
+                  <span className="inline-flex items-center gap-1.5">
+                    {row.label}
+                    <InfoHint label={row.label} text={row.info} />
+                  </span>
                 </td>
                 {results.map((result, index) => {
                   const isBestCell = index === bestIndex && row.key === "allInCost";
