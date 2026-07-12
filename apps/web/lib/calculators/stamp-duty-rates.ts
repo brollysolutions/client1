@@ -45,7 +45,7 @@ export type StampDutyBuyer = "male" | "female";
 const BY_CODE = new Map(STAMP_DUTY_STATES.map((s) => [s.code, s]));
 
 /** Default state for the initial calculator render. */
-export const DEFAULT_STATE_CODE = "MH";
+export const DEFAULT_STATE_CODE = "TS";
 
 export function getStampDutyState(code: string): StampDutyState | undefined {
   return BY_CODE.get(code);
