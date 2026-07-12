@@ -1,0 +1,100 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="480" height="360" viewBox="0 0 480 360" fill="none">
+  <defs>
+    <filter id="wc-soft" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="3.2"/>
+    </filter>
+    <linearGradient id="wc-badge" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#EEF3FC"/>
+      <stop offset="1" stop-color="#E1EAF9"/>
+    </linearGradient>
+  </defs>
+
+  <!-- ground shadow -->
+  <ellipse cx="240" cy="318" rx="152" ry="16" fill="#293681" opacity="0.09" filter="url(#wc-soft)"/>
+
+  <!-- floating house badge (left, behind) -->
+  <g>
+    <circle cx="76" cy="110" r="42" fill="url(#wc-badge)" stroke="#4274D9" stroke-width="1.6"/>
+    <polygon points="52,106 76,86 100,106" fill="#C4633F"/>
+    <polygon points="52,106 76,86 100,106 96,106 76,90 56,106" fill="#A24B2C" opacity="0.5"/>
+    <rect x="60" y="106" width="32" height="24" rx="1.5" fill="#FBFBF7" stroke="#E3E3DB" stroke-width="1.4"/>
+    <rect x="72" y="115" width="10" height="15" rx="1" fill="#8A5A34"/>
+    <rect x="63" y="111" width="7" height="7" rx="1" fill="#95CCDD"/>
+    <circle cx="80" cy="122" r="0.9" fill="#6B4E16"/>
+  </g>
+
+  <!-- ==== PEOPLE (behind table) ==== -->
+  <!-- LEFT person (navy) -->
+  <g>
+    <rect x="149" y="166" width="12" height="13" rx="4" fill="#CDA97C"/>
+    <path d="M130,252 L135,193 Q137,178 152,176 L159,176 Q175,178 177,193 L183,252 Z" fill="#293681"/>
+    <path d="M150,176 L160,176 L155,190 Z" fill="#FBFBF7"/>
+    <path d="M153,179 L157,179 L156,197 L154,197 Z" fill="#4274D9"/>
+    <circle cx="155" cy="149" r="19" fill="#3A2A1A"/>
+    <circle cx="155" cy="153" r="16.5" fill="#E8CFA8"/>
+    <path d="M138,150 Q137,137 148,134" fill="none" stroke="#3A2A1A" stroke-width="1.4" stroke-linecap="round" opacity="0.6"/>
+  </g>
+
+  <!-- RIGHT person (blue) -->
+  <g>
+    <rect x="319" y="166" width="12" height="13" rx="4" fill="#CDA97C"/>
+    <path d="M350,252 L345,193 Q343,178 328,176 L321,176 Q305,178 303,193 L297,252 Z" fill="#4274D9"/>
+    <path d="M320,176 L330,176 L325,190 Z" fill="#FBFBF7"/>
+    <path d="M323,179 L327,179 L326,197 L324,197 Z" fill="#293681"/>
+    <circle cx="325" cy="149" r="19" fill="#5A3A22"/>
+    <circle cx="325" cy="153" r="16.5" fill="#E8CFA8"/>
+    <path d="M342,150 Q343,137 332,134" fill="none" stroke="#5A3A22" stroke-width="1.4" stroke-linecap="round" opacity="0.6"/>
+  </g>
+
+  <!-- ==== TABLE ==== -->
+  <polygon points="166,236 314,236 336,254 144,254" fill="#B07C4A"/>
+  <polygon points="166,236 314,236 314,239 166,239" fill="#C69564" opacity="0.7"/>
+  <polygon points="144,254 336,254 330,300 150,300" fill="#8A5A34"/>
+  <rect x="156" y="300" width="10" height="18" rx="2" fill="#6E4526"/>
+  <rect x="314" y="300" width="10" height="18" rx="2" fill="#6E4526"/>
+
+  <!-- ==== CONTRACT PAPER (loan + home in one deal) ==== -->
+  <g transform="rotate(-4 240 246)">
+    <rect x="197" y="230" width="88" height="30" rx="2.5" fill="#FBFBF7" stroke="#E3E3DB" stroke-width="1.4"/>
+    <!-- tiny house glyph -->
+    <polygon points="205,245 211,239 217,245" fill="#C4633F"/>
+    <rect x="207" y="245" width="8" height="7" fill="#FBFBF7" stroke="#C08A2E" stroke-width="1.4"/>
+    <rect x="209.5" y="248" width="3" height="4" fill="#8A5A34"/>
+    <!-- rupee mark (kept large enough to read; no illegible digits) -->
+    <text x="224" y="249" font-family="'Segoe UI',Arial,sans-serif" font-size="13" font-weight="700" fill="#293681">&#8377;</text>
+    <!-- ruled lines + signature -->
+    <line x1="233" y1="240" x2="276" y2="240" stroke="#DADAD0" stroke-width="1.4"/>
+    <line x1="205" y1="255" x2="252" y2="255" stroke="#DADAD0" stroke-width="1.4"/>
+    <path d="M256,256 q4,-4 7,0 t7,0" fill="none" stroke="#4274D9" stroke-width="1.4" stroke-linecap="round"/>
+  </g>
+
+  <!-- ==== ARMS + HANDSHAKE (front) ==== -->
+  <path d="M175,187 L185,190 L214,203 L207,214 L191,205 Z" fill="#293681"/>
+  <path d="M206,205 L213,214 L233,215 L233,206 Z" fill="#E8CFA8"/>
+  <path d="M206,205 L213,214 L233,215 L233,213 L211,211 Z" fill="#CDA97C" opacity="0.55"/>
+
+  <path d="M305,187 L295,190 L266,203 L273,214 L289,205 Z" fill="#4274D9"/>
+  <path d="M274,205 L267,214 L247,215 L247,206 Z" fill="#E8CFA8"/>
+  <path d="M274,205 L267,214 L247,215 L247,213 L269,211 Z" fill="#CDA97C" opacity="0.55"/>
+
+  <!-- clasp -->
+  <g>
+    <path d="M226,209 Q240,201 255,209 Q258,214 251,221 Q240,227 229,221 Q223,215 226,209 Z" fill="#E8CFA8"/>
+    <path d="M229,221 Q240,227 251,221 Q253,218 252,216 Q240,222 228,216 Q227,219 229,221 Z" fill="#CDA97C" opacity="0.5"/>
+    <path d="M236,214 Q239,220 243,220" fill="none" stroke="#CDA97C" stroke-width="1.4" stroke-linecap="round"/>
+    <path d="M240,213 Q243,219 247,219" fill="none" stroke="#CDA97C" stroke-width="1.4" stroke-linecap="round"/>
+    <path d="M244,212 Q247,218 250,217" fill="none" stroke="#CDA97C" stroke-width="1.4" stroke-linecap="round"/>
+    <path d="M243,206 Q251,206 252,213 Q248,215 244,213 Q241,209 243,206 Z" fill="#E8CFA8" stroke="#CDA97C" stroke-width="1.2"/>
+  </g>
+
+  <!-- ==== PLANT (front corner) ==== -->
+  <g>
+    <path d="M400,288 C398,272 392,262 384,254 C393,258 401,266 404,280 Z" fill="#4E8E6E"/>
+    <path d="M406,288 C408,270 416,260 426,254 C418,260 412,270 411,284 Z" fill="#6FA98C"/>
+    <path d="M403,290 C402,276 404,264 408,254 C410,266 409,278 407,290 Z" fill="#4E8E6E"/>
+    <path d="M397,290 C393,278 386,272 378,268 C388,270 396,276 401,286 Z" fill="#6FA98C"/>
+    <rect x="381" y="284" width="42" height="8" rx="2" fill="#A24B2C"/>
+    <path d="M384,292 L420,292 L415,316 L389,316 Z" fill="#C4633F"/>
+    <path d="M384,292 L420,292 L419,295 L385,295 Z" fill="#A24B2C" opacity="0.6"/>
+  </g>
+</svg>
