@@ -46,7 +46,7 @@ export function SiteHeader() {
       <div className="grid h-16 w-full grid-cols-[1fr_auto_1fr] items-center px-4 sm:px-6 lg:px-8">
         <div className="col-start-1 justify-self-start" />
 
-        <NavigationMenu className="col-start-2 hidden justify-self-center md:flex">
+        <NavigationMenu className="col-start-2 hidden min-w-0 justify-self-center lg:flex">
           <NavigationMenuList>
             {NAV_ITEMS.map((item) => {
               // Active when the URL is the item's page or any child route under
@@ -120,7 +120,7 @@ export function SiteHeader() {
         </NavigationMenu>
 
         <div className="col-start-3 flex items-center gap-2 justify-self-end">
-          <div className="hidden items-center gap-2 md:flex">
+          <div className="hidden items-center gap-2 lg:flex">
             <Button
               asChild
               variant="ghost"
