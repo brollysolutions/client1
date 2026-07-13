@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ChevronDown, Clock, Heart, Mail, MapPin, Phone } from "lucide-react";
+import { ChevronDown, Clock, Mail, MapPin, Phone } from "lucide-react";
 
 import { FOOTER_COLUMNS } from "@/components/footer-links";
 import { SITE_CONTACT, SITE_NAME, TRUST_LINE } from "@/lib/site";
@@ -7,10 +7,11 @@ import { SITE_CONTACT, SITE_NAME, TRUST_LINE } from "@/lib/site";
 // Site-wide footer for the public marketing pages (app/(public)/layout.tsx).
 // Server Component: the only "interactivity" is native <details>/<summary> for
 // the mobile column disclosures (below lg), which needs no client JS, same
-// pattern as FaqSection. The home-page line illustrations and the Earn with
-// Us hero are Storyset (Freepik) vectors recolored to our palette, so the
-// free tier owes the attribution link in the bottom bar below; keep it until
-// they are replaced or a Freepik Premium license is bought.
+// pattern as FaqSection. LICENSE RISK: home-page line illustrations and the
+// Earn with Us hero are still Storyset (Freepik) free-tier vectors, which
+// require attribution. The bottom-bar attribution link was removed on
+// request; restore it, replace the SVGs, or buy Freepik Premium to stay
+// compliant.
 export function SiteFooter() {
   const year = new Date().getFullYear();
 
@@ -114,7 +115,7 @@ export function SiteFooter() {
           <p>
             &copy; {year} {SITE_NAME}. All rights reserved.
           </p>
-          <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
+          <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 sm:justify-end">
             <Link href="/privacy" className="hover:text-[var(--nav-primary)]">
               Privacy
             </Link>
@@ -123,15 +124,6 @@ export function SiteFooter() {
             </Link>
             <a href="/sitemap.xml" className="hover:text-[var(--nav-primary)]">
               Sitemap
-            </a>
-            <a
-              href="https://storyset.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 underline underline-offset-2 hover:text-[var(--nav-text)]"
-            >
-              Illustrations by Storyset
-              <Heart className="h-3 w-3 fill-current" aria-hidden />
             </a>
           </div>
         </div>
