@@ -426,11 +426,8 @@ export interface components {
             mobile: string;
             /** Name */
             name: string;
-            /**
-             * Origin
-             * @enum {string}
-             */
-            origin: "contact" | "agent-application-page" | "lead-dialog" | "closing-cta";
+            /** Origin */
+            origin: string;
             /** Product */
             product?: string | null;
             /**

@@ -337,12 +337,7 @@
             "type": "string"
           },
           "origin": {
-            "enum": [
-              "contact",
-              "agent-application-page",
-              "lead-dialog",
-              "closing-cta"
-            ],
+            "pattern": "^[a-z0-9-]{2,40}$",
             "title": "Origin",
             "type": "string"
           },
