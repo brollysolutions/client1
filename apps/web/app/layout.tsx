@@ -1,27 +1,28 @@
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
-import { Inter, Space_Grotesk, Newsreader } from "next/font/google";
+import { Space_Grotesk, Geist } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
 import { SITE_URL } from "@/lib/site";
 import "./globals.css";
 
-const inter = Inter({
-  subsets: ["latin"],
-  variable: "--font-body",
-  display: "swap",
-});
-
+// Space Grotesk is the body default (globals.css `body`) and every
+// `font-heading` utility (100+ sites). Inter (--font-body) and Newsreader
+// (--font-display) were loaded here but no component ever applied
+// `font-body`/`font-display`, so they were three render-blocking font
+// downloads per page for zero painted glyphs. Dropped.
 const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
   variable: "--font-heading",
   display: "swap",
 });
 
-const newsreader = Newsreader({
+// Geist backs `font-geist` (nav links, eyebrows, labels — 14 sites). It was
+// referenced in globals.css but never loaded here, so those elements were
+// silently falling back to the browser's generic sans-serif.
+const geist = Geist({
   subsets: ["latin"],
-  variable: "--font-display",
+  variable: "--font-geist",
   display: "swap",
-  style: ["normal", "italic"],
 });
 
 export const metadata: Metadata = {
@@ -41,7 +42,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
   return (
-    <html lang="en" className={`${inter.variable} ${spaceGrotesk.variable} ${newsreader.variable}`}>
+    <html lang="en" className={`${spaceGrotesk.variable} ${geist.variable}`}>
       <body className="antialiased min-h-screen bg-background text-text-primary">
         {/* AuthProvider is mounted per route group ((auth) + (app)) so public
             marketing pages never fire a session refresh. Toaster stays global. */}
