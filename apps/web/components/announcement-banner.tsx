@@ -3,6 +3,8 @@
 import * as React from "react";
 import { TriangleAlertIcon, X } from "lucide-react";
 
+import { TRUST_LINE } from "@/lib/site";
+
 // The announcement copy — icon + text as one unit — rendered twice inside the
 // mobile/tablet marquee track so the icon scrolls with the message. `inline-flex`
 // keeps the icon vertically aligned with the text; `whitespace-nowrap` keeps it on
@@ -18,8 +20,7 @@ function MessageContent({ ariaHidden = false }: { ariaHidden?: boolean }) {
     >
       <TriangleAlertIcon className="h-4 w-4 shrink-0" />
       <span>
-        <span className="font-medium">We connect you with the right banks.</span>{" "}
-        <span>We&apos;re the bridge between customers and lenders, not a bank ourselves.</span>
+        <span className="font-medium">{TRUST_LINE.lead}</span> <span>{TRUST_LINE.rest}</span>
       </span>
     </span>
   );
@@ -51,10 +52,7 @@ export function AnnouncementBanner() {
         <div className="hidden flex-1 items-center justify-center gap-2 lg:flex">
           <TriangleAlertIcon className="h-4 w-4 shrink-0" />
           <p className="text-center text-sm">
-            <span className="font-medium">We connect you with the right banks.</span>{" "}
-            <span>
-              We&apos;re the bridge between customers and lenders, not a bank ourselves.
-            </span>
+            <span className="font-medium">{TRUST_LINE.lead}</span> <span>{TRUST_LINE.rest}</span>
           </p>
         </div>
 
