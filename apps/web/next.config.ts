@@ -2,6 +2,14 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  // `radix-ui` is a barrel that re-exports ~30 primitives; a bare
+  // `import { Dialog } from "radix-ui"` can pull sibling modules into a route's
+  // chunk. optimizePackageImports rewrites these to direct submodule imports so
+  // only the primitives a route uses are bundled (smaller client JS + faster
+  // dev compile). lucide-react is already optimized by Next's defaults.
+  experimental: {
+    optimizePackageImports: ["radix-ui"],
+  },
   async headers() {
     return [
       {

@@ -16,6 +16,16 @@ import { refresh as refreshSession, type AuthTokens, type UserRole } from "@/lib
 // console. Set on login, cleared on logout or a failed re-hydrate. It only gates
 // whether we bother probing; it is never trusted as proof of auth.
 const SESSION_HINT_KEY = "auth.session_hint";
+// Cookie mirror of the localStorage hint above, readable by middleware.ts
+// (localStorage isn't visible at the edge). Same non-authoritative trust
+// level: it only gates whether middleware bothers letting a request through
+// to AppGuard, which remains the real client-side check; it never grants
+// access on its own. Max-Age is set well past REFRESH_TOKEN_EXPIRE_DAYS (30,
+// apps/api/app/core/config.py) — a cookie that outlives the session just
+// falls through to AppGuard same as today, but one that expires first would
+// wrongly edge-redirect a still-valid session before AppGuard gets a chance
+// to check it (also re-synced on every AuthProvider mount, see below).
+const SESSION_HINT_COOKIE = "session_hint";
 
 function shouldProbeSession(): boolean {
   if (typeof window === "undefined") return false;
@@ -28,6 +38,13 @@ function shouldProbeSession(): boolean {
   }
 }
 
+function setSessionHintCookie(on: boolean): void {
+  const secure = window.location.protocol === "https:" ? "; Secure" : "";
+  document.cookie = on
+    ? `${SESSION_HINT_COOKIE}=1; Path=/; Max-Age=${60 * 60 * 24 * 90}; SameSite=Lax${secure}`
+    : `${SESSION_HINT_COOKIE}=; Path=/; Max-Age=0; SameSite=Lax${secure}`;
+}
+
 function setSessionHint(on: boolean): void {
   if (typeof window === "undefined") return;
   try {
@@ -36,6 +53,7 @@ function setSessionHint(on: boolean): void {
   } catch {
     /* storage unavailable — shouldProbeSession() fails open to probing */
   }
+  setSessionHintCookie(on);
 }
 
 type Session = {
@@ -106,6 +124,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return null;
     });
   }
+
+  // Backfill the session_hint cookie from the (possibly older, indefinitely-
+  // lived) localStorage hint on every mount, not only at setSession/clear.
+  // Without this, a user who logged in before middleware.ts shipped has the
+  // localStorage hint but no cookie yet, so the edge middleware would redirect
+  // their first post-deploy /dashboard visit to /login before AppGuard ever
+  // runs its real check — a spurious mass logout on deploy.
+  // No ref guard needed: setSessionHintCookie is idempotent, safe to re-run
+  // on strict-mode's double mount.
+  React.useEffect(() => {
+    setSessionHintCookie(shouldProbeSession());
+  }, []);
 
   // Re-hydrate from the httponly refresh cookie once on first mount. The ref
   // guard (not just the `active` flag) stops React strict-mode's double mount
