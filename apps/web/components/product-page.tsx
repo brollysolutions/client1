@@ -158,9 +158,10 @@ export function ProductPage({
           >
             {products.map((product) => (
               <Card
-                key={product.label}
+                key={product.id}
+                id={product.id}
                 className={cn(
-                  "group flex h-full flex-col overflow-hidden transition duration-200 hover:-translate-y-0.5 hover:shadow-md motion-reduce:transition-none motion-reduce:hover:translate-y-0",
+                  "group flex h-full scroll-mt-16 flex-col overflow-hidden transition duration-200 hover:-translate-y-0.5 hover:shadow-md motion-reduce:transition-none motion-reduce:hover:translate-y-0",
                   product.illustration && "pt-0",
                 )}
               >

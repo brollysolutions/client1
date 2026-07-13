@@ -19,6 +19,8 @@ import {
 // short direct sentences.
 
 export type Product = {
+  /** Stable slug, also used as the card's scroll anchor id on /loans. */
+  id: string;
   label: string;
   description: string;
   icon: LucideIcon;
@@ -44,6 +46,7 @@ export type TrustPoint = {
 
 export const LOAN_PRODUCTS: Product[] = [
   {
+    id: "personal-loan",
     label: "Personal Loan",
     description:
       "A personal loan for planned expenses, from medical bills to a big purchase.",
@@ -51,6 +54,7 @@ export const LOAN_PRODUCTS: Product[] = [
     illustration: "/illustrations/products/personal-loan.svg",
   },
   {
+    id: "business-loan",
     label: "Business Loan",
     description:
       "A business loan for working capital, new equipment, or your next stage of growth.",
@@ -58,6 +62,7 @@ export const LOAN_PRODUCTS: Product[] = [
     illustration: "/illustrations/products/business-loan.svg",
   },
   {
+    id: "property-loan",
     label: "Property Loan",
     description:
       "A property loan to buy, build, or transfer, secured against your home or plot.",
@@ -65,6 +70,7 @@ export const LOAN_PRODUCTS: Product[] = [
     illustration: "/illustrations/products/property-loan.svg",
   },
   {
+    id: "vehicle-loan",
     label: "Vehicle Loan",
     description:
       "A vehicle loan for a new or used car, two-wheeler, or commercial vehicle.",
@@ -72,6 +78,7 @@ export const LOAN_PRODUCTS: Product[] = [
     illustration: "/illustrations/products/vehicle-loan.svg",
   },
   {
+    id: "education-loan",
     label: "Education Loan",
     description:
       "An education loan for tuition, living costs, and studies in India or abroad.",
@@ -79,6 +86,7 @@ export const LOAN_PRODUCTS: Product[] = [
     illustration: "/illustrations/products/education-loan.svg",
   },
   {
+    id: "credit-cards",
     label: "Credit Cards",
     description:
       "Compare credit cards, check what fits your spending, and apply online.",
@@ -86,6 +94,7 @@ export const LOAN_PRODUCTS: Product[] = [
     illustration: "/illustrations/products/credit-cards.svg",
   },
   {
+    id: "insurance",
     label: "Insurance",
     description:
       "Insurance for life, health, and assets, so your family and savings stay protected.",

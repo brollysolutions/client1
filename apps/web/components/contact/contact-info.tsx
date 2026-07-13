@@ -1,15 +1,14 @@
 import { Clock, Mail, MapPin, Phone, type LucideIcon } from "lucide-react";
 
+import { SITE_CONTACT } from "@/lib/site";
+
 // Contact detail rows for the /contact page. Server Component, blue-only,
 // small line icons (not illustrations). Flat rows on the cream section, no
 // card chrome, matching the form column beside it. No external map embed
 // (CSP + blue-only), a styled address block instead.
 //
-// TODO(contact): the phone, email, and address in ROWS below are PLACEHOLDERS
-// (98765 43210 / example.com / "Sample Towers"). They render live tel:/mailto:
-// links, so replace them with the client's real details before this ships to
-// production, otherwise visitors will call/email a number and address that are
-// not the business's.
+// Data lives in SITE_CONTACT (lib/site.ts) so the site footer can render the
+// same phone/email/hours/address without duplicating the placeholder values.
 type InfoRow = {
   icon: LucideIcon;
   label: string;
@@ -21,24 +20,24 @@ const ROWS: InfoRow[] = [
   {
     icon: Phone,
     label: "Call us",
-    lines: ["+91 98765 43210"],
-    href: "tel:+919876543210",
+    lines: [SITE_CONTACT.phone],
+    href: SITE_CONTACT.phoneHref,
   },
   {
     icon: Mail,
     label: "Email us",
-    lines: ["hello@example.com"],
-    href: "mailto:hello@example.com",
+    lines: [SITE_CONTACT.email],
+    href: SITE_CONTACT.emailHref,
   },
   {
     icon: Clock,
     label: "Office hours",
-    lines: ["Monday to Saturday", "10:00 AM to 7:00 PM"],
+    lines: SITE_CONTACT.hours,
   },
   {
     icon: MapPin,
     label: "Visit us",
-    lines: ["1st Floor, Sample Towers", "Banjara Hills, Hyderabad 500034"],
+    lines: SITE_CONTACT.address,
   },
 ];
 
