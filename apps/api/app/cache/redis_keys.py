@@ -19,6 +19,14 @@ OTP_RATE = "otp_rate:{mobile}"
 OTP_RATE_IP = "otp_rate_ip:{ip}"
 LOGIN_FAIL = "login_fail:{mobile}"
 LOGIN_LOCK = "login_lock:{mobile}"
+# Per-IP failed-login counter: the per-mobile lock alone lets one host spray a
+# credential list across many numbers (max 4 tries each) without ever locking.
+LOGIN_RATE_IP = "login_rate_ip:{ip}"
+# Public lead-form abuse caps (unauthenticated write → both dimensions needed:
+# per-IP stops one host flooding, per-mobile stops one number being spammed
+# into the telecaller queue from many hosts).
+LEAD_RATE_IP = "lead_rate_ip:{ip}"
+LEAD_RATE_MOBILE = "lead_rate_mobile:{mobile}"
 JWT_BLACKLIST = "jwt_blacklist:{jti}"
 REG_DATA = "reg_data:{mobile}"
 
@@ -28,6 +36,8 @@ TTL_OTP_RESEND = 60 * 60  # 1 hour window + lock duration
 TTL_OTP_RATE = 24 * 60 * 60  # 24 h daily cap
 TTL_OTP_RATE_IP = 60 * 60  # 1 h rolling per-IP window
 TTL_LOGIN_LOCK = 15 * 60  # 15 min lockout
+TTL_LOGIN_RATE_IP = 60 * 60  # 1 h rolling per-IP failed-login window
+TTL_LEAD_RATE = 60 * 60  # 1 h rolling window, both lead-form caps
 
 
 # ---------------------------------------------------------------------------
@@ -71,6 +81,22 @@ class RedisCache:
             await self._r.expire(key, ttl)
         return count
 
+    async def decr(self, key: str) -> int:
+        """Atomic DECR; the returned value is the caller's authoritative gate.
+
+        Redis treats a missing key as 0, so DECR on an expired counter returns
+        -1 (and recreates the key with no TTL — callers must re-bound it).
+        """
+        return await self._r.decr(key)
+
+    async def set_nx(self, key: str, value: Any, ttl: int) -> bool:
+        """Atomic SET-if-absent with TTL. True = claimed, False = already set.
+
+        Single-use claims (reset-token jti burn) must be one Redis op; a
+        separate EXISTS check then SET lets two concurrent requests both pass.
+        """
+        return bool(await self._r.set(key, str(value), ex=ttl, nx=True))
+
 
 def otp_register_key(mobile: str) -> str:
     return OTP_REGISTER.format(mobile=mobile)
@@ -106,6 +132,18 @@ def login_fail_key(mobile: str) -> str:
 
 def login_lock_key(mobile: str) -> str:
     return LOGIN_LOCK.format(mobile=mobile)
+
+
+def login_rate_ip_key(ip: str) -> str:
+    return LOGIN_RATE_IP.format(ip=ip)
+
+
+def lead_rate_ip_key(ip: str) -> str:
+    return LEAD_RATE_IP.format(ip=ip)
+
+
+def lead_rate_mobile_key(mobile: str) -> str:
+    return LEAD_RATE_MOBILE.format(mobile=mobile)
 
 
 def jwt_blacklist_key(jti: str) -> str:

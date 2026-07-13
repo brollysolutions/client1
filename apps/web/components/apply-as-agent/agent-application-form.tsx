@@ -6,7 +6,6 @@ import {
   Camera,
   Check,
   CreditCard,
-  FileText,
   IdCard,
   Loader2,
   type LucideIcon,
@@ -17,8 +16,8 @@ import {
 import { toast } from "sonner";
 
 import { MobileInput } from "@/components/auth/mobile-input";
+import { IconInput } from "@/components/icon-input";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { submitAgentApplication } from "@/lib/agent-application";
@@ -27,13 +26,14 @@ import { isValidMobile } from "@/lib/phone";
 import { FileField } from "@/components/apply-as-agent/file-field";
 import { FormProgress } from "@/components/apply-as-agent/form-progress";
 
-// Public agent-application form for /apply-as-agent. Collects everything
-// agent_applications expects (apps/api/app/models/profile.py): name, mobile,
-// business_line, the 4 KYC documents, and rera_code for the real estate line.
-// Email has no column yet, held client-side until that migration lands. This
-// is frontend-complete: files are selected/validated/previewed here but not
-// transmitted, see lib/agent-application.ts for the submit seam. Blue-only,
-// per the public-site palette.
+// Public agent-application form for /apply-as-agent. Collects name, mobile,
+// business_line, the KYC documents (Aadhaar front + back, PAN, photo; address
+// proof was dropped by product decision, and PAN has no back side worth
+// scanning), and rera_code for the real estate line. Email has no column yet,
+// held client-side until that migration lands. This is frontend-complete:
+// files are selected/validated/previewed here but not transmitted, see
+// lib/agent-application.ts for the submit seam. Blue-only, per the
+// public-site palette.
 const LINES: { value: LeadBusinessLine; label: string }[] = [
   { value: "loans", label: "Loans" },
   { value: "real_estate", label: "Real Estate" },
@@ -49,7 +49,7 @@ const RERA_RE = /^[A-Za-z0-9]{5,20}$/;
 
 type FieldKey = "firstName" | "lastName" | "mobile" | "email" | "rera";
 type Fields = Record<FieldKey, string>;
-type FileKey = "aadhaar" | "pan" | "photo" | "addressProof";
+type FileKey = "aadhaarFront" | "aadhaarBack" | "pan" | "photo";
 
 const EMPTY_FIELDS: Fields = {
   firstName: "",
@@ -94,26 +94,6 @@ function SectionHeader({
   );
 }
 
-type IconInputProps = React.ComponentProps<typeof Input> & { icon: LucideIcon };
-
-// In-field icon, same absolute-positioned technique as password-field.tsx.
-function IconInput({ icon: Icon, className, ...props }: IconInputProps) {
-  return (
-    <div className="relative">
-      <span
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-muted-foreground"
-      >
-        <Icon className="h-4 w-4" />
-      </span>
-      <Input
-        className={cn("h-12 rounded-lg pl-9 text-base", className)}
-        {...props}
-      />
-    </div>
-  );
-}
-
 export function AgentApplicationForm({
   defaultLine = "loans",
 }: {
@@ -124,10 +104,10 @@ export function AgentApplicationForm({
   const [errors, setErrors] = React.useState<Partial<Record<FieldKey, string>>>({});
   const [touched, setTouched] = React.useState<Partial<Record<FieldKey, boolean>>>({});
 
-  const [aadhaar, setAadhaar] = React.useState<File | null>(null);
+  const [aadhaarFront, setAadhaarFront] = React.useState<File | null>(null);
+  const [aadhaarBack, setAadhaarBack] = React.useState<File | null>(null);
   const [pan, setPan] = React.useState<File | null>(null);
   const [photo, setPhoto] = React.useState<File | null>(null);
-  const [addressProof, setAddressProof] = React.useState<File | null>(null);
   const [fileErrors, setFileErrors] = React.useState<Partial<Record<FileKey, string>>>({});
 
   const [submitting, setSubmitting] = React.useState(false);
@@ -193,10 +173,10 @@ export function AgentApplicationForm({
 
   function validateFiles(): boolean {
     const next: Partial<Record<FileKey, string>> = {};
-    if (!aadhaar) next.aadhaar = "Upload your Aadhaar card.";
+    if (!aadhaarFront) next.aadhaarFront = "Upload the front of your Aadhaar.";
+    if (!aadhaarBack) next.aadhaarBack = "Upload the back of your Aadhaar.";
     if (!pan) next.pan = "Upload your PAN card.";
     if (!photo) next.photo = "Upload your photo.";
-    if (!addressProof) next.addressProof = "Upload an address proof.";
     setFileErrors(next);
     return Object.keys(next).length === 0;
   }
@@ -210,10 +190,10 @@ export function AgentApplicationForm({
     !fieldError("lastName", fields.lastName),
     !fieldError("mobile", fields.mobile),
     !fieldError("email", fields.email),
-    aadhaar !== null,
+    aadhaarFront !== null,
+    aadhaarBack !== null,
     pan !== null,
     photo !== null,
-    addressProof !== null,
     ...(line === "real_estate" ? [!fieldError("rera", fields.rera)] : []),
   ];
   const progressPercent = Math.round(
@@ -224,10 +204,10 @@ export function AgentApplicationForm({
     setFields(EMPTY_FIELDS);
     setErrors({});
     setTouched({});
-    setAadhaar(null);
+    setAadhaarFront(null);
+    setAadhaarBack(null);
     setPan(null);
     setPhoto(null);
-    setAddressProof(null);
     setFileErrors({});
   }
 
@@ -236,7 +216,8 @@ export function AgentApplicationForm({
     if (submitting) return;
     const fieldsOk = validateFields();
     const filesOk = validateFiles();
-    if (!fieldsOk || !filesOk || !aadhaar || !pan || !photo || !addressProof) return;
+    if (!fieldsOk || !filesOk || !aadhaarFront || !aadhaarBack || !pan || !photo)
+      return;
 
     setSubmitting(true);
     const result = await submitAgentApplication({
@@ -246,10 +227,10 @@ export function AgentApplicationForm({
       email: fields.email.trim(),
       businessLine: line,
       rera: line === "real_estate" ? fields.rera.trim() : undefined,
-      aadhaar,
+      aadhaarFront,
+      aadhaarBack,
       pan,
       photo,
-      addressProof,
     });
 
     if (result.ok) {
@@ -312,8 +293,9 @@ export function AgentApplicationForm({
               onClick={() => setLine(option.value)}
               disabled={submitting}
               className={cn(
-                "h-12 rounded-lg border px-3 text-sm font-medium transition",
+                "h-12 cursor-pointer rounded-lg border px-3 text-sm font-medium transition",
                 "focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[var(--nav-primary)]/50",
+                "disabled:cursor-default disabled:opacity-50",
                 line === option.value
                   ? "border-[var(--nav-primary)] bg-[var(--nav-primary)] text-white"
                   : "border-[var(--nav-border)] bg-transparent text-foreground hover:bg-[var(--nav-tint)]",
@@ -436,14 +418,23 @@ export function AgentApplicationForm({
             title="KYC documents"
             description="We verify these after you apply."
           />
-          <div className="mt-5 grid min-w-0 gap-5 sm:grid-cols-2">
+          <div className="mt-5 grid min-w-0 grid-cols-2 gap-4 sm:gap-5 lg:grid-cols-4">
             <FileField
-              id="apply-aadhaar"
-              label="Aadhaar card"
+              id="apply-aadhaar-front"
+              label="Aadhaar front"
               icon={IdCard}
-              value={aadhaar}
-              onChange={setAadhaar}
-              error={fileErrors.aadhaar}
+              value={aadhaarFront}
+              onChange={setAadhaarFront}
+              error={fileErrors.aadhaarFront}
+              disabled={submitting}
+            />
+            <FileField
+              id="apply-aadhaar-back"
+              label="Aadhaar back"
+              icon={IdCard}
+              value={aadhaarBack}
+              onChange={setAadhaarBack}
+              error={fileErrors.aadhaarBack}
               disabled={submitting}
             />
             <FileField
@@ -462,17 +453,8 @@ export function AgentApplicationForm({
               value={photo}
               onChange={setPhoto}
               accept="image/jpeg,image/png,image/webp"
-              hint="JPG, PNG or WEBP, up to 5 MB"
+              hint="JPG, PNG or WEBP"
               error={fileErrors.photo}
-              disabled={submitting}
-            />
-            <FileField
-              id="apply-address-proof"
-              label="Address proof"
-              icon={FileText}
-              value={addressProof}
-              onChange={setAddressProof}
-              error={fileErrors.addressProof}
               disabled={submitting}
             />
           </div>

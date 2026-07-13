@@ -52,6 +52,16 @@ class Settings(BaseSettings):
     # and would throttle all users after this many initiations/hour. Keep it
     # generous and set TRUST_PROXY_HEADERS=True in any proxied deployment.
     OTP_RATE_LIMIT_PER_IP: int = 50
+    # Max FAILED logins per client IP per hour. Backstops the per-mobile lock
+    # against credential spraying (many numbers, few tries each, one source).
+    # Same proxy caveat as OTP_RATE_LIMIT_PER_IP: keep generous, NAT offices
+    # share one IP; only failures count, successful logins never do.
+    LOGIN_RATE_LIMIT_PER_IP: int = 30
+
+    # Public lead form (POST /api/v1/leads) abuse caps, hourly windows. Same
+    # proxy caveat as the other per-IP limits.
+    LEAD_RATE_LIMIT_PER_IP: int = 10
+    LEAD_RATE_LIMIT_PER_MOBILE: int = 5
 
     # Return the plaintext OTP in the API response (otp_hint) when delivery is
     # mocked, so local/dev flows are testable without a real voice/email channel.

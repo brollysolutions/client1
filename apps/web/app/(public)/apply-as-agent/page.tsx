@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import Image from "next/image";
-import { Check } from "lucide-react";
 
 import { AgentApplicationForm } from "@/components/apply-as-agent/agent-application-form";
 import { ApplicationDoodles } from "@/components/apply-as-agent/application-doodles";
@@ -54,19 +53,6 @@ const applyJsonLd = {
   publisher: { "@type": "Organization", name: SITE_NAME, url: SITE_URL },
 };
 
-// Closing reassurances under the form. KYC docs and the RERA code are not
-// described here as future steps (they are real fields/uploads on the form
-// now) except the last line, which reassures on how the uploads are used,
-// since KYC is the single highest-anxiety step in this flow. Deliberately no
-// security/encryption claims: lib/agent-application.ts is a stub that does
-// not transmit files anywhere yet, so this states purpose, not a guarantee.
-const REASSURANCES: string[] = [
-  "One mobile number, verified by OTP. That is your account",
-  "Bank details come later, in your agent dashboard. We pay by Razorpay or cheque",
-  "No broker background needed. Beginners are welcome",
-  "We only use your KYC documents to verify your agent account, nothing more",
-];
-
 function normalizeLine(value: string | string[] | undefined): LeadBusinessLine {
   const line = Array.isArray(value) ? value[0] : value;
   return line === "real_estate" ? "real_estate" : "loans";
@@ -92,8 +78,9 @@ export default async function ApplyAsAgentPage({
         <div className="relative mx-auto max-w-7xl px-4 py-14 sm:px-6 sm:py-20 lg:px-8">
           <div className="grid items-center gap-8 lg:grid-cols-[1fr_auto]">
             <div>
-              <h1 className="max-w-3xl font-heading text-4xl font-semibold text-[var(--nav-text)] sm:text-5xl lg:text-6xl">
-                Apply to become an agent
+              <h1 className="max-w-2xl font-heading text-4xl font-semibold text-[var(--nav-text)] sm:text-5xl lg:text-6xl">
+                <span className="block">Apply to become</span>
+                <span className="block">an agent</span>
               </h1>
               <p className="mt-5 max-w-2xl text-lg text-[var(--nav-text)] sm:text-xl">
                 Earn commission on the deals you bring. Applying is free, every
@@ -120,39 +107,25 @@ export default async function ApplyAsAgentPage({
         </div>
       </section>
 
-      {/* Application form. Matches the hero's own max-w-7xl band and
-          left-anchors the content instead of independently centering a
-          narrower column, so the two sections share one composition:
-          content on the left, decoration filling the gutter on the right. */}
+      {/* Application form. Centered like the hero above, one shared axis for
+          the whole page. Doodles fill the side gutters on large screens. */}
       <section className="relative w-full overflow-hidden border-t border-[var(--nav-border)] bg-[var(--nav-bg)]">
         <div className="relative mx-auto max-w-7xl px-4 py-14 sm:px-6 sm:py-20 lg:px-8">
           <ApplicationDoodles />
 
-          <div className="relative max-w-2xl">
-            <h2 className="font-heading text-2xl font-semibold text-foreground sm:text-3xl">
-              Send us your application
-            </h2>
-            <p className="mt-2 text-text-secondary">
-              Pick a line, share your details, and upload your KYC documents.
-              Our team will call you back.
-            </p>
+          <div className="relative mx-auto max-w-3xl">
+            <div className="text-center">
+              <h2 className="font-heading text-2xl font-semibold text-foreground sm:text-3xl">
+                Send us your application
+              </h2>
+              <p className="mx-auto mt-2 max-w-xl text-text-secondary">
+                Pick a line, share your details, and upload your KYC documents.
+                Our team will call you back.
+              </p>
+            </div>
             <div className="mt-8">
               <AgentApplicationForm defaultLine={defaultLine} />
             </div>
-
-            <ul className="mt-10 grid gap-4 border-t border-[var(--nav-border)] pt-8">
-              {REASSURANCES.map((item) => (
-                <li key={item} className="flex items-start gap-3">
-                  <span
-                    aria-hidden
-                    className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--nav-tint)] text-[var(--nav-primary)]"
-                  >
-                    <Check className="h-4 w-4" />
-                  </span>
-                  <span className="text-text-secondary">{item}</span>
-                </li>
-              ))}
-            </ul>
           </div>
         </div>
       </section>

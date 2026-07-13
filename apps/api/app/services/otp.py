@@ -12,6 +12,7 @@ from fastapi import HTTPException, status
 
 from app.cache.redis_keys import (
     TTL_LOGIN_LOCK,
+    TTL_LOGIN_RATE_IP,
     TTL_OTP,
     TTL_OTP_RATE,
     TTL_OTP_RATE_IP,
@@ -19,6 +20,7 @@ from app.cache.redis_keys import (
     RedisCache,
     login_fail_key,
     login_lock_key,
+    login_rate_ip_key,
     otp_email_verify_key,
     otp_lock_key,
     otp_rate_ip_key,
@@ -87,12 +89,19 @@ async def verify_otp(cache: RedisCache, mobile: str, purpose: str, code: str) ->
     try:
         await anyio.to_thread.run_sync(_ph.verify, stored_hash, code, limiter=ARGON2_LIMITER)
     except VerifyMismatchError as exc:
-        # Zero the attempts counter but keep both keys alive (same TTL_OTP
-        # window) rather than deleting them — resend_otp's session check
-        # needs the key to still exist so "Request a new one" (below) can
-        # actually be satisfied by hitting resend, instead of dead-ending.
-        new_remaining = remaining - 1
-        await cache.set(attempts_key, new_remaining, TTL_OTP)
+        # Atomic DECR is the authoritative gate: the previous GET -> minus
+        # one -> SET pattern let N concurrent wrong guesses read the same
+        # value and burn a single attempt between them, voiding the 5-try
+        # cap. DECR returns a distinct post-decrement value to each caller.
+        # Keys stay alive at zero (same TTL_OTP window) rather than being
+        # deleted — resend_otp's session check needs the OTP key to still
+        # exist so "Request a new one" can be satisfied by hitting resend.
+        new_remaining = await cache.decr(attempts_key)
+        if new_remaining < 0:
+            # DECR recreated a missing/expired counter without a TTL —
+            # pin it back to zero with a bounded lifetime.
+            await cache.set(attempts_key, 0, TTL_OTP)
+            new_remaining = 0
         if new_remaining <= 0:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -164,6 +173,32 @@ async def check_otp_rate_ip(cache: RedisCache, ip: str | None) -> None:
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
             detail="Too many OTP requests from this network. Try again later.",
         )
+
+
+async def check_login_rate_ip(cache: RedisCache, ip: str | None) -> None:
+    """Per-IP failed-login cap (LOGIN_RATE_LIMIT_PER_IP / hour).
+
+    Backstops the per-mobile lock: without it one host can spray a credential
+    list across many mobiles (4 tries each) and never trip any limit. Counts
+    only failures (record_login_failure_ip), so shared NAT IPs with normal
+    successful traffic are unaffected. No-op when the client IP is unknown —
+    the caller must supply a proxy-trusted IP, never a spoofable header value.
+    """
+    if not ip:
+        return
+    count_str = await cache.get(login_rate_ip_key(ip))
+    if count_str and int(count_str) >= settings.LOGIN_RATE_LIMIT_PER_IP:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Too many attempts from this network. Try again later.",
+        )
+
+
+async def record_login_failure_ip(cache: RedisCache, ip: str | None) -> None:
+    """Count a failed login against the source IP (1 h rolling window)."""
+    if not ip:
+        return
+    await cache.incr_with_expire(login_rate_ip_key(ip), TTL_LOGIN_RATE_IP)
 
 
 async def record_login_failure(cache: RedisCache, mobile: str) -> None:

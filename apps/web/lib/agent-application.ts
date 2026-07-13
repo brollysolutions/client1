@@ -22,10 +22,12 @@ export type AgentApplicationInput = {
   email: string;
   businessLine: LeadBusinessLine;
   rera?: string;
-  aadhaar: File;
+  // Aadhaar is captured as two sides; PAN is front-only (the back carries no
+  // identity data). Address proof was dropped by product decision (2026-07-12).
+  aadhaarFront: File;
+  aadhaarBack: File;
   pan: File;
   photo: File;
-  addressProof: File;
 };
 
 export type AgentApplicationResult =
@@ -39,8 +41,10 @@ export async function submitAgentApplication(
   // agent-application endpoint once it exists: first_name, last_name,
   // toE164(mobile), business_line, rera_code, plus the 4 KYC files below.
   // The endpoint stores each file in object storage and writes the *_ref
-  // columns; email needs its own migration first (agent_applications has no
-  // email column yet). Files are gathered here but NOT transmitted.
+  // columns (aadhaar splits into front/back refs; the address_proof column is
+  // unused after the product dropped that document); email needs its own
+  // migration first (agent_applications has no email column yet). Files are
+  // gathered here but NOT transmitted.
   if (process.env.NODE_ENV !== "production") {
     console.info("[agent-application] stub submit (not transmitted)", {
       first_name: input.firstName,
@@ -50,10 +54,10 @@ export async function submitAgentApplication(
       business_line: input.businessLine,
       rera_code: input.rera,
       documents: {
-        aadhaar: input.aadhaar.name,
+        aadhaar_front: input.aadhaarFront.name,
+        aadhaar_back: input.aadhaarBack.name,
         pan: input.pan.name,
         photo: input.photo.name,
-        address_proof: input.addressProof.name,
       },
     });
   }

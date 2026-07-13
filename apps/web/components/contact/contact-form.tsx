@@ -1,24 +1,27 @@
 "use client";
 
 import { useState } from "react";
-import { Check } from "lucide-react";
+import { Check, Loader2, Mail, User } from "lucide-react";
 import { toast } from "sonner";
 
+import { MobileInput } from "@/components/auth/mobile-input";
+import { IconInput } from "@/components/icon-input";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
-import { submitLead, type LeadBusinessLine } from "@/lib/leads";
+import { submitLead, type LeadTopic } from "@/lib/leads";
 import { isValidMobile, normalizeMobile } from "@/lib/phone";
 
-// Standalone enquiry form for the /contact page. Reuses the same building
-// blocks as the LeadDialog modal (lib/leads submitLead + lib/phone helpers)
-// without refactoring the working dialog. Blue-only, per the public-site
-// palette. submitLead is a stub until the public POST /api/v1/leads lands.
-const LINES: { value: LeadBusinessLine; label: string }[] = [
+// Standalone enquiry form for the /contact page. Same field idiom as the
+// agent application form (IconInput, MobileInput, h-12 controls) and the same
+// blended-background convention: no white card, the form sits directly on the
+// cream section. submitLead is a stub until the public POST /api/v1/leads
+// lands. Blue-only, per the public-site palette.
+const TOPICS: { value: LeadTopic; label: string }[] = [
   { value: "loans", label: "Loans" },
   { value: "real_estate", label: "Real Estate" },
+  { value: "agent", label: "Agent" },
 ];
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -29,13 +32,15 @@ export function ContactForm({
 }: {
   // Prefilled from the /contact query string when a visitor arrives via an
   // Enquire / callback CTA, so the telecaller sees what they came for.
-  initialLine?: LeadBusinessLine;
+  initialLine?: LeadTopic;
   initialProduct?: string;
 } = {}) {
-  const [line, setLine] = useState<LeadBusinessLine>(initialLine ?? "loans");
+  const [topic, setTopic] = useState<LeadTopic>(initialLine ?? "loans");
   const [name, setName] = useState("");
   const [mobile, setMobile] = useState("");
   const [email, setEmail] = useState("");
+  // Honeypot. Humans never see or fill this; bots auto-filling every field do.
+  const [company, setCompany] = useState("");
   const [message, setMessage] = useState(
     initialProduct ? `I'm interested in ${initialProduct}.` : "",
   );
@@ -67,11 +72,12 @@ export function ContactForm({
     const result = await submitLead({
       name: name.trim(),
       mobile: normalizeMobile(mobile),
-      business_line: line,
+      business_line: topic,
       origin: "contact",
       ...(initialProduct ? { product: initialProduct } : {}),
       ...(email.trim() ? { email: email.trim() } : {}),
       ...(message.trim() ? { message: message.trim() } : {}),
+      ...(company ? { company } : {}),
     });
 
     if (result.ok) {
@@ -91,7 +97,7 @@ export function ContactForm({
 
   if (done) {
     return (
-      <div className="flex flex-col items-center justify-center gap-4 rounded-2xl border border-[var(--nav-border)] bg-surface p-8 text-center shadow-sm sm:p-10">
+      <div className="flex flex-col items-center justify-center gap-4 py-10 text-center">
         <span className="flex h-14 w-14 items-center justify-center rounded-full bg-[var(--nav-tint)] text-[var(--nav-primary)]">
           <Check className="h-7 w-7" aria-hidden />
         </span>
@@ -114,11 +120,21 @@ export function ContactForm({
   }
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      noValidate
-      className="grid gap-5 rounded-2xl border border-[var(--nav-border)] bg-surface p-6 shadow-sm sm:p-8"
-    >
+    <form onSubmit={handleSubmit} noValidate className="grid gap-5">
+      {/* Honeypot: off-screen, out of the tab order, invisible to AT. */}
+      <div aria-hidden className="absolute -left-[9999px] top-auto h-px w-px overflow-hidden">
+        <label htmlFor="contact-company">Company</label>
+        <input
+          id="contact-company"
+          name="company"
+          type="text"
+          tabIndex={-1}
+          autoComplete="off"
+          value={company}
+          onChange={(event) => setCompany(event.target.value)}
+        />
+      </div>
+
       {initialProduct ? (
         <div className="grid gap-1.5">
           <span className="text-sm text-text-secondary">Enquiring about</span>
@@ -133,18 +149,20 @@ export function ContactForm({
         <div
           role="group"
           aria-labelledby="contact-line-label"
-          className="grid grid-cols-2 gap-2"
+          className="grid grid-cols-3 gap-2"
         >
-          {LINES.map((option) => (
+          {TOPICS.map((option) => (
             <button
               key={option.value}
               type="button"
-              aria-pressed={line === option.value}
-              onClick={() => setLine(option.value)}
+              aria-pressed={topic === option.value}
+              onClick={() => setTopic(option.value)}
               disabled={submitting}
               className={cn(
-                "rounded-md border px-3 py-2 text-sm font-medium transition",
-                line === option.value
+                "h-12 cursor-pointer rounded-lg border px-2 text-sm font-medium transition",
+                "focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[var(--nav-primary)]/50",
+                "disabled:cursor-default disabled:opacity-50",
+                topic === option.value
                   ? "border-[var(--nav-primary)] bg-[var(--nav-primary)] text-white"
                   : "border-[var(--nav-border)] bg-transparent text-foreground hover:bg-[var(--nav-tint)]",
               )}
@@ -157,11 +175,13 @@ export function ContactForm({
 
       <div className="grid gap-2">
         <Label htmlFor="contact-name">Name</Label>
-        <Input
+        <IconInput
           id="contact-name"
+          icon={User}
           value={name}
           onChange={(event) => setName(event.target.value)}
           autoComplete="name"
+          placeholder="Your full name"
           aria-invalid={!!errors.name}
           aria-describedby={errors.name ? "contact-name-error" : undefined}
           disabled={submitting}
@@ -175,10 +195,8 @@ export function ContactForm({
 
       <div className="grid gap-2">
         <Label htmlFor="contact-mobile">Mobile number</Label>
-        <Input
+        <MobileInput
           id="contact-mobile"
-          type="tel"
-          inputMode="numeric"
           value={mobile}
           onChange={(event) => setMobile(event.target.value)}
           autoComplete="tel"
@@ -198,8 +216,9 @@ export function ContactForm({
         <Label htmlFor="contact-email">
           Email <span className="text-text-secondary">(optional)</span>
         </Label>
-        <Input
+        <IconInput
           id="contact-email"
+          icon={Mail}
           type="email"
           value={email}
           onChange={(event) => setEmail(event.target.value)}
@@ -226,6 +245,7 @@ export function ContactForm({
           onChange={(event) => setMessage(event.target.value)}
           placeholder="Tell us a little about what you need."
           rows={4}
+          className="rounded-lg text-base"
           disabled={submitting}
         />
       </div>
@@ -233,8 +253,9 @@ export function ContactForm({
       <Button
         type="submit"
         disabled={submitting}
-        className="bg-[var(--nav-primary)] text-white hover:bg-[var(--nav-primary-hover)] focus-visible:ring-[var(--nav-primary)]"
+        className="h-12 bg-[var(--nav-primary)] text-base text-white hover:bg-[var(--nav-primary-hover)] focus-visible:ring-[var(--nav-primary)]"
       >
+        {submitting && <Loader2 className="h-4 w-4 animate-spin" aria-hidden />}
         {submitting ? "Sending..." : "Send message"}
       </Button>
     </form>
