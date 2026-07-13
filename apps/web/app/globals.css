@@ -243,6 +243,38 @@
   [class*="auth-anim"] { animation: none !important; }
 }
 
+/* Announcement ticker: single-line right-to-left scroll on small and tablet
+   screens. The message (icon + text) is duplicated in the markup; translateX(-50%)
+   advances exactly one copy for a seamless loop. Disabled + allowed to wrap under
+   reduced-motion. */
+@keyframes announcement-marquee {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+.announcement-track {
+  animation: announcement-marquee 20s linear infinite;
+  will-change: transform;
+}
+.announcement-track:hover { animation-play-state: paused; }
+
+@media (prefers-reduced-motion: reduce) {
+  .announcement-track {
+    animation: none;
+    transform: none;
+    flex-wrap: wrap;
+    /* Reset `w-max` (max-content) so the frozen text wraps within the bar
+       instead of overflowing the overflow-hidden track. */
+    width: 100%;
+  }
+  /* Override the nested `whitespace-nowrap` so the frozen message wraps to a
+     readable block instead of being clipped by the overflow-hidden track. */
+  .announcement-track,
+  .announcement-track * {
+    white-space: normal;
+  }
+  .announcement-track > [aria-hidden="true"] { display: none; }
+}
+
 /* ------------------------------------------------------------------ *
  * Refer-and-earn flow scene (components/earn-with-us/refer-flow-scene).
  * One "app window" mock plays a single 12s loop in three 4s beats:
@@ -479,5 +511,18 @@
 @media (prefers-reduced-motion: reduce) {
   .faq-details::details-content {
     transition: none;
+  }
+}
+
+/* Print / "Save as PDF" from a calculator page: drop the site chrome and the
+   interactive controls so the printed sheet is just the result and schedule. */
+@media print {
+  header,
+  footer,
+  .print\:hidden {
+    display: none !important;
+  }
+  main {
+    padding: 0 !important;
   }
 }
