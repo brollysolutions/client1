@@ -32,11 +32,26 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
+      # Audits are real gates: no "|| true" swallow, a finding fails the job.
+      # Node audit is thresholded at high so known-low advisories in transitive
+      # dev-adjacent deps don't block merges; Python fails on any known vuln,
+      # with one documented, scoped exception below.
+      #
+      # PYSEC-2026-1325 (ecdsa, pure-Python timing side channel, the Minerva
+      # class of attack): python-jose pulls `ecdsa` unconditionally, even with
+      # the [cryptography] extra installed. Confirmed no fix version exists —
+      # the ecdsa maintainers consider constant-time arithmetic out of scope
+      # for the library and point users at `cryptography` instead. This app's
+      # JWTs are pinned to HS256 only (app/core/security.py), so the ECDSA
+      # signing/verification code in `ecdsa` is never invoked; it is dead
+      # weight from python-jose's own packaging, not a reachable attack
+      # surface here. Re-check on every python-jose bump — a future release
+      # may drop the ecdsa dependency or the advisory may gain a real fix.
       - name: Python audit
         run: |
           pip install uv
-          if [ -f apps/api/pyproject.toml ]; then ( cd apps/api && uv pip compile pyproject.toml -o /tmp/req.txt && uv tool run pip-audit -r /tmp/req.txt ) || true; fi
+          if [ -f apps/api/pyproject.toml ]; then ( cd apps/api && uv pip compile pyproject.toml -o /tmp/req.txt && uv tool run pip-audit -r /tmp/req.txt --ignore-vuln PYSEC-2026-1325 ); fi
       - name: Node audit
         run: |
           corepack enable
-          if [ -f apps/web/package.json ]; then ( cd apps/web && pnpm audit --prod ) || true; fi
+          if [ -f apps/web/package.json ]; then ( cd apps/web && pnpm audit --prod --audit-level high ); fi

@@ -287,6 +287,102 @@
         "title": "MessageResponse",
         "type": "object"
       },
+      "PublicLeadCreate": {
+        "properties": {
+          "company": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Company"
+          },
+          "email": {
+            "anyOf": [
+              {
+                "format": "email",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
+          },
+          "message": {
+            "anyOf": [
+              {
+                "maxLength": 1000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Message"
+          },
+          "mobile": {
+            "pattern": "^\\+[1-9]\\d{6,14}$",
+            "title": "Mobile",
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "origin": {
+            "pattern": "^[a-z0-9-]{2,40}$",
+            "title": "Origin",
+            "type": "string"
+          },
+          "product": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Product"
+          },
+          "topic": {
+            "enum": [
+              "loans",
+              "real_estate",
+              "agent"
+            ],
+            "title": "Topic",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "mobile",
+          "topic",
+          "origin"
+        ],
+        "title": "PublicLeadCreate",
+        "type": "object"
+      },
+      "PublicLeadResponse": {
+        "properties": {
+          "ok": {
+            "default": true,
+            "title": "Ok",
+            "type": "boolean"
+          }
+        },
+        "title": "PublicLeadResponse",
+        "type": "object"
+      },
       "RegisterInitiateRequest": {
         "properties": {
           "email": {
@@ -1138,6 +1234,47 @@
         "summary": "Register Verify Otp",
         "tags": [
           "auth"
+        ]
+      }
+    },
+    "/api/v1/leads": {
+      "post": {
+        "operationId": "create_lead_api_v1_leads_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PublicLeadCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicLeadResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Lead",
+        "tags": [
+          "leads"
         ]
       }
     },

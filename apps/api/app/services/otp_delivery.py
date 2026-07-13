@@ -78,15 +78,37 @@ async def _send_via_voice(mobile: str, otp: str) -> bool:
             resp = await client.get(url)
         resp.raise_for_status()
         # 2Factor signals real success in the body, not just HTTP 200.
-        if resp.json().get("Status") == "Success":
+        try:
+            body_status = resp.json().get("Status")
+        except ValueError:
+            body_status = None
+        if body_status == "Success":
             logger.info("voice.sent provider=2factor mobile=%s", mask_mobile(mobile))
             return True
+        # Whitelisted fields only, never raw body: provider error bodies can
+        # echo the request URL, which carries the API key and OTP in its path.
         logger.warning(
-            "voice.2factor_rejected mobile=%s body=%s", mask_mobile(mobile), resp.text[:200]
+            "voice.2factor_rejected mobile=%s http=%s status=%s",
+            mask_mobile(mobile),
+            resp.status_code,
+            body_status,
+        )
+        return False
+    except httpx.HTTPStatusError as exc:
+        # NEVER stringify httpx errors here: their message embeds the full
+        # request URL, i.e. the live API key and the plaintext OTP.
+        logger.warning(
+            "voice.2factor_failed mobile=%s http=%s",
+            mask_mobile(mobile),
+            exc.response.status_code,
         )
         return False
     except Exception as exc:
-        logger.warning("voice.2factor_failed mobile=%s error=%s", mask_mobile(mobile), exc)
+        logger.warning(
+            "voice.2factor_failed mobile=%s error=%s",
+            mask_mobile(mobile),
+            type(exc).__name__,
+        )
         return False
 
 

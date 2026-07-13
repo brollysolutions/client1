@@ -55,10 +55,12 @@ from app.schemas.auth import (
 from app.services.leads import capture_lead
 from app.services.otp import (
     check_login_lock,
+    check_login_rate_ip,
     check_otp_rate_ip,
     clear_login_failures,
     generate_and_store_otp,
     record_login_failure,
+    record_login_failure_ip,
     resend_otp,
     verify_otp,
 )
@@ -478,6 +480,8 @@ async def login(
     user_agent: str | None = None,
 ) -> tuple[AuthTokensResponse, str]:
     await check_login_lock(cache, req.mobile)
+    # Per-IP failed-login backstop against credential spraying across mobiles.
+    await check_login_rate_ip(cache, ip)
     # Capture every login attempt's number as a lead (unconditional → enumeration-safe).
     # Kept IN-LINE, not deferred to a BackgroundTask: FastAPI runs background tasks only
     # when the endpoint returns a response, and the unknown-mobile / wrong-password paths
@@ -487,6 +491,9 @@ async def login(
 
     user = await db.scalar(select(User).where(User.mobile == req.mobile))
     if not user or not user.password_hash:
+        # Unknown mobile still counts against the source IP: credential
+        # spraying exercises exactly this path, one number after another.
+        await record_login_failure_ip(cache, ip)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail=_GENERIC_LOGIN_ERROR,
@@ -494,6 +501,7 @@ async def login(
 
     if not await verify_password(req.password, user.password_hash):
         await record_login_failure(cache, req.mobile)
+        await record_login_failure_ip(cache, ip)
         await _log_event(
             db,
             auth_user_uuid=user.id,
@@ -604,8 +612,30 @@ async def refresh_token(
     db.add(new_row)
     await db.flush()
 
-    row.revoked = True
-    row.replaced_by = new_row.id
+    # Atomic claim: only the request that actually flips revoked False->True
+    # wins the rotation. Under READ COMMITTED, two concurrent presentations
+    # of the same cookie both pass the revoked check above; without this
+    # conditional UPDATE both would mint children and the reuse would go
+    # undetected (the second UPDATE waits on the first's row lock, re-reads
+    # revoked=true, matches zero rows).
+    user_uuid = user.id
+    claimed = (
+        await db.execute(
+            update(RefreshToken)
+            .where(RefreshToken.id == row.id, RefreshToken.revoked.is_(False))
+            .values(revoked=True, replaced_by=new_row.id)
+            .returning(RefreshToken.id)
+        )
+    ).scalar_one_or_none()
+    if claimed is None:
+        # Lost the race = this token was concurrently spent: treat as reuse.
+        # Roll back our un-committed child token, then kill the whole chain.
+        await db.rollback()
+        await _revoke_all_refresh_tokens(db, user_uuid)
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Refresh token already used. Please log in again.",
+        )
     await db.commit()
 
     payload = await _build_access_claims(db, user)
@@ -712,12 +742,6 @@ async def forgot_reset(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid reset token.")
 
     jti: str = claims.get("jti", "")
-    if jti and await cache.exists(jwt_blacklist_key(jti)):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Reset token already used.",
-        )
-
     mobile: str = claims["mobile"]
     try:
         validate_password_policy(req.new_password, mobile)
@@ -732,11 +756,19 @@ async def forgot_reset(
 
     if jti:
         import math
-        from datetime import UTC, datetime
 
         exp = claims.get("exp", 0)
         ttl = max(1, math.ceil(exp - datetime.now(UTC).timestamp()))
-        await cache.set(jwt_blacklist_key(jti), 1, ttl)
+        # Atomic single-use claim (SET NX) directly before the mutation: the
+        # old EXISTS check up top plus a plain SET down here let two
+        # concurrent submissions of the same reset token both pass the check
+        # and both rotate the password. Claiming here (after the user lookup)
+        # also means a failed lookup never burns an unused token.
+        if not await cache.set_nx(jwt_blacklist_key(jti), 1, ttl):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Reset token already used.",
+            )
 
     user.password_hash = await hash_password(req.new_password)
     user.status = UserStatus.ACTIVE

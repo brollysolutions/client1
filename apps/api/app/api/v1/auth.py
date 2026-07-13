@@ -6,7 +6,7 @@ from fastapi import APIRouter, BackgroundTasks, Cookie, Depends, Request, Respon
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.cache.redis_keys import RedisCache
-from app.core.config import settings
+from app.core.client_ip import get_client_ip
 from app.core.deps import CurrentUser, get_active_user, get_cache, get_current_user
 from app.db.session import get_db
 from app.schemas.auth import (
@@ -59,19 +59,8 @@ def _clear_refresh_cookie(response: Response) -> None:
     response.delete_cookie(_REFRESH_COOKIE, path=_REFRESH_PATH)
 
 
-def _get_client_ip(request: Request) -> str | None:
-    # Only honour X-Forwarded-For when explicitly configured to trust the proxy;
-    # otherwise it is attacker-controlled and would forge the IP used for audit
-    # logging and per-IP OTP rate limiting. When trusted, take the RIGHTMOST entry
-    # — the hop our own reverse proxy appended (the real peer it saw) — not the
-    # leftmost, which any client can set freely. Assumes a single trusted proxy.
-    if settings.TRUST_PROXY_HEADERS:
-        forwarded = request.headers.get("X-Forwarded-For")
-        if forwarded:
-            parts = [p.strip() for p in forwarded.split(",") if p.strip()]
-            if parts:
-                return parts[-1]
-    return request.client.host if request.client else None
+# Shared with the public leads route; see core/client_ip.py for the proxy rules.
+_get_client_ip = get_client_ip
 
 
 # ---------------------------------------------------------------------------

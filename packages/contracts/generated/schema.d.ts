@@ -259,6 +259,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/leads": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create Lead */
+        post: operations["create_lead_api_v1_leads_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/health": {
         parameters: {
             query?: never;
@@ -396,6 +413,36 @@ export interface components {
         MessageResponse: {
             /** Message */
             message: string;
+        };
+        /** PublicLeadCreate */
+        PublicLeadCreate: {
+            /** Company */
+            company?: string | null;
+            /** Email */
+            email?: string | null;
+            /** Message */
+            message?: string | null;
+            /** Mobile */
+            mobile: string;
+            /** Name */
+            name: string;
+            /** Origin */
+            origin: string;
+            /** Product */
+            product?: string | null;
+            /**
+             * Topic
+             * @enum {string}
+             */
+            topic: "loans" | "real_estate" | "agent";
+        };
+        /** PublicLeadResponse */
+        PublicLeadResponse: {
+            /**
+             * Ok
+             * @default true
+             */
+            ok: boolean;
         };
         /** RegisterInitiateRequest */
         RegisterInitiateRequest: {
@@ -937,6 +984,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RegistrationTokenResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_lead_api_v1_leads_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PublicLeadCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicLeadResponse"];
                 };
             };
             /** @description Validation Error */
