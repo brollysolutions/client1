@@ -60,7 +60,9 @@ services:
       context: ./apps/api
       target: dev
     # uv sync on every start keeps the named venv volume current when uv.lock changes without a full image rebuild.
-    command: uv run fastapi dev app/main.py --host 0.0.0.0 --port 8000
+    # Apply migrations before serving so a fresh Postgres volume never yields "relation ... does not exist"
+    # on the first write. `alembic upgrade head` is idempotent — a no-op when the DB is already at head.
+    command: sh -c "uv run alembic upgrade head && uv run fastapi dev app/main.py --host 0.0.0.0 --port 8000"
     env_file:
       - ./apps/api/.env.local
     ports:
@@ -89,6 +91,9 @@ services:
       pgbouncer:
         condition: service_healthy
       redis:
+        condition: service_healthy
+      # Wait for api, which owns `alembic upgrade head`, so scheduler jobs never hit an unmigrated DB.
+      api:
         condition: service_healthy
     healthcheck:
       # No HTTP port; assert the heartbeat job refreshed its liveness marker recently.
