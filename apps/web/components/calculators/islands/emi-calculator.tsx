@@ -9,6 +9,7 @@ import {
 } from "nuqs";
 
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { INFO } from "@/lib/calculators/glossary";
 import { LOAN_DEFAULTS } from "@/lib/calculators/rates";
 import { amortizationSchedule, type Schedule } from "@/lib/finance";
 import { formatCompactINR, formatINR } from "@/lib/format";
@@ -91,6 +92,7 @@ export function EmiCalculator() {
         <SliderField
           id="emi-amount"
           label="Loan amount"
+          info={INFO.loanAmount}
           prefix="₹"
           value={amount}
           min={bounds.amountMin}
@@ -102,6 +104,7 @@ export function EmiCalculator() {
         <SliderField
           id="emi-rate"
           label="Interest rate"
+          info={INFO.interestRate}
           suffix="% p.a."
           value={rate}
           min={bounds.rateMin}
@@ -113,6 +116,7 @@ export function EmiCalculator() {
         <SliderField
           id="emi-months"
           label="Tenure"
+          info={INFO.tenure}
           suffix="months"
           value={months}
           min={bounds.monthsMin}
@@ -127,9 +131,22 @@ export function EmiCalculator() {
       {/* Results */}
       <div className="grid content-start gap-6">
         <div className="grid gap-4 sm:grid-cols-3">
-          <ResultCard emphasis label="Monthly EMI" value={formatINR(schedule.emi)} />
-          <ResultCard label="Total interest" value={formatCompactINR(schedule.totalInterest)} />
-          <ResultCard label="Total payment" value={formatCompactINR(schedule.totalPayment)} />
+          <ResultCard
+            emphasis
+            label="Monthly EMI"
+            info={INFO.emi}
+            value={formatINR(schedule.emi)}
+          />
+          <ResultCard
+            label="Total interest"
+            info={INFO.totalInterest}
+            value={formatCompactINR(schedule.totalInterest)}
+          />
+          <ResultCard
+            label="Total payment"
+            info={INFO.totalPayment}
+            value={formatCompactINR(schedule.totalPayment)}
+          />
         </div>
         <div className="rounded-xl border border-[var(--nav-border)] bg-white p-5">
           <DonutChart principal={amount} interest={schedule.totalInterest} />
@@ -138,7 +155,7 @@ export function EmiCalculator() {
       </div>
 
       {/* Schedule */}
-      <div className="lg:col-span-2">
+      <div className="min-w-0 lg:col-span-2">
         <h2 className="font-heading text-xl font-semibold text-[var(--nav-text)]">
           Repayment schedule
         </h2>

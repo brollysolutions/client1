@@ -1,16 +1,38 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="320" height="150" viewBox="0 0 320 150" fill="none" role="img">
-  <circle cx="160" cy="74" r="62" fill="#D0E7E6" opacity="0.35"/>
-  <ellipse cx="160" cy="128" rx="86" ry="12" fill="#293681" opacity="0.07"/>
-  <!-- back card (neutral) -->
-  <g transform="rotate(-10 150 88)">
-    <rect x="98" y="58" width="124" height="72" rx="10" fill="#C7D2DC" stroke="#293681" stroke-width="2"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="240" viewBox="0 0 320 240" fill="none" role="img">
+  <defs><filter id="ccS" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="5"/></filter></defs>
+  <circle cx="160" cy="112" r="90" fill="#D0E7E6" opacity="0.4"/>
+  <ellipse cx="160" cy="200" rx="95" ry="12" fill="#293681" opacity="0.1" filter="url(#ccS)"/>
+
+  <!-- back card -->
+  <g transform="rotate(-12 150 122)">
+    <rect x="92" y="84" width="126" height="78" rx="11" fill="#95CCDD"/>
+    <rect x="92" y="98" width="126" height="13" fill="#7FB7CB"/>
   </g>
-  <!-- front card (blue accent brand) -->
-  <rect x="100" y="72" width="128" height="66" rx="10" fill="#4274D9"/>
-  <rect x="100" y="84" width="128" height="14" fill="#2A2E37"/>
-  <!-- gold chip -->
-  <rect x="114" y="108" width="22" height="16" rx="3" fill="#E8B54D" stroke="#C08A2E" stroke-width="1.5"/>
-  <text x="212" y="124" font-family="system-ui, sans-serif" font-size="13" font-weight="700" fill="#BFE0EA" text-anchor="end">&#8377;</text>
+
+  <!-- front card -->
+  <rect x="116" y="106" width="134" height="80" rx="12" fill="#4274D9"/>
+  <rect x="116" y="120" width="134" height="15" fill="#293681"/>
+  <path d="M158 106h30l-42 80h-28a12 12 0 0 1-2 0z" fill="#FFFFFF" opacity="0.1"/>
+  <!-- gold chip + contactless -->
+  <rect x="130" y="144" width="24" height="18" rx="4" fill="#E8B54D" stroke="#C08A2E" stroke-width="1.5"/>
+  <path d="M130 153h24M142 144v18" stroke="#C08A2E" stroke-width="1.2"/>
+  <path d="M226 146a10 10 0 0 1 0 14M232 141a17 17 0 0 1 0 24" stroke="#BFE0EA" stroke-width="2.4" stroke-linecap="round" fill="none"/>
+  <!-- card number dots -->
+  <g fill="#BFE0EA">
+    <circle cx="134" cy="172" r="2.2"/><circle cx="141" cy="172" r="2.2"/><circle cx="148" cy="172" r="2.2"/><circle cx="155" cy="172" r="2.2"/>
+    <circle cx="168" cy="172" r="2.2"/><circle cx="175" cy="172" r="2.2"/><circle cx="182" cy="172" r="2.2"/><circle cx="189" cy="172" r="2.2"/>
+  </g>
+  <text x="240" y="178" font-family="system-ui, sans-serif" font-size="14" font-weight="700" fill="#BFE0EA" text-anchor="end">&#8377;</text>
+
   <!-- gold coin -->
-  <g transform="translate(218,58)"><circle r="11" fill="#E8B54D" stroke="#C08A2E" stroke-width="2"/><circle r="7" fill="none" stroke="#F2D28A" stroke-width="1.5"/><text x="0" y="4" font-family="system-ui, sans-serif" font-size="11" font-weight="700" fill="#6B4E16" text-anchor="middle">&#8377;</text></g>
+  <g transform="translate(254,86)">
+    <circle r="14" fill="#E8B54D" stroke="#C08A2E" stroke-width="2.2"/>
+    <circle r="9" fill="none" stroke="#F2D28A" stroke-width="1.4"/>
+    <text x="0" y="4.5" font-family="system-ui, sans-serif" font-size="12" font-weight="700" fill="#6B4E16" text-anchor="middle">&#8377;</text>
+  </g>
+
+  <!-- sparkle + dots -->
+  <path d="M76 88l3 7 7 3-7 3-3 7-3-7-7-3 7-3z" fill="#95CCDD"/>
+  <circle cx="256" cy="140" r="3" fill="#95CCDD"/>
+  <circle cx="66" cy="146" r="2.5" fill="#95CCDD" opacity="0.7"/>
 </svg>

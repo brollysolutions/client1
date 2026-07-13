@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 import { parseAsInteger, useQueryStates } from "nuqs";
 
+import { INFO } from "@/lib/calculators/glossary";
 import { rentalYield } from "@/lib/finance";
 import { formatCompactINR, formatINR, formatPercent } from "@/lib/format";
 import { ResultCard } from "../result-card";
@@ -49,6 +50,7 @@ export function RentalYieldCalculator() {
         <SliderField
           id="ry-value"
           label="Property value"
+          info={INFO.propertyValue}
           prefix="₹"
           value={value}
           min={VALUE_MIN}
@@ -60,6 +62,7 @@ export function RentalYieldCalculator() {
         <SliderField
           id="ry-rent"
           label="Monthly rent"
+          info={INFO.monthlyRent}
           prefix="₹"
           value={rent}
           min={RENT_MIN}
@@ -71,6 +74,7 @@ export function RentalYieldCalculator() {
         <SliderField
           id="ry-exp"
           label="Annual expenses"
+          info={INFO.annualExpenses}
           prefix="₹"
           value={exp}
           min={EXP_MIN}
@@ -84,9 +88,22 @@ export function RentalYieldCalculator() {
       {/* Results */}
       <div className="grid content-start gap-6">
         <div className="grid gap-4 sm:grid-cols-3">
-          <ResultCard emphasis label="Net rental yield" value={formatPercent(result.netYield)} />
-          <ResultCard label="Gross rental yield" value={formatPercent(result.grossYield)} />
-          <ResultCard label="Annual rent" value={formatINR(result.annualRent)} />
+          <ResultCard
+            emphasis
+            label="Net rental yield"
+            info={INFO.netYield}
+            value={formatPercent(result.netYield)}
+          />
+          <ResultCard
+            label="Gross rental yield"
+            info={INFO.grossYield}
+            value={formatPercent(result.grossYield)}
+          />
+          <ResultCard
+            label="Annual rent"
+            info={INFO.annualRent}
+            value={formatINR(result.annualRent)}
+          />
         </div>
         <p className="text-sm text-text-secondary">
           In India a net yield above 4 percent is generally considered healthy.

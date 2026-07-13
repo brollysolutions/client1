@@ -18,8 +18,10 @@ import {
   STAMP_DUTY_STATES,
   type StampDutyBuyer,
 } from "@/lib/calculators/stamp-duty-rates";
+import { INFO } from "@/lib/calculators/glossary";
 import { stampDuty } from "@/lib/finance";
 import { formatCompactINR, formatINR, formatPercent } from "@/lib/format";
+import { InfoHint } from "../info-hint";
 import { RateDisclaimer } from "../rate-disclaimer";
 import { ResultCard } from "../result-card";
 import { SliderField } from "../slider-field";
@@ -64,12 +66,15 @@ export function StampDutyCalculator() {
       {/* Inputs */}
       <div className="grid content-start gap-6">
         <div className="grid gap-2">
-          <label
-            htmlFor="stamp-state"
-            className="text-sm text-[var(--nav-text)]"
-          >
-            State
-          </label>
+          <div className="flex items-center gap-1.5">
+            <label
+              htmlFor="stamp-state"
+              className="text-sm text-[var(--nav-text)]"
+            >
+              State
+            </label>
+            <InfoHint label="State" text={INFO.stampState} />
+          </div>
           <Select
             value={state.state}
             onValueChange={(next) => setState({ state: next })}
@@ -88,7 +93,10 @@ export function StampDutyCalculator() {
         </div>
 
         <div className="grid gap-2">
-          <span className="text-sm text-[var(--nav-text)]">Buyer</span>
+          <span className="flex items-center gap-1.5">
+            <span className="text-sm text-[var(--nav-text)]">Buyer</span>
+            <InfoHint label="Buyer" text={INFO.stampBuyer} />
+          </span>
           <Tabs value={buyer} onValueChange={(next) => setState({ buyer: next as "male" | "female" })}>
             <TabsList className="w-full">
               <TabsTrigger value="male" className="flex-1">
@@ -104,6 +112,7 @@ export function StampDutyCalculator() {
         <SliderField
           id="stamp-value"
           label="Property value"
+          info={INFO.propertyValue}
           prefix="₹"
           value={value}
           min={VALUE_MIN}
@@ -129,15 +138,22 @@ export function StampDutyCalculator() {
         <div className="grid gap-4 sm:grid-cols-3">
           <ResultCard
             label="Stamp duty"
+            info={INFO.stampDuty}
             value={formatINR(result.stampDuty)}
             sub={formatPercent(rate)}
           />
           <ResultCard
             label="Registration"
+            info={INFO.registration}
             value={formatINR(result.registration)}
             sub={formatPercent(st.registration)}
           />
-          <ResultCard emphasis label="Total charges" value={formatINR(result.total)} />
+          <ResultCard
+            emphasis
+            label="Total charges"
+            info={INFO.totalCharges}
+            value={formatINR(result.total)}
+          />
         </div>
       </div>
     </div>

@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import { parseAsInteger, parseAsStringLiteral, useQueryStates } from "nuqs";
 
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { INFO } from "@/lib/calculators/glossary";
 import { gstOnProperty } from "@/lib/finance";
 import { formatCompactINR, formatINR, formatPercent } from "@/lib/format";
 import { ResultCard } from "../result-card";
@@ -26,9 +27,10 @@ function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
 }
 
-// GST on property. Under-construction homes attract GST on two-thirds of the
-// price (the other third is treated as land value). Ready to move homes with a
-// completion certificate are outside GST, so figures fall to zero.
+// GST on property. Under-construction homes attract GST at an effective 1% or
+// 5% on the full sale value (the one-third land abatement is already built into
+// those rates). Ready to move homes with a completion certificate are outside
+// GST, so figures fall to zero.
 export function GstCalculator() {
   const [state, setState] = useQueryStates(
     {
@@ -60,6 +62,7 @@ export function GstCalculator() {
         <SliderField
           id="gst-value"
           label="Property value"
+          info={INFO.propertyValue}
           prefix="₹"
           value={value}
           min={VALUE_MIN}
@@ -80,12 +83,23 @@ export function GstCalculator() {
       {/* Results */}
       <div className="grid content-start gap-6">
         <div className="grid gap-4 sm:grid-cols-3">
-          <ResultCard emphasis label="GST payable" value={formatINR(result.gst)} />
-          <ResultCard label="GST rate" value={formatPercent(result.rate * 100)} />
           <ResultCard
-            label="Taxable value"
-            value={formatCompactINR(result.taxableValue)}
-            sub="Two-thirds of price (one-third is land)"
+            emphasis
+            label="GST payable"
+            info={INFO.gstPayable}
+            value={formatINR(result.gst)}
+          />
+          <ResultCard
+            label="GST rate"
+            info={INFO.gstRate}
+            value={formatPercent(result.rate * 100)}
+            sub="Effective, on full value"
+          />
+          <ResultCard
+            label="Total incl. GST"
+            info={INFO.totalInclGst}
+            value={formatCompactINR(value + result.gst)}
+            sub="Property value plus GST"
           />
         </div>
       </div>

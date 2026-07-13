@@ -18,6 +18,9 @@
   --color-brand-aqua: #D0E7E6;
 
   --color-surface: #FFFFFF;
+  /* Silver-white section wash, cooler than the cream --nav-bg. Used on the
+     Earn page process sections so white cards read with a subtle depth. */
+  --color-surface-silver: #F4F6F8;
 
   --color-text-primary: #20242E;
   --color-text-secondary: #5C5C5C;
@@ -143,6 +146,11 @@
   --nav-primary-hover: #0369a1;
   --nav-tint: #e0f2fe;
   --nav-border: #e3e3db;
+
+  /* Light info-yellow, for the "Indicative" disclaimer badge (road-sign feel,
+     distinct from the blue used for neutral/explainer content). */
+  --nav-info-tint: #fef3c7;
+  --nav-info-text: #92400e;
 }
 
 /* Floating finance doodles (home page decor). Gentle bubble drift: a slow bob +
@@ -160,6 +168,33 @@
 @media (prefers-reduced-motion: reduce) {
   .doodle-float {
     animation: none;
+  }
+}
+
+/* FAQ accordion open/close (components/faq-section.tsx). Progressive
+   enhancement: browsers that support interpolate-size animate the native
+   <details> content height from 0 to auto; older browsers fall back to an
+   instant toggle, no JS needed either way. Scoped to .faq-details so nothing
+   else on the site starts interpolating keyword sizes. */
+.faq-details {
+  interpolate-size: allow-keywords;
+}
+.faq-details::details-content {
+  block-size: 0;
+  overflow: clip;
+  opacity: 0;
+  transition:
+    block-size 0.25s cubic-bezier(0.23, 1, 0.32, 1),
+    content-visibility 0.25s allow-discrete,
+    opacity 0.2s ease;
+}
+.faq-details[open]::details-content {
+  block-size: auto;
+  opacity: 1;
+}
+@media (prefers-reduced-motion: reduce) {
+  .faq-details::details-content {
+    transition: none;
   }
 }
 
@@ -238,6 +273,245 @@
     white-space: normal;
   }
   .announcement-track > [aria-hidden="true"] { display: none; }
+}
+
+/* ------------------------------------------------------------------ *
+ * Refer-and-earn flow scene (components/earn-with-us/refer-flow-scene).
+ * One "app window" mock plays a single 12s loop in three 4s beats:
+ *   A 0-33%  get your code, tap Copy -> "Copied"
+ *   B 33-66% Share it -> code flies out to friends
+ *   C 66-100% Collect your rewards -> coin burst + Razorpay/cheque + confetti
+ * No floating cursor: interactions are shown by the element itself
+ * pressing (scale) with a ripple. Every animated node runs the same 12s
+ * cycle; per-element keyframe windows place each action inside its beat,
+ * so the whole scene stays in sync. transform/opacity only. Paused by
+ * default; the scene's IntersectionObserver adds `.is-playing` to run it
+ * only while on screen. All classes are prefixed `refer-anim-` so the
+ * reduced-motion guard switches the set off in one selector.
+ * ------------------------------------------------------------------ */
+@keyframes refer-scene-a {
+  0% { opacity: 0; }
+  2% { opacity: 1; }
+  31% { opacity: 1; }
+  35% { opacity: 0; }
+  100% { opacity: 0; }
+}
+@keyframes refer-scene-b {
+  0%, 33% { opacity: 0; }
+  36% { opacity: 1; }
+  64% { opacity: 1; }
+  68% { opacity: 0; }
+  100% { opacity: 0; }
+}
+@keyframes refer-scene-c {
+  0%, 66% { opacity: 0; }
+  69% { opacity: 1; }
+  99% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* Beat A: gentle fade-in of the code chip, Copy button press + ripple,
+   then the "Copied" badge pops. Motion aims physical: presses dip fast
+   and release with a small overshoot; pops overshoot then settle.
+   Per-segment animation-timing-function inside the keyframes does the
+   easing (spring-like back-out curves), so each action accelerates and
+   decelerates like a real object instead of stepping linearly. */
+@keyframes refer-fade-in {
+  0% { opacity: 0; } 5% { opacity: 1; } 100% { opacity: 1; }
+}
+@keyframes refer-press-a {
+  0%, 16.5% { transform: scale(1); animation-timing-function: cubic-bezier(0.4, 0, 1, 1); }
+  18.5% { transform: scale(0.92); animation-timing-function: cubic-bezier(0.34, 1.56, 0.64, 1); }
+  23% { transform: scale(1.02); }
+  26% { transform: scale(1); }
+  100% { transform: scale(1); }
+}
+@keyframes refer-ripple-a {
+  0%, 18% { opacity: 0; transform: scale(0.3); }
+  20.5% { opacity: 0.45; animation-timing-function: cubic-bezier(0, 0, 0.2, 1); }
+  29% { opacity: 0; transform: scale(2.1); }
+  100% { opacity: 0; }
+}
+@keyframes refer-copied {
+  0%, 22% { opacity: 0; transform: translateY(10px) scale(0.7); }
+  24.5% { opacity: 1; transform: translateY(-2px) scale(1.12); animation-timing-function: cubic-bezier(0.34, 1.3, 0.64, 1); }
+  27% { transform: translateY(0) scale(1); }
+  31% { opacity: 1; transform: translateY(0) scale(1); }
+  35% { opacity: 0; transform: translateY(-5px) scale(0.96); }
+  100% { opacity: 0; }
+}
+
+/* Beat B: Share button press, then the paper-plane pulls back slightly
+   (anticipation), climbs an arc, decelerates through the apex, and glides
+   down toward the friends while banking into the turn. Friend avatars
+   drop in with squash-and-settle, then a "Shared" caption. */
+@keyframes refer-press-b {
+  0%, 39% { transform: scale(1); animation-timing-function: cubic-bezier(0.4, 0, 1, 1); }
+  41% { transform: scale(0.93); animation-timing-function: cubic-bezier(0.34, 1.56, 0.64, 1); }
+  44.5% { transform: scale(1.03); }
+  47% { transform: scale(1); }
+  100% { transform: scale(1); }
+}
+@keyframes refer-plane {
+  0%, 41% { opacity: 0; transform: translate(0, 0) scale(0.5) rotate(0deg); }
+  43% { opacity: 1; transform: translate(-5px, 3px) scale(0.9) rotate(-8deg); animation-timing-function: cubic-bezier(0.5, 0, 0.9, 0.4); }
+  46.5% { transform: translate(12px, -18px) scale(1) rotate(6deg); animation-timing-function: cubic-bezier(0.2, 0.6, 0.4, 1); }
+  50.5% { transform: translate(40px, -42px) scale(0.95) rotate(14deg); animation-timing-function: cubic-bezier(0.5, 0, 0.8, 0.6); }
+  55% { opacity: 1; transform: translate(72px, -30px) scale(0.82) rotate(26deg); }
+  57.5% { opacity: 0; transform: translate(86px, -18px) scale(0.7) rotate(31deg); }
+  100% { opacity: 0; }
+}
+@keyframes refer-friend-1 {
+  0%, 45% { opacity: 0; transform: translateY(14px) scale(0.3); }
+  48% { opacity: 1; transform: translateY(-4px) scale(1.12); animation-timing-function: cubic-bezier(0.34, 1.4, 0.64, 1); }
+  50.5% { transform: translateY(0) scale(0.97); }
+  52.5% { transform: translateY(0) scale(1); }
+  64% { opacity: 1; } 68% { opacity: 0; } 100% { opacity: 0; }
+}
+@keyframes refer-friend-2 {
+  0%, 49% { opacity: 0; transform: translateY(14px) scale(0.3); }
+  52% { opacity: 1; transform: translateY(-4px) scale(1.12); animation-timing-function: cubic-bezier(0.34, 1.4, 0.64, 1); }
+  54.5% { transform: translateY(0) scale(0.97); }
+  56.5% { transform: translateY(0) scale(1); }
+  64% { opacity: 1; } 68% { opacity: 0; } 100% { opacity: 0; }
+}
+@keyframes refer-friend-3 {
+  0%, 53% { opacity: 0; transform: translateY(14px) scale(0.3); }
+  56% { opacity: 1; transform: translateY(-4px) scale(1.12); animation-timing-function: cubic-bezier(0.34, 1.4, 0.64, 1); }
+  58.5% { transform: translateY(0) scale(0.97); }
+  60.5% { transform: translateY(0) scale(1); }
+  64% { opacity: 1; } 68% { opacity: 0; } 100% { opacity: 0; }
+}
+@keyframes refer-shared {
+  0%, 59% { opacity: 0; transform: translateY(8px); }
+  62.5% { opacity: 1; transform: translateY(0); }
+  64% { opacity: 1; } 68% { opacity: 0; } 100% { opacity: 0; }
+}
+
+/* Beat C: the "Collect" button beats like a heart (anticipation), presses,
+   and fades; rewards rise with a small overshoot; coins launch fast,
+   decelerate into their apex, then drop away under gravity; the counter
+   pops; confetti falls with sideways sway and an accelerating drop.
+   Coins/confetti take per-piece target vars set inline; calc() scales the
+   same vars along the path so each piece keeps its own trajectory. */
+@keyframes refer-collect {
+  0%, 68% { opacity: 1; transform: scale(1); animation-timing-function: ease-in-out; }
+  70.5% { transform: scale(1.06); }
+  72.5% { transform: scale(1); }
+  74.5% { transform: scale(1.07); animation-timing-function: cubic-bezier(0.4, 0, 1, 1); }
+  76.5% { transform: scale(0.88); animation-timing-function: cubic-bezier(0.34, 1.56, 0.64, 1); }
+  79% { opacity: 1; transform: scale(1.04); }
+  81% { opacity: 0; transform: scale(0.92); }
+  100% { opacity: 0; }
+}
+@keyframes refer-reward {
+  0%, 79% { opacity: 0; transform: translateY(14px) scale(0.94); }
+  83.5% { opacity: 1; transform: translateY(-3px) scale(1.03); animation-timing-function: cubic-bezier(0.34, 1.2, 0.64, 1); }
+  86% { transform: translateY(0) scale(1); }
+  99% { opacity: 1; } 100% { opacity: 0; }
+}
+@keyframes refer-burst {
+  0%, 78% { opacity: 0; transform: translate(0, 0) scale(0.3) rotate(0deg); }
+  80% { opacity: 1; transform: translate(calc(var(--tx, 0px) * 0.15), calc(var(--ty, 0px) * 0.35)) scale(0.9) rotate(calc(var(--r, 0deg) * 0.3)); animation-timing-function: cubic-bezier(0.2, 0.8, 0.4, 1); }
+  86% { transform: translate(calc(var(--tx, 0px) * 0.78), calc(var(--ty, 0px) * 1.06)) scale(1.05) rotate(calc(var(--r, 0deg) * 0.75)); animation-timing-function: cubic-bezier(0.4, 0, 0.6, 1); }
+  91% { opacity: 1; transform: translate(var(--tx, 0px), var(--ty, 0px)) scale(1) rotate(var(--r, 0deg)); animation-timing-function: cubic-bezier(0.5, 0, 0.9, 0.4); }
+  96% { opacity: 0; transform: translate(calc(var(--tx, 0px) * 1.05), calc(var(--ty, 0px) + 28px)) scale(0.96) rotate(calc(var(--r, 0deg) * 1.15)); }
+  100% { opacity: 0; }
+}
+@keyframes refer-count {
+  0%, 86% { opacity: 0; transform: translateY(10px) scale(0.6); }
+  89.5% { opacity: 1; transform: translateY(0) scale(1.18); animation-timing-function: cubic-bezier(0.34, 1.4, 0.64, 1); }
+  91.5% { transform: scale(0.96); }
+  93% { transform: scale(1); }
+  99% { opacity: 1; } 100% { opacity: 0; }
+}
+@keyframes refer-confetti {
+  0%, 79% { opacity: 0; transform: translate(0, -10px) rotate(0deg); }
+  81.5% { opacity: 1; transform: translate(calc(var(--dx, 0px) * 0.2), 4px) rotate(calc(var(--rot, 300deg) * 0.12)); animation-timing-function: cubic-bezier(0.4, 0, 0.8, 0.4); }
+  88% { transform: translate(calc(var(--dx, 0px) * 0.65), 44px) rotate(calc(var(--rot, 300deg) * 0.45)); animation-timing-function: cubic-bezier(0.3, 0, 0.7, 0.6); }
+  94% { opacity: 1; transform: translate(var(--dx, 0px), 96px) rotate(calc(var(--rot, 300deg) * 0.75)); }
+  100% { opacity: 0; transform: translate(calc(var(--dx, 0px) * 1.25), 140px) rotate(var(--rot, 300deg)); }
+}
+
+/* Step-strip highlight: active step is full opacity in its beat window,
+   others dim. Base opacity is 1 so the reduced-motion fallback (below)
+   leaves every step fully readable. */
+@keyframes refer-step-1 {
+  0% { opacity: 1; } 31% { opacity: 1; } 35% { opacity: 0.45; }
+  100% { opacity: 0.45; }
+}
+@keyframes refer-step-2 {
+  0%, 33% { opacity: 0.45; } 36% { opacity: 1; } 64% { opacity: 1; }
+  68% { opacity: 0.45; } 100% { opacity: 0.45; }
+}
+@keyframes refer-step-3 {
+  0%, 66% { opacity: 0.45; } 69% { opacity: 1; } 97% { opacity: 1; }
+  100% { opacity: 0.45; }
+}
+
+.refer-anim-scene-a { animation: refer-scene-a 12s linear infinite; }
+.refer-anim-scene-b { animation: refer-scene-b 12s linear infinite; }
+.refer-anim-scene-c { animation: refer-scene-c 12s linear infinite; }
+.refer-anim-fade-in { animation: refer-fade-in 12s linear infinite; }
+.refer-anim-press-a { animation: refer-press-a 12s ease-out infinite; }
+.refer-anim-ripple-a { animation: refer-ripple-a 12s ease-out infinite; }
+.refer-anim-copied { animation: refer-copied 12s ease-out infinite; }
+.refer-anim-press-b { animation: refer-press-b 12s ease-out infinite; }
+.refer-anim-plane { animation: refer-plane 12s ease-out infinite; will-change: transform; }
+.refer-anim-friend-1 { animation: refer-friend-1 12s ease-out infinite; }
+.refer-anim-friend-2 { animation: refer-friend-2 12s ease-out infinite; }
+.refer-anim-friend-3 { animation: refer-friend-3 12s ease-out infinite; }
+.refer-anim-shared { animation: refer-shared 12s ease-out infinite; }
+.refer-anim-collect { animation: refer-collect 12s ease-out infinite; }
+.refer-anim-reward { animation: refer-reward 12s ease-out infinite; }
+.refer-anim-burst { animation: refer-burst 12s ease-out infinite; will-change: transform; }
+.refer-anim-count { animation: refer-count 12s ease-out infinite; }
+.refer-anim-confetti { animation: refer-confetti 12s ease-in infinite; will-change: transform; }
+.refer-anim-step-1 { animation: refer-step-1 12s linear infinite; }
+.refer-anim-step-2 { animation: refer-step-2 12s linear infinite; }
+.refer-anim-step-3 { animation: refer-step-3 12s linear infinite; }
+
+/* Paused until the scene scrolls into view (IntersectionObserver adds
+   `.is-playing`). Keeps the loop from burning cycles off screen. */
+[class*="refer-anim-"] { animation-play-state: paused; }
+.refer-flow.is-playing [class*="refer-anim-"] { animation-play-state: running; }
+
+/* Below lg the animated scene is hidden and the step strip is a plain
+   static list, so the highlight-dim animation must not apply there. */
+@media (max-width: 1023px) {
+  .refer-steps [class*="refer-anim-step-"] { animation: none !important; opacity: 1 !important; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [class*="refer-anim-"] { animation: none !important; opacity: 1 !important; }
+  .refer-scene { display: none !important; }
+}
+
+/* FAQ accordion open/close (components/calculators/calculator-faq.tsx and the
+   public faq-section pattern). Progressive enhancement: browsers that support
+   interpolate-size animate the native <details> content height from 0 to auto;
+   older browsers fall back to an instant toggle, no JS either way. Scoped to
+   .faq-details so nothing else starts interpolating keyword sizes. */
+.faq-details {
+  interpolate-size: allow-keywords;
+}
+.faq-details::details-content {
+  block-size: 0;
+  overflow: clip;
+  opacity: 0;
+  transition:
+    block-size 0.25s cubic-bezier(0.23, 1, 0.32, 1),
+    content-visibility 0.25s allow-discrete,
+    opacity 0.2s ease;
+}
+.faq-details[open]::details-content {
+  block-size: auto;
+  opacity: 1;
+}
+@media (prefers-reduced-motion: reduce) {
+  .faq-details::details-content {
+    transition: none;
+  }
 }
 
 /* Print / "Save as PDF" from a calculator page: drop the site chrome and the

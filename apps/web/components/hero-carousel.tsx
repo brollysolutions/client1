@@ -32,15 +32,15 @@ type Banner = {
 const BANNERS: Banner[] = [
   {
     id: "loans",
-    title: "Find the loan that fits you",
+    title: "Loans, cards, and insurance that fit you",
     subtitle:
       "All kinds of loans, credit cards, and insurance, matched to what you need.",
     cta: { label: "Explore loans", href: "/loans" },
   },
   {
     id: "real-estate",
-    title: "Buy or rent with confidence",
-    subtitle: "Verified homes and trusted agents, all in one place.",
+    title: "Buy your property with confidence",
+    subtitle: "Verified properties and trusted agents, all in one place.",
     cta: { label: "Explore properties", href: "/real-estate" },
   },
   {
@@ -48,7 +48,7 @@ const BANNERS: Banner[] = [
     title: "One bridge between you and the banks",
     subtitle:
       "We connect you with the right banks and partners, and stay with you at every step.",
-    cta: { label: "Get in touch", href: "#contact" },
+    cta: { label: "Get in touch", href: "/contact" },
   },
   {
     id: "trust",

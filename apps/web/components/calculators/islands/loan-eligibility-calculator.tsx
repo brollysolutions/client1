@@ -7,6 +7,7 @@ import {
   useQueryStates,
 } from "nuqs";
 
+import { INFO } from "@/lib/calculators/glossary";
 import { loanEligibility } from "@/lib/finance";
 import { formatCompactINR, formatINR } from "@/lib/format";
 import { RateDisclaimer } from "../rate-disclaimer";
@@ -66,6 +67,7 @@ export function LoanEligibilityCalculator() {
         <SliderField
           id="elig-inc"
           label="Net monthly income"
+          info={INFO.netMonthlyIncome}
           prefix="₹"
           value={inc}
           min={10000}
@@ -77,6 +79,7 @@ export function LoanEligibilityCalculator() {
         <SliderField
           id="elig-emi"
           label="Existing EMIs"
+          info={INFO.existingEmis}
           prefix="₹"
           value={emi}
           min={0}
@@ -88,6 +91,7 @@ export function LoanEligibilityCalculator() {
         <SliderField
           id="elig-foir"
           label="FOIR"
+          info={INFO.foir}
           suffix="%"
           value={foir}
           min={30}
@@ -99,6 +103,7 @@ export function LoanEligibilityCalculator() {
         <SliderField
           id="elig-rate"
           label="Interest rate"
+          info={INFO.interestRate}
           suffix="% p.a."
           value={rate}
           min={5}
@@ -110,6 +115,7 @@ export function LoanEligibilityCalculator() {
         <SliderField
           id="elig-months"
           label="Tenure"
+          info={INFO.tenure}
           suffix="months"
           value={months}
           min={12}
@@ -126,17 +132,24 @@ export function LoanEligibilityCalculator() {
         <ResultCard
           emphasis
           label="You may be eligible for"
+          info={INFO.eligibleAmount}
           value={formatINR(result.sanctioned)}
           sub="Lower of the two limits below"
         />
         <div className="grid gap-4 sm:grid-cols-3">
-          <ResultCard label="Max affordable EMI" value={formatINR(result.maxEmi)} />
+          <ResultCard
+            label="Max affordable EMI"
+            info={INFO.maxAffordableEmi}
+            value={formatINR(result.maxEmi)}
+          />
           <ResultCard
             label="Limit by income rule (FOIR)"
+            info={INFO.limitFoir}
             value={formatCompactINR(result.maxLoanFoir)}
           />
           <ResultCard
             label="Limit by income multiple"
+            info={INFO.limitMultiple}
             value={formatCompactINR(result.maxLoanMultiplier)}
           />
         </div>

@@ -3,6 +3,9 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { formatINR } from "@/lib/format";
 import type { Schedule } from "@/lib/finance";
+import { cn } from "@/lib/utils";
+import { INFO } from "@/lib/calculators/glossary";
+import { InfoHint } from "./info-hint";
 
 // Amortization schedule, financial-year view by default (always fits) with a
 // month-by-month view a tab away. The monthly table scrolls horizontally on
@@ -20,10 +23,10 @@ export function AmortizationTable({ schedule }: { schedule: Schedule }) {
           <table className="w-full min-w-[520px] text-sm">
             <thead className="bg-[var(--nav-bg)] text-left text-text-secondary">
               <tr>
-                <Th>Financial year</Th>
-                <Th align="right">Principal paid</Th>
-                <Th align="right">Interest paid</Th>
-                <Th align="right">Balance</Th>
+                <Th info={INFO.fyYear}>Financial year</Th>
+                <Th align="right" info={INFO.principalPortion}>Principal paid</Th>
+                <Th align="right" info={INFO.interestPortion}>Interest paid</Th>
+                <Th align="right" info={INFO.balanceRemaining}>Balance</Th>
               </tr>
             </thead>
             <tbody>
@@ -46,10 +49,10 @@ export function AmortizationTable({ schedule }: { schedule: Schedule }) {
             <thead className="sticky top-0 bg-[var(--nav-bg)] text-left text-text-secondary">
               <tr>
                 <Th>#</Th>
-                <Th align="right">EMI</Th>
-                <Th align="right">Principal</Th>
-                <Th align="right">Interest</Th>
-                <Th align="right">Balance</Th>
+                <Th align="right" info={INFO.emi}>EMI</Th>
+                <Th align="right" info={INFO.principalPortion}>Principal</Th>
+                <Th align="right" info={INFO.interestPortion}>Interest</Th>
+                <Th align="right" info={INFO.balanceRemaining}>Balance</Th>
               </tr>
             </thead>
             <tbody>
@@ -70,9 +73,29 @@ export function AmortizationTable({ schedule }: { schedule: Schedule }) {
   );
 }
 
-function Th({ children, align }: { children: React.ReactNode; align?: "right" }) {
+function Th({
+  children,
+  align,
+  info,
+}: {
+  children: React.ReactNode;
+  align?: "right";
+  info?: string;
+}) {
   return (
-    <th className={`px-3 py-2 font-medium ${align === "right" ? "text-right" : ""}`}>{children}</th>
+    <th className={`px-3 py-2 font-medium ${align === "right" ? "text-right" : ""}`}>
+      <span
+        className={cn(
+          "inline-flex items-center gap-1.5",
+          align === "right" && "justify-end",
+        )}
+      >
+        {children}
+        {info ? (
+          <InfoHint label={typeof children === "string" ? children : "this column"} text={info} />
+        ) : null}
+      </span>
+    </th>
   );
 }
 

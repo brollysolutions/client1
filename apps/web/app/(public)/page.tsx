@@ -1,13 +1,15 @@
 import type { Metadata } from "next";
 
 import { ClosingCta } from "@/components/closing-cta";
-import { Faq } from "@/components/faq";
+import { FaqSection } from "@/components/faq-section";
 import { FloatingDoodles } from "@/components/floating-doodles";
 import { HeroCarousel } from "@/components/hero-carousel";
 import { HowItWorks } from "@/components/how-it-works";
 import { LineSplit } from "@/components/line-split";
 import { PartnerCta } from "@/components/partner-cta";
 import { WhyChooseUs } from "@/components/why-choose-us";
+import { faqPageJsonLd, HOME_FAQ_ITEMS } from "@/lib/faq";
+import { SITE_NAME, SITE_URL } from "@/lib/site";
 
 // Landing-scoped SEO metadata. Overrides the generic root-layout default
 // (which stays as the internal fallback for authenticated dashboard routes).
@@ -35,9 +37,19 @@ export const metadata: Metadata = {
   },
 };
 
+const homeFaqJsonLd = {
+  "@context": "https://schema.org",
+  "@graph": [faqPageJsonLd(HOME_FAQ_ITEMS)],
+  publisher: { "@type": "Organization", name: SITE_NAME, url: SITE_URL },
+};
+
 export default function Home() {
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(homeFaqJsonLd) }}
+      />
       {/* Single crawlable H1 for the page. The hero and section headings are all
           H2s, so this gives the document a proper outline without changing the
           visual design (hero copy stays the visual focal point). */}
@@ -58,7 +70,11 @@ export default function Home() {
         <FloatingDoodles subset={[0, 1, 3]} />
       </div>
       <PartnerCta />
-      <Faq />
+      <FaqSection
+        heading="Frequently asked questions"
+        subheading="Answers to what people usually ask before they get started."
+        items={HOME_FAQ_ITEMS}
+      />
       <ClosingCta />
     </>
   );

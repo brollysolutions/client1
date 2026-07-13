@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import Image from "next/image";
 
+import { FaqSection } from "@/components/faq-section";
 import { JourneyFootTrail } from "@/components/journey-foot-trail";
 import { LeadDialog } from "@/components/lead-dialog";
 import { TrustStrip } from "@/components/trust-strip";
@@ -11,6 +12,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import type { FaqItem } from "@/lib/faq";
 import type { LeadBusinessLine } from "@/lib/leads";
 import type { JourneyStep, Product, TrustPoint } from "@/lib/products";
 import { cn } from "@/lib/utils";
@@ -57,6 +59,8 @@ export type ProductPageProps = {
   journey: JourneyStep[];
   /** Render the journey as a connected timeline with bespoke glyphs (lg+). Off = plain stacked steps. */
   journeyTimeline?: boolean;
+  /** FAQ accordion between the journey and the closing CTA. Omit to skip. */
+  faq?: { heading: string; subheading?: string; items: FaqItem[] };
   ctaHeading: string;
   ctaText: string;
   ctaLabel: string;
@@ -84,6 +88,7 @@ export function ProductPage({
   journeyHeading,
   journey,
   journeyTimeline = false,
+  faq,
   ctaHeading,
   ctaText,
   ctaLabel,
@@ -112,19 +117,23 @@ export function ProductPage({
             />
           </>
         ) : null}
-        {heroDoodles ? <HeroPlantDoodles src={heroPlant} /> : null}
-        <div className="relative mx-auto max-w-7xl px-4 py-16 sm:px-6 sm:py-20 lg:px-8 lg:py-24">
-          {eyebrow ? (
-            <p className="font-geist text-sm font-semibold uppercase tracking-wide text-brand-blue">
-              {eyebrow}
-            </p>
-          ) : null}
-          <h1 className="mt-3 max-w-4xl font-heading text-4xl font-semibold text-[var(--nav-text)] sm:text-5xl lg:text-6xl">
-            {title}
-          </h1>
-          <p className="mt-5 max-w-2xl text-lg text-[var(--nav-text)] sm:text-xl">
-            {intro}
-          </p>
+        <div className="relative mx-auto max-w-7xl px-4 py-14 sm:px-6 sm:py-20 lg:px-8">
+          <div className="grid items-center gap-8 lg:grid-cols-[1fr_auto]">
+            <div>
+              {eyebrow ? (
+                <p className="font-geist text-sm font-semibold uppercase tracking-wide text-brand-blue">
+                  {eyebrow}
+                </p>
+              ) : null}
+              <h1 className="mt-3 max-w-4xl font-heading text-4xl font-semibold text-[var(--nav-text)] sm:text-5xl lg:text-6xl">
+                {title}
+              </h1>
+              <p className="mt-5 max-w-2xl text-lg text-[var(--nav-text)] sm:text-xl">
+                {intro}
+              </p>
+            </div>
+            {heroDoodles ? <HeroIllustration src={heroPlant} /> : null}
+          </div>
         </div>
       </section>
 
@@ -132,12 +141,12 @@ export function ProductPage({
       {products && products.length > 0 ? (
       <section className="relative w-full overflow-hidden border-t border-[var(--nav-border)] bg-[var(--nav-bg)]">
         {productDoodles ? <ProductDoodles /> : null}
-        <div className="relative z-10 mx-auto max-w-7xl px-4 py-16 sm:px-6 sm:py-20 lg:px-8">
-          <h2 className="font-heading text-3xl font-semibold text-foreground sm:text-4xl">
+        <div className="relative z-10 mx-auto max-w-7xl px-4 py-20 sm:px-6 sm:py-24 lg:px-8">
+          <h2 className="mx-auto max-w-2xl text-center font-heading text-3xl font-semibold text-foreground sm:text-4xl">
             {productsHeading}
           </h2>
           {productsSubheading ? (
-            <p className="mt-3 max-w-2xl text-lg text-text-secondary">
+            <p className="mx-auto mt-3 max-w-2xl text-center text-lg text-text-secondary">
               {productsSubheading}
             </p>
           ) : null}
@@ -267,7 +276,7 @@ export function ProductPage({
       {/* Journey */}
       <section className="w-full border-t border-[var(--nav-border)] bg-[var(--nav-bg)]">
         <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 sm:py-20 lg:px-8">
-          <h2 className="max-w-2xl font-heading text-3xl font-semibold text-[var(--nav-text)] sm:text-4xl">
+          <h2 className="mx-auto max-w-2xl text-center font-heading text-3xl font-semibold text-[var(--nav-text)] sm:text-4xl">
             {journeyHeading}
           </h2>
           {journeyTimeline ? (
@@ -374,6 +383,15 @@ export function ProductPage({
         </div>
       </section>
 
+      {/* FAQ */}
+      {faq ? (
+        <FaqSection
+          heading={faq.heading}
+          subheading={faq.subheading}
+          items={faq.items}
+        />
+      ) : null}
+
       {/* Closing CTA */}
       {ctaBanner ? (
         // Bold full-bleed navy band: page-closer for the Loans surface. Reuses
@@ -417,33 +435,31 @@ export function ProductPage({
   );
 }
 
-// Decorative hero illustration grounded on the hero's right edge, scaled to fill
-// the hero height exactly. Square viewBox art, so object-contain/object-bottom
-// letterboxes width and grounds it on the baseline. Loans passes the cherry tree
-// (default); Properties passes the tree-house. Desktop-only (lg+), aria-hidden.
-function HeroPlantDoodles({
-  src = "/illustrations/doodles/cherry-tree.svg",
+// Decorative hero illustration, in-flow beside the hero copy (matches the
+// calculators hub hero: CalculatorHeroArt). Square viewBox art in a fixed-width
+// box, so it drives the hero row's height instead of floating as a background
+// overlay. Loans passes the credit scene (default); Properties passes the
+// house-search scene. Desktop-only (lg+), aria-hidden.
+function HeroIllustration({
+  src = "/illustrations/heroes/loans.svg",
 }: {
   src?: string;
 }) {
   return (
     <div
       aria-hidden
-      className="pointer-events-none absolute inset-0 hidden overflow-hidden lg:block"
+      className="hidden shrink-0 items-center justify-center lg:flex lg:w-[460px]"
     >
-      {/* illustration grounded on the right; nudged in from the edge and pushed
-          down so its baseline sits on the section divider (empty SVG tail below
-          the ground-line is clipped by the parent's overflow-hidden) */}
-      <span className="absolute inset-y-0 right-[3%] block aspect-square h-full translate-y-[8%]">
-        <Image
-          src={src}
-          alt=""
-          aria-hidden
-          fill
-          sizes="50vw"
-          className="object-contain object-bottom"
-        />
-      </span>
+      <Image
+        src={src}
+        alt=""
+        aria-hidden
+        width={500}
+        height={500}
+        sizes="460px"
+        className="h-auto w-full max-w-[460px]"
+        priority
+      />
     </div>
   );
 }
@@ -577,13 +593,12 @@ function ProductDoodles() {
   );
 }
 
-// Faint real-estate line-doodles for the Properties catalog area (buy/rent
-// rows). Same family and treatment as ProductDoodles (navy line ink, low
-// opacity, lg+ only) but with housing-themed glyphs instead of finance ones.
-// Two clusters: beside the "Properties to buy" heading, and in the left
-// gutter between the buy and rent rows. Exported (unlike the other doodle
-// helpers here) because it's consumed from app/(public)/real-estate/page.tsx,
-// not from ProductPage's own render tree.
+// Faint real-estate line-doodles for the Properties catalog area (buy row).
+// Same family and treatment as ProductDoodles (navy line ink, low opacity,
+// lg+ only) but with housing-themed glyphs instead of finance ones. One
+// cluster beside the "Properties to buy" heading. Exported (unlike the other
+// doodle helpers here) because it's consumed from
+// app/(public)/real-estate/page.tsx, not from ProductPage's own render tree.
 export function PropertyDoodles() {
   return (
     <div
@@ -612,39 +627,6 @@ export function PropertyDoodles() {
           <line x1="20" y1="18" x2="46" y2="44" />
           <line x1="36" y1="34" x2="30" y2="40" />
           <line x1="42" y1="40" x2="36" y2="46" />
-        </g>
-      </svg>
-
-      {/* middle: left gutter, beside the "Properties for rent" heading */}
-      <svg
-        className="absolute left-6 top-[700px] h-40 w-40 lg:left-10"
-        viewBox="0 0 140 90"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth={2}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        {/* apartment building: window grid */}
-        <g transform="translate(6,8)">
-          <rect x="0" y="0" width="46" height="66" />
-          <rect x="8" y="10" width="8" height="8" />
-          <rect x="24" y="10" width="8" height="8" />
-          <rect x="8" y="26" width="8" height="8" />
-          <rect x="24" y="26" width="8" height="8" />
-          <rect x="8" y="42" width="8" height="8" />
-          <rect x="24" y="42" width="8" height="8" />
-        </g>
-        {/* folded blueprint with a crosshair mark */}
-        <g transform="translate(70,10)">
-          <path d="M0 0 H34 L44 10 V60 H0 Z" />
-          <path d="M34 0 V10 H44" />
-          <line x1="8" y1="20" x2="30" y2="20" />
-          <line x1="8" y1="30" x2="30" y2="30" />
-          <line x1="8" y1="40" x2="20" y2="40" />
-          <circle cx="30" cy="46" r="4" />
-          <line x1="26" y1="46" x2="34" y2="46" />
-          <line x1="30" y1="42" x2="30" y2="50" />
         </g>
       </svg>
     </div>

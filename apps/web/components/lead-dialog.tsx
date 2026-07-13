@@ -35,7 +35,7 @@ const LINE = {
     label: "Real Estate",
     title: "Talk to our real estate team",
     description:
-      "Leave your number and we'll call you back about buying or renting.",
+      "Leave your number and we'll call you back about buying a property.",
     triggerClass:
       "bg-[var(--nav-primary)] text-white hover:bg-[var(--nav-primary-hover)] focus-visible:ring-[var(--nav-primary)]",
   },

@@ -1,16 +1,27 @@
-import { Badge } from "@/components/ui/badge";
-import { RATE_DISCLAIMER } from "@/lib/calculators/rates";
+import { Info } from "lucide-react";
+
+import { RATE_DISCLAIMER, RATES_LAST_REVIEWED } from "@/lib/calculators/rates";
 import { cn } from "@/lib/utils";
 
 // Sits next to any prefilled interest rate. Makes clear the seeded rate is an
-// illustrative example, not an offer (no lenders are onboarded yet).
+// illustrative example, not an offer (no lenders are onboarded yet), and
+// surfaces when the underlying rates were last checked against source.
 export function RateDisclaimer({ text, className }: { text?: string; className?: string }) {
   return (
-    <p className={cn("flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-text-secondary", className)}>
-      <Badge variant="secondary" className="bg-[var(--nav-tint)] text-[var(--nav-primary)]">
-        Indicative
-      </Badge>
-      <span>{text ?? RATE_DISCLAIMER}</span>
-    </p>
+    <div
+      className={cn(
+        "flex gap-3 rounded-lg bg-[var(--nav-info-tint)] px-4 py-3",
+        className,
+      )}
+    >
+      <Info className="mt-0.5 h-4 w-4 shrink-0 text-[var(--nav-info-text)]" aria-hidden />
+      <div className="grid gap-1 text-sm text-[var(--nav-text)]">
+        <p>
+          <span className="font-semibold text-[var(--nav-info-text)]">Indicative. </span>
+          {text ?? RATE_DISCLAIMER}
+        </p>
+        <p className="text-xs text-text-secondary">Rates last reviewed {RATES_LAST_REVIEWED}.</p>
+      </div>
+    </div>
   );
 }

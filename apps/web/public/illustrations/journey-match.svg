@@ -29,7 +29,7 @@
   <rect x="206" y="178" width="112" height="8" rx="4" fill="#DCE6F5"/>
   <rect x="206" y="194" width="78" height="8" rx="4" fill="#DCE6F5"/>
   <!-- percent badge -->
-  <circle cx="304" cy="198" r="16" fill="#EAF1FB"/>
+  <circle cx="304" cy="198" r="16" fill="#EAF1FB" stroke="#93B4E8" stroke-width="1.6"/>
   <text x="304" y="204" text-anchor="middle" font-family="system-ui,sans-serif" font-size="15" font-weight="800" fill="#4274D9">%</text>
   <!-- matched check -->
   <circle cx="214" cy="234" r="13" fill="#4274D9"/>
@@ -37,12 +37,15 @@
   <rect x="234" y="228" width="84" height="8" rx="4" fill="#DCE6F5"/>
 
   <!-- magnifier over the match -->
-  <g stroke="#293681" stroke-width="5" fill="none" stroke-linecap="round">
-    <circle cx="332" cy="118" r="26" fill="#EAF1FB" fill-opacity="0.65"/>
-    <path d="M351 137l19 19"/>
-  </g>
-  <!-- sparkle -->
+  <circle cx="332" cy="118" r="26" fill="#EAF1FB" fill-opacity="0.65" stroke="#293681" stroke-width="5"/>
+  <path d="M318 106a19 19 0 0 1 11-5" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" fill="none" opacity="0.8"/>
+  <path d="M351 137l12 12" stroke="#293681" stroke-width="7" stroke-linecap="round"/>
+  <path d="M362 148l9 9" stroke="#4274D9" stroke-width="9" stroke-linecap="round"/>
+
+  <!-- sparkle + dots -->
   <path d="M156 96l3.5 8 8 3.5-8 3.5-3.5 8-3.5-8-8-3.5 8-3.5z" fill="#95CCDD"/>
+  <circle cx="140" cy="196" r="3" fill="#95CCDD" opacity="0.8"/>
+  <circle cx="368" cy="220" r="2.5" fill="#95CCDD" opacity="0.7"/>
 
   <!-- plant -->
   <path d="M126 304c-4-16 2-30 10-36-2 12 0 22 6 30" fill="#6FA98C"/>

@@ -1,48 +1,57 @@
 import Image from "next/image";
+import Link from "next/link";
 
-import { LeadDialog } from "@/components/lead-dialog";
+import { EarnHeroDoodles } from "@/components/earn-with-us/earn-decor";
 
-// Earn with Us page hero. The page's only <h1> (see page.tsx). Mirrors
-// partner-cta.tsx's copy/illustration split so the home teaser and the full
-// page read as the same offer. Reuses the same Storyset illustration, no new
-// asset needed.
+// Earn with Us page hero. The page's only <h1> (see page.tsx). Matches the
+// calculators hub hero layout: a text column beside a fixed-width illustration
+// box on an in-flow grid (lg+), so the illustration drives the hero's height
+// instead of floating as a background overlay. Keeps two CTAs for the two ways
+// to earn (apply as an agent, refer a friend).
 export function EarnHero() {
   return (
-    <section className="w-full bg-[var(--nav-bg)]">
-      <div className="mx-auto max-w-6xl px-4 py-14 sm:px-6 sm:py-20 lg:px-8 lg:py-24">
-        <div className="grid items-center gap-10 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:gap-16">
+    <section className="relative w-full overflow-hidden bg-[var(--nav-bg)]">
+      <EarnHeroDoodles />
+      <div className="relative mx-auto max-w-7xl px-4 py-14 sm:px-6 sm:py-20 lg:px-8">
+        <div className="grid items-center gap-8 lg:grid-cols-[1fr_auto]">
           <div>
-            <h1 className="font-heading text-4xl font-semibold text-[var(--nav-text)] sm:text-5xl">
-              Become a loan or real estate agent and earn commission
+            <h1 className="max-w-3xl font-heading text-4xl font-semibold text-[var(--nav-text)] sm:text-5xl lg:text-6xl">
+              Become an agent, or refer and earn
             </h1>
-            <p className="mt-4 max-w-xl text-lg text-[var(--nav-text)]">
-              Bring people the right loan or the right home. Apply for free,
-              we verify your KYC, and you start earning commission on the
-              deals you bring us, for loans or for real estate.
+            <p className="mt-5 max-w-2xl text-lg text-[var(--nav-text)] sm:text-xl">
+              Become an agent and earn commission on the deals you bring. Or refer
+              friends and earn cashback when their property purchase or loan goes
+              through. Both are free.
             </p>
-            <div className="mt-8">
-              <LeadDialog
-                businessLine="loans"
-                lineSelectable
-                origin="agent-application-page"
-                triggerLabel="Apply to become an agent"
-                title="Apply to become an agent"
-                description="Tell us your details and pick a line. We'll verify your KYC and get you started."
-                submitLabel="Submit application"
-              />
+            <div className="mt-8 flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:gap-4">
+              <Link
+                href="/apply-as-agent"
+                className="inline-flex h-10 w-full items-center justify-center rounded-md bg-[var(--nav-primary)] px-4 text-sm font-medium text-white transition hover:bg-[var(--nav-primary-hover)] sm:w-auto"
+              >
+                Apply to become an agent
+              </Link>
+              <Link
+                href="/register"
+                className="inline-flex h-10 w-full items-center justify-center rounded-md border border-[var(--nav-primary)] px-4 text-sm font-medium text-[var(--nav-primary)] transition hover:bg-[var(--nav-tint)] sm:w-auto"
+              >
+                Refer and earn
+              </Link>
             </div>
           </div>
-
-          <div className="hidden lg:flex lg:items-center lg:justify-center">
+          {/* Desktop-only (locked rule: illustrations render lg+, never phone/tablet). */}
+          <div
+            aria-hidden
+            className="hidden shrink-0 items-center justify-center lg:flex lg:w-[460px]"
+          >
             <Image
-              src="/illustrations/agent-earning.svg"
+              src="/illustrations/earn-with-us.svg"
               alt=""
-              width={720}
-              height={720}
-              sizes="640px"
-              className="mx-auto h-auto w-full max-w-[560px]"
-              priority
               aria-hidden
+              width={500}
+              height={500}
+              sizes="460px"
+              className="h-auto w-full max-w-[460px]"
+              priority
             />
           </div>
         </div>

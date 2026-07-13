@@ -83,9 +83,10 @@ function LegendRow({
   return (
     <div className="flex items-center gap-3">
       <span className="h-3 w-3 shrink-0 rounded-sm" style={{ backgroundColor: color }} aria-hidden />
-      <dt className="text-text-secondary">{label}</dt>
-      <dd className="ml-auto font-medium text-[var(--nav-text)]">
-        {value} <span className="text-text-secondary">({pct}%)</span>
+      <dt className="shrink-0 text-text-secondary">{label}</dt>
+      <dd className="ml-auto min-w-0 text-right font-medium text-[var(--nav-text)]">
+        <span className="whitespace-nowrap">{value}</span>{" "}
+        <span className="text-text-secondary">({pct}%)</span>
       </dd>
     </div>
   );
