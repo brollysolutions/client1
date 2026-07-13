@@ -124,4 +124,5 @@ services:
 volumes:
   postgres_data:
   web_node_modules:
+  web_next:
   api_venv:

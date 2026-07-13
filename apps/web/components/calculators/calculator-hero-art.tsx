@@ -1,5 +1,7 @@
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+
+import Image from "next/image";
 
 import { cn } from "@/lib/utils";
 
@@ -10,7 +12,10 @@ import { cn } from "@/lib/utils";
 // (lg+) and aria-hidden, per the illustrations rule.
 //
 // Server Component: it checks the public asset on disk at build time (pages are
-// SSG'd), so no client JS and no layout shift.
+// SSG'd), so no client JS. width/height are read from the SVG's own viewBox
+// (assets aren't uniformly square, e.g. emi.svg is 3:2) so the browser reserves
+// the right box before the image loads, instead of collapsing to 0 height and
+// popping/jumping into place once it does.
 export function CalculatorHeroArt({
   group,
   src,
@@ -24,7 +29,9 @@ export function CalculatorHeroArt({
   // process.cwd() is apps/web during `next build`/dev and in the web container,
   // so /public resolves correctly. If a future monorepo-root build broke that,
   // the check simply fails safe to the coded fallback below (no crash).
-  const asset = src && existsSync(join(process.cwd(), "public", src)) ? src : null;
+  const absPath = src ? join(process.cwd(), "public", src) : null;
+  const asset = absPath && existsSync(absPath) ? src : null;
+  const { width, height } = asset ? readSvgSize(absPath!) : { width: 500, height: 500 };
 
   // With a real Storyset illustration, render it transparent so it blends into
   // the cream hero band (no card, border, or shadow). The coded fallback keeps
@@ -35,8 +42,15 @@ export function CalculatorHeroArt({
         aria-hidden
         className={cn("hidden shrink-0 items-center justify-center lg:flex lg:w-[460px]", className)}
       >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={asset} alt="" className="h-auto w-full max-w-[460px]" loading="lazy" />
+        <Image
+          src={asset}
+          alt=""
+          width={width}
+          height={height}
+          sizes="460px"
+          className="h-auto w-full max-w-[460px]"
+          priority
+        />
       </div>
     );
   }
@@ -62,6 +76,15 @@ export function CalculatorHeroArt({
       </svg>
     </div>
   );
+}
+
+function readSvgSize(absPath: string): { width: number; height: number } {
+  const viewBox = readFileSync(absPath, "utf8").match(
+    /viewBox="[\d.-]+\s+[\d.-]+\s+([\d.]+)\s+([\d.]+)"/,
+  );
+  return viewBox
+    ? { width: Math.round(Number(viewBox[1])), height: Math.round(Number(viewBox[2])) }
+    : { width: 500, height: 500 };
 }
 
 function LoansArt() {
