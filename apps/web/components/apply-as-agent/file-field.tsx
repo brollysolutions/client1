@@ -155,9 +155,9 @@ export function FileField({
           }}
           onDrop={handleDrop}
           className={cn(
-            "group relative flex aspect-square w-full flex-col items-center justify-center gap-2 overflow-hidden rounded-xl border-2 border-dashed p-3 text-center transition-colors",
+            "group relative flex aspect-square w-full cursor-pointer flex-col items-center justify-center gap-2 overflow-hidden rounded-xl border-2 border-dashed p-3 text-center transition-colors",
             "focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[var(--nav-primary)]/50",
-            "disabled:pointer-events-none disabled:opacity-50",
+            "disabled:pointer-events-none disabled:cursor-default disabled:opacity-50",
             displayError
               ? "border-destructive"
               : dragging
@@ -234,7 +234,7 @@ export function FileField({
             onClick={handleRemove}
             disabled={disabled}
             aria-label={`Remove ${label}`}
-            className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full bg-white/95 text-foreground shadow-sm transition hover:bg-white hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nav-primary)]/50"
+            className="absolute right-2 top-2 flex h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-white/95 text-foreground shadow-sm transition hover:bg-white hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nav-primary)]/50 disabled:cursor-default disabled:opacity-50"
           >
             <X className="h-4 w-4" aria-hidden />
           </button>

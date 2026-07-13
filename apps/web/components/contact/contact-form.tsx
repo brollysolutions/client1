@@ -159,8 +159,9 @@ export function ContactForm({
               onClick={() => setTopic(option.value)}
               disabled={submitting}
               className={cn(
-                "h-12 rounded-lg border px-2 text-sm font-medium transition",
+                "h-12 cursor-pointer rounded-lg border px-2 text-sm font-medium transition",
                 "focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[var(--nav-primary)]/50",
+                "disabled:cursor-default disabled:opacity-50",
                 topic === option.value
                   ? "border-[var(--nav-primary)] bg-[var(--nav-primary)] text-white"
                   : "border-[var(--nav-border)] bg-transparent text-foreground hover:bg-[var(--nav-tint)]",

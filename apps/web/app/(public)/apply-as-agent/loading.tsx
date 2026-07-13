@@ -1,19 +1,26 @@
 import { Skeleton } from "@/components/ui/skeleton";
 
-// Route-level skeleton for /apply-as-agent, shaped like the real page (centered
-// text-only hero + centered max-w-3xl form with square KYC upload tiles) so the
-// swap to content doesn't jump. Overrides the generic (public) group loading
-// fallback. SiteHeader/SiteFooter persist via the (public) layout.
+// Route-level skeleton for /apply-as-agent, shaped like the real page (two-
+// column hero with an illustration slot on lg+ + centered max-w-3xl form with
+// square KYC upload tiles) so the swap to content doesn't jump. Overrides the
+// generic (public) group loading fallback. SiteHeader/SiteFooter persist via
+// the (public) layout.
 export default function ApplyAsAgentLoading() {
   return (
     <div aria-hidden>
-      {/* Hero: centered heading + two description lines, no illustration */}
+      {/* Hero: two-line heading + description left, illustration slot right (lg+) */}
       <section className="w-full bg-[var(--nav-bg)]">
         <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 sm:py-20 lg:px-8">
-          <div className="flex flex-col items-center">
-            <Skeleton className="h-10 w-2/3 max-w-xl sm:h-12" />
-            <Skeleton className="mt-5 h-5 w-full max-w-2xl" />
-            <Skeleton className="mt-2 h-5 w-5/6 max-w-xl" />
+          <div className="grid items-center gap-8 lg:grid-cols-[1fr_auto]">
+            <div>
+              <Skeleton className="h-10 w-40 sm:h-12 sm:w-56" />
+              <Skeleton className="mt-2 h-10 w-28 sm:h-12 sm:w-36" />
+              <Skeleton className="mt-5 h-5 w-full max-w-2xl" />
+              <Skeleton className="mt-2 h-5 w-5/6 max-w-xl" />
+            </div>
+            <div className="hidden shrink-0 items-center justify-center lg:flex lg:w-[460px]">
+              <Skeleton className="h-[360px] w-full max-w-[460px] rounded-2xl" />
+            </div>
           </div>
         </div>
       </section>

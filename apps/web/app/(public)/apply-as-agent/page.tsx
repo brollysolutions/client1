@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 
 import { AgentApplicationForm } from "@/components/apply-as-agent/agent-application-form";
 import { ApplicationDoodles } from "@/components/apply-as-agent/application-doodles";
@@ -72,18 +73,37 @@ export default async function ApplyAsAgentPage({
         dangerouslySetInnerHTML={{ __html: JSON.stringify(applyJsonLd) }}
       />
 
-      {/* Hero. Centered composition: the form below is also centered, so the
-          whole page reads as one column. No side illustration here by design. */}
+      {/* Hero */}
       <section className="relative w-full overflow-hidden bg-[var(--nav-bg)]">
-        <div className="relative mx-auto max-w-7xl px-4 py-14 text-center sm:px-6 sm:py-20 lg:px-8">
-          <h1 className="mx-auto max-w-3xl font-heading text-4xl font-semibold text-[var(--nav-text)] sm:text-5xl lg:text-6xl">
-            Earn on every deal you bring
-          </h1>
-          <p className="mx-auto mt-5 max-w-2xl text-lg text-[var(--nav-text)] sm:text-xl">
-            Join as a loans or real estate agent and get paid commission when
-            your referrals close. Applying is free and takes about ten minutes.
-            Our team verifies your KYC and calls you to get you started.
-          </p>
+        <div className="relative mx-auto max-w-7xl px-4 py-14 sm:px-6 sm:py-20 lg:px-8">
+          <div className="grid items-center gap-8 lg:grid-cols-[1fr_auto]">
+            <div>
+              <h1 className="max-w-2xl font-heading text-4xl font-semibold text-[var(--nav-text)] sm:text-5xl lg:text-6xl">
+                <span className="block">Apply to become</span>
+                <span className="block">an agent</span>
+              </h1>
+              <p className="mt-5 max-w-2xl text-lg text-[var(--nav-text)] sm:text-xl">
+                Earn commission on the deals you bring. Applying is free, every
+                agent account works one line, and we verify your KYC after you
+                apply.
+              </p>
+            </div>
+            <div
+              aria-hidden
+              className="hidden shrink-0 items-center justify-center lg:flex lg:w-[460px]"
+            >
+              <Image
+                src="/illustrations/heroes/apply-as-agent.svg"
+                alt=""
+                aria-hidden
+                width={500}
+                height={500}
+                sizes="460px"
+                className="h-auto w-full max-w-[460px]"
+                priority
+              />
+            </div>
+          </div>
         </div>
       </section>
 
