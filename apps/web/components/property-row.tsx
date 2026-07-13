@@ -19,6 +19,7 @@ export function PropertyRow({
   types,
   listings,
   showMore = true,
+  id,
 }: {
   heading: string;
   /** Optional supporting line, e.g. "Flats, plots, villas, and commercial spaces." */
@@ -26,6 +27,8 @@ export function PropertyRow({
   listings: PropertyListing[];
   /** Render the trailing "register to see more" gate card. Default true. */
   showMore?: boolean;
+  /** Scroll anchor id, e.g. a property category key for footer deep links. */
+  id?: string;
 }) {
   const scrollerRef = useRef<HTMLDivElement>(null);
 
@@ -63,7 +66,7 @@ export function PropertyRow({
   }
 
   return (
-    <section aria-label={heading} className="w-full">
+    <section id={id} aria-label={heading} className="w-full scroll-mt-16">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <h3 className="font-heading text-2xl font-semibold text-[var(--nav-text)] sm:text-3xl">
           {heading}

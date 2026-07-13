@@ -75,6 +75,7 @@ export default function RealEstatePage() {
               {POPULATED_CATEGORIES.map((category) => (
                 <PropertyRow
                   key={category.key}
+                  id={category.key}
                   heading={category.label}
                   types={category.blurb}
                   listings={getListingsByCategory(category.key)}
