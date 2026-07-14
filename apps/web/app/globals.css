@@ -42,6 +42,31 @@
 
   /* Announcement/notice bar — global site chrome, not a line accent. */
   --color-notice: #F3BB1B;
+
+  /* Dashboard shell chrome — warm gray, a quiet step down from the cream
+     --background so the rail and top bar read as chrome, not a coloured panel
+     (the old navy sidebar is gone). Colour on the dashboard comes only from the
+     active line accent (loans green / real-estate amber), one line at a time via
+     the switcher. */
+  --color-dash-rail: #EAE6DE;
+  --color-dash-rail-hover: #E1DBD0;
+  --color-dash-border: #DBD5C9;
+
+  /* Letter-avatar palette (components/user-avatar). A user's tile colour is a
+     deterministic hash of their name, so it never changes between sessions.
+     Eight distinct hues, deliberately none in the green/amber families so an
+     avatar can never be misread as a loans or real-estate line accent. Every
+     hue is dark enough to clear 4.5:1 against the white initial it always pairs
+     with. Referenced only through the literal bg-avatar-N classes in
+     user-avatar.tsx (keep that list in sync with these tokens). */
+  --color-avatar-1: #1D4ED8; /* blue */
+  --color-avatar-2: #4338CA; /* indigo */
+  --color-avatar-3: #6D28D9; /* violet */
+  --color-avatar-4: #7E22CE; /* purple */
+  --color-avatar-5: #A21CAF; /* fuchsia */
+  --color-avatar-6: #BE185D; /* pink */
+  --color-avatar-7: #0E7490; /* cyan */
+  --color-avatar-8: #475569; /* slate */
 }
 
 /* ------------------------------------------------------------------ *
