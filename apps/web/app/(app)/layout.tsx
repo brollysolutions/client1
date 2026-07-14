@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 
 import { AuthProvider, useAuth } from "@/components/auth/session-provider";
+import { AppShell } from "@/features/dashboard/app-shell";
 
 // Client-side route guard for the authenticated app surface. This is a UX gate
 // only, not the security boundary: the real access control is Postgres RLS plus
@@ -37,7 +38,9 @@ function AppGuard({ children }: { children: React.ReactNode }) {
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <AuthProvider>
-      <AppGuard>{children}</AppGuard>
+      <AppGuard>
+        <AppShell>{children}</AppShell>
+      </AppGuard>
     </AuthProvider>
   );
 }
