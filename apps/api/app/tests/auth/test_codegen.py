@@ -64,8 +64,11 @@ class TestClientCode:
 
     def test_uniqueness_across_100_calls(self) -> None:
         codes = {generate_profile_code("client", "John", "loans") for _ in range(100)}
-        # Collisions are unlikely enough at 32^4 space with n=100 that any collision = bug
-        assert len(codes) == 100
+        # 32^4 = 1,048,576-slot space; birthday paradox puts P(>=1 collision) at n=100
+        # around 0.5% (n^2/2N), so a strict ==100 assertion flakes in CI on its own.
+        # A broken/non-random generator would produce many dupes, not one — 99 still
+        # catches that while tolerating the expected rare single collision.
+        assert len(codes) >= 99
 
 
 class TestStaffCode:

@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect, useState } from "react";
+
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
@@ -46,6 +48,21 @@ export function SliderField({
     return Math.min(max, Math.max(min, next));
   }
 
+  // Decoupled from `value` so the user can freely type (clear the field,
+  // enter a number below `min` mid-edit, etc.) without every keystroke
+  // being clamped out from under them. Clamping happens on blur/Enter.
+  const [text, setText] = useState(String(value));
+
+  useEffect(() => {
+    setText(String(value));
+  }, [value]);
+
+  function commit(raw: string) {
+    const clamped = clamp(parseFloat(raw));
+    setText(String(clamped));
+    onChange(clamped);
+  }
+
   return (
     <div className={cn("grid gap-2", className)}>
       <div className="flex items-center justify-between gap-3">
@@ -63,11 +80,15 @@ export function SliderField({
             id={id}
             type="number"
             inputMode="decimal"
-            value={String(value)}
+            value={text}
             min={min}
             max={max}
             step={step}
-            onChange={(event) => onChange(clamp(parseFloat(event.target.value)))}
+            onChange={(event) => setText(event.target.value)}
+            onBlur={(event) => commit(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") commit(event.currentTarget.value);
+            }}
             className="h-6 w-24 border-0 p-0 text-right font-heading text-base font-semibold shadow-none focus-visible:ring-0"
           />
           {suffix ? (
