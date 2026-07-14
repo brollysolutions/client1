@@ -19,6 +19,7 @@ from sqlalchemy import delete, func
 
 import app.db.session as db_session
 from app.core.config import settings
+from app.jobs.backfill_customer_codes import backfill_customer_codes
 from app.models.auth import RefreshToken
 
 logger = logging.getLogger("scheduler")
@@ -96,6 +97,15 @@ def build_scheduler() -> AsyncIOScheduler:
         trigger="interval",
         hours=24,  # daily housekeeping; expired tokens are not time-critical
         id="prune_refresh_tokens",
+        max_instances=1,
+        coalesce=True,
+        replace_existing=True,
+    )
+    scheduler.add_job(
+        backfill_customer_codes,
+        trigger="interval",
+        hours=6,  # safety net; registration provisions codes synchronously, so hits are ~0
+        id="backfill_customer_codes",
         max_instances=1,
         coalesce=True,
         replace_existing=True,
