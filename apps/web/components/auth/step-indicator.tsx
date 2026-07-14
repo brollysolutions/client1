@@ -2,7 +2,28 @@ import { Check } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
-// Numbered progress steps. Rendered on the navy brand panel (`tone="navy"`) and,
+type Tone = "navy" | "light" | "sky";
+
+// Per-tone class lookups. `filled` = the current or a completed step's circle;
+// the label variants cover active / done / pending. `sky` reads on the auth
+// brand panel's sky-blue gradient (white circles + white labels); `navy` is the
+// legacy dark-panel palette; `light` is the cream form header on small screens.
+const CIRCLE: Record<Tone, { filled: string; empty: string }> = {
+  navy: { filled: "bg-brand-sky text-brand-navy", empty: "border border-white/30 text-white/50" },
+  sky: { filled: "bg-white text-brand-cta", empty: "border border-white/50 text-white/70" },
+  light: { filled: "bg-brand-navy text-white", empty: "border border-border text-text-secondary" },
+};
+const LABEL: Record<Tone, { active: string; done: string; pending: string }> = {
+  navy: { active: "font-semibold text-white", done: "text-white/80", pending: "text-white/45" },
+  sky: { active: "font-semibold text-white", done: "text-white/85", pending: "text-white/60" },
+  light: {
+    active: "font-semibold text-text-primary",
+    done: "text-text-secondary",
+    pending: "text-text-secondary",
+  },
+};
+
+// Numbered progress steps. Rendered on the sky brand panel (`tone="sky"`) and,
 // on small screens where that panel is hidden, in the cream form header
 // (`tone="light"`). `activeStep` is a 0-based index; earlier steps render done.
 export function StepIndicator({
@@ -13,7 +34,7 @@ export function StepIndicator({
 }: {
   steps: string[];
   activeStep: number;
-  tone?: "navy" | "light";
+  tone?: Tone;
   className?: string;
 }) {
   return (
@@ -27,13 +48,7 @@ export function StepIndicator({
             <span
               className={cn(
                 "flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-semibold",
-                tone === "navy"
-                  ? filled
-                    ? "bg-brand-sky text-brand-navy"
-                    : "border border-white/30 text-white/50"
-                  : filled
-                    ? "bg-brand-navy text-white"
-                    : "border border-border text-text-secondary"
+                filled ? CIRCLE[tone].filled : CIRCLE[tone].empty
               )}
             >
               {done ? <Check className="h-3.5 w-3.5" /> : i + 1}
@@ -41,15 +56,7 @@ export function StepIndicator({
             <span
               className={cn(
                 "text-sm",
-                tone === "navy"
-                  ? active
-                    ? "font-semibold text-white"
-                    : done
-                      ? "text-white/80"
-                      : "text-white/45"
-                  : active
-                    ? "font-semibold text-text-primary"
-                    : "text-text-secondary"
+                active ? LABEL[tone].active : done ? LABEL[tone].done : LABEL[tone].pending
               )}
             >
               {label}

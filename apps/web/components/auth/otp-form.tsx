@@ -3,6 +3,7 @@
 import * as React from "react";
 import { REGEXP_ONLY_DIGITS } from "input-otp";
 
+import { AUTH_LINK_CLASS, AUTH_SUBMIT_CLASS } from "@/components/auth/auth-styles";
 import { Button } from "@/components/ui/button";
 import {
   InputOTP,
@@ -10,6 +11,7 @@ import {
   InputOTPSlot,
 } from "@/components/ui/input-otp";
 import type { AuthResult } from "@/lib/auth";
+import { cn } from "@/lib/utils";
 
 const RESEND_SECONDS = 30;
 
@@ -111,7 +113,7 @@ export function OtpForm({
       <Button
         type="submit"
         size="lg"
-        className="h-12 w-full text-base"
+        className={cn(AUTH_SUBMIT_CLASS, "h-12 w-full text-base")}
         disabled={submitting || otp.length !== 6}
       >
         {submitting ? "Verifying…" : submitLabel}
@@ -127,7 +129,10 @@ export function OtpForm({
               type="button"
               onClick={handleResend}
               disabled={resending}
-              className="cursor-pointer font-medium text-brand-navy underline-offset-4 hover:underline focus-visible:outline-none focus-visible:underline disabled:pointer-events-none disabled:opacity-50"
+              className={cn(
+                AUTH_LINK_CLASS,
+                "cursor-pointer font-medium underline-offset-4 hover:underline focus-visible:outline-none focus-visible:underline disabled:pointer-events-none disabled:opacity-50"
+              )}
             >
               {resending ? "Resending…" : "Resend"}
             </button>
