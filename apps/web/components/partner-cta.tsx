@@ -27,11 +27,11 @@ export function PartnerCta() {
           <div className="lg:order-1">
             <h2
               id="partners-heading"
-              className="font-heading text-3xl font-semibold text-foreground sm:text-4xl"
+              className="font-heading text-3xl font-semibold text-foreground sm:text-4xl lg:text-5xl"
             >
               Earn with us
             </h2>
-            <p className="mt-4 max-w-md text-lg text-text-secondary">
+            <p className="mt-4 max-w-md text-lg text-text-secondary sm:text-xl">
               There are two ways to earn here. Both are free to start.
             </p>
 
@@ -40,7 +40,7 @@ export function PartnerCta() {
                 <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[var(--nav-tint)] text-brand-blue">
                   <Handshake className="h-5 w-5" aria-hidden />
                 </span>
-                <p className="text-base text-foreground">
+                <p className="text-base text-foreground sm:text-lg">
                   <span className="font-semibold">Become an agent.</span>{" "}
                   Bring us people who need a loan or a property. You earn
                   commission on every deal that closes.
@@ -50,7 +50,7 @@ export function PartnerCta() {
                 <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[var(--nav-tint)] text-brand-blue">
                   <Gift className="h-5 w-5" aria-hidden />
                 </span>
-                <p className="text-base text-foreground">
+                <p className="text-base text-foreground sm:text-lg">
                   <span className="font-semibold">Refer and earn.</span>{" "}
                   Share your referral code. When a friend buys a property or
                   closes a loan, you get cashback.
@@ -87,8 +87,8 @@ export function PartnerCta() {
               alt=""
               width={500}
               height={500}
-              sizes="520px"
-              className="mx-auto h-auto w-full max-w-[520px]"
+              sizes="560px"
+              className="mx-auto h-auto w-full max-w-[560px]"
               priority={false}
               aria-hidden
             />
