@@ -1,6 +1,7 @@
 import * as React from "react";
 
 import { cn } from "@/lib/utils";
+import { normalizeMobile } from "@/lib/phone";
 
 // The Indian tricolour with the Ashoka Chakra, as an inline SVG. We avoid the
 // 🇮🇳 flag emoji because Windows/Chrome render it as the letters "IN".
@@ -27,10 +28,12 @@ function IndiaFlag({ className }: { className?: string }) {
 }
 
 // Phone-number field for the auth flows: an India flag + fixed "+91" prefix in
-// front of a bare input. Deliberately does NOT restrict what can be typed — the
-// value stays freeform and is validated (isValidMobile) / normalized (toE164) at
-// submit, exactly like a plain <Input type="tel">. Props mirror that usage so
-// call sites swap in without changing their handlers.
+// front of a bare input. The value is normalized to bare digits and hard-capped
+// at 10 as the user types (reusing normalizeMobile so a pasted "+91"/leading-0
+// number is handled), then still validated (isValidMobile) / formatted (toE164)
+// at submit. Callers keep passing value + onChange unchanged — we intercept
+// onChange, rewrite the event value, and call through, so the stored state is
+// always a clean <=10-digit string.
 type MobileInputProps = Omit<
   React.ComponentProps<"input">,
   "type" | "inputMode" | "className"
@@ -39,9 +42,17 @@ type MobileInputProps = Omit<
 function MobileInput({
   id,
   disabled,
+  onChange,
   "aria-invalid": ariaInvalid,
   ...props
 }: MobileInputProps) {
+  function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
+    // Digits only, strip a pasted +91 / leading 0, hard-cap at 10.
+    const capped = normalizeMobile(e.target.value).slice(0, 10);
+    if (capped !== e.target.value) e.target.value = capped;
+    onChange?.(e);
+  }
+
   return (
     <div
       data-slot="mobile-input"
@@ -62,6 +73,7 @@ function MobileInput({
         inputMode="numeric"
         disabled={disabled}
         aria-invalid={ariaInvalid}
+        onChange={handleChange}
         className="h-full w-full min-w-0 rounded-r-lg bg-transparent px-3.5 py-1 text-base outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed"
         {...props}
       />

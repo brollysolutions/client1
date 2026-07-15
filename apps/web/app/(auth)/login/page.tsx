@@ -6,6 +6,11 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft, Lock } from "lucide-react";
 import { toast } from "sonner";
 
+import {
+  AUTH_BACK_LINK_CLASS,
+  AUTH_LINK_CLASS,
+  AUTH_SUBMIT_CLASS,
+} from "@/components/auth/auth-styles";
 import { AuthShell } from "@/components/auth/auth-shell";
 import { MobileInput } from "@/components/auth/mobile-input";
 import { PasswordField } from "@/components/auth/password-field";
@@ -13,6 +18,7 @@ import { SetPasswordForm } from "@/components/auth/set-password-form";
 import { useAuth } from "@/components/auth/session-provider";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { cn } from "@/lib/utils";
 import {
   changePassword,
   describeAuthError,
@@ -101,10 +107,11 @@ export default function LoginPage() {
   if (forceReset) {
     return (
       <AuthShell
+        scene="login"
         panelTitle="One quick step."
         panelSubtitle="Your account uses a temporary password. Set a new one to finish signing in."
       >
-        <span className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-brand-sky/25 text-brand-navy">
+        <span className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-brand-cta-tint text-brand-cta">
           <Lock className="h-6 w-6" />
         </span>
 
@@ -172,12 +179,16 @@ export default function LoginPage() {
 
   return (
     <AuthShell
+      scene="login"
       panelTitle="Welcome back."
       panelSubtitle="Log in with your phone number and password to pick up right where you left off."
     >
       <Link
         href="/"
-        className="mb-6 inline-flex items-center gap-2 text-sm text-text-secondary transition-colors hover:text-text-primary focus-visible:text-text-primary focus-visible:outline-none"
+        className={cn(
+          AUTH_BACK_LINK_CLASS,
+          "mb-6 inline-flex items-center gap-2 text-sm focus-visible:outline-none"
+        )}
       >
         <ArrowLeft className="h-4 w-4" />
         Back to home
@@ -237,7 +248,10 @@ export default function LoginPage() {
               type="button"
               onClick={handleForgotPassword}
               disabled={submitting}
-              className="cursor-pointer text-sm font-medium text-brand-navy underline-offset-4 hover:underline focus-visible:underline focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50"
+              className={cn(
+                AUTH_LINK_CLASS,
+                "cursor-pointer text-sm font-medium underline-offset-4 hover:underline focus-visible:underline focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50"
+              )}
             >
               Forgot password?
             </button>
@@ -247,7 +261,7 @@ export default function LoginPage() {
         <Button
           type="submit"
           size="lg"
-          className="h-12 w-full text-base"
+          className={cn(AUTH_SUBMIT_CLASS, "h-12 w-full text-base")}
           disabled={submitting}
         >
           {submitting ? "Logging in…" : "Login"}
@@ -258,7 +272,10 @@ export default function LoginPage() {
         Don&apos;t have an account?{" "}
         <Link
           href="/register"
-          className="font-medium text-brand-navy underline-offset-4 hover:underline focus-visible:underline focus-visible:outline-none"
+          className={cn(
+            AUTH_LINK_CLASS,
+            "font-medium underline-offset-4 hover:underline focus-visible:underline focus-visible:outline-none"
+          )}
         >
           Sign up
         </Link>

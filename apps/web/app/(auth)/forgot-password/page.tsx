@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft, Loader2, Lock, Smartphone } from "lucide-react";
 import { toast } from "sonner";
 
+import { AUTH_BACK_LINK_CLASS } from "@/components/auth/auth-styles";
 import { AuthShell } from "@/components/auth/auth-shell";
 import { OtpForm } from "@/components/auth/otp-form";
 import { SetPasswordForm } from "@/components/auth/set-password-form";
@@ -17,6 +18,7 @@ import {
   RESET_MOBILE_KEY,
 } from "@/lib/auth";
 import { formatMobile, isValidMobile, toE164 } from "@/lib/phone";
+import { cn } from "@/lib/utils";
 
 // Defense-in-depth: never render a dev OTP hint in a production build (L3).
 const OTP_HINT_ALLOWED = process.env.NEXT_PUBLIC_ENV !== "production";
@@ -52,7 +54,7 @@ const PANEL: Record<View, { title: string; subtitle: string; step: number }> = {
 
 function IconBadge({ children }: { children: React.ReactNode }) {
   return (
-    <span className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-brand-sky/25 text-brand-navy">
+    <span className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-brand-cta-tint text-brand-cta">
       {children}
     </span>
   );
@@ -111,6 +113,7 @@ export default function ForgotPasswordPage() {
 
   return (
     <AuthShell
+      scene="forgot"
       panelTitle={panel.title}
       panelSubtitle={panel.subtitle}
       steps={STEPS}
@@ -118,7 +121,7 @@ export default function ForgotPasswordPage() {
     >
       {view === "loading" && (
         <div className="flex flex-col items-center justify-center gap-3 py-10 text-center">
-          <Loader2 className="h-8 w-8 animate-spin text-brand-navy" />
+          <Loader2 className="h-8 w-8 animate-spin text-brand-cta" />
           <p className="text-sm text-text-secondary">Sending your code…</p>
         </div>
       )}
@@ -128,7 +131,10 @@ export default function ForgotPasswordPage() {
           <button
             type="button"
             onClick={() => router.push("/login")}
-            className="mb-6 inline-flex cursor-pointer items-center gap-2 text-sm text-text-secondary transition-colors hover:text-text-primary focus-visible:text-text-primary focus-visible:outline-none"
+            className={cn(
+              AUTH_BACK_LINK_CLASS,
+              "mb-6 inline-flex cursor-pointer items-center gap-2 text-sm focus-visible:outline-none"
+            )}
           >
             <ArrowLeft className="h-4 w-4" />
             Back to login
