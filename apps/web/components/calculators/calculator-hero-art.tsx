@@ -3,6 +3,7 @@ import { join } from "node:path";
 
 import Image from "next/image";
 
+import type { CalculatorGroup } from "@/lib/calculators/types";
 import { cn } from "@/lib/utils";
 
 // Decorative hero illustration for a calculator. Prefers a Storyset (Rafiki)
@@ -21,7 +22,7 @@ export function CalculatorHeroArt({
   src,
   className,
 }: {
-  group: "loans" | "real_estate";
+  group: CalculatorGroup;
   /** Path under /public, e.g. "/illustrations/calculators/emi.svg". */
   src?: string;
   className?: string;
@@ -72,7 +73,8 @@ export function CalculatorHeroArt({
         strokeLinecap="round"
         strokeLinejoin="round"
       >
-        {group === "loans" ? <LoansArt /> : <RealEstateArt />}
+        {/* Cards/insurance fall back to the finance motif; their real SVGs ship anyway. */}
+        {group === "real_estate" ? <RealEstateArt /> : <LoansArt />}
       </svg>
     </div>
   );

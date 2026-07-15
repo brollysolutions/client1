@@ -20,9 +20,17 @@ import { RateDisclaimer } from "../rate-disclaimer";
 import { ResultCard } from "../result-card";
 import { SliderField } from "../slider-field";
 
-const TYPES = ["home", "car", "personal"] as const;
+// Order and labels mirror the advertised loan products (lib/products.ts) so a
+// visitor coming from /loans sees the same names. Keys match LOAN_DEFAULTS.
+const TYPES = ["personal", "business", "property", "vehicle", "education"] as const;
 type LoanType = (typeof TYPES)[number];
-const TYPE_LABELS: Record<LoanType, string> = { home: "Home", car: "Car", personal: "Personal" };
+const TYPE_LABELS: Record<LoanType, string> = {
+  personal: "Personal",
+  business: "Business",
+  property: "Property",
+  vehicle: "Vehicle",
+  education: "Education",
+};
 
 function clamp(value: number, min: number, max: number): number {
   if (!Number.isFinite(value)) return min;
@@ -51,16 +59,19 @@ function buildCsv(schedule: Schedule): string {
 export function EmiCalculator() {
   const [state, setState] = useQueryStates(
     {
-      type: parseAsStringLiteral(TYPES).withDefault("home"),
-      amount: parseAsInteger.withDefault(LOAN_DEFAULTS.home.amount),
-      rate: parseAsFloat.withDefault(LOAN_DEFAULTS.home.rate),
-      months: parseAsInteger.withDefault(LOAN_DEFAULTS.home.months),
+      type: parseAsStringLiteral(TYPES).withDefault("property"),
+      amount: parseAsInteger.withDefault(LOAN_DEFAULTS.property.amount),
+      rate: parseAsFloat.withDefault(LOAN_DEFAULTS.property.rate),
+      months: parseAsInteger.withDefault(LOAN_DEFAULTS.property.months),
     },
     { history: "replace", clearOnDefault: true },
   );
 
   const bounds = LOAN_DEFAULTS[state.type];
-  const amount = clamp(state.amount, bounds.amountMin, bounds.amountMax);
+  // Amount is uncapped above the slider ceiling (see allowAboveMax) so any EMI
+  // is computable; still floored at amountMin. Rate and tenure stay clamped to
+  // sane ranges.
+  const amount = clamp(state.amount, bounds.amountMin, Infinity);
   const rate = clamp(state.rate, bounds.rateMin, bounds.rateMax);
   const months = clamp(state.months, bounds.monthsMin, bounds.monthsMax);
 
@@ -80,9 +91,10 @@ export function EmiCalculator() {
       {/* Inputs */}
       <div className="grid content-start gap-6">
         <Tabs value={state.type} onValueChange={selectType}>
-          <TabsList className="w-full">
+          {/* 5 loan types: 3-up on phones (wraps to two rows), single row from sm. */}
+          <TabsList className="grid h-auto w-full grid-cols-3 gap-1 sm:grid-cols-5">
             {TYPES.map((t) => (
-              <TabsTrigger key={t} value={t} className="flex-1">
+              <TabsTrigger key={t} value={t} className="h-8">
                 {TYPE_LABELS[t]}
               </TabsTrigger>
             ))}
@@ -98,6 +110,7 @@ export function EmiCalculator() {
           min={bounds.amountMin}
           max={bounds.amountMax}
           step={bounds.amountStep}
+          allowAboveMax
           onChange={(v) => setState({ amount: Math.round(v) })}
           helper={formatINR(amount)}
         />
