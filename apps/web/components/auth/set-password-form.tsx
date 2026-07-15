@@ -2,6 +2,7 @@
 
 import * as React from "react";
 
+import { AUTH_SUBMIT_CLASS } from "@/components/auth/auth-styles";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { PasswordField } from "@/components/auth/password-field";
@@ -170,7 +171,7 @@ export function SetPasswordForm({
       <Button
         type="submit"
         size="lg"
-        className="h-12 w-full text-base"
+        className={cn(AUTH_SUBMIT_CLASS, "h-12 w-full text-base")}
         disabled={!canSubmit}
       >
         {submitting ? "Saving…" : submitLabel}
