@@ -3,17 +3,24 @@ import { describe, expect, it } from "vitest";
 import {
   affordability,
   amortizationSchedule,
+  balanceTransfer,
   cagr,
+  cardEmi,
+  cardPayoff,
   emi,
+  flatToReducing,
   futureValue,
   gstOnProperty,
+  healthCover,
   homeLtvRatio,
   loanEligibility,
   prepayment,
   rentalYield,
+  rentVsBuy,
   reverseEmi,
   sipForGoal,
   stampDuty,
+  termCover,
 } from "@/lib/finance";
 
 const FIXED_START = new Date(2026, 3, 1); // Apr 2026, for deterministic FY buckets
@@ -182,5 +189,288 @@ describe("real-estate helpers", () => {
   it("sizes the SIP needed to reach a goal", () => {
     expect(sipForGoal(1_200_000, 0, 12)).toBe(100_000);
     expect(sipForGoal(1_000_000, 12, 60)).toBeGreaterThan(0);
+  });
+});
+
+describe("cardPayoff()", () => {
+  it("matches the fixed-payment benchmark with GST on interest", () => {
+    const r = cardPayoff({ balance: 100_000, annualRate: 42, monthlyPayment: 5_000 });
+    expect(r.fixed.months).toBe(44);
+    expect(r.fixed.totalInterest).toBe(98_371);
+    expect(r.fixed.totalGst).toBe(17_708);
+    expect(r.fixed.totalPaid).toBe(216_079);
+    expect(r.fixed.neverClears).toBe(false);
+  });
+
+  it("matches the closed form when GST is off", () => {
+    const r = cardPayoff({ balance: 100_000, annualRate: 42, monthlyPayment: 5_000, gstRate: 0 });
+    expect(r.fixed.months).toBe(35);
+    expect(r.fixed.totalInterest).toBe(74_990);
+    expect(r.fixed.totalPaid).toBe(174_990);
+  });
+
+  it("flags a payment that cannot beat the monthly charges", () => {
+    const r = cardPayoff({ balance: 100_000, annualRate: 42, monthlyPayment: 4_000 });
+    expect(r.fixed.neverClears).toBe(true);
+    expect(r.savedVsMinDue).toBe(0);
+  });
+
+  it("simulates the minimum-due trap to its full length", () => {
+    const r = cardPayoff({ balance: 100_000, annualRate: 42, monthlyPayment: 5_000 });
+    expect(r.minDue.months).toBe(341);
+    expect(r.minDue.totalPaid).toBe(472_872);
+    expect(r.minDue.capped).toBe(false);
+    expect(r.savedVsMinDue).toBe(
+      r.minDue.totalInterest + r.minDue.totalGst - (r.fixed.totalInterest + r.fixed.totalGst),
+    );
+  });
+
+  it("stays under the cap at the top of the slider range", () => {
+    const r = cardPayoff({ balance: 100_000, annualRate: 48, monthlyPayment: 6_000 });
+    expect(r.minDue.months).toBe(682);
+    expect(r.minDue.capped).toBe(false);
+  });
+
+  it("detects the diverging minimum-due path analytically", () => {
+    const r = cardPayoff({ balance: 100_000, annualRate: 58, monthlyPayment: 6_000 });
+    expect(r.minDue.neverClears).toBe(true);
+  });
+
+  it("clears a small balance quickly once the floor beats the charges", () => {
+    const r = cardPayoff({ balance: 500, annualRate: 42, monthlyPayment: 5_000 });
+    expect(r.minDue.months).toBe(3);
+    expect(r.minDue.neverClears).toBe(false);
+    expect(r.minDue.capped).toBe(false);
+  });
+
+  it("returns zeroed paths for a zero balance", () => {
+    const r = cardPayoff({ balance: 0, annualRate: 42, monthlyPayment: 5_000 });
+    expect(r.fixed.months).toBe(0);
+    expect(r.minDue.months).toBe(0);
+  });
+});
+
+describe("cardEmi()", () => {
+  it("matches the conversion benchmark with GST on fee and interest", () => {
+    const r = cardEmi({ amount: 50_000, annualRate: 16, months: 12, processingFee: 199 });
+    expect(r.emi).toBe(4_537);
+    expect(r.totalInterest).toBe(4_441);
+    expect(r.gstOnInterest).toBe(798);
+    expect(r.feeWithGst).toBe(235);
+    expect(r.totalCost).toBe(55_474);
+    expect(r.extraPaidPct).toBeCloseTo(10.95, 1);
+    expect(r.effectiveAnnualRate).toBeCloseTo(19.79, 1);
+  });
+
+  it("round-trips the IRR to the quoted rate without fee and GST", () => {
+    const r = cardEmi({ amount: 50_000, annualRate: 16, months: 12, processingFee: 0, gstRate: 0 });
+    expect(r.effectiveAnnualRate).toBeCloseTo(16, 1);
+  });
+
+  it("reconciles GST month by month, not on the total", () => {
+    const r = cardEmi({ amount: 50_000, annualRate: 16, months: 12 });
+    expect(r.gstOnInterest).toBe(798);
+    expect(r.firstMonthOutflow).toBeGreaterThan(r.emi);
+  });
+
+  it("returns a zeroed result for degenerate inputs", () => {
+    expect(cardEmi({ amount: 0, annualRate: 16, months: 12 }).emi).toBe(0);
+    expect(cardEmi({ amount: 50_000, annualRate: 16, months: 0 }).emi).toBe(0);
+  });
+});
+
+describe("termCover()", () => {
+  it("matches the two-method benchmark and rounds up to the slab", () => {
+    const r = termCover({
+      age: 32,
+      annualIncome: 1_200_000,
+      monthlyExpenses: 40_000,
+      outstandingLoans: 3_000_000,
+      existingCover: 5_000_000,
+      liquidAssets: 1_000_000,
+    });
+    expect(r.multiplierUsed).toBe(25);
+    expect(r.incomeMethod).toBe(27_000_000);
+    expect(r.expenseMethod).toBe(10_440_000);
+    expect(r.recommended).toBe(27_500_000);
+    expect(r.recommended % 2_500_000).toBe(0);
+    expect(r.recommended).toBeGreaterThanOrEqual(Math.max(r.incomeMethod, r.expenseMethod));
+  });
+
+  it("switches multiplier bands at the documented edges", () => {
+    const base = { annualIncome: 1_000_000, monthlyExpenses: 0 };
+    expect(termCover({ age: 35, ...base }).multiplierUsed).toBe(25);
+    expect(termCover({ age: 36, ...base }).multiplierUsed).toBe(20);
+    expect(termCover({ age: 55, ...base }).multiplierUsed).toBe(15);
+    expect(termCover({ age: 56, ...base }).multiplierUsed).toBe(10);
+  });
+
+  it("reports adequate cover instead of a negative need", () => {
+    const r = termCover({
+      age: 40,
+      annualIncome: 1_000_000,
+      monthlyExpenses: 30_000,
+      existingCover: 50_000_000,
+    });
+    expect(r.recommended).toBe(0);
+    expect(r.adequatelyCovered).toBe(true);
+  });
+});
+
+describe("healthCover()", () => {
+  it("sizes a metro floater with an extra adult and a senior", () => {
+    const r = healthCover({ cityTier: "metro", adults: 3, hasSeniorMember: true });
+    expect(r.baseCover).toBe(1_000_000);
+    expect(r.extraAdultLoading).toBe(250_000);
+    expect(r.seniorLoading).toBe(625_000);
+    expect(r.suggested).toBe(2_000_000);
+    expect(r.suggestedUpper).toBe(3_000_000);
+    expect(r.seniorSeparatePolicyAdvised).toBe(true);
+  });
+
+  it("keeps the tier-3 couple at the base band", () => {
+    const r = healthCover({ cityTier: "tier3", adults: 2 });
+    expect(r.suggested).toBe(500_000);
+    expect(r.suggestedUpper).toBe(750_000);
+    expect(r.seniorSeparatePolicyAdvised).toBe(false);
+  });
+
+  it("never applies a negative loading for a single adult", () => {
+    const r = healthCover({ cityTier: "tier2", adults: 1 });
+    expect(r.extraAdultLoading).toBe(0);
+    expect(r.suggested).toBe(750_000);
+  });
+});
+
+describe("balanceTransfer()", () => {
+  const inputs = {
+    outstanding: 2_500_000,
+    remainingMonths: 180,
+    currentRate: 9.5,
+    newRate: 8.5,
+    processingFeePct: 0.5,
+    flatFee: 5_900,
+  };
+
+  it("matches the refinance benchmark", () => {
+    const r = balanceTransfer(inputs);
+    expect(r.currentEmi).toBe(26_106);
+    expect(r.sameTenure.newEmi).toBe(24_618);
+    expect(r.sameTenure.monthlySaving).toBe(1_488);
+    expect(r.totalFees).toBe(18_400);
+    expect(r.sameTenure.breakEvenMonth).toBe(13);
+    expect(r.keepEmi.newMonths).toBe(161);
+    expect(r.keepEmi.monthsSaved).toBe(19);
+    expect(Math.abs(r.keepEmi.interestSaved - 503_926)).toBeLessThanOrEqual(5);
+    expect(r.noBenefit).toBe(false);
+  });
+
+  it("keep-EMI saves more than same-tenure, like prepayment", () => {
+    const r = balanceTransfer(inputs);
+    expect(r.keepEmi.netSaving).toBeGreaterThan(r.sameTenure.netSaving);
+  });
+
+  it("flags a transfer to the same or a higher rate", () => {
+    const r = balanceTransfer({ ...inputs, newRate: 9.5 });
+    expect(r.noBenefit).toBe(true);
+    expect(r.sameTenure.monthlySaving).toBe(0);
+    expect(r.sameTenure.breakEvenMonth).toBeNull();
+  });
+});
+
+describe("flatToReducing()", () => {
+  it("matches the classic 10% flat benchmark", () => {
+    const r = flatToReducing({ principal: 100_000, flatRate: 10, months: 60 });
+    expect(r.flatEmi).toBe(2_500);
+    expect(r.totalInterestFlat).toBe(50_000);
+    expect(r.effectiveReducingRate).toBeCloseTo(17.27, 1);
+    expect(r.atSameRateReducing.emi).toBe(2_125);
+    expect(r.atSameRateReducing.totalInterest).toBe(27_477);
+    expect(r.atSameRateReducing.extraPaidOnFlat).toBe(22_523);
+  });
+
+  it("solves shorter tenures without losing the bracket", () => {
+    expect(
+      flatToReducing({ principal: 100_000, flatRate: 12, months: 36 }).effectiveReducingRate,
+    ).toBeCloseTo(21.2, 0);
+    expect(
+      flatToReducing({ principal: 100_000, flatRate: 10, months: 12 }).effectiveReducingRate,
+    ).toBeCloseTo(17.97, 0);
+    expect(
+      flatToReducing({ principal: 100_000, flatRate: 35, months: 12 }).effectiveReducingRate,
+    ).toBeCloseTo(59.39, 1);
+  });
+
+  it("degenerates to the flat rate at a single installment", () => {
+    expect(
+      flatToReducing({ principal: 100_000, flatRate: 10, months: 1 }).effectiveReducingRate,
+    ).toBeCloseTo(10, 5);
+  });
+
+  it("round-trips the effective rate back to the flat EMI", () => {
+    const r = flatToReducing({ principal: 100_000, flatRate: 10, months: 60 });
+    expect(Math.abs(emi(100_000, r.effectiveReducingRate, 60) - r.flatEmi)).toBeLessThanOrEqual(1);
+  });
+
+  it("short-circuits a zero flat rate", () => {
+    const r = flatToReducing({ principal: 100_000, flatRate: 0, months: 12 });
+    expect(r.effectiveReducingRate).toBe(0);
+    expect(r.flatEmi).toBe(Math.round(100_000 / 12));
+  });
+});
+
+describe("rentVsBuy()", () => {
+  const inputs = {
+    monthlyRent: 30_000,
+    rentGrowth: 5,
+    propertyPrice: 10_000_000,
+    downPaymentPct: 20,
+    loanRate: 8.5,
+    appreciation: 5,
+    investmentReturn: 12,
+    horizonYears: 10,
+  };
+
+  it("computes the loan side off the shared schedule", () => {
+    const r = rentVsBuy(inputs);
+    expect(r.loanAmount).toBe(8_000_000);
+    expect(r.emi).toBe(69_426);
+    expect(r.upfrontCash).toBe(2_700_000);
+  });
+
+  it("prefers renting in the high-investment-return scenario", () => {
+    const r = rentVsBuy(inputs);
+    expect(r.cheaper).toBe("rent");
+    expect(r.breakEvenYear).toBeNull();
+    expect(r.buyAdvantageAtHorizon).toBeLessThan(0);
+    expect(r.years).toHaveLength(10);
+    expect(r.years.at(-1)!.buyAdvantage).toBe(r.buyAdvantageAtHorizon);
+  });
+
+  it("flips to buying when appreciation beats the alternative return", () => {
+    const r = rentVsBuy({ ...inputs, appreciation: 10, investmentReturn: 6, rentGrowth: 8 });
+    expect(r.cheaper).toBe("buy");
+    expect(r.breakEvenYear).not.toBeNull();
+  });
+
+  it("drops to maintenance-only outgo after the loan ends", () => {
+    const r = rentVsBuy({ ...inputs, horizonYears: 30 });
+    const afterLoan = r.years[25];
+    const value25 = 10_000_000 * Math.pow(1.05, 25);
+    expect(afterLoan.ownerOutgo).toBe(Math.round(value25 * 0.01));
+    expect(r.years.every((y) => Number.isFinite(y.buyAdvantage))).toBe(true);
+  });
+
+  it("degrades to plain arithmetic at zero rates", () => {
+    const r = rentVsBuy({
+      ...inputs,
+      rentGrowth: 0,
+      appreciation: 0,
+      investmentReturn: 0,
+      loanRate: 0,
+    });
+    expect(Number.isFinite(r.buyAdvantageAtHorizon)).toBe(true);
+    // Flat value minus the loan still outstanding after 120 of 240 months.
+    expect(r.years.at(-1)!.homeEquity).toBe(5_999_960);
   });
 });

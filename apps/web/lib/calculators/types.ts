@@ -12,12 +12,26 @@ export type CalculatorSlug =
   | "prepayment"
   | "loan-comparison"
   | "loan-against-property"
+  | "balance-transfer"
+  | "flat-vs-reducing"
   | "home-affordability"
   | "stamp-duty"
   | "gst"
   | "property-appreciation"
   | "rental-yield"
-  | "down-payment-planner";
+  | "down-payment-planner"
+  | "rent-vs-buy"
+  | "credit-card-payoff"
+  | "credit-card-emi"
+  | "term-insurance"
+  | "health-insurance";
+
+/**
+ * Hub section a calculator sits under. Leads still route on businessLine
+ * (loans | real_estate only, a backend contract): card and insurance
+ * calculators submit as loans-line, matching their product cards.
+ */
+export type CalculatorGroup = "loans" | "real_estate" | "credit_cards" | "insurance";
 
 export interface CalculatorFaq {
   q: string;
@@ -26,8 +40,8 @@ export interface CalculatorFaq {
 
 export interface CalculatorDef {
   slug: CalculatorSlug;
-  /** Which hub column and which lead team this belongs to. */
-  group: "loans" | "real_estate";
+  /** Which hub section this belongs to. */
+  group: CalculatorGroup;
   businessLine: LeadBusinessLine;
   /** Short label for hub cards, breadcrumbs, and related-links. */
   navLabel: string;

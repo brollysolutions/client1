@@ -57,4 +57,39 @@ export const ISLANDS: Partial<Record<CalculatorSlug, ComponentType>> = {
       (m) => m.DownPaymentPlannerCalculator,
     ),
   ),
+  "balance-transfer": dynamic(() =>
+    import("@/components/calculators/islands/balance-transfer-calculator").then(
+      (m) => m.BalanceTransferCalculator,
+    ),
+  ),
+  "flat-vs-reducing": dynamic(() =>
+    import("@/components/calculators/islands/flat-vs-reducing-calculator").then(
+      (m) => m.FlatVsReducingCalculator,
+    ),
+  ),
+  "rent-vs-buy": dynamic(() =>
+    import("@/components/calculators/islands/rent-vs-buy-calculator").then(
+      (m) => m.RentVsBuyCalculator,
+    ),
+  ),
+  "credit-card-payoff": dynamic(() =>
+    import("@/components/calculators/islands/credit-card-payoff-calculator").then(
+      (m) => m.CreditCardPayoffCalculator,
+    ),
+  ),
+  "credit-card-emi": dynamic(() =>
+    import("@/components/calculators/islands/credit-card-emi-calculator").then(
+      (m) => m.CreditCardEmiCalculator,
+    ),
+  ),
+  "term-insurance": dynamic(() =>
+    import("@/components/calculators/islands/term-insurance-calculator").then(
+      (m) => m.TermInsuranceCalculator,
+    ),
+  ),
+  "health-insurance": dynamic(() =>
+    import("@/components/calculators/islands/health-insurance-calculator").then(
+      (m) => m.HealthInsuranceCalculator,
+    ),
+  ),
 };

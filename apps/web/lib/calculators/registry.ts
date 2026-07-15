@@ -1,6 +1,6 @@
 import type { CalculatorDef, CalculatorFaq, CalculatorSlug } from "./types";
 
-// Single source of truth for all 11 calculators. Drives the hub, each route's
+// Single source of truth for all 18 calculators. Drives the hub, each route's
 // metadata + JSON-LD, internal links, the FAQ accordions, and the lead CTA.
 // Copy rules (apps/web/CLAUDE.md): rupee only, no em/en dashes, short humanized
 // sentences. SEO copy (title/meta/intro/howItWorks/faq) is written to India
@@ -15,12 +15,12 @@ export const CALCULATORS: CalculatorDef[] = [
     navLabel: "EMI Calculator",
     cardSummary: "Work out the monthly EMI, total interest, and full repayment schedule for any loan.",
     h1: "EMI Calculator",
-    title: "EMI Calculator: Home, Car & Personal Loan EMI",
+    title: "EMI Calculator: Personal, Business, Property, Vehicle & Education Loan EMI",
     metaDescription:
-      "Free EMI calculator for home, car and personal loans. See your monthly EMI, total interest, and a month by month repayment schedule in seconds.",
-    keywords: ["emi calculator", "home loan emi calculator", "car loan emi calculator", "personal loan emi calculator", "loan emi calculator"],
+      "Free EMI calculator for personal, business, property, vehicle and education loans. See your monthly EMI, total interest, and a month by month repayment schedule in seconds.",
+    keywords: ["emi calculator", "home loan emi calculator", "car loan emi calculator", "personal loan emi calculator", "business loan emi calculator", "education loan emi calculator", "loan emi calculator"],
     intro:
-      "Use this EMI calculator to find your monthly EMI on any home, car, or personal loan. Enter the loan amount, interest rate, and tenure to see the EMI, the total interest you will pay, and a full month by month repayment schedule.",
+      "Use this EMI calculator to find your monthly EMI on any personal, business, property, vehicle, or education loan. Enter the loan amount, interest rate, and tenure to see the EMI, the total interest you will pay, and a full month by month repayment schedule.",
     howItWorks:
       "EMI is calculated on a reducing balance, so every payment first covers interest on what you still owe, then repays a little principal.\n\n```\nEMI = P x r x (1 + r)^n / ((1 + r)^n - 1)\n```\n\n- **P** is the loan amount\n- **r** is the monthly interest rate (annual rate divided by 12)\n- **n** is the tenure in months\n\n**Example:** a ₹30 lakh loan at 9% for 20 years works out to an EMI of about ₹26,992.\n\nEarly EMIs are mostly interest and the principal share grows every month, which is why the schedule below shows the split changing over time.",
     heroArt: `${ART}/emi.svg`,
@@ -32,7 +32,7 @@ export const CALCULATORS: CalculatorDef[] = [
       { q: "Does a longer tenure reduce my EMI?", a: "Yes, a longer tenure lowers the monthly EMI but raises the total interest you pay over the life of the loan. Use the schedule to compare a few tenures before you decide." },
       { q: "Is this the same EMI my bank will charge?", a: "It is very close. Your bank may add processing fees, insurance, and GST on charges, and may round differently, so treat this as an accurate estimate rather than the exact figure on your sanction letter." },
     ],
-    relatedSlugs: ["loan-eligibility", "prepayment", "loan-comparison", "loan-against-property"],
+    relatedSlugs: ["loan-eligibility", "prepayment", "balance-transfer", "loan-comparison"],
     leadOrigin: "calculator-emi",
     leadCta: {
       heading: "Ready to apply for this loan?",
@@ -98,7 +98,7 @@ export const CALCULATORS: CalculatorDef[] = [
       { q: "Does prepaying a home loan affect my CIBIL score?", a: "Prepaying or foreclosing a loan does not hurt your CIBIL score. Closing a loan cleanly is recorded positively, though your score may dip briefly simply because your active credit mix changes." },
       { q: "How many times can I prepay in a year?", a: "Most lenders allow unlimited part-payments on floating-rate home loans, though a few set a minimum amount or a cap per year. Check your lender's terms, as the calculator assumes a single lump sum." },
     ],
-    relatedSlugs: ["emi", "loan-eligibility", "loan-comparison", "loan-against-property"],
+    relatedSlugs: ["emi", "balance-transfer", "loan-eligibility", "loan-against-property"],
     leadOrigin: "calculator-prepayment",
     leadCta: {
       heading: "Thinking about prepaying?",
@@ -130,7 +130,7 @@ export const CALCULATORS: CalculatorDef[] = [
       { q: "How many loan offers can I compare?", a: "Up to three at a time, which covers most real decisions between banks or lenders without cluttering the comparison." },
       { q: "Do you show real bank offers?", a: "No, you enter the offers yourself. The rates you were quoted stay private and are used only for this side by side comparison on your device." },
     ],
-    relatedSlugs: ["emi", "loan-eligibility", "prepayment", "loan-against-property"],
+    relatedSlugs: ["emi", "flat-vs-reducing", "loan-eligibility", "prepayment"],
     leadOrigin: "calculator-loan-comparison",
     leadCta: {
       heading: "Found the right offer?",
@@ -195,7 +195,7 @@ export const CALCULATORS: CalculatorDef[] = [
       { q: "Does the down payment change what I can afford?", a: "Yes. A larger down payment raises the property price you can reach and reduces the loan and the EMI. Most buyers plan a down payment of 10 to 25 percent plus stamp duty and registration." },
       { q: "What other costs should I budget beyond the price?", a: "Stamp duty and registration (often 5 to 8 percent of the value), GST on under construction homes, and one time charges like brokerage and interiors. These are paid separately from the loan, so keep cash aside for them." },
     ],
-    relatedSlugs: ["emi", "loan-eligibility", "stamp-duty", "down-payment-planner"],
+    relatedSlugs: ["rent-vs-buy", "emi", "loan-eligibility", "down-payment-planner"],
     leadOrigin: "calculator-home-affordability",
     leadCta: {
       heading: "Ready to find a home in budget?",
@@ -326,7 +326,7 @@ export const CALCULATORS: CalculatorDef[] = [
       { q: "Should I include vacancy in the expenses?", a: "Yes. A realistic estimate sets aside around one month of rent a year for vacancy and adds it to expenses, so the net yield reflects periods when the property sits empty between tenants." },
       { q: "Is rental income taxable in India?", a: "Yes. Rental income is taxed under income from house property, after a standard 30 percent deduction and any home loan interest. The yield shown here is before tax, so your after tax return is lower." },
     ],
-    relatedSlugs: ["property-appreciation", "home-affordability", "emi", "loan-against-property"],
+    relatedSlugs: ["rent-vs-buy", "property-appreciation", "home-affordability", "emi"],
     leadOrigin: "calculator-rental-yield",
     leadCta: {
       heading: "Looking for a rental investment?",
@@ -367,6 +367,237 @@ export const CALCULATORS: CalculatorDef[] = [
       submitLabel: "Request callback",
     },
   },
+  {
+    slug: "balance-transfer",
+    group: "loans",
+    businessLine: "loans",
+    navLabel: "Balance Transfer",
+    cardSummary: "See what switching your loan to a lower rate saves after every fee.",
+    h1: "Balance Transfer Calculator",
+    title: "Balance Transfer Calculator: Home Loan Refinance Savings",
+    metaDescription:
+      "Check what transferring your home loan to a lower rate really saves. Enter your outstanding, remaining tenure, and both rates to see the net saving after fees and the break even month.",
+    keywords: ["balance transfer calculator", "home loan balance transfer calculator", "loan transfer calculator", "refinance calculator india", "home loan refinance savings"],
+    intro:
+      "Use this balance transfer calculator to see whether moving your loan to a lower rate is worth it. Enter the outstanding amount, the months left, your current rate, and the new offer to get the net saving after fees, the break even month, and both ways to take the benefit.",
+    howItWorks:
+      "Your current EMI comes straight from the outstanding amount, the remaining months, and your current rate. That is a property of how EMIs work: the balance at any point re-amortizes to the original EMI over the remaining term.\n\nThe calculator then rebuilds the loan at the new rate, two ways:\n\n- **Lower the EMI**, keep the tenure: monthly relief, and the saving is the EMI difference across the remaining months minus the fees.\n- **Keep the EMI**, close early: you keep paying the old amount at the new rate, so the loan ends sooner and saves more in total.\n\nFees count against both: the new lender's processing fee plus fixed charges like stamp, MOD, and legal. The break even month is when the EMI savings have paid those back.",
+    heroArt: `${ART}/balance-transfer.svg`,
+    faq: [
+      { q: "Is a home loan balance transfer worth it?", a: "Usually yes when the new rate is at least half a percent lower and you still have several years of tenure left. The calculator nets the fees out of the savings, so the answer it shows is the honest one." },
+      { q: "What does a balance transfer cost?", a: "The new lender charges a processing fee, typically around half a percent of the outstanding, plus fixed charges like stamp duty on the mortgage deed, MOD, legal, and valuation. Budget these before deciding." },
+      { q: "Should I lower the EMI or keep it after the transfer?", a: "Keeping the old EMI at the new rate closes the loan earlier and saves roughly twice as much interest. Lower the EMI only if your monthly budget needs the relief." },
+      { q: "When is a balance transfer a bad idea?", a: "Near the end of the tenure. Most of the interest is already paid, so the fees can eat the small saving that is left. The calculator flags this the moment fees exceed the benefit." },
+      { q: "Does a balance transfer affect my credit score?", a: "There is a hard enquiry from the new lender and the old account closes, which can dip the score a little for a short while. Paying the new loan on time recovers it quickly." },
+      { q: "Can I transfer any loan, or only a home loan?", a: "Home loans see the most transfers because the amounts and tenures are large, but personal loan and loan against property transfers work the same way. The math here applies to any reducing balance loan." },
+    ],
+    relatedSlugs: ["emi", "prepayment", "flat-vs-reducing", "loan-eligibility"],
+    leadOrigin: "calculator-balance-transfer",
+    leadCta: {
+      heading: "Found a saving worth taking?",
+      text: "Leave your number and our loans team will call you back with transfer offers from partner lenders.",
+      triggerLabel: "Check transfer offers",
+      submitLabel: "Request callback",
+    },
+  },
+  {
+    slug: "flat-vs-reducing",
+    group: "loans",
+    businessLine: "loans",
+    navLabel: "Flat vs Reducing Rate",
+    cardSummary: "Convert a flat rate quote to the reducing balance rate it really costs.",
+    h1: "Flat vs Reducing Rate Calculator",
+    title: "Flat vs Reducing Interest Rate Calculator",
+    metaDescription:
+      "Convert a flat interest rate to its real reducing balance rate. A 10% flat car loan quote costs about 17.3% reducing. See the EMI, total interest, and the difference in seconds.",
+    keywords: ["flat vs reducing rate calculator", "flat interest rate calculator", "flat rate to reducing rate", "car loan flat rate", "reducing balance rate calculator"],
+    intro:
+      "Use this calculator to decode a flat rate quote. Car dealers and some lenders quote flat rates because they look small, but interest is charged on the full amount for the whole tenure. Enter the quote to see the honest reducing balance rate it equals and what the difference costs you.",
+    howItWorks:
+      "A flat rate charges interest on the original amount every year, no matter how much you have repaid.\n\n```\nFlat interest = Amount x Flat rate x Years\nFlat EMI = (Amount + Flat interest) / Months\n```\n\nA reducing balance rate, the way home loans work, charges interest only on what you still owe. The calculator finds the reducing rate that produces the same EMI as the flat quote, which is the quote's true cost. The rule of thumb: the reducing equivalent is roughly 1.7 to 1.9 times the flat number.",
+    heroArt: `${ART}/flat-vs-reducing.svg`,
+    faq: [
+      { q: "What is the difference between flat and reducing interest rates?", a: "A flat rate charges interest on the full original loan for the whole tenure. A reducing rate charges interest only on the balance still outstanding, which falls with every EMI. The same number means very different costs." },
+      { q: "How do I convert a flat rate to a reducing rate?", a: "Work out the flat EMI, then find the reducing rate that produces the same EMI over the same months. This calculator does that solve for you instantly. A 10 percent flat quote over 5 years lands near 17.3 percent reducing." },
+      { q: "Why do car loans use flat rates?", a: "Because the number looks smaller in the showroom. A 9 percent flat quote sounds cheaper than a 15 percent reducing quote even when they cost the same. Always ask for the reducing balance rate before comparing." },
+      { q: "Is a flat rate always worse?", a: "The rate itself is just arithmetic, but a flat quote hides the true cost, and that is where buyers lose. Compare every offer on its reducing balance rate or its total interest in rupees." },
+      { q: "Which loans in India are quoted flat?", a: "Mostly car loans, two wheeler loans, some personal loans, and small business or gold loans from informal lenders. Home loans are always reducing balance." },
+      { q: "Does the RBI require lenders to disclose the reducing rate?", a: "Regulated lenders must state the annualised rate in the key facts statement. Dealership paperwork can still lead with the flat number, so check the loan agreement itself." },
+    ],
+    relatedSlugs: ["emi", "loan-comparison", "balance-transfer", "loan-eligibility"],
+    leadOrigin: "calculator-flat-vs-reducing",
+    leadCta: {
+      heading: "Comparing loan offers?",
+      text: "Leave your number and our loans team will call you back with reducing balance quotes you can compare properly.",
+      triggerLabel: "Get honest quotes",
+      submitLabel: "Request callback",
+    },
+  },
+  {
+    slug: "rent-vs-buy",
+    group: "real_estate",
+    businessLine: "real_estate",
+    navLabel: "Rent vs Buy",
+    cardSummary: "Compare renting and buying by what you would actually be worth at the end.",
+    h1: "Rent vs Buy Calculator",
+    title: "Rent vs Buy Calculator: Should You Buy a House in India?",
+    metaDescription:
+      "Rent or buy? Compare both paths by terminal wealth: the buyer's home equity versus the renter's invested savings. See the break even year and a year by year table for your city and budget.",
+    keywords: ["rent vs buy calculator", "rent vs buy calculator india", "should i rent or buy", "buying vs renting a house", "rent or buy home calculator"],
+    intro:
+      "Use this rent vs buy calculator to settle the question with numbers instead of opinions. It compares what you would be worth at the end of your stay on each path: the buyer ends with home equity, the renter ends with everything they saved and invested by not buying. Whoever holds more wins.",
+    howItWorks:
+      "The comparison is terminal wealth, the method serious rent vs buy tools use.\n\n- **The buyer's wealth** is home equity: the appreciated value minus whatever is still owed on the loan.\n- **The renter's wealth** is a corpus: the down payment and buying costs invested on day one, plus every rupee the owner paid beyond rent each year, all growing at your investment return. After the loan ends the owner often pays less than rent, and the corpus draws down, which the model handles.\n\n```\nBuy advantage = Home equity - Renter's corpus\n```\n\nAssumptions: 7% one-time buying costs, 1% a year for maintenance and property tax, a 20 year loan. Selling costs on exit, tax breaks, and the rent deposit are not modeled, and they can move a close verdict either way.",
+    heroArt: `${ART}/rent-vs-buy.svg`,
+    faq: [
+      { q: "Is it better to rent or buy a house in India?", a: "It depends on your city's price to rent ratio, how long you will stay, and what your money earns invested. Renting often wins short stays and expensive cities, buying wins long stays and rising markets. The calculator runs your exact numbers." },
+      { q: "How long do I need to stay for buying to make sense?", a: "The one-time buying costs and the interest heavy early EMIs mean buying usually needs 7 to 12 years to pull ahead. The break even year in the result is this exact answer for your inputs." },
+      { q: "What is the price to rent ratio?", a: "The property price divided by a year of rent. Above roughly 30, renting the same home is much cheaper month to month, and buying leans on appreciation to win. Most Indian metros sit between 25 and 45." },
+      { q: "Does this include home loan tax benefits?", a: "No. Under the new tax regime most filers no longer claim the home loan deductions, so the calculator leaves them out rather than overstate the case for buying. If you use the old regime, buying looks somewhat better than shown." },
+      { q: "What investment return should I assume for renting?", a: "Use what your money realistically earns: 6 to 7 percent in deposits, 10 to 12 percent in diversified equity over long periods. The verdict is sensitive to this number, so try a range." },
+      { q: "Why does my rent deposit not appear?", a: "Deposits are returned when you leave, so over the full horizon their cost is only the interest they could have earned, which is small next to the other numbers. Leaving it out keeps the model honest and simple." },
+    ],
+    relatedSlugs: ["home-affordability", "emi", "rental-yield", "property-appreciation"],
+    leadOrigin: "calculator-rent-vs-buy",
+    leadCta: {
+      heading: "Leaning toward buying?",
+      text: "Leave your number and our real estate team will call you back with verified projects that fit your budget.",
+      triggerLabel: "See what fits your budget",
+      submitLabel: "Request callback",
+    },
+  },
+  {
+    slug: "credit-card-payoff",
+    group: "credit_cards",
+    businessLine: "loans",
+    navLabel: "Card Payoff",
+    cardSummary: "See when your card balance hits zero, and what the minimum due trap costs.",
+    h1: "Credit Card Payoff Calculator",
+    title: "Credit Card Payoff Calculator: Interest, GST & Minimum Due",
+    metaDescription:
+      "Find out when your credit card balance reaches zero at your monthly payment, including the 18% GST on card interest. Compare it with paying only the minimum due and see years of difference.",
+    keywords: ["credit card payoff calculator", "credit card interest calculator", "minimum due calculator", "credit card emi calculator", "credit card debt calculator india"],
+    intro:
+      "Use this credit card payoff calculator to see exactly when your balance reaches zero at the amount you pay every month, and what it costs in interest and GST along the way. It also runs the minimum due path beside it, because that difference is measured in years, not months.",
+    howItWorks:
+      "Card interest compounds monthly at the card's APR, and in India it also carries 18% GST, which most payoff calculators quietly skip.\n\nEach month the calculator posts interest and GST to the balance, then applies your payment:\n\n```\nStatement = Balance + Interest + GST on interest\nNew balance = Statement - Payment\n```\n\nThe minimum due path pays only 5% of the statement, or ₹200, whichever is higher, the standard convention. Because the payment shrinks with the balance while interest keeps compounding, tiny payments stretch a one lakh balance into decades. Issuers vary the exact minimum due formula, so treat that path as representative.",
+    heroArt: `${ART}/credit-card-payoff.svg`,
+    faq: [
+      { q: "How is credit card interest calculated in India?", a: "Cards charge 2.5 to 4 percent a month, 30 to 48 percent a year, on the outstanding balance from the transaction date once you carry a balance. On top of that, 18 percent GST applies to the interest itself, which this calculator includes." },
+      { q: "What happens if I only pay the minimum due?", a: "You stay in debt for years. The minimum due is about 5 percent of the statement, so almost all of it goes to interest and GST. On a one lakh balance at 42 percent, minimum due takes over 28 years while a fixed 5,000 a month clears it in under 4." },
+      { q: "Why is there GST on my credit card interest?", a: "Loan interest is exempt from GST, but the exemption specifically excludes credit card interest. So banks bill 18 percent GST on the interest every month, and it compounds if unpaid." },
+      { q: "How can I pay off my credit card faster?", a: "Fix a monthly payment well above the minimum and stop new spends on the card until it clears. If the rate is crushing, convert the balance to EMI at a lower rate or take a personal loan to close it, both cost far less than revolving." },
+      { q: "Does paying the minimum due protect my credit score?", a: "It avoids a late payment mark, but your utilisation stays high, which itself drags the score. Clearing the balance faster helps on both counts." },
+      { q: "Is it bad to pay my card in full every month?", a: "It is the best possible behaviour. You use the interest free period, pay zero interest and GST, and build a strong score. This calculator is for the months when full payment is not possible." },
+    ],
+    relatedSlugs: ["credit-card-emi", "emi", "loan-eligibility", "balance-transfer"],
+    leadOrigin: "calculator-credit-card-payoff",
+    leadCta: {
+      heading: "Drowning in card interest?",
+      text: "Leave your number and our team will call you back with lower rate options to close the card debt.",
+      triggerLabel: "Find a cheaper way out",
+      submitLabel: "Request callback",
+    },
+  },
+  {
+    slug: "credit-card-emi",
+    group: "credit_cards",
+    businessLine: "loans",
+    navLabel: "Card EMI",
+    cardSummary: "The real cost of converting a purchase to card EMI, fee and GST included.",
+    h1: "Credit Card EMI Calculator",
+    title: "Credit Card EMI Calculator: Conversion Cost with Fee & GST",
+    metaDescription:
+      "Convert a card purchase to EMI and see the real cost: EMI, processing fee, and the 18% GST on both the fee and every month's interest. Get the effective rate, not just the quoted one.",
+    keywords: ["credit card emi calculator", "card emi conversion calculator", "credit card emi interest rate", "no cost emi calculator", "convert credit card payment to emi"],
+    intro:
+      "Use this card EMI calculator to see what converting a purchase or an outstanding balance into EMIs really costs. Banks quote a monthly rate that sounds gentle, but the processing fee and the 18% GST on both the fee and every month's interest push the true cost higher. The effective rate here is the number to compare.",
+    howItWorks:
+      "The EMI itself follows the standard reducing balance formula at the conversion rate. The extras are where card EMIs differ from a loan:\n\n- **Processing fee**, one time, plus 18% GST on it.\n- **18% GST on the interest part of every EMI**, billed monthly on your statement. Your real first month outgo is the EMI plus that GST.\n\n```\nTotal cost = Amount + Interest + GST on interest + Fee with GST\n```\n\nThe effective annual rate is solved from the actual cash flows, everything included, so a 16% quote typically lands near 19 to 20% effective. No cost EMI offers work differently: the merchant funds the interest, but the fee and GST usually still apply.",
+    heroArt: `${ART}/credit-card-emi.svg`,
+    faq: [
+      { q: "How is credit card EMI different from a personal loan EMI?", a: "The formula is the same, but card conversions add 18 percent GST on the interest part of every installment, which loans do not. That plus the processing fee makes the effective rate 3 to 4 points above the quoted rate." },
+      { q: "Is converting to EMI cheaper than revolving the balance?", a: "Almost always, dramatically. Conversion rates run 12 to 18 percent while revolving runs 30 to 48 percent plus GST. The calculator shows the exact rupee difference for your numbers." },
+      { q: "What is the real cost of a no cost EMI?", a: "The merchant discounts the interest, so you pay the sticker price in installments. But the processing fee and the GST on interest usually still hit your statement, so no cost is rarely zero cost. Check the fee line before you click." },
+      { q: "Does GST really apply on card EMI interest?", a: "Yes. Credit card interest is excluded from the GST exemption on loan interest, so every month your statement shows the EMI interest and 18 percent GST on it as separate lines." },
+      { q: "Can I prepay a credit card EMI conversion?", a: "Most banks allow foreclosure with a charge of around 3 percent on the remaining principal, plus GST. If a windfall arrives early in the tenure it usually still saves money." },
+      { q: "Does converting to EMI block my credit limit?", a: "Yes, the converted amount stays blocked against your limit and releases as you pay the EMIs. Your available limit for new spends shrinks until then." },
+    ],
+    relatedSlugs: ["credit-card-payoff", "emi", "loan-comparison", "flat-vs-reducing"],
+    leadOrigin: "calculator-credit-card-emi",
+    leadCta: {
+      heading: "Big purchase coming up?",
+      text: "Leave your number and our team will call you back with the cheapest way to fund it, card EMI or loan.",
+      triggerLabel: "Compare funding options",
+      submitLabel: "Request callback",
+    },
+  },
+  {
+    slug: "term-insurance",
+    group: "insurance",
+    businessLine: "loans",
+    navLabel: "Term Insurance Cover",
+    cardSummary: "Work out how much term life cover your family actually needs.",
+    h1: "Term Insurance Cover Calculator",
+    title: "Term Insurance Calculator: How Much Life Cover Do You Need?",
+    metaDescription:
+      "Calculate how much term life insurance you need from your age, income, expenses, and loans, by the two methods insurers use. Get a recommended cover rounded to the next 25 lakh slab.",
+    keywords: ["term insurance calculator", "life insurance cover calculator", "how much term insurance do i need", "human life value calculator", "term plan calculator india"],
+    intro:
+      "Use this term insurance calculator to work out the cover your family would need if your income stopped. It runs the two methods insurers themselves use, income replacement and expense replacement, applies your loans, existing cover, and savings, and recommends the larger answer rounded up to the next 25 lakh slab.",
+    howItWorks:
+      "Two standard methods, and the recommendation takes the larger:\n\n- **Income method**: your annual income times an age based multiplier, 25x up to age 35, 20x to 45, 15x to 55, 10x after. Younger earners have more years to replace.\n- **Expense method**: your household's monthly expenses funded until you would have turned 60.\n\nBoth then add your outstanding loans, and subtract cover you already hold and savings your family could use.\n\n```\nNeed = Cover by method + Loans - Existing cover - Liquid savings\n```\n\nThe result rounds up, never down, because under-covering is the mistake that hurts. Insurers also cap issuable cover by income multiples in underwriting, so treat very large figures as a conversation with the insurer.",
+    heroArt: `${ART}/term-insurance.svg`,
+    faq: [
+      { q: "How much term insurance do I need in India?", a: "The common rule is 15 to 25 times your annual income depending on age, plus your outstanding loans, minus cover and savings you already have. This calculator runs the exact math and rounds up to the next 25 lakh slab." },
+      { q: "Is 1 crore term insurance enough?", a: "For many young families it is a floor, not a ceiling. A 12 lakh income at age 32 supports a 25x need of 3 crore before loans. Run your own numbers, the right figure depends on income, expenses, and what you already hold." },
+      { q: "Which method is better, income replacement or expense replacement?", a: "They answer differently and the safe answer is the larger one, which is what this calculator recommends. Income method protects your family's lifestyle trajectory, expense method protects the essentials." },
+      { q: "Does my employer's life cover count?", a: "Count it in existing cover, but remember it ends when you leave the job. Most planners treat employer cover as a bonus on top of a personal term plan, not a substitute." },
+      { q: "Should I add my home loan to the cover?", a: "Yes, enter it under outstanding loans. If you die with a loan unpaid the family must still service it, so the cover should be able to close it outright." },
+      { q: "Why round up to 25 lakh slabs?", a: "Term plans are sold in slabs and premiums per lakh often drop at 50 lakh and 1 crore. Rounding up costs little and removes the risk of being slightly short." },
+    ],
+    relatedSlugs: ["health-insurance", "loan-eligibility", "emi", "credit-card-payoff"],
+    leadOrigin: "calculator-term-insurance",
+    leadCta: {
+      heading: "Know your number now?",
+      text: "Leave your phone number and our team will call you back to help you compare term plans for that cover.",
+      triggerLabel: "Compare term plans",
+      submitLabel: "Request callback",
+    },
+  },
+  {
+    slug: "health-insurance",
+    group: "insurance",
+    businessLine: "loans",
+    navLabel: "Health Insurance Cover",
+    cardSummary: "Size the family floater that matches your city and family.",
+    h1: "Health Insurance Cover Calculator",
+    title: "Health Insurance Calculator: What Family Floater Size Do You Need?",
+    metaDescription:
+      "Find the right health insurance cover for your family: city tier, adults covered, and senior members turned into a suggested floater size and band. Built for Indian hospital costs.",
+    keywords: ["health insurance calculator", "health insurance cover calculator", "family floater calculator", "how much health insurance do i need", "medical insurance calculator india"],
+    intro:
+      "Use this health insurance calculator to size the family floater you actually need. Hospital bills depend on where you live and who is covered, so the calculator starts from your city tier, adds for extra adults, loads for senior members, and suggests a cover band built for Indian hospitalisation costs.",
+    howItWorks:
+      "A sizing heuristic, reviewed against what serious hospitalisations cost, not a premium quote:\n\n- **Base cover by city**: ₹10 lakh for metros, ₹7.5 lakh for tier 2, ₹5 lakh for tier 3. A cardiac or cancer admission in a metro private hospital routinely crosses 5 lakh per episode.\n- **Extra adults** beyond two add ₹2.5 lakh each, since one floater serves everyone's claims in a year.\n- **A senior member** raises the suggestion by half, and also triggers separate advice: floaters price on the eldest member, so a separate senior policy usually costs the family less.\n\nThe suggestion rounds up to the 2.5 lakh steps covers are sold in, with a comfortable band above it. Premiums themselves are actuarial and vary by insurer, age, and health.",
+    heroArt: `${ART}/health-insurance.svg`,
+    faq: [
+      { q: "How much health insurance is enough for a family in India?", a: "A useful floor is 10 lakh in metros, 7.5 lakh in tier 2 cities, and 5 lakh in smaller towns, higher with more adults or a senior member. This calculator turns your exact family into a suggested band." },
+      { q: "What is a family floater?", a: "One policy and one cover amount shared by the whole family. It is cheaper than separate covers for each member, but every claim in the year draws from the same pool, which is why bigger families need bigger floaters." },
+      { q: "Should parents above 60 be on the same floater?", a: "Usually not. A floater is priced on its eldest member, so one senior raises the premium for everyone. A separate senior citizen policy for them plus a floater for the rest usually costs less overall." },
+      { q: "Is a top-up plan worth it?", a: "Yes, top-ups are the cheapest way to raise cover. A 5 lakh base with a 20 lakh top-up above a 5 lakh deductible costs far less than a straight 25 lakh floater and protects against the truly large bills." },
+      { q: "Does employer health insurance count?", a: "Count it while you have the job, but do not rely on it alone. It ends the day you leave, and buying fresh cover later means fresh waiting periods at a higher age. A personal base policy keeps you continuously covered." },
+      { q: "Why does the city matter for cover size?", a: "The same procedure can cost two to three times more in a metro private hospital than in a tier 3 town. Cover should match where you would actually be admitted, including the city your parents live in if they are on your policy." },
+    ],
+    relatedSlugs: ["term-insurance", "emi", "loan-eligibility", "credit-card-payoff"],
+    leadOrigin: "calculator-health-insurance",
+    leadCta: {
+      heading: "Ready to get covered?",
+      text: "Leave your phone number and our team will call you back to help you pick a health plan for that cover.",
+      triggerLabel: "Compare health plans",
+      submitLabel: "Request callback",
+    },
+  },
 ];
 
 // General FAQ for the hub (pillar) page. Feeds both the visible accordion and
@@ -375,7 +606,7 @@ export const HUB_FAQ: CalculatorFaq[] = [
   { q: "Are these financial calculators free to use?", a: "Yes, every calculator here is completely free, with no login and no limit on how many times you use it. You can run your numbers as often as you like." },
   { q: "How accurate are the results?", a: "The maths follows the same reducing balance, FOIR, LTV, and tax rules that banks and state governments use, so the results are accurate estimates. Your actual figures can vary slightly with a lender's fees, rounding, and current rates." },
   { q: "Do you store the numbers I enter?", a: "No. Every calculation runs in your browser, so your income, loan, and property figures stay on your device and are never sent to us unless you choose to request a callback." },
-  { q: "Which calculator should I use?", a: "Start with the EMI or loan eligibility calculator if you are taking a loan, and the home affordability, stamp duty, or down payment planner if you are buying property. Each page links to the related calculators you are likely to need next." },
+  { q: "Which calculator should I use?", a: "Start with the EMI or loan eligibility calculator if you are taking a loan, and the home affordability, stamp duty, or down payment planner if you are buying property. There are card payoff and EMI conversion calculators for credit cards, and cover calculators for term and health insurance. Each page links to the related calculators you are likely to need next." },
   { q: "Are the calculators built for India?", a: "Yes. Every calculator uses Indian conventions, rupees, EMIs, state wise stamp duty, GST on under construction homes, and the FOIR and LTV limits Indian lenders apply." },
   { q: "Can you help me apply after I calculate?", a: "Yes. Once you have your numbers, leave your phone number on any calculator and our loans or real estate team will call you back to take it forward." },
 ];
