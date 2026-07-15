@@ -24,6 +24,7 @@ export function SliderField({
   suffix,
   helper,
   info,
+  allowAboveMax = false,
   className,
 }: {
   id: string;
@@ -41,11 +42,24 @@ export function SliderField({
   helper?: string;
   /** Plain-language explanation shown in an info tooltip next to the label. */
   info?: string;
+  /**
+   * When true, a typed number may exceed `max`: the slider thumb pins at `max`
+   * but the committed value is whatever was typed (still floored at `min`). Lets
+   * the field compute past the slider's ceiling — used for uncapped amounts.
+   */
+  allowAboveMax?: boolean;
   className?: string;
 }) {
   function clamp(next: number): number {
     if (Number.isNaN(next)) return min;
     return Math.min(max, Math.max(min, next));
+  }
+
+  // Commit-time bound for the numeric field. When allowAboveMax, drop the upper
+  // clamp so a typed value above `max` survives; the slider still visually pins.
+  function boundCommit(next: number): number {
+    if (Number.isNaN(next)) return min;
+    return allowAboveMax ? Math.max(min, next) : clamp(next);
   }
 
   // Decoupled from `value` so the user can freely type (clear the field,
@@ -58,9 +72,9 @@ export function SliderField({
   }, [value]);
 
   function commit(raw: string) {
-    const clamped = clamp(parseFloat(raw));
-    setText(String(clamped));
-    onChange(clamped);
+    const bounded = boundCommit(parseFloat(raw));
+    setText(String(bounded));
+    onChange(bounded);
   }
 
   return (

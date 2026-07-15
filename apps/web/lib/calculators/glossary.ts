@@ -120,6 +120,93 @@ export const INFO = {
   interestPortion:
     "The part of your payments that goes toward interest, not the borrowed amount.",
   balanceRemaining: "The loan still left to pay at that point.",
+
+  // Card payoff
+  cardBalance: "The amount outstanding on your credit card statement right now.",
+  cardApr:
+    "The card's yearly interest rate. Most cards charge 3 to 4 percent a month, which is 36 to 48 percent a year.",
+  monthlyCardPayment: "The fixed amount you commit to paying against the card every month.",
+  minimumDue:
+    "The smallest payment the bank accepts, usually 5 percent of the statement. Paying only this keeps you in debt for years.",
+  gstOnCardInterest:
+    "Card interest carries 18 percent GST on top, unlike loan interest. It adds up faster than most people expect.",
+  payoffMonths: "How many months until the card balance reaches zero at this payment.",
+  payoffTotalPaid: "Everything you hand the bank on this path: balance, interest, and GST.",
+  savedVsMinDue:
+    "The interest and GST you avoid by paying your fixed amount instead of only the minimum due.",
+
+  // Card EMI conversion
+  cardEmiAmount: "The purchase or outstanding amount you are converting into EMIs.",
+  cardEmiRate:
+    "The interest rate the bank quotes for the conversion, usually much lower than the card's normal rate.",
+  cardProcessingFee: "The one-time fee for setting up the conversion. GST applies on it.",
+  effectiveCardRate:
+    "What the conversion really costs per year once the fee and GST are counted. Always higher than the quoted rate.",
+  cardEmiTotalCost: "Everything you pay for the conversion: amount, interest, GST, and fee.",
+  firstMonthOutflow:
+    "Your real first-month payment: the EMI plus GST on that month's interest.",
+  vsRevolving:
+    "What the same monthly amount would cost if you skipped the conversion and kept revolving at the card's normal rate.",
+
+  // Term insurance cover
+  termAge: "Your current age. Younger earners need more years of income replaced.",
+  annualIncome: "Your yearly income before tax. The cover replaces this for your family.",
+  monthlyHouseholdExpenses:
+    "What your household spends in a month. Used to work out the expenses your family would still face.",
+  outstandingLoans:
+    "Loans your family would have to repay without you: home, car, personal, everything.",
+  existingCover: "Life cover you already hold, across all policies including employer cover.",
+  liquidAssets:
+    "Savings your family could use quickly: deposits, mutual funds, stocks. Not the house they live in.",
+  recommendedCover:
+    "The larger of the two methods, rounded up to the next 25 lakh. Under-covering is the mistake to avoid.",
+  incomeMethodCover:
+    "Cover as a multiple of your yearly income, the multiple shrinking as you age.",
+  expenseMethodCover:
+    "Cover that funds your household's expenses until you would have turned 60.",
+
+  // Health insurance cover
+  cityTier:
+    "Where you would be hospitalised. Metro hospital bills run far higher than smaller cities.",
+  adultsCovered: "Adults on the family floater. Children add little to the premium.",
+  seniorMember: "Whether anyone covered is 60 or older. A floater is priced on the eldest member.",
+  suggestedHealthCover: "The floater size that covers a serious hospitalisation where you live.",
+  healthCoverBand:
+    "A comfortable range for your situation. Pick the higher end if you can afford the premium.",
+
+  // Balance transfer
+  btOutstanding: "The principal still left on your running loan, from your latest statement.",
+  btRemainingTenure: "The months left on your loan as it stands today.",
+  btCurrentRate: "The rate you pay now on the running loan.",
+  btNewRate: "The rate the new lender is offering you.",
+  btFees:
+    "Everything the switch costs: the new lender's processing fee plus fixed charges like stamp and legal.",
+  btMonthlySaving: "How much lower the new EMI is each month at the same tenure.",
+  btNetSaving: "Interest saved over the tenure minus everything the switch costs.",
+  btBreakEven: "The month the EMI savings have paid back the switching costs.",
+
+  // Flat vs reducing
+  flatRate:
+    "A rate charged on the full amount for the whole tenure, even as you repay. Common on car and personal loans.",
+  flatEmi: "The EMI a flat quote produces: principal plus all the flat interest, split evenly.",
+  effectiveReducingRate:
+    "The honest rate a flat quote hides. A 10 percent flat quote costs about the same as 17 percent reducing.",
+  flatExtraPaid:
+    "The extra interest the flat quote costs over a reducing-balance loan at the same number.",
+
+  // Rent vs buy
+  rentYouPay: "What you pay in rent today for a comparable home.",
+  rentGrowth: "How much your rent rises each year. Most Indian leases step up 5 to 10 percent.",
+  appreciationRate: "How much the property's value grows each year.",
+  investmentReturn:
+    "What your money earns if you rent and invest the difference instead of buying.",
+  rvbHorizon: "How long you plan to stay. Buying usually needs years to pull ahead.",
+  homeEquity: "The buyer's wealth: what the home is worth minus what is still owed on the loan.",
+  renterCorpus:
+    "The renter's wealth: the invested down payment and every rupee saved versus the owner, grown at your return.",
+  buyAdvantage:
+    "Home equity minus the renter's corpus. Positive means buying wins by then, negative means renting is ahead.",
+  rvbBreakEven: "The first year owning pulls ahead of renting, if it happens in your horizon.",
 } as const;
 
 export type InfoKey = keyof typeof INFO;

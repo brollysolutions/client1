@@ -12,19 +12,21 @@ import { SITE_URL } from "@/lib/site";
 export const metadata: Metadata = {
   title: "Financial Calculators: EMI, Eligibility, Stamp Duty & More",
   description:
-    "Free financial calculators for loans and real estate in India. Work out your EMI, loan eligibility, home affordability, stamp duty, rental yield, and more in seconds.",
+    "Free financial calculators for loans, real estate, credit cards, and insurance in India. Work out your EMI, eligibility, stamp duty, card payoff, term cover, and more in seconds.",
   keywords: [
     "financial calculators",
     "emi calculator",
     "loan calculator",
     "home affordability calculator",
     "stamp duty calculator",
+    "credit card payoff calculator",
+    "term insurance calculator",
   ],
   alternates: { canonical: "/calculators" },
   openGraph: {
     title: "Financial Calculators for Loans & Real Estate",
     description:
-      "Work out your EMI, eligibility, affordability, stamp duty, rental yield and more with our free calculators.",
+      "Work out your EMI, eligibility, affordability, stamp duty, card payoff, insurance cover and more with our free calculators.",
     type: "website",
     url: "/calculators",
   },
@@ -58,6 +60,8 @@ const hubJsonLd = {
 export default function CalculatorsHubPage() {
   const loans = CALCULATORS.filter((c) => c.group === "loans");
   const realEstate = CALCULATORS.filter((c) => c.group === "real_estate");
+  const creditCards = CALCULATORS.filter((c) => c.group === "credit_cards");
+  const insurance = CALCULATORS.filter((c) => c.group === "insurance");
 
   return (
     <>
@@ -75,9 +79,9 @@ export default function CalculatorsHubPage() {
                 Financial calculators for loans and property
               </h1>
               <p className="mt-4 max-w-2xl text-lg text-[var(--nav-text)] sm:text-xl">
-                Plan your loan or your property purchase with clear, honest numbers. Work out your
-                EMI, loan eligibility, home affordability, stamp duty, and more. Free for everyone,
-                built for India.
+                Plan your money with clear, honest numbers. Work out your EMI, loan eligibility,
+                stamp duty, credit card payoff, and the insurance cover your family needs. Free for
+                everyone, built for India.
               </p>
               <div className="mt-8 flex flex-wrap gap-3">
                 <a
@@ -92,6 +96,18 @@ export default function CalculatorsHubPage() {
                 >
                   Property calculators
                 </a>
+                <a
+                  href="#credit-cards"
+                  className="inline-flex items-center justify-center rounded-lg border border-[var(--nav-border)] bg-white px-5 py-3 text-sm font-semibold text-[var(--nav-text)] transition-colors hover:border-[var(--nav-primary)]/40 hover:text-[var(--nav-primary)]"
+                >
+                  Credit card calculators
+                </a>
+                <a
+                  href="#insurance"
+                  className="inline-flex items-center justify-center rounded-lg border border-[var(--nav-border)] bg-white px-5 py-3 text-sm font-semibold text-[var(--nav-text)] transition-colors hover:border-[var(--nav-primary)]/40 hover:text-[var(--nav-primary)]"
+                >
+                  Insurance calculators
+                </a>
               </div>
             </div>
             <CalculatorHeroArt group="loans" src="/illustrations/calculators/hub.svg" />
@@ -102,14 +118,26 @@ export default function CalculatorsHubPage() {
       <CalculatorGroup
         id="loans"
         title="Loan calculators"
-        description="Work out your EMI, check how much you can borrow, compare offers, and see the impact of prepaying."
+        description="Work out your EMI, check how much you can borrow, compare offers, decode flat rate quotes, and see what prepaying or transferring saves."
         items={loans}
       />
       <CalculatorGroup
         id="real-estate"
         title="Property calculators"
-        description="From affordability and stamp duty to GST, rental yield, appreciation, and down payment planning."
+        description="From affordability and stamp duty to GST, rental yield, appreciation, down payment planning, and the rent vs buy decision."
         items={realEstate}
+      />
+      <CalculatorGroup
+        id="credit-cards"
+        title="Credit card calculators"
+        description="See when your card balance actually hits zero, what the minimum due trap costs, and the real price of converting a purchase to EMI."
+        items={creditCards}
+      />
+      <CalculatorGroup
+        id="insurance"
+        title="Insurance calculators"
+        description="Size the term life cover your family needs and the health floater that matches your city, before anyone quotes you a premium."
+        items={insurance}
       />
 
       {/* Hub FAQ */}
