@@ -29,9 +29,9 @@ import { SliderField } from "../slider-field";
 const STATE_CODES = STAMP_DUTY_STATES.map((s) => s.code) as [string, ...string[]];
 const BUYERS = ["male", "female"] as const;
 
-function clamp(value: number, min: number, max: number): number {
+function clamp(value: number, min: number, _max: number): number {
   if (!Number.isFinite(value)) return min;
-  return Math.min(max, Math.max(min, value));
+  return Math.max(min, value); // `max` is a soft slider ceiling, not a hard cap
 }
 
 const VALUE_MIN = 500000;

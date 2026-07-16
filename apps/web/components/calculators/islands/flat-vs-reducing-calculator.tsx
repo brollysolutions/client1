@@ -11,9 +11,9 @@ import { RateDisclaimer } from "../rate-disclaimer";
 import { ResultCard } from "../result-card";
 import { SliderField } from "../slider-field";
 
-function clamp(value: number, min: number, max: number): number {
+function clamp(value: number, min: number, _max: number): number {
   if (!Number.isFinite(value)) return min;
-  return Math.min(max, Math.max(min, value));
+  return Math.max(min, value); // `max` is a soft slider ceiling, not a hard cap
 }
 
 // Flat vs reducing: converts the flat rate quoted on car and personal loans to

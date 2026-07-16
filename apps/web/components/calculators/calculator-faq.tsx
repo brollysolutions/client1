@@ -13,6 +13,7 @@ export function CalculatorFaq({ items }: { items: Faq[] }) {
       {items.map((item, index) => (
         <details
           key={item.q}
+          name="calculator-faq"
           className={
             index === 0
               ? "faq-details group"

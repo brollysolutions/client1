@@ -41,7 +41,7 @@ export function PartnerCta() {
                   <Handshake className="h-5 w-5" aria-hidden />
                 </span>
                 <p className="text-base text-foreground sm:text-lg">
-                  <span className="font-semibold">Become an agent.</span>{" "}
+                  <span className="font-semibold">Become a partner.</span>{" "}
                   Bring us people who need a loan or a property. You earn
                   commission on every deal that closes.
                 </p>
@@ -69,12 +69,12 @@ export function PartnerCta() {
               <LeadDialog
                 businessLine="loans"
                 triggerVariant="outline"
-                triggerLabel="Apply as an agent"
+                triggerLabel="Apply as a partner"
                 href="/apply-as-agent"
               />
             </div>
             <p className="mt-3 text-sm text-text-secondary">
-              Free to join. We verify every agent before they go live.
+              Free to join. We verify every partner before they go live.
             </p>
           </div>
 

@@ -43,7 +43,7 @@ export function ReferAndEarn() {
             Refer and earn cashback
           </h2>
           <p className="mt-4 text-lg text-text-secondary">
-            No agent application needed. Any registered user can refer.
+            No partner application needed. Any registered user can refer.
           </p>
         </div>
 

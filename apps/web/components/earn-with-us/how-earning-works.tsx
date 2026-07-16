@@ -51,7 +51,7 @@ export function EarnHowItWorks() {
             id="how-earning-works-heading"
             className="font-heading text-3xl font-semibold text-foreground sm:text-4xl"
           >
-            How agent commission works
+            How partner commission works
           </h2>
           <p className="mt-4 text-lg text-text-secondary">
             No slabs, no surprises. Here is the whole flow.

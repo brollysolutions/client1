@@ -16,9 +16,9 @@ const RENT_MAX = 2000000;
 const EXP_MIN = 0;
 const EXP_MAX = 2000000;
 
-function clamp(value: number, min: number, max: number): number {
+function clamp(value: number, min: number, _max: number): number {
   if (!Number.isFinite(value)) return min;
-  return Math.min(max, Math.max(min, value));
+  return Math.max(min, value); // `max` is a soft slider ceiling, not a hard cap
 }
 
 // Rental yield island (real_estate line). Inputs -> pure rentalYield engine

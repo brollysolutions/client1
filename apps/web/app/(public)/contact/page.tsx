@@ -82,7 +82,7 @@ export default async function ContactPage({
                 Talk to a real person
               </h1>
               <p className="mt-5 max-w-2xl text-lg text-[var(--nav-text)] sm:text-xl">
-                A loan, a property, or becoming an agent. Whatever brought you
+                A loan, a property, or becoming a partner. Whatever brought you
                 here, leave your number and our team will call you back. No
                 bots, no hold music.
               </p>

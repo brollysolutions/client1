@@ -27,7 +27,7 @@ const STEPS: Step[] = [
   {
     n: 2,
     title: "We match verified partners",
-    copy: "We connect you to KYC-checked lenders or agents suited to you.",
+    copy: "We connect you to KYC-checked lenders or partners suited to you.",
     icon: BadgeCheck,
   },
   {

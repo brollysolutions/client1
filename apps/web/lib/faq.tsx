@@ -26,7 +26,7 @@ export const HOME_FAQ_ITEMS: FaqItem[] = [
   },
   {
     q: "How do you verify partners and listings?",
-    a: "Every lender, agent, and listing goes through a KYC check before it reaches you, so you're never dealing with someone unverified.",
+    a: "Every lender, partner, and listing goes through a KYC check before it reaches you, so you're never dealing with someone unverified.",
   },
   {
     q: "Do you cover both loans and real estate?",
@@ -34,14 +34,14 @@ export const HOME_FAQ_ITEMS: FaqItem[] = [
   },
   {
     q: "What happens after I leave my number?",
-    a: "One of our team calls you back to understand what you need and connect you with the right lender or agent.",
+    a: "One of our team calls you back to understand what you need and connect you with the right lender or partner.",
   },
   {
     q: "Will you sell my number to anyone?",
     a: "No. We never sell or share your number. It's only used to call you back about your own enquiry.",
   },
   {
-    q: "How do I become an agent?",
+    q: "How do I become a partner?",
     a: "Visit our Earn with Us page to see the requirements and apply. We verify your KYC, and once you're approved you can start earning commission.",
     aRich: (
       <>
@@ -61,20 +61,20 @@ export const HOME_FAQ_ITEMS: FaqItem[] = [
 
 export const AGENT_FAQ_ITEMS: FaqItem[] = [
   {
-    q: "Who can apply to become an agent?",
+    q: "Who can apply to become a partner?",
     a: "Anyone who can bring loan or real estate leads and pass our KYC check. No prior experience needed.",
   },
   {
-    q: "Can I be an agent for both loans and real estate?",
-    a: "No, every agent account is tied to one line only. You pick loans or real estate when you apply.",
+    q: "Can I be a partner for both loans and real estate?",
+    a: "No, every partner account is tied to one line only. You pick loans or real estate when you apply.",
   },
   {
-    q: "Do real estate agents need to be RERA registered?",
+    q: "Do real estate partners need to be RERA registered?",
     a: "Yes. A valid RERA agent code is required as part of your KYC for the real estate track.",
   },
   {
-    q: "I am already a client. Can I convert to an agent?",
-    a: "Yes. Existing clients can apply to convert to an agent account through the same KYC process.",
+    q: "I am already a client. Can I convert to a partner?",
+    a: "Yes. Existing clients can apply to convert to a partner account through the same KYC process.",
   },
   {
     q: "How is my commission decided?",
@@ -90,11 +90,11 @@ export const AGENT_FAQ_ITEMS: FaqItem[] = [
   },
   {
     q: "What happens after I apply?",
-    a: "We review your KYC. Once verified, your agent account is activated and you can start referring clients.",
+    a: "We review your KYC. Once verified, your partner account is activated and you can start referring clients.",
   },
   {
-    q: "Do I need to become an agent to refer someone?",
-    a: "No. Any registered user gets a referral code and earns cashback. Agents earn commission on the deals they work.",
+    q: "Do I need to become a partner to refer someone?",
+    a: "No. Any registered user gets a referral code and earns cashback. Partners earn commission on the deals they work.",
   },
   {
     q: "How does referral cashback work?",
@@ -136,19 +136,19 @@ export const LOAN_FAQ_ITEMS: FaqItem[] = [
 export const REAL_ESTATE_FAQ_ITEMS: FaqItem[] = [
   {
     q: "Are the listings really verified?",
-    a: "Yes. Every listing and every agent goes through verification before it reaches you, including RERA checks where they apply. You never deal with an unverified party.",
+    a: "Yes. Every listing and every partner goes through verification before it reaches you, including RERA checks where they apply. You never deal with an unverified party.",
   },
   {
     q: "How do site visits work?",
-    a: "Once you enquire, our team calls to understand what you're looking for and schedules visits at times that suit you. A verified agent accompanies you on every visit.",
+    a: "Once you enquire, our team calls to understand what you're looking for and schedules visits at times that suit you. A verified partner accompanies you on every visit.",
   },
   {
     q: "Do I pay for the property through the platform?",
-    a: "No, never. Token, booking, and purchase payments go directly between you and the seller or builder. The only money that moves through us is referral cashback or agent payouts.",
+    a: "No, never. Token, booking, and purchase payments go directly between you and the seller or builder. The only money that moves through us is referral cashback or partner payouts.",
   },
   {
     q: "How does the booking and token process work?",
-    a: "Your agent walks you through it. Once you pick a property, the token and booking amounts are paid directly to the seller or builder, and we help you track the paperwork from there.",
+    a: "Your partner walks you through it. Once you pick a property, the token and booking amounts are paid directly to the seller or builder, and we help you track the paperwork from there.",
   },
   {
     q: "Do you check the legal side of a property?",

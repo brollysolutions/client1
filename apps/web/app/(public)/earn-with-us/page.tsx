@@ -11,9 +11,9 @@ import { AGENT_FAQ_ITEMS, faqPageJsonLd } from "@/lib/faq";
 import { SITE_NAME, SITE_URL } from "@/lib/site";
 
 export const metadata: Metadata = {
-  title: "Earn with Us: Agent Commission and Referral Cashback",
+  title: "Earn with Us: Partner Commission and Referral Cashback",
   description:
-    "Become a loan DSA or real estate agent and earn commission, or refer friends and earn cashback when their deal completes. Free to join, KYC verified.",
+    "Become a loan DSA or real estate partner and earn commission, or refer friends and earn cashback when their deal completes. Free to join, KYC verified.",
   keywords: [
     "become a loan agent",
     "loan DSA registration",
@@ -27,9 +27,9 @@ export const metadata: Metadata = {
   ],
   alternates: { canonical: "/earn-with-us" },
   openGraph: {
-    title: "Earn with Us: Agent Commission and Referral Cashback",
+    title: "Earn with Us: Partner Commission and Referral Cashback",
     description:
-      "Become a loan DSA or real estate agent and earn commission, or refer friends and earn cashback when their deal completes. Free to join, KYC verified.",
+      "Become a loan DSA or real estate partner and earn commission, or refer friends and earn cashback when their deal completes. Free to join, KYC verified.",
     type: "website",
     url: "/earn-with-us",
   },
@@ -70,15 +70,15 @@ export default function EarnWithUsPage() {
       <FaqSection
         id="agent-faq"
         heading="Questions, answered"
-        subheading="Agents and referrals, everything people usually ask."
+        subheading="Partners and referrals, everything people usually ask."
         items={AGENT_FAQ_ITEMS}
         columns={2}
         size="lg"
       />
       <ClosingCta
         heading="Ready to start earning?"
-        text="Apply as an agent in a few minutes, or sign in to use your referral code."
-        ctaLabel="Apply to become an agent"
+        text="Apply as a partner in a few minutes, or sign in to use your referral code."
+        ctaLabel="Apply to become a partner"
         href="/apply-as-agent"
         id="apply"
       />
