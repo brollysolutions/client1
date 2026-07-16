@@ -29,8 +29,13 @@ services:
   web:
     environment:
       NODE_ENV: development
-      WATCHPACK_POLLING: "true"
+      # Polling is required for change detection across the Windows bind mount,
+      # but continuous polling ("true") scans the whole tree nonstop and was
+      # measured pinning the container at ~850% CPU, starving every dev-server
+      # render. A 3s interval keeps hot reload working at a fraction of the cost.
+      WATCHPACK_POLLING: "3000"
       CHOKIDAR_USEPOLLING: "true"
+      CHOKIDAR_INTERVAL: "3000"
     volumes:
       - ./apps/web:/app
       - web_node_modules:/app/node_modules

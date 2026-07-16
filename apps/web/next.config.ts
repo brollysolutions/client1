@@ -2,6 +2,15 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  // Emit .next/standalone (server.js + only the node_modules the server needs)
+  // so the prod image ships that instead of the full dev+prod dependency tree.
+  // Dev and `next start` behavior are unchanged.
+  output: "standalone",
+  // Compression is terminated at nginx (infra/nginx/default.conf gzips HTML,
+  // RSC payloads, and JSON uniformly for web + api). Leaving Next's built-in
+  // gzip on too would double-compress and waste CPU. If web is ever exposed
+  // without nginx in front, flip this back to true.
+  compress: false,
   // `radix-ui` is a barrel that re-exports ~30 primitives; a bare
   // `import { Dialog } from "radix-ui"` can pull sibling modules into a route's
   // chunk. optimizePackageImports rewrites these to direct submodule imports so
