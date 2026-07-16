@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 
 import Image from "next/image";
@@ -33,6 +33,11 @@ export function CalculatorHeroArt({
   const absPath = src ? join(process.cwd(), "public", src) : null;
   const asset = absPath && existsSync(absPath) ? src : null;
   const { width, height } = asset ? readSvgSize(absPath!) : { width: 500, height: 500 };
+  // The hero art is the desktop LCP, so small assets keep `priority` (preload).
+  // But two Storyset outliers exceed 150KB — preloading those competed with
+  // JS/fonts on the critical path, so anything over the threshold lazy-loads
+  // (it still fetches immediately once in the viewport).
+  const preload = asset ? statSync(absPath!).size < 100_000 : false;
 
   // With a real Storyset illustration, render it transparent so it blends into
   // the cream hero band (no card, border, or shadow). The coded fallback keeps
@@ -50,7 +55,7 @@ export function CalculatorHeroArt({
           height={height}
           sizes="460px"
           className="h-auto w-full max-w-[460px]"
-          priority
+          priority={preload}
         />
       </div>
     );

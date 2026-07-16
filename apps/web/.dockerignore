@@ -4,3 +4,11 @@ node_modules/
 !.env.example
 *.log
 .turbo/
+# Local pnpm package store (~500MB) — without this the build context transfer
+# alone took 15+ minutes.
+.pnpm-store/
+tsconfig.tsbuildinfo
+.impeccable/
+ruvector.db
+test-results/
+playwright-report/

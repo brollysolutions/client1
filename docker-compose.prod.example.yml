@@ -119,6 +119,10 @@ services:
     build:
       context: ./apps/web
       target: prod
+      # The @contracts type import resolves to /packages/contracts in the image;
+      # see apps/web/Dockerfile builder stage. Requires Compose v2.17+.
+      additional_contexts:
+        contracts: ./packages/contracts
       args:
         # Baked into the browser bundle at build time (NEXT_PUBLIC_*). This is the
         # ORIGIN only — the client already appends /api/v1/... itself, so do NOT
@@ -129,7 +133,8 @@ services:
         # The ? guard (not :?) errors only when UNSET, so the empty same-origin
         # value is allowed. The env_file below only sets RUNTIME (SSR) values.
         NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL?set NEXT_PUBLIC_API_BASE_URL for the prod web build (empty = same-origin behind nginx)}
-    command: pnpm start
+    # No command override: the standalone prod image's CMD is `node server.js`
+    # (pnpm and package.json scripts are not present in that image).
     env_file:
       - ./apps/web/.env.prod
     depends_on:
@@ -161,7 +166,10 @@ services:
         limits:
           memory: 128M
     healthcheck:
-      test: ["CMD", "nginx", "-t"]
+      # `nginx -t` alone passes even with an EMPTY conf.d (syntax-valid, zero
+      # server blocks, nothing listening) — a false-positive "healthy" while the
+      # site is down. The spider request proves a vhost is actually answering.
+      test: ["CMD-SHELL", "nginx -t && wget -q --spider http://127.0.0.1/nginx-health"]
       interval: 30s
       timeout: 5s
       retries: 3
