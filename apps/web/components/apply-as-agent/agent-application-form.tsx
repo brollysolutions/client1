@@ -278,7 +278,7 @@ export function AgentApplicationForm({
         <SectionHeader
           id="apply-line-heading"
           title="Which line?"
-          description="Agent accounts work one line. Pick the one you want."
+          description="Partner accounts work one line. Pick the one you want."
         />
         <div
           role="group"

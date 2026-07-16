@@ -34,9 +34,9 @@ const FEE_MIN = 0;
 const FEE_MAX = 3;
 const FEE_STEP = 0.05;
 
-function clamp(value: number, min: number, max: number): number {
+function clamp(value: number, min: number, _max: number): number {
   if (!Number.isFinite(value)) return min;
-  return Math.min(max, Math.max(min, value));
+  return Math.max(min, value); // `max` is a soft slider ceiling, not a hard cap
 }
 
 function tenureHelper(months: number): string {

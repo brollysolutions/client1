@@ -24,7 +24,7 @@ export function SliderField({
   suffix,
   helper,
   info,
-  allowAboveMax = false,
+  allowAboveMax = true,
   className,
 }: {
   id: string;
@@ -43,9 +43,10 @@ export function SliderField({
   /** Plain-language explanation shown in an info tooltip next to the label. */
   info?: string;
   /**
-   * When true, a typed number may exceed `max`: the slider thumb pins at `max`
-   * but the committed value is whatever was typed (still floored at `min`). Lets
-   * the field compute past the slider's ceiling — used for uncapped amounts.
+   * Whether a typed number may exceed `max`. Default true: `max` is only the
+   * slider's soft ceiling, so the thumb pins at `max` while the committed value
+   * is whatever was typed (still floored at `min`). No numeric input is hard-
+   * capped. Pass false to restore a hard cap at `max`.
    */
   allowAboveMax?: boolean;
   className?: string;
@@ -96,7 +97,6 @@ export function SliderField({
             inputMode="decimal"
             value={text}
             min={min}
-            max={max}
             step={step}
             onChange={(event) => setText(event.target.value)}
             onBlur={(event) => commit(event.target.value)}

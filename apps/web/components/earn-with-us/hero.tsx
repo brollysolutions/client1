@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 
 import { EarnHeroDoodles } from "@/components/earn-with-us/earn-decor";
+import { ScrollCue } from "@/components/scroll-cue";
 
 // Earn with Us page hero. The page's only <h1> (see page.tsx). Matches the
 // calculators hub hero layout: a text column beside a fixed-width illustration
@@ -16,10 +17,10 @@ export function EarnHero() {
         <div className="grid items-center gap-8 lg:grid-cols-[1fr_auto]">
           <div>
             <h1 className="max-w-3xl font-heading text-4xl font-semibold text-[var(--nav-text)] sm:text-5xl lg:text-6xl">
-              Become an agent, or refer and earn
+              Become a partner, or refer and earn
             </h1>
             <p className="mt-5 max-w-2xl text-lg text-[var(--nav-text)] sm:text-xl">
-              Become an agent and earn commission on the deals you bring. Or refer
+              Become a partner and earn commission on the deals you bring. Or refer
               friends and earn cashback when their property purchase or loan goes
               through. Both are free.
             </p>
@@ -28,7 +29,7 @@ export function EarnHero() {
                 href="/apply-as-agent"
                 className="inline-flex h-10 w-full items-center justify-center rounded-md bg-[var(--nav-primary)] px-4 text-sm font-medium text-white transition hover:bg-[var(--nav-primary-hover)] sm:w-auto"
               >
-                Apply to become an agent
+                Apply to become a partner
               </Link>
               <Link
                 href="/register"
@@ -56,6 +57,7 @@ export function EarnHero() {
           </div>
         </div>
       </div>
+      <ScrollCue />
     </section>
   );
 }

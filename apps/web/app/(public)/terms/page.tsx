@@ -28,7 +28,7 @@ export default function TermsPage() {
         </p>
         <div className="mt-8 space-y-5 text-base text-text-secondary">
           <p>
-            We connect you with banks, lenders, and real estate agents. We
+            We connect you with banks, lenders, and real estate partners. We
             are not a bank, and we do not guarantee that any loan will be
             approved or that any property will be available.
           </p>

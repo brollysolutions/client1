@@ -32,14 +32,14 @@ export default function PrivacyPage() {
           <p>
             When you share your name, mobile number, or email with us,
             whether through a callback request, the contact form, or an
-            agent application, we use those details only to get back to you
+            partner application, we use those details only to get back to you
             and to connect you with the right loan or real estate partner
             for your enquiry.
           </p>
           <p>
             We do not sell your information to third parties. We share it
             only where it is needed to act on your enquiry, such as with a
-            bank, lender, or agent relevant to what you asked about.
+            bank, lender, or partner relevant to what you asked about.
           </p>
           <p>
             We are still writing the detailed version of this policy,

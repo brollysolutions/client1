@@ -207,6 +207,29 @@
   }
 }
 
+/* Hero "scroll for more" cue (components/scroll-cue.tsx). A gentle downward
+   nudge so users know the page continues below a tall hero. Reduced-motion
+   safe. */
+@keyframes scrollCue {
+  0%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.5;
+  }
+  50% {
+    transform: translateY(6px);
+    opacity: 1;
+  }
+}
+.scroll-cue-bob {
+  animation: scrollCue 1.6s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .scroll-cue-bob {
+    animation: none;
+  }
+}
+
 /* FAQ accordion open/close (components/faq-section.tsx). Progressive
    enhancement: browsers that support interpolate-size animate the native
    <details> content height from 0 to auto; older browsers fall back to an

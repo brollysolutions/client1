@@ -25,5 +25,5 @@ export const NAV_ITEMS: NavItem[] = [
   { label: "Properties", href: "/real-estate" },
   { label: "Earn with Us", href: "/earn-with-us" },
   { label: "Calculator", href: "/calculators" },
-  { label: "Application", href: "/apply-as-agent" },
+  { label: "Become a Partner", href: "/apply-as-agent" },
 ];

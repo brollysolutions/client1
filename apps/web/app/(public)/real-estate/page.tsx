@@ -11,7 +11,7 @@ import { SITE_NAME, SITE_URL } from "@/lib/site";
 export const metadata: Metadata = {
   title: "Properties: Buy Verified Property in India",
   description:
-    "Buy verified flats, plots, villas, and commercial spaces with trusted agents. See what you can buy and how we guide you from first visit to final paperwork.",
+    "Buy verified flats, plots, villas, and commercial spaces with trusted partners. See what you can buy and how we guide you from first visit to final paperwork.",
   keywords: [
     "buy property",
     "buy home",
@@ -25,7 +25,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Properties: Buy Verified Property in India",
     description:
-      "Verified properties and trusted agents in one place, with one point of contact guiding you from first visit to final paperwork.",
+      "Verified properties and trusted partners in one place, with one point of contact guiding you from first visit to final paperwork.",
     type: "website",
   },
 };
@@ -65,7 +65,7 @@ export default function RealEstatePage() {
       />
       <ProductPage
         title="Buy your property with confidence"
-        intro="From flats and plots to offices and shops, we bring only verified listings and trusted agents together in one place. We stay with you at every step, from the first visit until you hold the keys."
+        intro="From flats and plots to offices and shops, we bring only verified listings and trusted partners together in one place. We stay with you at every step, from the first visit until you hold the keys."
         heroDoodles
         heroPlant="/illustrations/heroes/real-estate.svg"
         beforeJourney={

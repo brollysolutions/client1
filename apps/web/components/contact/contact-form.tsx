@@ -21,7 +21,7 @@ import { isValidMobile, normalizeMobile } from "@/lib/phone";
 const TOPICS: { value: LeadTopic; label: string }[] = [
   { value: "loans", label: "Loans" },
   { value: "real_estate", label: "Real Estate" },
-  { value: "agent", label: "Agent" },
+  { value: "agent", label: "Partner" },
 ];
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -36,6 +36,12 @@ export function ContactForm({
   initialProduct?: string;
 } = {}) {
   const [topic, setTopic] = useState<LeadTopic>(initialLine ?? "loans");
+  // When the visitor arrived via a category-specific CTA (?line=...), lock the
+  // form to that one enquiry and drop the other two options. A direct visit
+  // (NavBar / footer / a generic "get started" button) leaves all three
+  // selectable. `topic` is already fixed to `initialLine` above.
+  const locked = initialLine != null;
+  const lockedLabel = TOPICS.find((t) => t.value === initialLine)?.label ?? "";
   const [name, setName] = useState("");
   const [mobile, setMobile] = useState("");
   const [email, setEmail] = useState("");
@@ -146,31 +152,40 @@ export function ContactForm({
 
       <div className="grid gap-2">
         <Label id="contact-line-label">What is this about?</Label>
-        <div
-          role="group"
-          aria-labelledby="contact-line-label"
-          className="grid grid-cols-3 gap-2"
-        >
-          {TOPICS.map((option) => (
-            <button
-              key={option.value}
-              type="button"
-              aria-pressed={topic === option.value}
-              onClick={() => setTopic(option.value)}
-              disabled={submitting}
-              className={cn(
-                "h-12 cursor-pointer rounded-lg border px-2 text-sm font-medium transition",
-                "focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[var(--nav-primary)]/50",
-                "disabled:cursor-default disabled:opacity-50",
-                topic === option.value
-                  ? "border-[var(--nav-primary)] bg-[var(--nav-primary)] text-white"
-                  : "border-[var(--nav-border)] bg-transparent text-foreground hover:bg-[var(--nav-tint)]",
-              )}
-            >
-              {option.label}
-            </button>
-          ))}
-        </div>
+        {locked ? (
+          <div
+            aria-labelledby="contact-line-label"
+            className="inline-flex h-12 w-fit items-center rounded-lg border border-[var(--nav-primary)] bg-[var(--nav-primary)] px-6 text-sm font-medium text-white"
+          >
+            {lockedLabel}
+          </div>
+        ) : (
+          <div
+            role="group"
+            aria-labelledby="contact-line-label"
+            className="grid grid-cols-3 gap-2"
+          >
+            {TOPICS.map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                aria-pressed={topic === option.value}
+                onClick={() => setTopic(option.value)}
+                disabled={submitting}
+                className={cn(
+                  "h-12 cursor-pointer rounded-lg border px-2 text-sm font-medium transition",
+                  "focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[var(--nav-primary)]/50",
+                  "disabled:cursor-default disabled:opacity-50",
+                  topic === option.value
+                    ? "border-[var(--nav-primary)] bg-[var(--nav-primary)] text-white"
+                    : "border-[var(--nav-border)] bg-transparent text-foreground hover:bg-[var(--nav-tint)]",
+                )}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="grid gap-2">

@@ -32,7 +32,7 @@ export function EarnAgentTracks() {
         <div className="mt-12 grid gap-6 sm:grid-cols-2">
           <article className="flex flex-col rounded-2xl border border-[var(--nav-border)] bg-[var(--nav-tint)] p-7 shadow-sm">
             <h3 className="font-heading text-xl font-semibold text-foreground">
-              Loan agent
+              Loan partner
             </h3>
             <p className="mt-2 mb-6 text-sm leading-relaxed text-text-secondary">
               Bring us people looking for a personal, business, property,
@@ -43,13 +43,13 @@ export function EarnAgentTracks() {
               href="/apply-as-agent?line=loans"
               className="mt-auto inline-flex h-10 items-center justify-center rounded-md bg-[var(--nav-primary)] px-4 text-sm font-medium text-white transition hover:bg-[var(--nav-primary-hover)]"
             >
-              Apply as a loan agent
+              Apply as a loan partner
             </Link>
           </article>
 
           <article className="flex flex-col rounded-2xl border border-[var(--nav-border)] bg-[var(--nav-tint)] p-7 shadow-sm">
             <h3 className="font-heading text-xl font-semibold text-foreground">
-              Real estate agent
+              Real estate partner
             </h3>
             <p className="mt-2 mb-6 text-sm leading-relaxed text-text-secondary">
               Bring us property buyers or new listings. A valid RERA agent
@@ -59,7 +59,7 @@ export function EarnAgentTracks() {
               href="/apply-as-agent?line=real_estate"
               className="mt-auto inline-flex h-10 items-center justify-center rounded-md bg-[var(--nav-primary)] px-4 text-sm font-medium text-white transition hover:bg-[var(--nav-primary-hover)]"
             >
-              Apply as a real estate agent
+              Apply as a real estate partner
             </Link>
           </article>
         </div>
@@ -69,7 +69,7 @@ export function EarnAgentTracks() {
             Have questions before you apply?
           </p>
           <Link
-            href="/contact"
+            href="/contact?line=agent"
             className="inline-flex h-10 items-center justify-center rounded-md border border-[var(--nav-primary)] px-4 text-sm font-medium text-[var(--nav-primary)] transition hover:bg-[var(--nav-tint)]"
           >
             Contact us
@@ -77,8 +77,8 @@ export function EarnAgentTracks() {
         </div>
 
         <p className="mx-auto mt-8 max-w-2xl text-center text-sm text-text-secondary">
-          Every agent account is single-line. If you already have a client
-          account, you can still apply for a separate agent account through
+          Every partner account is single-line. If you already have a client
+          account, you can still apply for a separate partner account through
           the same KYC process.
         </p>
       </div>

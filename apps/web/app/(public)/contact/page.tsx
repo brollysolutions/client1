@@ -3,6 +3,7 @@ import Image from "next/image";
 
 import { ContactForm } from "@/components/contact/contact-form";
 import { ContactInfo } from "@/components/contact/contact-info";
+import { ScrollCue } from "@/components/scroll-cue";
 import { SITE_NAME, SITE_URL } from "@/lib/site";
 import type { LeadTopic } from "@/lib/leads";
 
@@ -82,7 +83,7 @@ export default async function ContactPage({
                 Talk to a real person
               </h1>
               <p className="mt-5 max-w-2xl text-lg text-[var(--nav-text)] sm:text-xl">
-                A loan, a property, or becoming an agent. Whatever brought you
+                A loan, a property, or becoming a partner. Whatever brought you
                 here, leave your number and our team will call you back. No
                 bots, no hold music.
               </p>
@@ -104,6 +105,7 @@ export default async function ContactPage({
             </div>
           </div>
         </div>
+        <ScrollCue />
       </section>
 
       {/* Form + contact details. Both columns sit flat on the cream band,

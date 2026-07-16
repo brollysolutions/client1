@@ -3,13 +3,14 @@ import Image from "next/image";
 
 import { AgentApplicationForm } from "@/components/apply-as-agent/agent-application-form";
 import { ApplicationDoodles } from "@/components/apply-as-agent/application-doodles";
+import { ScrollCue } from "@/components/scroll-cue";
 import { SITE_NAME, SITE_URL } from "@/lib/site";
 import type { LeadBusinessLine } from "@/lib/leads";
 
 export const metadata: Metadata = {
-  title: "Apply to Become an Agent: Loans or Real Estate",
+  title: "Apply to Become a Partner: Loans or Real Estate",
   description:
-    "Apply to become a loan or real estate agent and earn commission on the deals you bring. Free to apply, single-line accounts, KYC verified after you apply.",
+    "Apply to become a loan or real estate partner and earn commission on the deals you bring. Free to apply, single-line accounts, KYC verified after you apply.",
   keywords: [
     "become an agent",
     "loan agent",
@@ -20,9 +21,9 @@ export const metadata: Metadata = {
   ],
   alternates: { canonical: "/apply-as-agent" },
   openGraph: {
-    title: "Apply to Become an Agent: Loans or Real Estate",
+    title: "Apply to Become a Partner: Loans or Real Estate",
     description:
-      "Apply to become a loan or real estate agent and earn commission on the deals you bring. Free to apply.",
+      "Apply to become a loan or real estate partner and earn commission on the deals you bring. Free to apply.",
     type: "website",
     url: "/apply-as-agent",
   },
@@ -44,7 +45,7 @@ const applyJsonLd = {
         {
           "@type": "ListItem",
           position: 3,
-          name: "Apply to become an agent",
+          name: "Apply to become a partner",
           item: `${SITE_URL}/apply-as-agent`,
         },
       ],
@@ -80,11 +81,11 @@ export default async function ApplyAsAgentPage({
             <div>
               <h1 className="max-w-2xl font-heading text-4xl font-semibold text-[var(--nav-text)] sm:text-5xl lg:text-6xl">
                 <span className="block">Apply to become</span>
-                <span className="block">an agent</span>
+                <span className="block">a partner</span>
               </h1>
               <p className="mt-5 max-w-2xl text-lg text-[var(--nav-text)] sm:text-xl">
                 Earn commission on the deals you bring. Applying is free, every
-                agent account works one line, and we verify your KYC after you
+                partner account works one line, and we verify your KYC after you
                 apply.
               </p>
             </div>
@@ -105,6 +106,7 @@ export default async function ApplyAsAgentPage({
             </div>
           </div>
         </div>
+        <ScrollCue />
       </section>
 
       {/* Application form. Centered like the hero above, one shared axis for

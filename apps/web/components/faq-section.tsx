@@ -37,6 +37,10 @@ export function FaqSection({
   const isLg = size === "lg";
   const mid = Math.ceil(items.length / 2);
   const groups = twoCol ? [items.slice(0, mid), items.slice(mid)] : [items];
+  // Shared exclusive-accordion name: opening any question closes the currently
+  // open one (native HTML, no JS). Keyed per section id so two FaqSections on
+  // one page do not interfere.
+  const detailsName = `faq-${id}`;
 
   return (
     <section
@@ -76,7 +80,12 @@ export function FaqSection({
           )}
         >
           {groups.map((group, groupIndex) => (
-            <FaqCard key={groupIndex} items={group} size={size} />
+            <FaqCard
+              key={groupIndex}
+              items={group}
+              size={size}
+              name={detailsName}
+            />
           ))}
         </div>
       </div>
@@ -90,9 +99,12 @@ export function FaqSection({
 function FaqCard({
   items,
   size = "default",
+  name,
 }: {
   items: FaqItem[];
   size?: "default" | "lg";
+  /** Shared name so all rows form one exclusive accordion (one open at a time). */
+  name?: string;
 }) {
   const isLg = size === "lg";
   return (
@@ -100,6 +112,7 @@ function FaqCard({
       {items.map((item, index) => (
         <details
           key={item.q}
+          name={name}
           className={
             index === 0
               ? "faq-details group"
