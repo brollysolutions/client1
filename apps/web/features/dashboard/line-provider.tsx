@@ -20,13 +20,16 @@ const LineContext = React.createContext<LineState | null>(null);
 
 export function LineProvider({ children }: { children: React.ReactNode }) {
   const { me } = useMe();
-  const [activeLine, setActiveLineState] = React.useState<BusinessLine>("loans");
-
-  // Restore the last-viewed line before content paints.
-  React.useEffect(() => {
+  // Restore the last-viewed line synchronously so a real-estate client never
+  // sees a green loans frame flash before an effect flips it to amber. Safe to
+  // touch localStorage in the initializer: this subtree only renders after the
+  // client-side AppGuard passes, never during SSR (window guard is belt and
+  // suspenders).
+  const [activeLine, setActiveLineState] = React.useState<BusinessLine>(() => {
+    if (typeof window === "undefined") return "loans";
     const saved = localStorage.getItem(ACTIVE_LINE_KEY);
-    if (saved === "loans" || saved === "real_estate") setActiveLineState(saved);
-  }, []);
+    return saved === "loans" || saved === "real_estate" ? saved : "loans";
+  });
 
   const lines = React.useMemo<BusinessLine[]>(
     () => me?.profiles.map((p) => p.businessLine) ?? [],
