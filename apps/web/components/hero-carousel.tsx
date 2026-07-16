@@ -13,6 +13,7 @@ import {
   CarouselPrevious,
   type CarouselApi,
 } from "@/components/ui/carousel";
+import { ScrollCue } from "@/components/scroll-cue";
 import { cn } from "@/lib/utils";
 
 // Dynamic-ready banner shape, aligned to the specced `banners` table
@@ -40,7 +41,7 @@ const BANNERS: Banner[] = [
   {
     id: "real-estate",
     title: "Buy your property with confidence",
-    subtitle: "Verified properties and trusted agents, all in one place.",
+    subtitle: "Verified properties and trusted partners, all in one place.",
     cta: { label: "Explore properties", href: "/real-estate" },
   },
   {
@@ -135,7 +136,7 @@ export function HeroCarousel() {
     // Cream section spans edge to edge, flush against the sticky NavBar above
     // it (no top padding); the carousel itself is a centered, fixed-size
     // peek-coverflow box (see docs/ai/plans for the sizing math).
-    <section aria-label="Highlights" className="w-full bg-[var(--nav-bg)] pb-24 sm:pb-32 lg:pb-40">
+    <section aria-label="Highlights" className="relative w-full bg-[var(--nav-bg)] pb-24 sm:pb-32 lg:pb-40">
       <Carousel
         setApi={setApi}
         opts={{ loop: true, align: "center", containScroll: false, duration: 40 }}
@@ -271,6 +272,7 @@ export function HeroCarousel() {
           ))}
         </div>
       )}
+      <ScrollCue />
     </section>
   );
 }

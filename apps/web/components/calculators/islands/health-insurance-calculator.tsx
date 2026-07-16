@@ -22,9 +22,9 @@ const TIER_LABELS: Record<CityTier, string> = {
 };
 const SENIOR = ["no", "yes"] as const;
 
-function clamp(value: number, min: number, max: number): number {
+function clamp(value: number, min: number, _max: number): number {
   if (!Number.isFinite(value)) return min;
-  return Math.min(max, Math.max(min, value));
+  return Math.max(min, value); // `max` is a soft slider ceiling, not a hard cap
 }
 
 function Row({ label, value, info }: { label: string; value: string; info?: string }) {

@@ -130,9 +130,9 @@ export function WhyChooseUs() {
                   <Image
                     src="/illustrations/why-choose-us.svg"
                     alt=""
-                    width={480}
-                    height={360}
-                    sizes="480px"
+                    width={500}
+                    height={500}
+                    sizes="500px"
                     className="h-full max-h-[280px] w-auto max-w-full"
                     aria-hidden
                   />

@@ -125,12 +125,12 @@ export const RE_TRUST: TrustPoint[] = [
   {
     icon: ShieldCheck,
     label: "Verified listings",
-    note: "Every property and agent passes a background check first.",
+    note: "Every property and partner passes a background check first.",
   },
   {
     icon: Handshake,
     label: "A dedicated point of contact",
-    note: "No new agent every time you call. One person handles your search.",
+    note: "No new partner every time you call. One person handles your search.",
   },
   {
     icon: FileCheck,
@@ -180,7 +180,7 @@ export const REAL_ESTATE_JOURNEY: JourneyStep[] = [
   {
     title: "See only verified options",
     description:
-      "We show you properties and agents that are checked and verified before they reach you.",
+      "We show you properties and partners that are checked and verified before they reach you.",
     image: "/illustrations/journey-re-verified.svg",
   },
   {

@@ -4,6 +4,7 @@ import Image from "next/image";
 import { FaqSection } from "@/components/faq-section";
 import { JourneyFootTrail } from "@/components/journey-foot-trail";
 import { LeadDialog } from "@/components/lead-dialog";
+import { ScrollCue } from "@/components/scroll-cue";
 import { TrustStrip } from "@/components/trust-strip";
 import {
   Card,
@@ -135,6 +136,7 @@ export function ProductPage({
             {heroDoodles ? <HeroIllustration src={heroPlant} /> : null}
           </div>
         </div>
+        <ScrollCue />
       </section>
 
       {/* Products */}

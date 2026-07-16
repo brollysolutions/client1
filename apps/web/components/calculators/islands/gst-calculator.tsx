@@ -22,9 +22,9 @@ const VALUE_MIN = 500000;
 const VALUE_MAX = 200000000;
 const VALUE_STEP = 100000;
 
-function clamp(value: number, min: number, max: number): number {
+function clamp(value: number, min: number, _max: number): number {
   if (!Number.isFinite(value)) return min;
-  return Math.min(max, Math.max(min, value));
+  return Math.max(min, value); // `max` is a soft slider ceiling, not a hard cap
 }
 
 // GST on property. Under-construction homes attract GST at an effective 1% or

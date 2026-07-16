@@ -5,6 +5,7 @@ import { CalculatorFaq } from "@/components/calculators/calculator-faq";
 import { CalculatorHeroArt } from "@/components/calculators/calculator-hero-art";
 import { FaqDoodles } from "@/components/faq-doodles";
 import { LeadDialog } from "@/components/lead-dialog";
+import { ScrollCue } from "@/components/scroll-cue";
 import { CALCULATORS, HUB_FAQ } from "@/lib/calculators/registry";
 import type { CalculatorDef } from "@/lib/calculators/types";
 import { SITE_URL } from "@/lib/site";
@@ -71,7 +72,7 @@ export default function CalculatorsHubPage() {
       />
 
       {/* Hero */}
-      <section className="w-full bg-[var(--nav-bg)]">
+      <section className="relative w-full bg-[var(--nav-bg)]">
         <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 sm:py-20 lg:px-8">
           <div className="grid items-center gap-8 lg:grid-cols-[1fr_auto]">
             <div>
@@ -83,36 +84,40 @@ export default function CalculatorsHubPage() {
                 stamp duty, credit card payoff, and the insurance cover your family needs. Free for
                 everyone, built for India.
               </p>
+              {/* Uniform category jump-links. whitespace-nowrap keeps each
+                  label on one line; the row wraps as a whole only on narrow
+                  screens. No single link is accented over the others. */}
               <div className="mt-8 flex flex-wrap gap-3">
                 <a
                   href="#loans"
-                  className="inline-flex items-center justify-center rounded-lg bg-[var(--nav-primary)] px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-[var(--nav-primary-hover)]"
+                  className="inline-flex items-center justify-center whitespace-nowrap rounded-lg border border-[var(--nav-border)] bg-white px-5 py-3 text-sm font-semibold text-[var(--nav-text)] transition-colors hover:border-[var(--nav-primary)]/40 hover:text-[var(--nav-primary)]"
                 >
-                  Loan calculators
+                  Loans
                 </a>
                 <a
                   href="#real-estate"
-                  className="inline-flex items-center justify-center rounded-lg border border-[var(--nav-border)] bg-white px-5 py-3 text-sm font-semibold text-[var(--nav-text)] transition-colors hover:border-[var(--nav-primary)]/40 hover:text-[var(--nav-primary)]"
+                  className="inline-flex items-center justify-center whitespace-nowrap rounded-lg border border-[var(--nav-border)] bg-white px-5 py-3 text-sm font-semibold text-[var(--nav-text)] transition-colors hover:border-[var(--nav-primary)]/40 hover:text-[var(--nav-primary)]"
                 >
-                  Property calculators
+                  Property
                 </a>
                 <a
                   href="#credit-cards"
-                  className="inline-flex items-center justify-center rounded-lg border border-[var(--nav-border)] bg-white px-5 py-3 text-sm font-semibold text-[var(--nav-text)] transition-colors hover:border-[var(--nav-primary)]/40 hover:text-[var(--nav-primary)]"
+                  className="inline-flex items-center justify-center whitespace-nowrap rounded-lg border border-[var(--nav-border)] bg-white px-5 py-3 text-sm font-semibold text-[var(--nav-text)] transition-colors hover:border-[var(--nav-primary)]/40 hover:text-[var(--nav-primary)]"
                 >
-                  Credit card calculators
+                  Credit cards
                 </a>
                 <a
                   href="#insurance"
-                  className="inline-flex items-center justify-center rounded-lg border border-[var(--nav-border)] bg-white px-5 py-3 text-sm font-semibold text-[var(--nav-text)] transition-colors hover:border-[var(--nav-primary)]/40 hover:text-[var(--nav-primary)]"
+                  className="inline-flex items-center justify-center whitespace-nowrap rounded-lg border border-[var(--nav-border)] bg-white px-5 py-3 text-sm font-semibold text-[var(--nav-text)] transition-colors hover:border-[var(--nav-primary)]/40 hover:text-[var(--nav-primary)]"
                 >
-                  Insurance calculators
+                  Insurance
                 </a>
               </div>
             </div>
             <CalculatorHeroArt group="loans" src="/illustrations/calculators/hub.svg" />
           </div>
         </div>
+        <ScrollCue />
       </section>
 
       <CalculatorGroup

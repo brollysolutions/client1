@@ -49,10 +49,10 @@ const LINES: Line[] = [
     name: "Real Estate",
     title: "Buy your property with confidence",
     paragraph:
-      "Buying a property is a big decision. We show you only verified properties and trusted agents, and guide you at every step so there are no surprises.",
+      "Buying a property is a big decision. We show you only verified properties and trusted partners, and guide you at every step so there are no surprises.",
     benefits: [
       "Flats, plots, villas, and commercial spaces",
-      "Every property and agent is verified before you see it",
+      "Every property and partner is verified upfront",
       "One person helps you from first visit to final paperwork",
     ],
     image: "/illustrations/real-estate.svg",
