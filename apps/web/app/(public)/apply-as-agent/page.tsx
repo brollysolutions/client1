@@ -3,6 +3,7 @@ import Image from "next/image";
 
 import { AgentApplicationForm } from "@/components/apply-as-agent/agent-application-form";
 import { ApplicationDoodles } from "@/components/apply-as-agent/application-doodles";
+import { ScrollCue } from "@/components/scroll-cue";
 import { SITE_NAME, SITE_URL } from "@/lib/site";
 import type { LeadBusinessLine } from "@/lib/leads";
 
@@ -105,6 +106,7 @@ export default async function ApplyAsAgentPage({
             </div>
           </div>
         </div>
+        <ScrollCue />
       </section>
 
       {/* Application form. Centered like the hero above, one shared axis for

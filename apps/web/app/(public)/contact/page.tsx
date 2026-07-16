@@ -3,6 +3,7 @@ import Image from "next/image";
 
 import { ContactForm } from "@/components/contact/contact-form";
 import { ContactInfo } from "@/components/contact/contact-info";
+import { ScrollCue } from "@/components/scroll-cue";
 import { SITE_NAME, SITE_URL } from "@/lib/site";
 import type { LeadTopic } from "@/lib/leads";
 
@@ -104,6 +105,7 @@ export default async function ContactPage({
             </div>
           </div>
         </div>
+        <ScrollCue />
       </section>
 
       {/* Form + contact details. Both columns sit flat on the cream band,
