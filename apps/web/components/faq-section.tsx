@@ -85,6 +85,7 @@ export function FaqSection({
               items={group}
               size={size}
               name={detailsName}
+              questionNoWrap={twoCol}
             />
           ))}
         </div>
@@ -100,11 +101,14 @@ function FaqCard({
   items,
   size = "default",
   name,
+  questionNoWrap = false,
 }: {
   items: FaqItem[];
   size?: "default" | "lg";
   /** Shared name so all rows form one exclusive accordion (one open at a time). */
   name?: string;
+  /** Two-column layouts have less width per card; keep each question on one line. */
+  questionNoWrap?: boolean;
 }) {
   const isLg = size === "lg";
   return (
@@ -122,10 +126,10 @@ function FaqCard({
           <summary
             className={cn(
               "flex cursor-pointer list-none items-center justify-between gap-4 px-6 py-5 font-heading font-semibold text-foreground transition-colors duration-200 marker:content-none hover:bg-[var(--nav-tint)]/40 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--nav-primary)]",
-              isLg ? "text-lg" : "text-base",
+              isLg && !questionNoWrap ? "text-lg" : "text-base",
             )}
           >
-            {item.q}
+            <span className={cn(questionNoWrap && "truncate")}>{item.q}</span>
             <ChevronDown
               className="h-5 w-5 shrink-0 text-brand-blue transition-transform duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] group-open:rotate-180 motion-reduce:transition-none"
               aria-hidden
