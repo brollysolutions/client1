@@ -38,7 +38,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
           <div className="lg:pl-16">
             {/* Top bar */}
-            <header className="sticky top-0 z-20 flex h-14 items-center gap-3 border-b border-dash-border bg-dash-rail px-4 lg:px-6">
+            <header className="sticky top-0 z-20 flex h-14 items-center gap-3 bg-background px-4 lg:px-6">
               <button
                 type="button"
                 aria-label="Open menu"

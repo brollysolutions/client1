@@ -40,11 +40,11 @@
   --color-cta-hover: #A85F1F;
   --color-cta-soft: #F7E8D8;
 
-  --color-loans-accent: #1F8A5C;
-  --color-loans-soft: #E3F3EB;
+  --color-loans-accent: #0284c7; /* blue-only line accent, see ADR-0007 */
+  --color-loans-soft: #e0f2fe;
 
-  --color-realestate-accent: #C9792B;
-  --color-realestate-soft: #F7E8D8;
+  --color-realestate-accent: #0284c7; /* blue-only line accent, see ADR-0007 */
+  --color-realestate-soft: #e0f2fe;
 
   --color-success: #16A34A;
   --color-warning: #B7791F;
@@ -54,11 +54,11 @@
   /* Announcement/notice bar — global site chrome, not a line accent. */
   --color-notice: #F3BB1B;
 
-  /* Dashboard shell chrome — warm gray, a quiet step down from the cream
-     --background so the rail and top bar read as chrome, not a coloured panel
-     (the old navy sidebar is gone). Colour on the dashboard comes only from the
-     active line accent (loans green / real-estate amber), one line at a time via
-     the switcher. */
+  /* Sidebar rail chrome — warm gray, a quiet step down from the cream
+     --background so the rail reads as chrome, not a coloured panel (the old
+     navy sidebar is gone). The top bar blends fully into --background (no
+     separate chrome colour). Line accent is blue-only for both lines, see
+     ADR-0007; the switcher label (not colour) distinguishes the active line. */
   --color-dash-rail: #EAE6DE;
   --color-dash-rail-hover: #E1DBD0;
   --color-dash-border: #DBD5C9;
