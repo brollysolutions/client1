@@ -152,7 +152,7 @@ export function HeroCarousel() {
                 key={banner.id}
                 aria-hidden={!isSelected}
                 inert={!isSelected || undefined}
-                className="basis-[86vw] pl-0 sm:basis-[680px] lg:basis-[1120px]"
+                className="basis-[90vw] pl-0 sm:basis-[720px] lg:basis-[1200px]"
               >
                 {/* Peek scale/opacity/blur lives on this INNER wrapper, not on
                     CarouselItem itself: CarouselItem is the exact node Embla
@@ -185,7 +185,7 @@ export function HeroCarousel() {
                       alt={banner.title}
                       fill
                       priority={i === 0}
-                      sizes="(min-width: 1024px) 1120px, (min-width: 640px) 680px, 86vw"
+                      sizes="(min-width: 1024px) 1200px, (min-width: 640px) 720px, 90vw"
                       className="object-cover"
                     />
                   ) : (
@@ -240,16 +240,16 @@ export function HeroCarousel() {
             width from hero's isSelected item) minus a fixed gap, so the arrow
             sits just outside the main banner instead of over the blurred peek.
             Card basis must stay in sync with the CarouselItem basis classes above
-            (86vw / 680px / 1120px). */}
+            (90vw / 720px / 1200px). */}
         <CarouselPrevious
           variant="ghost"
           onClick={goPrev}
-          className="left-[calc(50%-43vw-2.75rem)] h-12 w-12 cursor-pointer rounded-full border-none bg-transparent text-brand-blue drop-shadow-sm transition-all duration-300 hover:bg-white/40 hover:text-brand-blue hover:backdrop-blur-md hover:shadow-md [&_svg]:size-7 sm:left-[calc(50%-340px-3rem)] sm:h-14 sm:w-14 sm:[&_svg]:size-8 lg:left-[calc(50%-560px-3rem)]"
+          className="left-[calc(50%-45vw-2.75rem)] h-12 w-12 cursor-pointer rounded-full border-none bg-transparent text-brand-blue drop-shadow-sm transition-all duration-300 hover:bg-white/40 hover:text-brand-blue hover:backdrop-blur-md hover:shadow-md [&_svg]:size-7 sm:left-[calc(50%-360px-3rem)] sm:h-14 sm:w-14 sm:[&_svg]:size-8 lg:left-[calc(50%-600px-3rem)]"
         />
         <CarouselNext
           variant="ghost"
           onClick={goNext}
-          className="right-[calc(50%-43vw-0.75rem)] h-12 w-12 cursor-pointer rounded-full border-none bg-transparent text-brand-blue drop-shadow-sm transition-all duration-300 hover:bg-white/40 hover:text-brand-blue hover:backdrop-blur-md hover:shadow-md [&_svg]:size-7 sm:right-[calc(50%-340px-0.75rem)] sm:h-14 sm:w-14 sm:[&_svg]:size-8 lg:right-[calc(50%-560px-0.75rem)]"
+          className="right-[calc(50%-45vw-0.75rem)] h-12 w-12 cursor-pointer rounded-full border-none bg-transparent text-brand-blue drop-shadow-sm transition-all duration-300 hover:bg-white/40 hover:text-brand-blue hover:backdrop-blur-md hover:shadow-md [&_svg]:size-7 sm:right-[calc(50%-360px-0.75rem)] sm:h-14 sm:w-14 sm:[&_svg]:size-8 lg:right-[calc(50%-600px-0.75rem)]"
         />
       </Carousel>
 
