@@ -19,6 +19,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.v1.auth import router as auth_router
 from app.api.v1.leads import router as leads_router
+from app.api.v1.loans import router as loans_router
 from app.core.config import settings
 from app.db.session import engine, get_db
 
@@ -64,6 +65,7 @@ app.add_middleware(
 
 app.include_router(auth_router, prefix="/api/v1/auth", tags=["auth"])
 app.include_router(leads_router, prefix="/api/v1/leads", tags=["leads"])
+app.include_router(loans_router, prefix="/api/v1/loans", tags=["loans"])
 
 
 @app.get("/")
