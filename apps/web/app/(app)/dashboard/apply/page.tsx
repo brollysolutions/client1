@@ -100,7 +100,8 @@ export default function ApplyPage() {
           </span>
           <h1 className="mt-5 text-lg font-semibold text-text-primary">Request received</h1>
           <p className="mx-auto mt-2 max-w-sm text-sm text-text-secondary">
-            Thanks. Our loans team will reach out shortly to help you with the next steps.
+            Thanks. Our loans team will review your request and open an application for you. Once it
+            is opened, you can track its status on your loans page.
           </p>
           <Link
             href="/dashboard"

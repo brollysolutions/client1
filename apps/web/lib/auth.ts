@@ -235,12 +235,8 @@ export async function login(
   return toResult(res, toAuthTokens);
 }
 
-// GET /auth/me → the logged-in user + one profile (with its code) per line.
-export async function getMe(): Promise<AuthResult<Me>> {
-  const res = await apiRequest<Schemas["MeResponse"]>("/api/v1/auth/me", {
-    method: "GET",
-  });
-  return toResult(res, (d) => ({
+function mapMe(d: Schemas["MeResponse"]): Me {
+  return {
     firstName: d.first_name,
     lastName: d.last_name,
     mobile: d.mobile,
@@ -250,7 +246,35 @@ export async function getMe(): Promise<AuthResult<Me>> {
       businessLine: p.business_line,
       customerCode: p.customer_code,
     })),
-  }));
+  };
+}
+
+// GET /auth/me → the logged-in user + one profile (with its code) per line.
+export async function getMe(): Promise<AuthResult<Me>> {
+  const res = await apiRequest<Schemas["MeResponse"]>("/api/v1/auth/me", {
+    method: "GET",
+  });
+  return toResult(res, mapMe);
+}
+
+// PATCH /auth/me → update the client's own name (and optionally email). mobile is
+// immutable. Changing the email resets verification server-side, so the returned
+// Me carries emailVerified:false and the verify banner reappears. Returns the
+// fresh Me so the shell (me-provider) can update in place.
+export async function updateProfile(input: {
+  firstName: string;
+  lastName: string;
+  email?: string;
+}): Promise<AuthResult<Me>> {
+  const res = await apiRequest<Schemas["MeResponse"]>("/api/v1/auth/me", {
+    method: "PATCH",
+    body: {
+      first_name: input.firstName,
+      last_name: input.lastName,
+      ...(input.email ? { email: input.email } : {}),
+    } satisfies Schemas["MeUpdateRequest"],
+  });
+  return toResult(res, mapMe);
 }
 
 // Serialize /auth/refresh across all tabs of this origin. The refresh cookie is

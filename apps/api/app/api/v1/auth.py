@@ -20,6 +20,7 @@ from app.schemas.auth import (
     LoginRequest,
     MeResponse,
     MessageResponse,
+    MeUpdateRequest,
     RegisterInitiateRequest,
     RegisterInitiateResponse,
     RegisterVerifyOtpRequest,
@@ -337,6 +338,22 @@ async def me(
     current_user: CurrentUser = Depends(get_active_user),
 ) -> MeResponse:
     return await auth_service.get_me(db, current_user.id)
+
+
+@router.patch("/me", response_model=MeResponse, status_code=status.HTTP_200_OK)
+async def update_me(
+    req: MeUpdateRequest,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    current_user: CurrentUser = Depends(get_active_user),
+) -> MeResponse:
+    return await auth_service.update_me(
+        db,
+        current_user.id,
+        req,
+        ip=_get_client_ip(request),
+        user_agent=request.headers.get("user-agent"),
+    )
 
 
 @router.post(

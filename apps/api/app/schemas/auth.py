@@ -188,3 +188,26 @@ class MeResponse(BaseModel):
     # One summary per business line the client holds (both, for self-registered
     # clients). The dashboard switches between these.
     profiles: list[ClientProfileSummary]
+
+
+class MeUpdateRequest(BaseModel):
+    """Client edit of their own profile. mobile is immutable (account identity)."""
+
+    first_name: Annotated[str, Field(min_length=1, max_length=100)]
+    last_name: Annotated[str, Field(min_length=1, max_length=100)]
+    # Optional: omit to leave the email unchanged. A change resets email
+    # verification so the post-login verify flow runs again.
+    email: EmailStr | None = None
+
+    @field_validator("first_name", "last_name")
+    @classmethod
+    def name_not_blank(cls, v: str) -> str:
+        v = v.strip()
+        if not v:
+            raise ValueError("This field cannot be blank.")
+        return v
+
+    @field_validator("email")
+    @classmethod
+    def email_normalize(cls, v: str | None) -> str | None:
+        return v.strip().lower() if v else v

@@ -25,7 +25,11 @@ function isActive(pathname: string, href: string): boolean {
 // loans regardless of the persisted switcher line, so the accent is derived from
 // the route here rather than by mutating the shared active line.
 function isLoansRoute(pathname: string): boolean {
-  return pathname.startsWith("/dashboard/apply") || pathname.startsWith("/dashboard/documents");
+  return (
+    pathname.startsWith("/dashboard/apply") ||
+    pathname.startsWith("/dashboard/documents") ||
+    pathname.startsWith("/dashboard/loans")
+  );
 }
 
 // Slim workspace rail. Icon-only when collapsed (names live in tooltips); it

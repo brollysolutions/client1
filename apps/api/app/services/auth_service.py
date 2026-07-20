@@ -43,6 +43,7 @@ from app.schemas.auth import (
     ForgotVerifyRequest,
     LoginRequest,
     MeResponse,
+    MeUpdateRequest,
     RegisterInitiateRequest,
     RegisterInitiateResponse,
     RegisterVerifyOtpRequest,
@@ -465,6 +466,60 @@ async def get_me(db: AsyncSession, current_user_id: UUID) -> MeResponse:
         email_verified=user.email_verified_at is not None,
         profiles=profiles,
     )
+
+
+async def update_me(
+    db: AsyncSession,
+    current_user_id: UUID,
+    req: MeUpdateRequest,
+    ip: str | None = None,
+    user_agent: str | None = None,
+) -> MeResponse:
+    """Update the logged-in user's own name (and optionally email).
+
+    Reachable by any authenticated, non-force-reset account; RLS confines every
+    caller to their own auth_users row. mobile is immutable (account identity).
+    Changing the email resets email_verified_at so the post-login verify flow runs
+    again. Same get->mutate->commit pattern as change_password.
+    """
+    user = await db.get(User, current_user_id)
+    if user is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized.")
+
+    email_changed = req.email is not None and req.email != user.email
+
+    user.first_name = req.first_name
+    user.last_name = req.last_name
+    if email_changed:
+        user.email = req.email
+        user.email_verified_at = None  # re-verify the new address
+
+    # No pre-check for an email collision: under this caller's RLS context
+    # (auth_users_rls restricts a client to their own row) a "SELECT another user
+    # with this email" always returns nothing, so a pre-check would be dead code.
+    # The auth_users.email UNIQUE constraint is the real backstop; on a clash the
+    # commit raises IntegrityError, converted to one generic message that never
+    # reveals which field collided.
+    try:
+        await db.commit()
+    except IntegrityError as exc:
+        await db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="That email is already in use.",
+        ) from exc
+
+    await _log_event(
+        db,
+        auth_user_uuid=user.id,
+        event_type="profile_updated",
+        mobile=user.mobile,
+        ip=ip,
+        user_agent=user_agent,
+        success=True,
+        detail={"email_changed": email_changed},
+    )
+    return await get_me(db, user.id)
 
 
 # ---------------------------------------------------------------------------

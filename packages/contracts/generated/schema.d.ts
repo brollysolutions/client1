@@ -171,7 +171,8 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
-        patch?: never;
+        /** Update Me */
+        patch: operations["update_me_api_v1_auth_me_patch"];
         trace?: never;
     };
     "/api/v1/auth/otp/resend": {
@@ -304,6 +305,24 @@ export interface paths {
         get: operations["get_loan_application_api_v1_loans_applications__application_id__get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/support-tickets/tickets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Tickets */
+        get: operations["list_tickets_api_v1_support_tickets_tickets_get"];
+        put?: never;
+        /** Create Ticket */
+        post: operations["create_ticket_api_v1_support_tickets_tickets_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -496,6 +515,18 @@ export interface components {
             /** Profiles */
             profiles: components["schemas"]["ClientProfileSummary"][];
         };
+        /**
+         * MeUpdateRequest
+         * @description Client edit of their own profile. mobile is immutable (account identity).
+         */
+        MeUpdateRequest: {
+            /** Email */
+            email?: string | null;
+            /** First Name */
+            first_name: string;
+            /** Last Name */
+            last_name: string;
+        };
         /** MessageResponse */
         MessageResponse: {
             /** Message */
@@ -618,6 +649,53 @@ export interface components {
             password: string;
             /** Registration Token */
             registration_token: string;
+        };
+        /**
+         * SupportCategory
+         * @enum {string}
+         */
+        SupportCategory: "account_login" | "otp" | "lost_mobile" | "general";
+        /**
+         * SupportStatus
+         * @enum {string}
+         */
+        SupportStatus: "open" | "in_progress" | "resolved" | "closed";
+        /** SupportTicketCreate */
+        SupportTicketCreate: {
+            /** Body */
+            body: string;
+            category: components["schemas"]["SupportCategory"];
+            /** Subject */
+            subject: string;
+        };
+        /** SupportTicketListResponse */
+        SupportTicketListResponse: {
+            /** Tickets */
+            tickets: components["schemas"]["SupportTicketRead"][];
+        };
+        /** SupportTicketRead */
+        SupportTicketRead: {
+            /** Body */
+            body: string;
+            category: components["schemas"]["SupportCategory"];
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            status: components["schemas"]["SupportStatus"];
+            /** Subject */
+            subject: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
         };
         /** ValidationError */
         ValidationError: {
@@ -921,6 +999,39 @@ export interface operations {
             };
         };
     };
+    update_me_api_v1_auth_me_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MeUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MeResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     resend_otp_api_v1_auth_otp_resend_post: {
         parameters: {
             query?: never;
@@ -1155,6 +1266,59 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["LoanApplicationRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_tickets_api_v1_support_tickets_tickets_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SupportTicketListResponse"];
+                };
+            };
+        };
+    };
+    create_ticket_api_v1_support_tickets_tickets_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SupportTicketCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SupportTicketRead"];
                 };
             };
             /** @description Validation Error */
