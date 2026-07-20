@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { CircleUser, Headset, LogOut, MailWarning, Settings } from "lucide-react";
+import { Headset, LogOut, MailWarning, Settings } from "lucide-react";
 import { toast } from "sonner";
 
 import { useAuth } from "@/components/auth/session-provider";
@@ -52,9 +52,9 @@ export function ProfileMenu() {
     <DropdownMenu>
       <DropdownMenuTrigger
         aria-label="Open account menu"
-        className="flex cursor-pointer items-center rounded-full p-0.5 text-text-secondary transition-colors hover:text-sky-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue"
+        className="flex cursor-pointer items-center rounded-full p-0.5 text-brand-cta transition-colors hover:text-sky-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue"
       >
-        <CircleUser className="h-7 w-7" aria-hidden="true" />
+        <Headset className="h-7 w-7" aria-hidden="true" />
       </DropdownMenuTrigger>
 
       <DropdownMenuContent align="end" className="w-72">
@@ -105,10 +105,6 @@ export function ProfileMenu() {
           <Settings />
           Settings
         </DropdownMenuItem>
-        <DropdownMenuItem onSelect={() => router.push("/dashboard/support")}>
-          <Headset />
-          Customer support
-        </DropdownMenuItem>
         <DropdownMenuItem
           disabled={signingOut}
           onSelect={(e) => {
@@ -119,7 +115,7 @@ export function ProfileMenu() {
           className={cn(signingOut && "opacity-60")}
         >
           <LogOut />
-          {signingOut ? "Signing out…" : "Log out"}
+          {signingOut ? "Signing out…" : "Sign out"}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
