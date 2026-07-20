@@ -54,14 +54,16 @@
   /* Announcement/notice bar — global site chrome, not a line accent. */
   --color-notice: #F3BB1B;
 
-  /* Sidebar rail chrome — warm gray, a quiet step down from the cream
+  /* Sidebar rail chrome — neutral light gray, a quiet step down from the cream
      --background so the rail reads as chrome, not a coloured panel (the old
-     navy sidebar is gone). The top bar blends fully into --background (no
-     separate chrome colour). Line accent is blue-only for both lines, see
-     ADR-0007; the switcher label (not colour) distinguishes the active line. */
-  --color-dash-rail: #EAE6DE;
-  --color-dash-rail-hover: #E1DBD0;
-  --color-dash-border: #DBD5C9;
+     navy sidebar is gone). Rail icons are gray by default and turn blue on
+     hover, so the rail carries no hover fill. The top bar blends fully into
+     --background. Line accent is blue-only for both lines, see ADR-0007; the
+     switcher label (not colour) distinguishes the active line. --dash-rail-hover
+     survives only for the mobile hamburger tap target. */
+  --color-dash-rail: #F2F0EC;
+  --color-dash-rail-hover: #eae7e1;
+  --color-dash-border: #e4e0d8;
 
   /* Letter-avatar palette (components/user-avatar). A user's tile colour is a
      deterministic hash of their name, so it never changes between sessions.

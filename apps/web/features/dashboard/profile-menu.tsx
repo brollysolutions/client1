@@ -52,7 +52,7 @@ export function ProfileMenu() {
     <DropdownMenu>
       <DropdownMenuTrigger
         aria-label="Open account menu"
-        className="flex items-center gap-1.5 rounded-full p-0.5 text-text-secondary transition-colors hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue"
+        className="flex cursor-pointer items-center gap-1.5 rounded-full p-0.5 text-text-secondary transition-colors hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue"
       >
         <UserAvatar name={fullName} email={me?.email} size="sm" />
         <ChevronDown className="hidden h-4 w-4 sm:block" />
