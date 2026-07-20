@@ -12,6 +12,7 @@ import { apiRequest, type ApiResponse } from "@/lib/api/client";
 type Schemas = components["schemas"];
 
 export type LoanStatus = Schemas["LoanStatus"];
+export type FeeOutcome = Schemas["FeeOutcome"];
 
 export type LoanApplication = {
   id: string;
@@ -20,6 +21,9 @@ export type LoanApplication = {
   statusReason: string | null;
   amountRequested: string | null;
   amountSanctioned: string | null;
+  interestRate: string | null;
+  processingFee: string | null;
+  feeOutcome: FeeOutcome | null;
   openedOn: string; // ISO date
   closedOn: string | null;
 };
@@ -32,6 +36,9 @@ function mapApplication(raw: Schemas["LoanApplicationRead"]): LoanApplication {
     statusReason: raw.status_reason,
     amountRequested: raw.amount_requested,
     amountSanctioned: raw.amount_sanctioned,
+    interestRate: raw.interest_rate,
+    processingFee: raw.processing_fee,
+    feeOutcome: raw.fee_outcome,
     openedOn: raw.opened_at,
     closedOn: raw.closed_at,
   };
@@ -41,4 +48,12 @@ export async function getLoanApplications(): Promise<ApiResponse<LoanApplication
   const res = await apiRequest<Schemas["LoanApplicationListResponse"]>("/api/v1/loans/applications");
   if (!res.ok) return res;
   return { ok: true, status: res.status, data: res.data.applications.map(mapApplication) };
+}
+
+export async function getLoanApplication(id: string): Promise<ApiResponse<LoanApplication>> {
+  const res = await apiRequest<Schemas["LoanApplicationRead"]>(
+    `/api/v1/loans/applications/${id}`,
+  );
+  if (!res.ok) return res;
+  return { ok: true, status: res.status, data: mapApplication(res.data) };
 }

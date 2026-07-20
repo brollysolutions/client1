@@ -19,3 +19,4 @@ from app.models.auth import RefreshToken, AuthEvent  # noqa
 from app.models.profile import ClientProfile, StaffProfile, AgentApplication, AgentProfile  # noqa
 from app.models.lead import Lead  # noqa
 from app.models.loan import LoanType, Bank, LoanApplication  # noqa
+from app.models.support_ticket import SupportTicket  # noqa

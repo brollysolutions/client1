@@ -4,9 +4,9 @@ import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 // Placeholder for a surface whose real content lands in a later phase. Neutral by
-// default; a per-line page can tint the icon by passing accent classes (loans
-// green on /loans, real-estate amber on /real-estate) without the sidebar ever
-// mixing the two.
+// default; a page can tint the icon by passing accent classes. The line accent is
+// blue-only for both lines (ADR-0007), so callers pass the soft-blue tokens
+// (bg-loans-soft text-loans-accent), never a per-line green/amber.
 export function ComingSoon({
   icon: Icon,
   title,

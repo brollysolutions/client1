@@ -1,4 +1,4 @@
-import { Bell, FilePlus2, FolderClosed, Headset, House, Wallet } from "lucide-react";
+import { Bell, CircleUser, FilePlus2, FolderClosed, Headset, House, Wallet } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 export type NavItem = {
@@ -23,4 +23,5 @@ export const NAV_ITEMS: NavItem[] = [
   { key: "transactions", label: "Transactions", href: "/dashboard/transactions", icon: Wallet },
   { key: "support", label: "Support", href: "/dashboard/support", icon: Headset },
   { key: "notifications", label: "Notifications", href: "/dashboard/notifications", icon: Bell },
+  { key: "profile", label: "Profile", href: "/dashboard/settings", icon: CircleUser },
 ];
