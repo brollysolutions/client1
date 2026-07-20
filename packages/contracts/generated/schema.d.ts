@@ -276,6 +276,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/loans/applications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Loan Applications */
+        get: operations["list_loan_applications_api_v1_loans_applications_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/loans/applications/{application_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Loan Application */
+        get: operations["get_loan_application_api_v1_loans_applications__application_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/health": {
         parameters: {
             query?: never;
@@ -358,6 +392,11 @@ export interface components {
             /** Otp Hint */
             otp_hint?: string | null;
         };
+        /**
+         * FeeOutcome
+         * @enum {string}
+         */
+        FeeOutcome: "waived" | "cashback" | "none";
         /** ForgotInitiateRequest */
         ForgotInitiateRequest: {
             /** Mobile */
@@ -386,6 +425,54 @@ export interface components {
         HTTPValidationError: {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
+        };
+        /** LoanApplicationListResponse */
+        LoanApplicationListResponse: {
+            /** Applications */
+            applications: components["schemas"]["LoanApplicationRead"][];
+        };
+        /** LoanApplicationRead */
+        LoanApplicationRead: {
+            /** Amount Requested */
+            amount_requested: string | null;
+            /** Amount Sanctioned */
+            amount_sanctioned: string | null;
+            /** Closed At */
+            closed_at: string | null;
+            fee_outcome: components["schemas"]["FeeOutcome"] | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Interest Rate */
+            interest_rate: string | null;
+            loan_type: components["schemas"]["LoanTypeSummary"];
+            /**
+             * Opened At
+             * Format: date-time
+             */
+            opened_at: string;
+            /** Processing Fee */
+            processing_fee: string | null;
+            status: components["schemas"]["LoanStatus"];
+            /** Status Reason */
+            status_reason: string | null;
+        };
+        /**
+         * LoanStatus
+         * @enum {string}
+         */
+        LoanStatus: "new" | "assigned" | "contacted" | "docs_collected" | "submitted_to_bank" | "sanctioned" | "disbursed" | "closed" | "rejected" | "on_hold";
+        /** LoanTypeSummary */
+        LoanTypeSummary: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Label */
+            label: string;
         };
         /** LoginRequest */
         LoginRequest: {
@@ -1017,6 +1104,57 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PublicLeadResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_loan_applications_api_v1_loans_applications_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LoanApplicationListResponse"];
+                };
+            };
+        };
+    };
+    get_loan_application_api_v1_loans_applications__application_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                application_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LoanApplicationRead"];
                 };
             };
             /** @description Validation Error */
