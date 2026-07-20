@@ -52,7 +52,7 @@ export function ProfileMenu() {
     <DropdownMenu>
       <DropdownMenuTrigger
         aria-label="Open account menu"
-        className="flex cursor-pointer items-center rounded-full p-0.5 text-brand-cta transition-colors hover:text-sky-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue"
+        className="flex cursor-pointer items-center rounded-full p-0.5 text-text-primary transition-colors hover:text-sky-500 focus-visible:outline-none"
       >
         <CircleUser className="h-7 w-7" aria-hidden="true" />
       </DropdownMenuTrigger>

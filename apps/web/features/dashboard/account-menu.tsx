@@ -102,7 +102,7 @@ export function AccountMenu({
         <DropdownMenuTrigger
           aria-label="Open account menu"
           className={cn(
-            "group/acct relative flex cursor-pointer items-center rounded-lg text-left transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue",
+            "group/acct relative flex cursor-pointer items-center rounded-lg text-left transition-all focus-visible:outline-none",
             "hover:bg-dash-rail-hover hover:shadow-sm hover:ring-1 hover:ring-brand-blue/25",
             "data-[state=open]:bg-dash-rail-hover data-[state=open]:ring-1 data-[state=open]:ring-brand-blue/25",
             labeled ? "w-full gap-3 px-2 py-2" : "mx-auto h-12 w-12 justify-center",
