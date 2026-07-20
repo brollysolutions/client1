@@ -52,12 +52,12 @@ export function ProfileMenu() {
     <DropdownMenu>
       <DropdownMenuTrigger
         aria-label="Open account menu"
-        className="flex cursor-pointer items-center rounded-full p-0.5 text-text-primary transition-colors hover:text-sky-500 focus-visible:outline-none"
+        className="flex cursor-pointer items-center rounded-full p-1 text-text-secondary transition-colors hover:text-sky-500 focus-visible:outline-none"
       >
-        <CircleUser className="h-7 w-7" aria-hidden="true" />
+        <CircleUser className="h-6 w-6" aria-hidden="true" />
       </DropdownMenuTrigger>
 
-      <DropdownMenuContent align="end" className="w-72">
+      <DropdownMenuContent align="end" className="w-72 bg-dash-rail">
         {/* Account header */}
         <div className="flex items-center gap-3 px-2.5 py-2">
           <UserAvatar name={fullName} email={me?.email} size="md" />
