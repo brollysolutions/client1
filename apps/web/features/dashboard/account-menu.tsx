@@ -216,7 +216,10 @@ export function AccountMenu({
               e.preventDefault();
               void handleLogout();
             }}
-            className={cn(signingOut && "opacity-60")}
+            className={cn(
+              "data-[highlighted]:text-error data-[highlighted]:[&_svg]:text-error data-[highlighted]:before:bg-error",
+              signingOut && "opacity-60",
+            )}
           >
             <LogOut />
             {signingOut ? "Signing out…" : "Sign out"}

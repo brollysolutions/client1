@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { Headset, LogOut, MailWarning, Settings } from "lucide-react";
+import { CircleUser, LogOut, MailWarning, Settings } from "lucide-react";
 import { toast } from "sonner";
 
 import { useAuth } from "@/components/auth/session-provider";
@@ -54,7 +54,7 @@ export function ProfileMenu() {
         aria-label="Open account menu"
         className="flex cursor-pointer items-center rounded-full p-0.5 text-brand-cta transition-colors hover:text-sky-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue"
       >
-        <Headset className="h-7 w-7" aria-hidden="true" />
+        <CircleUser className="h-7 w-7" aria-hidden="true" />
       </DropdownMenuTrigger>
 
       <DropdownMenuContent align="end" className="w-72">
@@ -112,7 +112,10 @@ export function ProfileMenu() {
             e.preventDefault();
             void handleLogout();
           }}
-          className={cn(signingOut && "opacity-60")}
+          className={cn(
+            "data-[highlighted]:text-error data-[highlighted]:[&_svg]:text-error data-[highlighted]:before:bg-error",
+            signingOut && "opacity-60",
+          )}
         >
           <LogOut />
           {signingOut ? "Signing out…" : "Sign out"}
