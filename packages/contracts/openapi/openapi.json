@@ -131,6 +131,15 @@
         "title": "EmailVerifyInitiateResponse",
         "type": "object"
       },
+      "FeeOutcome": {
+        "enum": [
+          "waived",
+          "cashback",
+          "none"
+        ],
+        "title": "FeeOutcome",
+        "type": "string"
+      },
       "ForgotInitiateRequest": {
         "properties": {
           "mobile": {
@@ -210,6 +219,173 @@
           }
         },
         "title": "HTTPValidationError",
+        "type": "object"
+      },
+      "LoanApplicationListResponse": {
+        "properties": {
+          "applications": {
+            "items": {
+              "$ref": "#/components/schemas/LoanApplicationRead"
+            },
+            "title": "Applications",
+            "type": "array"
+          }
+        },
+        "required": [
+          "applications"
+        ],
+        "title": "LoanApplicationListResponse",
+        "type": "object"
+      },
+      "LoanApplicationRead": {
+        "properties": {
+          "amount_requested": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Amount Requested"
+          },
+          "amount_sanctioned": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Amount Sanctioned"
+          },
+          "closed_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Closed At"
+          },
+          "fee_outcome": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FeeOutcome"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "interest_rate": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Interest Rate"
+          },
+          "loan_type": {
+            "$ref": "#/components/schemas/LoanTypeSummary"
+          },
+          "opened_at": {
+            "format": "date-time",
+            "title": "Opened At",
+            "type": "string"
+          },
+          "processing_fee": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Processing Fee"
+          },
+          "status": {
+            "$ref": "#/components/schemas/LoanStatus"
+          },
+          "status_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status Reason"
+          }
+        },
+        "required": [
+          "id",
+          "loan_type",
+          "status",
+          "status_reason",
+          "amount_requested",
+          "amount_sanctioned",
+          "interest_rate",
+          "processing_fee",
+          "fee_outcome",
+          "opened_at",
+          "closed_at"
+        ],
+        "title": "LoanApplicationRead",
+        "type": "object"
+      },
+      "LoanStatus": {
+        "enum": [
+          "new",
+          "assigned",
+          "contacted",
+          "docs_collected",
+          "submitted_to_bank",
+          "sanctioned",
+          "disbursed",
+          "closed",
+          "rejected",
+          "on_hold"
+        ],
+        "title": "LoanStatus",
+        "type": "string"
+      },
+      "LoanTypeSummary": {
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "label"
+        ],
+        "title": "LoanTypeSummary",
         "type": "object"
       },
       "LoginRequest": {
@@ -1275,6 +1451,80 @@
         "summary": "Create Lead",
         "tags": [
           "leads"
+        ]
+      }
+    },
+    "/api/v1/loans/applications": {
+      "get": {
+        "operationId": "list_loan_applications_api_v1_loans_applications_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoanApplicationListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "List Loan Applications",
+        "tags": [
+          "loans"
+        ]
+      }
+    },
+    "/api/v1/loans/applications/{application_id}": {
+      "get": {
+        "operationId": "get_loan_application_api_v1_loans_applications__application_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "application_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Application Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoanApplicationRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Get Loan Application",
+        "tags": [
+          "loans"
         ]
       }
     },
