@@ -102,7 +102,7 @@ export function AccountMenu({
         <DropdownMenuTrigger
           aria-label="Open account menu"
           className={cn(
-            "group/acct relative flex items-center rounded-lg text-left transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue",
+            "group/acct relative flex cursor-pointer items-center rounded-lg text-left transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue",
             "hover:bg-dash-rail-hover hover:shadow-sm hover:ring-1 hover:ring-brand-blue/25",
             "data-[state=open]:bg-dash-rail-hover data-[state=open]:ring-1 data-[state=open]:ring-brand-blue/25",
             labeled ? "w-full gap-3 px-2 py-2" : "mx-auto h-12 w-12 justify-center",
@@ -130,7 +130,7 @@ export function AccountMenu({
           side="top"
           align="start"
           sideOffset={8}
-          className="w-64 bg-background"
+          className="w-72 bg-background"
         >
           {/* Account header */}
           <div className="flex items-center gap-3 px-2.5 py-2">
@@ -196,11 +196,14 @@ export function AccountMenu({
             </DropdownMenuSubTrigger>
             <DropdownMenuSubContent>
               {HELP_LINKS.map(({ key, label, icon: Icon, href, external }) => (
-                <DropdownMenuItem key={key} onSelect={() => go(href)}>
-                  <Icon />
-                  {label}
-                  {external && <ExternalLink className="ml-auto" />}
-                </DropdownMenuItem>
+                <React.Fragment key={key}>
+                  <DropdownMenuItem onSelect={() => go(href)}>
+                    <Icon />
+                    {label}
+                    {external && <ExternalLink className="ml-auto" />}
+                  </DropdownMenuItem>
+                  {key === "support" && <DropdownMenuSeparator />}
+                </React.Fragment>
               ))}
             </DropdownMenuSubContent>
           </DropdownMenuSub>

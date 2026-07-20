@@ -42,7 +42,7 @@ function DropdownMenuItem({
       className={cn(
         // Highlight matches the sidebar rail: light-blue text/icon + a 3px blue
         // left bar (via before). No background fill.
-        "relative flex cursor-pointer select-none items-center gap-2 rounded-lg px-2.5 py-2 text-sm text-text-primary outline-none transition-colors data-[highlighted]:text-sky-500 data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:size-4 [&_svg]:shrink-0 [&_svg]:text-text-secondary data-[highlighted]:[&_svg]:text-sky-500 before:absolute before:left-0 before:top-1/2 before:h-5 before:w-[3px] before:-translate-y-1/2 before:rounded-full before:bg-brand-cta before:opacity-0 before:transition-opacity data-[highlighted]:before:opacity-100",
+        "relative flex cursor-pointer select-none items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm text-text-primary outline-none transition-colors data-[highlighted]:text-sky-500 data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:size-4 [&_svg]:shrink-0 [&_svg]:text-text-secondary data-[highlighted]:[&_svg]:text-sky-500 before:absolute before:left-0 before:top-1/2 before:h-5 before:w-[3px] before:-translate-y-1/2 before:rounded-full before:bg-brand-cta before:opacity-0 before:transition-opacity data-[highlighted]:before:opacity-100",
         inset && "pl-8",
         className,
       )}
@@ -87,7 +87,7 @@ function DropdownMenuSubTrigger({
       className={cn(
         // Same highlight language as DropdownMenuItem, plus an open state (kept
         // lit while its submenu is showing).
-        "relative flex cursor-pointer select-none items-center gap-2 rounded-lg px-2.5 py-2 text-sm text-text-primary outline-none transition-colors data-[highlighted]:text-sky-500 data-[state=open]:text-sky-500 [&_svg]:size-4 [&_svg]:shrink-0 [&_svg]:text-text-secondary data-[highlighted]:[&_svg]:text-sky-500 data-[state=open]:[&_svg]:text-sky-500 before:absolute before:left-0 before:top-1/2 before:h-5 before:w-[3px] before:-translate-y-1/2 before:rounded-full before:bg-brand-cta before:opacity-0 before:transition-opacity data-[highlighted]:before:opacity-100 data-[state=open]:before:opacity-100",
+        "relative flex cursor-pointer select-none items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm text-text-primary outline-none transition-colors data-[highlighted]:text-sky-500 data-[state=open]:text-sky-500 [&_svg]:size-4 [&_svg]:shrink-0 [&_svg]:text-text-secondary data-[highlighted]:[&_svg]:text-sky-500 data-[state=open]:[&_svg]:text-sky-500 before:absolute before:left-0 before:top-1/2 before:h-5 before:w-[3px] before:-translate-y-1/2 before:rounded-full before:bg-brand-cta before:opacity-0 before:transition-opacity data-[highlighted]:before:opacity-100 data-[state=open]:before:opacity-100",
         inset && "pl-8",
         className,
       )}
@@ -107,7 +107,7 @@ function DropdownMenuSubContent({
     <DropdownMenuPrimitive.Portal>
       <DropdownMenuPrimitive.SubContent
         className={cn(
-          "z-50 min-w-[12rem] overflow-hidden rounded-xl border border-border bg-background p-1.5 text-popover-foreground shadow-lg",
+          "z-50 min-w-[14rem] overflow-hidden rounded-xl border border-border bg-background p-1.5 text-popover-foreground shadow-lg",
           "animate-in fade-in-0 zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95",
           className,
         )}
