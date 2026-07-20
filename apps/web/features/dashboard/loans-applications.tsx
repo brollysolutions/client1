@@ -2,45 +2,14 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { FileText, Plus } from "lucide-react";
+import { ChevronRight, FileText, Plus } from "lucide-react";
 
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
-import { getLoanApplications, type LoanApplication, type LoanStatus } from "@/lib/loans";
+import { getLoanApplications, type LoanApplication } from "@/lib/loans";
 
 import { FetchError } from "./fetch-error";
-
-const STATUS_STYLES: Record<LoanStatus, { label: string; className: string }> = {
-  new: { label: "Submitted", className: "bg-muted text-text-secondary" },
-  assigned: { label: "Assigned to an advisor", className: "bg-muted text-text-secondary" },
-  contacted: { label: "Advisor reached out", className: "bg-muted text-text-secondary" },
-  docs_collected: { label: "Documents collected", className: "bg-muted text-text-secondary" },
-  submitted_to_bank: { label: "Under review", className: "bg-warning/10 text-warning" },
-  sanctioned: { label: "Sanctioned", className: "bg-success/10 text-success" },
-  disbursed: { label: "Disbursed", className: "bg-loans-soft text-loans-accent" },
-  closed: { label: "Closed", className: "bg-muted text-text-secondary" },
-  rejected: { label: "Rejected", className: "bg-error/10 text-error" },
-  on_hold: { label: "On hold", className: "bg-warning/10 text-warning" },
-};
-
-const inr = new Intl.NumberFormat("en-IN", {
-  style: "currency",
-  currency: "INR",
-  maximumFractionDigits: 0,
-});
-
-function formatAmount(value: string | null): string {
-  if (!value) return "—";
-  const n = Number(value);
-  return Number.isNaN(n) ? "—" : inr.format(n);
-}
-
-function formatDate(iso: string): string {
-  const d = new Date(iso);
-  return Number.isNaN(d.getTime())
-    ? "—"
-    : d.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
-}
+import { STATUS_STYLES, formatAmount, formatDate } from "./loan-format";
 
 type Status = "loading" | "ready" | "error";
 
@@ -137,8 +106,8 @@ export function LoansApplications() {
           </span>
           <h2 className="mt-5 text-lg font-semibold text-text-primary">No loan applications yet</h2>
           <p className="mx-auto mt-2 max-w-md text-sm text-text-secondary">
-            When you apply for a loan, it shows up here with its live status so you always know
-            where things stand.
+            When you apply, our team reviews your request and opens an application for you. It then
+            shows up here with its live status, so you always know where things stand.
           </p>
           <ApplyCta className="mt-6" />
         </div>
@@ -151,14 +120,27 @@ export function LoansApplications() {
                 <th className="px-5 py-3 font-medium">Amount</th>
                 <th className="hidden px-5 py-3 font-medium sm:table-cell">Applied on</th>
                 <th className="px-5 py-3 font-medium">Status</th>
+                <th className="px-5 py-3">
+                  <span className="sr-only">View</span>
+                </th>
               </tr>
             </thead>
             <tbody>
               {applications.map((a) => {
                 const s = STATUS_STYLES[a.status];
                 return (
-                  <tr key={a.id} className="border-b border-border last:border-0">
-                    <td className="px-5 py-4 font-medium text-text-primary">{a.loanTypeLabel}</td>
+                  <tr
+                    key={a.id}
+                    className="border-b border-border transition-colors last:border-0 hover:bg-muted/40"
+                  >
+                    <td className="px-5 py-4 font-medium">
+                      <Link
+                        href={`/dashboard/loans/${a.id}`}
+                        className="text-text-primary transition-colors hover:text-loans-accent focus-visible:outline-none focus-visible:text-loans-accent"
+                      >
+                        {a.loanTypeLabel}
+                      </Link>
+                    </td>
                     <td className="px-5 py-4 text-text-primary">
                       {formatAmount(a.amountSanctioned ?? a.amountRequested)}
                     </td>
@@ -177,6 +159,15 @@ export function LoansApplications() {
                       {(a.status === "rejected" || a.status === "on_hold") && a.statusReason ? (
                         <p className="mt-1 text-xs text-text-secondary">{a.statusReason}</p>
                       ) : null}
+                    </td>
+                    <td className="px-5 py-4 text-right">
+                      <Link
+                        href={`/dashboard/loans/${a.id}`}
+                        aria-label={`View ${a.loanTypeLabel} details`}
+                        className="inline-flex text-text-secondary transition-colors hover:text-loans-accent focus-visible:outline-none focus-visible:text-loans-accent"
+                      >
+                        <ChevronRight className="h-4 w-4" />
+                      </Link>
                     </td>
                   </tr>
                 );

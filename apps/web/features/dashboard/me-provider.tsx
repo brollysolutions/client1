@@ -19,6 +19,9 @@ type MeState = {
   error: string | null;
   errorStatus: number | null;
   retry: () => void;
+  // Push a fresh Me into the shared shell after a mutation (e.g. profile edit)
+  // so the sidebar/account menu update without a refetch.
+  setMe: (me: Me) => void;
 };
 
 const MeContext = React.createContext<MeState | null>(null);
@@ -71,7 +74,7 @@ export function MeProvider({ children }: { children: React.ReactNode }) {
   }, [reloadKey]);
 
   const value = React.useMemo<MeState>(
-    () => ({ me, status, error, errorStatus, retry }),
+    () => ({ me, status, error, errorStatus, retry, setMe }),
     [me, status, error, errorStatus, retry],
   );
 

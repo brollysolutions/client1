@@ -450,6 +450,41 @@
         "title": "MeResponse",
         "type": "object"
       },
+      "MeUpdateRequest": {
+        "description": "Client edit of their own profile. mobile is immutable (account identity).",
+        "properties": {
+          "email": {
+            "anyOf": [
+              {
+                "format": "email",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
+          },
+          "first_name": {
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "First Name",
+            "type": "string"
+          },
+          "last_name": {
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Last Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "first_name",
+          "last_name"
+        ],
+        "title": "MeUpdateRequest",
+        "type": "object"
+      },
       "MessageResponse": {
         "properties": {
           "message": {
@@ -783,6 +818,112 @@
           "confirm_password"
         ],
         "title": "SetPasswordRequest",
+        "type": "object"
+      },
+      "SupportCategory": {
+        "enum": [
+          "account_login",
+          "otp",
+          "lost_mobile",
+          "general"
+        ],
+        "title": "SupportCategory",
+        "type": "string"
+      },
+      "SupportStatus": {
+        "enum": [
+          "open",
+          "in_progress",
+          "resolved",
+          "closed"
+        ],
+        "title": "SupportStatus",
+        "type": "string"
+      },
+      "SupportTicketCreate": {
+        "properties": {
+          "body": {
+            "maxLength": 4000,
+            "minLength": 1,
+            "title": "Body",
+            "type": "string"
+          },
+          "category": {
+            "$ref": "#/components/schemas/SupportCategory"
+          },
+          "subject": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Subject",
+            "type": "string"
+          }
+        },
+        "required": [
+          "category",
+          "subject",
+          "body"
+        ],
+        "title": "SupportTicketCreate",
+        "type": "object"
+      },
+      "SupportTicketListResponse": {
+        "properties": {
+          "tickets": {
+            "items": {
+              "$ref": "#/components/schemas/SupportTicketRead"
+            },
+            "title": "Tickets",
+            "type": "array"
+          }
+        },
+        "required": [
+          "tickets"
+        ],
+        "title": "SupportTicketListResponse",
+        "type": "object"
+      },
+      "SupportTicketRead": {
+        "properties": {
+          "body": {
+            "title": "Body",
+            "type": "string"
+          },
+          "category": {
+            "$ref": "#/components/schemas/SupportCategory"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/SupportStatus"
+          },
+          "subject": {
+            "title": "Subject",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "category",
+          "subject",
+          "body",
+          "status",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "SupportTicketRead",
         "type": "object"
       },
       "ValidationError": {
@@ -1198,6 +1339,50 @@
         "tags": [
           "auth"
         ]
+      },
+      "patch": {
+        "operationId": "update_me_api_v1_auth_me_patch",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MeUpdateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Update Me",
+        "tags": [
+          "auth"
+        ]
       }
     },
     "/api/v1/auth/otp/resend": {
@@ -1525,6 +1710,76 @@
         "summary": "Get Loan Application",
         "tags": [
           "loans"
+        ]
+      }
+    },
+    "/api/v1/support-tickets/tickets": {
+      "get": {
+        "operationId": "list_tickets_api_v1_support_tickets_tickets_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SupportTicketListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "List Tickets",
+        "tags": [
+          "support-tickets"
+        ]
+      },
+      "post": {
+        "operationId": "create_ticket_api_v1_support_tickets_tickets_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SupportTicketCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SupportTicketRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Create Ticket",
+        "tags": [
+          "support-tickets"
         ]
       }
     },
