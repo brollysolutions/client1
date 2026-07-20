@@ -1,4 +1,4 @@
-import { FilePlus2, FolderClosed, LayoutGrid } from "lucide-react";
+import { Bell, FilePlus2, FolderClosed, Headset, House, Wallet } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 export type NavItem = {
@@ -6,13 +6,21 @@ export type NavItem = {
   label: string;
   href: string;
   icon: LucideIcon;
+  // Loans-only surfaces. Hidden when the workspace is on the real-estate line so
+  // a loans feature is never offered under the real-estate accent.
+  loansOnly?: boolean;
 };
 
-// Slim loans-workspace rail. Warm-gray chrome, icon-only with tooltips; no logo
-// or wordmark. The active item takes the current line accent (green for loans),
-// set in app-sidebar. The line switcher + account menu live in the top bar.
+// Slim workspace rail. Near-white chrome, icon-only with tooltips on desktop.
+// Icons are gray and turn blue on hover; the active item shows a blue icon plus
+// a left indicator bar (set in app-sidebar). Home + the identity-level items
+// (Transactions/Support/Notifications) show for both lines; Apply and Documents
+// are loans-only. The line switcher + account menu live in the top bar.
 export const NAV_ITEMS: NavItem[] = [
-  { key: "home", label: "Home", href: "/dashboard", icon: LayoutGrid },
-  { key: "apply", label: "Apply for a loan", href: "/dashboard/apply", icon: FilePlus2 },
-  { key: "documents", label: "Documents", href: "/dashboard/documents", icon: FolderClosed },
+  { key: "home", label: "Home", href: "/dashboard", icon: House },
+  { key: "apply", label: "Apply for a loan", href: "/dashboard/apply", icon: FilePlus2, loansOnly: true },
+  { key: "documents", label: "Documents", href: "/dashboard/documents", icon: FolderClosed, loansOnly: true },
+  { key: "transactions", label: "Transactions", href: "/dashboard/transactions", icon: Wallet },
+  { key: "support", label: "Support", href: "/dashboard/support", icon: Headset },
+  { key: "notifications", label: "Notifications", href: "/dashboard/notifications", icon: Bell },
 ];
