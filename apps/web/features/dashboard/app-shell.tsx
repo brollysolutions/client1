@@ -1,7 +1,8 @@
 "use client";
 
 import * as React from "react";
-import { Menu } from "lucide-react";
+import Link from "next/link";
+import { Bell, Menu } from "lucide-react";
 
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
@@ -48,7 +49,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <aside
             className={cn(
               "fixed inset-y-0 left-0 z-30 hidden transition-[width] duration-300 ease-out lg:block",
-              railOpen ? "w-60" : "w-16",
+              railOpen ? "w-62" : "w-16",
             )}
           >
             <AppSidebar expanded={railOpen} onToggle={toggleRail} />
@@ -65,7 +66,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <div
             className={cn(
               "transition-[padding] duration-300 ease-out",
-              railOpen ? "lg:pl-60" : "lg:pl-16",
+              railOpen ? "lg:pl-62" : "lg:pl-16",
             )}
           >
             {/* Top bar */}
@@ -74,11 +75,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 type="button"
                 aria-label="Open menu"
                 onClick={() => setMobileOpen(true)}
-                className="rounded-md p-1.5 text-text-primary transition-colors hover:bg-dash-rail-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue lg:hidden"
+                className="rounded-md p-1.5 text-text-primary transition-colors hover:bg-dash-rail-hover focus-visible:outline-none lg:hidden"
               >
                 <Menu className="h-5 w-5" />
               </button>
               <div className="flex-1" />
+              <Link
+                href="/dashboard/notifications"
+                aria-label="Notifications"
+                className="rounded-md p-1.5 text-text-secondary transition-colors hover:text-sky-500 focus-visible:outline-none"
+              >
+                <Bell className="h-5 w-5" />
+              </Link>
               <LineSwitcher />
               <ProfileMenu />
             </header>
