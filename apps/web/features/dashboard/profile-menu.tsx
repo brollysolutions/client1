@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { ChevronDown, LogOut, MailWarning, Settings } from "lucide-react";
+import { CircleUser, LogOut, MailWarning, Settings } from "lucide-react";
 import { toast } from "sonner";
 
 import { useAuth } from "@/components/auth/session-provider";
@@ -52,13 +52,12 @@ export function ProfileMenu() {
     <DropdownMenu>
       <DropdownMenuTrigger
         aria-label="Open account menu"
-        className="flex cursor-pointer items-center gap-1.5 rounded-full p-0.5 text-text-secondary transition-colors hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue"
+        className="flex cursor-pointer items-center rounded-full p-1 text-text-secondary transition-colors hover:text-sky-500 focus-visible:outline-none"
       >
-        <UserAvatar name={fullName} email={me?.email} size="sm" />
-        <ChevronDown className="hidden h-4 w-4 sm:block" />
+        <CircleUser className="h-6 w-6" aria-hidden="true" />
       </DropdownMenuTrigger>
 
-      <DropdownMenuContent align="end" className="w-72">
+      <DropdownMenuContent align="end" className="w-72 bg-dash-rail">
         {/* Account header */}
         <div className="flex items-center gap-3 px-2.5 py-2">
           <UserAvatar name={fullName} email={me?.email} size="md" />
@@ -71,9 +70,12 @@ export function ProfileMenu() {
         </div>
 
         {!emailVerified && (
-          <DropdownMenuItem onSelect={() => router.push("/dashboard/settings")}>
-            <MailWarning className="text-warning" />
-            <span className="text-warning">Verify your email</span>
+          <DropdownMenuItem
+            onSelect={() => router.push("/dashboard/settings")}
+            className="text-warning [&_svg]:text-warning data-[highlighted]:text-sky-500"
+          >
+            <MailWarning />
+            Verify your email
           </DropdownMenuItem>
         )}
 
@@ -110,10 +112,13 @@ export function ProfileMenu() {
             e.preventDefault();
             void handleLogout();
           }}
-          className={cn(signingOut && "opacity-60")}
+          className={cn(
+            "data-[highlighted]:text-error data-[highlighted]:[&_svg]:text-error data-[highlighted]:before:bg-error",
+            signingOut && "opacity-60",
+          )}
         >
           <LogOut />
-          {signingOut ? "Signing out…" : "Log out"}
+          {signingOut ? "Signing out…" : "Sign out"}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
