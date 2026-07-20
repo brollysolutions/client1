@@ -11,12 +11,11 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { UserAvatar } from "@/components/user-avatar";
 import { cn } from "@/lib/utils";
 
+import { AccountMenu } from "./account-menu";
 import { EXPLORE_CATEGORIES } from "./explore-categories";
 import { useLine } from "./line-provider";
-import { useMe } from "./me-provider";
 import { NAV_ITEMS, type NavItem } from "./nav-items";
 
 function isActive(pathname: string, href: string): boolean {
@@ -111,7 +110,7 @@ export function AppSidebar({
           );
         })}
 
-        <AccountBlock labeled={labeled} onNavigate={onNavigate} />
+        <AccountMenu labeled={labeled} onNavigate={onNavigate} />
       </nav>
     </TooltipProvider>
   );
@@ -295,58 +294,4 @@ function SidebarExplore({
       </div>
     </div>
   );
-}
-
-// Bottom-pinned account block: avatar + name + the active-line customer code,
-// with a settings affordance. Links to /dashboard/settings. Avatar-only (with a
-// tooltip) when the rail is collapsed. Renders only once /auth/me is ready.
-function AccountBlock({ labeled, onNavigate }: { labeled: boolean; onNavigate?: () => void }) {
-  const { me } = useMe();
-  const { activeLine } = useLine();
-
-  if (!me) return null;
-
-  const fullName = `${me.firstName} ${me.lastName}`.trim() || "Your account";
-  const customerCode = me.profiles.find((p) => p.businessLine === activeLine)?.customerCode;
-
-  const link = (
-    <Link
-      href="/dashboard/settings"
-      aria-label="Account settings"
-      onClick={onNavigate}
-      className={cn(
-        "group/link relative flex items-center rounded-lg text-text-secondary transition-colors hover:text-sky-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue",
-        labeled ? "gap-3 px-2 py-2" : "h-12 w-12 justify-center",
-      )}
-    >
-      <UserAvatar name={fullName} email={me.email} size="sm" />
-      {labeled && (
-        <span className="min-w-0 flex-1">
-          <span className="block truncate text-sm font-medium text-text-primary">{fullName}</span>
-          {customerCode && (
-            <span className="block truncate font-mono text-xs text-text-secondary">
-              {customerCode}
-            </span>
-          )}
-        </span>
-      )}
-    </Link>
-  );
-
-  const footer = (
-    <div className="mt-auto border-t border-dash-border pt-3">
-      {labeled ? (
-        link
-      ) : (
-        <Tooltip>
-          <TooltipTrigger asChild>{link}</TooltipTrigger>
-          <TooltipContent side="right" className="font-geist">
-            {fullName}
-          </TooltipContent>
-        </Tooltip>
-      )}
-    </div>
-  );
-
-  return footer;
 }
