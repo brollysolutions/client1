@@ -39,7 +39,9 @@ function DropdownMenuItem({
   return (
     <DropdownMenuPrimitive.Item
       className={cn(
-        "relative flex cursor-pointer select-none items-center gap-2 rounded-lg px-2.5 py-2 text-sm text-text-primary outline-none transition-colors data-[highlighted]:bg-dash-rail-hover data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:size-4 [&_svg]:shrink-0 [&_svg]:text-text-secondary",
+        // Highlight matches the sidebar rail: light-blue text/icon + a 3px blue
+        // left bar (via before). No background fill.
+        "relative flex cursor-pointer select-none items-center gap-2 rounded-lg px-2.5 py-2 text-sm text-text-primary outline-none transition-colors data-[highlighted]:text-sky-500 data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:size-4 [&_svg]:shrink-0 [&_svg]:text-text-secondary data-[highlighted]:[&_svg]:text-sky-500 before:absolute before:left-0 before:top-1/2 before:h-5 before:w-[3px] before:-translate-y-1/2 before:rounded-full before:bg-brand-cta before:opacity-0 before:transition-opacity data-[highlighted]:before:opacity-100",
         inset && "pl-8",
         className,
       )}
@@ -82,7 +84,7 @@ function DropdownMenuCheckboxItem({
   return (
     <DropdownMenuPrimitive.CheckboxItem
       className={cn(
-        "relative flex cursor-pointer select-none items-center gap-2 rounded-lg py-2 pl-8 pr-2.5 text-sm text-text-primary outline-none transition-colors data-[highlighted]:bg-dash-rail-hover data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
+        "relative flex cursor-pointer select-none items-center gap-2 rounded-lg py-2 pl-8 pr-2.5 text-sm text-text-primary outline-none transition-colors data-[highlighted]:text-sky-500 data-[disabled]:pointer-events-none data-[disabled]:opacity-50 before:absolute before:left-0 before:top-1/2 before:h-5 before:w-[3px] before:-translate-y-1/2 before:rounded-full before:bg-brand-cta before:opacity-0 before:transition-opacity data-[highlighted]:before:opacity-100",
         className,
       )}
       checked={checked}
