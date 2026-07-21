@@ -5,8 +5,8 @@
 // for /api/v1/properties once the real-estate RLS line-claim gap is fixed (see
 // alembic/versions/2b3c4d5e6f7a_add_loan_applications.py).
 //
-// Structured filter fields (pincode, furnishing, status, amenities, postedBy,
-// ageYears, listingType) are hand-authored per listing below. city, locality,
+// Structured filter fields (pincode, furnishing, status, amenities,
+// ageYears) are hand-authored per listing below. city, locality,
 // bhk, areaSqft and priceLakhs are derived from the existing display strings
 // (location/meta/price) so there is one source of truth for what a card shows
 // and what the filters match against.
@@ -16,10 +16,8 @@ import type { LucideIcon } from "lucide-react";
 import type { PropertyListing as BaseListing } from "@/lib/properties";
 
 export type RECategory = "houses" | "apartments" | "villas" | "plots" | "commercial";
-export type ListingType = "buy" | "rent";
 export type Furnishing = "unfurnished" | "semi" | "furnished";
 export type ListingStatus = "ready" | "under_construction";
-export type PostedBy = "owner" | "agent" | "builder";
 
 type RawListing = Omit<BaseListing, "category"> & {
   category: RECategory;
@@ -27,9 +25,7 @@ type RawListing = Omit<BaseListing, "category"> & {
   furnishing: Furnishing;
   status: ListingStatus;
   amenities: string[];
-  postedBy: PostedBy;
   ageYears: number;
-  listingType: ListingType;
 };
 
 export type REListing = RawListing & {
@@ -94,9 +90,7 @@ const RAW_LISTINGS: RawListing[] = [
     furnishing: "furnished",
     status: "ready",
     amenities: ["parking", "security", "power_backup"],
-    postedBy: "owner",
     ageYears: 5,
-    listingType: "buy",
   },
   {
     id: "h2",
@@ -111,9 +105,7 @@ const RAW_LISTINGS: RawListing[] = [
     furnishing: "semi",
     status: "ready",
     amenities: ["parking", "lift", "security"],
-    postedBy: "agent",
     ageYears: 3,
-    listingType: "rent",
   },
   {
     id: "h3",
@@ -128,9 +120,7 @@ const RAW_LISTINGS: RawListing[] = [
     furnishing: "unfurnished",
     status: "ready",
     amenities: ["parking"],
-    postedBy: "owner",
     ageYears: 8,
-    listingType: "buy",
   },
   {
     id: "h4",
@@ -145,9 +135,7 @@ const RAW_LISTINGS: RawListing[] = [
     furnishing: "unfurnished",
     status: "under_construction",
     amenities: ["parking", "clubhouse", "garden"],
-    postedBy: "builder",
     ageYears: 0,
-    listingType: "rent",
   },
   {
     id: "h5",
@@ -162,9 +150,7 @@ const RAW_LISTINGS: RawListing[] = [
     furnishing: "furnished",
     status: "ready",
     amenities: ["parking", "security", "power_backup", "garden"],
-    postedBy: "owner",
     ageYears: 2,
-    listingType: "buy",
   },
   {
     id: "h6",
@@ -179,9 +165,7 @@ const RAW_LISTINGS: RawListing[] = [
     furnishing: "semi",
     status: "ready",
     amenities: ["parking", "security"],
-    postedBy: "agent",
     ageYears: 6,
-    listingType: "buy",
   },
   {
     id: "a1",
@@ -196,9 +180,7 @@ const RAW_LISTINGS: RawListing[] = [
     furnishing: "semi",
     status: "ready",
     amenities: ["lift", "gym", "security", "power_backup"],
-    postedBy: "agent",
     ageYears: 4,
-    listingType: "buy",
   },
   {
     id: "a2",
@@ -213,9 +195,7 @@ const RAW_LISTINGS: RawListing[] = [
     furnishing: "furnished",
     status: "ready",
     amenities: ["lift", "security"],
-    postedBy: "owner",
     ageYears: 3,
-    listingType: "rent",
   },
   {
     id: "a3",
@@ -230,9 +210,7 @@ const RAW_LISTINGS: RawListing[] = [
     furnishing: "unfurnished",
     status: "under_construction",
     amenities: ["lift", "gym", "swimming_pool", "clubhouse"],
-    postedBy: "builder",
     ageYears: 0,
-    listingType: "buy",
   },
   {
     id: "a4",
@@ -247,9 +225,7 @@ const RAW_LISTINGS: RawListing[] = [
     furnishing: "semi",
     status: "ready",
     amenities: ["lift", "security", "power_backup"],
-    postedBy: "agent",
     ageYears: 5,
-    listingType: "rent",
   },
   {
     id: "a5",
@@ -264,9 +240,7 @@ const RAW_LISTINGS: RawListing[] = [
     furnishing: "furnished",
     status: "ready",
     amenities: ["lift", "gym", "security"],
-    postedBy: "owner",
     ageYears: 7,
-    listingType: "buy",
   },
   {
     id: "a6",
@@ -281,9 +255,7 @@ const RAW_LISTINGS: RawListing[] = [
     furnishing: "unfurnished",
     status: "under_construction",
     amenities: ["lift", "swimming_pool", "clubhouse", "kids_play_area"],
-    postedBy: "builder",
     ageYears: 0,
-    listingType: "buy",
   },
   {
     id: "v1",
@@ -298,9 +270,7 @@ const RAW_LISTINGS: RawListing[] = [
     furnishing: "furnished",
     status: "ready",
     amenities: ["parking", "swimming_pool", "clubhouse", "garden", "security"],
-    postedBy: "owner",
     ageYears: 4,
-    listingType: "buy",
   },
   {
     id: "v2",
@@ -315,9 +285,7 @@ const RAW_LISTINGS: RawListing[] = [
     furnishing: "semi",
     status: "ready",
     amenities: ["parking", "security", "power_backup", "garden"],
-    postedBy: "builder",
     ageYears: 2,
-    listingType: "buy",
   },
   {
     id: "v4",
@@ -332,9 +300,7 @@ const RAW_LISTINGS: RawListing[] = [
     furnishing: "unfurnished",
     status: "under_construction",
     amenities: ["parking", "clubhouse", "swimming_pool"],
-    postedBy: "builder",
     ageYears: 0,
-    listingType: "rent",
   },
   {
     id: "v5",
@@ -349,9 +315,7 @@ const RAW_LISTINGS: RawListing[] = [
     furnishing: "furnished",
     status: "ready",
     amenities: ["parking", "swimming_pool", "security", "garden", "gym"],
-    postedBy: "agent",
     ageYears: 3,
-    listingType: "buy",
   },
   {
     id: "p1",
@@ -366,9 +330,7 @@ const RAW_LISTINGS: RawListing[] = [
     furnishing: "unfurnished",
     status: "ready",
     amenities: ["security"],
-    postedBy: "owner",
     ageYears: 0,
-    listingType: "buy",
   },
   {
     id: "p2",
@@ -383,9 +345,7 @@ const RAW_LISTINGS: RawListing[] = [
     furnishing: "unfurnished",
     status: "ready",
     amenities: [],
-    postedBy: "owner",
     ageYears: 0,
-    listingType: "buy",
   },
   {
     id: "p3",
@@ -400,9 +360,7 @@ const RAW_LISTINGS: RawListing[] = [
     furnishing: "unfurnished",
     status: "ready",
     amenities: ["security"],
-    postedBy: "agent",
     ageYears: 0,
-    listingType: "buy",
   },
   {
     id: "p4",
@@ -417,9 +375,7 @@ const RAW_LISTINGS: RawListing[] = [
     furnishing: "unfurnished",
     status: "ready",
     amenities: [],
-    postedBy: "owner",
     ageYears: 0,
-    listingType: "buy",
   },
   {
     id: "p5",
@@ -434,9 +390,7 @@ const RAW_LISTINGS: RawListing[] = [
     furnishing: "unfurnished",
     status: "ready",
     amenities: ["security", "clubhouse"],
-    postedBy: "builder",
     ageYears: 0,
-    listingType: "buy",
   },
   {
     id: "p6",
@@ -451,9 +405,7 @@ const RAW_LISTINGS: RawListing[] = [
     furnishing: "unfurnished",
     status: "ready",
     amenities: [],
-    postedBy: "owner",
     ageYears: 0,
-    listingType: "buy",
   },
   {
     id: "c1",
@@ -468,9 +420,7 @@ const RAW_LISTINGS: RawListing[] = [
     furnishing: "unfurnished",
     status: "ready",
     amenities: ["parking", "security"],
-    postedBy: "owner",
     ageYears: 6,
-    listingType: "buy",
   },
   {
     id: "c2",
@@ -485,9 +435,7 @@ const RAW_LISTINGS: RawListing[] = [
     furnishing: "furnished",
     status: "ready",
     amenities: ["parking", "lift", "power_backup", "security"],
-    postedBy: "agent",
     ageYears: 4,
-    listingType: "rent",
   },
   {
     id: "c3",
@@ -502,9 +450,7 @@ const RAW_LISTINGS: RawListing[] = [
     furnishing: "semi",
     status: "ready",
     amenities: ["parking", "security"],
-    postedBy: "owner",
     ageYears: 5,
-    listingType: "buy",
   },
   {
     id: "c4",
@@ -519,9 +465,7 @@ const RAW_LISTINGS: RawListing[] = [
     furnishing: "unfurnished",
     status: "under_construction",
     amenities: ["parking", "lift", "power_backup"],
-    postedBy: "builder",
     ageYears: 0,
-    listingType: "buy",
   },
   {
     id: "c5",
@@ -536,9 +480,7 @@ const RAW_LISTINGS: RawListing[] = [
     furnishing: "unfurnished",
     status: "ready",
     amenities: ["parking"],
-    postedBy: "agent",
     ageYears: 3,
-    listingType: "rent",
   },
   {
     id: "c6",
@@ -553,9 +495,7 @@ const RAW_LISTINGS: RawListing[] = [
     furnishing: "unfurnished",
     status: "ready",
     amenities: ["parking", "security", "power_backup"],
-    postedBy: "owner",
     ageYears: 7,
-    listingType: "buy",
   },
 ];
 
@@ -634,7 +574,6 @@ export type SortOrder = "relevance" | "price_asc" | "price_desc" | "newest";
 
 export type PropertyFilters = {
   q?: string;
-  listingType?: ListingType;
   categories?: RECategory[];
   bhk?: number[];
   priceMin?: number;
@@ -644,7 +583,6 @@ export type PropertyFilters = {
   status?: ListingStatus[];
   furnishing?: Furnishing[];
   amenities?: string[];
-  postedBy?: PostedBy[];
   city?: string;
   locality?: string;
   pincode?: string;
@@ -652,7 +590,6 @@ export type PropertyFilters = {
 };
 
 const FACET_KEYS = [
-  "listingType",
   "categories",
   "bhk",
   "priceMin",
@@ -662,7 +599,6 @@ const FACET_KEYS = [
   "status",
   "furnishing",
   "amenities",
-  "postedBy",
   "city",
   "locality",
   "pincode",
@@ -675,7 +611,6 @@ const FACET_KEYS = [
 export function filterListings(listings: REListing[], filters: PropertyFilters): REListing[] {
   const q = filters.q?.trim().toLowerCase();
   return listings.filter((listing) => {
-    if (filters.listingType && listing.listingType !== filters.listingType) return false;
     if (filters.categories?.length && !filters.categories.includes(listing.category)) return false;
     if (filters.bhk?.length && !filters.bhk.includes(listing.bhk)) return false;
     if (filters.priceMin != null && listing.priceLakhs < filters.priceMin) return false;
@@ -686,7 +621,6 @@ export function filterListings(listings: REListing[], filters: PropertyFilters):
     if (filters.furnishing?.length && !filters.furnishing.includes(listing.furnishing)) return false;
     if (filters.amenities?.length && !filters.amenities.every((a) => listing.amenities.includes(a)))
       return false;
-    if (filters.postedBy?.length && !filters.postedBy.includes(listing.postedBy)) return false;
     if (filters.city && listing.city !== filters.city) return false;
     if (filters.locality && listing.locality !== filters.locality) return false;
     if (filters.pincode && listing.pincode !== filters.pincode) return false;

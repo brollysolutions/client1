@@ -32,7 +32,7 @@ export default async function ExploreCategoryPage({
   const blurb = reCategory?.blurb ?? loansCategory!.blurb;
 
   return (
-    <div className="space-y-6">
+    <div className="mx-auto w-full max-w-5xl space-y-6 px-4 sm:px-6 lg:px-10">
       <Link
         href="/dashboard/explore"
         className="inline-flex items-center gap-1.5 rounded text-sm text-text-secondary transition-colors hover:text-sky-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue"

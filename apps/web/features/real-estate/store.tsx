@@ -196,80 +196,15 @@ export function useEnquiries(): EnquiriesContextValue {
   return ctx;
 }
 
-// ---- Site visits ----
-
-export type VisitStatus = "requested" | "confirmed" | "done";
-
-export type SiteVisit = {
-  id: string;
-  listingId: string;
-  title: string;
-  location: string;
-  date: string;
-  status: VisitStatus;
-};
-
-const SEED_VISITS: SiteVisit[] = [
-  {
-    id: "seed-v1",
-    listingId: "v1",
-    title: "3 BHK Villa",
-    location: "Whitefield, Bengaluru",
-    date: "2026-07-26",
-    status: "confirmed",
-  },
-];
-
-type SiteVisitsContextValue = {
-  items: SiteVisit[];
-  add: (listing: REListing, date: string) => void;
-  updateStatus: (id: string, status: VisitStatus) => void;
-};
-
-const SiteVisitsContext = React.createContext<SiteVisitsContextValue | null>(null);
-
-function SiteVisitsProvider({ children }: { children: React.ReactNode }) {
-  const [items, setItems] = useLocalStorageState<SiteVisit[]>("dashboard:re:site-visits", SEED_VISITS);
-
-  const value = React.useMemo<SiteVisitsContextValue>(
-    () => ({
-      items,
-      add: (listing, date) =>
-        setItems((prev) => [
-          {
-            id: `v-${listing.id}-${prev.length}`,
-            listingId: listing.id,
-            title: listing.title,
-            location: listing.location,
-            date,
-            status: "requested",
-          },
-          ...prev,
-        ]),
-      updateStatus: (id, status) =>
-        setItems((prev) => prev.map((v) => (v.id === id ? { ...v, status } : v))),
-    }),
-    [items, setItems],
-  );
-
-  return <SiteVisitsContext.Provider value={value}>{children}</SiteVisitsContext.Provider>;
-}
-
-export function useSiteVisits(): SiteVisitsContextValue {
-  const ctx = React.useContext(SiteVisitsContext);
-  if (!ctx) throw new Error("useSiteVisits must be used within RealEstateProvider");
-  return ctx;
-}
-
-// Single mount point for the app shell: wraps bookmarks, compare, enquiries,
-// and site visits so every dashboard page shares one instance of each.
+// Single mount point for the app shell: wraps bookmarks, compare, and
+// enquiries so every dashboard page shares one instance of each. Site visits
+// used to live here too (localStorage-only); it's been replaced by the real
+// site-visits API (lib/site-visits.ts), so that slice was removed.
 export function RealEstateProvider({ children }: { children: React.ReactNode }) {
   return (
     <BookmarksProvider>
       <CompareProvider>
-        <EnquiriesProvider>
-          <SiteVisitsProvider>{children}</SiteVisitsProvider>
-        </EnquiriesProvider>
+        <EnquiriesProvider>{children}</EnquiriesProvider>
       </CompareProvider>
     </BookmarksProvider>
   );

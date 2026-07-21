@@ -1,39 +1,107 @@
 "use client";
 
+import * as React from "react";
 import { CalendarCheck } from "lucide-react";
+import { toast } from "sonner";
 
-import { useSiteVisits, type VisitStatus } from "@/features/real-estate/store";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { FetchError } from "@/features/dashboard/fetch-error";
+import { cancelSiteVisit, getSiteVisits, type SiteVisit, type SiteVisitStatus } from "@/lib/site-visits";
 import { cn } from "@/lib/utils";
 
-const STATUS_STYLE: Record<VisitStatus, string> = {
+const STATUS_STYLE: Record<SiteVisitStatus, string> = {
   requested: "bg-brand-cta-tint text-brand-cta",
   confirmed: "bg-warning/10 text-warning",
   done: "bg-success/10 text-success",
+  cancelled: "bg-muted text-text-secondary",
 };
 
-const STATUS_LABEL: Record<VisitStatus, string> = {
+const STATUS_LABEL: Record<SiteVisitStatus, string> = {
   requested: "Requested",
   confirmed: "Confirmed",
   done: "Done",
+  cancelled: "Cancelled",
+};
+
+const SLOT_LABEL: Record<SiteVisit["preferredTimeSlot"], string> = {
+  morning: "Morning",
+  afternoon: "Afternoon",
+  evening: "Evening",
 };
 
 function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime())
+    ? "-"
+    : d.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
 }
 
-// Scheduled site visits, requested via the "book visit" action on a property
-// card. Frontend-only: persisted in the site-visits store.
+type Status = "loading" | "ready" | "error";
+
+// Scheduled site visits, requested via the "Book a site visit" action on a
+// property card. Backed by the real site-visits API (RLS-scoped to the
+// logged-in client); a visit can be cancelled from here until it's done.
 export function SiteVisitsView() {
-  const { items } = useSiteVisits();
+  const [visits, setVisits] = React.useState<SiteVisit[]>([]);
+  const [status, setStatus] = React.useState<Status>("loading");
+  const [error, setError] = React.useState<string | null>(null);
+  const [errorStatus, setErrorStatus] = React.useState<number | null>(null);
+  const [reloadKey, setReloadKey] = React.useState(0);
+  const [cancellingId, setCancellingId] = React.useState<string | null>(null);
+
+  const retry = React.useCallback(() => {
+    setStatus("loading");
+    setError(null);
+    setErrorStatus(null);
+    setReloadKey((k) => k + 1);
+  }, []);
+
+  React.useEffect(() => {
+    let active = true;
+    const run = async () => {
+      const res = await getSiteVisits();
+      if (!active) return;
+      if (res.ok) {
+        setVisits(res.data);
+        setStatus("ready");
+        return;
+      }
+      setError(res.error);
+      setErrorStatus(res.status);
+      setStatus("error");
+    };
+    void run();
+    return () => {
+      active = false;
+    };
+  }, [reloadKey]);
+
+  async function handleCancel(id: string) {
+    if (cancellingId) return;
+    setCancellingId(id);
+    const res = await cancelSiteVisit(id);
+    setCancellingId(null);
+    if (res.ok) {
+      setVisits((prev) => prev.map((v) => (v.id === id ? res.data : v)));
+      toast.success("Site visit cancelled.");
+    } else {
+      toast.error(res.error || "Couldn't cancel this visit. Please try again.");
+    }
+  }
 
   return (
-    <div className="space-y-6">
+    <div className="mx-auto w-full max-w-5xl space-y-6 px-4 sm:px-6 lg:px-10">
       <div>
         <h1 className="text-2xl font-semibold text-text-primary">Site Visits</h1>
         <p className="text-sm text-text-secondary">Your scheduled property visits.</p>
       </div>
 
-      {items.length === 0 ? (
+      {status === "loading" ? (
+        <Skeleton className="h-40 rounded-xl" />
+      ) : status === "error" ? (
+        <FetchError status={errorStatus} message={error} onRetry={retry} />
+      ) : visits.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-border bg-card px-6 py-14 text-center">
           <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-muted text-text-secondary">
             <CalendarCheck className="h-6 w-6" />
@@ -44,35 +112,56 @@ export function SiteVisitsView() {
           </p>
         </div>
       ) : (
-        <div className="overflow-hidden rounded-xl border border-border bg-card">
+        <div className="overflow-x-auto rounded-xl border border-border bg-card">
           <table className="w-full text-left text-sm">
             <thead className="border-b border-border text-xs uppercase tracking-wide text-text-secondary">
               <tr>
                 <th className="px-5 py-3 font-medium">Property</th>
-                <th className="px-5 py-3 font-medium">Date</th>
+                <th className="px-5 py-3 font-medium">Preferred date</th>
                 <th className="px-5 py-3 font-medium">Status</th>
+                <th className="px-5 py-3 font-medium">
+                  <span className="sr-only">Actions</span>
+                </th>
               </tr>
             </thead>
             <tbody>
-              {items.map((v) => (
-                <tr key={v.id} className="border-b border-border last:border-0">
-                  <td className="px-5 py-4">
-                    <p className="font-medium text-text-primary">{v.title}</p>
-                    <p className="text-xs text-text-secondary">{v.location}</p>
-                  </td>
-                  <td className="px-5 py-4 text-text-secondary">{formatDate(v.date)}</td>
-                  <td className="px-5 py-4">
-                    <span
-                      className={cn(
-                        "inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium",
-                        STATUS_STYLE[v.status],
-                      )}
-                    >
-                      {STATUS_LABEL[v.status]}
-                    </span>
-                  </td>
-                </tr>
-              ))}
+              {visits.map((v) => {
+                const cancellable = v.status !== "done" && v.status !== "cancelled";
+                return (
+                  <tr key={v.id} className="border-b border-border last:border-0">
+                    <td className="px-5 py-4">
+                      <p className="font-medium text-text-primary">{v.title}</p>
+                      <p className="text-xs text-text-secondary">
+                        {v.locality}, {v.city}
+                      </p>
+                    </td>
+                    <td className="px-5 py-4 text-text-secondary">
+                      {formatDate(v.preferredDate)}
+                      <span className="block text-xs">{SLOT_LABEL[v.preferredTimeSlot]}</span>
+                    </td>
+                    <td className="px-5 py-4">
+                      <span
+                        className={cn(
+                          "inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium",
+                          STATUS_STYLE[v.status],
+                        )}
+                      >
+                        {STATUS_LABEL[v.status]}
+                      </span>
+                    </td>
+                    <td className="px-5 py-4 text-right">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={!cancellable || cancellingId === v.id}
+                        onClick={() => handleCancel(v.id)}
+                      >
+                        {cancellingId === v.id ? "Cancelling..." : "Cancel"}
+                      </Button>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
