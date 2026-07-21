@@ -11,6 +11,8 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { useBookmarks } from "@/features/real-estate/store";
+import { RE_CATEGORIES } from "@/lib/real-estate";
 import { cn } from "@/lib/utils";
 
 import { AccountMenu } from "./account-menu";
@@ -52,6 +54,7 @@ export function AppSidebar({
 }) {
   const pathname = usePathname();
   const { activeLine } = useLine();
+  const { count: bookmarkCount } = useBookmarks();
 
   // Labeled = the mobile drawer, or the desktop rail when the user expands it.
   const labeled = showLabels || expanded;
@@ -60,10 +63,15 @@ export function AppSidebar({
   const screenLine = isLoansRoute(pathname) ? "loans" : activeLine;
   const activeText = screenLine === "loans" ? "text-loans-accent" : "text-realestate-accent";
 
-  // Apply/Documents are loans features; on the real-estate workspace they drop
-  // out so a loans item is never offered under the RE accent. Home + the
-  // identity-level items stay.
-  const items = screenLine === "real_estate" ? NAV_ITEMS.filter((i) => !i.loansOnly) : NAV_ITEMS;
+  // Apply/Documents are loans-only; Bookmarks/Enquiries/Site Visits/Compare/My
+  // Agent are real-estate-only. Each drops out on the other line so a feature is
+  // never offered under the wrong line's screen. Home + the identity-level items
+  // (Explore, Transactions) stay for both.
+  const items = NAV_ITEMS.filter((i) => {
+    if (i.loansOnly && screenLine !== "loans") return false;
+    if (i.realEstateOnly && screenLine !== "real_estate") return false;
+    return true;
+  });
 
   return (
     <TooltipProvider delayDuration={0}>
@@ -94,6 +102,7 @@ export function AppSidebar({
                 active={active}
                 activeText={activeText}
                 pathname={pathname}
+                screenLine={screenLine}
                 onNavigate={onNavigate}
               />
             );
@@ -106,6 +115,7 @@ export function AppSidebar({
               activeText={activeText}
               labeled={labeled}
               onNavigate={onNavigate}
+              badge={item.key === "bookmarks" && bookmarkCount > 0 ? bookmarkCount : undefined}
             />
           );
         })}
@@ -156,19 +166,22 @@ function SidebarLink({
   activeText,
   labeled,
   onNavigate,
+  badge,
 }: {
   item: NavItem;
   active: boolean;
   activeText: string;
   labeled: boolean;
   onNavigate?: () => void;
+  /** Small count badge, e.g. the bookmark count. */
+  badge?: number;
 }) {
   const { icon: Icon, label, href } = item;
 
   const link = (
     <Link
       href={href}
-      aria-label={label}
+      aria-label={badge ? `${label} (${badge})` : label}
       aria-current={active ? "page" : undefined}
       onClick={onNavigate}
       className={cn(
@@ -197,8 +210,25 @@ function SidebarLink({
         {!active && (
           <ChevronRight className="absolute h-5 w-5 opacity-0 transition-opacity group-hover/link:opacity-100" />
         )}
+        {badge && !labeled ? (
+          <span
+            aria-hidden="true"
+            className="absolute -right-1.5 -top-1.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-brand-cta text-[9px] font-semibold text-white"
+          >
+            {badge > 9 ? "9+" : badge}
+          </span>
+        ) : null}
       </span>
-      {labeled && <span className="whitespace-nowrap">{label}</span>}
+      {labeled && (
+        <span className="flex flex-1 items-center justify-between gap-2">
+          <span className="whitespace-nowrap">{label}</span>
+          {badge ? (
+            <span className="rounded-full bg-brand-cta-tint px-1.5 py-0.5 text-xs font-semibold text-brand-cta">
+              {badge}
+            </span>
+          ) : null}
+        </span>
+      )}
     </Link>
   );
 
@@ -223,15 +253,23 @@ function SidebarExplore({
   active,
   activeText,
   pathname,
+  screenLine,
   onNavigate,
 }: {
   item: NavItem;
   active: boolean;
   activeText: string;
   pathname: string;
+  screenLine: "loans" | "real_estate";
   onNavigate?: () => void;
 }) {
   const { icon: Icon, label, href } = item;
+  // Category catalog switches with the screen's line: loans/cards/insurance on
+  // loans, the property types on real estate.
+  const categories =
+    screenLine === "real_estate"
+      ? RE_CATEGORIES.map((c) => ({ slug: c.key, label: c.label, icon: c.icon }))
+      : EXPLORE_CATEGORIES;
 
   return (
     <div className="group/explore">
@@ -271,7 +309,7 @@ function SidebarExplore({
       >
         <div className="overflow-hidden">
           <div className="ml-[1.375rem] mt-1 flex flex-col gap-1 border-l border-dash-border pl-3">
-            {EXPLORE_CATEGORIES.map(({ slug, label: subLabel, icon: SubIcon }) => {
+            {categories.map(({ slug, label: subLabel, icon: SubIcon }) => {
               const subActive = pathname === `/dashboard/explore/${slug}`;
               return (
                 <Link
