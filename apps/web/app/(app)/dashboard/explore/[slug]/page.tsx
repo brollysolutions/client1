@@ -7,7 +7,7 @@ import {
   EXPLORE_CATEGORIES,
   getExploreCategory,
 } from "@/features/dashboard/explore-categories";
-import { PropertyCard } from "@/features/real-estate/property-card";
+import { PropertyBrowser } from "@/features/real-estate/property-browser";
 import { getListingsByCategory, getRECategory, RE_CATEGORIES } from "@/lib/real-estate";
 
 export function generateStaticParams() {
@@ -32,7 +32,7 @@ export default async function ExploreCategoryPage({
   const blurb = reCategory?.blurb ?? loansCategory!.blurb;
 
   return (
-    <div className="mx-auto w-full max-w-5xl space-y-6 px-4 sm:px-6 lg:px-10">
+    <div className="mx-auto w-full max-w-[1320px] space-y-6 px-4 sm:px-6">
       <Link
         href="/dashboard/explore"
         className="inline-flex items-center gap-1.5 rounded text-sm text-text-secondary transition-colors hover:text-sky-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue"
@@ -41,24 +41,32 @@ export default async function ExploreCategoryPage({
         Back to Explore
       </Link>
 
-      <div>
-        <h1 className="text-2xl font-semibold text-text-primary">{label}</h1>
-        <p className="text-sm text-text-secondary">{blurb}</p>
-      </div>
-
       {reCategory ? (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {getListingsByCategory(reCategory.key).map((listing) => (
-            <PropertyCard key={listing.id} listing={listing} />
-          ))}
-        </div>
-      ) : (
-        <ComingSoon
-          icon={loansCategory!.icon}
-          title={`${loansCategory!.label} is coming soon`}
-          description={loansCategory!.description}
-          accentClassName="bg-loans-soft text-loans-accent"
+        // Search + filters scoped to this category only (ceiling = this
+        // category's listings; the Property-type facet is hidden).
+        <PropertyBrowser
+          source={getListingsByCategory(reCategory.key)}
+          lockedCategory={reCategory.key}
+          header={
+            <div>
+              <h1 className="text-2xl font-semibold text-text-primary">{label}</h1>
+              <p className="text-sm text-text-secondary">{blurb}</p>
+            </div>
+          }
         />
+      ) : (
+        <>
+          <div>
+            <h1 className="text-2xl font-semibold text-text-primary">{label}</h1>
+            <p className="text-sm text-text-secondary">{blurb}</p>
+          </div>
+          <ComingSoon
+            icon={loansCategory!.icon}
+            title={`${loansCategory!.label} is coming soon`}
+            description={loansCategory!.description}
+            accentClassName="bg-loans-soft text-loans-accent"
+          />
+        </>
       )}
     </div>
   );

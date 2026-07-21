@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { Repeat2 } from "lucide-react";
 
 import type { BusinessLine } from "@/lib/auth";
@@ -18,16 +19,24 @@ const LABELS: Record<BusinessLine, string> = {
 // so the button shows the current line by label, not by colour.
 export function LineSwitcher() {
   const { activeLine, setActiveLine, canSwitch } = useLine();
+  const router = useRouter();
   if (!canSwitch) return null;
 
   const other: BusinessLine = activeLine === "loans" ? "real_estate" : "loans";
+
+  // Flip the line and land on that line's home, not the current route (a
+  // loans-only page would otherwise show empty/mismatched under real estate).
+  function switchLine() {
+    setActiveLine(other);
+    router.push("/dashboard");
+  }
 
   return (
     <button
       type="button"
       aria-label={`Switch to ${LABELS[other]}`}
       title={`Switch to ${LABELS[other]}`}
-      onClick={() => setActiveLine(other)}
+      onClick={switchLine}
       className={cn(
         "group inline-flex cursor-pointer items-center gap-2 rounded-full border border-dash-border bg-surface py-1.5 pl-3 pr-3.5 text-sm font-medium text-text-secondary shadow-sm",
         "transition-all duration-200 ease-out",
