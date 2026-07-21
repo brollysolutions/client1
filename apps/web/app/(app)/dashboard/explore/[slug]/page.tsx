@@ -7,9 +7,14 @@ import {
   EXPLORE_CATEGORIES,
   getExploreCategory,
 } from "@/features/dashboard/explore-categories";
+import { PropertyCard } from "@/features/real-estate/property-card";
+import { getListingsByCategory, getRECategory, RE_CATEGORIES } from "@/lib/real-estate";
 
 export function generateStaticParams() {
-  return EXPLORE_CATEGORIES.map((c) => ({ slug: c.slug }));
+  return [
+    ...EXPLORE_CATEGORIES.map((c) => ({ slug: c.slug })),
+    ...RE_CATEGORIES.map((c) => ({ slug: c.key })),
+  ];
 }
 
 export default async function ExploreCategoryPage({
@@ -18,8 +23,13 @@ export default async function ExploreCategoryPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const category = getExploreCategory(slug);
-  if (!category) notFound();
+
+  const reCategory = getRECategory(slug);
+  const loansCategory = getExploreCategory(slug);
+  if (!reCategory && !loansCategory) notFound();
+
+  const label = reCategory?.label ?? loansCategory!.label;
+  const blurb = reCategory?.blurb ?? loansCategory!.blurb;
 
   return (
     <div className="space-y-6">
@@ -32,16 +42,24 @@ export default async function ExploreCategoryPage({
       </Link>
 
       <div>
-        <h1 className="text-2xl font-semibold text-text-primary">{category.label}</h1>
-        <p className="text-sm text-text-secondary">{category.blurb}</p>
+        <h1 className="text-2xl font-semibold text-text-primary">{label}</h1>
+        <p className="text-sm text-text-secondary">{blurb}</p>
       </div>
 
-      <ComingSoon
-        icon={category.icon}
-        title={`${category.label} is coming soon`}
-        description={category.description}
-        accentClassName="bg-loans-soft text-loans-accent"
-      />
+      {reCategory ? (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {getListingsByCategory(reCategory.key).map((listing) => (
+            <PropertyCard key={listing.id} listing={listing} />
+          ))}
+        </div>
+      ) : (
+        <ComingSoon
+          icon={loansCategory!.icon}
+          title={`${loansCategory!.label} is coming soon`}
+          description={loansCategory!.description}
+          accentClassName="bg-loans-soft text-loans-accent"
+        />
+      )}
     </div>
   );
 }

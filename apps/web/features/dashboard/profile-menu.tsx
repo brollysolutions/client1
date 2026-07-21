@@ -31,9 +31,32 @@ export function ProfileMenu() {
   const { session, clear } = useAuth();
   const { me } = useMe();
   const [signingOut, setSigningOut] = React.useState(false);
+  const [open, setOpen] = React.useState(false);
+  const closeTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const fullName = me ? `${me.firstName} ${me.lastName}`.trim() : "";
   const emailVerified = me?.emailVerified ?? session?.emailVerified ?? false;
+
+  function cancelClose() {
+    if (closeTimer.current) {
+      clearTimeout(closeTimer.current);
+      closeTimer.current = null;
+    }
+  }
+
+  function openNow() {
+    cancelClose();
+    setOpen(true);
+  }
+
+  // Hover-intent close: a short delay so moving from the trigger into the
+  // content (across the small gap between them) doesn't snap the menu shut.
+  function closeSoon() {
+    cancelClose();
+    closeTimer.current = setTimeout(() => setOpen(false), 150);
+  }
+
+  React.useEffect(() => () => cancelClose(), []);
 
   async function handleLogout() {
     if (signingOut) return;
@@ -49,78 +72,85 @@ export function ProfileMenu() {
   }
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger
-        aria-label="Open account menu"
-        className="flex cursor-pointer items-center rounded-full p-1 text-text-secondary transition-colors hover:text-sky-500 focus-visible:outline-none"
-      >
-        <CircleUser className="h-6 w-6" aria-hidden="true" />
-      </DropdownMenuTrigger>
-
-      <DropdownMenuContent align="end" className="w-72 bg-dash-rail">
-        {/* Account header */}
-        <div className="flex items-center gap-3 px-2.5 py-2">
-          <UserAvatar name={fullName} email={me?.email} size="md" />
-          <div className="min-w-0">
-            <p className="truncate text-sm font-semibold text-text-primary">
-              {fullName || "Your account"}
-            </p>
-            {me?.email && <p className="truncate text-xs text-text-secondary">{me.email}</p>}
-          </div>
-        </div>
-
-        {!emailVerified && (
-          <DropdownMenuItem
-            onSelect={() => router.push("/dashboard/settings")}
-            className="text-warning [&_svg]:text-warning data-[highlighted]:text-sky-500"
-          >
-            <MailWarning />
-            Verify your email
-          </DropdownMenuItem>
-        )}
-
-        {me && me.profiles.length > 0 && (
-          <>
-            <DropdownMenuSeparator />
-            <div className="px-2.5 py-1.5">
-              <p className="text-[11px] font-medium uppercase tracking-wide text-text-secondary">
-                Profile IDs
-              </p>
-              <dl className="mt-1.5 space-y-1">
-                {me.profiles.map((p) => (
-                  <div key={p.businessLine} className="flex items-center justify-between gap-3">
-                    <dt className="text-xs text-text-secondary">{lineLabel(p.businessLine)}</dt>
-                    <dd className="font-mono text-xs font-semibold text-text-primary">
-                      {p.customerCode}
-                    </dd>
-                  </div>
-                ))}
-              </dl>
-            </div>
-          </>
-        )}
-
-        <DropdownMenuSeparator />
-        <DropdownMenuItem onSelect={() => router.push("/dashboard/settings")}>
-          <Settings />
-          Settings
-        </DropdownMenuItem>
-        <DropdownMenuItem
-          disabled={signingOut}
-          onSelect={(e) => {
-            // Keep the menu logic running past the close; logout redirects anyway.
-            e.preventDefault();
-            void handleLogout();
-          }}
-          className={cn(
-            "data-[highlighted]:text-error data-[highlighted]:[&_svg]:text-error data-[highlighted]:before:bg-error",
-            signingOut && "opacity-60",
-          )}
+    <DropdownMenu open={open} onOpenChange={setOpen} modal={false}>
+      <div onMouseEnter={openNow} onMouseLeave={closeSoon}>
+        <DropdownMenuTrigger
+          aria-label="Open account menu"
+          className="flex cursor-pointer items-center rounded-full p-1 text-text-secondary transition-colors hover:text-sky-500 focus-visible:outline-none"
         >
-          <LogOut />
-          {signingOut ? "Signing out…" : "Sign out"}
-        </DropdownMenuItem>
-      </DropdownMenuContent>
+          <CircleUser className="h-6 w-6" aria-hidden="true" />
+        </DropdownMenuTrigger>
+
+        <DropdownMenuContent
+          align="end"
+          className="w-72 bg-dash-rail"
+          onMouseEnter={openNow}
+          onMouseLeave={closeSoon}
+        >
+          {/* Account header */}
+          <div className="flex items-center gap-3 px-2.5 py-2">
+            <UserAvatar name={fullName} email={me?.email} size="md" />
+            <div className="min-w-0">
+              <p className="truncate text-sm font-semibold text-text-primary">
+                {fullName || "Your account"}
+              </p>
+              {me?.email && <p className="truncate text-xs text-text-secondary">{me.email}</p>}
+            </div>
+          </div>
+
+          {!emailVerified && (
+            <DropdownMenuItem
+              onSelect={() => router.push("/dashboard/settings")}
+              className="text-warning [&_svg]:text-warning data-[highlighted]:text-sky-500"
+            >
+              <MailWarning />
+              Verify your email
+            </DropdownMenuItem>
+          )}
+
+          {me && me.profiles.length > 0 && (
+            <>
+              <DropdownMenuSeparator />
+              <div className="px-2.5 py-1.5">
+                <p className="text-[11px] font-medium uppercase tracking-wide text-text-secondary">
+                  Profile IDs
+                </p>
+                <dl className="mt-1.5 space-y-1">
+                  {me.profiles.map((p) => (
+                    <div key={p.businessLine} className="flex items-center justify-between gap-3">
+                      <dt className="text-xs text-text-secondary">{lineLabel(p.businessLine)}</dt>
+                      <dd className="font-mono text-xs font-semibold text-text-primary">
+                        {p.customerCode}
+                      </dd>
+                    </div>
+                  ))}
+                </dl>
+              </div>
+            </>
+          )}
+
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onSelect={() => router.push("/dashboard/settings")}>
+            <Settings />
+            Settings
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            disabled={signingOut}
+            onSelect={(e) => {
+              // Keep the menu logic running past the close; logout redirects anyway.
+              e.preventDefault();
+              void handleLogout();
+            }}
+            className={cn(
+              "data-[highlighted]:text-error data-[highlighted]:[&_svg]:text-error data-[highlighted]:before:bg-error",
+              signingOut && "opacity-60",
+            )}
+          >
+            <LogOut />
+            {signingOut ? "Signing out…" : "Sign out"}
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </div>
     </DropdownMenu>
   );
 }

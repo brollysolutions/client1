@@ -1,22 +1,36 @@
+"use client";
+
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 
+import { useLine } from "@/features/dashboard/line-provider";
 import { EXPLORE_CATEGORIES } from "@/features/dashboard/explore-categories";
+import { RE_CATEGORIES } from "@/lib/real-estate";
 
-// Product discovery hub. Static tiles for each category; each opens a coming-soon
-// detail until the real catalog lands. Auth/role are gated by the (app) layout.
+// Product discovery hub. Loans line shows the loans/cards/insurance tiles
+// (coming-soon details); real-estate line shows the property-type tiles, each
+// opening that category's listings grid. Auth/role are gated by the (app) layout.
 export default function ExplorePage() {
+  const { activeLine } = useLine();
+  const isRealEstate = activeLine === "real_estate";
+
+  const tiles = isRealEstate
+    ? RE_CATEGORIES.map((c) => ({ slug: c.key, label: c.label, icon: c.icon, blurb: c.blurb }))
+    : EXPLORE_CATEGORIES;
+
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-semibold text-text-primary">Explore</h1>
         <p className="text-sm text-text-secondary">
-          Discover loans, cards, insurance and properties, all in one place.
+          {isRealEstate
+            ? "Browse properties by type, all in one place."
+            : "Discover loans, cards, insurance and properties, all in one place."}
         </p>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
-        {EXPLORE_CATEGORIES.map(({ slug, label, icon: Icon, blurb }) => (
+        {tiles.map(({ slug, label, icon: Icon, blurb }) => (
           <Link
             key={slug}
             href={`/dashboard/explore/${slug}`}
