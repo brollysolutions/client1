@@ -820,6 +820,207 @@
         "title": "SetPasswordRequest",
         "type": "object"
       },
+      "SiteVisitCreate": {
+        "properties": {
+          "city": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "City",
+            "type": "string"
+          },
+          "contact_mobile": {
+            "pattern": "^\\+[1-9]\\d{6,14}$",
+            "title": "Contact Mobile",
+            "type": "string"
+          },
+          "contact_name": {
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Contact Name",
+            "type": "string"
+          },
+          "locality": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Locality",
+            "type": "string"
+          },
+          "message": {
+            "anyOf": [
+              {
+                "maxLength": 1000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Message"
+          },
+          "preferred_date": {
+            "format": "date",
+            "title": "Preferred Date",
+            "type": "string"
+          },
+          "preferred_time_slot": {
+            "$ref": "#/components/schemas/SiteVisitTimeSlot"
+          },
+          "property_ref": {
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Property Ref",
+            "type": "string"
+          },
+          "title": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "property_ref",
+          "title",
+          "locality",
+          "city",
+          "contact_name",
+          "contact_mobile",
+          "preferred_date",
+          "preferred_time_slot"
+        ],
+        "title": "SiteVisitCreate",
+        "type": "object"
+      },
+      "SiteVisitListResponse": {
+        "properties": {
+          "visits": {
+            "items": {
+              "$ref": "#/components/schemas/SiteVisitRead"
+            },
+            "title": "Visits",
+            "type": "array"
+          }
+        },
+        "required": [
+          "visits"
+        ],
+        "title": "SiteVisitListResponse",
+        "type": "object"
+      },
+      "SiteVisitRead": {
+        "properties": {
+          "cancelled_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cancelled At"
+          },
+          "city": {
+            "title": "City",
+            "type": "string"
+          },
+          "contact_mobile": {
+            "title": "Contact Mobile",
+            "type": "string"
+          },
+          "contact_name": {
+            "title": "Contact Name",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "locality": {
+            "title": "Locality",
+            "type": "string"
+          },
+          "message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Message"
+          },
+          "preferred_date": {
+            "format": "date",
+            "title": "Preferred Date",
+            "type": "string"
+          },
+          "preferred_time_slot": {
+            "$ref": "#/components/schemas/SiteVisitTimeSlot"
+          },
+          "property_ref": {
+            "title": "Property Ref",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/SiteVisitStatus"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "property_ref",
+          "title",
+          "locality",
+          "city",
+          "contact_name",
+          "contact_mobile",
+          "preferred_date",
+          "preferred_time_slot",
+          "message",
+          "status",
+          "cancelled_at",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "SiteVisitRead",
+        "type": "object"
+      },
+      "SiteVisitStatus": {
+        "enum": [
+          "requested",
+          "confirmed",
+          "done",
+          "cancelled"
+        ],
+        "title": "SiteVisitStatus",
+        "type": "string"
+      },
+      "SiteVisitTimeSlot": {
+        "enum": [
+          "morning",
+          "afternoon",
+          "evening"
+        ],
+        "title": "SiteVisitTimeSlot",
+        "type": "string"
+      },
       "SupportCategory": {
         "enum": [
           "account_login",
@@ -1710,6 +1911,124 @@
         "summary": "Get Loan Application",
         "tags": [
           "loans"
+        ]
+      }
+    },
+    "/api/v1/site-visits": {
+      "get": {
+        "operationId": "list_site_visits_api_v1_site_visits_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SiteVisitListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "List Site Visits",
+        "tags": [
+          "site-visits"
+        ]
+      },
+      "post": {
+        "operationId": "create_site_visit_api_v1_site_visits_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SiteVisitCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SiteVisitRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Create Site Visit",
+        "tags": [
+          "site-visits"
+        ]
+      }
+    },
+    "/api/v1/site-visits/{visit_id}/cancel": {
+      "patch": {
+        "operationId": "cancel_site_visit_endpoint_api_v1_site_visits__visit_id__cancel_patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "visit_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Visit Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SiteVisitRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Cancel Site Visit Endpoint",
+        "tags": [
+          "site-visits"
         ]
       }
     },

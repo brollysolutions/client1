@@ -4,13 +4,7 @@ import * as React from "react";
 
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { Slider } from "@/components/ui/slider";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import {
@@ -18,20 +12,22 @@ import {
   BHK_OPTIONS,
   CITIES,
   FURNISHING_OPTIONS,
-  POSTED_BY_OPTIONS,
   PRICE_BOUNDS,
   AREA_BOUNDS,
   STATUS_OPTIONS,
+  SUGGESTION_INDEX,
   formatLakhs,
 } from "@/lib/property-facets";
 import {
   RE_CATEGORIES,
+  RE_LISTINGS,
   type Furnishing,
   type ListingStatus,
-  type PostedBy,
   type PropertyFilters,
   type RECategory,
 } from "@/lib/real-estate";
+
+const RESIDENTIAL_CATEGORIES: RECategory[] = ["houses", "apartments", "villas"];
 
 // Shell-agnostic grouped facet controls. Rendered inside PropertyFilterSheet;
 // kept separate so the facet set can be reused (e.g. in a future desktop
@@ -67,22 +63,21 @@ export function PropertyFilterBody({
     return set.size > 0 ? Array.from(set) : undefined;
   }
 
+  // Plots and commercial units have no bedroom count, construction status, or
+  // furnishing state, so those sections only render when the selected
+  // property types could plausibly have them (or when no type is chosen yet).
+  const showResidentialFields =
+    !filters.categories?.length ||
+    filters.categories.some((c) => RESIDENTIAL_CATEGORIES.includes(c));
+
+  const localityOptions = filters.city
+    ? Array.from(
+        new Set(RE_LISTINGS.filter((l) => l.city === filters.city).map((l) => l.locality)),
+      ).sort()
+    : SUGGESTION_INDEX.localities;
+
   return (
     <div className="space-y-7">
-      <section className="space-y-2.5">
-        <h3 className="text-sm font-semibold text-text-primary">Buy or rent</h3>
-        <ToggleGroup
-          type="single"
-          value={filters.listingType ?? ""}
-          onValueChange={(value) =>
-            setFilters({ listingType: value ? (value as PropertyFilters["listingType"]) : undefined })
-          }
-        >
-          <ToggleGroupItem value="buy">Buy</ToggleGroupItem>
-          <ToggleGroupItem value="rent">Rent</ToggleGroupItem>
-        </ToggleGroup>
-      </section>
-
       <section className="space-y-2.5">
         <h3 className="text-sm font-semibold text-text-primary">Property type</h3>
         <ToggleGroup
@@ -100,22 +95,24 @@ export function PropertyFilterBody({
         </ToggleGroup>
       </section>
 
-      <section className="space-y-2.5">
-        <h3 className="text-sm font-semibold text-text-primary">Bedrooms</h3>
-        <ToggleGroup
-          type="multiple"
-          value={(filters.bhk ?? []).map(String)}
-          onValueChange={(value) =>
-            setFilters({ bhk: value.length ? value.map(Number) : undefined })
-          }
-        >
-          {BHK_OPTIONS.map((b) => (
-            <ToggleGroupItem key={b.value} value={String(b.value)}>
-              {b.label}
-            </ToggleGroupItem>
-          ))}
-        </ToggleGroup>
-      </section>
+      {showResidentialFields ? (
+        <section className="space-y-2.5">
+          <h3 className="text-sm font-semibold text-text-primary">Bedrooms</h3>
+          <ToggleGroup
+            type="multiple"
+            value={(filters.bhk ?? []).map(String)}
+            onValueChange={(value) =>
+              setFilters({ bhk: value.length ? value.map(Number) : undefined })
+            }
+          >
+            {BHK_OPTIONS.map((b) => (
+              <ToggleGroupItem key={b.value} value={String(b.value)}>
+                {b.label}
+              </ToggleGroupItem>
+            ))}
+          </ToggleGroup>
+        </section>
+      ) : null}
 
       <section className="space-y-3">
         <div className="flex items-center justify-between">
@@ -131,6 +128,7 @@ export function PropertyFilterBody({
           step={1}
           onValueChange={(value) => setPriceDraft(value as [number, number])}
           onValueCommit={(value) => setFilters({ priceMin: value[0], priceMax: value[1] })}
+          className="[&_[data-slot=slider-range]]:bg-brand-cta [&_[data-slot=slider-thumb]]:border-brand-cta"
         />
       </section>
 
@@ -148,42 +146,48 @@ export function PropertyFilterBody({
           step={50}
           onValueChange={(value) => setAreaDraft(value as [number, number])}
           onValueCommit={(value) => setFilters({ areaMin: value[0], areaMax: value[1] })}
+          className="[&_[data-slot=slider-range]]:bg-brand-cta [&_[data-slot=slider-thumb]]:border-brand-cta"
         />
       </section>
 
-      <section className="space-y-2.5">
-        <h3 className="text-sm font-semibold text-text-primary">Construction status</h3>
-        <div className="flex flex-col gap-2.5">
-          {STATUS_OPTIONS.map((s) => (
-            <label key={s.value} className="flex cursor-pointer items-center gap-2.5">
-              <Checkbox
-                checked={(filters.status ?? []).includes(s.value)}
-                onCheckedChange={() =>
-                  setFilters({ status: toggleArrayValue<ListingStatus>(filters.status, s.value) })
-                }
-              />
-              <Label className="font-normal text-text-primary">{s.label}</Label>
-            </label>
-          ))}
-        </div>
-      </section>
+      {showResidentialFields ? (
+        <section className="space-y-2.5">
+          <h3 className="text-sm font-semibold text-text-primary">Construction status</h3>
+          <div className="flex flex-col gap-2.5">
+            {STATUS_OPTIONS.map((s) => (
+              <label key={s.value} className="flex cursor-pointer items-center gap-2.5">
+                <Checkbox
+                  checked={(filters.status ?? []).includes(s.value)}
+                  onCheckedChange={() =>
+                    setFilters({ status: toggleArrayValue<ListingStatus>(filters.status, s.value) })
+                  }
+                  className="data-[state=checked]:border-brand-cta data-[state=checked]:bg-brand-cta"
+                />
+                <Label className="font-normal text-text-primary">{s.label}</Label>
+              </label>
+            ))}
+          </div>
+        </section>
+      ) : null}
 
-      <section className="space-y-2.5">
-        <h3 className="text-sm font-semibold text-text-primary">Furnishing</h3>
-        <ToggleGroup
-          type="multiple"
-          value={filters.furnishing ?? []}
-          onValueChange={(value) =>
-            setFilters({ furnishing: value.length ? (value as Furnishing[]) : undefined })
-          }
-        >
-          {FURNISHING_OPTIONS.map((f) => (
-            <ToggleGroupItem key={f.value} value={f.value}>
-              {f.label}
-            </ToggleGroupItem>
-          ))}
-        </ToggleGroup>
-      </section>
+      {showResidentialFields ? (
+        <section className="space-y-2.5">
+          <h3 className="text-sm font-semibold text-text-primary">Furnishing</h3>
+          <ToggleGroup
+            type="multiple"
+            value={filters.furnishing ?? []}
+            onValueChange={(value) =>
+              setFilters({ furnishing: value.length ? (value as Furnishing[]) : undefined })
+            }
+          >
+            {FURNISHING_OPTIONS.map((f) => (
+              <ToggleGroupItem key={f.value} value={f.value}>
+                {f.label}
+              </ToggleGroupItem>
+            ))}
+          </ToggleGroup>
+        </section>
+      ) : null}
 
       <section className="space-y-2.5">
         <h3 className="text-sm font-semibold text-text-primary">Amenities</h3>
@@ -195,6 +199,7 @@ export function PropertyFilterBody({
                 onCheckedChange={() =>
                   setFilters({ amenities: toggleArrayValue(filters.amenities, a.value) })
                 }
+                className="data-[state=checked]:border-brand-cta data-[state=checked]:bg-brand-cta"
               />
               <Label className="font-normal text-text-primary">{a.label}</Label>
             </label>
@@ -203,40 +208,23 @@ export function PropertyFilterBody({
       </section>
 
       <section className="space-y-2.5">
-        <h3 className="text-sm font-semibold text-text-primary">Posted by</h3>
-        <div className="flex flex-col gap-2.5">
-          {POSTED_BY_OPTIONS.map((p) => (
-            <label key={p.value} className="flex cursor-pointer items-center gap-2.5">
-              <Checkbox
-                checked={(filters.postedBy ?? []).includes(p.value)}
-                onCheckedChange={() =>
-                  setFilters({ postedBy: toggleArrayValue<PostedBy>(filters.postedBy, p.value) })
-                }
-              />
-              <Label className="font-normal text-text-primary">{p.label}</Label>
-            </label>
-          ))}
-        </div>
+        <h3 className="text-sm font-semibold text-text-primary">City</h3>
+        <SearchableSelect
+          value={filters.city}
+          onChange={(v) => setFilters({ city: v })}
+          options={CITIES}
+          placeholder="Any city"
+        />
       </section>
 
       <section className="space-y-2.5">
-        <h3 className="text-sm font-semibold text-text-primary">City</h3>
-        <Select
-          value={filters.city ?? "any"}
-          onValueChange={(value) => setFilters({ city: value === "any" ? undefined : value })}
-        >
-          <SelectTrigger className="h-11 w-full">
-            <SelectValue placeholder="Any city" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="any">Any city</SelectItem>
-            {CITIES.map((city) => (
-              <SelectItem key={city} value={city}>
-                {city}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <h3 className="text-sm font-semibold text-text-primary">Area / Locality</h3>
+        <SearchableSelect
+          value={filters.locality}
+          onChange={(v) => setFilters({ locality: v })}
+          options={localityOptions}
+          placeholder="Any locality"
+        />
       </section>
     </div>
   );

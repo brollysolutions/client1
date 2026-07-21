@@ -311,6 +311,41 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/site-visits": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Site Visits */
+        get: operations["list_site_visits_api_v1_site_visits_get"];
+        put?: never;
+        /** Create Site Visit */
+        post: operations["create_site_visit_api_v1_site_visits_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/site-visits/{visit_id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Cancel Site Visit Endpoint */
+        patch: operations["cancel_site_visit_endpoint_api_v1_site_visits__visit_id__cancel_patch"];
+        trace?: never;
+    };
     "/api/v1/support-tickets/tickets": {
         parameters: {
             query?: never;
@@ -650,6 +685,85 @@ export interface components {
             /** Registration Token */
             registration_token: string;
         };
+        /** SiteVisitCreate */
+        SiteVisitCreate: {
+            /** City */
+            city: string;
+            /** Contact Mobile */
+            contact_mobile: string;
+            /** Contact Name */
+            contact_name: string;
+            /** Locality */
+            locality: string;
+            /** Message */
+            message?: string | null;
+            /**
+             * Preferred Date
+             * Format: date
+             */
+            preferred_date: string;
+            preferred_time_slot: components["schemas"]["SiteVisitTimeSlot"];
+            /** Property Ref */
+            property_ref: string;
+            /** Title */
+            title: string;
+        };
+        /** SiteVisitListResponse */
+        SiteVisitListResponse: {
+            /** Visits */
+            visits: components["schemas"]["SiteVisitRead"][];
+        };
+        /** SiteVisitRead */
+        SiteVisitRead: {
+            /** Cancelled At */
+            cancelled_at: string | null;
+            /** City */
+            city: string;
+            /** Contact Mobile */
+            contact_mobile: string;
+            /** Contact Name */
+            contact_name: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Locality */
+            locality: string;
+            /** Message */
+            message: string | null;
+            /**
+             * Preferred Date
+             * Format: date
+             */
+            preferred_date: string;
+            preferred_time_slot: components["schemas"]["SiteVisitTimeSlot"];
+            /** Property Ref */
+            property_ref: string;
+            status: components["schemas"]["SiteVisitStatus"];
+            /** Title */
+            title: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /**
+         * SiteVisitStatus
+         * @enum {string}
+         */
+        SiteVisitStatus: "requested" | "confirmed" | "done" | "cancelled";
+        /**
+         * SiteVisitTimeSlot
+         * @enum {string}
+         */
+        SiteVisitTimeSlot: "morning" | "afternoon" | "evening";
         /**
          * SupportCategory
          * @enum {string}
@@ -1266,6 +1380,90 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["LoanApplicationRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_site_visits_api_v1_site_visits_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SiteVisitListResponse"];
+                };
+            };
+        };
+    };
+    create_site_visit_api_v1_site_visits_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SiteVisitCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SiteVisitRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    cancel_site_visit_endpoint_api_v1_site_visits__visit_id__cancel_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                visit_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SiteVisitRead"];
                 };
             };
             /** @description Validation Error */

@@ -6,18 +6,25 @@ import { Building2, MapPin, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Popover, PopoverAnchor, PopoverContent } from "@/components/ui/popover";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { PropertyFilterSheet } from "@/features/real-estate/property-filter-sheet";
 import { useDebounce } from "@/hooks/use-debounce";
 import {
   AMENITIES,
   BHK_OPTIONS,
   FURNISHING_OPTIONS,
-  POSTED_BY_OPTIONS,
+  SORT_OPTIONS,
   STATUS_OPTIONS,
   SUGGESTION_INDEX,
   formatLakhs,
 } from "@/lib/property-facets";
-import { RE_CATEGORIES, type PropertyFilters } from "@/lib/real-estate";
+import { RE_CATEGORIES, type PropertyFilters, type SortOrder } from "@/lib/real-estate";
 import { cn } from "@/lib/utils";
 
 const MAX_SUGGESTIONS_PER_GROUP = 4;
@@ -54,13 +61,6 @@ function buildChips(filters: PropertyFilters, setFilters: (patch: Partial<Proper
   }
   if (filters.city) {
     chips.push({ key: "city", label: filters.city, onRemove: () => setFilters({ city: undefined }) });
-  }
-  if (filters.listingType) {
-    chips.push({
-      key: "listingType",
-      label: filters.listingType === "buy" ? "Buy" : "Rent",
-      onRemove: () => setFilters({ listingType: undefined }),
-    });
   }
 
   chips.push(
@@ -114,14 +114,6 @@ function buildChips(filters: PropertyFilters, setFilters: (patch: Partial<Proper
       (next) => setFilters({ amenities: next }),
     ),
   );
-  chips.push(
-    ...arrayChips(
-      filters.postedBy,
-      (v) => POSTED_BY_OPTIONS.find((p) => p.value === v)?.label ?? v,
-      (next) => setFilters({ postedBy: next }),
-    ),
-  );
-
   return chips;
 }
 
@@ -140,12 +132,14 @@ export function PropertySearchBar({
   clearAll,
   activeCount,
   resultCount,
+  active = false,
 }: {
   filters: PropertyFilters;
   setFilters: (patch: Partial<PropertyFilters>) => void;
   clearAll: () => void;
   activeCount: number;
   resultCount: number;
+  active?: boolean;
 }) {
   const [text, setText] = React.useState(() => initialText(filters));
   const [open, setOpen] = React.useState(false);
@@ -293,6 +287,24 @@ export function PropertySearchBar({
             </PopoverContent>
           </Popover>
         </Command>
+
+        {active ? (
+          <Select
+            value={filters.sort ?? "relevance"}
+            onValueChange={(value) => setFilters({ sort: value === "relevance" ? undefined : (value as SortOrder) })}
+          >
+            <SelectTrigger className="h-12 w-full sm:w-[190px]">
+              <SelectValue placeholder="Sort" />
+            </SelectTrigger>
+            <SelectContent>
+              {SORT_OPTIONS.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        ) : null}
 
         <PropertyFilterSheet
           filters={filters}

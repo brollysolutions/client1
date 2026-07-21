@@ -76,7 +76,7 @@ export function LoansApplications() {
 
   if (status === "loading") {
     return (
-      <div className="space-y-5">
+      <div className="mx-auto w-full max-w-5xl space-y-5 px-4 sm:px-6 lg:px-10">
         <Skeleton className="h-9 w-48 rounded-lg" />
         <Skeleton className="h-64 rounded-2xl" />
       </div>
@@ -84,11 +84,15 @@ export function LoansApplications() {
   }
 
   if (status === "error") {
-    return <FetchError status={errorStatus} message={error} onRetry={retry} />;
+    return (
+      <div className="mx-auto w-full max-w-5xl px-4 sm:px-6 lg:px-10">
+        <FetchError status={errorStatus} message={error} onRetry={retry} />
+      </div>
+    );
   }
 
   return (
-    <section className="space-y-5">
+    <section className="mx-auto w-full max-w-5xl space-y-5 px-4 sm:px-6 lg:px-10">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold text-text-primary">Your loans</h1>

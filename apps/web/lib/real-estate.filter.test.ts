@@ -66,12 +66,6 @@ describe("filterListings()", () => {
     expect(byPincode.length).toBeGreaterThan(0);
   });
 
-  it("filters by listingType", () => {
-    const rentals = filterListings(RE_LISTINGS, { listingType: "rent" });
-    expect(rentals.length).toBeGreaterThan(0);
-    expect(rentals.every((l) => l.listingType === "rent")).toBe(true);
-  });
-
   it("filters by category (multi-select)", () => {
     const result = filterListings(RE_LISTINGS, { categories: ["villas", "plots"] });
     expect(result.every((l) => l.category === "villas" || l.category === "plots")).toBe(true);
@@ -112,12 +106,6 @@ describe("filterListings()", () => {
     expect(
       result.every((l) => l.amenities.includes("parking") && l.amenities.includes("security")),
     ).toBe(true);
-  });
-
-  it("filters by postedBy", () => {
-    const result = filterListings(RE_LISTINGS, { postedBy: ["builder"] });
-    expect(result.length).toBeGreaterThan(0);
-    expect(result.every((l) => l.postedBy === "builder")).toBe(true);
   });
 
   it("filters by exact city and locality", () => {

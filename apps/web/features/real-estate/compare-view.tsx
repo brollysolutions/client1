@@ -29,7 +29,7 @@ export function CompareView() {
     .filter((l): l is NonNullable<typeof l> => Boolean(l));
 
   return (
-    <div className="space-y-6">
+    <div className="mx-auto w-full max-w-5xl space-y-6 px-4 sm:px-6 lg:px-10">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold text-text-primary">Compare</h1>

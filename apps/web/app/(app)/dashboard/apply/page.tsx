@@ -68,7 +68,7 @@ export default function ApplyPage() {
 
   if (status === "loading") {
     return (
-      <div className="mx-auto max-w-xl space-y-4">
+      <div className="mx-auto max-w-xl space-y-4 px-4 sm:px-6 lg:px-10">
         <Skeleton className="h-5 w-32 rounded" />
         <Skeleton className="h-72 rounded-2xl" />
       </div>
@@ -77,14 +77,14 @@ export default function ApplyPage() {
 
   if (status === "error") {
     return (
-      <div className="mx-auto max-w-xl">
+      <div className="mx-auto max-w-xl px-4 sm:px-6 lg:px-10">
         <FetchError status={errorStatus} message={error} onRetry={retry} />
       </div>
     );
   }
 
   return (
-    <div className="mx-auto max-w-xl space-y-6">
+    <div className="mx-auto max-w-xl space-y-6 px-4 sm:px-6 lg:px-10">
       <Link
         href="/dashboard"
         className="inline-flex items-center gap-1.5 text-sm text-text-secondary transition-colors hover:text-text-primary"

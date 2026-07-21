@@ -55,7 +55,7 @@ export function PropertyRow({
 
   return (
     <section id={id} aria-label={heading} className="w-full scroll-mt-16">
-      <div className="flex items-baseline justify-between gap-3">
+      <div className="flex items-baseline justify-between gap-3 px-4 sm:px-6 lg:px-10">
         <div>
           <h3 className="font-heading text-xl font-semibold text-text-primary">{heading}</h3>
           {blurb ? <p className="mt-1 text-sm text-text-secondary">{blurb}</p> : null}
@@ -80,9 +80,22 @@ export function PropertyRow({
           <ChevronRight className="h-5 w-5" aria-hidden />
         </button>
 
+        {/* Edge fades: cards dissolve into the page background at both corners,
+            hinting at more content off-screen. Sit above the cards, below the
+            chevrons. Matches components/property-row.tsx but keyed to the
+            dashboard's --background token instead of the public site's --nav-bg. */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-y-0 left-0 z-[5] w-10 bg-gradient-to-r from-background to-transparent sm:w-16"
+        />
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-y-0 right-0 z-[5] w-10 bg-gradient-to-l from-background to-transparent sm:w-16"
+        />
+
         <div
           ref={scrollerRef}
-          className="flex gap-4 overflow-x-auto scroll-px-1 pb-2 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+          className="flex gap-4 overflow-x-auto scroll-px-4 px-4 pb-2 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden sm:scroll-px-6 sm:px-6 lg:scroll-px-10 lg:px-10"
         >
           {listings.map((listing) => (
             <div key={listing.id}>
