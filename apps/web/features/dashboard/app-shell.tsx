@@ -5,6 +5,8 @@ import Link from "next/link";
 import { Bell, Menu } from "lucide-react";
 
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
+import { LoanCompareProvider } from "@/features/loans/loan-offers-store";
+import { RealEstateProvider } from "@/features/real-estate/store";
 import { cn } from "@/lib/utils";
 
 import { AppSidebar } from "./app-sidebar";
@@ -44,56 +46,60 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <MeProvider>
       <LineProvider>
-        <div className="font-geist min-h-screen bg-background">
-          {/* Desktop rail — collapses to an icon strip, expands to a labeled list. */}
-          <aside
-            className={cn(
-              "fixed inset-y-0 left-0 z-30 hidden transition-[width] duration-300 ease-out lg:block",
-              railOpen ? "w-62" : "w-16",
-            )}
-          >
-            <AppSidebar expanded={railOpen} onToggle={toggleRail} />
-          </aside>
-
-          {/* Mobile drawer */}
-          <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
-            <SheetContent side="left" className="font-geist w-64 p-0">
-              <SheetTitle className="sr-only">Workspace</SheetTitle>
-              <AppSidebar showLabels onNavigate={() => setMobileOpen(false)} />
-            </SheetContent>
-          </Sheet>
-
-          <div
-            className={cn(
-              "transition-[padding] duration-300 ease-out",
-              railOpen ? "lg:pl-62" : "lg:pl-16",
-            )}
-          >
-            {/* Top bar */}
-            <header className="sticky top-0 z-20 flex h-14 items-center gap-3 bg-background px-4 lg:px-6">
-              <button
-                type="button"
-                aria-label="Open menu"
-                onClick={() => setMobileOpen(true)}
-                className="rounded-md p-1.5 text-text-primary transition-colors hover:bg-dash-rail-hover focus-visible:outline-none lg:hidden"
+        <RealEstateProvider>
+          <LoanCompareProvider>
+            <div className="font-geist min-h-screen bg-background">
+              {/* Desktop rail — collapses to an icon strip, expands to a labeled list. */}
+              <aside
+                className={cn(
+                  "fixed inset-y-0 left-0 z-30 hidden transition-[width] duration-300 ease-out lg:block",
+                  railOpen ? "w-62" : "w-16",
+                )}
               >
-                <Menu className="h-5 w-5" />
-              </button>
-              <div className="flex-1" />
-              <Link
-                href="/dashboard/notifications"
-                aria-label="Notifications"
-                className="rounded-md p-1.5 text-text-secondary transition-colors hover:text-sky-500 focus-visible:outline-none"
-              >
-                <Bell className="h-5 w-5" />
-              </Link>
-              <LineSwitcher />
-              <ProfileMenu />
-            </header>
+                <AppSidebar expanded={railOpen} onToggle={toggleRail} />
+              </aside>
 
-            <main className="mx-auto w-full max-w-5xl px-4 py-8 sm:px-6 lg:px-10">{children}</main>
-          </div>
-        </div>
+              {/* Mobile drawer */}
+              <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
+                <SheetContent side="left" className="font-geist w-64 p-0">
+                  <SheetTitle className="sr-only">Workspace</SheetTitle>
+                  <AppSidebar showLabels onNavigate={() => setMobileOpen(false)} />
+                </SheetContent>
+              </Sheet>
+
+              <div
+                className={cn(
+                  "transition-[padding] duration-300 ease-out",
+                  railOpen ? "lg:pl-62" : "lg:pl-16",
+                )}
+              >
+                {/* Top bar */}
+                <header className="sticky top-0 z-20 flex h-14 items-center gap-3 bg-background px-4 lg:px-6">
+                  <button
+                    type="button"
+                    aria-label="Open menu"
+                    onClick={() => setMobileOpen(true)}
+                    className="rounded-md p-1.5 text-text-primary transition-colors hover:bg-dash-rail-hover focus-visible:outline-none lg:hidden"
+                  >
+                    <Menu className="h-5 w-5" />
+                  </button>
+                  <div className="flex-1" />
+                  <Link
+                    href="/dashboard/notifications"
+                    aria-label="Notifications"
+                    className="rounded-md p-1.5 text-text-secondary transition-colors hover:text-sky-500 focus-visible:outline-none"
+                  >
+                    <Bell className="h-5 w-5" />
+                  </Link>
+                  <LineSwitcher />
+                  <ProfileMenu />
+                </header>
+
+                <main className="mx-auto w-full max-w-5xl px-4 py-8 sm:px-6 lg:px-10">{children}</main>
+              </div>
+            </div>
+          </LoanCompareProvider>
+        </RealEstateProvider>
       </LineProvider>
     </MeProvider>
   );
