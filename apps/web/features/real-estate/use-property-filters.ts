@@ -18,8 +18,6 @@ import {
   sortListings,
   type Furnishing,
   type ListingStatus,
-  type ListingType,
-  type PostedBy,
   type PropertyFilters,
   type RECategory,
   type SortOrder,
@@ -28,8 +26,6 @@ import {
 const RE_CATEGORY_VALUES = ["houses", "apartments", "villas", "plots", "commercial"] as const;
 const STATUS_VALUES = ["ready", "under_construction"] as const;
 const FURNISHING_VALUES = ["unfurnished", "semi", "furnished"] as const;
-const POSTED_BY_VALUES = ["owner", "agent", "builder"] as const;
-const LISTING_TYPE_VALUES = ["buy", "rent"] as const;
 const SORT_VALUES = ["relevance", "price_asc", "price_desc", "newest"] as const;
 
 // One hook owns every search + filter facet in the URL query string, mirroring
@@ -39,7 +35,6 @@ const SORT_VALUES = ["relevance", "price_asc", "price_desc", "newest"] as const;
 // pure filterListings/sortListings engine in lib/real-estate.ts.
 const PARSERS = {
   q: parseAsString,
-  listingType: parseAsStringLiteral(LISTING_TYPE_VALUES),
   categories: parseAsArrayOf(parseAsStringLiteral(RE_CATEGORY_VALUES)),
   bhk: parseAsArrayOf(parseAsInteger),
   priceMin: parseAsInteger,
@@ -49,7 +44,6 @@ const PARSERS = {
   status: parseAsArrayOf(parseAsStringLiteral(STATUS_VALUES)),
   furnishing: parseAsArrayOf(parseAsStringLiteral(FURNISHING_VALUES)),
   amenities: parseAsArrayOf(parseAsString),
-  postedBy: parseAsArrayOf(parseAsStringLiteral(POSTED_BY_VALUES)),
   city: parseAsString,
   locality: parseAsString,
   pincode: parseAsString,
@@ -59,7 +53,6 @@ const PARSERS = {
 function toPropertyFilters(state: Values<typeof PARSERS>): PropertyFilters {
   return {
     q: state.q ?? undefined,
-    listingType: (state.listingType ?? undefined) as ListingType | undefined,
     categories: (state.categories ?? undefined) as RECategory[] | undefined,
     bhk: state.bhk ?? undefined,
     priceMin: state.priceMin ?? undefined,
@@ -69,7 +62,6 @@ function toPropertyFilters(state: Values<typeof PARSERS>): PropertyFilters {
     status: (state.status ?? undefined) as ListingStatus[] | undefined,
     furnishing: (state.furnishing ?? undefined) as Furnishing[] | undefined,
     amenities: state.amenities ?? undefined,
-    postedBy: (state.postedBy ?? undefined) as PostedBy[] | undefined,
     city: state.city ?? undefined,
     locality: state.locality ?? undefined,
     pincode: state.pincode ?? undefined,

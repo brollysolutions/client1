@@ -5,15 +5,8 @@ import {
   RE_LISTINGS,
   type Furnishing,
   type ListingStatus,
-  type ListingType,
-  type PostedBy,
   type REListing,
 } from "@/lib/real-estate";
-
-export const LISTING_TYPES: { value: ListingType; label: string }[] = [
-  { value: "buy", label: "Buy" },
-  { value: "rent", label: "Rent" },
-];
 
 export const BHK_OPTIONS: { value: number; label: string }[] = [
   { value: 1, label: "1 BHK" },
@@ -32,12 +25,6 @@ export const FURNISHING_OPTIONS: { value: Furnishing; label: string }[] = [
   { value: "unfurnished", label: "Unfurnished" },
   { value: "semi", label: "Semi-furnished" },
   { value: "furnished", label: "Furnished" },
-];
-
-export const POSTED_BY_OPTIONS: { value: PostedBy; label: string }[] = [
-  { value: "owner", label: "Owner" },
-  { value: "agent", label: "Agent" },
-  { value: "builder", label: "Builder" },
 ];
 
 export const AMENITIES: { value: string; label: string }[] = [

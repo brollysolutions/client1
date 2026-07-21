@@ -47,7 +47,11 @@ export function PropertyFilterSheet({
           ) : null}
         </Button>
       </SheetTrigger>
-      <SheetContent side="right" className="flex w-full flex-col gap-0 p-0 sm:max-w-md">
+      <SheetContent
+        side="right"
+        className="flex w-full flex-col gap-0 bg-dash-rail p-0 sm:max-w-md"
+        closeButtonClassName="hover:text-brand-cta"
+      >
         <SheetHeader className="border-b border-border px-6 py-5 text-left">
           <SheetTitle>All filters</SheetTitle>
         </SheetHeader>

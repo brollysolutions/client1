@@ -6,7 +6,8 @@ import { Bookmark, CalendarCheck, MapPin, Scale } from "lucide-react";
 import { toast } from "sonner";
 
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { useBookmarks, useCompare, useEnquiries, useSiteVisits } from "@/features/real-estate/store";
+import { PropertyActionDialog } from "@/features/real-estate/property-action-dialog";
+import { useBookmarks, useCompare } from "@/features/real-estate/store";
 import type { REListing } from "@/lib/real-estate";
 import { cn } from "@/lib/utils";
 
@@ -18,8 +19,6 @@ import { cn } from "@/lib/utils";
 export function PropertyCard({ listing }: { listing: REListing }) {
   const bookmarks = useBookmarks();
   const compare = useCompare();
-  const enquiries = useEnquiries();
-  const siteVisits = useSiteVisits();
 
   const bookmarked = bookmarks.has(listing.id);
   const inCompare = compare.has(listing.id);
@@ -34,18 +33,6 @@ export function PropertyCard({ listing }: { listing: REListing }) {
       return;
     }
     compare.add(listing.id);
-  }
-
-  function enquire() {
-    enquiries.add(listing);
-    toast.success("Enquiry sent", { description: "Your agent will get back to you shortly." });
-  }
-
-  function bookVisit() {
-    const in3Days = new Date();
-    in3Days.setDate(in3Days.getDate() + 3);
-    siteVisits.add(listing, in3Days.toISOString().slice(0, 10));
-    toast.success("Site visit requested", { description: "We'll confirm a time with you soon." });
   }
 
   return (
@@ -107,21 +94,31 @@ export function PropertyCard({ listing }: { listing: REListing }) {
 
       <CardFooter className="flex flex-col gap-2 pt-5">
         <div className="flex w-full gap-2">
-          <button
-            type="button"
-            onClick={enquire}
-            className="flex-1 cursor-pointer rounded-lg border border-border px-3 py-2 text-sm font-medium text-text-primary transition-colors hover:border-brand-cta hover:text-brand-cta focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue"
-          >
-            Enquire
-          </button>
-          <button
-            type="button"
-            onClick={bookVisit}
-            aria-label="Book a site visit"
-            className="grid h-9 w-9 shrink-0 cursor-pointer place-items-center rounded-lg border border-border text-text-secondary transition-colors hover:border-brand-cta hover:text-brand-cta focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue"
-          >
-            <CalendarCheck className="h-4 w-4" aria-hidden="true" />
-          </button>
+          <PropertyActionDialog
+            variant="enquire"
+            listing={listing}
+            trigger={
+              <button
+                type="button"
+                className="flex-1 cursor-pointer rounded-lg border border-border px-3 py-2 text-sm font-medium text-text-primary transition-colors hover:border-brand-cta hover:text-brand-cta focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue"
+              >
+                Enquire
+              </button>
+            }
+          />
+          <PropertyActionDialog
+            variant="site-visit"
+            listing={listing}
+            trigger={
+              <button
+                type="button"
+                aria-label="Book a site visit"
+                className="grid h-9 w-9 shrink-0 cursor-pointer place-items-center rounded-lg border border-border text-text-secondary transition-colors hover:border-brand-cta hover:text-brand-cta focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue"
+              >
+                <CalendarCheck className="h-4 w-4" aria-hidden="true" />
+              </button>
+            }
+          />
         </div>
         <label className="flex w-full cursor-pointer items-center gap-2 rounded-lg px-1 text-xs text-text-secondary">
           <input

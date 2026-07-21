@@ -20,6 +20,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.v1.auth import router as auth_router
 from app.api.v1.leads import router as leads_router
 from app.api.v1.loans import router as loans_router
+from app.api.v1.site_visits import router as site_visits_router
 from app.api.v1.support_tickets import router as support_tickets_router
 from app.core.config import settings
 from app.db.session import engine, get_db
@@ -70,6 +71,7 @@ app.include_router(loans_router, prefix="/api/v1/loans", tags=["loans"])
 app.include_router(
     support_tickets_router, prefix="/api/v1/support-tickets", tags=["support-tickets"]
 )
+app.include_router(site_visits_router, prefix="/api/v1/site-visits", tags=["site-visits"])
 
 
 @app.get("/")

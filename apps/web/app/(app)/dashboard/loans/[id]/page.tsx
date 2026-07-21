@@ -59,7 +59,7 @@ export default function LoanDetailPage() {
   }, [id, reloadKey]);
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6">
+    <div className="mx-auto max-w-2xl space-y-6 px-4 sm:px-6 lg:px-10">
       <Link
         href="/dashboard"
         className="inline-flex items-center gap-1.5 text-sm text-text-secondary transition-colors hover:text-text-primary"
