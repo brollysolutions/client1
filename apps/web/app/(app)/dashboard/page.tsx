@@ -1,5 +1,7 @@
 "use client";
 
+import { Suspense } from "react";
+
 import { useAuth } from "@/components/auth/session-provider";
 import { Skeleton } from "@/components/ui/skeleton";
 import { FetchError } from "@/features/dashboard/fetch-error";
@@ -39,7 +41,11 @@ export default function DashboardPage() {
   }
 
   if (activeLine === "real_estate") {
-    return <RealEstateHome />;
+    return (
+      <Suspense fallback={<Skeleton className="h-64 rounded-2xl" />}>
+        <RealEstateHome />
+      </Suspense>
+    );
   }
 
   // profiles may be empty briefly right after signup (backfilled by the scheduler);
