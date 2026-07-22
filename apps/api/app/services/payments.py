@@ -49,12 +49,32 @@ _RAZORPAYX_BASE = "https://api.razorpay.com/v1"
 # must stay in sync with the partial-unique index predicate in the migration.
 _DEDUPE_DEAD_STATES = (PayoutStatus.REJECTED, PayoutStatus.FAILED, PayoutStatus.REVERSED)
 
-# RazorpayX payout webhook events → our status.
+# RazorpayX payout webhook events → our status. `payout.rejected` (compliance /
+# beneficiary rejection) is a genuine terminal failure, mapped to FAILED so it is
+# recorded, not silently acked-and-ignored.
 _WEBHOOK_STATUS_MAP = {
     "payout.processed": PayoutStatus.PAID,
     "payout.failed": PayoutStatus.FAILED,
+    "payout.rejected": PayoutStatus.FAILED,
     "payout.reversed": PayoutStatus.REVERSED,
 }
+
+# RazorpayX payout `status` field (from a GET) → the equivalent webhook event, so
+# the reconciler can reuse the idempotent settle_from_webhook path. The terminal
+# failure statuses `rejected` and `cancelled` map to FAILED so a stuck payout is
+# resolved (with a reason) instead of being re-scanned forever; the non-terminal
+# statuses (queued/pending/processing) map to nothing — still in flight.
+_GATEWAY_STATUS_TO_EVENT = {
+    "processed": "payout.processed",
+    "failed": "payout.failed",
+    "rejected": "payout.failed",
+    "cancelled": "payout.failed",
+    "reversed": "payout.reversed",
+}
+
+# Bound each reconciliation tick. A live backlog larger than this signals a
+# systemic webhook-delivery problem worth alerting on, not silently grinding.
+_RECONCILE_SCAN_LIMIT = 500
 
 
 # ---------------------------------------------------------------------------
@@ -406,21 +426,64 @@ async def settle_from_webhook(*, event: str, gateway_payout_id: str) -> None:
         if target == PayoutStatus.PAID:
             if payout.ledger_transaction_id is not None:
                 return  # already settled — redelivery, no second ledger row
-            payout.gateway_status = event.split(".", 1)[-1]
-            await _settle_paid(db, payout)
+            # Insert the ledger row first, then claim the settle with an atomic
+            # compare-and-swap on ledger_transaction_id IS NULL. Two concurrent
+            # settles (a redelivered webhook, or — routinely now — the reconciler
+            # racing a merely-delayed webhook) both pass the read above, but under
+            # Postgres row locking only ONE UPDATE matches (rowcount 1); the loser
+            # sees rowcount 0 and rolls back its insert, so a payout is credited
+            # exactly once. The claim is a Core UPDATE and the loaded `payout` is
+            # never ORM-dirtied here, so commit() issues no second, stale UPDATE.
+            txn_id = await _emit_ledger_row(db, payout)
+            claim = await db.execute(
+                update(Payout)
+                .where(
+                    Payout.id == payout.id,
+                    Payout.ledger_transaction_id.is_(None),
+                )
+                .values(
+                    status=PayoutStatus.PAID,
+                    gateway_status=event.split(".", 1)[-1],
+                    ledger_transaction_id=txn_id,
+                )
+            )
+            if claim.rowcount == 0:
+                await db.rollback()  # lost the race — no second ledger row
+                return
             await db.commit()
             return
 
         # FAILED / REVERSED. A settled (PAID) payout must never regress to FAILED
         # on a stale or duplicate event — that would desync the admin view from
         # the client-facing ledger row (which stays PAID). A genuine post-payment
-        # REVERSED (funds returned by the gateway) is a real signal: record it,
-        # but the compensating clawback ledger entry is a deferred follow-up, so
-        # the original ledger row is left intact here.
+        # REVERSED (funds returned by the gateway) posts a compensating NEGATIVE
+        # ledger row so the recipient's balance nets back to zero.
         if payout.status == PayoutStatus.PAID:
             if target == PayoutStatus.REVERSED:
-                payout.gateway_status = "reversed"
-                payout.status = PayoutStatus.REVERSED
+                # Insert the clawback row first (so we have its id), then claim the
+                # transition with an atomic compare-and-swap. Only the first
+                # `payout.reversed` event matches (rowcount 1) and keeps the
+                # inserted row; a redelivery loses it (rowcount 0) and the insert is
+                # rolled back, so the negative row is emitted exactly once. The
+                # claim is a Core UPDATE and the loaded `payout` is never
+                # ORM-dirtied here, so commit() issues no second, stale UPDATE.
+                clawback_id = await _emit_clawback_row(db, payout)
+                claim = await db.execute(
+                    update(Payout)
+                    .where(
+                        Payout.id == payout.id,
+                        Payout.status == PayoutStatus.PAID,
+                        Payout.reversal_transaction_id.is_(None),
+                    )
+                    .values(
+                        status=PayoutStatus.REVERSED,
+                        gateway_status="reversed",
+                        reversal_transaction_id=clawback_id,
+                    )
+                )
+                if claim.rowcount == 0:
+                    await db.rollback()  # redelivery — no second clawback row
+                    return
                 await db.commit()
             else:
                 logger.warning("payout.stale_failed_ignored payout_id=%s", payout.id)
@@ -434,16 +497,101 @@ async def settle_from_webhook(*, event: str, gateway_payout_id: str) -> None:
 
 
 # ---------------------------------------------------------------------------
+# Reconciliation (scheduler job entrypoint; live-only, best-effort)
+# ---------------------------------------------------------------------------
+
+
+async def reconcile_stuck_payouts() -> dict:
+    """Settle live payouts stuck past the grace window from the gateway's record.
+
+    LIVE-ONLY: mock mode settles synchronously, so there is nothing to reconcile
+    and this returns immediately on ``main``. Closes the reconciliation caveat
+    documented in initiate_payout — two stuck classes:
+
+      * INITIATED with a gateway_payout_id — the ``payout.processed`` webhook was
+        lost; GET the payout by id and settle from its status.
+      * INITIATED / FAILED with NO gateway_payout_id — the create POST response
+        was lost, so no webhook can ever match; look the payout up by
+        ``reference_id=payout.id``, backfill the gateway id, then settle.
+
+    Reuses the idempotent settle_from_webhook path, so a webhook arriving
+    concurrently with this sweep can never double-emit a ledger row. Per-payout
+    faults are logged and skipped (never abort the whole sweep). Returns a
+    ``{scanned, reconciled}`` summary for the job to log.
+    """
+    if not _is_live():
+        return {"skipped": "mock", "scanned": 0, "reconciled": 0}
+
+    cutoff = datetime.now(UTC) - timedelta(minutes=settings.PAYOUT_RECONCILE_STUCK_MINUTES)
+    async with AsyncSessionLocal() as db:
+        stuck = (
+            await db.scalars(
+                select(Payout)
+                .where(
+                    Payout.status.in_((PayoutStatus.INITIATED, PayoutStatus.FAILED)),
+                    Payout.updated_at < cutoff,
+                )
+                .order_by(Payout.updated_at)
+                .limit(_RECONCILE_SCAN_LIMIT)
+            )
+        ).all()
+
+    reconciled = 0
+    for payout in stuck:
+        # A FAILED payout is only ambiguous (money may have moved) when it carries
+        # no gateway id; a FAILED-with-id is a genuine gateway failure — leave it.
+        if payout.status == PayoutStatus.FAILED and payout.gateway_payout_id:
+            continue
+        # One poison payout must never abort the batch: the whole per-payout body
+        # (gateway fetch, backfill, settle) is guarded so a fault on the oldest
+        # row can't head-of-line-block every newer stuck payout behind it.
+        try:
+            resolved = await _fetch_gateway_state(payout)
+            if resolved is None:
+                continue  # gateway has no record — nothing moved; leave as-is
+            gateway_payout_id, gateway_status = resolved
+            event = _GATEWAY_STATUS_TO_EVENT.get(gateway_status)
+            if event is None:
+                continue  # still queued/processing at the gateway — settle later
+            if not payout.gateway_payout_id:
+                await _backfill_gateway_id(payout.id, gateway_payout_id)
+            if payout.status == PayoutStatus.FAILED and event == "payout.processed":
+                # Financially significant: a payout we recorded as FAILED actually
+                # settled at the gateway (lost create-response). Log distinctly for
+                # audit — id + statuses only, no PII.
+                logger.warning(
+                    "payout.reconcile_resurrected payout_id=%s from=failed to=paid", payout.id
+                )
+            await settle_from_webhook(event=event, gateway_payout_id=gateway_payout_id)
+            reconciled += 1
+        except Exception:
+            logger.warning("payout.reconcile_failed payout_id=%s", payout.id, exc_info=True)
+            continue
+    return {"scanned": len(stuck), "reconciled": reconciled}
+
+
+async def _backfill_gateway_id(payout_id: uuid.UUID, gateway_payout_id: str) -> None:
+    """Persist a gateway id discovered by reference lookup so the idempotent
+    settle path can match it. Guarded on gateway_payout_id IS NULL so a webhook
+    that lands concurrently can't be clobbered."""
+    async with AsyncSessionLocal() as db:
+        await db.execute(
+            update(Payout)
+            .where(Payout.id == payout_id, Payout.gateway_payout_id.is_(None))
+            .values(gateway_payout_id=gateway_payout_id)
+        )
+        await db.commit()
+
+
+# ---------------------------------------------------------------------------
 # Internal helpers
 # ---------------------------------------------------------------------------
 
 
-async def _settle_paid(db, payout: Payout) -> None:
-    """Mark a payout paid and emit its single client-facing ledger row.
-
-    Caller commits. Idempotency (no double ledger row) is enforced by callers
-    checking ledger_transaction_id before invoking this.
-    """
+async def _emit_ledger_row(db, payout: Payout) -> uuid.UUID:
+    """Insert the single positive client-facing ledger row for a settled payout
+    and return its id. Insert-only (no payout mutation) so callers can claim the
+    settle with an atomic CAS. Caller commits (or rolls back on a lost CAS)."""
     txn = Transaction(
         user_uuid=payout.recipient_user_uuid,
         business_line=payout.business_line,
@@ -456,8 +604,43 @@ async def _settle_paid(db, payout: Payout) -> None:
     )
     db.add(txn)
     await db.flush()  # populate txn.id
+    return txn.id
+
+
+async def _settle_paid(db, payout: Payout) -> None:
+    """Mock-path settle: emit the ledger row and mark the payout paid via ORM.
+
+    Used only by the mock producer in initiate_payout, which has already claimed
+    the payout with the APPROVED→INITIATED compare-and-swap, so it is the single
+    writer and ORM mutation here is race-free. The webhook/reconcile settle path
+    uses an atomic CAS instead (see settle_from_webhook). Caller commits.
+    """
+    payout.ledger_transaction_id = await _emit_ledger_row(db, payout)
     payout.status = PayoutStatus.PAID
-    payout.ledger_transaction_id = txn.id
+
+
+async def _emit_clawback_row(db, payout: Payout) -> uuid.UUID:
+    """Insert the compensating NEGATIVE ledger row for a reversed payout.
+
+    Same recipient / type / provenance as the original credit, but with a
+    negated amount so the client's balance nets to zero. Returns the new txn id;
+    the caller links it via reversal_transaction_id under an atomic CAS, which is
+    what makes emission idempotent. Caller commits (or rolls back on a lost CAS,
+    which also discards this insert).
+    """
+    txn = Transaction(
+        user_uuid=payout.recipient_user_uuid,
+        business_line=payout.business_line,
+        type=TransactionType(payout.type.value),
+        status=TransactionStatus.PAID,
+        amount_paise=-payout.amount_paise,  # negative: compensating clawback entry
+        currency=payout.currency,
+        description=_clawback_description(payout.type),
+        reference=payout.gateway_payout_id,
+    )
+    db.add(txn)
+    await db.flush()  # populate txn.id
+    return txn.id
 
 
 async def _mark_failed(payout_id: uuid.UUID, reason: str) -> None:
@@ -480,6 +663,10 @@ def _ledger_description(payout_type: PayoutType) -> str:
         PayoutType.REFERRAL_BONUS: "Referral bonus payout",
         PayoutType.COMMISSION: "Commission payout",
     }[payout_type]
+
+
+def _clawback_description(payout_type: PayoutType) -> str:
+    return f"Reversal of {_ledger_description(payout_type).lower()}"
 
 
 def _mask_destination(destination_type: PayoutDestination, destination: dict) -> str:
@@ -573,3 +760,28 @@ async def _create_gateway_payout(payout: Payout) -> tuple[str, str]:
         resp.raise_for_status()
         body = resp.json()
         return body["id"], body.get("status", "queued")
+
+
+async def _fetch_gateway_state(payout: Payout) -> tuple[str, str] | None:
+    """Read the gateway's own record of a payout for reconciliation.
+
+    Returns (gateway_payout_id, gateway_status), or None if RazorpayX has no
+    record at all (the create POST never reached them — no money moved). Looks up
+    by gateway id when we have one, else by ``reference_id=payout.id`` (the
+    lost-response case). Raises on transport/HTTP error (caller logs + skips)."""
+    async with httpx.AsyncClient(timeout=15.0, auth=_razorpayx_auth()) as client:
+        if payout.gateway_payout_id:
+            resp = await client.get(f"{_RAZORPAYX_BASE}/payouts/{payout.gateway_payout_id}")
+            resp.raise_for_status()
+            body = resp.json()
+            return body["id"], body.get("status", "")
+
+        resp = await client.get(
+            f"{_RAZORPAYX_BASE}/payouts",
+            params={"reference_id": str(payout.id), "count": 1},
+        )
+        resp.raise_for_status()
+        items = resp.json().get("items", [])
+        if not items:
+            return None
+        return items[0]["id"], items[0].get("status", "")

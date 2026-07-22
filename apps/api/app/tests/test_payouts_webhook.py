@@ -8,6 +8,7 @@ so the body is passed as `content=` (not `json=`) for byte-stable hashing.
 
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import hmac
 import json
@@ -18,6 +19,7 @@ from httpx import AsyncClient
 from sqlalchemy import text
 
 from app.core.config import settings
+from app.services import payments
 from conftest import full_registration
 
 _SECRET = "whsec_test_payouts"
@@ -192,6 +194,115 @@ async def test_redelivered_processed_no_duplicate_ledger(client: AsyncClient, mo
         "/api/v1/transactions", headers={"Authorization": f"Bearer {recipient_token}"}
     )
     assert len(ledger.json()["transactions"]) == 1  # no duplicate emission
+
+
+async def _recipient_ledger(client: AsyncClient, recipient_token: str) -> list[dict]:
+    resp = await client.get(
+        "/api/v1/transactions", headers={"Authorization": f"Bearer {recipient_token}"}
+    )
+    return resp.json()["transactions"]
+
+
+@pytest.mark.asyncio
+async def test_concurrent_processed_settle_emits_single_ledger_row(
+    client: AsyncClient, monkeypatch
+) -> None:
+    """Two settles racing for the same payout (redelivery, or the reconciler
+    racing a delayed webhook) must credit the recipient exactly once — the
+    PAID-claim compare-and-swap lets only one win."""
+    monkeypatch.setattr(settings, "RAZORPAY_WEBHOOK_SECRET", _SECRET)
+    payout_id, gw_id, recipient_token = await _setup(client)
+
+    # Call the settle path directly, concurrently, bypassing HTTP.
+    await asyncio.gather(
+        payments.settle_from_webhook(event="payout.processed", gateway_payout_id=gw_id),
+        payments.settle_from_webhook(event="payout.processed", gateway_payout_id=gw_id),
+    )
+
+    assert (await _payout_status(payout_id))[0] == "paid"
+    txns = await _recipient_ledger(client, recipient_token)
+    assert len(txns) == 1  # exactly one credit, no double-pay
+
+
+@pytest.mark.asyncio
+async def test_webhook_rejected_marks_failed(client: AsyncClient, monkeypatch) -> None:
+    """A payout.rejected webhook is a terminal failure, not an ignored event."""
+    monkeypatch.setattr(settings, "RAZORPAY_WEBHOOK_SECRET", _SECRET)
+    payout_id, gw_id, _ = await _setup(client)
+
+    body, sig = _signed("payout.rejected", gw_id, _SECRET)
+    resp = await client.post(
+        "/api/v1/payouts/webhook/razorpay",
+        content=body,
+        headers={"X-Razorpay-Signature": sig, "Content-Type": "application/json"},
+    )
+    assert resp.status_code == 200
+    assert (await _payout_status(payout_id))[0] == "failed"
+
+
+@pytest.mark.asyncio
+async def test_reversed_after_paid_emits_negative_clawback(
+    client: AsyncClient, monkeypatch
+) -> None:
+    """A post-payment reversal posts a compensating NEGATIVE ledger row so the
+    recipient's balance nets to zero, and flips the payout to reversed."""
+    monkeypatch.setattr(settings, "RAZORPAY_WEBHOOK_SECRET", _SECRET)
+    payout_id, gw_id, recipient_token = await _setup(client)
+    headers = {"Content-Type": "application/json"}
+
+    # 1. settle to paid → one +credit row.
+    body, sig = _signed("payout.processed", gw_id, _SECRET)
+    paid = await client.post(
+        "/api/v1/payouts/webhook/razorpay",
+        content=body,
+        headers={**headers, "X-Razorpay-Signature": sig},
+    )
+    assert paid.status_code == 200
+    assert len(await _recipient_ledger(client, recipient_token)) == 1
+
+    # 2. reverse it → compensating -debit row; payout terminal reversed.
+    body_r, sig_r = _signed("payout.reversed", gw_id, _SECRET)
+    reversed_resp = await client.post(
+        "/api/v1/payouts/webhook/razorpay",
+        content=body_r,
+        headers={**headers, "X-Razorpay-Signature": sig_r},
+    )
+    assert reversed_resp.status_code == 200
+    assert (await _payout_status(payout_id))[0] == "reversed"
+
+    txns = await _recipient_ledger(client, recipient_token)
+    amounts = sorted(t["amount_paise"] for t in txns)
+    assert amounts == [-250_000, 250_000]  # nets to zero
+    assert sum(amounts) == 0
+
+
+@pytest.mark.asyncio
+async def test_reversed_redelivery_no_duplicate_clawback(client: AsyncClient, monkeypatch) -> None:
+    """A redelivered payout.reversed must not post a second clawback row."""
+    monkeypatch.setattr(settings, "RAZORPAY_WEBHOOK_SECRET", _SECRET)
+    payout_id, gw_id, recipient_token = await _setup(client)
+    headers = {"Content-Type": "application/json"}
+
+    body, sig = _signed("payout.processed", gw_id, _SECRET)
+    await client.post(
+        "/api/v1/payouts/webhook/razorpay",
+        content=body,
+        headers={**headers, "X-Razorpay-Signature": sig},
+    )
+    body_r, sig_r = _signed("payout.reversed", gw_id, _SECRET)
+    rev_headers = {**headers, "X-Razorpay-Signature": sig_r}
+    first = await client.post(
+        "/api/v1/payouts/webhook/razorpay", content=body_r, headers=rev_headers
+    )
+    second = await client.post(
+        "/api/v1/payouts/webhook/razorpay", content=body_r, headers=rev_headers
+    )
+    assert first.status_code == 200
+    assert second.status_code == 200
+
+    txns = await _recipient_ledger(client, recipient_token)
+    assert len(txns) == 2  # +credit and exactly one -clawback, no duplicate
+    assert (await _payout_status(payout_id))[0] == "reversed"
 
 
 @pytest.mark.asyncio
