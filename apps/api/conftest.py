@@ -70,6 +70,7 @@ def _patch_db_null_pool() -> None:
     )
     import app.services.leads as _leads_mod
     import app.services.notifications as _notifications_mod
+    import app.services.payments as _payments_mod
 
     original = _session_mod.AsyncSessionLocal
     null_pool_sessionmaker = async_sessionmaker(
@@ -78,18 +79,21 @@ def _patch_db_null_pool() -> None:
         autoflush=False,
     )
     _session_mod.AsyncSessionLocal = null_pool_sessionmaker
-    # leads.py and notifications.py both did `from app.db.session import
-    # AsyncSessionLocal`, binding the original at import time — rebind their
-    # copies too so lead capture and notification emission use the NullPool
-    # engine in tests.
+    # leads.py, notifications.py and payments.py each did `from app.db.session
+    # import AsyncSessionLocal`, binding the original at import time — rebind their
+    # copies too so lead capture, notification emission and payout writes use the
+    # NullPool engine in tests.
     original_leads = _leads_mod.AsyncSessionLocal
     _leads_mod.AsyncSessionLocal = null_pool_sessionmaker
     original_notifications = _notifications_mod.AsyncSessionLocal
     _notifications_mod.AsyncSessionLocal = null_pool_sessionmaker
+    original_payments = _payments_mod.AsyncSessionLocal
+    _payments_mod.AsyncSessionLocal = null_pool_sessionmaker
     yield
     _session_mod.AsyncSessionLocal = original
     _leads_mod.AsyncSessionLocal = original_leads
     _notifications_mod.AsyncSessionLocal = original_notifications
+    _payments_mod.AsyncSessionLocal = original_payments
 
 
 # ---------------------------------------------------------------------------

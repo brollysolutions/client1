@@ -450,6 +450,81 @@ export interface paths {
         patch: operations["mark_read_api_v1_notifications__notification_id__read_patch"];
         trace?: never;
     };
+    "/api/v1/payouts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Payouts */
+        get: operations["list_payouts_api_v1_payouts_get"];
+        put?: never;
+        /** Create Payout */
+        post: operations["create_payout_api_v1_payouts_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/payouts/webhook/razorpay": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Razorpay Webhook
+         * @description RazorpayX payout webhook — fail-closed HMAC-SHA256 verification.
+         *
+         *     No auth dependency: authenticity comes from the signature, not a JWT. A
+         *     missing secret or a bad signature is rejected with 400 and NO state change.
+         */
+        post: operations["razorpay_webhook_api_v1_payouts_webhook_razorpay_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/payouts/{payout_id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Approve Payout */
+        post: operations["approve_payout_api_v1_payouts__payout_id__approve_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/payouts/{payout_id}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reject Payout */
+        post: operations["reject_payout_api_v1_payouts__payout_id__reject_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/site-visits": {
         parameters: {
             query?: never;
@@ -877,6 +952,113 @@ export interface components {
          * @enum {string}
          */
         NotificationType: "site_visit_requested" | "site_visit_cancelled" | "support_ticket_received";
+        /** PayoutCreate */
+        PayoutCreate: {
+            /** Amount Paise */
+            amount_paise: number;
+            /** Business Line */
+            business_line?: ("loans" | "real_estate") | null;
+            destination: components["schemas"]["PayoutDestinationInput"];
+            destination_type: components["schemas"]["PayoutDestination"];
+            /** Idempotency Key */
+            idempotency_key: string;
+            /**
+             * Recipient User Uuid
+             * Format: uuid
+             */
+            recipient_user_uuid: string;
+            type: components["schemas"]["PayoutType"];
+        };
+        /**
+         * PayoutDestination
+         * @enum {string}
+         */
+        PayoutDestination: "vpa" | "bank_account";
+        /**
+         * PayoutDestinationInput
+         * @description Raw destination — validated to match destination_type, never stored raw.
+         */
+        PayoutDestinationInput: {
+            /** Account Number */
+            account_number?: string | null;
+            /** Ifsc */
+            ifsc?: string | null;
+            /** Name */
+            name?: string | null;
+            /** Vpa */
+            vpa?: string | null;
+        };
+        /** PayoutListResponse */
+        PayoutListResponse: {
+            /** Payouts */
+            payouts: components["schemas"]["PayoutRead"][];
+        };
+        /** PayoutRead */
+        PayoutRead: {
+            /** Amount Paise */
+            amount_paise: number;
+            /** Business Line */
+            business_line: string | null;
+            /** Checker User Uuid */
+            checker_user_uuid: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Currency */
+            currency: string;
+            /** Destination Hint */
+            destination_hint: string;
+            destination_type: components["schemas"]["PayoutDestination"];
+            /** Failure Reason */
+            failure_reason: string | null;
+            /** Gateway Payout Id */
+            gateway_payout_id: string | null;
+            /** Gateway Status */
+            gateway_status: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Maker User Uuid
+             * Format: uuid
+             */
+            maker_user_uuid: string;
+            /**
+             * Recipient User Uuid
+             * Format: uuid
+             */
+            recipient_user_uuid: string;
+            /** Reject Reason */
+            reject_reason: string | null;
+            /** Rejected By User Uuid */
+            rejected_by_user_uuid: string | null;
+            status: components["schemas"]["PayoutStatus"];
+            type: components["schemas"]["PayoutType"];
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** PayoutReject */
+        PayoutReject: {
+            /** Reason */
+            reason: string;
+        };
+        /**
+         * PayoutStatus
+         * @enum {string}
+         */
+        PayoutStatus: "pending_approval" | "approved" | "rejected" | "initiated" | "processing" | "paid" | "failed" | "reversed";
+        /**
+         * PayoutType
+         * @enum {string}
+         */
+        PayoutType: "cashback" | "referral_bonus" | "commission";
         /** PublicLeadCreate */
         PublicLeadCreate: {
             /** Company */
@@ -1174,6 +1356,14 @@ export interface components {
             msg: string;
             /** Error Type */
             type: string;
+        };
+        /** WebhookAck */
+        WebhookAck: {
+            /**
+             * Status
+             * @default ok
+             */
+            status: string;
         };
     };
     responses: never;
@@ -2008,6 +2198,158 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["NotificationRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_payouts_api_v1_payouts_get: {
+        parameters: {
+            query?: {
+                status_filter?: components["schemas"]["PayoutStatus"] | null;
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PayoutListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_payout_api_v1_payouts_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PayoutCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PayoutRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    razorpay_webhook_api_v1_payouts_webhook_razorpay_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebhookAck"];
+                };
+            };
+        };
+    };
+    approve_payout_api_v1_payouts__payout_id__approve_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                payout_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PayoutRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reject_payout_api_v1_payouts__payout_id__reject_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                payout_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PayoutReject"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PayoutRead"];
                 };
             };
             /** @description Validation Error */

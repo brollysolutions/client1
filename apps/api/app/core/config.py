@@ -103,9 +103,31 @@ class Settings(BaseSettings):
     SMTP_FROM: str = ""  # e.g. "Loans & Real Estate <no-reply@yourdomain.com>"
     SMTP_USE_TLS: bool = True  # STARTTLS on port 587
 
-    # Payments — Razorpay (cashback / referral / commission payouts only, never loan principal)
-    RAZORPAY_KEY_ID: str = ""
-    RAZORPAY_KEY_SECRET: str = ""
+    # Payments — RazorpayX payouts (cashback / referral / commission only, never
+    # loan principal or property purchase — the product's money invariant).
+    #
+    # Live-vs-mock is switched purely by credential presence, exactly like voice
+    # OTP / email above: empty keys ⇒ mock producer (writes the ledger row, no
+    # external call, no real money). The mainline (dev/staging) ships these empty
+    # so the money path stays inert; the long-lived `prod` branch supplies real
+    # values via env (.env.prod / secrets). See services/payments.py::_is_live.
+    RAZORPAY_KEY_ID: str = ""  # secret
+    RAZORPAY_KEY_SECRET: str = ""  # secret
+    # HMAC-SHA256 secret for the payout webhook receiver. Empty ⇒ webhook is
+    # fail-closed (every event rejected), so status can only settle once this is set.
+    RAZORPAY_WEBHOOK_SECRET: str = ""  # secret
+    # RazorpayX source account the payout debits (the "2323230000000000" style
+    # virtual account number from the RazorpayX dashboard).
+    RAZORPAYX_ACCOUNT_NUMBER: str = ""
+    # Money-safety guards. amount_paise integer minor units.
+    #   *_PAISE == 0 means "not configured": in LIVE mode an unset cap is treated
+    #   as fail-closed (reject the payout — never move uncapped real money); in
+    #   mock mode 0 means "no cap" for dev convenience. Enforced in the create guard.
+    PAYOUT_MAX_AMOUNT_PAISE: int = 0  # per-payout ceiling
+    PAYOUT_DAILY_CAP_PAISE: int = 0  # aggregate ceiling per calendar day (UTC)
+    # Reject a duplicate (same recipient + type + amount + idempotency key) seen
+    # within this window, backstopping the partial-unique index against retries.
+    PAYOUT_DEDUPE_WINDOW_SECONDS: int = 300
 
     @model_validator(mode="after")
     def _guard_secret_key(self) -> "Settings":
@@ -120,6 +142,44 @@ class Settings(BaseSettings):
                 )
             if len(self.SECRET_KEY) < 32:
                 raise ValueError("SECRET_KEY must be at least 32 characters.")
+        return self
+
+    @model_validator(mode="after")
+    def _guard_live_payments(self) -> "Settings":
+        # Partial credentials are a silent-mock trap: _is_live() ANDs the key id
+        # and secret, so setting only one (secret-manager mis-sync, half-done
+        # rotation) leaves the service in MOCK mode in production — payouts show
+        # "paid" with no real money moving, and nothing fails or warns. Refuse to
+        # boot outside development unless BOTH keys are set or NEITHER is.
+        key_set = bool(self.RAZORPAY_KEY_ID)
+        secret_set = bool(self.RAZORPAY_KEY_SECRET)
+        if self.ENV != "development" and key_set != secret_set:
+            raise ValueError(
+                "RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET must be set together "
+                "(both for live payouts, or neither for mock). Exactly one is set."
+            )
+
+        # A live payments config (real Razorpay creds present) outside development
+        # MUST carry the full safety envelope or the service refuses to boot: a
+        # payout gateway that can move real money without a webhook secret (no way
+        # to settle/verify), a source account, and both caps set is a foot-gun.
+        # Mirrors _guard_secret_key's "prod must be explicitly configured" stance.
+        is_live = key_set and secret_set
+        if self.ENV != "development" and is_live:
+            missing: list[str] = []
+            if not self.RAZORPAY_WEBHOOK_SECRET:
+                missing.append("RAZORPAY_WEBHOOK_SECRET")
+            if not self.RAZORPAYX_ACCOUNT_NUMBER:
+                missing.append("RAZORPAYX_ACCOUNT_NUMBER")
+            if self.PAYOUT_MAX_AMOUNT_PAISE <= 0:
+                missing.append("PAYOUT_MAX_AMOUNT_PAISE")
+            if self.PAYOUT_DAILY_CAP_PAISE <= 0:
+                missing.append("PAYOUT_DAILY_CAP_PAISE")
+            if missing:
+                raise ValueError(
+                    "Live Razorpay payments require these settings outside "
+                    f"development: {', '.join(missing)}."
+                )
         return self
 
 
