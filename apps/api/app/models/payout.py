@@ -116,6 +116,12 @@ class Payout(Base):
     ledger_transaction_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("transactions.id"), nullable=True
     )
+    # Set once on a post-payment reversal → links the compensating (negative)
+    # clawback ledger row and makes that emission idempotent (paired with the
+    # PAID→REVERSED compare-and-swap in services.payments.settle_from_webhook).
+    reversal_transaction_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("transactions.id"), nullable=True
+    )
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, default=datetime.utcnow
