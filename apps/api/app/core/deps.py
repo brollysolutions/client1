@@ -204,6 +204,17 @@ async def require_re_reviewer(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only Admin or Sub Admin may review submissions.",
         )
+    # Platform-scoped reviewers (Admin, platform Sub Admin) act across lines; a
+    # line-scoped Sub Admin must be on the real-estate line. The mutation runs on
+    # a bypass session that skips RLS, so this guard is the segregation wall.
+    if current_user.platform_scope != "true" and current_user.business_line not in (
+        "real_estate",
+        "both",
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only real-estate reviewers may review these submissions.",
+        )
     return current_user
 
 

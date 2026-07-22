@@ -38,7 +38,9 @@ def format_inr_display(paise: int) -> str:
 
 async def approve_submission(submission_id: UUID, reviewer_uuid: UUID) -> UUID | None:
     async with AsyncSessionLocal() as session:
-        sub = await session.get(PropertySubmission, submission_id)
+        # FOR UPDATE: serialize concurrent approvals so the second sees status !=
+        # pending (no duplicate Property).
+        sub = await session.get(PropertySubmission, submission_id, with_for_update=True)
         if sub is None:
             return None
         if sub.status != SubmissionStatus.PENDING:
@@ -78,7 +80,7 @@ async def approve_submission(submission_id: UUID, reviewer_uuid: UUID) -> UUID |
 
 async def reject_submission(submission_id: UUID, reviewer_uuid: UUID, note: str) -> bool:
     async with AsyncSessionLocal() as session:
-        sub = await session.get(PropertySubmission, submission_id)
+        sub = await session.get(PropertySubmission, submission_id, with_for_update=True)
         if sub is None:
             return False
         if sub.status != SubmissionStatus.PENDING:

@@ -48,10 +48,13 @@ _SELECT_PREDICATE = """
     )
 """
 
-# INSERT: an agent may only create a row it owns, on the real-estate line.
+# INSERT: an agent may only create a row it owns, on the real-estate line, and
+# only ever as a pending draft (the raw INSERT grant must not be usable to plant
+# an already-approved/rejected row).
 _INSERT_CHECK = """
     submitter_uuid::text = current_setting('app.auth_user_uuid', true)
     AND business_line::text = 'real_estate'
+    AND status::text = 'pending'
 """
 
 

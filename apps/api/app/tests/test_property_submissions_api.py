@@ -188,3 +188,23 @@ async def test_approve_missing_is_404(client: AsyncClient) -> None:
         headers={"Authorization": f"Bearer {_admin_token(uid)}"},
     )
     assert res.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_loans_sub_admin_cannot_approve(client: AsyncClient) -> None:
+    _, mobile = await full_registration(client, lines=["real_estate"])
+    uid = await _auth_user_uuid(mobile)
+    created = await client.post(
+        "/api/v1/property-submissions",
+        json=_PAYLOAD,
+        headers={"Authorization": f"Bearer {_agent_token(uid)}"},
+    )
+    sub_id = created.json()["id"]
+    loans_sub_admin = create_access_token(
+        {"sub": uid, "role": "sub_admin", "business_line": "loans", "platform_scope": "false"}
+    )
+    res = await client.post(
+        f"/api/v1/property-submissions/{sub_id}/approve",
+        headers={"Authorization": f"Bearer {loans_sub_admin}"},
+    )
+    assert res.status_code == 403
