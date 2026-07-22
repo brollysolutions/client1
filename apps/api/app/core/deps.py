@@ -181,6 +181,43 @@ async def get_active_user(
     return current_user
 
 
+async def require_re_agent(
+    current_user: CurrentUser = Depends(get_active_user),
+) -> CurrentUser:
+    """Only a real-estate agent may submit a property. App-layer defense atop the
+    RLS INSERT policy (which also checks submitter ownership + line)."""
+    if current_user.role != "agent" or current_user.business_line not in ("real_estate", "both"):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only real-estate agents may submit properties.",
+        )
+    return current_user
+
+
+async def require_re_reviewer(
+    current_user: CurrentUser = Depends(get_active_user),
+) -> CurrentUser:
+    """Only Admin or Sub Admin may approve/reject a submission. App-layer defense;
+    the mutation itself runs on a bypass session, so this guard is the access check."""
+    if current_user.role not in ("admin", "sub_admin"):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only Admin or Sub Admin may review submissions.",
+        )
+    # Platform-scoped reviewers (Admin, platform Sub Admin) act across lines; a
+    # line-scoped Sub Admin must be on the real-estate line. The mutation runs on
+    # a bypass session that skips RLS, so this guard is the segregation wall.
+    if current_user.platform_scope != "true" and current_user.business_line not in (
+        "real_estate",
+        "both",
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only real-estate reviewers may review these submissions.",
+        )
+    return current_user
+
+
 async def _set_rls_context(
     db: AsyncSession,
     *,
