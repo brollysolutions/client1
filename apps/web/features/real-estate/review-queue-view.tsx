@@ -15,22 +15,13 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
+import { formatPaiseCompact } from "@/lib/format";
 import {
   approveSubmission,
   rejectSubmission,
   type Submission,
 } from "@/lib/property-submissions-api";
 import { useSubmissionQueue } from "./use-submission-queue";
-
-function formatPrice(paise: number): string {
-  const rupees = Math.floor(paise / 100);
-  if (rupees >= 10_000_000) {
-    const cr = rupees / 10_000_000;
-    return `₹${Number.isInteger(cr) ? cr : cr.toFixed(2)} Cr`;
-  }
-  const lakh = rupees / 100_000;
-  return `₹${Number.isInteger(lakh) ? lakh : lakh.toFixed(2)} L`;
-}
 
 export function ReviewQueueView() {
   const { items, loading, error, reload } = useSubmissionQueue();
@@ -118,7 +109,7 @@ export function ReviewQueueView() {
                 </div>
                 <div className="flex shrink-0 items-center gap-3">
                   <span className="text-sm font-semibold text-text-primary">
-                    {formatPrice(sub.price_paise)}
+                    {formatPaiseCompact(sub.price_paise)}
                   </span>
                   <Badge variant="secondary">Pending</Badge>
                 </div>
@@ -154,7 +145,7 @@ export function ReviewQueueView() {
                 <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
                   <div>
                     <dt className="text-text-secondary">Price</dt>
-                    <dd className="font-medium text-text-primary">{formatPrice(active.price_paise)}</dd>
+                    <dd className="font-medium text-text-primary">{formatPaiseCompact(active.price_paise)}</dd>
                   </div>
                   <div>
                     <dt className="text-text-secondary">Type</dt>
