@@ -20,6 +20,7 @@ from sqlalchemy import delete, func
 import app.db.session as db_session
 from app.core.config import settings
 from app.jobs.backfill_customer_codes import backfill_customer_codes
+from app.jobs.reconcile_payouts import reconcile_payouts
 from app.models.auth import RefreshToken
 
 logger = logging.getLogger("scheduler")
@@ -107,6 +108,15 @@ def build_scheduler() -> AsyncIOScheduler:
         hours=6,  # safety net; registration provisions codes synchronously, so hits are ~0
         id="backfill_customer_codes",
         max_instances=1,
+        coalesce=True,
+        replace_existing=True,
+    )
+    scheduler.add_job(
+        reconcile_payouts,
+        trigger="interval",
+        minutes=15,  # settle stuck live payouts; a no-op in mock mode (main/dev)
+        id="reconcile_payouts",
+        max_instances=1,  # never overlap a sweep with itself
         coalesce=True,
         replace_existing=True,
     )

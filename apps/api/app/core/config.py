@@ -128,6 +128,11 @@ class Settings(BaseSettings):
     # Reject a duplicate (same recipient + type + amount + idempotency key) seen
     # within this window, backstopping the partial-unique index against retries.
     PAYOUT_DEDUPE_WINDOW_SECONDS: int = 300
+    # Reconciliation grace: a live payout still INITIATED (webhook never arrived)
+    # or FAILED with no gateway id (the POST response was lost) is only swept once
+    # it has been stuck this long, so the reconciler never races a webhook that is
+    # merely in flight. Mock mode settles synchronously, so this is a live-only path.
+    PAYOUT_RECONCILE_STUCK_MINUTES: int = 30
 
     @model_validator(mode="after")
     def _guard_secret_key(self) -> "Settings":
