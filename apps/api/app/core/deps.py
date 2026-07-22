@@ -194,6 +194,22 @@ async def require_re_agent(
     return current_user
 
 
+async def require_admin(
+    current_user: CurrentUser = Depends(get_active_user),
+) -> CurrentUser:
+    """Only Admin may provision staff or approve/reject agent applications.
+
+    RLS's `WITH CHECK` on staff_profiles/agent_profiles/agent_applications accepts
+    ANY platform-scoped staff (including a platform sub_admin) — this app-layer
+    gate, not RLS, is the actual admin-only wall for these writes."""
+    if current_user.role != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only Admin may perform this action.",
+        )
+    return current_user
+
+
 async def require_re_reviewer(
     current_user: CurrentUser = Depends(get_active_user),
 ) -> CurrentUser:

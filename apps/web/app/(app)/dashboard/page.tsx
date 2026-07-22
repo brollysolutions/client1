@@ -4,6 +4,7 @@ import { Suspense } from "react";
 
 import { useAuth } from "@/components/auth/session-provider";
 import { Skeleton } from "@/components/ui/skeleton";
+import { AdminHome } from "@/features/admin/admin-home";
 import { FetchError } from "@/features/dashboard/fetch-error";
 import { useLine } from "@/features/dashboard/line-provider";
 import { LoansApplications } from "@/features/dashboard/loans-applications";
@@ -15,6 +16,10 @@ export default function DashboardPage() {
   const { me, status, error, errorStatus, retry } = useMe();
   const { activeLine } = useLine();
   const isClient = session?.role === "client";
+
+  if (session?.role === "admin") {
+    return <AdminHome />;
+  }
 
   if (!isClient) {
     return (
