@@ -932,6 +932,330 @@
         "title": "NotificationType",
         "type": "string"
       },
+      "PayoutCreate": {
+        "properties": {
+          "amount_paise": {
+            "exclusiveMinimum": 0.0,
+            "maximum": 10000000000.0,
+            "title": "Amount Paise",
+            "type": "integer"
+          },
+          "business_line": {
+            "anyOf": [
+              {
+                "enum": [
+                  "loans",
+                  "real_estate"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Business Line"
+          },
+          "destination": {
+            "$ref": "#/components/schemas/PayoutDestinationInput"
+          },
+          "destination_type": {
+            "$ref": "#/components/schemas/PayoutDestination"
+          },
+          "idempotency_key": {
+            "maxLength": 64,
+            "minLength": 8,
+            "title": "Idempotency Key",
+            "type": "string"
+          },
+          "recipient_user_uuid": {
+            "format": "uuid",
+            "title": "Recipient User Uuid",
+            "type": "string"
+          },
+          "type": {
+            "$ref": "#/components/schemas/PayoutType"
+          }
+        },
+        "required": [
+          "recipient_user_uuid",
+          "type",
+          "amount_paise",
+          "destination_type",
+          "destination",
+          "idempotency_key"
+        ],
+        "title": "PayoutCreate",
+        "type": "object"
+      },
+      "PayoutDestination": {
+        "enum": [
+          "vpa",
+          "bank_account"
+        ],
+        "title": "PayoutDestination",
+        "type": "string"
+      },
+      "PayoutDestinationInput": {
+        "description": "Raw destination \u2014 validated to match destination_type, never stored raw.",
+        "properties": {
+          "account_number": {
+            "anyOf": [
+              {
+                "maxLength": 40,
+                "minLength": 6,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Account Number"
+          },
+          "ifsc": {
+            "anyOf": [
+              {
+                "maxLength": 20,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ifsc"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "vpa": {
+            "anyOf": [
+              {
+                "maxLength": 100,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vpa"
+          }
+        },
+        "title": "PayoutDestinationInput",
+        "type": "object"
+      },
+      "PayoutListResponse": {
+        "properties": {
+          "payouts": {
+            "items": {
+              "$ref": "#/components/schemas/PayoutRead"
+            },
+            "title": "Payouts",
+            "type": "array"
+          }
+        },
+        "required": [
+          "payouts"
+        ],
+        "title": "PayoutListResponse",
+        "type": "object"
+      },
+      "PayoutRead": {
+        "properties": {
+          "amount_paise": {
+            "title": "Amount Paise",
+            "type": "integer"
+          },
+          "business_line": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Business Line"
+          },
+          "checker_user_uuid": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Checker User Uuid"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "currency": {
+            "title": "Currency",
+            "type": "string"
+          },
+          "destination_hint": {
+            "title": "Destination Hint",
+            "type": "string"
+          },
+          "destination_type": {
+            "$ref": "#/components/schemas/PayoutDestination"
+          },
+          "failure_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Failure Reason"
+          },
+          "gateway_payout_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gateway Payout Id"
+          },
+          "gateway_status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gateway Status"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "maker_user_uuid": {
+            "format": "uuid",
+            "title": "Maker User Uuid",
+            "type": "string"
+          },
+          "recipient_user_uuid": {
+            "format": "uuid",
+            "title": "Recipient User Uuid",
+            "type": "string"
+          },
+          "reject_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reject Reason"
+          },
+          "rejected_by_user_uuid": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rejected By User Uuid"
+          },
+          "status": {
+            "$ref": "#/components/schemas/PayoutStatus"
+          },
+          "type": {
+            "$ref": "#/components/schemas/PayoutType"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "recipient_user_uuid",
+          "type",
+          "business_line",
+          "amount_paise",
+          "currency",
+          "status",
+          "destination_type",
+          "destination_hint",
+          "maker_user_uuid",
+          "checker_user_uuid",
+          "rejected_by_user_uuid",
+          "reject_reason",
+          "gateway_payout_id",
+          "gateway_status",
+          "failure_reason",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "PayoutRead",
+        "type": "object"
+      },
+      "PayoutReject": {
+        "properties": {
+          "reason": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "reason"
+        ],
+        "title": "PayoutReject",
+        "type": "object"
+      },
+      "PayoutStatus": {
+        "enum": [
+          "pending_approval",
+          "approved",
+          "rejected",
+          "initiated",
+          "processing",
+          "paid",
+          "failed",
+          "reversed"
+        ],
+        "title": "PayoutStatus",
+        "type": "string"
+      },
+      "PayoutType": {
+        "enum": [
+          "cashback",
+          "referral_bonus",
+          "commission"
+        ],
+        "title": "PayoutType",
+        "type": "string"
+      },
       "PublicLeadCreate": {
         "properties": {
           "company": {
@@ -1690,6 +2014,17 @@
           "type"
         ],
         "title": "ValidationError",
+        "type": "object"
+      },
+      "WebhookAck": {
+        "properties": {
+          "status": {
+            "default": "ok",
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "title": "WebhookAck",
         "type": "object"
       }
     },
@@ -2805,6 +3140,255 @@
         "summary": "Mark Read",
         "tags": [
           "notifications"
+        ]
+      }
+    },
+    "/api/v1/payouts": {
+      "get": {
+        "operationId": "list_payouts_api_v1_payouts_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "status_filter",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/PayoutStatus"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status Filter"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 100,
+              "maximum": 500,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PayoutListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "List Payouts",
+        "tags": [
+          "payouts"
+        ]
+      },
+      "post": {
+        "operationId": "create_payout_api_v1_payouts_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PayoutCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PayoutRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Create Payout",
+        "tags": [
+          "payouts"
+        ]
+      }
+    },
+    "/api/v1/payouts/webhook/razorpay": {
+      "post": {
+        "description": "RazorpayX payout webhook \u2014 fail-closed HMAC-SHA256 verification.\n\nNo auth dependency: authenticity comes from the signature, not a JWT. A\nmissing secret or a bad signature is rejected with 400 and NO state change.",
+        "operationId": "razorpay_webhook_api_v1_payouts_webhook_razorpay_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebhookAck"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Razorpay Webhook",
+        "tags": [
+          "payouts"
+        ]
+      }
+    },
+    "/api/v1/payouts/{payout_id}/approve": {
+      "post": {
+        "operationId": "approve_payout_api_v1_payouts__payout_id__approve_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "payout_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Payout Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PayoutRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Approve Payout",
+        "tags": [
+          "payouts"
+        ]
+      }
+    },
+    "/api/v1/payouts/{payout_id}/reject": {
+      "post": {
+        "operationId": "reject_payout_api_v1_payouts__payout_id__reject_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "payout_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Payout Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PayoutReject"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PayoutRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Reject Payout",
+        "tags": [
+          "payouts"
         ]
       }
     },
