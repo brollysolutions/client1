@@ -35,9 +35,13 @@ const RESIDENTIAL_CATEGORIES: RECategory[] = ["houses", "apartments", "villas"];
 export function PropertyFilterBody({
   filters,
   setFilters,
+  lockedCategory,
 }: {
   filters: PropertyFilters;
   setFilters: (patch: Partial<PropertyFilters>) => void;
+  // When the page is pinned to one category, hide the Property-type facet and
+  // derive residential-only sections from that category.
+  lockedCategory?: RECategory;
 }) {
   const [priceDraft, setPriceDraft] = React.useState<[number, number]>([
     filters.priceMin ?? PRICE_BOUNDS.min,
@@ -66,9 +70,10 @@ export function PropertyFilterBody({
   // Plots and commercial units have no bedroom count, construction status, or
   // furnishing state, so those sections only render when the selected
   // property types could plausibly have them (or when no type is chosen yet).
+  const activeCategories = lockedCategory ? [lockedCategory] : filters.categories;
   const showResidentialFields =
-    !filters.categories?.length ||
-    filters.categories.some((c) => RESIDENTIAL_CATEGORIES.includes(c));
+    !activeCategories?.length ||
+    activeCategories.some((c) => RESIDENTIAL_CATEGORIES.includes(c));
 
   const localityOptions = filters.city
     ? Array.from(
@@ -78,22 +83,24 @@ export function PropertyFilterBody({
 
   return (
     <div className="space-y-7">
-      <section className="space-y-2.5">
-        <h3 className="text-sm font-semibold text-text-primary">Property type</h3>
-        <ToggleGroup
-          type="multiple"
-          value={filters.categories ?? []}
-          onValueChange={(value) =>
-            setFilters({ categories: value.length ? (value as RECategory[]) : undefined })
-          }
-        >
-          {RE_CATEGORIES.map((c) => (
-            <ToggleGroupItem key={c.key} value={c.key}>
-              {c.label}
-            </ToggleGroupItem>
-          ))}
-        </ToggleGroup>
-      </section>
+      {lockedCategory ? null : (
+        <section className="space-y-2.5">
+          <h3 className="text-sm font-semibold text-text-primary">Property type</h3>
+          <ToggleGroup
+            type="multiple"
+            value={filters.categories ?? []}
+            onValueChange={(value) =>
+              setFilters({ categories: value.length ? (value as RECategory[]) : undefined })
+            }
+          >
+            {RE_CATEGORIES.map((c) => (
+              <ToggleGroupItem key={c.key} value={c.key}>
+                {c.label}
+              </ToggleGroupItem>
+            ))}
+          </ToggleGroup>
+        </section>
+      )}
 
       {showResidentialFields ? (
         <section className="space-y-2.5">

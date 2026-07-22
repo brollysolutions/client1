@@ -23,8 +23,9 @@ import {
   STATUS_OPTIONS,
   SUGGESTION_INDEX,
   formatLakhs,
+  type SuggestionIndex,
 } from "@/lib/property-facets";
-import { RE_CATEGORIES, type PropertyFilters, type SortOrder } from "@/lib/real-estate";
+import { RE_CATEGORIES, type PropertyFilters, type RECategory, type SortOrder } from "@/lib/real-estate";
 import { cn } from "@/lib/utils";
 
 const MAX_SUGGESTIONS_PER_GROUP = 4;
@@ -133,6 +134,8 @@ export function PropertySearchBar({
   activeCount,
   resultCount,
   active = false,
+  suggestionIndex = SUGGESTION_INDEX,
+  lockedCategory,
 }: {
   filters: PropertyFilters;
   setFilters: (patch: Partial<PropertyFilters>) => void;
@@ -140,6 +143,12 @@ export function PropertySearchBar({
   activeCount: number;
   resultCount: number;
   active?: boolean;
+  // Scoped suggestion source (built from a category/bookmark subset); defaults
+  // to the whole-catalog index.
+  suggestionIndex?: SuggestionIndex;
+  // When set, the Filters sheet hides the Property-type facet (page is already
+  // pinned to this category).
+  lockedCategory?: RECategory;
 }) {
   const [text, setText] = React.useState(() => initialText(filters));
   const [open, setOpen] = React.useState(false);
@@ -175,14 +184,14 @@ export function PropertySearchBar({
     if (!query) return null;
     const contains = (value: string) => value.toLowerCase().includes(query);
     return {
-      localities: SUGGESTION_INDEX.localities.filter(contains).slice(0, MAX_SUGGESTIONS_PER_GROUP),
-      cities: SUGGESTION_INDEX.cities.filter(contains).slice(0, MAX_SUGGESTIONS_PER_GROUP),
-      pincodes: SUGGESTION_INDEX.pincodes.filter(contains).slice(0, MAX_SUGGESTIONS_PER_GROUP),
-      properties: SUGGESTION_INDEX.properties
+      localities: suggestionIndex.localities.filter(contains).slice(0, MAX_SUGGESTIONS_PER_GROUP),
+      cities: suggestionIndex.cities.filter(contains).slice(0, MAX_SUGGESTIONS_PER_GROUP),
+      pincodes: suggestionIndex.pincodes.filter(contains).slice(0, MAX_SUGGESTIONS_PER_GROUP),
+      properties: suggestionIndex.properties
         .filter((p) => contains(p.title))
         .slice(0, MAX_SUGGESTIONS_PER_GROUP),
     };
-  }, [query]);
+  }, [query, suggestionIndex]);
 
   const hasMatches = Boolean(
     matches &&
@@ -221,8 +230,11 @@ export function PropertySearchBar({
 
   return (
     <div className="space-y-3">
-      <div className="flex flex-col gap-3 sm:flex-row">
-        <Command shouldFilter={false} className="flex-1 overflow-visible bg-transparent">
+      {/* flex-wrap + omnibox min-width: in a narrow container (e.g. the Bookmarks
+          inline layout) the Sort/Filters controls drop to a second line instead
+          of squeezing the search box thin. */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+        <Command shouldFilter={false} className="flex-1 overflow-visible bg-transparent sm:min-w-[240px]">
           <Popover open={open && query.length > 0} onOpenChange={setOpen}>
             <PopoverAnchor asChild>
               <div>
@@ -293,7 +305,9 @@ export function PropertySearchBar({
             value={filters.sort ?? "relevance"}
             onValueChange={(value) => setFilters({ sort: value === "relevance" ? undefined : (value as SortOrder) })}
           >
-            <SelectTrigger className="h-12 w-full sm:w-[190px]">
+            {/* Mirror the omnibox/Filters chrome: same h-12, rounded-lg, border,
+                white (card) bg. Pointer + light-blue hover, no blue focus-border. */}
+            <SelectTrigger className="h-12 w-full cursor-pointer rounded-lg border-border bg-card px-4 hover:border-brand-cta hover:bg-brand-cta-tint hover:text-brand-cta focus-visible:border-brand-cta focus-visible:ring-brand-cta/40 data-[size=default]:h-12 sm:w-[190px]">
               <SelectValue placeholder="Sort" />
             </SelectTrigger>
             <SelectContent>
@@ -312,6 +326,7 @@ export function PropertySearchBar({
           clearAll={clearAll}
           activeCount={activeCount}
           resultCount={resultCount}
+          lockedCategory={lockedCategory}
         />
       </div>
 

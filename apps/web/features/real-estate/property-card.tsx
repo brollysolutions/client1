@@ -16,7 +16,10 @@ import { cn } from "@/lib/utils";
 // buyer actions (bookmark, compare, enquire, book visit) instead of the public
 // LeadDialog. Illustration band renders lg+ only, per the site's desktop-only
 // illustration rule.
-export function PropertyCard({ listing }: { listing: REListing }) {
+// `fluid` drops the fixed carousel width so the card fills its grid column
+// (used by the responsive 4-up listing grids); default keeps the fixed width
+// the horizontal PropertyRow carousels rely on.
+export function PropertyCard({ listing, fluid = false }: { listing: REListing; fluid?: boolean }) {
   const bookmarks = useBookmarks();
   const compare = useCompare();
 
@@ -36,7 +39,12 @@ export function PropertyCard({ listing }: { listing: REListing }) {
   }
 
   return (
-    <Card className="flex h-full w-[280px] shrink-0 flex-col gap-0 overflow-hidden pt-0 sm:w-[300px]">
+    <Card
+      className={cn(
+        "flex h-full flex-col gap-0 overflow-hidden pt-0",
+        fluid ? "w-full" : "w-[280px] shrink-0 sm:w-[300px]",
+      )}
+    >
       <div className="relative hidden aspect-[4/3] w-full bg-loans-soft/50 lg:block">
         {listing.image ? (
           <Image src={listing.image} alt="" aria-hidden fill sizes="300px" className="object-cover" />

@@ -34,6 +34,134 @@
         "title": "AuthTokensResponse",
         "type": "object"
       },
+      "BookmarkCreate": {
+        "properties": {
+          "city": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "City"
+          },
+          "locality": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Locality"
+          },
+          "property_ref": {
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Property Ref",
+            "type": "string"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          }
+        },
+        "required": [
+          "property_ref"
+        ],
+        "title": "BookmarkCreate",
+        "type": "object"
+      },
+      "BookmarkListResponse": {
+        "properties": {
+          "bookmarks": {
+            "items": {
+              "$ref": "#/components/schemas/BookmarkRead"
+            },
+            "title": "Bookmarks",
+            "type": "array"
+          }
+        },
+        "required": [
+          "bookmarks"
+        ],
+        "title": "BookmarkListResponse",
+        "type": "object"
+      },
+      "BookmarkRead": {
+        "properties": {
+          "city": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "City"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "locality": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Locality"
+          },
+          "property_ref": {
+            "title": "Property Ref",
+            "type": "string"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          }
+        },
+        "required": [
+          "id",
+          "property_ref",
+          "title",
+          "locality",
+          "city",
+          "created_at"
+        ],
+        "title": "BookmarkRead",
+        "type": "object"
+      },
       "ChangePasswordRequest": {
         "properties": {
           "confirm_password": {
@@ -131,6 +259,164 @@
         "title": "EmailVerifyInitiateResponse",
         "type": "object"
       },
+      "EnquiryCreate": {
+        "properties": {
+          "city": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "City",
+            "type": "string"
+          },
+          "contact_mobile": {
+            "pattern": "^\\+[1-9]\\d{6,14}$",
+            "title": "Contact Mobile",
+            "type": "string"
+          },
+          "contact_name": {
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Contact Name",
+            "type": "string"
+          },
+          "locality": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Locality",
+            "type": "string"
+          },
+          "message": {
+            "anyOf": [
+              {
+                "maxLength": 1000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Message"
+          },
+          "property_ref": {
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Property Ref",
+            "type": "string"
+          },
+          "title": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "property_ref",
+          "title",
+          "locality",
+          "city",
+          "contact_name",
+          "contact_mobile"
+        ],
+        "title": "EnquiryCreate",
+        "type": "object"
+      },
+      "EnquiryListResponse": {
+        "properties": {
+          "enquiries": {
+            "items": {
+              "$ref": "#/components/schemas/EnquiryRead"
+            },
+            "title": "Enquiries",
+            "type": "array"
+          }
+        },
+        "required": [
+          "enquiries"
+        ],
+        "title": "EnquiryListResponse",
+        "type": "object"
+      },
+      "EnquiryRead": {
+        "properties": {
+          "city": {
+            "title": "City",
+            "type": "string"
+          },
+          "contact_mobile": {
+            "title": "Contact Mobile",
+            "type": "string"
+          },
+          "contact_name": {
+            "title": "Contact Name",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "locality": {
+            "title": "Locality",
+            "type": "string"
+          },
+          "message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Message"
+          },
+          "property_ref": {
+            "title": "Property Ref",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/EnquiryStatus"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "property_ref",
+          "title",
+          "locality",
+          "city",
+          "contact_name",
+          "contact_mobile",
+          "message",
+          "status",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "EnquiryRead",
+        "type": "object"
+      },
+      "EnquiryStatus": {
+        "enum": [
+          "new",
+          "contacted",
+          "closed"
+        ],
+        "title": "EnquiryStatus",
+        "type": "string"
+      },
       "FeeOutcome": {
         "enum": [
           "waived",
@@ -219,6 +505,35 @@
           }
         },
         "title": "HTTPValidationError",
+        "type": "object"
+      },
+      "LoanApplicationCreate": {
+        "properties": {
+          "amount_requested": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "maximum": 999999999999.99,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              }
+            ],
+            "title": "Amount Requested"
+          },
+          "loan_type_id": {
+            "format": "uuid",
+            "title": "Loan Type Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "loan_type_id",
+          "amount_requested"
+        ],
+        "title": "LoanApplicationCreate",
         "type": "object"
       },
       "LoanApplicationListResponse": {
@@ -369,6 +684,41 @@
         "title": "LoanStatus",
         "type": "string"
       },
+      "LoanTypeListResponse": {
+        "properties": {
+          "loan_types": {
+            "items": {
+              "$ref": "#/components/schemas/LoanTypeRead"
+            },
+            "title": "Loan Types",
+            "type": "array"
+          }
+        },
+        "required": [
+          "loan_types"
+        ],
+        "title": "LoanTypeListResponse",
+        "type": "object"
+      },
+      "LoanTypeRead": {
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "label"
+        ],
+        "title": "LoanTypeRead",
+        "type": "object"
+      },
       "LoanTypeSummary": {
         "properties": {
           "id": {
@@ -497,6 +847,90 @@
         ],
         "title": "MessageResponse",
         "type": "object"
+      },
+      "NotificationListResponse": {
+        "properties": {
+          "notifications": {
+            "items": {
+              "$ref": "#/components/schemas/NotificationRead"
+            },
+            "title": "Notifications",
+            "type": "array"
+          }
+        },
+        "required": [
+          "notifications"
+        ],
+        "title": "NotificationListResponse",
+        "type": "object"
+      },
+      "NotificationRead": {
+        "properties": {
+          "body": {
+            "title": "Body",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "href": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Href"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "read_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Read At"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "type": {
+            "$ref": "#/components/schemas/NotificationType"
+          }
+        },
+        "required": [
+          "id",
+          "type",
+          "title",
+          "body",
+          "href",
+          "read_at",
+          "created_at"
+        ],
+        "title": "NotificationRead",
+        "type": "object"
+      },
+      "NotificationType": {
+        "enum": [
+          "site_visit_requested",
+          "site_visit_cancelled",
+          "support_ticket_received"
+        ],
+        "title": "NotificationType",
+        "type": "string"
       },
       "PublicLeadCreate": {
         "properties": {
@@ -1125,6 +1559,97 @@
           "updated_at"
         ],
         "title": "SupportTicketRead",
+        "type": "object"
+      },
+      "TransactionListResponse": {
+        "properties": {
+          "transactions": {
+            "items": {
+              "$ref": "#/components/schemas/TransactionRead"
+            },
+            "title": "Transactions",
+            "type": "array"
+          }
+        },
+        "required": [
+          "transactions"
+        ],
+        "title": "TransactionListResponse",
+        "type": "object"
+      },
+      "TransactionRead": {
+        "properties": {
+          "amount_paise": {
+            "title": "Amount Paise",
+            "type": "integer"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "currency": {
+            "title": "Currency",
+            "type": "string"
+          },
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/TransactionStatus"
+          },
+          "type": {
+            "$ref": "#/components/schemas/TransactionType"
+          }
+        },
+        "required": [
+          "id",
+          "type",
+          "status",
+          "amount_paise",
+          "currency",
+          "description",
+          "created_at"
+        ],
+        "title": "TransactionRead",
+        "type": "object"
+      },
+      "TransactionStatus": {
+        "enum": [
+          "pending",
+          "processing",
+          "paid",
+          "failed"
+        ],
+        "title": "TransactionStatus",
+        "type": "string"
+      },
+      "TransactionType": {
+        "enum": [
+          "cashback",
+          "referral_bonus",
+          "commission"
+        ],
+        "title": "TransactionType",
+        "type": "string"
+      },
+      "UnreadCountResponse": {
+        "properties": {
+          "count": {
+            "title": "Count",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "count"
+        ],
+        "title": "UnreadCountResponse",
         "type": "object"
       },
       "ValidationError": {
@@ -1799,6 +2324,186 @@
         ]
       }
     },
+    "/api/v1/bookmarks": {
+      "get": {
+        "operationId": "list_bookmarks_api_v1_bookmarks_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookmarkListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "List Bookmarks",
+        "tags": [
+          "bookmarks"
+        ]
+      },
+      "post": {
+        "operationId": "create_bookmark_api_v1_bookmarks_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BookmarkCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookmarkRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Create Bookmark",
+        "tags": [
+          "bookmarks"
+        ]
+      }
+    },
+    "/api/v1/bookmarks/{property_ref}": {
+      "delete": {
+        "operationId": "delete_bookmark_api_v1_bookmarks__property_ref__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "property_ref",
+            "required": true,
+            "schema": {
+              "title": "Property Ref",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Delete Bookmark",
+        "tags": [
+          "bookmarks"
+        ]
+      }
+    },
+    "/api/v1/enquiries": {
+      "get": {
+        "operationId": "list_enquiries_api_v1_enquiries_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnquiryListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "List Enquiries",
+        "tags": [
+          "enquiries"
+        ]
+      },
+      "post": {
+        "operationId": "create_enquiry_api_v1_enquiries_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EnquiryCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnquiryRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Create Enquiry",
+        "tags": [
+          "enquiries"
+        ]
+      }
+    },
     "/api/v1/leads": {
       "post": {
         "operationId": "create_lead_api_v1_leads_post",
@@ -1864,6 +2569,50 @@
         "tags": [
           "loans"
         ]
+      },
+      "post": {
+        "operationId": "create_loan_application_api_v1_loans_applications_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoanApplicationCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoanApplicationRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Create Loan Application",
+        "tags": [
+          "loans"
+        ]
       }
     },
     "/api/v1/loans/applications/{application_id}": {
@@ -1911,6 +2660,151 @@
         "summary": "Get Loan Application",
         "tags": [
           "loans"
+        ]
+      }
+    },
+    "/api/v1/loans/loan-types": {
+      "get": {
+        "operationId": "list_loan_types_api_v1_loans_loan_types_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoanTypeListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "List Loan Types",
+        "tags": [
+          "loans"
+        ]
+      }
+    },
+    "/api/v1/notifications": {
+      "get": {
+        "operationId": "list_notifications_api_v1_notifications_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "List Notifications",
+        "tags": [
+          "notifications"
+        ]
+      }
+    },
+    "/api/v1/notifications/read-all": {
+      "post": {
+        "operationId": "mark_all_read_api_v1_notifications_read_all_post",
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Mark All Read",
+        "tags": [
+          "notifications"
+        ]
+      }
+    },
+    "/api/v1/notifications/unread-count": {
+      "get": {
+        "operationId": "get_unread_count_api_v1_notifications_unread_count_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnreadCountResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Get Unread Count",
+        "tags": [
+          "notifications"
+        ]
+      }
+    },
+    "/api/v1/notifications/{notification_id}/read": {
+      "patch": {
+        "operationId": "mark_read_api_v1_notifications__notification_id__read_patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "notification_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Notification Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Mark Read",
+        "tags": [
+          "notifications"
         ]
       }
     },
@@ -2099,6 +2993,32 @@
         "summary": "Create Ticket",
         "tags": [
           "support-tickets"
+        ]
+      }
+    },
+    "/api/v1/transactions": {
+      "get": {
+        "operationId": "list_transactions_api_v1_transactions_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransactionListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "List Transactions",
+        "tags": [
+          "transactions"
         ]
       }
     },

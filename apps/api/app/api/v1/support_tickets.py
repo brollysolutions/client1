@@ -15,12 +15,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.deps import CurrentUser, get_active_user
 from app.db.session import get_db
+from app.models.notification import NotificationType
 from app.models.support_ticket import SupportTicket
 from app.schemas.support_tickets import (
     SupportTicketCreate,
     SupportTicketListResponse,
     SupportTicketRead,
 )
+from app.services.notifications import emit_notification
 
 router = APIRouter()
 
@@ -52,4 +54,11 @@ async def create_ticket(
     db.add(ticket)
     await db.commit()
     await db.refresh(ticket)
+    await emit_notification(
+        user_uuid=current_user.id,
+        notification_type=NotificationType.SUPPORT_TICKET_RECEIVED,
+        title="Support ticket received",
+        body=f"We've received your ticket: {ticket.subject}. Our team will get back to you soon.",
+        href="/dashboard/support",
+    )
     return SupportTicketRead.model_validate(ticket, from_attributes=True)

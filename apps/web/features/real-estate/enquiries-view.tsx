@@ -1,8 +1,11 @@
 "use client";
 
+import * as React from "react";
 import { MessageSquare } from "lucide-react";
 
-import { useEnquiries, type EnquiryStatus } from "@/features/real-estate/store";
+import { Skeleton } from "@/components/ui/skeleton";
+import { FetchError } from "@/features/dashboard/fetch-error";
+import { getEnquiries, type Enquiry, type EnquiryStatus } from "@/lib/enquiries";
 import { cn } from "@/lib/utils";
 
 const STATUS_STYLE: Record<EnquiryStatus, string> = {
@@ -18,13 +21,50 @@ const STATUS_LABEL: Record<EnquiryStatus, string> = {
 };
 
 function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime())
+    ? "-"
+    : d.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
 }
 
+type Status = "loading" | "ready" | "error";
+
 // List of enquiries the client has raised on properties (via the Enquire
-// action on a property card). Frontend-only: persisted in the enquiries store.
+// action on a property card). Backed by the real enquiries API (RLS-scoped
+// to the logged-in client).
 export function EnquiriesView() {
-  const { items } = useEnquiries();
+  const [enquiries, setEnquiries] = React.useState<Enquiry[]>([]);
+  const [status, setStatus] = React.useState<Status>("loading");
+  const [error, setError] = React.useState<string | null>(null);
+  const [errorStatus, setErrorStatus] = React.useState<number | null>(null);
+  const [reloadKey, setReloadKey] = React.useState(0);
+
+  const retry = React.useCallback(() => {
+    setStatus("loading");
+    setError(null);
+    setErrorStatus(null);
+    setReloadKey((k) => k + 1);
+  }, []);
+
+  React.useEffect(() => {
+    let active = true;
+    const run = async () => {
+      const res = await getEnquiries();
+      if (!active) return;
+      if (res.ok) {
+        setEnquiries(res.data);
+        setStatus("ready");
+        return;
+      }
+      setError(res.error);
+      setErrorStatus(res.status);
+      setStatus("error");
+    };
+    void run();
+    return () => {
+      active = false;
+    };
+  }, [reloadKey]);
 
   return (
     <div className="mx-auto w-full max-w-5xl space-y-6 px-4 sm:px-6 lg:px-10">
@@ -33,7 +73,11 @@ export function EnquiriesView() {
         <p className="text-sm text-text-secondary">Properties you have asked about.</p>
       </div>
 
-      {items.length === 0 ? (
+      {status === "loading" ? (
+        <Skeleton className="h-40 rounded-xl" />
+      ) : status === "error" ? (
+        <FetchError status={errorStatus} message={error} onRetry={retry} />
+      ) : enquiries.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-border bg-card px-6 py-14 text-center">
           <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-muted text-text-secondary">
             <MessageSquare className="h-6 w-6" />
@@ -54,11 +98,13 @@ export function EnquiriesView() {
               </tr>
             </thead>
             <tbody>
-              {items.map((e) => (
+              {enquiries.map((e) => (
                 <tr key={e.id} className="border-b border-border last:border-0">
                   <td className="px-5 py-4">
                     <p className="font-medium text-text-primary">{e.title}</p>
-                    <p className="text-xs text-text-secondary">{e.location}</p>
+                    <p className="text-xs text-text-secondary">
+                      {e.locality}, {e.city}
+                    </p>
                   </td>
                   <td className="hidden px-5 py-4 text-text-secondary sm:table-cell">
                     {formatDate(e.createdAt)}

@@ -20,6 +20,7 @@ import {
   type ListingStatus,
   type PropertyFilters,
   type RECategory,
+  type REListing,
   type SortOrder,
 } from "@/lib/real-estate";
 
@@ -69,10 +70,24 @@ function toPropertyFilters(state: Values<typeof PARSERS>): PropertyFilters {
   };
 }
 
-export function usePropertyFilters() {
+// `source` scopes the searchable/filterable set (defaults to the whole catalog);
+// `lockedCategory` pins one category invisibly (used on a per-category Explore
+// page) so that category never shows as a user-facing chip or active-filter and
+// can't be cleared, while still constraining results.
+export function usePropertyFilters(opts?: { source?: REListing[]; lockedCategory?: RECategory }) {
+  const source = opts?.source ?? RE_LISTINGS;
+  const lockedCategory = opts?.lockedCategory;
+
   const [state, setState] = useQueryStates(PARSERS, { clearOnDefault: true });
 
-  const filters = React.useMemo(() => toPropertyFilters(state), [state]);
+  const rawFilters = React.useMemo(() => toPropertyFilters(state), [state]);
+
+  // User-facing filters never carry the locked category, so chips/activeCount
+  // and the "Property type" facet stay clean.
+  const filters = React.useMemo<PropertyFilters>(
+    () => (lockedCategory ? { ...rawFilters, categories: undefined } : rawFilters),
+    [rawFilters, lockedCategory],
+  );
 
   const setFilters = React.useCallback(
     (patch: Partial<PropertyFilters>) => {
@@ -92,10 +107,11 @@ export function usePropertyFilters() {
     setState(null);
   }, [setState]);
 
-  const results = React.useMemo(
-    () => sortListings(filterListings(RE_LISTINGS, filters), filters.sort),
-    [filters],
-  );
+  const results = React.useMemo(() => {
+    // Inject the locked category only into the engine input, never the UI state.
+    const effective = lockedCategory ? { ...filters, categories: [lockedCategory] } : filters;
+    return sortListings(filterListings(source, effective), filters.sort);
+  }, [source, filters, lockedCategory]);
 
   return {
     filters,

@@ -18,7 +18,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { useMe } from "@/features/dashboard/me-provider";
-import { submitLead } from "@/lib/leads";
+import { createEnquiry } from "@/lib/enquiries";
 import { isValidMobile, normalizeMobile, toE164 } from "@/lib/phone";
 import type { REListing } from "@/lib/real-estate";
 import { createSiteVisit, type SiteVisitTimeSlot } from "@/lib/site-visits";
@@ -131,12 +131,13 @@ export function PropertyActionDialog({
       return;
     }
 
-    const result = await submitLead({
-      name: name.trim(),
-      mobile: normalizeMobile(phone),
-      business_line: "real_estate",
-      origin: "dashboard-property-card",
-      product: listing.title,
+    const result = await createEnquiry({
+      propertyRef: listing.id,
+      title: listing.title,
+      locality: listing.locality,
+      city: listing.city,
+      contactName: name.trim(),
+      contactMobile: toE164(phone),
       ...(message.trim() ? { message: message.trim() } : {}),
     });
     if (result.ok) {
