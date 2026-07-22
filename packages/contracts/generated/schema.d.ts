@@ -559,6 +559,75 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/property-submissions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Submissions */
+        get: operations["list_submissions_api_v1_property_submissions_get"];
+        put?: never;
+        /** Submit Property */
+        post: operations["submit_property_api_v1_property_submissions_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/property-submissions/{submission_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Submission */
+        get: operations["get_submission_api_v1_property_submissions__submission_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/property-submissions/{submission_id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Approve */
+        post: operations["approve_api_v1_property_submissions__submission_id__approve_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/property-submissions/{submission_id}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reject */
+        post: operations["reject_api_v1_property_submissions__submission_id__reject_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/site-visits": {
         parameters: {
             query?: never;
@@ -1229,6 +1298,11 @@ export interface components {
             /** Registration Token */
             registration_token: string;
         };
+        /** RejectRequest */
+        RejectRequest: {
+            /** Note */
+            note: string;
+        };
         /** ResendOtpRequest */
         ResendOtpRequest: {
             /** Mobile */
@@ -1358,6 +1432,121 @@ export interface components {
          * @enum {string}
          */
         SiteVisitTimeSlot: "morning" | "afternoon" | "evening";
+        /** SubmissionCreate */
+        SubmissionCreate: {
+            /**
+             * Age Years
+             * @default 0
+             */
+            age_years: number;
+            /** Amenities */
+            amenities?: string[];
+            /**
+             * Area Sqft
+             * @default 0
+             */
+            area_sqft: number;
+            /**
+             * Bhk
+             * @default 0
+             */
+            bhk: number;
+            category: components["schemas"]["PropertyCategory"];
+            /** City */
+            city: string;
+            construction_status: components["schemas"]["ConstructionStatus"];
+            /** Details */
+            details?: {
+                [key: string]: unknown;
+            };
+            furnishing: components["schemas"]["Furnishing"];
+            /** Image */
+            image?: string | null;
+            /** Locality */
+            locality: string;
+            /** Location */
+            location: string;
+            /** Meta */
+            meta?: string | null;
+            /** Pincode */
+            pincode: string;
+            /** Price Paise */
+            price_paise: number;
+            /** Rera Number */
+            rera_number: string;
+            /** Title */
+            title: string;
+            /** Type */
+            type: string;
+        };
+        /** SubmissionListResponse */
+        SubmissionListResponse: {
+            /** Submissions */
+            submissions: components["schemas"]["SubmissionRead"][];
+        };
+        /** SubmissionRead */
+        SubmissionRead: {
+            /** Age Years */
+            age_years: number;
+            /** Amenities */
+            amenities: string[];
+            /** Approved Property Id */
+            approved_property_id: string | null;
+            /** Area Sqft */
+            area_sqft: number;
+            /** Bhk */
+            bhk: number;
+            category: components["schemas"]["PropertyCategory"];
+            /** City */
+            city: string;
+            construction_status: components["schemas"]["ConstructionStatus"];
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            furnishing: components["schemas"]["Furnishing"];
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Image */
+            image: string | null;
+            /** Locality */
+            locality: string;
+            /** Location */
+            location: string;
+            /** Meta */
+            meta: string | null;
+            /** Pincode */
+            pincode: string;
+            /** Price Paise */
+            price_paise: number;
+            /** Rera Number */
+            rera_number: string;
+            /** Review Note */
+            review_note: string | null;
+            /** Reviewed At */
+            reviewed_at: string | null;
+            /** Reviewed By Uuid */
+            reviewed_by_uuid: string | null;
+            status: components["schemas"]["SubmissionStatus"];
+            /**
+             * Submitter Uuid
+             * Format: uuid
+             */
+            submitter_uuid: string;
+            /** Title */
+            title: string;
+            /** Type */
+            type: string;
+        };
+        /**
+         * SubmissionStatus
+         * @enum {string}
+         */
+        SubmissionStatus: "pending" | "approved" | "rejected";
         /**
          * SupportCategory
          * @enum {string}
@@ -2503,6 +2692,167 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PropertyRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_submissions_api_v1_property_submissions_get: {
+        parameters: {
+            query?: {
+                status?: components["schemas"]["SubmissionStatus"] | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SubmissionListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    submit_property_api_v1_property_submissions_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SubmissionCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SubmissionRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_submission_api_v1_property_submissions__submission_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                submission_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SubmissionRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    approve_api_v1_property_submissions__submission_id__approve_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                submission_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SubmissionRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reject_api_v1_property_submissions__submission_id__reject_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                submission_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RejectRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SubmissionRead"];
                 };
             };
             /** @description Validation Error */

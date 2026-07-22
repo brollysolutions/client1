@@ -1626,6 +1626,21 @@
         "title": "RegistrationTokenResponse",
         "type": "object"
       },
+      "RejectRequest": {
+        "properties": {
+          "note": {
+            "maxLength": 1000,
+            "minLength": 1,
+            "title": "Note",
+            "type": "string"
+          }
+        },
+        "required": [
+          "note"
+        ],
+        "title": "RejectRequest",
+        "type": "object"
+      },
       "ResendOtpRequest": {
         "properties": {
           "mobile": {
@@ -1950,6 +1965,340 @@
           "evening"
         ],
         "title": "SiteVisitTimeSlot",
+        "type": "string"
+      },
+      "SubmissionCreate": {
+        "properties": {
+          "age_years": {
+            "default": 0,
+            "minimum": 0.0,
+            "title": "Age Years",
+            "type": "integer"
+          },
+          "amenities": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Amenities",
+            "type": "array"
+          },
+          "area_sqft": {
+            "default": 0,
+            "minimum": 0.0,
+            "title": "Area Sqft",
+            "type": "integer"
+          },
+          "bhk": {
+            "default": 0,
+            "minimum": 0.0,
+            "title": "Bhk",
+            "type": "integer"
+          },
+          "category": {
+            "$ref": "#/components/schemas/PropertyCategory"
+          },
+          "city": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "City",
+            "type": "string"
+          },
+          "construction_status": {
+            "$ref": "#/components/schemas/ConstructionStatus"
+          },
+          "details": {
+            "additionalProperties": true,
+            "title": "Details",
+            "type": "object"
+          },
+          "furnishing": {
+            "$ref": "#/components/schemas/Furnishing"
+          },
+          "image": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Image"
+          },
+          "locality": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Locality",
+            "type": "string"
+          },
+          "location": {
+            "maxLength": 160,
+            "minLength": 1,
+            "title": "Location",
+            "type": "string"
+          },
+          "meta": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meta"
+          },
+          "pincode": {
+            "maxLength": 6,
+            "minLength": 6,
+            "title": "Pincode",
+            "type": "string"
+          },
+          "price_paise": {
+            "exclusiveMinimum": 0.0,
+            "title": "Price Paise",
+            "type": "integer"
+          },
+          "rera_number": {
+            "maxLength": 40,
+            "minLength": 1,
+            "title": "Rera Number",
+            "type": "string"
+          },
+          "title": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          },
+          "type": {
+            "maxLength": 40,
+            "minLength": 1,
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "type",
+          "location",
+          "category",
+          "city",
+          "locality",
+          "pincode",
+          "price_paise",
+          "furnishing",
+          "construction_status",
+          "rera_number"
+        ],
+        "title": "SubmissionCreate",
+        "type": "object"
+      },
+      "SubmissionListResponse": {
+        "properties": {
+          "submissions": {
+            "items": {
+              "$ref": "#/components/schemas/SubmissionRead"
+            },
+            "title": "Submissions",
+            "type": "array"
+          }
+        },
+        "required": [
+          "submissions"
+        ],
+        "title": "SubmissionListResponse",
+        "type": "object"
+      },
+      "SubmissionRead": {
+        "properties": {
+          "age_years": {
+            "title": "Age Years",
+            "type": "integer"
+          },
+          "amenities": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Amenities",
+            "type": "array"
+          },
+          "approved_property_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Approved Property Id"
+          },
+          "area_sqft": {
+            "title": "Area Sqft",
+            "type": "integer"
+          },
+          "bhk": {
+            "title": "Bhk",
+            "type": "integer"
+          },
+          "category": {
+            "$ref": "#/components/schemas/PropertyCategory"
+          },
+          "city": {
+            "title": "City",
+            "type": "string"
+          },
+          "construction_status": {
+            "$ref": "#/components/schemas/ConstructionStatus"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "furnishing": {
+            "$ref": "#/components/schemas/Furnishing"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "image": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Image"
+          },
+          "locality": {
+            "title": "Locality",
+            "type": "string"
+          },
+          "location": {
+            "title": "Location",
+            "type": "string"
+          },
+          "meta": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meta"
+          },
+          "pincode": {
+            "title": "Pincode",
+            "type": "string"
+          },
+          "price_paise": {
+            "title": "Price Paise",
+            "type": "integer"
+          },
+          "rera_number": {
+            "title": "Rera Number",
+            "type": "string"
+          },
+          "review_note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Review Note"
+          },
+          "reviewed_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reviewed At"
+          },
+          "reviewed_by_uuid": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reviewed By Uuid"
+          },
+          "status": {
+            "$ref": "#/components/schemas/SubmissionStatus"
+          },
+          "submitter_uuid": {
+            "format": "uuid",
+            "title": "Submitter Uuid",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "type": {
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "submitter_uuid",
+          "status",
+          "review_note",
+          "reviewed_by_uuid",
+          "reviewed_at",
+          "approved_property_id",
+          "title",
+          "type",
+          "location",
+          "meta",
+          "image",
+          "category",
+          "city",
+          "locality",
+          "pincode",
+          "price_paise",
+          "bhk",
+          "area_sqft",
+          "furnishing",
+          "construction_status",
+          "amenities",
+          "age_years",
+          "rera_number",
+          "created_at"
+        ],
+        "title": "SubmissionRead",
+        "type": "object"
+      },
+      "SubmissionStatus": {
+        "enum": [
+          "pending",
+          "approved",
+          "rejected"
+        ],
+        "title": "SubmissionStatus",
         "type": "string"
       },
       "SupportCategory": {
@@ -3636,6 +3985,258 @@
         "summary": "Get Property",
         "tags": [
           "properties"
+        ]
+      }
+    },
+    "/api/v1/property-submissions": {
+      "get": {
+        "operationId": "list_submissions_api_v1_property_submissions_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/SubmissionStatus"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubmissionListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "List Submissions",
+        "tags": [
+          "property-submissions"
+        ]
+      },
+      "post": {
+        "operationId": "submit_property_api_v1_property_submissions_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubmissionCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubmissionRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Submit Property",
+        "tags": [
+          "property-submissions"
+        ]
+      }
+    },
+    "/api/v1/property-submissions/{submission_id}": {
+      "get": {
+        "operationId": "get_submission_api_v1_property_submissions__submission_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "submission_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Submission Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubmissionRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Get Submission",
+        "tags": [
+          "property-submissions"
+        ]
+      }
+    },
+    "/api/v1/property-submissions/{submission_id}/approve": {
+      "post": {
+        "operationId": "approve_api_v1_property_submissions__submission_id__approve_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "submission_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Submission Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubmissionRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Approve",
+        "tags": [
+          "property-submissions"
+        ]
+      }
+    },
+    "/api/v1/property-submissions/{submission_id}/reject": {
+      "post": {
+        "operationId": "reject_api_v1_property_submissions__submission_id__reject_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "submission_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Submission Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RejectRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubmissionRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Reject",
+        "tags": [
+          "property-submissions"
         ]
       }
     },
