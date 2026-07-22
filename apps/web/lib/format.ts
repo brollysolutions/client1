@@ -37,3 +37,19 @@ export function formatNumber(value: number): string {
 export function formatPercent(value: number, digits = 2): string {
   return `${value.toFixed(digits)}%`;
 }
+
+/**
+ * Compact rupees from an integer paise amount: 500000000 -> "₹50 L",
+ * 1250000000 -> "₹1.25 Cr". Whole values drop the decimals. Shared by the
+ * review queue and the agent's my-submissions list (submissions carry
+ * price_paise, not a display string).
+ */
+export function formatPaiseCompact(paise: number): string {
+  const rupees = Math.floor(paise / 100);
+  if (rupees >= 10_000_000) {
+    const cr = rupees / 10_000_000;
+    return `₹${Number.isInteger(cr) ? cr : cr.toFixed(2)} Cr`;
+  }
+  const lakh = rupees / 100_000;
+  return `₹${Number.isInteger(lakh) ? lakh : lakh.toFixed(2)} L`;
+}

@@ -13,6 +13,15 @@ type Schemas = components["schemas"];
 export type Submission = Schemas["SubmissionRead"];
 export type SubmissionStatus = Submission["status"];
 
+export async function submitProperty(
+  payload: Schemas["SubmissionCreate"],
+): Promise<ApiResponse<Submission>> {
+  return apiRequest<Submission>(`/api/v1/property-submissions`, {
+    method: "POST",
+    body: payload,
+  });
+}
+
 export async function listSubmissions(
   status?: SubmissionStatus,
 ): Promise<ApiResponse<Submission[]>> {

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { formatCompactINR, formatINR, formatNumber, formatPercent } from "@/lib/format";
+import { formatCompactINR, formatINR, formatNumber, formatPaiseCompact, formatPercent } from "@/lib/format";
 
 describe("formatINR()", () => {
   it("uses en-IN grouping and the rupee symbol", () => {
@@ -21,5 +21,14 @@ describe("formatNumber() / formatPercent()", () => {
   it("formats plain numbers and percentages", () => {
     expect(formatNumber(240)).toBe("240");
     expect(formatPercent(8.5)).toBe("8.50%");
+  });
+});
+
+describe("formatPaiseCompact()", () => {
+  it("formats lakhs, dropping decimals when whole", () => {
+    expect(formatPaiseCompact(500_000_000)).toBe("₹50 L");
+  });
+  it("formats crores with two decimals when fractional", () => {
+    expect(formatPaiseCompact(1_250_000_000)).toBe("₹1.25 Cr");
   });
 });
