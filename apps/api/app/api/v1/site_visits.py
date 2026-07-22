@@ -18,8 +18,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.deps import CurrentUser, get_active_user
 from app.db.session import get_db
+from app.models.notification import NotificationType
 from app.models.site_visit import SiteVisit
 from app.schemas.site_visits import SiteVisitCreate, SiteVisitListResponse, SiteVisitRead
+from app.services.notifications import emit_notification
 from app.services.site_visits import cancel_site_visit
 
 router = APIRouter()
@@ -72,6 +74,16 @@ async def create_site_visit(
     db.add(visit)
     await db.commit()
     await db.refresh(visit)
+    await emit_notification(
+        user_uuid=current_user.id,
+        notification_type=NotificationType.SITE_VISIT_REQUESTED,
+        title="Site visit requested",
+        body=(
+            f"We've received your request to visit {visit.title}. "
+            "We'll confirm a time with you soon."
+        ),
+        href="/dashboard/site-visits",
+    )
     return SiteVisitRead.model_validate(visit, from_attributes=True)
 
 

@@ -18,10 +18,14 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.v1.auth import router as auth_router
+from app.api.v1.bookmarks import router as bookmarks_router
+from app.api.v1.enquiries import router as enquiries_router
 from app.api.v1.leads import router as leads_router
 from app.api.v1.loans import router as loans_router
+from app.api.v1.notifications import router as notifications_router
 from app.api.v1.site_visits import router as site_visits_router
 from app.api.v1.support_tickets import router as support_tickets_router
+from app.api.v1.transactions import router as transactions_router
 from app.core.config import settings
 from app.db.session import engine, get_db
 
@@ -72,6 +76,10 @@ app.include_router(
     support_tickets_router, prefix="/api/v1/support-tickets", tags=["support-tickets"]
 )
 app.include_router(site_visits_router, prefix="/api/v1/site-visits", tags=["site-visits"])
+app.include_router(enquiries_router, prefix="/api/v1/enquiries", tags=["enquiries"])
+app.include_router(bookmarks_router, prefix="/api/v1/bookmarks", tags=["bookmarks"])
+app.include_router(notifications_router, prefix="/api/v1/notifications", tags=["notifications"])
+app.include_router(transactions_router, prefix="/api/v1/transactions", tags=["transactions"])
 
 
 @app.get("/")

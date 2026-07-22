@@ -1,4 +1,5 @@
-"""Populate a dev client with sample loan applications + support tickets.
+"""Populate a dev client with sample loan applications, support tickets, and
+payout transactions.
 
 Dev only. The target account's mobile is a required argument (no hardcoded
 default — a real mobile number is PII and must not live in source):
@@ -30,6 +31,7 @@ async def _seed(mobile: str) -> None:
     from app.models.lead import Lead, LeadOrigin, LeadStatus
     from app.models.loan import FeeOutcome, LoanApplication, LoanStatus, LoanType
     from app.models.support_ticket import SupportCategory, SupportStatus, SupportTicket
+    from app.models.transaction import Transaction, TransactionStatus, TransactionType
 
     async with session_mod.AsyncSessionLocal() as db:
         row = (
@@ -180,6 +182,57 @@ async def _seed(mobile: str) -> None:
             db.add_all(tickets)
             await db.commit()
             print(f"[seed_dev] Inserted {len(tickets)} support tickets for {mobile}.")
+
+        # --- Transactions -------------------------------------------------------
+        # Dev-only preview data: no payout producer exists yet (a separate
+        # money-layer milestone), so this table stays empty in production.
+        existing_txns = await db.scalar(
+            select(func.count()).select_from(Transaction).where(Transaction.user_uuid == user_id)
+        )
+        if existing_txns:
+            print(f"[seed_dev] {existing_txns} transaction(s) already present — skipping.")
+        else:
+            transactions = [
+                Transaction(
+                    user_uuid=user_id,
+                    business_line="loans",
+                    type=TransactionType.CASHBACK,
+                    status=TransactionStatus.PAID,
+                    amount_paise=500_000,
+                    description="Cashback on disbursed home loan",
+                    created_at=now - timedelta(days=9),
+                ),
+                Transaction(
+                    user_uuid=user_id,
+                    business_line=None,
+                    type=TransactionType.REFERRAL_BONUS,
+                    status=TransactionStatus.PAID,
+                    amount_paise=150_000,
+                    description="Referral payout for Rohit S.",
+                    created_at=now - timedelta(days=23),
+                ),
+                Transaction(
+                    user_uuid=user_id,
+                    business_line=None,
+                    type=TransactionType.REFERRAL_BONUS,
+                    status=TransactionStatus.PROCESSING,
+                    amount_paise=150_000,
+                    description="Referral payout for Meera K.",
+                    created_at=now - timedelta(days=36),
+                ),
+                Transaction(
+                    user_uuid=user_id,
+                    business_line="loans",
+                    type=TransactionType.CASHBACK,
+                    status=TransactionStatus.PAID,
+                    amount_paise=250_000,
+                    description="Cashback on personal loan",
+                    created_at=now - timedelta(days=52),
+                ),
+            ]
+            db.add_all(transactions)
+            await db.commit()
+            print(f"[seed_dev] Inserted {len(transactions)} transactions for {mobile}.")
 
 
 def main() -> None:

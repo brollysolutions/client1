@@ -57,3 +57,29 @@ export async function getLoanApplication(id: string): Promise<ApiResponse<LoanAp
   if (!res.ok) return res;
   return { ok: true, status: res.status, data: mapApplication(res.data) };
 }
+
+export type LoanTypeOption = {
+  id: string;
+  label: string;
+};
+
+export async function getLoanTypes(): Promise<ApiResponse<LoanTypeOption[]>> {
+  const res = await apiRequest<Schemas["LoanTypeListResponse"]>("/api/v1/loans/loan-types");
+  if (!res.ok) return res;
+  return { ok: true, status: res.status, data: res.data.loan_types };
+}
+
+export async function createLoanApplication(input: {
+  loanTypeId: string;
+  amountRequested: string;
+}): Promise<ApiResponse<LoanApplication>> {
+  const res = await apiRequest<Schemas["LoanApplicationRead"]>("/api/v1/loans/applications", {
+    method: "POST",
+    body: {
+      loan_type_id: input.loanTypeId,
+      amount_requested: input.amountRequested,
+    } satisfies Schemas["LoanApplicationCreate"],
+  });
+  if (!res.ok) return res;
+  return { ok: true, status: res.status, data: mapApplication(res.data) };
+}

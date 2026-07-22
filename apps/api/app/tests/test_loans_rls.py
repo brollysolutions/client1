@@ -174,3 +174,33 @@ async def test_admin_platform_scope_sees_all_lines(client: AsyncClient) -> None:
 
     rows = await _select_as(role="admin", platform_scope="true")
     assert uuid.UUID(app_id) in [r["id"] for r in rows]
+
+
+@pytest.mark.asyncio
+async def test_application_created_via_endpoint_is_still_rls_scoped(client: AsyncClient) -> None:
+    """End-to-end sibling of the tests above: a row created through the new
+    POST /applications write path (not directly seeded) obeys the exact same
+    RLS as a seeded row — own client sees it, a cross-line telecaller does
+    not, a same-line telecaller does."""
+    token, mobile = await full_registration(client, lines=["loans"])
+    cpu = await _client_profile_uuid(mobile)
+    headers = {"Authorization": f"Bearer {token}"}
+
+    loan_type_id = (await client.get("/api/v1/loans/loan-types", headers=headers)).json()[
+        "loan_types"
+    ][0]["id"]
+    created = await client.post(
+        "/api/v1/loans/applications",
+        headers=headers,
+        json={"loan_type_id": loan_type_id, "amount_requested": "500000"},
+    )
+    app_id = created.json()["id"]
+
+    own_rows = await _select_as(role="client", client_profile_uuid=cpu, business_line="loans")
+    assert uuid.UUID(app_id) in [r["id"] for r in own_rows]
+
+    cross_line_rows = await _select_as(role="telecaller", business_line="real_estate")
+    assert uuid.UUID(app_id) not in [r["id"] for r in cross_line_rows]
+
+    same_line_rows = await _select_as(role="telecaller", business_line="loans")
+    assert uuid.UUID(app_id) in [r["id"] for r in same_line_rows]

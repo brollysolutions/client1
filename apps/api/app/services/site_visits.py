@@ -14,7 +14,9 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.deps import CurrentUser
+from app.models.notification import NotificationType
 from app.models.site_visit import SiteVisit, SiteVisitStatus
+from app.services.notifications import emit_notification
 
 _TERMINAL_STATUSES = {SiteVisitStatus.DONE, SiteVisitStatus.CANCELLED}
 
@@ -42,4 +44,11 @@ async def cancel_site_visit(
     visit.cancelled_at = datetime.now(UTC)
     await db.commit()
     await db.refresh(visit)
+    await emit_notification(
+        user_uuid=visit.user_uuid,
+        notification_type=NotificationType.SITE_VISIT_CANCELLED,
+        title="Site visit cancelled",
+        body=f"Your visit to {visit.title} has been cancelled.",
+        href="/dashboard/site-visits",
+    )
     return visit

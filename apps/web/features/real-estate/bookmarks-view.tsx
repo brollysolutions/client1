@@ -3,16 +3,19 @@
 import Link from "next/link";
 import { Bookmark } from "lucide-react";
 
+import { Skeleton } from "@/components/ui/skeleton";
+import { FetchError } from "@/features/dashboard/fetch-error";
 import { PropertyBrowser } from "@/features/real-estate/property-browser";
 import { useBookmarks } from "@/features/real-estate/store";
 import { getListingById } from "@/lib/real-estate";
 
-// Bookmarked-properties grid. Reads ids from the shared bookmarks store and
-// resolves them against the mock catalog; a ghost bookmark (removed from the
-// catalog) is silently dropped rather than shown broken. Search + filter are
-// scoped to the bookmarked set and sit beside the heading.
+// Bookmarked-properties grid. Reads ids from the shared, server-backed
+// bookmarks store and resolves them against the mock catalog; a ghost
+// bookmark (removed from the catalog) is silently dropped rather than shown
+// broken. Search + filter are scoped to the bookmarked set and sit beside the
+// heading.
 export function BookmarksView() {
-  const { ids } = useBookmarks();
+  const { ids, status, error, retry } = useBookmarks();
   const listings = ids.map(getListingById).filter((l): l is NonNullable<typeof l> => Boolean(l));
 
   const heading = (
@@ -24,7 +27,17 @@ export function BookmarksView() {
 
   return (
     <div className="mx-auto w-full max-w-[1320px] space-y-6 px-4 sm:px-6">
-      {listings.length === 0 ? (
+      {status === "loading" ? (
+        <>
+          {heading}
+          <Skeleton className="h-40 rounded-xl" />
+        </>
+      ) : status === "error" ? (
+        <>
+          {heading}
+          <FetchError status={null} message={error} onRetry={retry} />
+        </>
+      ) : listings.length === 0 ? (
         <>
           {heading}
           <div className="rounded-2xl border border-dashed border-border bg-card px-6 py-14 text-center">

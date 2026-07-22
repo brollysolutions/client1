@@ -1,8 +1,7 @@
 "use client";
 
 import * as React from "react";
-import Link from "next/link";
-import { Bell, Menu } from "lucide-react";
+import { Menu } from "lucide-react";
 
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { LoanCompareProvider } from "@/features/loans/loan-offers-store";
@@ -13,6 +12,7 @@ import { AppSidebar } from "./app-sidebar";
 import { LineProvider } from "./line-provider";
 import { LineSwitcher } from "./line-switcher";
 import { MeProvider } from "./me-provider";
+import { NotificationBell } from "./notification-bell";
 import { ProfileMenu } from "./profile-menu";
 
 const RAIL_OPEN_KEY = "dashboard:rail-open";
@@ -84,13 +84,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     <Menu className="h-5 w-5" />
                   </button>
                   <div className="flex-1" />
-                  <Link
-                    href="/dashboard/notifications"
-                    aria-label="Notifications"
-                    className="rounded-md p-1.5 text-text-secondary transition-colors hover:text-sky-500 focus-visible:outline-none"
-                  >
-                    <Bell className="h-5 w-5" />
-                  </Link>
+                  <NotificationBell />
                   <LineSwitcher />
                   <ProfileMenu />
                 </header>
