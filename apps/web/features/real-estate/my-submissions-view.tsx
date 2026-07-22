@@ -64,6 +64,14 @@ export function MySubmissionsView() {
                   <p className="font-medium text-text-primary">{s.title}</p>
                   <p className="text-sm text-text-secondary">{s.location}</p>
                   <p className="mt-1 text-sm font-medium text-text-primary">{formatPaiseCompact(s.price_paise)}</p>
+                  <p className="mt-1 text-xs text-text-secondary">
+                    Submitted{" "}
+                    {new Date(s.created_at).toLocaleDateString("en-IN", {
+                      day: "numeric",
+                      month: "short",
+                      year: "numeric",
+                    })}
+                  </p>
                 </div>
                 <Badge variant={STATUS_VARIANT[s.status]}>{STATUS_LABEL[s.status]}</Badge>
               </div>
