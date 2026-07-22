@@ -525,6 +525,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/properties": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Properties */
+        get: operations["list_properties_api_v1_properties_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/properties/{property_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Property */
+        get: operations["get_property_api_v1_properties__property_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/site-visits": {
         parameters: {
             query?: never;
@@ -697,6 +731,11 @@ export interface components {
             /** Customer Code */
             customer_code: string;
         };
+        /**
+         * ConstructionStatus
+         * @enum {string}
+         */
+        ConstructionStatus: "ready" | "under_construction";
         /** EmailVerifyConfirmRequest */
         EmailVerifyConfirmRequest: {
             /** Otp */
@@ -803,6 +842,11 @@ export interface components {
             /** Otp */
             otp: string;
         };
+        /**
+         * Furnishing
+         * @enum {string}
+         */
+        Furnishing: "unfurnished" | "semi" | "furnished";
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
@@ -1059,6 +1103,64 @@ export interface components {
          * @enum {string}
          */
         PayoutType: "cashback" | "referral_bonus" | "commission";
+        /**
+         * PropertyCategory
+         * @enum {string}
+         */
+        PropertyCategory: "houses" | "apartments" | "villas" | "plots" | "commercial";
+        /** PropertyListResponse */
+        PropertyListResponse: {
+            /** Properties */
+            properties: components["schemas"]["PropertyRead"][];
+        };
+        /** PropertyRead */
+        PropertyRead: {
+            /** Active */
+            active: boolean;
+            /** Age Years */
+            age_years: number;
+            /** Amenities */
+            amenities: string[];
+            /** Area Sqft */
+            area_sqft: number;
+            /** Bhk */
+            bhk: number;
+            category: components["schemas"]["PropertyCategory"];
+            /** City */
+            city: string;
+            construction_status: components["schemas"]["ConstructionStatus"];
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            furnishing: components["schemas"]["Furnishing"];
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Image */
+            image: string | null;
+            /** Locality */
+            locality: string;
+            /** Location */
+            location: string;
+            /** Meta */
+            meta: string | null;
+            /** Pincode */
+            pincode: string;
+            /** Price Display */
+            price_display: string;
+            /** Price Paise */
+            price_paise: number;
+            /** Rera Number */
+            rera_number: string;
+            /** Title */
+            title: string;
+            /** Type */
+            type: string;
+        };
         /** PublicLeadCreate */
         PublicLeadCreate: {
             /** Company */
@@ -2350,6 +2452,57 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PayoutRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_properties_api_v1_properties_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PropertyListResponse"];
+                };
+            };
+        };
+    };
+    get_property_api_v1_properties__property_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                property_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PropertyRead"];
                 };
             };
             /** @description Validation Error */

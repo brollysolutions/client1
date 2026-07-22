@@ -5,7 +5,8 @@ import { Scale, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { useBookmarks, useCompare } from "@/features/real-estate/store";
-import { getListingById, type REListing } from "@/lib/real-estate";
+import { useProperties } from "@/features/real-estate/use-properties";
+import type { REListing } from "@/lib/real-estate";
 import { cn } from "@/lib/utils";
 
 const COMPARE_ROWS: { label: string; getValue: (l: REListing) => string }[] = [
@@ -21,11 +22,17 @@ const COMPARE_ROWS: { label: string; getValue: (l: REListing) => string }[] = [
 export function CompareView() {
   const compare = useCompare();
   const bookmarks = useBookmarks();
+  const { listings: catalog } = useProperties();
 
-  const listings = compare.ids.map(getListingById).filter((l): l is NonNullable<typeof l> => Boolean(l));
+  // Resolve compare/bookmark ids against the fetched catalog (ids are real
+  // property UUIDs); anything no longer in the catalog is dropped.
+  const byId = new Map(catalog.map((l) => [l.id, l]));
+  const listings = compare.ids
+    .map((id) => byId.get(id))
+    .filter((l): l is NonNullable<typeof l> => Boolean(l));
   const addable = bookmarks.ids
     .filter((id) => !compare.has(id))
-    .map(getListingById)
+    .map((id) => byId.get(id))
     .filter((l): l is NonNullable<typeof l> => Boolean(l));
 
   return (

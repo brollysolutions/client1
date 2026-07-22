@@ -1,30 +1,60 @@
 "use client";
 
+import * as React from "react";
 import { SearchX } from "lucide-react";
 
+import { Skeleton } from "@/components/ui/skeleton";
+import { FetchError } from "@/features/dashboard/fetch-error";
 import { PropertyCard } from "@/features/real-estate/property-card";
 import { PropertyRow } from "@/features/real-estate/property-row";
 import { PropertySearchBar } from "@/features/real-estate/property-search-bar";
 import { usePropertyFilters } from "@/features/real-estate/use-property-filters";
-import { RE_CATEGORIES, getListingsByCategory } from "@/lib/real-estate";
+import { useProperties } from "@/features/real-estate/use-properties";
+import { buildSuggestionIndex } from "@/lib/property-facets";
+import { RE_CATEGORIES } from "@/lib/real-estate";
 
 // Real-estate client home: omnibox search + filters on top, then either the
 // category-wise rows (default, no filters active) or a filtered results grid.
 // Client Component since search/filter state is interactive and URL-synced
-// (see use-property-filters.ts).
+// (see use-property-filters.ts). The catalog is fetched once (token is
+// in-memory, so no server fetch); the filter engine runs client-side over it.
 export function RealEstateHome() {
+  const { listings, loading, error, retry } = useProperties();
   const { filters, setFilters, clearAll, active, activeCount, results, resultCount } =
-    usePropertyFilters();
+    usePropertyFilters({ source: listings });
+  const suggestionIndex = React.useMemo(() => buildSuggestionIndex(listings), [listings]);
+
+  const heading = (
+    <div>
+      <h1 className="text-2xl font-semibold text-text-primary">Real Estate</h1>
+      <p className="text-sm text-text-secondary">
+        Search properties by locality, city, PIN code, or name, or browse by category below.
+      </p>
+    </div>
+  );
+
+  if (loading) {
+    return (
+      <div className="mx-auto w-full max-w-[1320px] space-y-6 px-4 sm:px-6">
+        {heading}
+        <Skeleton className="h-40 rounded-xl" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="mx-auto w-full max-w-[1320px] space-y-6 px-4 sm:px-6">
+        {heading}
+        <FetchError status={null} message={error} onRetry={retry} />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
       <div className="mx-auto w-full max-w-[1320px] space-y-6 px-4 sm:px-6">
-        <div>
-          <h1 className="text-2xl font-semibold text-text-primary">Real Estate</h1>
-          <p className="text-sm text-text-secondary">
-            Search properties by locality, city, PIN code, or name, or browse by category below.
-          </p>
-        </div>
+        {heading}
 
         <PropertySearchBar
           filters={filters}
@@ -33,6 +63,7 @@ export function RealEstateHome() {
           activeCount={activeCount}
           resultCount={resultCount}
           active={active}
+          suggestionIndex={suggestionIndex}
         />
 
         {active ? (
@@ -69,7 +100,7 @@ export function RealEstateHome() {
               id={cat.key}
               heading={cat.label}
               blurb={cat.blurb}
-              listings={getListingsByCategory(cat.key)}
+              listings={listings.filter((l) => l.category === cat.key)}
             />
           ))}
         </div>

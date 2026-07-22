@@ -24,6 +24,7 @@ from app.api.v1.leads import router as leads_router
 from app.api.v1.loans import router as loans_router
 from app.api.v1.notifications import router as notifications_router
 from app.api.v1.payments import router as payments_router
+from app.api.v1.properties import router as properties_router
 from app.api.v1.site_visits import router as site_visits_router
 from app.api.v1.support_tickets import router as support_tickets_router
 from app.api.v1.transactions import router as transactions_router
@@ -78,6 +79,7 @@ app.include_router(
 )
 app.include_router(site_visits_router, prefix="/api/v1/site-visits", tags=["site-visits"])
 app.include_router(enquiries_router, prefix="/api/v1/enquiries", tags=["enquiries"])
+app.include_router(properties_router, prefix="/api/v1/properties", tags=["properties"])
 app.include_router(bookmarks_router, prefix="/api/v1/bookmarks", tags=["bookmarks"])
 app.include_router(notifications_router, prefix="/api/v1/notifications", tags=["notifications"])
 app.include_router(transactions_router, prefix="/api/v1/transactions", tags=["transactions"])
