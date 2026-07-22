@@ -532,6 +532,13 @@ async def _seed() -> None:
 
 
 def main() -> None:
+    # Defense-in-depth: this is a dev-only fixture. Refuse to run outside
+    # development even though the script is idempotent — production listings must
+    # arrive only through the (future) Admin-approved property_submissions flow.
+    from app.core.config import settings
+
+    if settings.ENV != "development":
+        raise SystemExit(f"seed_properties is dev-only; refusing to run with ENV={settings.ENV!r}.")
     asyncio.run(_seed())
 
 

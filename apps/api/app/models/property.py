@@ -10,6 +10,13 @@ is public-equivalent (the same listings back the public marketing site), and a
 line predicate would only risk a ``both``/loans-only visibility regression while
 adding no security. Line-level access stays a route-layer concern on the FE.
 
+This is a CONSCIOUS, SCOPED exception to the product's "RLS is the wall, never
+UI hiding alone" invariant, justified ONLY because the catalog is
+public-equivalent (no confidentiality boundary is crossed by an authenticated
+loans-only client seeing listings that are already public). Do NOT copy this
+no-line-predicate shape onto a genuinely sensitive/owner-scoped table — use the
+site_visits/enquiries hybrid predicate there instead.
+
 ``business_line`` is stamped ``real_estate`` and made immutable (the shared
 enforce_business_line_immutable trigger) purely for segregation/analytics
 consistency with the other real-estate tables, even though no policy branch
