@@ -18,7 +18,7 @@ export function RealEstateHome() {
 
   return (
     <div className="space-y-6">
-      <div className="mx-auto w-full max-w-5xl space-y-6 px-4 sm:px-6 lg:px-10">
+      <div className="mx-auto w-full max-w-[1320px] space-y-6 px-4 sm:px-6">
         <div>
           <h1 className="text-2xl font-semibold text-text-primary">Real Estate</h1>
           <p className="text-sm text-text-secondary">
@@ -51,9 +51,9 @@ export function RealEstateHome() {
               <p className="mb-4 text-sm text-text-secondary">
                 {resultCount} propert{resultCount === 1 ? "y" : "ies"} found
               </p>
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 {results.map((listing) => (
-                  <PropertyCard key={listing.id} listing={listing} />
+                  <PropertyCard key={listing.id} listing={listing} fluid />
                 ))}
               </div>
             </div>

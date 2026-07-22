@@ -21,3 +21,7 @@ from app.models.lead import Lead  # noqa
 from app.models.loan import LoanType, Bank, LoanApplication  # noqa
 from app.models.support_ticket import SupportTicket  # noqa
 from app.models.site_visit import SiteVisit  # noqa
+from app.models.enquiry import Enquiry  # noqa
+from app.models.bookmark import Bookmark  # noqa
+from app.models.notification import Notification  # noqa
+from app.models.transaction import Transaction  # noqa

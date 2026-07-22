@@ -1,14 +1,17 @@
 "use client";
 
 import * as React from "react";
+import { toast } from "sonner";
 
-import type { REListing } from "@/lib/real-estate";
+import { createBookmark, deleteBookmark, getBookmarks } from "@/lib/bookmarks";
+import { getListingById } from "@/lib/real-estate";
 
-// Frontend-only persistence for the real-estate client workspace: bookmarks,
-// compare, enquiries, and site visits all live in localStorage since no
-// property or bookmark backend exists yet (see docs/ai/plans for the scope
-// decision). Cross-tab sync via the `storage` event keeps two open tabs
-// consistent; SSR-safe (reads localStorage only after mount).
+// Frontend-only persistence for the real-estate client workspace: compare
+// lives in localStorage since no property backend exists yet. Bookmarks are
+// server-backed (lib/bookmarks.ts); enquiries and site visits have likewise
+// moved to real APIs (lib/enquiries.ts, lib/site-visits.ts). Cross-tab sync
+// via the `storage` event keeps two open compare tabs consistent; SSR-safe
+// (reads localStorage only after mount).
 
 function useLocalStorageState<T>(key: string, initial: T): [T, React.Dispatch<React.SetStateAction<T>>] {
   const [state, setState] = React.useState<T>(initial);
@@ -63,22 +66,82 @@ type BookmarksContextValue = {
   has: (id: string) => boolean;
   toggle: (id: string) => void;
   count: number;
+  // Initial-load state for the Bookmarks page's own loading/error UI.
+  // property-card.tsx (elsewhere in the app) doesn't read these; while
+  // "loading", `has()` simply returns false, the same transient window the
+  // old localStorage version had before its hydration effect ran.
+  status: "loading" | "ready" | "error";
+  error: string | null;
+  retry: () => void;
 };
 
 const BookmarksContext = React.createContext<BookmarksContextValue | null>(null);
 
+// Server-backed (lib/bookmarks.ts). Loads once on mount; toggle is optimistic
+// (flips local state immediately, fires the request, rolls back + toasts on
+// failure) so every card across Explore/Home renders from this one fetch
+// without a per-card round trip.
 function BookmarksProvider({ children }: { children: React.ReactNode }) {
-  const [ids, setIds] = useLocalStorageState<string[]>("dashboard:re:bookmarks", []);
+  const [ids, setIds] = React.useState<string[]>([]);
+  const [status, setStatus] = React.useState<"loading" | "ready" | "error">("loading");
+  const [error, setError] = React.useState<string | null>(null);
+  const [reloadKey, setReloadKey] = React.useState(0);
+
+  React.useEffect(() => {
+    let active = true;
+    setStatus("loading");
+    setError(null);
+    void getBookmarks().then((res) => {
+      if (!active) return;
+      if (res.ok) {
+        setIds(res.data.map((b) => b.propertyRef));
+        setStatus("ready");
+      } else {
+        setError(res.error);
+        setStatus("error");
+      }
+    });
+    return () => {
+      active = false;
+    };
+  }, [reloadKey]);
 
   const value = React.useMemo<BookmarksContextValue>(
     () => ({
       ids,
       has: (id) => ids.includes(id),
-      toggle: (id) =>
-        setIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id])),
+      toggle: (id) => {
+        const wasBookmarked = ids.includes(id);
+        setIds((prev) => (wasBookmarked ? prev.filter((x) => x !== id) : [...prev, id]));
+
+        if (wasBookmarked) {
+          void deleteBookmark(id).then((res) => {
+            if (!res.ok) {
+              setIds((prev) => (prev.includes(id) ? prev : [...prev, id]));
+              toast.error(res.error || "Couldn't remove bookmark. Please try again.");
+            }
+          });
+        } else {
+          const listing = getListingById(id);
+          void createBookmark({
+            propertyRef: id,
+            ...(listing
+              ? { title: listing.title, locality: listing.locality, city: listing.city }
+              : {}),
+          }).then((res) => {
+            if (!res.ok) {
+              setIds((prev) => prev.filter((x) => x !== id));
+              toast.error(res.error || "Couldn't save bookmark. Please try again.");
+            }
+          });
+        }
+      },
       count: ids.length,
+      status,
+      error,
+      retry: () => setReloadKey((k) => k + 1),
     }),
-    [ids, setIds],
+    [ids, status, error],
   );
 
   return <BookmarksContext.Provider value={value}>{children}</BookmarksContext.Provider>;
@@ -130,82 +193,14 @@ export function useCompare(): CompareContextValue {
   return ctx;
 }
 
-// ---- Enquiries ----
-
-export type EnquiryStatus = "new" | "contacted" | "closed";
-
-export type Enquiry = {
-  id: string;
-  listingId: string;
-  title: string;
-  location: string;
-  status: EnquiryStatus;
-  createdAt: string;
-};
-
-const SEED_ENQUIRIES: Enquiry[] = [
-  {
-    id: "seed-e1",
-    listingId: "a3",
-    title: "3 BHK Apartment",
-    location: "Gachibowli, Hyderabad",
-    status: "contacted",
-    createdAt: "2026-07-10",
-  },
-];
-
-type EnquiriesContextValue = {
-  items: Enquiry[];
-  add: (listing: REListing) => void;
-  updateStatus: (id: string, status: EnquiryStatus) => void;
-};
-
-const EnquiriesContext = React.createContext<EnquiriesContextValue | null>(null);
-
-function EnquiriesProvider({ children }: { children: React.ReactNode }) {
-  const [items, setItems] = useLocalStorageState<Enquiry[]>("dashboard:re:enquiries", SEED_ENQUIRIES);
-
-  const value = React.useMemo<EnquiriesContextValue>(
-    () => ({
-      items,
-      add: (listing) =>
-        setItems((prev) => {
-          if (prev.some((e) => e.listingId === listing.id && e.status !== "closed")) return prev;
-          const next: Enquiry = {
-            id: `e-${listing.id}-${prev.length}`,
-            listingId: listing.id,
-            title: listing.title,
-            location: listing.location,
-            status: "new",
-            createdAt: new Date().toISOString().slice(0, 10),
-          };
-          return [next, ...prev];
-        }),
-      updateStatus: (id, status) =>
-        setItems((prev) => prev.map((e) => (e.id === id ? { ...e, status } : e))),
-    }),
-    [items, setItems],
-  );
-
-  return <EnquiriesContext.Provider value={value}>{children}</EnquiriesContext.Provider>;
-}
-
-export function useEnquiries(): EnquiriesContextValue {
-  const ctx = React.useContext(EnquiriesContext);
-  if (!ctx) throw new Error("useEnquiries must be used within RealEstateProvider");
-  return ctx;
-}
-
-// Single mount point for the app shell: wraps bookmarks, compare, and
-// enquiries so every dashboard page shares one instance of each. Site visits
-// used to live here too (localStorage-only); it's been replaced by the real
-// site-visits API (lib/site-visits.ts), so that slice was removed.
+// Single mount point for the app shell: wraps bookmarks and compare so every
+// dashboard page shares one instance of each. Site visits and enquiries used
+// to live here too (localStorage-only); both have been replaced by real APIs
+// (lib/site-visits.ts, lib/enquiries.ts), so those slices were removed.
 export function RealEstateProvider({ children }: { children: React.ReactNode }) {
   return (
     <BookmarksProvider>
-      <CompareProvider>
-        <EnquiriesProvider>{children}</EnquiriesProvider>
-      </CompareProvider>
+      <CompareProvider>{children}</CompareProvider>
     </BookmarksProvider>
   );
 }

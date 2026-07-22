@@ -110,8 +110,8 @@ export function LoansApplications() {
           </span>
           <h2 className="mt-5 text-lg font-semibold text-text-primary">No loan applications yet</h2>
           <p className="mx-auto mt-2 max-w-md text-sm text-text-secondary">
-            When you apply, our team reviews your request and opens an application for you. It then
-            shows up here with its live status, so you always know where things stand.
+            When you apply, it shows up here right away with its live status, so you always know
+            where things stand.
           </p>
           <ApplyCta className="mt-6" />
         </div>
