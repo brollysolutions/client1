@@ -2,3 +2,12 @@ allowBuilds:
   esbuild: true
   sharp: true
   unrs-resolver: true
+
+# Force sharp >=0.35.0 to clear the libvips CVEs (GHSA-f88m-g3jw-g9cj) inherited
+# transitively through next. next declares sharp as an optional dep (^0.34.x); the
+# API surface next uses is unchanged in 0.35, so forcing it is safe.
+overrides:
+  sharp: '>=0.35.0'
+  # postcss <8.5.10 (GHSA-qx2v-qp2m-jg93) pulled in transitively through next.
+  # Patch-level bump, safe for the Tailwind v4 postcss pipeline.
+  postcss: '>=8.5.10'
