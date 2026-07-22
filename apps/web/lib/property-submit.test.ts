@@ -1,7 +1,5 @@
 import { describe, expect, it } from "vitest";
 
-import type { components } from "@contracts/generated/schema";
-
 import {
   buildSubmissionPayload,
   validateForm,
