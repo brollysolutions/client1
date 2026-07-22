@@ -26,3 +26,4 @@ from app.models.bookmark import Bookmark  # noqa
 from app.models.notification import Notification  # noqa
 from app.models.transaction import Transaction  # noqa
 from app.models.payout import Payout  # noqa
+from app.models.property import Property  # noqa

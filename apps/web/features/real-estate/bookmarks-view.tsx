@@ -7,7 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { FetchError } from "@/features/dashboard/fetch-error";
 import { PropertyBrowser } from "@/features/real-estate/property-browser";
 import { useBookmarks } from "@/features/real-estate/store";
-import { getListingById } from "@/lib/real-estate";
+import { useProperties } from "@/features/real-estate/use-properties";
 
 // Bookmarked-properties grid. Reads ids from the shared, server-backed
 // bookmarks store and resolves them against the mock catalog; a ghost
@@ -16,7 +16,18 @@ import { getListingById } from "@/lib/real-estate";
 // heading.
 export function BookmarksView() {
   const { ids, status, error, retry } = useBookmarks();
-  const listings = ids.map(getListingById).filter((l): l is NonNullable<typeof l> => Boolean(l));
+  const { listings: catalog, loading: catalogLoading, error: catalogError, retry: catalogRetry } =
+    useProperties();
+
+  // Resolve saved ids against the fetched catalog; a ghost bookmark (removed
+  // from the catalog) is silently dropped rather than shown broken.
+  const byId = new Map(catalog.map((l) => [l.id, l]));
+  const listings = ids
+    .map((id) => byId.get(id))
+    .filter((l): l is NonNullable<typeof l> => Boolean(l));
+
+  const loading = status === "loading" || catalogLoading;
+  const errorMessage = status === "error" ? error : catalogError;
 
   const heading = (
     <div>
@@ -27,15 +38,19 @@ export function BookmarksView() {
 
   return (
     <div className="mx-auto w-full max-w-[1320px] space-y-6 px-4 sm:px-6">
-      {status === "loading" ? (
+      {loading ? (
         <>
           {heading}
           <Skeleton className="h-40 rounded-xl" />
         </>
-      ) : status === "error" ? (
+      ) : errorMessage ? (
         <>
           {heading}
-          <FetchError status={null} message={error} onRetry={retry} />
+          <FetchError
+            status={null}
+            message={errorMessage}
+            onRetry={status === "error" ? retry : catalogRetry}
+          />
         </>
       ) : listings.length === 0 ? (
         <>

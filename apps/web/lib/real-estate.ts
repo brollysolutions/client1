@@ -34,6 +34,9 @@ export type REListing = RawListing & {
   bhk: number;
   areaSqft: number;
   priceLakhs: number;
+  // RERA registration number from the API (shown on every listing). Optional so
+  // the still-mock public catalog, which has no RERA data, satisfies the type.
+  reraNumber?: string | null;
 };
 
 export const RE_CATEGORIES: {

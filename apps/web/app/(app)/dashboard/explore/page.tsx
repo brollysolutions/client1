@@ -4,11 +4,14 @@ import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
+import { Skeleton } from "@/components/ui/skeleton";
+import { FetchError } from "@/features/dashboard/fetch-error";
 import { useLine } from "@/features/dashboard/line-provider";
 import { EXPLORE_CATEGORIES } from "@/features/dashboard/explore-categories";
 import { PropertyBrowser } from "@/features/real-estate/property-browser";
 import { PropertyRow } from "@/features/real-estate/property-row";
-import { RE_CATEGORIES, RE_LISTINGS, getListingsByCategory } from "@/lib/real-estate";
+import { useProperties } from "@/features/real-estate/use-properties";
+import { RE_CATEGORIES, type REListing } from "@/lib/real-estate";
 
 // Product discovery hub. Loans line shows the loans/cards/insurance tiles
 // (coming-soon details). Real-estate line is a search-first hub: a catalog-wide
@@ -20,21 +23,7 @@ export default function ExplorePage() {
   const isRealEstate = activeLine === "real_estate";
 
   if (isRealEstate) {
-    return (
-      <div className="mx-auto w-full max-w-[1320px] space-y-8 px-4 sm:px-6">
-        <PropertyBrowser
-          header={
-            <div>
-              <h1 className="text-2xl font-semibold text-text-primary">Explore</h1>
-              <p className="text-sm text-text-secondary">
-                Search any property, or browse by type below.
-              </p>
-            </div>
-          }
-          idle={<RealEstateHub />}
-        />
-      </div>
-    );
+    return <RealEstateExplore />;
   }
 
   return (
@@ -55,10 +44,58 @@ export default function ExplorePage() {
   );
 }
 
+// Real-estate Explore: fetches the catalog once, then feeds the client-side
+// browser (omnibox + filters over the full active set). The token is in-memory,
+// so this must be a client fetch, not a server component.
+function RealEstateExplore() {
+  const { listings, loading, error, retry } = useProperties();
+
+  const header = (
+    <div>
+      <h1 className="text-2xl font-semibold text-text-primary">Explore</h1>
+      <p className="text-sm text-text-secondary">
+        Search any property, or browse by type below.
+      </p>
+    </div>
+  );
+
+  return (
+    <div className="mx-auto w-full max-w-[1320px] space-y-8 px-4 sm:px-6">
+      {loading ? (
+        <>
+          {header}
+          <Skeleton className="h-40 rounded-xl" />
+        </>
+      ) : error ? (
+        <>
+          {header}
+          <FetchError status={null} message={error} onRetry={retry} />
+        </>
+      ) : listings.length === 0 ? (
+        <>
+          {header}
+          <div className="rounded-2xl border border-dashed border-border bg-card px-6 py-14 text-center">
+            <h2 className="text-lg font-semibold text-text-primary">No listings yet</h2>
+            <p className="mx-auto mt-2 max-w-md text-sm text-text-secondary">
+              New properties will appear here once they are published. Check back soon.
+            </p>
+          </div>
+        </>
+      ) : (
+        <PropertyBrowser
+          source={listings}
+          header={header}
+          idle={<RealEstateHub listings={listings} />}
+        />
+      )}
+    </div>
+  );
+}
+
 // Real-estate idle state: category tiles (4-up, with live listing counts) plus a
-// featured carousel.
-function RealEstateHub() {
-  const featured = RE_LISTINGS.slice(0, 10);
+// featured carousel, both derived from the fetched catalog.
+function RealEstateHub({ listings }: { listings: REListing[] }) {
+  const featured = listings.slice(0, 10);
 
   return (
     <div className="space-y-8">
@@ -72,7 +109,7 @@ function RealEstateHub() {
               label={c.label}
               Icon={c.icon}
               blurb={c.blurb}
-              count={getListingsByCategory(c.key).length}
+              count={listings.filter((l) => l.category === c.key).length}
             />
           ))}
         </div>
