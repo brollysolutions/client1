@@ -4,7 +4,12 @@ import * as React from "react";
 import { toast } from "sonner";
 
 import { createBookmark, deleteBookmark, getBookmarks } from "@/lib/bookmarks";
-import { getListingById } from "@/lib/real-estate";
+
+// Display snapshot passed by the caller (the property card, which already holds
+// the listing) so the bookmark row can denormalize title/locality/city without
+// re-resolving the id against a catalog — property ids are real UUIDs now, not
+// mock keys, so a catalog lookup by id is neither available nor needed here.
+type BookmarkSnapshot = { title: string; locality: string; city: string };
 
 // Frontend-only persistence for the real-estate client workspace: compare
 // lives in localStorage since no property backend exists yet. Bookmarks are
@@ -64,7 +69,7 @@ function useLocalStorageState<T>(key: string, initial: T): [T, React.Dispatch<Re
 type BookmarksContextValue = {
   ids: string[];
   has: (id: string) => boolean;
-  toggle: (id: string) => void;
+  toggle: (id: string, snapshot?: BookmarkSnapshot) => void;
   count: number;
   // Initial-load state for the Bookmarks page's own loading/error UI.
   // property-card.tsx (elsewhere in the app) doesn't read these; while
@@ -110,7 +115,7 @@ function BookmarksProvider({ children }: { children: React.ReactNode }) {
     () => ({
       ids,
       has: (id) => ids.includes(id),
-      toggle: (id) => {
+      toggle: (id, snapshot) => {
         const wasBookmarked = ids.includes(id);
         setIds((prev) => (wasBookmarked ? prev.filter((x) => x !== id) : [...prev, id]));
 
@@ -122,11 +127,10 @@ function BookmarksProvider({ children }: { children: React.ReactNode }) {
             }
           });
         } else {
-          const listing = getListingById(id);
           void createBookmark({
             propertyRef: id,
-            ...(listing
-              ? { title: listing.title, locality: listing.locality, city: listing.city }
+            ...(snapshot
+              ? { title: snapshot.title, locality: snapshot.locality, city: snapshot.city }
               : {}),
           }).then((res) => {
             if (!res.ok) {

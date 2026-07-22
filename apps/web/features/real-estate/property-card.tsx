@@ -58,7 +58,13 @@ export function PropertyCard({ listing, fluid = false }: { listing: REListing; f
         </span>
         <button
           type="button"
-          onClick={() => bookmarks.toggle(listing.id)}
+          onClick={() =>
+            bookmarks.toggle(listing.id, {
+              title: listing.title,
+              locality: listing.locality,
+              city: listing.city,
+            })
+          }
           aria-label={bookmarked ? "Remove bookmark" : "Bookmark this property"}
           aria-pressed={bookmarked}
           className={cn(
@@ -75,7 +81,13 @@ export function PropertyCard({ listing, fluid = false }: { listing: REListing; f
           <CardTitle className="font-heading text-lg text-foreground">{listing.title}</CardTitle>
           <button
             type="button"
-            onClick={() => bookmarks.toggle(listing.id)}
+            onClick={() =>
+            bookmarks.toggle(listing.id, {
+              title: listing.title,
+              locality: listing.locality,
+              city: listing.city,
+            })
+          }
             aria-label={bookmarked ? "Remove bookmark" : "Bookmark this property"}
             aria-pressed={bookmarked}
             className={cn(
@@ -94,6 +106,9 @@ export function PropertyCard({ listing, fluid = false }: { listing: REListing; f
           {listing.location}
         </p>
         {listing.meta ? <p className="text-sm text-text-secondary">{listing.meta}</p> : null}
+        {listing.reraNumber ? (
+          <p className="text-xs text-text-secondary">RERA: {listing.reraNumber}</p>
+        ) : null}
       </CardHeader>
 
       <CardContent className="pt-1">

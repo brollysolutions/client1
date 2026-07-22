@@ -211,6 +211,14 @@
         "title": "ClientProfileSummary",
         "type": "object"
       },
+      "ConstructionStatus": {
+        "enum": [
+          "ready",
+          "under_construction"
+        ],
+        "title": "ConstructionStatus",
+        "type": "string"
+      },
       "EmailVerifyConfirmRequest": {
         "properties": {
           "otp": {
@@ -493,6 +501,15 @@
         ],
         "title": "ForgotVerifyRequest",
         "type": "object"
+      },
+      "Furnishing": {
+        "enum": [
+          "unfurnished",
+          "semi",
+          "furnished"
+        ],
+        "title": "Furnishing",
+        "type": "string"
       },
       "HTTPValidationError": {
         "properties": {
@@ -1255,6 +1272,162 @@
         ],
         "title": "PayoutType",
         "type": "string"
+      },
+      "PropertyCategory": {
+        "enum": [
+          "houses",
+          "apartments",
+          "villas",
+          "plots",
+          "commercial"
+        ],
+        "title": "PropertyCategory",
+        "type": "string"
+      },
+      "PropertyListResponse": {
+        "properties": {
+          "properties": {
+            "items": {
+              "$ref": "#/components/schemas/PropertyRead"
+            },
+            "title": "Properties",
+            "type": "array"
+          }
+        },
+        "required": [
+          "properties"
+        ],
+        "title": "PropertyListResponse",
+        "type": "object"
+      },
+      "PropertyRead": {
+        "properties": {
+          "active": {
+            "title": "Active",
+            "type": "boolean"
+          },
+          "age_years": {
+            "title": "Age Years",
+            "type": "integer"
+          },
+          "amenities": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Amenities",
+            "type": "array"
+          },
+          "area_sqft": {
+            "title": "Area Sqft",
+            "type": "integer"
+          },
+          "bhk": {
+            "title": "Bhk",
+            "type": "integer"
+          },
+          "category": {
+            "$ref": "#/components/schemas/PropertyCategory"
+          },
+          "city": {
+            "title": "City",
+            "type": "string"
+          },
+          "construction_status": {
+            "$ref": "#/components/schemas/ConstructionStatus"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "furnishing": {
+            "$ref": "#/components/schemas/Furnishing"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "image": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Image"
+          },
+          "locality": {
+            "title": "Locality",
+            "type": "string"
+          },
+          "location": {
+            "title": "Location",
+            "type": "string"
+          },
+          "meta": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meta"
+          },
+          "pincode": {
+            "title": "Pincode",
+            "type": "string"
+          },
+          "price_display": {
+            "title": "Price Display",
+            "type": "string"
+          },
+          "price_paise": {
+            "title": "Price Paise",
+            "type": "integer"
+          },
+          "rera_number": {
+            "title": "Rera Number",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "type": {
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "type",
+          "location",
+          "price_display",
+          "price_paise",
+          "meta",
+          "image",
+          "category",
+          "city",
+          "locality",
+          "pincode",
+          "bhk",
+          "area_sqft",
+          "furnishing",
+          "construction_status",
+          "amenities",
+          "age_years",
+          "rera_number",
+          "active",
+          "created_at"
+        ],
+        "title": "PropertyRead",
+        "type": "object"
       },
       "PublicLeadCreate": {
         "properties": {
@@ -3389,6 +3562,80 @@
         "summary": "Reject Payout",
         "tags": [
           "payouts"
+        ]
+      }
+    },
+    "/api/v1/properties": {
+      "get": {
+        "operationId": "list_properties_api_v1_properties_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PropertyListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "List Properties",
+        "tags": [
+          "properties"
+        ]
+      }
+    },
+    "/api/v1/properties/{property_id}": {
+      "get": {
+        "operationId": "get_property_api_v1_properties__property_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "property_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Property Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PropertyRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Get Property",
+        "tags": [
+          "properties"
         ]
       }
     },

@@ -7,8 +7,8 @@ import {
   EXPLORE_CATEGORIES,
   getExploreCategory,
 } from "@/features/dashboard/explore-categories";
-import { PropertyBrowser } from "@/features/real-estate/property-browser";
-import { getListingsByCategory, getRECategory, RE_CATEGORIES } from "@/lib/real-estate";
+import { CategoryBrowser } from "@/features/real-estate/category-browser";
+import { getRECategory, RE_CATEGORIES } from "@/lib/real-estate";
 
 export function generateStaticParams() {
   return [
@@ -43,10 +43,10 @@ export default async function ExploreCategoryPage({
 
       {reCategory ? (
         // Search + filters scoped to this category only (ceiling = this
-        // category's listings; the Property-type facet is hidden).
-        <PropertyBrowser
-          source={getListingsByCategory(reCategory.key)}
-          lockedCategory={reCategory.key}
+        // category's listings; the Property-type facet is hidden). The catalog
+        // is fetched client-side (CategoryBrowser) since the token is in-memory.
+        <CategoryBrowser
+          categoryKey={reCategory.key}
           header={
             <div>
               <h1 className="text-2xl font-semibold text-text-primary">{label}</h1>
