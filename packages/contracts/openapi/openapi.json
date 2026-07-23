@@ -1,6 +1,158 @@
 {
   "components": {
     "schemas": {
+      "AgentApplicationListResponse": {
+        "properties": {
+          "applications": {
+            "items": {
+              "$ref": "#/components/schemas/AgentApplicationRead"
+            },
+            "title": "Applications",
+            "type": "array"
+          }
+        },
+        "required": [
+          "applications"
+        ],
+        "title": "AgentApplicationListResponse",
+        "type": "object"
+      },
+      "AgentApplicationRead": {
+        "properties": {
+          "business_line": {
+            "enum": [
+              "loans",
+              "real_estate"
+            ],
+            "title": "Business Line",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "first_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "First Name"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "last_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Name"
+          },
+          "mobile": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mobile"
+          },
+          "rera_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rera Code"
+          },
+          "status": {
+            "enum": [
+              "pending",
+              "approved",
+              "rejected"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "first_name",
+          "last_name",
+          "mobile",
+          "business_line",
+          "rera_code",
+          "status",
+          "created_at"
+        ],
+        "title": "AgentApplicationRead",
+        "type": "object"
+      },
+      "AgentApproveResponse": {
+        "properties": {
+          "agent_code": {
+            "title": "Agent Code",
+            "type": "string"
+          },
+          "business_line": {
+            "enum": [
+              "loans",
+              "real_estate"
+            ],
+            "title": "Business Line",
+            "type": "string"
+          },
+          "temp_password": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Temp Password"
+          }
+        },
+        "required": [
+          "agent_code",
+          "business_line",
+          "temp_password"
+        ],
+        "title": "AgentApproveResponse",
+        "type": "object"
+      },
+      "AgentRejectRequest": {
+        "properties": {
+          "note": {
+            "maxLength": 1000,
+            "minLength": 1,
+            "title": "Note",
+            "type": "string"
+          }
+        },
+        "required": [
+          "note"
+        ],
+        "title": "AgentRejectRequest",
+        "type": "object"
+      },
       "AuthTokensResponse": {
         "properties": {
           "access_token": {
@@ -1967,6 +2119,131 @@
         "title": "SiteVisitTimeSlot",
         "type": "string"
       },
+      "StaffCreateRequest": {
+        "properties": {
+          "business_line": {
+            "anyOf": [
+              {
+                "enum": [
+                  "loans",
+                  "real_estate"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Business Line"
+          },
+          "email": {
+            "format": "email",
+            "title": "Email",
+            "type": "string"
+          },
+          "first_name": {
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "First Name",
+            "type": "string"
+          },
+          "last_name": {
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Last Name",
+            "type": "string"
+          },
+          "mobile": {
+            "pattern": "^\\+[1-9]\\d{6,14}$",
+            "title": "Mobile",
+            "type": "string"
+          },
+          "role": {
+            "enum": [
+              "sub_admin",
+              "telecaller",
+              "employee"
+            ],
+            "title": "Role",
+            "type": "string"
+          }
+        },
+        "required": [
+          "first_name",
+          "last_name",
+          "mobile",
+          "email",
+          "role"
+        ],
+        "title": "StaffCreateRequest",
+        "type": "object"
+      },
+      "StaffCreateResponse": {
+        "properties": {
+          "business_line": {
+            "anyOf": [
+              {
+                "enum": [
+                  "loans",
+                  "real_estate"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Business Line"
+          },
+          "first_name": {
+            "title": "First Name",
+            "type": "string"
+          },
+          "last_name": {
+            "title": "Last Name",
+            "type": "string"
+          },
+          "mobile": {
+            "title": "Mobile",
+            "type": "string"
+          },
+          "role": {
+            "enum": [
+              "sub_admin",
+              "telecaller",
+              "employee"
+            ],
+            "title": "Role",
+            "type": "string"
+          },
+          "staff_code": {
+            "title": "Staff Code",
+            "type": "string"
+          },
+          "temp_password": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Temp Password"
+          }
+        },
+        "required": [
+          "first_name",
+          "last_name",
+          "mobile",
+          "role",
+          "business_line",
+          "staff_code",
+          "temp_password"
+        ],
+        "title": "StaffCreateResponse",
+        "type": "object"
+      },
       "SubmissionCreate": {
         "properties": {
           "age_years": {
@@ -2588,6 +2865,184 @@
           }
         },
         "summary": "Root"
+      }
+    },
+    "/api/v1/admin/agents": {
+      "get": {
+        "operationId": "list_pending_agent_applications_api_v1_admin_agents_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentApplicationListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "List Pending Agent Applications",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/agents/{application_id}/approve": {
+      "post": {
+        "operationId": "approve_agent_api_v1_admin_agents__application_id__approve_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "application_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Application Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentApproveResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Approve Agent",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/agents/{application_id}/reject": {
+      "post": {
+        "operationId": "reject_agent_api_v1_admin_agents__application_id__reject_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "application_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Application Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgentRejectRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentApplicationRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Reject Agent",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/users/create": {
+      "post": {
+        "operationId": "create_staff_user_api_v1_admin_users_create_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StaffCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffCreateResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Create Staff User",
+        "tags": [
+          "admin"
+        ]
       }
     },
     "/api/v1/auth/change-password": {

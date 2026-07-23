@@ -21,6 +21,74 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/agents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Pending Agent Applications */
+        get: operations["list_pending_agent_applications_api_v1_admin_agents_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/agents/{application_id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Approve Agent */
+        post: operations["approve_agent_api_v1_admin_agents__application_id__approve_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/agents/{application_id}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reject Agent */
+        post: operations["reject_agent_api_v1_admin_agents__application_id__reject_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/users/create": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create Staff User */
+        post: operations["create_staff_user_api_v1_admin_users_create_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/change-password": {
         parameters: {
             query?: never;
@@ -722,6 +790,59 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** AgentApplicationListResponse */
+        AgentApplicationListResponse: {
+            /** Applications */
+            applications: components["schemas"]["AgentApplicationRead"][];
+        };
+        /** AgentApplicationRead */
+        AgentApplicationRead: {
+            /**
+             * Business Line
+             * @enum {string}
+             */
+            business_line: "loans" | "real_estate";
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** First Name */
+            first_name: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Last Name */
+            last_name: string | null;
+            /** Mobile */
+            mobile: string | null;
+            /** Rera Code */
+            rera_code: string | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "pending" | "approved" | "rejected";
+        };
+        /** AgentApproveResponse */
+        AgentApproveResponse: {
+            /** Agent Code */
+            agent_code: string;
+            /**
+             * Business Line
+             * @enum {string}
+             */
+            business_line: "loans" | "real_estate";
+            /** Temp Password */
+            temp_password: string | null;
+        };
+        /** AgentRejectRequest */
+        AgentRejectRequest: {
+            /** Note */
+            note: string;
+        };
         /** AuthTokensResponse */
         AuthTokensResponse: {
             /** Access Token */
@@ -1432,6 +1553,47 @@ export interface components {
          * @enum {string}
          */
         SiteVisitTimeSlot: "morning" | "afternoon" | "evening";
+        /** StaffCreateRequest */
+        StaffCreateRequest: {
+            /** Business Line */
+            business_line?: ("loans" | "real_estate") | null;
+            /**
+             * Email
+             * Format: email
+             */
+            email: string;
+            /** First Name */
+            first_name: string;
+            /** Last Name */
+            last_name: string;
+            /** Mobile */
+            mobile: string;
+            /**
+             * Role
+             * @enum {string}
+             */
+            role: "sub_admin" | "telecaller" | "employee";
+        };
+        /** StaffCreateResponse */
+        StaffCreateResponse: {
+            /** Business Line */
+            business_line: ("loans" | "real_estate") | null;
+            /** First Name */
+            first_name: string;
+            /** Last Name */
+            last_name: string;
+            /** Mobile */
+            mobile: string;
+            /**
+             * Role
+             * @enum {string}
+             */
+            role: "sub_admin" | "telecaller" | "employee";
+            /** Staff Code */
+            staff_code: string;
+            /** Temp Password */
+            temp_password: string | null;
+        };
         /** SubmissionCreate */
         SubmissionCreate: {
             /**
@@ -1683,6 +1845,125 @@ export interface operations {
                     "application/json": {
                         [key: string]: string;
                     };
+                };
+            };
+        };
+    };
+    list_pending_agent_applications_api_v1_admin_agents_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentApplicationListResponse"];
+                };
+            };
+        };
+    };
+    approve_agent_api_v1_admin_agents__application_id__approve_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                application_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentApproveResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reject_agent_api_v1_admin_agents__application_id__reject_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                application_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AgentRejectRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentApplicationRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_staff_user_api_v1_admin_users_create_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StaffCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffCreateResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
