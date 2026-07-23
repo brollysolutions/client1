@@ -10,6 +10,7 @@ only wall — same posture as services/telecaller.py.
 
 from __future__ import annotations
 
+import uuid
 from datetime import UTC, datetime
 from uuid import UUID
 
@@ -17,8 +18,9 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.lead import Lead
-from app.models.task import BgCheckOutcome, Task, TaskStatus, TaskType
+from app.models.task import BgCheckOutcome, Task, TaskDocument, TaskStatus, TaskType
 from app.schemas.employee import EmployeeTaskUpdate
+from app.services import storage
 
 _TERMINAL = {TaskStatus.COMPLETED, TaskStatus.CANCELLED}
 
@@ -48,6 +50,18 @@ class OutcomeNotApplicable(Exception):
 class OutcomeRequired(Exception):
     """Raised when completing a background_check task with no outcome
     (existing or provided in this update)."""
+
+
+class TaskNotDocumentCollection(Exception):
+    """Raised when a document-upload endpoint is called against a task whose
+    task_type isn't document_collection."""
+
+
+class TaskDocumentKeyMismatch(Exception):
+    """Raised when confirm_document is called with an object_key that
+    doesn't belong to this task's own key prefix — presign never hands out
+    a key outside tasks/{task_id}/, so a mismatch means the caller is trying
+    to attach an object from elsewhere (security review finding)."""
 
 
 def _base_stmt():
@@ -160,3 +174,78 @@ async def get_home_summary(
             tasks_today.append((task, name, mobile))
     tasks_today.sort(key=lambda row: row[0].due_at)
     return tasks_today, overdue_count, counts_by_type, counts_by_status
+
+
+def _check_document_writable(task: Task) -> None:
+    """Shared guard for presign/create/delete: only a document_collection
+    task, not yet terminal, accepts document writes."""
+    if task.task_type != TaskType.DOCUMENT_COLLECTION:
+        raise TaskNotDocumentCollection
+    if task.status in _TERMINAL:
+        raise TaskAlreadyTerminal
+
+
+def build_document_object_key(task_id: UUID, doc_type: str) -> str:
+    return f"{_document_key_prefix(task_id)}{uuid.uuid4()}-{doc_type}"
+
+
+def presign_task_document_upload(task: Task, doc_type: str, content_type: str) -> tuple[str, str]:
+    """Returns (object_key, upload_url). No DB write — the row is only
+    created once the client confirms the direct-to-storage PUT succeeded
+    (create_task_document), so a failed upload never leaves an orphan row."""
+    _check_document_writable(task)
+    object_key = build_document_object_key(task.id, doc_type)
+    upload_url = storage.presign_upload(object_key, content_type)
+    return object_key, upload_url
+
+
+def _document_key_prefix(task_id: UUID) -> str:
+    return f"tasks/{task_id}/"
+
+
+async def create_task_document(
+    db: AsyncSession, task: Task, doc_type: str, object_key: str
+) -> TaskDocument:
+    _check_document_writable(task)
+    if not object_key.startswith(_document_key_prefix(task.id)):
+        raise TaskDocumentKeyMismatch
+    document = TaskDocument(task_uuid=task.id, doc_type=doc_type, object_key=object_key)
+    db.add(document)
+    await db.commit()
+    await db.refresh(document)
+    return document
+
+
+async def list_task_documents(
+    db: AsyncSession, task_id: UUID, staff_profile_uuid: UUID
+) -> list[TaskDocument]:
+    """App-layer own-task check mirrors get_task_for_employee — RLS is the
+    real wall, this is defense in depth (same posture as every other query
+    in this module)."""
+    stmt = (
+        select(TaskDocument)
+        .join(Task, Task.id == TaskDocument.task_uuid)
+        .where(
+            TaskDocument.task_uuid == task_id,
+            Task.assigned_employee_profile_uuid == staff_profile_uuid,
+        )
+        .order_by(TaskDocument.uploaded_at.desc())
+    )
+    return list((await db.execute(stmt)).scalars().all())
+
+
+async def get_task_document_for_delete(
+    db: AsyncSession, task: Task, document_id: UUID
+) -> TaskDocument | None:
+    _check_document_writable(task)
+    stmt = select(TaskDocument).where(
+        TaskDocument.id == document_id, TaskDocument.task_uuid == task.id
+    )
+    return await db.scalar(stmt)
+
+
+async def delete_task_document(db: AsyncSession, document: TaskDocument) -> None:
+    object_key = document.object_key
+    await db.delete(document)
+    await db.commit()
+    storage.delete_object(object_key)
