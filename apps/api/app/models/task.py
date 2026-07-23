@@ -34,9 +34,18 @@ class TaskStatus(enum.StrEnum):
     BLOCKED = "blocked"
 
 
+class BgCheckOutcome(enum.StrEnum):
+    CLEAR = "clear"
+    FLAGGED = "flagged"
+    INCONCLUSIVE = "inconclusive"
+
+
 _ev = lambda x: [e.value for e in x]  # noqa: E731
 task_type_enum = ENUM(TaskType, name="task_type", create_type=False, values_callable=_ev)
 task_status_enum = ENUM(TaskStatus, name="task_status", create_type=False, values_callable=_ev)
+bg_check_outcome_enum = ENUM(
+    BgCheckOutcome, name="bg_check_outcome", create_type=False, values_callable=_ev
+)
 
 
 class Task(Base):
@@ -60,6 +69,7 @@ class Task(Base):
         task_status_enum, nullable=False, default=TaskStatus.UNASSIGNED
     )
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    outcome: Mapped[BgCheckOutcome | None] = mapped_column(bg_check_outcome_enum, nullable=True)
     due_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, default=datetime.utcnow

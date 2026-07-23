@@ -9,6 +9,7 @@ import { FetchError } from "@/features/dashboard/fetch-error";
 import { useLine } from "@/features/dashboard/line-provider";
 import { LoansApplications } from "@/features/dashboard/loans-applications";
 import { useMe } from "@/features/dashboard/me-provider";
+import { EmployeeHome } from "@/features/employee/employee-home";
 import { RealEstateHome } from "@/features/real-estate/real-estate-home";
 import { TelecallerHome } from "@/features/telecaller/telecaller-home";
 
@@ -24,6 +25,10 @@ export default function DashboardPage() {
 
   if (session?.role === "telecaller") {
     return <TelecallerHome />;
+  }
+
+  if (session?.role === "employee") {
+    return <EmployeeHome />;
   }
 
   if (!isClient) {

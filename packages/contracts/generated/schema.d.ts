@@ -414,6 +414,58 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/employee/home": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Home */
+        get: operations["home_api_v1_employee_home_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/employee/tasks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Tasks */
+        get: operations["list_tasks_api_v1_employee_tasks_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/employee/tasks/{task_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Task */
+        get: operations["get_task_api_v1_employee_tasks__task_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Patch Task */
+        patch: operations["patch_task_api_v1_employee_tasks__task_id__patch"];
+        trace?: never;
+    };
     "/api/v1/enquiries": {
         parameters: {
             query?: never;
@@ -972,6 +1024,8 @@ export interface components {
             lead_uuid: string;
             /** Notes */
             notes: string | null;
+            /** Outcome */
+            outcome: ("clear" | "flagged" | "inconclusive") | null;
             /**
              * Raised By Staff Profile Uuid
              * Format: uuid
@@ -1145,6 +1199,78 @@ export interface components {
             message: string;
             /** Otp Hint */
             otp_hint?: string | null;
+        };
+        /** EmployeeHomeResponse */
+        EmployeeHomeResponse: {
+            /** Counts By Status */
+            counts_by_status: {
+                [key: string]: number;
+            };
+            /** Counts By Type */
+            counts_by_type: {
+                [key: string]: number;
+            };
+            /** Overdue Count */
+            overdue_count: number;
+            /** Tasks Today */
+            tasks_today: components["schemas"]["EmployeeTaskRead"][];
+        };
+        /** EmployeeTaskRead */
+        EmployeeTaskRead: {
+            /**
+             * Business Line
+             * @enum {string}
+             */
+            business_line: "loans" | "real_estate";
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Due At */
+            due_at: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Lead Mobile */
+            lead_mobile: string;
+            /** Lead Name */
+            lead_name: string | null;
+            /**
+             * Lead Uuid
+             * Format: uuid
+             */
+            lead_uuid: string;
+            /** Notes */
+            notes: string | null;
+            /** Outcome */
+            outcome: ("clear" | "flagged" | "inconclusive") | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "assigned" | "in_progress" | "completed" | "cancelled" | "blocked";
+            /**
+             * Task Type
+             * @enum {string}
+             */
+            task_type: "document_collection" | "property_visit" | "background_check";
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** EmployeeTaskUpdate */
+        EmployeeTaskUpdate: {
+            /** Notes */
+            notes?: string | null;
+            /** Outcome */
+            outcome?: ("clear" | "flagged" | "inconclusive") | null;
+            /** Status */
+            status?: ("assigned" | "in_progress" | "completed" | "cancelled" | "blocked") | null;
         };
         /** EnquiryCreate */
         EnquiryCreate: {
@@ -3104,6 +3230,124 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    home_api_v1_employee_home_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmployeeHomeResponse"];
+                };
+            };
+        };
+    };
+    list_tasks_api_v1_employee_tasks_get: {
+        parameters: {
+            query?: {
+                status_filter?: ("assigned" | "in_progress" | "completed" | "cancelled" | "blocked") | null;
+                task_type_filter?: ("document_collection" | "property_visit" | "background_check") | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmployeeTaskRead"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_task_api_v1_employee_tasks__task_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                task_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmployeeTaskRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    patch_task_api_v1_employee_tasks__task_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                task_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EmployeeTaskUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmployeeTaskRead"];
+                };
             };
             /** @description Validation Error */
             422: {
