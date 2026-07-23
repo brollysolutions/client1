@@ -10,7 +10,7 @@ only (requested/sanctioned amount, rate, fee), never a repayment schedule.
 import enum
 import uuid
 from datetime import date, datetime
-from typing import Any, Optional
+from typing import TYPE_CHECKING, Any, Optional
 
 from sqlalchemy import Boolean, Date, DateTime, ForeignKey, Numeric, String, Text
 from sqlalchemy.dialects.postgresql import ENUM, JSONB, UUID
@@ -18,6 +18,9 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
 from app.models.user import business_line_enum
+
+if TYPE_CHECKING:
+    from app.models.profile import ClientProfile
 
 
 class LoanStatus(enum.StrEnum):
@@ -105,6 +108,7 @@ class LoanApplication(Base):
 
     loan_type: Mapped["LoanType"] = relationship("LoanType")
     bank: Mapped[Optional["Bank"]] = relationship("Bank")
+    client_profile: Mapped["ClientProfile"] = relationship("ClientProfile")
 
 
 class LoanTxnHistory(Base):

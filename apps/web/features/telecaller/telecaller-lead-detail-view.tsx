@@ -60,7 +60,7 @@ function formatDateTime(iso: string | null | undefined): string {
 }
 
 export function TelecallerLeadDetailView({ leadId }: { leadId: string }) {
-  const { lead, status, error, errorStatus, retry, updateStatus, logCall, addTxn, raiseTask } =
+  const { lead, status, error, errorStatus, retry, updateStatus, logCall, addTxn, raiseTask, updateApp } =
     useTelecallerLeadDetail(leadId);
 
   const [disposition, setDisposition] = React.useState<LeadActivityCreate["disposition"] | "">("");
@@ -293,7 +293,11 @@ export function TelecallerLeadDetailView({ leadId }: { leadId: string }) {
       </div>
 
       {lead.business_line === "loans" ? (
-        <TelecallerLoanAppsSection applications={lead.loan_applications} onAddTxn={addTxn} />
+        <TelecallerLoanAppsSection
+          applications={lead.loan_applications}
+          onAddTxn={addTxn}
+          onUpdateApp={updateApp}
+        />
       ) : null}
 
       <TelecallerTasksSection tasks={lead.tasks} onRaiseTask={raiseTask} />

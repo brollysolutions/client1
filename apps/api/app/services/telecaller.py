@@ -186,10 +186,15 @@ async def get_application_for_telecaller(
     db: AsyncSession, application_id: UUID, staff_profile_uuid: UUID
 ) -> LoanApplication:
     """Defense-in-depth atop loan_txn_history_rls: confirms the application's
-    lead is assigned to this telecaller and the line is loans (FR-6.5 scope)."""
+    lead is assigned to this telecaller and the line is loans (FR-6.5 scope).
+
+    loan_type/bank are eager-loaded: the progress-update route (loan lifecycle
+    progression slice) reads both to shape its response, and async SQLAlchemy
+    has no implicit lazy load."""
     application = await db.scalar(
         select(LoanApplication)
         .join(Lead, Lead.id == LoanApplication.lead_uuid)
+        .options(selectinload(LoanApplication.loan_type), selectinload(LoanApplication.bank))
         .where(
             LoanApplication.id == application_id,
             Lead.assigned_telecaller_profile_uuid == staff_profile_uuid,
