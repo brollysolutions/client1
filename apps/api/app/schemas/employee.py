@@ -15,6 +15,20 @@ TaskTypeLiteral = Literal["document_collection", "property_visit", "background_c
 TaskStatusLiteral = Literal["assigned", "in_progress", "completed", "cancelled", "blocked"]
 BgCheckOutcomeLiteral = Literal["clear", "flagged", "inconclusive"]
 
+# Fixed vocabulary enforced at the API layer; the DB column stays free TEXT
+# per the ERD. Matches the labels already used in the public apply-form KYC tiles.
+DocTypeLiteral = Literal[
+    "aadhaar_front",
+    "aadhaar_back",
+    "pan",
+    "salary_slip",
+    "bank_statement",
+    "sale_deed",
+    "photo",
+    "other",
+]
+DocContentTypeLiteral = Literal["image/jpeg", "image/png", "application/pdf"]
+
 
 class EmployeeTaskRead(BaseModel):
     id: UUID
@@ -48,3 +62,26 @@ class EmployeeHomeResponse(BaseModel):
     overdue_count: int
     counts_by_type: dict[str, int]
     counts_by_status: dict[str, int]
+
+
+class TaskDocumentPresignRequest(BaseModel):
+    doc_type: DocTypeLiteral
+    content_type: DocContentTypeLiteral
+
+
+class TaskDocumentPresignResponse(BaseModel):
+    object_key: str
+    upload_url: str
+
+
+class TaskDocumentCreate(BaseModel):
+    doc_type: DocTypeLiteral
+    object_key: str
+
+
+class TaskDocumentRead(BaseModel):
+    id: UUID
+    doc_type: str
+    verified: bool
+    uploaded_at: datetime
+    download_url: str

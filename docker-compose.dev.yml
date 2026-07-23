@@ -11,6 +11,10 @@ services:
     environment:
       ENV: development
       LOG_LEVEL: debug
+      # Presigned URLs go to the browser, which can't resolve the
+      # container-network "minio" hostname — point it at the host-published
+      # port instead. See services/storage.py for the internal-vs-public split.
+      SPACES_PUBLIC_ENDPOINT_URL: http://localhost:9000
     volumes:
       - ./apps/api:/app
       # Keep the image's Linux .venv; don't let the host (Windows) .venv leak through the mount.

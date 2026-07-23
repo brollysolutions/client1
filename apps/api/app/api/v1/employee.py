@@ -15,23 +15,35 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.deps import CurrentUser, require_employee
 from app.db.session import get_db
 from app.models.lead import Lead
-from app.models.task import Task
+from app.models.task import Task, TaskDocument
 from app.schemas.employee import (
     EmployeeHomeResponse,
     EmployeeTaskRead,
     EmployeeTaskUpdate,
+    TaskDocumentCreate,
+    TaskDocumentPresignRequest,
+    TaskDocumentPresignResponse,
+    TaskDocumentRead,
     TaskStatusLiteral,
     TaskTypeLiteral,
 )
+from app.services import storage
 from app.services.employee import (
     IllegalTransition,
     OutcomeNotApplicable,
     OutcomeRequired,
     TaskAlreadyTerminal,
+    TaskDocumentKeyMismatch,
+    TaskNotDocumentCollection,
+    create_task_document,
+    delete_task_document,
     get_home_summary,
+    get_task_document_for_delete,
     get_task_for_employee,
     get_task_for_update,
+    list_task_documents,
     list_tasks_for_employee,
+    presign_task_document_upload,
     update_task,
 )
 
@@ -122,6 +134,116 @@ async def patch_task(
         ) from exc
     lead = await db.get(Lead, task.lead_uuid)
     return _to_read(task, lead.name if lead else None, lead.mobile if lead else "")
+
+
+def _to_document_read(document: TaskDocument) -> TaskDocumentRead:
+    return TaskDocumentRead(
+        id=document.id,
+        doc_type=document.doc_type,
+        verified=document.verified,
+        uploaded_at=document.uploaded_at,
+        download_url=storage.presign_download(document.object_key),
+    )
+
+
+async def _get_own_task(db: AsyncSession, task_id: UUID, staff_profile_uuid: UUID) -> Task:
+    row = await get_task_for_employee(db, task_id, staff_profile_uuid)
+    if row is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Task not found.")
+    return row[0]
+
+
+@router.post("/tasks/{task_id}/documents/presign", response_model=TaskDocumentPresignResponse)
+async def presign_document(
+    task_id: UUID,
+    payload: TaskDocumentPresignRequest,
+    current_user: CurrentUser = Depends(require_employee),
+    db: AsyncSession = Depends(get_db),
+) -> TaskDocumentPresignResponse:
+    staff_profile_uuid = _staff_profile_uuid(current_user)
+    task = await _get_own_task(db, task_id, staff_profile_uuid)
+    try:
+        object_key, upload_url = presign_task_document_upload(
+            task, payload.doc_type, payload.content_type
+        )
+    except TaskNotDocumentCollection as exc:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            "Documents can only be uploaded for a document_collection task.",
+        ) from exc
+    except TaskAlreadyTerminal as exc:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            "This task is already closed; no further changes are allowed.",
+        ) from exc
+    return TaskDocumentPresignResponse(object_key=object_key, upload_url=upload_url)
+
+
+@router.post("/tasks/{task_id}/documents", response_model=TaskDocumentRead)
+async def confirm_document(
+    task_id: UUID,
+    payload: TaskDocumentCreate,
+    current_user: CurrentUser = Depends(require_employee),
+    db: AsyncSession = Depends(get_db),
+) -> TaskDocumentRead:
+    staff_profile_uuid = _staff_profile_uuid(current_user)
+    task = await _get_own_task(db, task_id, staff_profile_uuid)
+    try:
+        document = await create_task_document(db, task, payload.doc_type, payload.object_key)
+    except TaskNotDocumentCollection as exc:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            "Documents can only be uploaded for a document_collection task.",
+        ) from exc
+    except TaskAlreadyTerminal as exc:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            "This task is already closed; no further changes are allowed.",
+        ) from exc
+    except TaskDocumentKeyMismatch as exc:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            "This object_key wasn't issued for this task.",
+        ) from exc
+    return _to_document_read(document)
+
+
+@router.get("/tasks/{task_id}/documents", response_model=list[TaskDocumentRead])
+async def list_documents(
+    task_id: UUID,
+    current_user: CurrentUser = Depends(require_employee),
+    db: AsyncSession = Depends(get_db),
+) -> list[TaskDocumentRead]:
+    staff_profile_uuid = _staff_profile_uuid(current_user)
+    await _get_own_task(db, task_id, staff_profile_uuid)
+    documents = await list_task_documents(db, task_id, staff_profile_uuid)
+    return [_to_document_read(document) for document in documents]
+
+
+@router.delete("/tasks/{task_id}/documents/{document_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_document(
+    task_id: UUID,
+    document_id: UUID,
+    current_user: CurrentUser = Depends(require_employee),
+    db: AsyncSession = Depends(get_db),
+) -> None:
+    staff_profile_uuid = _staff_profile_uuid(current_user)
+    task = await _get_own_task(db, task_id, staff_profile_uuid)
+    try:
+        document = await get_task_document_for_delete(db, task, document_id)
+    except TaskNotDocumentCollection as exc:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            "Documents can only be uploaded for a document_collection task.",
+        ) from exc
+    except TaskAlreadyTerminal as exc:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            "This task is already closed; no further changes are allowed.",
+        ) from exc
+    if document is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Document not found.")
+    await delete_task_document(db, document)
 
 
 @router.get("/home", response_model=EmployeeHomeResponse)
