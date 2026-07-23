@@ -18,7 +18,9 @@ from app.models.user import User  # noqa
 from app.models.auth import RefreshToken, AuthEvent  # noqa
 from app.models.profile import ClientProfile, StaffProfile, AgentApplication, AgentProfile  # noqa
 from app.models.lead import Lead  # noqa
-from app.models.loan import LoanType, Bank, LoanApplication  # noqa
+from app.models.lead_activity import LeadActivity  # noqa
+from app.models.loan import LoanType, Bank, LoanApplication, LoanTxnHistory  # noqa
+from app.models.task import Task  # noqa
 from app.models.support_ticket import SupportTicket  # noqa
 from app.models.site_visit import SiteVisit  # noqa
 from app.models.enquiry import Enquiry  # noqa

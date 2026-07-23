@@ -1,14 +1,24 @@
-"""Promote a registered account to a platform staff role (dev only).
+"""Promote a registered account to a staff role (dev only).
 
-Attaches a PLATFORM-scoped StaffProfile to an existing auth_user so that account's
-next login resolves as Admin or Sub Admin (staff > agent > client precedence in
+Attaches a StaffProfile to an existing auth_user so that account's next login
+resolves as staff (staff > agent > client precedence in
 services.auth_service.resolve_role_claims). Needed to exercise staff-only surfaces
-in dev (e.g. the property-review queue) — no self-registration path creates staff.
+in dev (e.g. the property-review queue, the Telecaller Dashboard) — no
+self-registration path creates staff.
 
-The account's mobile is a required argument; the role is optional (default
-sub_admin):
+sub_admin is PLATFORM-scoped (no business_line). telecaller and employee are
+LINE-scoped and need an explicit business_line — this mirrors the rule
+services.admin.create_staff already enforces for admin-provisioned accounts, and
+matters here specifically because leads_rls's telecaller branch (migration
+e6c7b8f9a0d1) keys off app.business_line: a platform-scoped telecaller would never
+match it.
+
+The account's mobile is a required argument; role defaults to sub_admin;
+business_line is required for telecaller/employee:
     docker exec mahesh-client-project-api-1 \\
         uv run python -m app.scripts.seed_staff +919812345678 sub_admin
+    docker exec mahesh-client-project-api-1 \\
+        uv run python -m app.scripts.seed_staff +919812345678 telecaller loans
 
 Inserts through AsyncSessionLocal as the `app` superuser (bypasses RLS). Idempotent:
 skips if the account already has an ACTIVE staff profile. Dev/staging only — staff
@@ -24,7 +34,7 @@ import uuid
 from sqlalchemy import select, text
 
 
-async def _seed(mobile: str, role_value: str) -> None:
+async def _seed(mobile: str, role_value: str, business_line: str | None) -> None:
     import app.db.session as session_mod
     from app.models.profile import (
         ProfileScope,
@@ -39,6 +49,17 @@ async def _seed(mobile: str, role_value: str) -> None:
         valid = ", ".join(r.value for r in StaffRole)
         print(f"[seed_staff] Invalid role '{role_value}'. Choose one of: {valid}.")
         return
+
+    scope = ProfileScope.PLATFORM if role == StaffRole.SUB_ADMIN else ProfileScope.LINE
+    if scope == ProfileScope.LINE:
+        if business_line not in ("loans", "real_estate"):
+            print(
+                f"[seed_staff] role={role.value} is line-scoped; pass business_line "
+                "as the third argument: 'loans' or 'real_estate'."
+            )
+            return
+    else:
+        business_line = None
 
     async with session_mod.AsyncSessionLocal() as db:
         row = (
@@ -66,27 +87,28 @@ async def _seed(mobile: str, role_value: str) -> None:
             StaffProfile(
                 auth_user_uuid=auth_user_uuid,
                 role=role,
-                scope=ProfileScope.PLATFORM,
-                business_line="real_estate",
+                scope=scope,
+                business_line=business_line,
                 staff_code="STF" + str(uuid.uuid4().int)[:8],
                 status=ProfileStatus.ACTIVE,
             )
         )
         await db.commit()
-        print(
-            f"[seed_staff] {mobile} is now {role.value} (platform scope). Re-login to pick it up."
-        )
+        scope_desc = f"{scope.value} scope" + (f", {business_line}" if business_line else "")
+        print(f"[seed_staff] {mobile} is now {role.value} ({scope_desc}). Re-login to pick it up.")
 
 
 def main() -> None:
     if len(sys.argv) < 2:
         print(
-            "Usage: python -m app.scripts.seed_staff <mobile-e164> [role]"
-            "   e.g. +919812345678 sub_admin"
+            "Usage: python -m app.scripts.seed_staff <mobile-e164> [role] [business_line]\n"
+            "   e.g. +919812345678 sub_admin\n"
+            "        +919812345678 telecaller loans"
         )
         sys.exit(1)
     role_value = sys.argv[2] if len(sys.argv) > 2 else "sub_admin"
-    asyncio.run(_seed(sys.argv[1], role_value))
+    business_line = sys.argv[3] if len(sys.argv) > 3 else None
+    asyncio.run(_seed(sys.argv[1], role_value, business_line))
 
 
 if __name__ == "__main__":

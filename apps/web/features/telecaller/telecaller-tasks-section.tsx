@@ -1,0 +1,128 @@
+"use client";
+
+import * as React from "react";
+import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
+
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import type { ApiResponse } from "@/lib/api/client";
+import type { Task, TaskCreate } from "@/lib/telecaller-api";
+
+const STATUS_LABEL: Record<string, string> = {
+  unassigned: "Unassigned",
+  assigned: "Assigned",
+  in_progress: "In progress",
+  completed: "Completed",
+  cancelled: "Cancelled",
+  blocked: "Blocked",
+};
+
+function statusVariant(status: string): "secondary" | "default" | "outline" {
+  if (status === "completed") return "default";
+  if (status === "cancelled" || status === "blocked") return "outline";
+  return "secondary";
+}
+
+function formatDateTime(iso: string | null | undefined): string {
+  if (!iso) return "-";
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime())
+    ? "-"
+    : d.toLocaleString("en-IN", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" });
+}
+
+export function TelecallerTasksSection({
+  tasks,
+  onRaiseTask,
+}: {
+  tasks: Task[];
+  onRaiseTask: (payload: TaskCreate) => Promise<ApiResponse<unknown>>;
+}) {
+  const [notes, setNotes] = React.useState("");
+  const [dueAt, setDueAt] = React.useState("");
+  const [saving, setSaving] = React.useState(false);
+
+  async function onSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setSaving(true);
+    const res = await onRaiseTask({
+      notes: notes.trim() || null,
+      due_at: dueAt ? new Date(dueAt).toISOString() : null,
+    });
+    setSaving(false);
+    if (res.ok) {
+      toast.success("Field task raised");
+      setNotes("");
+      setDueAt("");
+    } else {
+      toast.error("Couldn't raise task", { description: (res as { error?: string }).error });
+    }
+  }
+
+  return (
+    <div className="rounded-2xl border border-border bg-card p-5">
+      <h2 className="text-lg font-semibold text-text-primary">Field tasks</h2>
+      <p className="mt-1 text-sm text-text-secondary">
+        Raise a document-collection visit. Admin assigns it to an employee.
+      </p>
+
+      <form className="mt-4 space-y-3" onSubmit={(e) => void onSubmit(e)}>
+        <div>
+          <Label htmlFor="task-notes">What&apos;s needed</Label>
+          <Textarea
+            id="task-notes"
+            rows={2}
+            maxLength={1000}
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder="e.g. Collect salary slips and bank statements"
+          />
+        </div>
+        <div className="sm:w-1/2">
+          <Label htmlFor="task-due">Due by (optional)</Label>
+          <input
+            id="task-due"
+            type="datetime-local"
+            value={dueAt}
+            onChange={(e) => setDueAt(e.target.value)}
+            className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+          />
+        </div>
+        <Button type="submit" size="sm" disabled={saving}>
+          {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+          Raise field task
+        </Button>
+      </form>
+
+      <div className="mt-5">
+        {tasks.length === 0 ? (
+          <p className="text-sm text-text-secondary">No field tasks raised yet.</p>
+        ) : (
+          <ul className="space-y-2">
+            {tasks.map((task) => (
+              <li
+                key={task.id}
+                className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border p-3"
+              >
+                <div>
+                  <p className="text-sm text-text-primary">{task.notes || "Document collection"}</p>
+                  {task.due_at ? (
+                    <p className="mt-1 text-xs text-text-secondary">
+                      Due: {formatDateTime(task.due_at)}
+                    </p>
+                  ) : null}
+                </div>
+                <Badge variant={statusVariant(task.status)}>
+                  {STATUS_LABEL[task.status] ?? task.status}
+                </Badge>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </div>
+  );
+}

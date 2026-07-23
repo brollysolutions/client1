@@ -2,7 +2,15 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { Bell, CalendarCheck, CalendarX, CheckCheck, Headset } from "lucide-react";
+import {
+  Bell,
+  CalendarCheck,
+  CalendarX,
+  CheckCheck,
+  ClipboardList,
+  Headset,
+  PhoneCall,
+} from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -21,6 +29,8 @@ const TYPE_ICON: Record<NotificationType, LucideIcon> = {
   site_visit_requested: CalendarCheck,
   site_visit_cancelled: CalendarX,
   support_ticket_received: Headset,
+  lead_assigned: PhoneCall,
+  task_assigned: ClipboardList,
 };
 
 function formatRelativeTime(iso: string): string {
