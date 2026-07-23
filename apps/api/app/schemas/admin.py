@@ -83,3 +83,19 @@ class AgentRejectRequest(BaseModel):
     # Accepted for reviewer context but NOT persisted this slice — agent_applications
     # has no review_note column; adding one needs a migration (see plan risks).
     note: Annotated[str, Field(min_length=1, max_length=1000)]
+
+
+# ---------------------------------------------------------------------------
+# Lead assignment (Telecaller Dashboard slice 1 — minimal, no admin queue UI yet)
+# ---------------------------------------------------------------------------
+
+
+class LeadAssignRequest(BaseModel):
+    telecaller_staff_profile_uuid: UUID
+
+
+class LeadAssignResponse(BaseModel):
+    lead_id: UUID
+    telecaller_staff_profile_uuid: UUID
+    business_line: Literal["loans", "real_estate"]
+    status: Literal["new", "assigned", "working", "converted", "closed", "released"]

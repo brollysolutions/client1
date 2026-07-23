@@ -20,6 +20,8 @@ from app.schemas.admin import (
     AgentApplicationRead,
     AgentApproveResponse,
     AgentRejectRequest,
+    LeadAssignRequest,
+    LeadAssignResponse,
     StaffCreateRequest,
     StaffCreateResponse,
 )
@@ -29,6 +31,13 @@ from app.services.admin import (
     approve_agent_application,
     create_staff,
     reject_agent_application,
+)
+from app.services.leads import (
+    InvalidTelecaller,
+    LeadAlreadyAssigned,
+    LeadHasNoBusinessLine,
+    LeadNotFound,
+    assign_lead_to_telecaller,
 )
 
 router = APIRouter()
@@ -126,3 +135,36 @@ async def reject_agent(
     if application is None:  # pragma: no cover — admin RLS always sees the row it just rejected
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Application not found.")
     return AgentApplicationRead.model_validate(application, from_attributes=True)
+
+
+@router.post("/leads/{lead_id}/assign", response_model=LeadAssignResponse)
+async def assign_lead(
+    lead_id: UUID,
+    payload: LeadAssignRequest,
+    current_user: CurrentUser = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+) -> LeadAssignResponse:
+    try:
+        lead = await assign_lead_to_telecaller(db, lead_id, payload.telecaller_staff_profile_uuid)
+    except LeadNotFound as exc:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Lead not found.") from exc
+    except LeadAlreadyAssigned as exc:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT, "This lead already has a telecaller assigned."
+        ) from exc
+    except LeadHasNoBusinessLine as exc:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            "This lead has no business line yet and cannot be assigned.",
+        ) from exc
+    except InvalidTelecaller as exc:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            "Target account is not an active telecaller on this lead's business line.",
+        ) from exc
+    return LeadAssignResponse(
+        lead_id=lead.id,
+        telecaller_staff_profile_uuid=lead.assigned_telecaller_profile_uuid,
+        business_line=lead.business_line,
+        status=lead.status,
+    )

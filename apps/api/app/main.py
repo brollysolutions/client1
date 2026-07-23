@@ -29,6 +29,7 @@ from app.api.v1.properties import router as properties_router
 from app.api.v1.property_submissions import router as property_submissions_router
 from app.api.v1.site_visits import router as site_visits_router
 from app.api.v1.support_tickets import router as support_tickets_router
+from app.api.v1.telecaller import router as telecaller_router
 from app.api.v1.transactions import router as transactions_router
 from app.core.config import settings
 from app.db.session import engine, get_db
@@ -92,6 +93,7 @@ app.include_router(bookmarks_router, prefix="/api/v1/bookmarks", tags=["bookmark
 app.include_router(notifications_router, prefix="/api/v1/notifications", tags=["notifications"])
 app.include_router(transactions_router, prefix="/api/v1/transactions", tags=["transactions"])
 app.include_router(payments_router, prefix="/api/v1/payouts", tags=["payouts"])
+app.include_router(telecaller_router, prefix="/api/v1/telecaller", tags=["telecaller"])
 
 
 @app.get("/")
