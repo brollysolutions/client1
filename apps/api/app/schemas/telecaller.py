@@ -2,13 +2,30 @@
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
+from decimal import Decimal
 from typing import Annotated, Any, Literal
 from uuid import UUID
 
 from pydantic import BaseModel, Field, model_validator
 
 LeadStatusLiteral = Literal["new", "assigned", "working", "converted", "closed", "released"]
+LoanStatusLiteral = Literal[
+    "new",
+    "assigned",
+    "contacted",
+    "docs_collected",
+    "submitted_to_bank",
+    "sanctioned",
+    "disbursed",
+    "closed",
+    "rejected",
+    "on_hold",
+]
+TaskTypeLiteral = Literal["document_collection", "property_visit", "background_check"]
+TaskStatusLiteral = Literal[
+    "unassigned", "assigned", "in_progress", "completed", "cancelled", "blocked"
+]
 # A telecaller may only move a lead through these; new/assigned/released are
 # system- or Admin-owned (design doc §4.1).
 TelecallerLeadStatusLiteral = Literal["working", "converted", "closed"]
@@ -84,8 +101,52 @@ class TelecallerLeadRead(BaseModel):
     updated_at: datetime
 
 
+class LoanTxnCreate(BaseModel):
+    bank_name: Annotated[str | None, Field(default=None, max_length=200)] = None
+    amount: Annotated[Decimal | None, Field(default=None, ge=0)] = None
+    interest_rate: Annotated[Decimal | None, Field(default=None, ge=0, le=100)] = None
+    txn_date: date | None = None
+
+
+class LoanTxnRead(BaseModel):
+    id: UUID
+    loan_application_uuid: UUID
+    bank_name: str | None
+    amount: Decimal | None
+    interest_rate: Decimal | None
+    txn_date: date | None
+    created_at: datetime
+
+
+class TelecallerLoanApplicationRead(BaseModel):
+    id: UUID
+    loan_type_name: str
+    bank_name: str | None
+    amount_requested: Decimal | None
+    status: LoanStatusLiteral
+    txns: list[LoanTxnRead]
+
+
+class TaskCreate(BaseModel):
+    notes: Annotated[str | None, Field(default=None, max_length=1000)] = None
+    due_at: datetime | None = None
+
+
+class TaskRead(BaseModel):
+    id: UUID
+    lead_uuid: UUID
+    task_type: TaskTypeLiteral
+    status: TaskStatusLiteral
+    notes: str | None
+    due_at: datetime | None
+    assigned_employee_profile_uuid: UUID | None
+    created_at: datetime
+
+
 class TelecallerLeadDetailRead(TelecallerLeadRead):
     activities: list[LeadActivityRead]
+    loan_applications: list[TelecallerLoanApplicationRead] = []
+    tasks: list[TaskRead] = []
 
 
 class TelecallerFollowUpItem(BaseModel):

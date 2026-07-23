@@ -3,10 +3,14 @@
 import * as React from "react";
 
 import {
+  addLoanTxn,
   getTelecallerLead,
   logCallActivity,
+  raiseFieldTask,
   updateTelecallerLead,
   type LeadActivityCreate,
+  type LoanTxnCreate,
+  type TaskCreate,
   type TelecallerLeadDetail,
   type TelecallerLeadUpdate,
 } from "@/lib/telecaller-api";
@@ -60,5 +64,20 @@ export function useTelecallerLeadDetail(leadId: string) {
     return res;
   }
 
-  return { lead, status, error, errorStatus, retry, updateStatus, logCall };
+  async function addTxn(
+    applicationId: string,
+    payload: LoanTxnCreate,
+  ): Promise<ApiResponse<unknown>> {
+    const res = await addLoanTxn(applicationId, payload);
+    if (res.ok) retry();
+    return res;
+  }
+
+  async function raiseTask(payload: TaskCreate): Promise<ApiResponse<unknown>> {
+    const res = await raiseFieldTask(leadId, payload);
+    if (res.ok) retry();
+    return res;
+  }
+
+  return { lead, status, error, errorStatus, retry, updateStatus, logCall, addTxn, raiseTask };
 }

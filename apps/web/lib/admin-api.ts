@@ -14,6 +14,7 @@ export type StaffCreateRequest = Schemas["StaffCreateRequest"];
 export type StaffCreateResponse = Schemas["StaffCreateResponse"];
 export type AgentApplication = Schemas["AgentApplicationRead"];
 export type AgentApproveResponse = Schemas["AgentApproveResponse"];
+export type AdminTask = Schemas["AdminTaskRead"];
 
 export async function createStaff(
   payload: StaffCreateRequest,
@@ -45,5 +46,20 @@ export async function rejectAgentApplication(
   return apiRequest<AgentApplication>(`/api/v1/admin/agents/${id}/reject`, {
     method: "POST",
     body: { note },
+  });
+}
+
+export async function listAdminTasks(statusFilter?: string): Promise<ApiResponse<AdminTask[]>> {
+  const query = statusFilter ? `?status_filter=${encodeURIComponent(statusFilter)}` : "";
+  return apiRequest<AdminTask[]>(`/api/v1/admin/tasks${query}`);
+}
+
+export async function assignTask(
+  taskId: string,
+  employeeProfileUuid: string,
+): Promise<ApiResponse<AdminTask>> {
+  return apiRequest<AdminTask>(`/api/v1/admin/tasks/${taskId}/assign`, {
+    method: "POST",
+    body: { employee_profile_uuid: employeeProfileUuid },
   });
 }

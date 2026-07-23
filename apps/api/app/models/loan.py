@@ -9,10 +9,10 @@ only (requested/sanctioned amount, rate, fee), never a repayment schedule.
 
 import enum
 import uuid
-from datetime import datetime
+from datetime import date, datetime
 from typing import Any, Optional
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Numeric, String, Text
+from sqlalchemy import Boolean, Date, DateTime, ForeignKey, Numeric, String, Text
 from sqlalchemy.dialects.postgresql import ENUM, JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -105,3 +105,26 @@ class LoanApplication(Base):
 
     loan_type: Mapped["LoanType"] = relationship("LoanType")
     bank: Mapped[Optional["Bank"]] = relationship("Bank")
+
+
+class LoanTxnHistory(Base):
+    """Telecaller's manual entry of bank/rate/date terms on a progressing loan
+    (FR-6.5). Immutable — no UPDATE/DELETE grant; a correction is a new row."""
+
+    __tablename__ = "loan_txn_history"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    loan_application_uuid: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("loan_applications.id"), nullable=False
+    )
+    business_line: Mapped[str] = mapped_column(business_line_enum, nullable=False)
+    bank_name: Mapped[str | None] = mapped_column(Text, nullable=True)
+    amount: Mapped[float | None] = mapped_column(Numeric(14, 2), nullable=True)
+    interest_rate: Mapped[float | None] = mapped_column(Numeric(6, 3), nullable=True)
+    txn_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+    entered_by_staff_profile_uuid: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("staff_profiles.id"), nullable=True
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=datetime.utcnow
+    )

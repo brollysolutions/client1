@@ -15,12 +15,28 @@ from uuid import UUID
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.models.lead import Lead, LeadStatus
 from app.models.lead_activity import CallDisposition, InterestLevel, LeadActivity
-from app.schemas.telecaller import LeadActivityCreate, TelecallerLeadUpdate
+from app.models.loan import LoanApplication, LoanTxnHistory
+from app.models.task import Task, TaskStatus, TaskType
+from app.schemas.telecaller import (
+    LeadActivityCreate,
+    LoanTxnCreate,
+    TaskCreate,
+    TelecallerLeadUpdate,
+)
 
 _TERMINAL_STATUSES = {LeadStatus.CONVERTED, LeadStatus.CLOSED, LeadStatus.RELEASED}
+
+
+class LoanApplicationNotFound(Exception):
+    """Raised when the target loan_application isn't visible to this telecaller."""
+
+
+class LoanApplicationNotLoansLine(Exception):
+    """Raised when txn history is entered against a non-loans application."""
 
 
 async def list_assigned_leads(
@@ -135,3 +151,98 @@ async def get_home_summary(
             due.append((lead, activity.follow_up_at))
     due.sort(key=lambda pair: pair[1])
     return due, counts
+
+
+async def list_loan_applications_for_lead(db: AsyncSession, lead_id: UUID) -> list[LoanApplication]:
+    """Loan applications hanging off a lead, loan_type/bank preloaded. Call only
+    for a loans-line lead — real-estate leads have no loan_applications."""
+    stmt = (
+        select(LoanApplication)
+        .where(LoanApplication.lead_uuid == lead_id)
+        .options(selectinload(LoanApplication.loan_type), selectinload(LoanApplication.bank))
+        .order_by(LoanApplication.opened_at.desc())
+    )
+    return list((await db.scalars(stmt)).all())
+
+
+async def list_txns_for_applications(
+    db: AsyncSession, application_ids: list[UUID]
+) -> dict[UUID, list[LoanTxnHistory]]:
+    if not application_ids:
+        return {}
+    stmt = (
+        select(LoanTxnHistory)
+        .where(LoanTxnHistory.loan_application_uuid.in_(application_ids))
+        .order_by(LoanTxnHistory.created_at.desc())
+    )
+    rows = (await db.scalars(stmt)).all()
+    by_application: dict[UUID, list[LoanTxnHistory]] = {aid: [] for aid in application_ids}
+    for row in rows:
+        by_application.setdefault(row.loan_application_uuid, []).append(row)
+    return by_application
+
+
+async def get_application_for_telecaller(
+    db: AsyncSession, application_id: UUID, staff_profile_uuid: UUID
+) -> LoanApplication:
+    """Defense-in-depth atop loan_txn_history_rls: confirms the application's
+    lead is assigned to this telecaller and the line is loans (FR-6.5 scope)."""
+    application = await db.scalar(
+        select(LoanApplication)
+        .join(Lead, Lead.id == LoanApplication.lead_uuid)
+        .where(
+            LoanApplication.id == application_id,
+            Lead.assigned_telecaller_profile_uuid == staff_profile_uuid,
+        )
+    )
+    if application is None:
+        raise LoanApplicationNotFound
+    if application.business_line != "loans":
+        raise LoanApplicationNotLoansLine
+    return application
+
+
+async def add_txn_history(
+    db: AsyncSession,
+    application: LoanApplication,
+    staff_profile_uuid: UUID,
+    payload: LoanTxnCreate,
+) -> LoanTxnHistory:
+    txn = LoanTxnHistory(
+        loan_application_uuid=application.id,
+        business_line=application.business_line,
+        entered_by_staff_profile_uuid=staff_profile_uuid,
+        bank_name=payload.bank_name,
+        amount=payload.amount,
+        interest_rate=payload.interest_rate,
+        txn_date=payload.txn_date,
+    )
+    db.add(txn)
+    await db.commit()
+    await db.refresh(txn)
+    return txn
+
+
+async def raise_task(
+    db: AsyncSession, lead: Lead, staff_profile_uuid: UUID, payload: TaskCreate
+) -> Task:
+    """Raise an unassigned document_collection task against an assigned lead
+    (Open Item A). Lands in the pool; Admin hands it to an employee."""
+    task = Task(
+        raised_by_staff_profile_uuid=staff_profile_uuid,
+        business_line=lead.business_line,
+        task_type=TaskType.DOCUMENT_COLLECTION,
+        lead_uuid=lead.id,
+        status=TaskStatus.UNASSIGNED,
+        notes=payload.notes,
+        due_at=payload.due_at,
+    )
+    db.add(task)
+    await db.commit()
+    await db.refresh(task)
+    return task
+
+
+async def list_tasks_for_lead(db: AsyncSession, lead_id: UUID) -> list[Task]:
+    stmt = select(Task).where(Task.lead_uuid == lead_id).order_by(Task.created_at.desc())
+    return list((await db.scalars(stmt)).all())

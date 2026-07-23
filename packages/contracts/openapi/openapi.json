@@ -1,6 +1,114 @@
 {
   "components": {
     "schemas": {
+      "AdminTaskRead": {
+        "properties": {
+          "assigned_employee_profile_uuid": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Assigned Employee Profile Uuid"
+          },
+          "business_line": {
+            "enum": [
+              "loans",
+              "real_estate"
+            ],
+            "title": "Business Line",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "due_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Due At"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "lead_uuid": {
+            "format": "uuid",
+            "title": "Lead Uuid",
+            "type": "string"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "raised_by_staff_profile_uuid": {
+            "format": "uuid",
+            "title": "Raised By Staff Profile Uuid",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "unassigned",
+              "assigned",
+              "in_progress",
+              "completed",
+              "cancelled",
+              "blocked"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "task_type": {
+            "enum": [
+              "document_collection",
+              "property_visit",
+              "background_check"
+            ],
+            "title": "Task Type",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "lead_uuid",
+          "raised_by_staff_profile_uuid",
+          "assigned_employee_profile_uuid",
+          "business_line",
+          "task_type",
+          "status",
+          "notes",
+          "due_at",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "AdminTaskRead",
+        "type": "object"
+      },
       "AgentApplicationListResponse": {
         "properties": {
           "applications": {
@@ -1053,6 +1161,146 @@
         "title": "LoanStatus",
         "type": "string"
       },
+      "LoanTxnCreate": {
+        "properties": {
+          "amount": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Amount"
+          },
+          "bank_name": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bank Name"
+          },
+          "interest_rate": {
+            "anyOf": [
+              {
+                "maximum": 100.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Interest Rate"
+          },
+          "txn_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Txn Date"
+          }
+        },
+        "title": "LoanTxnCreate",
+        "type": "object"
+      },
+      "LoanTxnRead": {
+        "properties": {
+          "amount": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Amount"
+          },
+          "bank_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bank Name"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "interest_rate": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Interest Rate"
+          },
+          "loan_application_uuid": {
+            "format": "uuid",
+            "title": "Loan Application Uuid",
+            "type": "string"
+          },
+          "txn_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Txn Date"
+          }
+        },
+        "required": [
+          "id",
+          "loan_application_uuid",
+          "bank_name",
+          "amount",
+          "interest_rate",
+          "txn_date",
+          "created_at"
+        ],
+        "title": "LoanTxnRead",
+        "type": "object"
+      },
       "LoanTypeListResponse": {
         "properties": {
           "loan_types": {
@@ -1297,7 +1545,8 @@
           "site_visit_requested",
           "site_visit_cancelled",
           "support_ticket_received",
-          "lead_assigned"
+          "lead_assigned",
+          "task_assigned"
         ],
         "title": "NotificationType",
         "type": "string"
@@ -2885,6 +3134,137 @@
         "title": "SupportTicketRead",
         "type": "object"
       },
+      "TaskAssignRequest": {
+        "properties": {
+          "employee_profile_uuid": {
+            "format": "uuid",
+            "title": "Employee Profile Uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "employee_profile_uuid"
+        ],
+        "title": "TaskAssignRequest",
+        "type": "object"
+      },
+      "TaskCreate": {
+        "properties": {
+          "due_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Due At"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "maxLength": 1000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          }
+        },
+        "title": "TaskCreate",
+        "type": "object"
+      },
+      "TaskRead": {
+        "properties": {
+          "assigned_employee_profile_uuid": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Assigned Employee Profile Uuid"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "due_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Due At"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "lead_uuid": {
+            "format": "uuid",
+            "title": "Lead Uuid",
+            "type": "string"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "status": {
+            "enum": [
+              "unassigned",
+              "assigned",
+              "in_progress",
+              "completed",
+              "cancelled",
+              "blocked"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "task_type": {
+            "enum": [
+              "document_collection",
+              "property_visit",
+              "background_check"
+            ],
+            "title": "Task Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "lead_uuid",
+          "task_type",
+          "status",
+          "notes",
+          "due_at",
+          "assigned_employee_profile_uuid",
+          "created_at"
+        ],
+        "title": "TaskRead",
+        "type": "object"
+      },
       "TelecallerFollowUpItem": {
         "properties": {
           "follow_up_at": {
@@ -2993,6 +3373,14 @@
             ],
             "title": "Last Disposition"
           },
+          "loan_applications": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/TelecallerLoanApplicationRead"
+            },
+            "title": "Loan Applications",
+            "type": "array"
+          },
           "mobile": {
             "title": "Mobile",
             "type": "string"
@@ -3043,6 +3431,14 @@
             ],
             "title": "Status",
             "type": "string"
+          },
+          "tasks": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/TaskRead"
+            },
+            "title": "Tasks",
+            "type": "array"
           },
           "updated_at": {
             "format": "date-time",
@@ -3206,6 +3602,75 @@
           }
         },
         "title": "TelecallerLeadUpdate",
+        "type": "object"
+      },
+      "TelecallerLoanApplicationRead": {
+        "properties": {
+          "amount_requested": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Amount Requested"
+          },
+          "bank_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bank Name"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "loan_type_name": {
+            "title": "Loan Type Name",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "new",
+              "assigned",
+              "contacted",
+              "docs_collected",
+              "submitted_to_bank",
+              "sanctioned",
+              "disbursed",
+              "closed",
+              "rejected",
+              "on_hold"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "txns": {
+            "items": {
+              "$ref": "#/components/schemas/LoanTxnRead"
+            },
+            "title": "Txns",
+            "type": "array"
+          }
+        },
+        "required": [
+          "id",
+          "loan_type_name",
+          "bank_name",
+          "amount_requested",
+          "status",
+          "txns"
+        ],
+        "title": "TelecallerLoanApplicationRead",
         "type": "object"
       },
       "TransactionListResponse": {
@@ -3576,6 +4041,122 @@
           }
         ],
         "summary": "Assign Lead",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/tasks": {
+      "get": {
+        "operationId": "list_tasks_api_v1_admin_tasks_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "status_filter",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status Filter"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/AdminTaskRead"
+                  },
+                  "title": "Response List Tasks Api V1 Admin Tasks Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "List Tasks",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/tasks/{task_id}/assign": {
+      "post": {
+        "operationId": "assign_task_api_v1_admin_tasks__task_id__assign_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "task_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Task Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TaskAssignRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminTaskRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Assign Task",
         "tags": [
           "admin"
         ]
@@ -5706,6 +6287,122 @@
           }
         ],
         "summary": "Create Activity",
+        "tags": [
+          "telecaller"
+        ]
+      }
+    },
+    "/api/v1/telecaller/leads/{lead_id}/tasks": {
+      "post": {
+        "operationId": "create_task_api_v1_telecaller_leads__lead_id__tasks_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "lead_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Lead Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TaskCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Create Task",
+        "tags": [
+          "telecaller"
+        ]
+      }
+    },
+    "/api/v1/telecaller/loan-applications/{application_id}/txn-history": {
+      "post": {
+        "operationId": "create_loan_txn_api_v1_telecaller_loan_applications__application_id__txn_history_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "application_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Application Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoanTxnCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoanTxnRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Create Loan Txn",
         "tags": [
           "telecaller"
         ]

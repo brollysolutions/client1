@@ -28,6 +28,7 @@ class NotificationType(enum.StrEnum):
     SITE_VISIT_CANCELLED = "site_visit_cancelled"
     SUPPORT_TICKET_RECEIVED = "support_ticket_received"
     LEAD_ASSIGNED = "lead_assigned"
+    TASK_ASSIGNED = "task_assigned"
 
 
 _ev = lambda x: [e.value for e in x]  # noqa: E731

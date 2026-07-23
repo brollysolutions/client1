@@ -16,6 +16,7 @@ from app.core.deps import CurrentUser, require_admin
 from app.db.session import get_db
 from app.models.profile import AgentApplication, SubmissionStatus
 from app.schemas.admin import (
+    AdminTaskRead,
     AgentApplicationListResponse,
     AgentApplicationRead,
     AgentApproveResponse,
@@ -24,6 +25,7 @@ from app.schemas.admin import (
     LeadAssignResponse,
     StaffCreateRequest,
     StaffCreateResponse,
+    TaskAssignRequest,
 )
 from app.services.admin import (
     AgentApplicationAlreadyReviewed,
@@ -38,6 +40,13 @@ from app.services.leads import (
     LeadHasNoBusinessLine,
     LeadNotFound,
     assign_lead_to_telecaller,
+)
+from app.services.tasks import (
+    InvalidEmployee,
+    TaskNotAssignable,
+    TaskNotFound,
+    assign_task_to_employee,
+    list_unassigned_tasks,
 )
 
 router = APIRouter()
@@ -168,3 +177,36 @@ async def assign_lead(
         business_line=lead.business_line,
         status=lead.status,
     )
+
+
+@router.get("/tasks", response_model=list[AdminTaskRead])
+async def list_tasks(
+    status_filter: str | None = None,
+    current_user: CurrentUser = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+) -> list[AdminTaskRead]:
+    tasks = await list_unassigned_tasks(db, status_filter)
+    return [AdminTaskRead.model_validate(t, from_attributes=True) for t in tasks]
+
+
+@router.post("/tasks/{task_id}/assign", response_model=AdminTaskRead)
+async def assign_task(
+    task_id: UUID,
+    payload: TaskAssignRequest,
+    current_user: CurrentUser = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+) -> AdminTaskRead:
+    try:
+        task = await assign_task_to_employee(db, task_id, payload.employee_profile_uuid)
+    except TaskNotFound as exc:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Task not found.") from exc
+    except TaskNotAssignable as exc:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT, "This task is not in an unassigned state."
+        ) from exc
+    except InvalidEmployee as exc:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            "Target account is not an active employee on this task's business line.",
+        ) from exc
+    return AdminTaskRead.model_validate(task, from_attributes=True)

@@ -14,6 +14,11 @@ export type TelecallerLeadUpdate = Schemas["TelecallerLeadUpdate"];
 export type LeadActivity = Schemas["LeadActivityRead"];
 export type LeadActivityCreate = Schemas["LeadActivityCreate"];
 export type TelecallerHome = Schemas["TelecallerHomeResponse"];
+export type TelecallerLoanApplication = Schemas["TelecallerLoanApplicationRead"];
+export type LoanTxn = Schemas["LoanTxnRead"];
+export type LoanTxnCreate = Schemas["LoanTxnCreate"];
+export type Task = Schemas["TaskRead"];
+export type TaskCreate = Schemas["TaskCreate"];
 
 export async function listTelecallerLeads(
   statusFilter?: string,
@@ -50,4 +55,24 @@ export async function logCallActivity(
 
 export async function getTelecallerHome(): Promise<ApiResponse<TelecallerHome>> {
   return apiRequest<TelecallerHome>("/api/v1/telecaller/home");
+}
+
+export async function addLoanTxn(
+  applicationId: string,
+  payload: LoanTxnCreate,
+): Promise<ApiResponse<LoanTxn>> {
+  return apiRequest<LoanTxn>(`/api/v1/telecaller/loan-applications/${applicationId}/txn-history`, {
+    method: "POST",
+    body: payload,
+  });
+}
+
+export async function raiseFieldTask(
+  leadId: string,
+  payload: TaskCreate,
+): Promise<ApiResponse<Task>> {
+  return apiRequest<Task>(`/api/v1/telecaller/leads/${leadId}/tasks`, {
+    method: "POST",
+    body: payload,
+  });
 }

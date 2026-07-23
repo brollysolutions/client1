@@ -78,6 +78,48 @@ async def _seed_assigned_lead(
         return str(lead.id)
 
 
+async def _seed_loan_application(lead_id: str, business_line: str = "loans") -> str:
+    import app.db.session as _session_mod
+    from app.models.lead import Lead
+    from app.models.loan import Bank, LoanApplication, LoanType
+    from app.models.profile import ClientProfile, ProfileStatus
+    from app.models.user import User
+
+    async with _session_mod.AsyncSessionLocal() as db:
+        lead = await db.get(Lead, uuid.UUID(lead_id))
+        assert lead is not None
+        client_user = User(
+            first_name="Test",
+            last_name="Client",
+            mobile=unique_mobile(),
+            email=f"cl_{uuid.uuid4().hex[:12]}@example.com",
+            password_hash="x",
+        )
+        db.add(client_user)
+        await db.flush()
+        client_profile = ClientProfile(
+            auth_user_uuid=client_user.id,
+            business_line=business_line,
+            customer_code=f"CL{uuid.uuid4().hex[:8]}",
+            status=ProfileStatus.ACTIVE,
+        )
+        loan_type = LoanType(name=f"lt_{uuid.uuid4().hex[:8]}", label="Home Loan")
+        bank = Bank(name="Test Bank")
+        db.add_all([client_profile, loan_type, bank])
+        await db.flush()
+        application = LoanApplication(
+            lead_uuid=lead.id,
+            client_profile_uuid=client_profile.id,
+            business_line=business_line,
+            loan_type_id=loan_type.id,
+            bank_id=bank.id,
+            amount_requested=500000,
+        )
+        db.add(application)
+        await db.commit()
+        return str(application.id)
+
+
 def _telecaller_token(
     auth_user_uuid: str, staff_profile_uuid: str, business_line: str = "loans"
 ) -> str:
@@ -262,3 +304,162 @@ async def test_non_telecaller_forbidden(client: AsyncClient) -> None:
 async def test_unauthenticated_rejected(client: AsyncClient) -> None:
     res = await client.get("/api/v1/telecaller/leads")
     assert res.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_lead_detail_includes_loan_applications_for_loans_line(client: AsyncClient) -> None:
+    auth_uuid, staff_uuid = await _seed_telecaller("loans")
+    lead_id = await _seed_assigned_lead("loans", staff_uuid)
+    application_id = await _seed_loan_application(lead_id, "loans")
+
+    res = await client.get(
+        f"/api/v1/telecaller/leads/{lead_id}",
+        headers={"Authorization": f"Bearer {_telecaller_token(auth_uuid, staff_uuid)}"},
+    )
+    assert res.status_code == 200, res.text
+    body = res.json()
+    assert len(body["loan_applications"]) == 1
+    assert body["loan_applications"][0]["id"] == application_id
+    assert body["loan_applications"][0]["txns"] == []
+    assert body["tasks"] == []
+
+
+@pytest.mark.asyncio
+async def test_lead_detail_empty_loan_applications_for_real_estate_line(
+    client: AsyncClient,
+) -> None:
+    auth_uuid, staff_uuid = await _seed_telecaller("real_estate")
+    lead_id = await _seed_assigned_lead("real_estate", staff_uuid)
+    token = _telecaller_token(auth_uuid, staff_uuid, "real_estate")
+
+    res = await client.get(
+        f"/api/v1/telecaller/leads/{lead_id}",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert res.status_code == 200, res.text
+    assert res.json()["loan_applications"] == []
+
+
+@pytest.mark.asyncio
+async def test_add_loan_txn_success(client: AsyncClient) -> None:
+    auth_uuid, staff_uuid = await _seed_telecaller("loans")
+    lead_id = await _seed_assigned_lead("loans", staff_uuid)
+    application_id = await _seed_loan_application(lead_id, "loans")
+
+    res = await client.post(
+        f"/api/v1/telecaller/loan-applications/{application_id}/txn-history",
+        json={
+            "bank_name": "HDFC",
+            "amount": "500000",
+            "interest_rate": "8.5",
+            "txn_date": "2026-07-01",
+        },
+        headers={"Authorization": f"Bearer {_telecaller_token(auth_uuid, staff_uuid)}"},
+    )
+    assert res.status_code == 201, res.text
+    body = res.json()
+    assert body["bank_name"] == "HDFC"
+    assert body["loan_application_uuid"] == application_id
+
+    detail = await client.get(
+        f"/api/v1/telecaller/leads/{lead_id}",
+        headers={"Authorization": f"Bearer {_telecaller_token(auth_uuid, staff_uuid)}"},
+    )
+    assert len(detail.json()["loan_applications"][0]["txns"]) == 1
+
+
+@pytest.mark.asyncio
+async def test_add_loan_txn_for_unowned_application_is_404(client: AsyncClient) -> None:
+    auth_uuid, staff_uuid = await _seed_telecaller("loans")
+    _, other_staff_uuid = await _seed_telecaller("loans")
+    other_lead_id = await _seed_assigned_lead("loans", other_staff_uuid)
+    application_id = await _seed_loan_application(other_lead_id, "loans")
+
+    res = await client.post(
+        f"/api/v1/telecaller/loan-applications/{application_id}/txn-history",
+        json={"bank_name": "HDFC"},
+        headers={"Authorization": f"Bearer {_telecaller_token(auth_uuid, staff_uuid)}"},
+    )
+    assert res.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_add_loan_txn_for_non_loans_application_is_409(client: AsyncClient) -> None:
+    auth_uuid, staff_uuid = await _seed_telecaller("real_estate")
+    lead_id = await _seed_assigned_lead("real_estate", staff_uuid)
+    # Directly craft a non-loans application against this lead to exercise the
+    # line-mismatch guard (a real real_estate lead never legitimately has one).
+    # This is invalid data by design (loan_applications is loans-only) — the
+    # row is deleted below so it doesn't leak into other tests' RLS invariant
+    # checks (e.g. test_loans_rls.py asserts zero real_estate-line rows exist).
+    application_id = await _seed_loan_application(lead_id, "real_estate")
+
+    try:
+        res = await client.post(
+            f"/api/v1/telecaller/loan-applications/{application_id}/txn-history",
+            json={"bank_name": "HDFC"},
+            headers={
+                "Authorization": f"Bearer {_telecaller_token(auth_uuid, staff_uuid, 'real_estate')}"
+            },
+        )
+        assert res.status_code == 409
+    finally:
+        from sqlalchemy import text
+
+        import app.db.session as _session_mod
+
+        async with _session_mod.AsyncSessionLocal() as db:
+            await db.execute(
+                text("DELETE FROM loan_applications WHERE id = :id"), {"id": application_id}
+            )
+            await db.commit()
+
+
+@pytest.mark.asyncio
+async def test_raise_task_success(client: AsyncClient) -> None:
+    auth_uuid, staff_uuid = await _seed_telecaller("loans")
+    lead_id = await _seed_assigned_lead("loans", staff_uuid)
+
+    res = await client.post(
+        f"/api/v1/telecaller/leads/{lead_id}/tasks",
+        json={"notes": "Collect salary slips", "due_at": None},
+        headers={"Authorization": f"Bearer {_telecaller_token(auth_uuid, staff_uuid)}"},
+    )
+    assert res.status_code == 201, res.text
+    body = res.json()
+    assert body["task_type"] == "document_collection"
+    assert body["status"] == "unassigned"
+    assert body["notes"] == "Collect salary slips"
+
+    detail = await client.get(
+        f"/api/v1/telecaller/leads/{lead_id}",
+        headers={"Authorization": f"Bearer {_telecaller_token(auth_uuid, staff_uuid)}"},
+    )
+    assert len(detail.json()["tasks"]) == 1
+
+
+@pytest.mark.asyncio
+async def test_raise_task_for_unowned_lead_is_404(client: AsyncClient) -> None:
+    auth_uuid, staff_uuid = await _seed_telecaller("loans")
+    _, other_staff_uuid = await _seed_telecaller("loans")
+    lead_id = await _seed_assigned_lead("loans", other_staff_uuid)
+
+    res = await client.post(
+        f"/api/v1/telecaller/leads/{lead_id}/tasks",
+        json={"notes": "Collect documents"},
+        headers={"Authorization": f"Bearer {_telecaller_token(auth_uuid, staff_uuid)}"},
+    )
+    assert res.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_raise_task_notes_too_long_rejected(client: AsyncClient) -> None:
+    auth_uuid, staff_uuid = await _seed_telecaller("loans")
+    lead_id = await _seed_assigned_lead("loans", staff_uuid)
+
+    res = await client.post(
+        f"/api/v1/telecaller/leads/{lead_id}/tasks",
+        json={"notes": "x" * 1001},
+        headers={"Authorization": f"Bearer {_telecaller_token(auth_uuid, staff_uuid)}"},
+    )
+    assert res.status_code == 422

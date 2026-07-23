@@ -17,19 +17,32 @@ from app.db.session import get_db
 from app.schemas.telecaller import (
     LeadActivityCreate,
     LeadActivityRead,
+    LoanTxnCreate,
+    LoanTxnRead,
+    TaskCreate,
+    TaskRead,
     TelecallerFollowUpItem,
     TelecallerHomeResponse,
     TelecallerLeadDetailRead,
     TelecallerLeadRead,
     TelecallerLeadUpdate,
+    TelecallerLoanApplicationRead,
 )
 from app.services.telecaller import (
+    LoanApplicationNotFound,
+    LoanApplicationNotLoansLine,
+    add_txn_history,
+    get_application_for_telecaller,
     get_home_summary,
     get_last_activities,
     get_lead_for_telecaller,
     list_activities_for_lead,
     list_assigned_leads,
+    list_loan_applications_for_lead,
+    list_tasks_for_lead,
+    list_txns_for_applications,
     log_call_activity,
+    raise_task,
     update_lead,
 )
 
@@ -84,6 +97,30 @@ async def get_lead(
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Lead not found.")
     activities = await list_activities_for_lead(db, lead_id)
     last = activities[0] if activities else None
+
+    loan_applications: list[TelecallerLoanApplicationRead] = []
+    if lead.business_line == "loans":
+        applications = await list_loan_applications_for_lead(db, lead_id)
+        txns_by_application = await list_txns_for_applications(
+            db, [application.id for application in applications]
+        )
+        loan_applications = [
+            TelecallerLoanApplicationRead(
+                id=application.id,
+                loan_type_name=application.loan_type.name,
+                bank_name=application.bank.name if application.bank else None,
+                amount_requested=application.amount_requested,
+                status=application.status,
+                txns=[
+                    LoanTxnRead.model_validate(txn, from_attributes=True)
+                    for txn in txns_by_application.get(application.id, [])
+                ],
+            )
+            for application in applications
+        ]
+
+    tasks = await list_tasks_for_lead(db, lead_id)
+
     return TelecallerLeadDetailRead(
         id=lead.id,
         name=lead.name,
@@ -96,6 +133,8 @@ async def get_lead(
         created_at=lead.created_at,
         updated_at=lead.updated_at,
         activities=[LeadActivityRead.model_validate(a, from_attributes=True) for a in activities],
+        loan_applications=loan_applications,
+        tasks=[TaskRead.model_validate(t, from_attributes=True) for t in tasks],
     )
 
 
@@ -143,6 +182,49 @@ async def create_activity(
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Lead not found.")
     activity = await log_call_activity(db, lead, staff_profile_uuid, payload)
     return LeadActivityRead.model_validate(activity, from_attributes=True)
+
+
+@router.post(
+    "/loan-applications/{application_id}/txn-history",
+    response_model=LoanTxnRead,
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_loan_txn(
+    application_id: UUID,
+    payload: LoanTxnCreate,
+    current_user: CurrentUser = Depends(require_telecaller),
+    db: AsyncSession = Depends(get_db),
+) -> LoanTxnRead:
+    staff_profile_uuid = _staff_profile_uuid(current_user)
+    try:
+        application = await get_application_for_telecaller(db, application_id, staff_profile_uuid)
+    except LoanApplicationNotFound as exc:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Loan application not found.") from exc
+    except LoanApplicationNotLoansLine as exc:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT, "Transaction history is loans-line only."
+        ) from exc
+    txn = await add_txn_history(db, application, staff_profile_uuid, payload)
+    return LoanTxnRead.model_validate(txn, from_attributes=True)
+
+
+@router.post(
+    "/leads/{lead_id}/tasks",
+    response_model=TaskRead,
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_task(
+    lead_id: UUID,
+    payload: TaskCreate,
+    current_user: CurrentUser = Depends(require_telecaller),
+    db: AsyncSession = Depends(get_db),
+) -> TaskRead:
+    staff_profile_uuid = _staff_profile_uuid(current_user)
+    lead = await get_lead_for_telecaller(db, lead_id, staff_profile_uuid)
+    if lead is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Lead not found.")
+    task = await raise_task(db, lead, staff_profile_uuid, payload)
+    return TaskRead.model_validate(task, from_attributes=True)
 
 
 @router.get("/home", response_model=TelecallerHomeResponse)

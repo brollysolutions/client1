@@ -99,3 +99,31 @@ class LeadAssignResponse(BaseModel):
     telecaller_staff_profile_uuid: UUID
     business_line: Literal["loans", "real_estate"]
     status: Literal["new", "assigned", "working", "converted", "closed", "released"]
+
+
+# ---------------------------------------------------------------------------
+# Field tasks (Telecaller Dashboard slice 2 — unassigned pool, minimal admin
+# endpoints only, no queue UI yet)
+# ---------------------------------------------------------------------------
+
+TaskStatusLiteral = Literal[
+    "unassigned", "assigned", "in_progress", "completed", "cancelled", "blocked"
+]
+
+
+class AdminTaskRead(BaseModel):
+    id: UUID
+    lead_uuid: UUID
+    raised_by_staff_profile_uuid: UUID
+    assigned_employee_profile_uuid: UUID | None
+    business_line: Literal["loans", "real_estate"]
+    task_type: Literal["document_collection", "property_visit", "background_check"]
+    status: TaskStatusLiteral
+    notes: str | None
+    due_at: datetime | None
+    created_at: datetime
+    updated_at: datetime
+
+
+class TaskAssignRequest(BaseModel):
+    employee_profile_uuid: UUID
