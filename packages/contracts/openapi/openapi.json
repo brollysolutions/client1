@@ -61,6 +61,22 @@
             ],
             "title": "Notes"
           },
+          "outcome": {
+            "anyOf": [
+              {
+                "enum": [
+                  "clear",
+                  "flagged",
+                  "inconclusive"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Outcome"
+          },
           "raised_by_staff_profile_uuid": {
             "format": "uuid",
             "title": "Raised By Staff Profile Uuid",
@@ -101,6 +117,7 @@
           "business_line",
           "task_type",
           "status",
+          "outcome",
           "notes",
           "due_at",
           "created_at",
@@ -525,6 +542,217 @@
           "delivery_channel"
         ],
         "title": "EmailVerifyInitiateResponse",
+        "type": "object"
+      },
+      "EmployeeHomeResponse": {
+        "properties": {
+          "counts_by_status": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Counts By Status",
+            "type": "object"
+          },
+          "counts_by_type": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Counts By Type",
+            "type": "object"
+          },
+          "overdue_count": {
+            "title": "Overdue Count",
+            "type": "integer"
+          },
+          "tasks_today": {
+            "items": {
+              "$ref": "#/components/schemas/EmployeeTaskRead"
+            },
+            "title": "Tasks Today",
+            "type": "array"
+          }
+        },
+        "required": [
+          "tasks_today",
+          "overdue_count",
+          "counts_by_type",
+          "counts_by_status"
+        ],
+        "title": "EmployeeHomeResponse",
+        "type": "object"
+      },
+      "EmployeeTaskRead": {
+        "properties": {
+          "business_line": {
+            "enum": [
+              "loans",
+              "real_estate"
+            ],
+            "title": "Business Line",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "due_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Due At"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "lead_mobile": {
+            "title": "Lead Mobile",
+            "type": "string"
+          },
+          "lead_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lead Name"
+          },
+          "lead_uuid": {
+            "format": "uuid",
+            "title": "Lead Uuid",
+            "type": "string"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "outcome": {
+            "anyOf": [
+              {
+                "enum": [
+                  "clear",
+                  "flagged",
+                  "inconclusive"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Outcome"
+          },
+          "status": {
+            "enum": [
+              "assigned",
+              "in_progress",
+              "completed",
+              "cancelled",
+              "blocked"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "task_type": {
+            "enum": [
+              "document_collection",
+              "property_visit",
+              "background_check"
+            ],
+            "title": "Task Type",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "lead_uuid",
+          "lead_name",
+          "lead_mobile",
+          "business_line",
+          "task_type",
+          "status",
+          "outcome",
+          "notes",
+          "due_at",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "EmployeeTaskRead",
+        "type": "object"
+      },
+      "EmployeeTaskUpdate": {
+        "properties": {
+          "notes": {
+            "anyOf": [
+              {
+                "maxLength": 1000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "outcome": {
+            "anyOf": [
+              {
+                "enum": [
+                  "clear",
+                  "flagged",
+                  "inconclusive"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Outcome"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "enum": [
+                  "assigned",
+                  "in_progress",
+                  "completed",
+                  "cancelled",
+                  "blocked"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status"
+          }
+        },
+        "title": "EmployeeTaskUpdate",
         "type": "object"
       },
       "EnquiryCreate": {
@@ -4906,6 +5134,222 @@
         "summary": "Delete Bookmark",
         "tags": [
           "bookmarks"
+        ]
+      }
+    },
+    "/api/v1/employee/home": {
+      "get": {
+        "operationId": "home_api_v1_employee_home_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmployeeHomeResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Home",
+        "tags": [
+          "employee"
+        ]
+      }
+    },
+    "/api/v1/employee/tasks": {
+      "get": {
+        "operationId": "list_tasks_api_v1_employee_tasks_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "status_filter",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "assigned",
+                    "in_progress",
+                    "completed",
+                    "cancelled",
+                    "blocked"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status Filter"
+            }
+          },
+          {
+            "in": "query",
+            "name": "task_type_filter",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "document_collection",
+                    "property_visit",
+                    "background_check"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Task Type Filter"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/EmployeeTaskRead"
+                  },
+                  "title": "Response List Tasks Api V1 Employee Tasks Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "List Tasks",
+        "tags": [
+          "employee"
+        ]
+      }
+    },
+    "/api/v1/employee/tasks/{task_id}": {
+      "get": {
+        "operationId": "get_task_api_v1_employee_tasks__task_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "task_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Task Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmployeeTaskRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Get Task",
+        "tags": [
+          "employee"
+        ]
+      },
+      "patch": {
+        "operationId": "patch_task_api_v1_employee_tasks__task_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "task_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Task Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EmployeeTaskUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmployeeTaskRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Patch Task",
+        "tags": [
+          "employee"
         ]
       }
     },

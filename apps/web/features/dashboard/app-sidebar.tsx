@@ -59,6 +59,7 @@ export function AppSidebar({
   const { session } = useAuth();
   const isClient = session?.role === "client";
   const isTelecaller = session?.role === "telecaller";
+  const isEmployee = session?.role === "employee";
 
   // Labeled = the mobile drawer, or the desktop rail when the user expands it.
   const labeled = showLabels || expanded;
@@ -85,7 +86,9 @@ export function AppSidebar({
       })
     : isTelecaller
       ? NAV_ITEMS.filter((i) => i.key === "home" || i.telecallerOnly)
-      : NAV_ITEMS.filter((i) => i.key === "home");
+      : isEmployee
+        ? NAV_ITEMS.filter((i) => i.key === "home" || i.employeeOnly)
+        : NAV_ITEMS.filter((i) => i.key === "home");
 
   return (
     <TooltipProvider delayDuration={0}>
