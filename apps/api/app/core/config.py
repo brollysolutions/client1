@@ -134,6 +134,24 @@ class Settings(BaseSettings):
     # merely in flight. Mock mode settles synchronously, so this is a live-only path.
     PAYOUT_RECONCILE_STUCK_MINUTES: int = 30
 
+    # Object storage — S3-compatible (minio in dev, DigitalOcean Spaces in
+    # prod). Unlike payments/voice-OTP, this has no mock/live toggle: every
+    # environment needs a real storage endpoint for the employee document
+    # upload flow, only the endpoint + credentials differ per environment.
+    # Dev points at the minio service in docker-compose with placeholder
+    # creds; prod supplies real Spaces values via env/secrets.
+    SPACES_ENDPOINT_URL: str = "http://minio:9000"
+    # Presigned URLs are handed to the browser, which can't resolve the
+    # container-network hostname above. Empty means "same as
+    # SPACES_ENDPOINT_URL" (true in prod — Spaces is one public URL for
+    # everyone); dev overrides this to the host-published port
+    # (docker-compose.dev.yml), never a Settings-level default here.
+    SPACES_PUBLIC_ENDPOINT_URL: str = ""
+    SPACES_REGION: str = "us-east-1"
+    SPACES_BUCKET: str = "task-documents"
+    SPACES_ACCESS_KEY: str = "minioadmin"  # dev placeholder; real value in prod env
+    SPACES_SECRET_KEY: str = "minioadmin"  # dev placeholder; real value in prod env
+
     @model_validator(mode="after")
     def _guard_secret_key(self) -> "Settings":
         # Fail fast outside development if the signing key is the committed
@@ -147,6 +165,32 @@ class Settings(BaseSettings):
                 )
             if len(self.SECRET_KEY) < 32:
                 raise ValueError("SECRET_KEY must be at least 32 characters.")
+        return self
+
+    @model_validator(mode="after")
+    def _guard_storage_credentials(self) -> "Settings":
+        # Same "prod must be explicitly configured" stance as _guard_secret_key:
+        # the committed minio dev placeholders must never reach a real
+        # deployment, where they'd point at (or authenticate against) nothing
+        # real, or worse, a shared default anyone could guess.
+        if self.ENV != "development":
+            if self.SPACES_ACCESS_KEY == "minioadmin" or self.SPACES_SECRET_KEY == "minioadmin":
+                raise ValueError(
+                    "SPACES_ACCESS_KEY/SPACES_SECRET_KEY are the committed minio dev "
+                    "placeholders. Set real DigitalOcean Spaces credentials for this "
+                    "environment."
+                )
+            if self.SPACES_ENDPOINT_URL == "http://minio:9000":
+                raise ValueError(
+                    "SPACES_ENDPOINT_URL is the committed dev minio endpoint. Set the "
+                    "real DigitalOcean Spaces endpoint for this environment."
+                )
+            # Presigned URLs carry the SigV4 signature (and, for uploads, the
+            # document bytes) in plain query-string/body over the wire — a
+            # plain-http endpoint outside dev would expose KYC documents to
+            # network-level interception.
+            if not self.SPACES_ENDPOINT_URL.startswith("https://"):
+                raise ValueError("SPACES_ENDPOINT_URL must use https:// outside development.")
         return self
 
     @model_validator(mode="after")

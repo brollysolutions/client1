@@ -466,6 +466,58 @@ export interface paths {
         patch: operations["patch_task_api_v1_employee_tasks__task_id__patch"];
         trace?: never;
     };
+    "/api/v1/employee/tasks/{task_id}/documents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Documents */
+        get: operations["list_documents_api_v1_employee_tasks__task_id__documents_get"];
+        put?: never;
+        /** Confirm Document */
+        post: operations["confirm_document_api_v1_employee_tasks__task_id__documents_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/employee/tasks/{task_id}/documents/presign": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Presign Document */
+        post: operations["presign_document_api_v1_employee_tasks__task_id__documents_presign_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/employee/tasks/{task_id}/documents/{document_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete Document */
+        delete: operations["delete_document_api_v1_employee_tasks__task_id__documents__document_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/enquiries": {
         parameters: {
             query?: never;
@@ -2211,6 +2263,55 @@ export interface components {
             /** Notes */
             notes?: string | null;
         };
+        /** TaskDocumentCreate */
+        TaskDocumentCreate: {
+            /**
+             * Doc Type
+             * @enum {string}
+             */
+            doc_type: "aadhaar_front" | "aadhaar_back" | "pan" | "salary_slip" | "bank_statement" | "sale_deed" | "photo" | "other";
+            /** Object Key */
+            object_key: string;
+        };
+        /** TaskDocumentPresignRequest */
+        TaskDocumentPresignRequest: {
+            /**
+             * Content Type
+             * @enum {string}
+             */
+            content_type: "image/jpeg" | "image/png" | "application/pdf";
+            /**
+             * Doc Type
+             * @enum {string}
+             */
+            doc_type: "aadhaar_front" | "aadhaar_back" | "pan" | "salary_slip" | "bank_statement" | "sale_deed" | "photo" | "other";
+        };
+        /** TaskDocumentPresignResponse */
+        TaskDocumentPresignResponse: {
+            /** Object Key */
+            object_key: string;
+            /** Upload Url */
+            upload_url: string;
+        };
+        /** TaskDocumentRead */
+        TaskDocumentRead: {
+            /** Doc Type */
+            doc_type: string;
+            /** Download Url */
+            download_url: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Uploaded At
+             * Format: date-time
+             */
+            uploaded_at: string;
+            /** Verified */
+            verified: boolean;
+        };
         /** TaskRead */
         TaskRead: {
             /** Assigned Employee Profile Uuid */
@@ -3348,6 +3449,137 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["EmployeeTaskRead"];
                 };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_documents_api_v1_employee_tasks__task_id__documents_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                task_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskDocumentRead"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    confirm_document_api_v1_employee_tasks__task_id__documents_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                task_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TaskDocumentCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskDocumentRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    presign_document_api_v1_employee_tasks__task_id__documents_presign_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                task_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TaskDocumentPresignRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskDocumentPresignResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_document_api_v1_employee_tasks__task_id__documents__document_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                task_id: string;
+                document_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {

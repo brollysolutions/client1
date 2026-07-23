@@ -20,6 +20,7 @@ import { FetchError } from "@/features/dashboard/fetch-error";
 import type { ApiResponse } from "@/lib/api/client";
 import type { EmployeeTaskUpdate } from "@/lib/employee-api";
 
+import { EmployeeTaskDocumentPanel } from "./employee-task-document-panel";
 import { useEmployeeTaskDetail } from "./use-employee-task-detail";
 
 type TaskStatusValue = NonNullable<EmployeeTaskUpdate["status"]>;
@@ -95,6 +96,7 @@ export function EmployeeTaskDetailView({ taskId }: { taskId: string }) {
   const isTerminal = TERMINAL.has(task.status);
   const isBackgroundCheck = task.task_type === "background_check";
   const isPropertyVisit = task.task_type === "property_visit";
+  const isDocumentCollection = task.task_type === "document_collection";
   const wantsCompletion = allowed.includes("completed");
 
   async function act(
@@ -236,6 +238,10 @@ export function EmployeeTaskDetailView({ taskId }: { taskId: string }) {
           </div>
         )}
       </div>
+
+      {isDocumentCollection ? (
+        <EmployeeTaskDocumentPanel taskId={task.id} disabled={isTerminal} />
+      ) : null}
     </div>
   );
 }

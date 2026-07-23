@@ -3406,6 +3406,120 @@
         "title": "TaskCreate",
         "type": "object"
       },
+      "TaskDocumentCreate": {
+        "properties": {
+          "doc_type": {
+            "enum": [
+              "aadhaar_front",
+              "aadhaar_back",
+              "pan",
+              "salary_slip",
+              "bank_statement",
+              "sale_deed",
+              "photo",
+              "other"
+            ],
+            "title": "Doc Type",
+            "type": "string"
+          },
+          "object_key": {
+            "title": "Object Key",
+            "type": "string"
+          }
+        },
+        "required": [
+          "doc_type",
+          "object_key"
+        ],
+        "title": "TaskDocumentCreate",
+        "type": "object"
+      },
+      "TaskDocumentPresignRequest": {
+        "properties": {
+          "content_type": {
+            "enum": [
+              "image/jpeg",
+              "image/png",
+              "application/pdf"
+            ],
+            "title": "Content Type",
+            "type": "string"
+          },
+          "doc_type": {
+            "enum": [
+              "aadhaar_front",
+              "aadhaar_back",
+              "pan",
+              "salary_slip",
+              "bank_statement",
+              "sale_deed",
+              "photo",
+              "other"
+            ],
+            "title": "Doc Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "doc_type",
+          "content_type"
+        ],
+        "title": "TaskDocumentPresignRequest",
+        "type": "object"
+      },
+      "TaskDocumentPresignResponse": {
+        "properties": {
+          "object_key": {
+            "title": "Object Key",
+            "type": "string"
+          },
+          "upload_url": {
+            "title": "Upload Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "object_key",
+          "upload_url"
+        ],
+        "title": "TaskDocumentPresignResponse",
+        "type": "object"
+      },
+      "TaskDocumentRead": {
+        "properties": {
+          "doc_type": {
+            "title": "Doc Type",
+            "type": "string"
+          },
+          "download_url": {
+            "title": "Download Url",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "uploaded_at": {
+            "format": "date-time",
+            "title": "Uploaded At",
+            "type": "string"
+          },
+          "verified": {
+            "title": "Verified",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "doc_type",
+          "verified",
+          "uploaded_at",
+          "download_url"
+        ],
+        "title": "TaskDocumentRead",
+        "type": "object"
+      },
       "TaskRead": {
         "properties": {
           "assigned_employee_profile_uuid": {
@@ -5348,6 +5462,223 @@
           }
         ],
         "summary": "Patch Task",
+        "tags": [
+          "employee"
+        ]
+      }
+    },
+    "/api/v1/employee/tasks/{task_id}/documents": {
+      "get": {
+        "operationId": "list_documents_api_v1_employee_tasks__task_id__documents_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "task_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Task Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/TaskDocumentRead"
+                  },
+                  "title": "Response List Documents Api V1 Employee Tasks  Task Id  Documents Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "List Documents",
+        "tags": [
+          "employee"
+        ]
+      },
+      "post": {
+        "operationId": "confirm_document_api_v1_employee_tasks__task_id__documents_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "task_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Task Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TaskDocumentCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskDocumentRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Confirm Document",
+        "tags": [
+          "employee"
+        ]
+      }
+    },
+    "/api/v1/employee/tasks/{task_id}/documents/presign": {
+      "post": {
+        "operationId": "presign_document_api_v1_employee_tasks__task_id__documents_presign_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "task_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Task Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TaskDocumentPresignRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskDocumentPresignResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Presign Document",
+        "tags": [
+          "employee"
+        ]
+      }
+    },
+    "/api/v1/employee/tasks/{task_id}/documents/{document_id}": {
+      "delete": {
+        "operationId": "delete_document_api_v1_employee_tasks__task_id__documents__document_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "task_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Task Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "document_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Document Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Delete Document",
         "tags": [
           "employee"
         ]

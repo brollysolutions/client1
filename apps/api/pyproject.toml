@@ -34,6 +34,9 @@ dependencies = [
     # HTTP client (2Factor voice OTP, Razorpay)
     "httpx>=0.28.0",
 
+    # Object storage — S3-compatible client (minio dev / DigitalOcean Spaces prod)
+    "boto3>=1.35.0",
+
     # Email (transactional OTP/verification over SMTP — AWS SES or any host)
     "aiosmtplib>=3.0.0",
 

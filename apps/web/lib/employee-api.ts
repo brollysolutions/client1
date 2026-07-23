@@ -11,6 +11,11 @@ type Schemas = components["schemas"];
 export type EmployeeTask = Schemas["EmployeeTaskRead"];
 export type EmployeeTaskUpdate = Schemas["EmployeeTaskUpdate"];
 export type EmployeeHome = Schemas["EmployeeHomeResponse"];
+export type TaskDocument = Schemas["TaskDocumentRead"];
+export type TaskDocumentPresignRequest = Schemas["TaskDocumentPresignRequest"];
+export type TaskDocumentPresignResponse = Schemas["TaskDocumentPresignResponse"];
+export type TaskDocumentCreate = Schemas["TaskDocumentCreate"];
+export type DocType = TaskDocumentCreate["doc_type"];
 
 export async function listEmployeeTasks(
   statusFilter?: string,
@@ -39,4 +44,56 @@ export async function updateEmployeeTask(
 
 export async function getEmployeeHome(): Promise<ApiResponse<EmployeeHome>> {
   return apiRequest<EmployeeHome>("/api/v1/employee/home");
+}
+
+export async function presignTaskDocument(
+  taskId: string,
+  payload: TaskDocumentPresignRequest,
+): Promise<ApiResponse<TaskDocumentPresignResponse>> {
+  return apiRequest<TaskDocumentPresignResponse>(
+    `/api/v1/employee/tasks/${taskId}/documents/presign`,
+    { method: "POST", body: payload },
+  );
+}
+
+export async function confirmTaskDocument(
+  taskId: string,
+  payload: TaskDocumentCreate,
+): Promise<ApiResponse<TaskDocument>> {
+  return apiRequest<TaskDocument>(`/api/v1/employee/tasks/${taskId}/documents`, {
+    method: "POST",
+    body: payload,
+  });
+}
+
+export async function listTaskDocuments(taskId: string): Promise<ApiResponse<TaskDocument[]>> {
+  return apiRequest<TaskDocument[]>(`/api/v1/employee/tasks/${taskId}/documents`);
+}
+
+export async function deleteTaskDocument(
+  taskId: string,
+  documentId: string,
+): Promise<ApiResponse<undefined>> {
+  return apiRequest<undefined>(`/api/v1/employee/tasks/${taskId}/documents/${documentId}`, {
+    method: "DELETE",
+  });
+}
+
+// Direct-to-storage PUT against the presigned URL — a different host than the
+// API's BASE_URL, so this deliberately bypasses apiRequest (no auth header,
+// no JSON body, no auto-refresh retry; storage doesn't know about any of that).
+export async function uploadFileToPresignedUrl(
+  uploadUrl: string,
+  file: File,
+): Promise<{ ok: boolean }> {
+  try {
+    const res = await fetch(uploadUrl, {
+      method: "PUT",
+      headers: { "Content-Type": file.type },
+      body: file,
+    });
+    return { ok: res.ok };
+  } catch {
+    return { ok: false };
+  }
 }
