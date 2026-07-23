@@ -207,6 +207,19 @@ async def require_telecaller(
     return current_user
 
 
+async def require_employee(
+    current_user: CurrentUser = Depends(get_active_user),
+) -> CurrentUser:
+    """Only an employee may work the assigned-task surface. App-layer defense atop
+    the tasks_rls own-assignment predicate."""
+    if current_user.role != "employee":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only employees may access this.",
+        )
+    return current_user
+
+
 async def require_admin(
     current_user: CurrentUser = Depends(get_active_user),
 ) -> CurrentUser:

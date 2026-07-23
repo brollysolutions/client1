@@ -119,6 +119,7 @@ class AdminTaskRead(BaseModel):
     business_line: Literal["loans", "real_estate"]
     task_type: Literal["document_collection", "property_visit", "background_check"]
     status: TaskStatusLiteral
+    outcome: Literal["clear", "flagged", "inconclusive"] | None
     notes: str | None
     due_at: datetime | None
     created_at: datetime

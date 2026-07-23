@@ -141,6 +141,7 @@ async def test_admin_assigns_task_to_employee(client: AsyncClient) -> None:
     body = res.json()
     assert body["status"] == "assigned"
     assert body["assigned_employee_profile_uuid"] == employee_uuid
+    assert body["outcome"] is None
 
 
 @pytest.mark.asyncio
