@@ -5,6 +5,7 @@ from __future__ import annotations
 import re
 import secrets
 from datetime import UTC, datetime, timedelta
+from random import SystemRandom
 from uuid import uuid4
 
 import anyio
@@ -15,6 +16,7 @@ from jose import JWTError, jwt
 from app.core.config import settings
 
 _ph = PasswordHasher()
+_sysrand = SystemRandom()
 
 # argon2id costs ~64 MiB per hash. anyio's default thread limiter (40) would let an
 # auth burst allocate ~2.5 GiB of transient RAM and OOM a small replica. Cap concurrent
@@ -74,6 +76,34 @@ def validate_password_policy(password: str, mobile: str) -> None:
         raise ValueError("Password must not contain your mobile number.")
     if password.lower() in _COMMON_PASSWORDS:
         raise ValueError("Password is too common.")
+
+
+def generate_temp_password(mobile: str = "") -> str:
+    """Generate a random plaintext password that satisfies validate_password_policy.
+
+    Used only for admin-provisioned accounts (staff/agent bootstrap): the plaintext
+    is returned once in the API response / seeder stdout and never persisted or
+    logged. Excludes visually ambiguous characters (i/l/o/0/1).
+    """
+    lower = "abcdefghjkmnpqrstuvwxyz"
+    upper = lower.upper()
+    digits = "23456789"
+    specials = "!@#$%^&*"
+    while True:
+        chars = [
+            _sysrand.choice(upper),
+            _sysrand.choice(lower),
+            _sysrand.choice(digits),
+            _sysrand.choice(specials),
+        ]
+        chars += [_sysrand.choice(lower + upper + digits) for _ in range(6)]
+        _sysrand.shuffle(chars)
+        candidate = "".join(chars)
+        try:
+            validate_password_policy(candidate, mobile)
+        except ValueError:
+            continue
+        return candidate
 
 
 # ---------------------------------------------------------------------------
