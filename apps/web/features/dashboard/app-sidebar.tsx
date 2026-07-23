@@ -58,6 +58,7 @@ export function AppSidebar({
   const { count: bookmarkCount } = useBookmarks();
   const { session } = useAuth();
   const isClient = session?.role === "client";
+  const isTelecaller = session?.role === "telecaller";
 
   // Labeled = the mobile drawer, or the desktop rail when the user expands it.
   const labeled = showLabels || expanded;
@@ -68,8 +69,10 @@ export function AppSidebar({
 
   // This rail is a client's property/loan browsing nav — Explore, Bookmarks,
   // Enquiries, etc. are meaningless for staff roles, who have no business line
-  // of their own. Non-client roles get just Home; their real navigation lives on
-  // the role's own landing page (e.g. AdminHome's cards).
+  // of their own. Most non-client roles get just Home; their real navigation
+  // lives on the role's own landing page (e.g. AdminHome's cards). Telecaller is
+  // the exception: working leads is their everyday primary task, not an
+  // occasional action, so it gets a persistent rail item alongside Home.
   const items = isClient
     ? NAV_ITEMS.filter((i) => {
         // Apply/Documents are loans-only; Bookmarks/Enquiries/Site Visits/
@@ -80,7 +83,9 @@ export function AppSidebar({
         if (i.realEstateOnly && screenLine !== "real_estate") return false;
         return true;
       })
-    : NAV_ITEMS.filter((i) => i.key === "home");
+    : isTelecaller
+      ? NAV_ITEMS.filter((i) => i.key === "home" || i.telecallerOnly)
+      : NAV_ITEMS.filter((i) => i.key === "home");
 
   return (
     <TooltipProvider delayDuration={0}>

@@ -26,14 +26,34 @@ from uuid import UUID
 
 from sqlalchemy import case, func, text
 from sqlalchemy.dialects.postgresql import insert as pg_insert
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.masking import mask_mobile
 from app.db.session import AsyncSessionLocal
-from app.models.lead import Lead
+from app.models.lead import Lead, LeadStatus
+from app.models.notification import NotificationType
+from app.models.profile import ProfileStatus, StaffProfile, StaffRole
+from app.services.notifications import emit_notification
 
 logger = logging.getLogger(__name__)
 
 _ACTIVE_PREDICATE = "status NOT IN ('closed', 'released')"
+
+
+class LeadNotFound(Exception):
+    """Raised when the target lead id doesn't exist."""
+
+
+class LeadAlreadyAssigned(Exception):
+    """Raised when the lead already has a telecaller (no reassignment this slice)."""
+
+
+class LeadHasNoBusinessLine(Exception):
+    """Raised when the lead's line hasn't been triaged yet (business_line NULL)."""
+
+
+class InvalidTelecaller(Exception):
+    """Raised when the target staff profile isn't an active telecaller on the lead's line."""
 
 
 async def capture_lead(
@@ -134,3 +154,46 @@ async def resolve_loans_lead(mobile: str, client_profile_uuid: UUID) -> UUID:
         lead_id = result.scalar_one()
         await session.commit()
         return lead_id
+
+
+async def assign_lead_to_telecaller(
+    db: AsyncSession, lead_id: UUID, telecaller_staff_profile_uuid: UUID
+) -> Lead:
+    """Assign an unassigned lead to a telecaller. Admin-only (core.deps.require_admin).
+
+    Runs on the admin's own request session: their JWT carries platform_scope="true",
+    which leads_rls's platform bypass branch accepts, so no bypass superuser session
+    is needed (same reasoning services.admin.create_staff already documents). Sends
+    a best-effort notification to the telecaller (emit_notification swallows its own
+    errors, so a failed notification never blocks the assignment).
+    """
+    lead = await db.get(Lead, lead_id, with_for_update=True)
+    if lead is None:
+        raise LeadNotFound
+    if lead.assigned_telecaller_profile_uuid is not None:
+        raise LeadAlreadyAssigned
+    if lead.business_line is None:
+        raise LeadHasNoBusinessLine
+
+    telecaller = await db.get(StaffProfile, telecaller_staff_profile_uuid)
+    if (
+        telecaller is None
+        or telecaller.role != StaffRole.TELECALLER
+        or telecaller.status != ProfileStatus.ACTIVE
+        or telecaller.business_line != lead.business_line
+    ):
+        raise InvalidTelecaller
+
+    lead.assigned_telecaller_profile_uuid = telecaller.id
+    lead.status = LeadStatus.ASSIGNED
+    await db.commit()
+    await db.refresh(lead)
+
+    await emit_notification(
+        user_uuid=telecaller.auth_user_uuid,
+        notification_type=NotificationType.LEAD_ASSIGNED,
+        title="New lead assigned",
+        body=f"A new {lead.business_line} lead has been assigned to you.",
+        href="/dashboard/leads",
+    )
+    return lead

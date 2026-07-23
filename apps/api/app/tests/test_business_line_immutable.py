@@ -79,6 +79,68 @@ async def test_set_business_line_cannot_be_nulled(client: AsyncClient) -> None:
 
 
 @pytest.mark.asyncio
+async def test_lead_activity_business_line_cannot_change(client: AsyncClient) -> None:
+    """lead_activities (added alongside the Telecaller Dashboard, migration
+    d5b6c7a8f9e0) must also reject a business_line change, even on the bypass
+    superuser session — the trigger, not RLS, is what binds that path."""
+    import uuid
+
+    import app.db.session as _session_mod
+    from app.models.lead import Lead, LeadOrigin, LeadStatus
+    from app.models.lead_activity import CallDisposition, LeadActivity
+    from app.models.profile import ProfileScope, ProfileStatus, StaffProfile, StaffRole
+    from app.models.user import User
+
+    async with _session_mod.AsyncSessionLocal() as db:
+        user = User(
+            first_name="Test",
+            last_name="Telecaller",
+            mobile=unique_mobile(),
+            email=f"tc_{uuid.uuid4().hex[:12]}@example.com",
+            password_hash="x",
+        )
+        db.add(user)
+        await db.flush()
+        staff = StaffProfile(
+            auth_user_uuid=user.id,
+            role=StaffRole.TELECALLER,
+            scope=ProfileScope.LINE,
+            business_line="loans",
+            staff_code=f"TC-{uuid.uuid4().hex[:8]}",
+            status=ProfileStatus.ACTIVE,
+        )
+        db.add(staff)
+        await db.flush()
+        lead = Lead(
+            mobile=unique_mobile(),
+            business_line="loans",
+            status=LeadStatus.ASSIGNED,
+            origin=LeadOrigin.DIRECT,
+            assigned_telecaller_profile_uuid=staff.id,
+        )
+        db.add(lead)
+        await db.flush()
+        activity = LeadActivity(
+            lead_uuid=lead.id,
+            telecaller_staff_profile_uuid=staff.id,
+            business_line="loans",
+            disposition=CallDisposition.CONNECTED,
+        )
+        db.add(activity)
+        await db.commit()
+        activity_id = activity.id
+
+    async with _session_mod.AsyncSessionLocal() as db:
+        with pytest.raises(Exception) as exc:  # noqa: B017 — plpgsql check_violation
+            await db.execute(
+                text("UPDATE lead_activities SET business_line = 'real_estate' WHERE id = :id"),
+                {"id": activity_id},
+            )
+            await db.commit()
+    assert "immutable" in str(exc.value).lower()
+
+
+@pytest.mark.asyncio
 async def test_perf_indexes_exist(client: AsyncClient) -> None:
     import app.db.session as _session_mod
 
