@@ -63,6 +63,7 @@ async def capture_lead(
     name: str | None = None,
     business_line: str | None = None,
     origin: str = "direct",
+    origin_agent_profile_uuid: str | None = None,
     requirement: dict[str, Any] | None = None,
 ) -> bool:
     """Insert-or-enrich a lead for this mobile. Never raises.
@@ -80,6 +81,7 @@ async def capture_lead(
                 name=name,
                 business_line=business_line,
                 origin=origin,
+                origin_agent_profile_uuid=origin_agent_profile_uuid,
                 status="new",
                 requirement=requirement,
             )
@@ -94,6 +96,12 @@ async def capture_lead(
                     # would raise on a cross-line re-enquiry and — since capture is
                     # best-effort/swallowed — silently drop the lead.
                     "business_line": func.coalesce(Lead.business_line, stmt.excluded.business_line),
+                    # Same first-write-wins discipline: an agent introducing an
+                    # already-known mobile enriches the lead but never steals
+                    # attribution from whichever origin touched it first.
+                    "origin_agent_profile_uuid": func.coalesce(
+                        Lead.origin_agent_profile_uuid, stmt.excluded.origin_agent_profile_uuid
+                    ),
                     # Merge requirement JSONB, newest value wins per key; an
                     # incoming NULL leaves the stored blob untouched.
                     "requirement": case(
