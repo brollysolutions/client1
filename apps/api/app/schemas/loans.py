@@ -13,7 +13,7 @@ from decimal import Decimal
 from typing import Annotated
 from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 from app.models.loan import FeeOutcome, LoanStatus
 
@@ -53,3 +53,46 @@ class LoanTypeRead(BaseModel):
 
 class LoanTypeListResponse(BaseModel):
     loan_types: list[LoanTypeRead]
+
+
+class BankRead(BaseModel):
+    id: UUID
+    name: str
+
+
+class BankListResponse(BaseModel):
+    banks: list[BankRead]
+
+
+class LoanApplicationProgressUpdate(BaseModel):
+    """Shared write shape for the Telecaller and Admin progression endpoints.
+
+    Shape-only validation here (types/ranges); the transition/reason/terms-
+    gating rules depend on the application's CURRENT status, so they live in
+    services.loan_applications where that status is known.
+    """
+
+    status: LoanStatus | None = None
+    status_reason: Annotated[str | None, Field(default=None, max_length=1000)] = None
+    amount_sanctioned: Annotated[Decimal | None, Field(default=None, gt=0)] = None
+    bank_id: UUID | None = None
+    interest_rate: Annotated[Decimal | None, Field(default=None, ge=0, le=100)] = None
+    processing_fee: Annotated[Decimal | None, Field(default=None, ge=0)] = None
+    fee_outcome: FeeOutcome | None = None
+
+    @model_validator(mode="after")
+    def _at_least_one_field(self) -> LoanApplicationProgressUpdate:
+        if all(
+            v is None
+            for v in (
+                self.status,
+                self.status_reason,
+                self.amount_sanctioned,
+                self.bank_id,
+                self.interest_rate,
+                self.processing_fee,
+                self.fee_outcome,
+            )
+        ):
+            raise ValueError("Provide at least one field to update.")
+        return self

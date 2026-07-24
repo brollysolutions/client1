@@ -17,6 +17,7 @@ export type TelecallerHome = Schemas["TelecallerHomeResponse"];
 export type TelecallerLoanApplication = Schemas["TelecallerLoanApplicationRead"];
 export type LoanTxn = Schemas["LoanTxnRead"];
 export type LoanTxnCreate = Schemas["LoanTxnCreate"];
+export type LoanApplicationProgressUpdate = Schemas["LoanApplicationProgressUpdate"];
 export type Task = Schemas["TaskRead"];
 export type TaskCreate = Schemas["TaskCreate"];
 
@@ -65,6 +66,16 @@ export async function addLoanTxn(
     method: "POST",
     body: payload,
   });
+}
+
+export async function updateLoanApplication(
+  applicationId: string,
+  payload: LoanApplicationProgressUpdate,
+): Promise<ApiResponse<TelecallerLoanApplication>> {
+  return apiRequest<TelecallerLoanApplication>(
+    `/api/v1/telecaller/loan-applications/${applicationId}`,
+    { method: "PATCH", body: payload },
+  );
 }
 
 export async function raiseFieldTask(
