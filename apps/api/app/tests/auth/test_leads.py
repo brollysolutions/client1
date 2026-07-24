@@ -230,3 +230,33 @@ async def test_capture_keeps_first_set_agent_attribution(client: AsyncClient) ->
     after = await _leads_for(mobile)
     assert len(after) == 1
     assert str(after[0].origin_agent_profile_uuid) == str(first_agent_uuid)
+
+
+async def test_capture_repeated_none_requirement_stays_null(client: AsyncClient) -> None:
+    """Regression for the JSONB none_as_null bug: two sequential captures for the
+    same mobile with no requirement passed either time (the normal register/login/
+    forgot case) must leave requirement as Python None, not corrupt it into
+    [None, None] via a spurious jsonb || merge."""
+    from app.services.leads import capture_lead
+
+    mobile = unique_mobile()
+    await capture_lead(mobile, business_line="loans")
+    await capture_lead(mobile, business_line="loans")
+
+    after = await _leads_for(mobile)
+    assert len(after) == 1
+    assert after[0].requirement is None
+
+
+async def test_capture_requirement_merge_still_works(client: AsyncClient) -> None:
+    """The none_as_null fix must not break the LEGITIMATE merge path: two captures
+    with real (non-None) requirement dicts still merge key-by-key."""
+    from app.services.leads import capture_lead
+
+    mobile = unique_mobile()
+    await capture_lead(mobile, business_line="loans", requirement={"a": 1})
+    await capture_lead(mobile, business_line="loans", requirement={"b": 2})
+
+    after = await _leads_for(mobile)
+    assert len(after) == 1
+    assert after[0].requirement == {"a": 1, "b": 2}
