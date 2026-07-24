@@ -89,6 +89,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/property-deals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Property Deals */
+        get: operations["list_property_deals_api_v1_admin_property_deals_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/property-deals/{deal_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Property Deal Progress */
+        patch: operations["update_property_deal_progress_api_v1_admin_property_deals__deal_id__patch"];
+        trace?: never;
+    };
     "/api/v1/admin/tasks": {
         parameters: {
             query?: never;
@@ -782,6 +816,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/property-deals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Property Deals */
+        get: operations["list_property_deals_api_v1_property_deals_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/property-deals/{deal_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Property Deal */
+        get: operations["get_property_deal_api_v1_property_deals__deal_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/property-submissions": {
         parameters: {
             query?: never;
@@ -973,6 +1041,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/telecaller/leads/{lead_id}/property-deals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create Property Deal */
+        post: operations["create_property_deal_api_v1_telecaller_leads__lead_id__property_deals_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/telecaller/leads/{lead_id}/tasks": {
         parameters: {
             query?: never;
@@ -1005,6 +1090,23 @@ export interface paths {
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/api/v1/telecaller/property-deals/{deal_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Property Deal Progress */
+        patch: operations["update_property_deal_progress_api_v1_telecaller_property_deals__deal_id__patch"];
         trace?: never;
     };
     "/api/v1/transactions": {
@@ -1048,6 +1150,53 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** AdminPropertyDealListResponse */
+        AdminPropertyDealListResponse: {
+            /** Deals */
+            deals: components["schemas"]["AdminPropertyDealRead"][];
+        };
+        /** AdminPropertyDealRead */
+        AdminPropertyDealRead: {
+            /** Booking Amount */
+            booking_amount: string | null;
+            /**
+             * Business Line
+             * @enum {string}
+             */
+            business_line: "loans" | "real_estate";
+            /** Closed At */
+            closed_at: string | null;
+            /** Customer Code */
+            customer_code: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Lead Uuid
+             * Format: uuid
+             */
+            lead_uuid: string;
+            /**
+             * Opened At
+             * Format: date-time
+             */
+            opened_at: string;
+            /** Price Quoted */
+            price_quoted: string | null;
+            /** Property Title */
+            property_title: string;
+            /** Site Visit Uuid */
+            site_visit_uuid: string | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "new" | "contacted" | "site_visit_done" | "negotiation" | "booked" | "agreement_signed" | "closed" | "rejected" | "on_hold";
+            /** Status Reason */
+            status_reason: string | null;
+        };
         /** AdminTaskRead */
         AdminTaskRead: {
             /** Assigned Employee Profile Uuid */
@@ -1235,6 +1384,18 @@ export interface components {
          * @enum {string}
          */
         ConstructionStatus: "ready" | "under_construction";
+        /** DealPropertySummary */
+        DealPropertySummary: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Location */
+            location: string;
+            /** Title */
+            title: string;
+        };
         /** EmailVerifyConfirmRequest */
         EmailVerifyConfirmRequest: {
             /** Otp */
@@ -1677,7 +1838,7 @@ export interface components {
          * NotificationType
          * @enum {string}
          */
-        NotificationType: "site_visit_requested" | "site_visit_cancelled" | "support_ticket_received" | "lead_assigned" | "task_assigned";
+        NotificationType: "site_visit_requested" | "site_visit_cancelled" | "support_ticket_received" | "lead_assigned" | "task_assigned" | "property_deal_status_updated";
         /** PayoutCreate */
         PayoutCreate: {
             /** Amount Paise */
@@ -1790,6 +1951,61 @@ export interface components {
          * @enum {string}
          */
         PropertyCategory: "houses" | "apartments" | "villas" | "plots" | "commercial";
+        /** PropertyDealCreate */
+        PropertyDealCreate: {
+            /**
+             * Property Id
+             * Format: uuid
+             */
+            property_id: string;
+        };
+        /** PropertyDealListResponse */
+        PropertyDealListResponse: {
+            /** Deals */
+            deals: components["schemas"]["PropertyDealRead"][];
+        };
+        /** PropertyDealProgressUpdate */
+        PropertyDealProgressUpdate: {
+            /** Booking Amount */
+            booking_amount?: number | string | null;
+            /** Price Quoted */
+            price_quoted?: number | string | null;
+            /** Site Visit Uuid */
+            site_visit_uuid?: string | null;
+            status?: components["schemas"]["PropertyDealStatus"] | null;
+            /** Status Reason */
+            status_reason?: string | null;
+        };
+        /** PropertyDealRead */
+        PropertyDealRead: {
+            /** Booking Amount */
+            booking_amount: string | null;
+            /** Closed At */
+            closed_at: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Opened At
+             * Format: date-time
+             */
+            opened_at: string;
+            /** Price Quoted */
+            price_quoted: string | null;
+            property: components["schemas"]["DealPropertySummary"];
+            /** Site Visit Uuid */
+            site_visit_uuid: string | null;
+            status: components["schemas"]["PropertyDealStatus"];
+            /** Status Reason */
+            status_reason: string | null;
+        };
+        /**
+         * PropertyDealStatus
+         * @enum {string}
+         */
+        PropertyDealStatus: "new" | "contacted" | "site_visit_done" | "negotiation" | "booked" | "agreement_signed" | "closed" | "rejected" | "on_hold";
         /** PropertyListResponse */
         PropertyListResponse: {
             /** Properties */
@@ -2404,6 +2620,11 @@ export interface components {
             name: string | null;
             /** Next Follow Up At */
             next_follow_up_at?: string | null;
+            /**
+             * Property Deals
+             * @default []
+             */
+            property_deals: components["schemas"]["TelecallerPropertyDealRead"][];
             /** Requirement */
             requirement: {
                 [key: string]: unknown;
@@ -2493,6 +2714,33 @@ export interface components {
             status: "new" | "assigned" | "contacted" | "docs_collected" | "submitted_to_bank" | "sanctioned" | "disbursed" | "closed" | "rejected" | "on_hold";
             /** Txns */
             txns: components["schemas"]["LoanTxnRead"][];
+        };
+        /** TelecallerPropertyDealRead */
+        TelecallerPropertyDealRead: {
+            /** Booking Amount */
+            booking_amount: string | null;
+            /** Closed At */
+            closed_at: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Price Quoted */
+            price_quoted: string | null;
+            /** Property Location */
+            property_location: string;
+            /** Property Title */
+            property_title: string;
+            /** Site Visit Uuid */
+            site_visit_uuid: string | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "new" | "contacted" | "site_visit_done" | "negotiation" | "booked" | "agreement_signed" | "closed" | "rejected" | "on_hold";
+            /** Status Reason */
+            status_reason: string | null;
         };
         /** TransactionListResponse */
         TransactionListResponse: {
@@ -2695,6 +2943,72 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["LeadAssignResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_property_deals_api_v1_admin_property_deals_get: {
+        parameters: {
+            query?: {
+                status_filter?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminPropertyDealListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_property_deal_progress_api_v1_admin_property_deals__deal_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                deal_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PropertyDealProgressUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminPropertyDealRead"];
                 };
             };
             /** @description Validation Error */
@@ -4074,6 +4388,57 @@ export interface operations {
             };
         };
     };
+    list_property_deals_api_v1_property_deals_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PropertyDealListResponse"];
+                };
+            };
+        };
+    };
+    get_property_deal_api_v1_property_deals__deal_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                deal_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PropertyDealRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_submissions_api_v1_property_submissions_get: {
         parameters: {
             query?: {
@@ -4524,6 +4889,41 @@ export interface operations {
             };
         };
     };
+    create_property_deal_api_v1_telecaller_leads__lead_id__property_deals_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                lead_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PropertyDealCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TelecallerPropertyDealRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     create_task_api_v1_telecaller_leads__lead_id__tasks_post: {
         parameters: {
             query?: never;
@@ -4581,6 +4981,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["LoanTxnRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_property_deal_progress_api_v1_telecaller_property_deals__deal_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                deal_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PropertyDealProgressUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TelecallerPropertyDealRead"];
                 };
             };
             /** @description Validation Error */

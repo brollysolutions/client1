@@ -20,6 +20,7 @@ import type { LeadActivityCreate } from "@/lib/telecaller-api";
 import { cn } from "@/lib/utils";
 
 import { TelecallerLoanAppsSection } from "./telecaller-loan-apps-section";
+import { TelecallerPropertyDealsSection } from "./telecaller-property-deals-section";
 import { TelecallerTasksSection } from "./telecaller-tasks-section";
 import { useTelecallerLeadDetail } from "./use-telecaller-lead-detail";
 
@@ -60,8 +61,19 @@ function formatDateTime(iso: string | null | undefined): string {
 }
 
 export function TelecallerLeadDetailView({ leadId }: { leadId: string }) {
-  const { lead, status, error, errorStatus, retry, updateStatus, logCall, addTxn, raiseTask } =
-    useTelecallerLeadDetail(leadId);
+  const {
+    lead,
+    status,
+    error,
+    errorStatus,
+    retry,
+    updateStatus,
+    logCall,
+    addTxn,
+    raiseTask,
+    createDeal,
+    updateDeal,
+  } = useTelecallerLeadDetail(leadId);
 
   const [disposition, setDisposition] = React.useState<LeadActivityCreate["disposition"] | "">("");
   const [interestLevel, setInterestLevel] = React.useState<
@@ -294,6 +306,15 @@ export function TelecallerLeadDetailView({ leadId }: { leadId: string }) {
 
       {lead.business_line === "loans" ? (
         <TelecallerLoanAppsSection applications={lead.loan_applications} onAddTxn={addTxn} />
+      ) : null}
+
+      {lead.business_line === "real_estate" ? (
+        <TelecallerPropertyDealsSection
+          leadId={lead.id}
+          deals={lead.property_deals}
+          onCreateDeal={createDeal}
+          onUpdateDeal={updateDeal}
+        />
       ) : null}
 
       <TelecallerTasksSection tasks={lead.tasks} onRaiseTask={raiseTask} />

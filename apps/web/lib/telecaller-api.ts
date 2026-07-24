@@ -19,6 +19,9 @@ export type LoanTxn = Schemas["LoanTxnRead"];
 export type LoanTxnCreate = Schemas["LoanTxnCreate"];
 export type Task = Schemas["TaskRead"];
 export type TaskCreate = Schemas["TaskCreate"];
+export type TelecallerPropertyDeal = Schemas["TelecallerPropertyDealRead"];
+export type PropertyDealCreate = Schemas["PropertyDealCreate"];
+export type PropertyDealProgressUpdate = Schemas["PropertyDealProgressUpdate"];
 
 export async function listTelecallerLeads(
   statusFilter?: string,
@@ -73,6 +76,26 @@ export async function raiseFieldTask(
 ): Promise<ApiResponse<Task>> {
   return apiRequest<Task>(`/api/v1/telecaller/leads/${leadId}/tasks`, {
     method: "POST",
+    body: payload,
+  });
+}
+
+export async function createPropertyDeal(
+  leadId: string,
+  payload: PropertyDealCreate,
+): Promise<ApiResponse<TelecallerPropertyDeal>> {
+  return apiRequest<TelecallerPropertyDeal>(`/api/v1/telecaller/leads/${leadId}/property-deals`, {
+    method: "POST",
+    body: payload,
+  });
+}
+
+export async function updatePropertyDealProgress(
+  dealId: string,
+  payload: PropertyDealProgressUpdate,
+): Promise<ApiResponse<TelecallerPropertyDeal>> {
+  return apiRequest<TelecallerPropertyDeal>(`/api/v1/telecaller/property-deals/${dealId}`, {
+    method: "PATCH",
     body: payload,
   });
 }

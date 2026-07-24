@@ -1,13 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { ClipboardCheck, UserPlus } from "lucide-react";
+import { ClipboardCheck, Home, UserPlus } from "lucide-react";
 
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
-// Minimal admin landing. Deliberately small: this slice only ships staff
-// provisioning + the agent approval queue — the rest of the admin dashboard
-// (properties, loans, banks, banners, offers, reports, audit) is deferred.
+// Minimal admin landing. Deliberately small: this slice ships staff
+// provisioning, the agent approval queue, and property-deal tracking — the
+// rest of the admin dashboard (loans, banks, banners, offers, reports, audit)
+// is deferred.
 export function AdminHome() {
   return (
     <div className="mx-auto w-full max-w-5xl space-y-6 px-4 sm:px-6 lg:px-10">
@@ -38,6 +39,18 @@ export function AdminHome() {
               <CardTitle className="mt-2">Agent applications</CardTitle>
               <CardDescription>
                 Review pending real-estate agent applications and approve or reject them.
+              </CardDescription>
+            </CardHeader>
+          </Card>
+        </Link>
+
+        <Link href="/dashboard/property-deals">
+          <Card className="h-full transition-colors hover:border-brand-cta">
+            <CardHeader>
+              <Home className="h-6 w-6 text-brand-cta" aria-hidden="true" />
+              <CardTitle className="mt-2">Property deals</CardTitle>
+              <CardDescription>
+                Track every real-estate deal through site visit, negotiation, and booking.
               </CardDescription>
             </CardHeader>
           </Card>

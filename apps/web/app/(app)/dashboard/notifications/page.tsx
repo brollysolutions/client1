@@ -9,6 +9,7 @@ import {
   CheckCheck,
   ClipboardList,
   Headset,
+  Home,
   PhoneCall,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
@@ -31,6 +32,7 @@ const TYPE_ICON: Record<NotificationType, LucideIcon> = {
   support_ticket_received: Headset,
   lead_assigned: PhoneCall,
   task_assigned: ClipboardList,
+  property_deal_status_updated: Home,
 };
 
 function formatRelativeTime(iso: string): string {

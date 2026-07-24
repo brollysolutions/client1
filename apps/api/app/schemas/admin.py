@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from decimal import Decimal
 from typing import Annotated, Literal
 from uuid import UUID
 
@@ -128,3 +129,39 @@ class AdminTaskRead(BaseModel):
 
 class TaskAssignRequest(BaseModel):
     employee_profile_uuid: UUID
+
+
+# ---------------------------------------------------------------------------
+# Property deals (Real Estate Deal Lifecycle Progression)
+# ---------------------------------------------------------------------------
+
+PropertyDealStatusLiteral = Literal[
+    "new",
+    "contacted",
+    "site_visit_done",
+    "negotiation",
+    "booked",
+    "agreement_signed",
+    "closed",
+    "rejected",
+    "on_hold",
+]
+
+
+class AdminPropertyDealRead(BaseModel):
+    id: UUID
+    lead_uuid: UUID
+    customer_code: str
+    property_title: str
+    business_line: Literal["loans", "real_estate"]
+    status: PropertyDealStatusLiteral
+    status_reason: str | None
+    price_quoted: Decimal | None
+    booking_amount: Decimal | None
+    site_visit_uuid: UUID | None
+    opened_at: datetime
+    closed_at: datetime | None
+
+
+class AdminPropertyDealListResponse(BaseModel):
+    deals: list[AdminPropertyDealRead]

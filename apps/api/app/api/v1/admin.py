@@ -16,6 +16,8 @@ from app.core.deps import CurrentUser, require_admin
 from app.db.session import get_db
 from app.models.profile import AgentApplication, SubmissionStatus
 from app.schemas.admin import (
+    AdminPropertyDealListResponse,
+    AdminPropertyDealRead,
     AdminTaskRead,
     AgentApplicationListResponse,
     AgentApplicationRead,
@@ -27,6 +29,7 @@ from app.schemas.admin import (
     StaffCreateResponse,
     TaskAssignRequest,
 )
+from app.schemas.property_deals import PropertyDealProgressUpdate
 from app.services.admin import (
     AgentApplicationAlreadyReviewed,
     StaffAlreadyExists,
@@ -41,6 +44,22 @@ from app.services.leads import (
     LeadNotFound,
     assign_lead_to_telecaller,
 )
+from app.services.property_deals import InvalidStatusTransition as InvalidDealStatusTransition
+from app.services.property_deals import (
+    StatusReasonRequired as DealStatusReasonRequired,
+)
+from app.services.property_deals import (
+    TerminalDeal,
+    UnknownSiteVisit,
+    get_deal_for_admin,
+    list_deals_for_admin,
+)
+from app.services.property_deals import (
+    TermsNotAllowedAtStage as DealTermsNotAllowedAtStage,
+)
+from app.services.property_deals import (
+    apply_progress_update as apply_deal_progress_update,
+)
 from app.services.tasks import (
     InvalidEmployee,
     TaskNotAssignable,
@@ -50,6 +69,23 @@ from app.services.tasks import (
 )
 
 router = APIRouter()
+
+
+def _to_admin_property_deal_read(deal) -> AdminPropertyDealRead:  # noqa: ANN001
+    return AdminPropertyDealRead(
+        id=deal.id,
+        lead_uuid=deal.lead_uuid,
+        customer_code=deal.client_profile.customer_code,
+        property_title=deal.property.title,
+        business_line=deal.business_line,
+        status=deal.status,
+        status_reason=deal.status_reason,
+        price_quoted=deal.price_quoted,
+        booking_amount=deal.booking_amount,
+        site_visit_uuid=deal.site_visit_uuid,
+        opened_at=deal.opened_at,
+        closed_at=deal.closed_at,
+    )
 
 
 @router.post(
@@ -210,3 +246,52 @@ async def assign_task(
             "Target account is not an active employee on this task's business line.",
         ) from exc
     return AdminTaskRead.model_validate(task, from_attributes=True)
+
+
+@router.get("/property-deals", response_model=AdminPropertyDealListResponse)
+async def list_property_deals(
+    status_filter: str | None = None,
+    current_user: CurrentUser = Depends(require_admin),  # noqa: ARG001
+    db: AsyncSession = Depends(get_db),
+) -> AdminPropertyDealListResponse:
+    deals = await list_deals_for_admin(db, status_filter)
+    return AdminPropertyDealListResponse(deals=[_to_admin_property_deal_read(d) for d in deals])
+
+
+@router.patch("/property-deals/{deal_id}", response_model=AdminPropertyDealRead)
+async def update_property_deal_progress(
+    deal_id: UUID,
+    payload: PropertyDealProgressUpdate,
+    current_user: CurrentUser = Depends(require_admin),  # noqa: ARG001
+    db: AsyncSession = Depends(get_db),
+) -> AdminPropertyDealRead:
+    deal = await get_deal_for_admin(db, deal_id)
+    if deal is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Property deal not found.")
+
+    try:
+        deal = await apply_deal_progress_update(db, deal, payload)
+    except TerminalDeal as exc:
+        raise HTTPException(status.HTTP_409_CONFLICT, "This deal is already closed.") from exc
+    except InvalidDealStatusTransition as exc:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT, "That status change is not allowed from the current status."
+        ) from exc
+    except DealStatusReasonRequired as exc:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            "A reason is required when moving to rejected or on hold.",
+        ) from exc
+    except DealTermsNotAllowedAtStage as exc:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            "Deal terms can only be set once the deal has been booked.",
+        ) from exc
+    except UnknownSiteVisit as exc:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY, "Unknown site visit for this client."
+        ) from exc
+
+    deal = await get_deal_for_admin(db, deal_id)
+    assert deal is not None  # just updated it above
+    return _to_admin_property_deal_read(deal)
