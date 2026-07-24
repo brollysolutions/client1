@@ -570,6 +570,77 @@ async def reconcile_stuck_payouts() -> dict:
     return {"scanned": len(stuck), "reconciled": reconciled}
 
 
+async def audit_paid_payouts_for_drift() -> dict:
+    """Re-verify recently-settled payouts against RazorpayX's own record.
+
+    Closes a gap reconcile_stuck_payouts does not cover: that function only
+    scans INITIATED/FAILED, so a payout that settled successfully (webhook
+    received, ledger row emitted, status=PAID) and is later reversed by
+    RazorpayX (e.g. a bank-side rejection days after the transfer) is never
+    re-checked if the payout.reversed webhook is itself lost. This sweep
+    catches that: only PAID payouts settled within
+    PAYOUT_REVERSAL_AUDIT_WINDOW_DAYS are GET-checked, and only a gateway
+    status of "reversed" triggers action, via the same idempotent
+    settle_from_webhook CAS reconcile_stuck_payouts uses (so a redelivered
+    webhook racing this sweep can never double-clawback).
+
+    LIVE-ONLY, like reconcile_stuck_payouts: mock mode settles synchronously
+    and never reverses, so this returns immediately on ``main``/dev.
+    """
+    if not _is_live():
+        return {"skipped": "mock", "scanned": 0, "reconciled": 0}
+
+    cutoff = datetime.now(UTC) - timedelta(days=settings.PAYOUT_REVERSAL_AUDIT_WINDOW_DAYS)
+    async with AsyncSessionLocal() as db:
+        recent_paid = (
+            await db.scalars(
+                select(Payout)
+                .where(
+                    Payout.status == PayoutStatus.PAID,
+                    Payout.updated_at >= cutoff,
+                    # Always true for a PAID row (settle only matches by
+                    # gateway id) — kept explicit so _fetch_gateway_state
+                    # always takes the cheap GET-by-id path, never the
+                    # reference_id search.
+                    Payout.gateway_payout_id.is_not(None),
+                )
+                .order_by(Payout.updated_at)
+                .limit(_RECONCILE_SCAN_LIMIT)
+            )
+        ).all()
+
+    reconciled = 0
+    for payout in recent_paid:
+        # One poison payout must never abort the batch — same discipline as
+        # reconcile_stuck_payouts.
+        try:
+            resolved = await _fetch_gateway_state(payout)
+            if resolved is None:
+                continue  # gateway has no record at all — leave as-is
+            gateway_payout_id, gateway_status = resolved
+            if gateway_status == "processed":
+                continue  # no drift — still settled, matches our record
+            event = _GATEWAY_STATUS_TO_EVENT.get(gateway_status)
+            if event == "payout.reversed":
+                logger.warning("payout.reconcile_drift_reversed payout_id=%s", payout.id)
+                await settle_from_webhook(event=event, gateway_payout_id=gateway_payout_id)
+                reconciled += 1
+                continue
+            # Any other terminal/unmapped gateway status is unexpected for an
+            # already-PAID payout — log for investigation; do not mutate
+            # local state (settle_from_webhook would only log+ignore it via
+            # the payout.status==PAID guard anyway).
+            logger.warning(
+                "payout.audit_paid_unexpected_status payout_id=%s gateway_status=%s",
+                payout.id,
+                gateway_status,
+            )
+        except Exception:
+            logger.warning("payout.audit_paid_failed payout_id=%s", payout.id, exc_info=True)
+            continue
+    return {"scanned": len(recent_paid), "reconciled": reconciled}
+
+
 async def _backfill_gateway_id(payout_id: uuid.UUID, gateway_payout_id: str) -> None:
     """Persist a gateway id discovered by reference lookup so the idempotent
     settle path can match it. Guarded on gateway_payout_id IS NULL so a webhook

@@ -19,6 +19,7 @@ from sqlalchemy import delete, func
 
 import app.db.session as db_session
 from app.core.config import settings
+from app.jobs.audit_paid_payouts import audit_paid_payouts
 from app.jobs.backfill_customer_codes import backfill_customer_codes
 from app.jobs.reconcile_payouts import reconcile_payouts
 from app.models.auth import RefreshToken
@@ -117,6 +118,16 @@ def build_scheduler() -> AsyncIOScheduler:
         minutes=15,  # settle stuck live payouts; a no-op in mock mode (main/dev)
         id="reconcile_payouts",
         max_instances=1,  # never overlap a sweep with itself
+        coalesce=True,
+        replace_existing=True,
+    )
+    scheduler.add_job(
+        audit_paid_payouts,
+        trigger="interval",
+        hours=24,  # reversals are bank-side/slow, not a webhook-delivery race —
+        # daily bounds RazorpayX API load; a no-op in mock mode (main/dev)
+        id="audit_paid_payouts",
+        max_instances=1,
         coalesce=True,
         replace_existing=True,
     )

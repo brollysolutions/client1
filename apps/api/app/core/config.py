@@ -133,6 +133,15 @@ class Settings(BaseSettings):
     # it has been stuck this long, so the reconciler never races a webhook that is
     # merely in flight. Mock mode settles synchronously, so this is a live-only path.
     PAYOUT_RECONCILE_STUCK_MINUTES: int = 30
+    # Post-settlement drift audit: a PAID payout can still be reversed by
+    # RazorpayX days later (e.g. a bank-side rejection after the transfer
+    # already settled) if the payout.reversed webhook is lost. Only PAID
+    # payouts settled within this trailing window are re-verified against the
+    # gateway — reversals essentially never happen long after settlement
+    # finality, so scanning unbounded history would be wasted API calls on
+    # every future tick forever. See services/payments.py::
+    # audit_paid_payouts_for_drift.
+    PAYOUT_REVERSAL_AUDIT_WINDOW_DAYS: int = 7
 
     # Object storage — S3-compatible (minio in dev, DigitalOcean Spaces in
     # prod). Unlike payments/voice-OTP, this has no mock/live toggle: every
