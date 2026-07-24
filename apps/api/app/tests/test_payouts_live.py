@@ -24,6 +24,7 @@ from sqlalchemy import text
 
 from app.core.config import settings
 from app.models.payout import Payout, PayoutDestination, PayoutStatus, PayoutType
+from app.models.transaction import Transaction, TransactionStatus, TransactionType
 from app.services import payments
 from conftest import full_registration
 
@@ -219,6 +220,54 @@ async def _ledger_count(recipient_uid: str) -> int:
         return await db.scalar(
             text("SELECT count(*) FROM transactions WHERE user_uuid = :u"), {"u": recipient_uid}
         )
+
+
+async def _seed_paid_payout(
+    *,
+    recipient_uid: str,
+    maker_uid: str,
+    gateway_payout_id: str,
+    days_ago: float = 1,
+) -> str:
+    """Insert a PAID payout with a real ledger row and updated_at set days_ago,
+    so it lands inside/outside the audit window as the caller needs. A real
+    Transaction row is required (not a fabricated UUID) — ledger_transaction_id
+    is a real FK to transactions.id."""
+    import app.db.session as _session_mod
+
+    settled_at = datetime.now(UTC) - timedelta(days=days_ago)
+    async with _session_mod.AsyncSessionLocal() as db:
+        txn = Transaction(
+            user_uuid=uuid.UUID(recipient_uid),
+            type=TransactionType.CASHBACK,
+            status=TransactionStatus.PAID,
+            amount_paise=120_000,
+            currency="INR",
+            description="Cashback payout",
+            reference=gateway_payout_id,
+        )
+        db.add(txn)
+        await db.flush()
+        payout = Payout(
+            recipient_user_uuid=uuid.UUID(recipient_uid),
+            type=PayoutType.CASHBACK,
+            amount_paise=120_000,
+            currency="INR",
+            status=PayoutStatus.PAID,
+            destination_type=PayoutDestination.VPA,
+            destination_hint="***@okaxis",
+            idempotency_key=uuid.uuid4().hex,
+            maker_user_uuid=uuid.UUID(maker_uid),
+            checker_user_uuid=uuid.UUID(maker_uid),
+            gateway_payout_id=gateway_payout_id,
+            gateway_status="processed",
+            ledger_transaction_id=txn.id,
+            created_at=settled_at,
+            updated_at=settled_at,
+        )
+        db.add(payout)
+        await db.commit()
+        return str(payout.id)
 
 
 @pytest.mark.asyncio
@@ -430,4 +479,102 @@ async def test_reconcile_skips_in_mock_mode() -> None:
     """Empty creds ⇒ mock ⇒ nothing to reconcile, returns immediately."""
     assert payments._is_live() is False
     summary = await payments.reconcile_stuck_payouts()
+    assert summary["skipped"] == "mock"
+
+
+# ---------------------------------------------------------------------------
+# PAID-drift audit (post-settlement reversal detection)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_audit_paid_payout_reversed_emits_clawback(client, monkeypatch) -> None:
+    """A recently-PAID payout the gateway now reports as reversed gets a
+    compensating negative ledger row and flips to REVERSED — same idempotent
+    CAS settle_from_webhook already uses for a real webhook."""
+    _go_live(monkeypatch)
+    _, recipient_mobile = await full_registration(client, lines=["real_estate"])
+    _, maker_mobile = await full_registration(client, lines=["loans"])
+    recipient_uid = await _auth_user_id(recipient_mobile)
+    maker_uid = await _auth_user_id(maker_mobile)
+    gw_id = f"pout_{uuid.uuid4().hex[:14]}"
+    payout_id = await _seed_paid_payout(
+        recipient_uid=recipient_uid, maker_uid=maker_uid, gateway_payout_id=gw_id, days_ago=1
+    )
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        gw = request.url.path.rsplit("/", 1)[-1]
+        if gw == gw_id:
+            return httpx.Response(200, json={"id": gw_id, "status": "reversed"})
+        return httpx.Response(200, json={"id": gw, "status": "processed"})
+
+    _install_transport(monkeypatch, handler)
+
+    summary = await payments.audit_paid_payouts_for_drift()
+    assert summary["reconciled"] >= 1
+    assert (await _payout_row(payout_id))[0] == "reversed"
+    assert await _ledger_count(recipient_uid) == 2  # original credit + clawback
+
+
+@pytest.mark.asyncio
+async def test_audit_paid_payout_still_processed_is_noop(client, monkeypatch) -> None:
+    """A recently-PAID payout the gateway still reports as processed is left
+    untouched — no drift, no extra ledger row."""
+    _go_live(monkeypatch)
+    _, recipient_mobile = await full_registration(client, lines=["real_estate"])
+    _, maker_mobile = await full_registration(client, lines=["loans"])
+    recipient_uid = await _auth_user_id(recipient_mobile)
+    maker_uid = await _auth_user_id(maker_mobile)
+    gw_id = f"pout_{uuid.uuid4().hex[:14]}"
+    payout_id = await _seed_paid_payout(
+        recipient_uid=recipient_uid, maker_uid=maker_uid, gateway_payout_id=gw_id, days_ago=1
+    )
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        gw = request.url.path.rsplit("/", 1)[-1]
+        return httpx.Response(200, json={"id": gw, "status": "processed"})
+
+    _install_transport(monkeypatch, handler)
+
+    await payments.audit_paid_payouts_for_drift()
+    assert (await _payout_row(payout_id))[0] == "paid"
+    assert await _ledger_count(recipient_uid) == 1  # unchanged
+
+
+@pytest.mark.asyncio
+async def test_audit_paid_payout_outside_window_not_scanned(client, monkeypatch) -> None:
+    """A PAID payout older than PAYOUT_REVERSAL_AUDIT_WINDOW_DAYS is never
+    queried at all — the gateway isn't even asked."""
+    _go_live(monkeypatch)
+    _, recipient_mobile = await full_registration(client, lines=["real_estate"])
+    _, maker_mobile = await full_registration(client, lines=["loans"])
+    recipient_uid = await _auth_user_id(recipient_mobile)
+    maker_uid = await _auth_user_id(maker_mobile)
+    gw_id = f"pout_{uuid.uuid4().hex[:14]}"
+    await _seed_paid_payout(
+        recipient_uid=recipient_uid,
+        maker_uid=maker_uid,
+        gateway_payout_id=gw_id,
+        days_ago=settings.PAYOUT_REVERSAL_AUDIT_WINDOW_DAYS + 1,
+    )
+
+    called = {"n": 0}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path.endswith(f"/payouts/{gw_id}"):
+            called["n"] += 1  # would mean we wrongly queried this payout
+        gw = request.url.path.rsplit("/", 1)[-1]
+        return httpx.Response(200, json={"id": gw, "status": "processed"})
+
+    _install_transport(monkeypatch, handler)
+
+    await payments.audit_paid_payouts_for_drift()
+    assert called["n"] == 0
+
+
+@pytest.mark.asyncio
+async def test_audit_paid_payouts_skips_in_mock_mode() -> None:
+    """Empty creds ⇒ mock ⇒ nothing to audit, returns immediately."""
+    assert payments._is_live() is False
+    summary = await payments.audit_paid_payouts_for_drift()
     assert summary["skipped"] == "mock"
