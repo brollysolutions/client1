@@ -38,6 +38,12 @@ def _admin_token(uid: str) -> str:
     )
 
 
+def _sub_admin_token(uid: str) -> str:
+    return create_access_token(
+        {"sub": uid, "role": "sub_admin", "business_line": "both", "platform_scope": "true"}
+    )
+
+
 _PAYLOAD = {
     "title": "2BHK Apartment",
     "type": "Apartment",
@@ -188,6 +194,23 @@ async def test_approve_missing_is_404(client: AsyncClient) -> None:
         headers={"Authorization": f"Bearer {_admin_token(uid)}"},
     )
     assert res.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_sub_admin_can_submit(client: AsyncClient) -> None:
+    """require_re_submitter (deps.py) widens the submit gate from agent-only to
+    agent OR sub_admin (SubAdmin slice 1, banners migration a4b5c6d7e8f9's PR)."""
+    _, mobile = await full_registration(client, lines=["real_estate"])
+    uid = await _auth_user_uuid(mobile)
+    res = await client.post(
+        "/api/v1/property-submissions",
+        json=_PAYLOAD,
+        headers={"Authorization": f"Bearer {_sub_admin_token(uid)}"},
+    )
+    assert res.status_code == 201, res.text
+    body = res.json()
+    assert body["status"] == "pending"
+    assert body["submitter_uuid"] == uid
 
 
 @pytest.mark.asyncio

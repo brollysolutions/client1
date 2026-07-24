@@ -8,7 +8,12 @@ import { useAuth } from "@/components/auth/session-provider";
 import { MySubmissionsView } from "@/features/real-estate/my-submissions-view";
 
 // Agent-gated route. UX gate only: RLS scopes the GET to the submitter, so a
-// non-agent who forces the route sees an empty list, never another agent's rows.
+// non-agent who forces the route sees an empty list, never another agent's
+// rows. Deliberately NOT widened to sub_admin like property-submit: sub_admin
+// is always platform-scoped, so property_submissions_select's platform_scope
+// branch would show them the ENTIRE review queue here, mislabeled as "my
+// submissions" — sub_admin already has the correct queue view at
+// /dashboard/property-review.
 export default function MySubmissionsPage() {
   const router = useRouter();
   const { session, isLoading } = useAuth();
