@@ -18,6 +18,7 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.v1.admin import router as admin_router
+from app.api.v1.agent import router as agent_router
 from app.api.v1.auth import router as auth_router
 from app.api.v1.banners import router as banners_router
 from app.api.v1.bookmarks import router as bookmarks_router
@@ -99,6 +100,7 @@ app.include_router(notifications_router, prefix="/api/v1/notifications", tags=["
 app.include_router(transactions_router, prefix="/api/v1/transactions", tags=["transactions"])
 app.include_router(payments_router, prefix="/api/v1/payouts", tags=["payouts"])
 app.include_router(telecaller_router, prefix="/api/v1/telecaller", tags=["telecaller"])
+app.include_router(agent_router, prefix="/api/v1/agent", tags=["agent"])
 app.include_router(employee_router, prefix="/api/v1/employee", tags=["employee"])
 app.include_router(banners_router, prefix="/api/v1/banners", tags=["banners"])
 app.include_router(offers_router, prefix="/api/v1/offers", tags=["offers"])
