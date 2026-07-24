@@ -24,7 +24,7 @@ import logging
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import case, func, text
+from sqlalchemy import case, func, select, text, update
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -32,7 +32,8 @@ from app.core.masking import mask_mobile
 from app.db.session import AsyncSessionLocal
 from app.models.lead import Lead, LeadStatus
 from app.models.notification import NotificationType
-from app.models.profile import ProfileStatus, StaffProfile, StaffRole
+from app.models.profile import ClientProfile, ProfileStatus, StaffProfile, StaffRole
+from app.models.user import User
 from app.services.notifications import emit_notification
 
 logger = logging.getLogger(__name__)
@@ -154,6 +155,45 @@ async def resolve_loans_lead(mobile: str, client_profile_uuid: UUID) -> UUID:
         lead_id = result.scalar_one()
         await session.commit()
         return lead_id
+
+
+async def resolve_realestate_client_profile(mobile: str) -> UUID | None:
+    """Find the mobile's real-estate ClientProfile and backfill it onto any
+    unclaimed lead for that mobile. Returns None if the mobile isn't a
+    registered active real-estate client.
+
+    Unlike resolve_loans_lead (called by the client's OWN request, which
+    already knows its client_profile_uuid from the JWT), a telecaller opening
+    a property deal only has a Lead row in hand — Lead.client_profile_uuid is
+    nullable and, for real-estate leads, never populated by capture_lead. This
+    looks the client up by mobile instead, then idempotently claims the lead
+    (COALESCE-style: only fills a NULL client_profile_uuid, never overwrites
+    one someone else already claimed).
+
+    Runs on the bypass superuser session: the telecaller's own request-scoped
+    session cannot see auth_users/client_profiles across RLS, and the
+    not-yet-claimed lead itself may be invisible under leads_rls's client
+    branch until client_profile_uuid is set.
+    """
+    async with AsyncSessionLocal() as session:
+        client_profile_id = await session.scalar(
+            select(ClientProfile.id)
+            .join(User, User.id == ClientProfile.auth_user_uuid)
+            .where(
+                User.mobile == mobile,
+                ClientProfile.business_line == "real_estate",
+                ClientProfile.status == ProfileStatus.ACTIVE,
+            )
+        )
+        if client_profile_id is None:
+            return None
+        await session.execute(
+            update(Lead)
+            .where(Lead.mobile == mobile, Lead.client_profile_uuid.is_(None))
+            .values(client_profile_uuid=client_profile_id)
+        )
+        await session.commit()
+        return client_profile_id
 
 
 async def assign_lead_to_telecaller(

@@ -89,6 +89,74 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/loan-applications/{application_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Loan Application Progress */
+        patch: operations["update_loan_application_progress_api_v1_admin_loan_applications__application_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/admin/loans": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Loan Applications */
+        get: operations["list_loan_applications_api_v1_admin_loans_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/property-deals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Property Deals */
+        get: operations["list_property_deals_api_v1_admin_property_deals_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/property-deals/{deal_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Property Deal Progress */
+        patch: operations["update_property_deal_progress_api_v1_admin_property_deals__deal_id__patch"];
+        trace?: never;
+    };
     "/api/v1/admin/tasks": {
         parameters: {
             query?: never;
@@ -379,93 +447,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/banners": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List Banners */
-        get: operations["list_banners_api_v1_banners_get"];
-        put?: never;
-        /** Create Banner */
-        post: operations["create_banner_api_v1_banners_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/banners/{banner_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get Banner */
-        get: operations["get_banner_api_v1_banners__banner_id__get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        /** Update Banner */
-        patch: operations["update_banner_api_v1_banners__banner_id__patch"];
-        trace?: never;
-    };
-    "/api/v1/banners/{banner_id}/approve": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Approve */
-        post: operations["approve_api_v1_banners__banner_id__approve_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/banners/{banner_id}/reject": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Reject */
-        post: operations["reject_api_v1_banners__banner_id__reject_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/banners/{banner_id}/submit": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Submit */
-        post: operations["submit_api_v1_banners__banner_id__submit_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/v1/bookmarks": {
         parameters: {
             query?: never;
@@ -675,6 +656,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/loans/banks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Banks */
+        get: operations["list_banks_api_v1_loans_banks_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/loans/loan-types": {
         parameters: {
             query?: never;
@@ -861,6 +859,40 @@ export interface paths {
         };
         /** Get Property */
         get: operations["get_property_api_v1_properties__property_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/property-deals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Property Deals */
+        get: operations["list_property_deals_api_v1_property_deals_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/property-deals/{deal_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Property Deal */
+        get: operations["get_property_deal_api_v1_property_deals__deal_id__get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1060,6 +1092,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/telecaller/leads/{lead_id}/property-deals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create Property Deal */
+        post: operations["create_property_deal_api_v1_telecaller_leads__lead_id__property_deals_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/telecaller/leads/{lead_id}/tasks": {
         parameters: {
             query?: never;
@@ -1077,6 +1126,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/telecaller/loan-applications/{application_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Loan Application Progress */
+        patch: operations["update_loan_application_progress_api_v1_telecaller_loan_applications__application_id__patch"];
+        trace?: never;
+    };
     "/api/v1/telecaller/loan-applications/{application_id}/txn-history": {
         parameters: {
             query?: never;
@@ -1092,6 +1158,23 @@ export interface paths {
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/api/v1/telecaller/property-deals/{deal_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Property Deal Progress */
+        patch: operations["update_property_deal_progress_api_v1_telecaller_property_deals__deal_id__patch"];
         trace?: never;
     };
     "/api/v1/transactions": {
@@ -1135,6 +1218,108 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** AdminLoanApplicationListResponse */
+        AdminLoanApplicationListResponse: {
+            /** Applications */
+            applications: components["schemas"]["AdminLoanApplicationRead"][];
+        };
+        /** AdminLoanApplicationRead */
+        AdminLoanApplicationRead: {
+            /** Amount Requested */
+            amount_requested: string | null;
+            /** Amount Sanctioned */
+            amount_sanctioned: string | null;
+            /** Bank Id */
+            bank_id: string | null;
+            /** Bank Name */
+            bank_name: string | null;
+            /**
+             * Business Line
+             * @enum {string}
+             */
+            business_line: "loans" | "real_estate";
+            /** Closed At */
+            closed_at: string | null;
+            /** Customer Code */
+            customer_code: string;
+            /** Fee Outcome */
+            fee_outcome: ("waived" | "cashback" | "none") | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Interest Rate */
+            interest_rate: string | null;
+            /**
+             * Lead Uuid
+             * Format: uuid
+             */
+            lead_uuid: string;
+            /** Loan Type Label */
+            loan_type_label: string;
+            /**
+             * Opened At
+             * Format: date-time
+             */
+            opened_at: string;
+            /** Processing Fee */
+            processing_fee: string | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "new" | "assigned" | "contacted" | "docs_collected" | "submitted_to_bank" | "sanctioned" | "disbursed" | "closed" | "rejected" | "on_hold";
+            /** Status Reason */
+            status_reason: string | null;
+        };
+        /** AdminPropertyDealListResponse */
+        AdminPropertyDealListResponse: {
+            /** Deals */
+            deals: components["schemas"]["AdminPropertyDealRead"][];
+        };
+        /** AdminPropertyDealRead */
+        AdminPropertyDealRead: {
+            /** Booking Amount */
+            booking_amount: string | null;
+            /**
+             * Business Line
+             * @enum {string}
+             */
+            business_line: "loans" | "real_estate";
+            /** Closed At */
+            closed_at: string | null;
+            /** Customer Code */
+            customer_code: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Lead Uuid
+             * Format: uuid
+             */
+            lead_uuid: string;
+            /**
+             * Opened At
+             * Format: date-time
+             */
+            opened_at: string;
+            /** Price Quoted */
+            price_quoted: string | null;
+            /** Property Title */
+            property_title: string;
+            /** Site Visit Uuid */
+            site_visit_uuid: string | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "new" | "contacted" | "site_visit_done" | "negotiation" | "booked" | "agreement_signed" | "closed" | "rejected" | "on_hold";
+            /** Status Reason */
+            status_reason: string | null;
+        };
         /** AdminTaskRead */
         AdminTaskRead: {
             /** Assigned Employee Profile Uuid */
@@ -1261,111 +1446,20 @@ export interface components {
              */
             token_type: string;
         };
-        /** BannerCreate */
-        BannerCreate: {
-            /** Audience Rules */
-            audience_rules?: {
-                [key: string]: unknown;
-            };
-            banner_type: components["schemas"]["BannerType"];
-            /** Business Line */
-            business_line: string;
-            /** Deep Link */
-            deep_link?: string | null;
-            /** Ends At */
-            ends_at?: string | null;
-            /** Image Key */
-            image_key?: string | null;
-            /**
-             * Priority
-             * @default 0
-             */
-            priority: number;
-            /** Starts At */
-            starts_at?: string | null;
-            /** Title */
-            title: string;
+        /** BankListResponse */
+        BankListResponse: {
+            /** Banks */
+            banks: components["schemas"]["BankRead"][];
         };
-        /** BannerListResponse */
-        BannerListResponse: {
-            /** Banners */
-            banners: components["schemas"]["BannerRead"][];
-        };
-        /** BannerRead */
-        BannerRead: {
-            /** Approved By Uuid */
-            approved_by_uuid: string | null;
-            /** Audience Rules */
-            audience_rules: {
-                [key: string]: unknown;
-            };
-            banner_type: components["schemas"]["BannerType"];
-            /** Business Line */
-            business_line: string;
-            /**
-             * Created At
-             * Format: date-time
-             */
-            created_at: string;
-            /**
-             * Created By Uuid
-             * Format: uuid
-             */
-            created_by_uuid: string;
-            /** Deep Link */
-            deep_link: string | null;
-            /** Ends At */
-            ends_at: string | null;
+        /** BankRead */
+        BankRead: {
             /**
              * Id
              * Format: uuid
              */
             id: string;
-            /** Image Key */
-            image_key: string | null;
-            /** Priority */
-            priority: number;
-            /** Review Note */
-            review_note: string | null;
-            /** Starts At */
-            starts_at: string | null;
-            status: components["schemas"]["BannerStatus"];
-            /** Title */
-            title: string;
-            /**
-             * Updated At
-             * Format: date-time
-             */
-            updated_at: string;
-        };
-        /**
-         * BannerStatus
-         * @enum {string}
-         */
-        BannerStatus: "draft" | "pending_approval" | "approved" | "live" | "rejected" | "archived";
-        /**
-         * BannerType
-         * @enum {string}
-         */
-        BannerType: "default" | "personalized" | "action";
-        /** BannerUpdate */
-        BannerUpdate: {
-            /** Audience Rules */
-            audience_rules?: {
-                [key: string]: unknown;
-            } | null;
-            /** Deep Link */
-            deep_link?: string | null;
-            /** Ends At */
-            ends_at?: string | null;
-            /** Image Key */
-            image_key?: string | null;
-            /** Priority */
-            priority?: number | null;
-            /** Starts At */
-            starts_at?: string | null;
-            /** Title */
-            title?: string | null;
+            /** Name */
+            name: string;
         };
         /** BookmarkCreate */
         BookmarkCreate: {
@@ -1428,6 +1522,18 @@ export interface components {
          * @enum {string}
          */
         ConstructionStatus: "ready" | "under_construction";
+        /** DealPropertySummary */
+        DealPropertySummary: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Location */
+            location: string;
+            /** Title */
+            title: string;
+        };
         /** EmailVerifyConfirmRequest */
         EmailVerifyConfirmRequest: {
             /** Otp */
@@ -1705,6 +1811,28 @@ export interface components {
             /** Applications */
             applications: components["schemas"]["LoanApplicationRead"][];
         };
+        /**
+         * LoanApplicationProgressUpdate
+         * @description Shared write shape for the Telecaller and Admin progression endpoints.
+         *
+         *     Shape-only validation here (types/ranges); the transition/reason/terms-
+         *     gating rules depend on the application's CURRENT status, so they live in
+         *     services.loan_applications where that status is known.
+         */
+        LoanApplicationProgressUpdate: {
+            /** Amount Sanctioned */
+            amount_sanctioned?: number | string | null;
+            /** Bank Id */
+            bank_id?: string | null;
+            fee_outcome?: components["schemas"]["FeeOutcome"] | null;
+            /** Interest Rate */
+            interest_rate?: number | string | null;
+            /** Processing Fee */
+            processing_fee?: number | string | null;
+            status?: components["schemas"]["LoanStatus"] | null;
+            /** Status Reason */
+            status_reason?: string | null;
+        };
         /** LoanApplicationRead */
         LoanApplicationRead: {
             /** Amount Requested */
@@ -1870,7 +1998,7 @@ export interface components {
          * NotificationType
          * @enum {string}
          */
-        NotificationType: "site_visit_requested" | "site_visit_cancelled" | "support_ticket_received" | "lead_assigned" | "task_assigned";
+        NotificationType: "site_visit_requested" | "site_visit_cancelled" | "support_ticket_received" | "lead_assigned" | "task_assigned" | "loan_status_updated" | "property_deal_status_updated";
         /** PayoutCreate */
         PayoutCreate: {
             /** Amount Paise */
@@ -1983,6 +2111,61 @@ export interface components {
          * @enum {string}
          */
         PropertyCategory: "houses" | "apartments" | "villas" | "plots" | "commercial";
+        /** PropertyDealCreate */
+        PropertyDealCreate: {
+            /**
+             * Property Id
+             * Format: uuid
+             */
+            property_id: string;
+        };
+        /** PropertyDealListResponse */
+        PropertyDealListResponse: {
+            /** Deals */
+            deals: components["schemas"]["PropertyDealRead"][];
+        };
+        /** PropertyDealProgressUpdate */
+        PropertyDealProgressUpdate: {
+            /** Booking Amount */
+            booking_amount?: number | string | null;
+            /** Price Quoted */
+            price_quoted?: number | string | null;
+            /** Site Visit Uuid */
+            site_visit_uuid?: string | null;
+            status?: components["schemas"]["PropertyDealStatus"] | null;
+            /** Status Reason */
+            status_reason?: string | null;
+        };
+        /** PropertyDealRead */
+        PropertyDealRead: {
+            /** Booking Amount */
+            booking_amount: string | null;
+            /** Closed At */
+            closed_at: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Opened At
+             * Format: date-time
+             */
+            opened_at: string;
+            /** Price Quoted */
+            price_quoted: string | null;
+            property: components["schemas"]["DealPropertySummary"];
+            /** Site Visit Uuid */
+            site_visit_uuid: string | null;
+            status: components["schemas"]["PropertyDealStatus"];
+            /** Status Reason */
+            status_reason: string | null;
+        };
+        /**
+         * PropertyDealStatus
+         * @enum {string}
+         */
+        PropertyDealStatus: "new" | "contacted" | "site_visit_done" | "negotiation" | "booked" | "agreement_signed" | "closed" | "rejected" | "on_hold";
         /** PropertyListResponse */
         PropertyListResponse: {
             /** Properties */
@@ -2597,6 +2780,11 @@ export interface components {
             name: string | null;
             /** Next Follow Up At */
             next_follow_up_at?: string | null;
+            /**
+             * Property Deals
+             * @default []
+             */
+            property_deals: components["schemas"]["TelecallerPropertyDealRead"][];
             /** Requirement */
             requirement: {
                 [key: string]: unknown;
@@ -2670,22 +2858,63 @@ export interface components {
         TelecallerLoanApplicationRead: {
             /** Amount Requested */
             amount_requested: string | null;
+            /** Amount Sanctioned */
+            amount_sanctioned?: string | null;
+            /** Bank Id */
+            bank_id?: string | null;
             /** Bank Name */
             bank_name: string | null;
+            /** Closed At */
+            closed_at?: string | null;
+            /** Fee Outcome */
+            fee_outcome?: ("waived" | "cashback" | "none") | null;
             /**
              * Id
              * Format: uuid
              */
             id: string;
+            /** Interest Rate */
+            interest_rate?: string | null;
             /** Loan Type Name */
             loan_type_name: string;
+            /** Processing Fee */
+            processing_fee?: string | null;
             /**
              * Status
              * @enum {string}
              */
             status: "new" | "assigned" | "contacted" | "docs_collected" | "submitted_to_bank" | "sanctioned" | "disbursed" | "closed" | "rejected" | "on_hold";
+            /** Status Reason */
+            status_reason?: string | null;
             /** Txns */
             txns: components["schemas"]["LoanTxnRead"][];
+        };
+        /** TelecallerPropertyDealRead */
+        TelecallerPropertyDealRead: {
+            /** Booking Amount */
+            booking_amount: string | null;
+            /** Closed At */
+            closed_at: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Price Quoted */
+            price_quoted: string | null;
+            /** Property Location */
+            property_location: string;
+            /** Property Title */
+            property_title: string;
+            /** Site Visit Uuid */
+            site_visit_uuid: string | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "new" | "contacted" | "site_visit_done" | "negotiation" | "booked" | "agreement_signed" | "closed" | "rejected" | "on_hold";
+            /** Status Reason */
+            status_reason: string | null;
         };
         /** TransactionListResponse */
         TransactionListResponse: {
@@ -2888,6 +3117,138 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["LeadAssignResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_loan_application_progress_api_v1_admin_loan_applications__application_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                application_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LoanApplicationProgressUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminLoanApplicationRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_loan_applications_api_v1_admin_loans_get: {
+        parameters: {
+            query?: {
+                status_filter?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminLoanApplicationListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_property_deals_api_v1_admin_property_deals_get: {
+        parameters: {
+            query?: {
+                status_filter?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminPropertyDealListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_property_deal_progress_api_v1_admin_property_deals__deal_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                deal_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PropertyDealProgressUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminPropertyDealRead"];
                 };
             };
             /** @description Validation Error */
@@ -3454,233 +3815,6 @@ export interface operations {
             };
         };
     };
-    list_banners_api_v1_banners_get: {
-        parameters: {
-            query?: {
-                status_filter?: components["schemas"]["BannerStatus"] | null;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["BannerListResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    create_banner_api_v1_banners_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["BannerCreate"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["BannerRead"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_banner_api_v1_banners__banner_id__get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                banner_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["BannerRead"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    update_banner_api_v1_banners__banner_id__patch: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                banner_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["BannerUpdate"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["BannerRead"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    approve_api_v1_banners__banner_id__approve_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                banner_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["BannerRead"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    reject_api_v1_banners__banner_id__reject_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                banner_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["RejectRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["BannerRead"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    submit_api_v1_banners__banner_id__submit_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                banner_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["BannerRead"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
     list_bookmarks_api_v1_bookmarks_get: {
         parameters: {
             query?: never;
@@ -4182,6 +4316,26 @@ export interface operations {
             };
         };
     };
+    list_banks_api_v1_loans_banks_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BankListResponse"];
+                };
+            };
+        };
+    };
     list_loan_types_api_v1_loans_loan_types_get: {
         parameters: {
             query?: never;
@@ -4481,6 +4635,57 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PropertyRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_property_deals_api_v1_property_deals_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PropertyDealListResponse"];
+                };
+            };
+        };
+    };
+    get_property_deal_api_v1_property_deals__deal_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                deal_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PropertyDealRead"];
                 };
             };
             /** @description Validation Error */
@@ -4944,6 +5149,41 @@ export interface operations {
             };
         };
     };
+    create_property_deal_api_v1_telecaller_leads__lead_id__property_deals_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                lead_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PropertyDealCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TelecallerPropertyDealRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     create_task_api_v1_telecaller_leads__lead_id__tasks_post: {
         parameters: {
             query?: never;
@@ -4979,6 +5219,41 @@ export interface operations {
             };
         };
     };
+    update_loan_application_progress_api_v1_telecaller_loan_applications__application_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                application_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LoanApplicationProgressUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TelecallerLoanApplicationRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     create_loan_txn_api_v1_telecaller_loan_applications__application_id__txn_history_post: {
         parameters: {
             query?: never;
@@ -5001,6 +5276,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["LoanTxnRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_property_deal_progress_api_v1_telecaller_property_deals__deal_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                deal_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PropertyDealProgressUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TelecallerPropertyDealRead"];
                 };
             };
             /** @description Validation Error */

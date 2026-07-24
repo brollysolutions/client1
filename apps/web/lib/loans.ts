@@ -69,6 +69,14 @@ export async function getLoanTypes(): Promise<ApiResponse<LoanTypeOption[]>> {
   return { ok: true, status: res.status, data: res.data.loan_types };
 }
 
+export type Bank = Schemas["BankRead"];
+
+export async function getBanks(): Promise<ApiResponse<Bank[]>> {
+  const res = await apiRequest<Schemas["BankListResponse"]>("/api/v1/loans/banks");
+  if (!res.ok) return res;
+  return { ok: true, status: res.status, data: res.data.banks };
+}
+
 export async function createLoanApplication(input: {
   loanTypeId: string;
   amountRequested: string;

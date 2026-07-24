@@ -20,6 +20,7 @@ from sqlalchemy.orm import selectinload
 from app.models.lead import Lead, LeadStatus
 from app.models.lead_activity import CallDisposition, InterestLevel, LeadActivity
 from app.models.loan import LoanApplication, LoanTxnHistory
+from app.models.property_deal import PropertyDeal
 from app.models.task import Task, TaskStatus, TaskType
 from app.schemas.telecaller import (
     LeadActivityCreate,
@@ -37,6 +38,14 @@ class LoanApplicationNotFound(Exception):
 
 class LoanApplicationNotLoansLine(Exception):
     """Raised when txn history is entered against a non-loans application."""
+
+
+class PropertyDealNotFound(Exception):
+    """Raised when the target property_deal isn't visible to this telecaller."""
+
+
+class PropertyDealNotRealEstateLine(Exception):
+    """Raised when a property deal is actioned against a non-real-estate lead."""
 
 
 async def list_assigned_leads(
@@ -186,10 +195,15 @@ async def get_application_for_telecaller(
     db: AsyncSession, application_id: UUID, staff_profile_uuid: UUID
 ) -> LoanApplication:
     """Defense-in-depth atop loan_txn_history_rls: confirms the application's
-    lead is assigned to this telecaller and the line is loans (FR-6.5 scope)."""
+    lead is assigned to this telecaller and the line is loans (FR-6.5 scope).
+
+    loan_type/bank are eager-loaded: the progress-update route (loan lifecycle
+    progression slice) reads both to shape its response, and async SQLAlchemy
+    has no implicit lazy load."""
     application = await db.scalar(
         select(LoanApplication)
         .join(Lead, Lead.id == LoanApplication.lead_uuid)
+        .options(selectinload(LoanApplication.loan_type), selectinload(LoanApplication.bank))
         .where(
             LoanApplication.id == application_id,
             Lead.assigned_telecaller_profile_uuid == staff_profile_uuid,
@@ -221,6 +235,39 @@ async def add_txn_history(
     await db.commit()
     await db.refresh(txn)
     return txn
+
+
+async def list_property_deals_for_lead(db: AsyncSession, lead_id: UUID) -> list[PropertyDeal]:
+    """Property deals hanging off a lead, property preloaded. Call only for a
+    real-estate-line lead — loans leads have no property_deals."""
+    stmt = (
+        select(PropertyDeal)
+        .where(PropertyDeal.lead_uuid == lead_id)
+        .options(selectinload(PropertyDeal.property))
+        .order_by(PropertyDeal.opened_at.desc())
+    )
+    return list((await db.scalars(stmt)).all())
+
+
+async def get_deal_for_telecaller(
+    db: AsyncSession, deal_id: UUID, staff_profile_uuid: UUID
+) -> PropertyDeal:
+    """Defense-in-depth atop property_deals_rls: confirms the deal's lead is
+    assigned to this telecaller and the line is real_estate."""
+    deal = await db.scalar(
+        select(PropertyDeal)
+        .join(Lead, Lead.id == PropertyDeal.lead_uuid)
+        .options(selectinload(PropertyDeal.property))
+        .where(
+            PropertyDeal.id == deal_id,
+            Lead.assigned_telecaller_profile_uuid == staff_profile_uuid,
+        )
+    )
+    if deal is None:
+        raise PropertyDealNotFound
+    if deal.business_line != "real_estate":
+        raise PropertyDealNotRealEstateLine
+    return deal
 
 
 async def raise_task(

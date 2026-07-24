@@ -14,11 +14,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.deps import CurrentUser, require_telecaller
 from app.db.session import get_db
+from app.schemas.loans import LoanApplicationProgressUpdate
+from app.schemas.property_deals import PropertyDealProgressUpdate
 from app.schemas.telecaller import (
     LeadActivityCreate,
     LeadActivityRead,
     LoanTxnCreate,
     LoanTxnRead,
+    PropertyDealCreate,
     TaskCreate,
     TaskRead,
     TelecallerFollowUpItem,
@@ -27,18 +30,49 @@ from app.schemas.telecaller import (
     TelecallerLeadRead,
     TelecallerLeadUpdate,
     TelecallerLoanApplicationRead,
+    TelecallerPropertyDealRead,
+)
+from app.services.loan_applications import InvalidStatusTransition as InvalidLoanStatusTransition
+from app.services.loan_applications import (
+    StatusReasonRequired,
+    TerminalApplication,
+    TermsNotAllowedAtStage,
+    UnknownBank,
+    apply_progress_update,
+)
+from app.services.property_deals import (
+    ClientNotRegistered,
+    LeadNotRealEstateLine,
+    PropertyNotFound,
+    TerminalDeal,
+    UnknownSiteVisit,
+    create_deal_for_lead,
+)
+from app.services.property_deals import InvalidStatusTransition as InvalidDealStatusTransition
+from app.services.property_deals import (
+    StatusReasonRequired as DealStatusReasonRequired,
+)
+from app.services.property_deals import (
+    TermsNotAllowedAtStage as DealTermsNotAllowedAtStage,
+)
+from app.services.property_deals import (
+    apply_progress_update as apply_deal_progress_update,
 )
 from app.services.telecaller import (
     LoanApplicationNotFound,
     LoanApplicationNotLoansLine,
+    PropertyDealNotFound,
+    PropertyDealNotRealEstateLine,
     add_txn_history,
     get_application_for_telecaller,
+    get_deal_for_telecaller,
     get_home_summary,
     get_last_activities,
     get_lead_for_telecaller,
     list_activities_for_lead,
     list_assigned_leads,
     list_loan_applications_for_lead,
+    list_property_deals_for_lead,
     list_tasks_for_lead,
     list_txns_for_applications,
     log_call_activity,
@@ -47,6 +81,20 @@ from app.services.telecaller import (
 )
 
 router = APIRouter()
+
+
+def _to_telecaller_property_deal_read(deal) -> TelecallerPropertyDealRead:  # noqa: ANN001
+    return TelecallerPropertyDealRead(
+        id=deal.id,
+        property_title=deal.property.title,
+        property_location=deal.property.location,
+        price_quoted=deal.price_quoted,
+        booking_amount=deal.booking_amount,
+        status=deal.status,
+        status_reason=deal.status_reason,
+        site_visit_uuid=deal.site_visit_uuid,
+        closed_at=deal.closed_at,
+    )
 
 
 def _staff_profile_uuid(current_user: CurrentUser) -> UUID:
@@ -108,9 +156,16 @@ async def get_lead(
             TelecallerLoanApplicationRead(
                 id=application.id,
                 loan_type_name=application.loan_type.name,
+                bank_id=application.bank_id,
                 bank_name=application.bank.name if application.bank else None,
                 amount_requested=application.amount_requested,
+                amount_sanctioned=application.amount_sanctioned,
+                interest_rate=application.interest_rate,
+                processing_fee=application.processing_fee,
+                fee_outcome=application.fee_outcome,
                 status=application.status,
+                status_reason=application.status_reason,
+                closed_at=application.closed_at,
                 txns=[
                     LoanTxnRead.model_validate(txn, from_attributes=True)
                     for txn in txns_by_application.get(application.id, [])
@@ -118,6 +173,11 @@ async def get_lead(
             )
             for application in applications
         ]
+
+    property_deals: list[TelecallerPropertyDealRead] = []
+    if lead.business_line == "real_estate":
+        deals = await list_property_deals_for_lead(db, lead_id)
+        property_deals = [_to_telecaller_property_deal_read(d) for d in deals]
 
     tasks = await list_tasks_for_lead(db, lead_id)
 
@@ -134,6 +194,7 @@ async def get_lead(
         updated_at=lead.updated_at,
         activities=[LeadActivityRead.model_validate(a, from_attributes=True) for a in activities],
         loan_applications=loan_applications,
+        property_deals=property_deals,
         tasks=[TaskRead.model_validate(t, from_attributes=True) for t in tasks],
     )
 
@@ -206,6 +267,150 @@ async def create_loan_txn(
         ) from exc
     txn = await add_txn_history(db, application, staff_profile_uuid, payload)
     return LoanTxnRead.model_validate(txn, from_attributes=True)
+
+
+@router.patch(
+    "/loan-applications/{application_id}",
+    response_model=TelecallerLoanApplicationRead,
+)
+async def update_loan_application_progress(
+    application_id: UUID,
+    payload: LoanApplicationProgressUpdate,
+    current_user: CurrentUser = Depends(require_telecaller),
+    db: AsyncSession = Depends(get_db),
+) -> TelecallerLoanApplicationRead:
+    staff_profile_uuid = _staff_profile_uuid(current_user)
+    try:
+        application = await get_application_for_telecaller(db, application_id, staff_profile_uuid)
+    except LoanApplicationNotFound as exc:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Loan application not found.") from exc
+    except LoanApplicationNotLoansLine as exc:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT, "Loan status can only be updated on a loans-line application."
+        ) from exc
+
+    try:
+        application = await apply_progress_update(db, application, payload)
+    except TerminalApplication as exc:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT, "This application is already closed."
+        ) from exc
+    except InvalidLoanStatusTransition as exc:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT, "That status change is not allowed from the current status."
+        ) from exc
+    except StatusReasonRequired as exc:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            "A reason is required when moving to rejected or on hold.",
+        ) from exc
+    except TermsNotAllowedAtStage as exc:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            "Deal terms can only be set once the application has been submitted to a bank.",
+        ) from exc
+    except UnknownBank as exc:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY, "Unknown or inactive bank."
+        ) from exc
+
+    txns_by_application = await list_txns_for_applications(db, [application.id])
+    return TelecallerLoanApplicationRead(
+        id=application.id,
+        loan_type_name=application.loan_type.name,
+        bank_id=application.bank_id,
+        bank_name=application.bank.name if application.bank else None,
+        amount_requested=application.amount_requested,
+        amount_sanctioned=application.amount_sanctioned,
+        interest_rate=application.interest_rate,
+        processing_fee=application.processing_fee,
+        fee_outcome=application.fee_outcome,
+        status=application.status,
+        status_reason=application.status_reason,
+        closed_at=application.closed_at,
+        txns=[
+            LoanTxnRead.model_validate(txn, from_attributes=True)
+            for txn in txns_by_application.get(application.id, [])
+        ],
+    )
+
+
+@router.post(
+    "/leads/{lead_id}/property-deals",
+    response_model=TelecallerPropertyDealRead,
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_property_deal(
+    lead_id: UUID,
+    payload: PropertyDealCreate,
+    current_user: CurrentUser = Depends(require_telecaller),
+    db: AsyncSession = Depends(get_db),
+) -> TelecallerPropertyDealRead:
+    staff_profile_uuid = _staff_profile_uuid(current_user)
+    lead = await get_lead_for_telecaller(db, lead_id, staff_profile_uuid)
+    if lead is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Lead not found.")
+    try:
+        deal = await create_deal_for_lead(db, lead, payload.property_id)
+    except LeadNotRealEstateLine as exc:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT, "Property deals are real-estate-line only."
+        ) from exc
+    except PropertyNotFound as exc:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Unknown or inactive property.") from exc
+    except ClientNotRegistered as exc:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            "This lead isn't linked to a registered client yet.",
+        ) from exc
+    return _to_telecaller_property_deal_read(deal)
+
+
+@router.patch(
+    "/property-deals/{deal_id}",
+    response_model=TelecallerPropertyDealRead,
+)
+async def update_property_deal_progress(
+    deal_id: UUID,
+    payload: PropertyDealProgressUpdate,
+    current_user: CurrentUser = Depends(require_telecaller),
+    db: AsyncSession = Depends(get_db),
+) -> TelecallerPropertyDealRead:
+    staff_profile_uuid = _staff_profile_uuid(current_user)
+    try:
+        deal = await get_deal_for_telecaller(db, deal_id, staff_profile_uuid)
+    except PropertyDealNotFound as exc:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Property deal not found.") from exc
+    except PropertyDealNotRealEstateLine as exc:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            "Deal status can only be updated on a real-estate-line deal.",
+        ) from exc
+
+    try:
+        deal = await apply_deal_progress_update(db, deal, payload)
+    except TerminalDeal as exc:
+        raise HTTPException(status.HTTP_409_CONFLICT, "This deal is already closed.") from exc
+    except InvalidDealStatusTransition as exc:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT, "That status change is not allowed from the current status."
+        ) from exc
+    except DealStatusReasonRequired as exc:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            "A reason is required when moving to rejected or on hold.",
+        ) from exc
+    except DealTermsNotAllowedAtStage as exc:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            "Deal terms can only be set once the deal has been booked.",
+        ) from exc
+    except UnknownSiteVisit as exc:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY, "Unknown site visit for this client."
+        ) from exc
+
+    return _to_telecaller_property_deal_read(deal)
 
 
 @router.post(

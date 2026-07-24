@@ -1,8 +1,14 @@
 """add banners table + enums + RLS (Sub Admin content, slice 1)
 
 Revision ID: a4b5c6d7e8f9
-Revises: b3c4d5e6f7a8
+Revises: e7f8a9b0c1d2
 Create Date: 2026-07-24 00:00:00.000000
+
+Retargeted post-merge: originally forked from the shared ancestor b3c4d5e6f7a8
+alongside PR #93 (loan-lifecycle) and PR #95 (RE-deal-lifecycle), all three
+open in parallel off the same main tip. #93 merged first, #95 rebased onto its
+head and merged second; this migration is rebased onto #95's head
+(e7f8a9b0c1d2) here to keep the chain linear.
 
 NOTE: Run directly against postgres:5432, NOT through pgBouncer (enum DDL + GRANT
 + RLS policy require a direct connection — ADR-0004).
@@ -39,7 +45,7 @@ from sqlalchemy.dialects import postgresql
 from alembic import op
 
 revision: str = "a4b5c6d7e8f9"
-down_revision: str | Sequence[str] | None = "b3c4d5e6f7a8"
+down_revision: str | Sequence[str] | None = "e7f8a9b0c1d2"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
