@@ -26,6 +26,7 @@ from app.api.v1.enquiries import router as enquiries_router
 from app.api.v1.leads import router as leads_router
 from app.api.v1.loans import router as loans_router
 from app.api.v1.notifications import router as notifications_router
+from app.api.v1.offers import router as offers_router
 from app.api.v1.payments import router as payments_router
 from app.api.v1.properties import router as properties_router
 from app.api.v1.property_deals import router as property_deals_router
@@ -100,6 +101,7 @@ app.include_router(payments_router, prefix="/api/v1/payouts", tags=["payouts"])
 app.include_router(telecaller_router, prefix="/api/v1/telecaller", tags=["telecaller"])
 app.include_router(employee_router, prefix="/api/v1/employee", tags=["employee"])
 app.include_router(banners_router, prefix="/api/v1/banners", tags=["banners"])
+app.include_router(offers_router, prefix="/api/v1/offers", tags=["offers"])
 
 
 @app.get("/")
