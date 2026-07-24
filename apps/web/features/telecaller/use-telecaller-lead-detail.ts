@@ -7,8 +7,10 @@ import {
   getTelecallerLead,
   logCallActivity,
   raiseFieldTask,
+  updateLoanApplication,
   updateTelecallerLead,
   type LeadActivityCreate,
+  type LoanApplicationProgressUpdate,
   type LoanTxnCreate,
   type TaskCreate,
   type TelecallerLeadDetail,
@@ -79,5 +81,25 @@ export function useTelecallerLeadDetail(leadId: string) {
     return res;
   }
 
-  return { lead, status, error, errorStatus, retry, updateStatus, logCall, addTxn, raiseTask };
+  async function updateApp(
+    applicationId: string,
+    payload: LoanApplicationProgressUpdate,
+  ): Promise<ApiResponse<unknown>> {
+    const res = await updateLoanApplication(applicationId, payload);
+    if (res.ok) retry();
+    return res;
+  }
+
+  return {
+    lead,
+    status,
+    error,
+    errorStatus,
+    retry,
+    updateStatus,
+    logCall,
+    addTxn,
+    raiseTask,
+    updateApp,
+  };
 }

@@ -8,8 +8,13 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { LoanProgressForm } from "@/features/loans/loan-progress-form";
 import { formatINR } from "@/lib/format";
-import type { LoanTxnCreate, TelecallerLoanApplication } from "@/lib/telecaller-api";
+import type {
+  LoanApplicationProgressUpdate,
+  LoanTxnCreate,
+  TelecallerLoanApplication,
+} from "@/lib/telecaller-api";
 import type { ApiResponse } from "@/lib/api/client";
 
 const STATUS_LABEL: Record<string, string> = {
@@ -124,9 +129,14 @@ function AddTxnForm({
 export function TelecallerLoanAppsSection({
   applications,
   onAddTxn,
+  onUpdateApp,
 }: {
   applications: TelecallerLoanApplication[];
   onAddTxn: (applicationId: string, payload: LoanTxnCreate) => Promise<ApiResponse<unknown>>;
+  onUpdateApp: (
+    applicationId: string,
+    payload: LoanApplicationProgressUpdate,
+  ) => Promise<ApiResponse<unknown>>;
 }) {
   if (applications.length === 0) {
     return (
@@ -177,6 +187,23 @@ export function TelecallerLoanAppsSection({
             ) : (
               <p className="mt-3 text-sm text-text-secondary">No transactions entered yet.</p>
             )}
+
+            <div className="mt-4">
+              <LoanProgressForm
+                application={{
+                  id: application.id,
+                  status: application.status,
+                  status_reason: application.status_reason ?? null,
+                  amount_sanctioned: application.amount_sanctioned ?? null,
+                  bank_id: application.bank_id ?? null,
+                  interest_rate: application.interest_rate ?? null,
+                  processing_fee: application.processing_fee ?? null,
+                  fee_outcome: application.fee_outcome ?? null,
+                  closed_at: application.closed_at ?? null,
+                }}
+                onUpdate={onUpdateApp}
+              />
+            </div>
 
             <AddTxnForm applicationId={application.id} onAdd={onAddTxn} />
           </div>

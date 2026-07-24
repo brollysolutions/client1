@@ -89,6 +89,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/loan-applications/{application_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Loan Application Progress */
+        patch: operations["update_loan_application_progress_api_v1_admin_loan_applications__application_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/admin/loans": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Loan Applications */
+        get: operations["list_loan_applications_api_v1_admin_loans_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/tasks": {
         parameters: {
             query?: never;
@@ -588,6 +622,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/loans/banks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Banks */
+        get: operations["list_banks_api_v1_loans_banks_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/loans/loan-types": {
         parameters: {
             query?: never;
@@ -990,6 +1041,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/telecaller/loan-applications/{application_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Loan Application Progress */
+        patch: operations["update_loan_application_progress_api_v1_telecaller_loan_applications__application_id__patch"];
+        trace?: never;
+    };
     "/api/v1/telecaller/loan-applications/{application_id}/txn-history": {
         parameters: {
             query?: never;
@@ -1048,6 +1116,61 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** AdminLoanApplicationListResponse */
+        AdminLoanApplicationListResponse: {
+            /** Applications */
+            applications: components["schemas"]["AdminLoanApplicationRead"][];
+        };
+        /** AdminLoanApplicationRead */
+        AdminLoanApplicationRead: {
+            /** Amount Requested */
+            amount_requested: string | null;
+            /** Amount Sanctioned */
+            amount_sanctioned: string | null;
+            /** Bank Id */
+            bank_id: string | null;
+            /** Bank Name */
+            bank_name: string | null;
+            /**
+             * Business Line
+             * @enum {string}
+             */
+            business_line: "loans" | "real_estate";
+            /** Closed At */
+            closed_at: string | null;
+            /** Customer Code */
+            customer_code: string;
+            /** Fee Outcome */
+            fee_outcome: ("waived" | "cashback" | "none") | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Interest Rate */
+            interest_rate: string | null;
+            /**
+             * Lead Uuid
+             * Format: uuid
+             */
+            lead_uuid: string;
+            /** Loan Type Label */
+            loan_type_label: string;
+            /**
+             * Opened At
+             * Format: date-time
+             */
+            opened_at: string;
+            /** Processing Fee */
+            processing_fee: string | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "new" | "assigned" | "contacted" | "docs_collected" | "submitted_to_bank" | "sanctioned" | "disbursed" | "closed" | "rejected" | "on_hold";
+            /** Status Reason */
+            status_reason: string | null;
+        };
         /** AdminTaskRead */
         AdminTaskRead: {
             /** Assigned Employee Profile Uuid */
@@ -1173,6 +1296,21 @@ export interface components {
              * @default bearer
              */
             token_type: string;
+        };
+        /** BankListResponse */
+        BankListResponse: {
+            /** Banks */
+            banks: components["schemas"]["BankRead"][];
+        };
+        /** BankRead */
+        BankRead: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
         };
         /** BookmarkCreate */
         BookmarkCreate: {
@@ -1512,6 +1650,28 @@ export interface components {
             /** Applications */
             applications: components["schemas"]["LoanApplicationRead"][];
         };
+        /**
+         * LoanApplicationProgressUpdate
+         * @description Shared write shape for the Telecaller and Admin progression endpoints.
+         *
+         *     Shape-only validation here (types/ranges); the transition/reason/terms-
+         *     gating rules depend on the application's CURRENT status, so they live in
+         *     services.loan_applications where that status is known.
+         */
+        LoanApplicationProgressUpdate: {
+            /** Amount Sanctioned */
+            amount_sanctioned?: number | string | null;
+            /** Bank Id */
+            bank_id?: string | null;
+            fee_outcome?: components["schemas"]["FeeOutcome"] | null;
+            /** Interest Rate */
+            interest_rate?: number | string | null;
+            /** Processing Fee */
+            processing_fee?: number | string | null;
+            status?: components["schemas"]["LoanStatus"] | null;
+            /** Status Reason */
+            status_reason?: string | null;
+        };
         /** LoanApplicationRead */
         LoanApplicationRead: {
             /** Amount Requested */
@@ -1677,7 +1837,7 @@ export interface components {
          * NotificationType
          * @enum {string}
          */
-        NotificationType: "site_visit_requested" | "site_visit_cancelled" | "support_ticket_received" | "lead_assigned" | "task_assigned";
+        NotificationType: "site_visit_requested" | "site_visit_cancelled" | "support_ticket_received" | "lead_assigned" | "task_assigned" | "loan_status_updated";
         /** PayoutCreate */
         PayoutCreate: {
             /** Amount Paise */
@@ -2477,20 +2637,34 @@ export interface components {
         TelecallerLoanApplicationRead: {
             /** Amount Requested */
             amount_requested: string | null;
+            /** Amount Sanctioned */
+            amount_sanctioned?: string | null;
+            /** Bank Id */
+            bank_id?: string | null;
             /** Bank Name */
             bank_name: string | null;
+            /** Closed At */
+            closed_at?: string | null;
+            /** Fee Outcome */
+            fee_outcome?: ("waived" | "cashback" | "none") | null;
             /**
              * Id
              * Format: uuid
              */
             id: string;
+            /** Interest Rate */
+            interest_rate?: string | null;
             /** Loan Type Name */
             loan_type_name: string;
+            /** Processing Fee */
+            processing_fee?: string | null;
             /**
              * Status
              * @enum {string}
              */
             status: "new" | "assigned" | "contacted" | "docs_collected" | "submitted_to_bank" | "sanctioned" | "disbursed" | "closed" | "rejected" | "on_hold";
+            /** Status Reason */
+            status_reason?: string | null;
             /** Txns */
             txns: components["schemas"]["LoanTxnRead"][];
         };
@@ -2695,6 +2869,72 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["LeadAssignResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_loan_application_progress_api_v1_admin_loan_applications__application_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                application_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LoanApplicationProgressUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminLoanApplicationRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_loan_applications_api_v1_admin_loans_get: {
+        parameters: {
+            query?: {
+                status_filter?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminLoanApplicationListResponse"];
                 };
             };
             /** @description Validation Error */
@@ -3762,6 +4002,26 @@ export interface operations {
             };
         };
     };
+    list_banks_api_v1_loans_banks_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BankListResponse"];
+                };
+            };
+        };
+    };
     list_loan_types_api_v1_loans_loan_types_get: {
         parameters: {
             query?: never;
@@ -4546,6 +4806,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TaskRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_loan_application_progress_api_v1_telecaller_loan_applications__application_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                application_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LoanApplicationProgressUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TelecallerLoanApplicationRead"];
                 };
             };
             /** @description Validation Error */
