@@ -181,15 +181,37 @@ async def get_active_user(
     return current_user
 
 
-async def require_re_agent(
+async def require_re_submitter(
     current_user: CurrentUser = Depends(get_active_user),
 ) -> CurrentUser:
-    """Only a real-estate agent may submit a property. App-layer defense atop the
-    RLS INSERT policy (which also checks submitter ownership + line)."""
-    if current_user.role != "agent" or current_user.business_line not in ("real_estate", "both"):
+    """A real-estate agent OR a Sub Admin may submit a property. App-layer
+    defense atop the RLS INSERT policy (which also checks submitter ownership +
+    line). The business_line check only applies to agent — a platform-scoped Sub
+    Admin has business_line=None, and submissions are hardcoded to real_estate
+    server-side regardless of submitter scope."""
+    is_re_agent = current_user.role == "agent" and current_user.business_line in (
+        "real_estate",
+        "both",
+    )
+    is_sub_admin = current_user.role == "sub_admin"
+    if not (is_re_agent or is_sub_admin):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only real-estate agents may submit properties.",
+            detail="Only real-estate agents or Sub Admin may submit properties.",
+        )
+    return current_user
+
+
+async def require_sub_admin(
+    current_user: CurrentUser = Depends(get_active_user),
+) -> CurrentUser:
+    """Only Sub Admin may create/edit content drafts (banners, offers, content
+    blocks, referral-bonus config). App-layer defense atop the narrow-allowlist
+    RLS policy on each content table — see migration a4b5c6d7e8f9 §7."""
+    if current_user.role != "sub_admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only Sub Admin may perform this action.",
         )
     return current_user
 

@@ -16,8 +16,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.deps import (
     CurrentUser,
     get_active_user,
-    require_re_agent,
     require_re_reviewer,
+    require_re_submitter,
 )
 from app.db.session import get_db
 from app.models.property_submission import PropertySubmission, SubmissionStatus
@@ -39,7 +39,7 @@ router = APIRouter()
 @router.post("", response_model=SubmissionRead, status_code=status.HTTP_201_CREATED)
 async def submit_property(
     payload: SubmissionCreate,
-    current_user: CurrentUser = Depends(require_re_agent),
+    current_user: CurrentUser = Depends(require_re_submitter),
     db: AsyncSession = Depends(get_db),
 ) -> SubmissionRead:
     submission = PropertySubmission(
