@@ -3189,6 +3189,18 @@
             ],
             "title": "Rejected By User Uuid"
           },
+          "reversal_transaction_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reversal Transaction Id"
+          },
           "status": {
             "$ref": "#/components/schemas/PayoutStatus"
           },
@@ -3218,6 +3230,7 @@
           "gateway_payout_id",
           "gateway_status",
           "failure_reason",
+          "reversal_transaction_id",
           "created_at",
           "updated_at"
         ],

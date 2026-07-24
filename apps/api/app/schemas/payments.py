@@ -66,6 +66,7 @@ class PayoutRead(BaseModel):
     gateway_payout_id: str | None
     gateway_status: str | None
     failure_reason: str | None
+    reversal_transaction_id: UUID | None
     created_at: datetime
     updated_at: datetime
 

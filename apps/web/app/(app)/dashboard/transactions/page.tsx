@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { ArrowDownLeft, Coins, Gift, Wallet } from "lucide-react";
+import { ArrowDownLeft, Coins, Gift, Undo2, Wallet } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 import { Skeleton } from "@/components/ui/skeleton";
@@ -140,12 +140,24 @@ export default function TransactionsPage() {
               </thead>
               <tbody>
                 {transactions.map((t) => {
-                  const Icon = TYPE_ICON[t.type];
+                  // A clawback (post-settlement reversal, e.g. a bank-side
+                  // reject days after payout) posts as a negative-amount row
+                  // with the same "paid" status as a normal credit — flag it
+                  // separately so it never reads as a fresh payout.
+                  const isReversal = t.amountPaise < 0;
+                  const Icon = isReversal ? Undo2 : TYPE_ICON[t.type];
                   return (
                     <tr key={t.id} className="border-b border-border last:border-0">
                       <td className="px-5 py-4">
                         <div className="flex items-center gap-3">
-                          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-loans-soft text-loans-accent">
+                          <span
+                            className={cn(
+                              "flex h-9 w-9 shrink-0 items-center justify-center rounded-full",
+                              isReversal
+                                ? "bg-destructive/10 text-destructive"
+                                : "bg-loans-soft text-loans-accent",
+                            )}
+                          >
                             <Icon className="h-4 w-4" />
                           </span>
                           <span className="font-medium text-text-primary">{t.description}</span>
@@ -154,17 +166,22 @@ export default function TransactionsPage() {
                       <td className="hidden px-5 py-4 text-text-secondary sm:table-cell">
                         {formatDate(t.createdAt)}
                       </td>
-                      <td className="px-5 py-4 font-medium text-text-primary">
+                      <td
+                        className={cn(
+                          "px-5 py-4 font-medium",
+                          isReversal ? "text-destructive" : "text-text-primary",
+                        )}
+                      >
                         {formatPaise(t.amountPaise)}
                       </td>
                       <td className="px-5 py-4">
                         <span
                           className={cn(
                             "inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium",
-                            STATUS_STYLE[t.status],
+                            isReversal ? "bg-destructive/10 text-destructive" : STATUS_STYLE[t.status],
                           )}
                         >
-                          {STATUS_LABEL[t.status]}
+                          {isReversal ? "Reversed" : STATUS_LABEL[t.status]}
                         </span>
                       </td>
                     </tr>
