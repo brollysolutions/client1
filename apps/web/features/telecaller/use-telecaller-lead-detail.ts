@@ -4,14 +4,17 @@ import * as React from "react";
 
 import {
   addLoanTxn,
+  createPropertyDeal,
   getTelecallerLead,
   logCallActivity,
   raiseFieldTask,
   updateLoanApplication,
+  updatePropertyDealProgress,
   updateTelecallerLead,
   type LeadActivityCreate,
   type LoanApplicationProgressUpdate,
   type LoanTxnCreate,
+  type PropertyDealProgressUpdate,
   type TaskCreate,
   type TelecallerLeadDetail,
   type TelecallerLeadUpdate,
@@ -90,6 +93,21 @@ export function useTelecallerLeadDetail(leadId: string) {
     return res;
   }
 
+  async function createDeal(propertyId: string): Promise<ApiResponse<unknown>> {
+    const res = await createPropertyDeal(leadId, { property_id: propertyId });
+    if (res.ok) retry();
+    return res;
+  }
+
+  async function updateDeal(
+    dealId: string,
+    payload: PropertyDealProgressUpdate,
+  ): Promise<ApiResponse<unknown>> {
+    const res = await updatePropertyDealProgress(dealId, payload);
+    if (res.ok) retry();
+    return res;
+  }
+
   return {
     lead,
     status,
@@ -101,5 +119,7 @@ export function useTelecallerLeadDetail(leadId: string) {
     addTxn,
     raiseTask,
     updateApp,
+    createDeal,
+    updateDeal,
   };
 }

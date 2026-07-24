@@ -30,6 +30,7 @@ class NotificationType(enum.StrEnum):
     LEAD_ASSIGNED = "lead_assigned"
     TASK_ASSIGNED = "task_assigned"
     LOAN_STATUS_UPDATED = "loan_status_updated"
+    PROPERTY_DEAL_STATUS_UPDATED = "property_deal_status_updated"
 
 
 _ev = lambda x: [e.value for e in x]  # noqa: E731
