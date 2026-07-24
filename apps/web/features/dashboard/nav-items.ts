@@ -1,6 +1,7 @@
 import {
   ArrowLeftRight,
   Bookmark,
+  Building2,
   CalendarCheck,
   ClipboardList,
   FilePlus2,
@@ -30,6 +31,9 @@ export type NavItem = {
   // Employee-only surface. Shown alongside Home for role=employee, hidden for
   // every other role (same pattern as telecallerOnly).
   employeeOnly?: boolean;
+  // Agent-only surface. Shown alongside Home for role=agent, hidden for
+  // every other role (same pattern as telecallerOnly/employeeOnly).
+  agentOnly?: boolean;
 };
 
 // Slim workspace rail. Near-white chrome, icon-only with tooltips on desktop.
@@ -53,4 +57,13 @@ export const NAV_ITEMS: NavItem[] = [
   { key: "transactions", label: "Transactions", href: "/dashboard/transactions", icon: ArrowLeftRight },
   { key: "leads", label: "Leads", href: "/dashboard/leads", icon: PhoneCall, telecallerOnly: true },
   { key: "tasks", label: "Tasks", href: "/dashboard/tasks", icon: ClipboardList, employeeOnly: true },
+  { key: "agent-leads", label: "Leads", href: "/dashboard/leads", icon: PhoneCall, agentOnly: true },
+  {
+    key: "agent-listings",
+    label: "Listings",
+    href: "/dashboard/my-submissions",
+    icon: Building2,
+    agentOnly: true,
+    realEstateOnly: true,
+  },
 ];
