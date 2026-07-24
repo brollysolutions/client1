@@ -132,6 +132,48 @@ class TaskAssignRequest(BaseModel):
 
 
 # ---------------------------------------------------------------------------
+# Loan applications (Loan Lifecycle Progression slice — platform-wide list +
+# override, on top of the same shared progress-update endpoint telecallers use)
+# ---------------------------------------------------------------------------
+
+LoanStatusLiteral = Literal[
+    "new",
+    "assigned",
+    "contacted",
+    "docs_collected",
+    "submitted_to_bank",
+    "sanctioned",
+    "disbursed",
+    "closed",
+    "rejected",
+    "on_hold",
+]
+
+
+class AdminLoanApplicationRead(BaseModel):
+    id: UUID
+    lead_uuid: UUID
+    customer_code: str
+    loan_type_label: str
+    bank_id: UUID | None
+    bank_name: str | None
+    business_line: Literal["loans", "real_estate"]
+    status: LoanStatusLiteral
+    status_reason: str | None
+    amount_requested: Decimal | None
+    amount_sanctioned: Decimal | None
+    interest_rate: Decimal | None
+    processing_fee: Decimal | None
+    fee_outcome: Literal["waived", "cashback", "none"] | None
+    opened_at: datetime
+    closed_at: datetime | None
+
+
+class AdminLoanApplicationListResponse(BaseModel):
+    applications: list[AdminLoanApplicationRead]
+
+
+# ---------------------------------------------------------------------------
 # Property deals (Real Estate Deal Lifecycle Progression)
 # ---------------------------------------------------------------------------
 

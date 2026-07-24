@@ -71,6 +71,7 @@ export function TelecallerLeadDetailView({ leadId }: { leadId: string }) {
     logCall,
     addTxn,
     raiseTask,
+    updateApp,
     createDeal,
     updateDeal,
   } = useTelecallerLeadDetail(leadId);
@@ -305,7 +306,11 @@ export function TelecallerLeadDetailView({ leadId }: { leadId: string }) {
       </div>
 
       {lead.business_line === "loans" ? (
-        <TelecallerLoanAppsSection applications={lead.loan_applications} onAddTxn={addTxn} />
+        <TelecallerLoanAppsSection
+          applications={lead.loan_applications}
+          onAddTxn={addTxn}
+          onUpdateApp={updateApp}
+        />
       ) : null}
 
       {lead.business_line === "real_estate" ? (

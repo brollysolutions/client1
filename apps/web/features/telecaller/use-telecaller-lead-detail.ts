@@ -8,9 +8,11 @@ import {
   getTelecallerLead,
   logCallActivity,
   raiseFieldTask,
+  updateLoanApplication,
   updatePropertyDealProgress,
   updateTelecallerLead,
   type LeadActivityCreate,
+  type LoanApplicationProgressUpdate,
   type LoanTxnCreate,
   type PropertyDealProgressUpdate,
   type TaskCreate,
@@ -82,6 +84,15 @@ export function useTelecallerLeadDetail(leadId: string) {
     return res;
   }
 
+  async function updateApp(
+    applicationId: string,
+    payload: LoanApplicationProgressUpdate,
+  ): Promise<ApiResponse<unknown>> {
+    const res = await updateLoanApplication(applicationId, payload);
+    if (res.ok) retry();
+    return res;
+  }
+
   async function createDeal(propertyId: string): Promise<ApiResponse<unknown>> {
     const res = await createPropertyDeal(leadId, { property_id: propertyId });
     if (res.ok) retry();
@@ -107,6 +118,7 @@ export function useTelecallerLeadDetail(leadId: string) {
     logCall,
     addTxn,
     raiseTask,
+    updateApp,
     createDeal,
     updateDeal,
   };

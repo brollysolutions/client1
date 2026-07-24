@@ -132,9 +132,16 @@ class LoanTxnRead(BaseModel):
 class TelecallerLoanApplicationRead(BaseModel):
     id: UUID
     loan_type_name: str
+    bank_id: UUID | None = None
     bank_name: str | None
     amount_requested: Decimal | None
+    amount_sanctioned: Decimal | None = None
+    interest_rate: Decimal | None = None
+    processing_fee: Decimal | None = None
+    fee_outcome: Literal["waived", "cashback", "none"] | None = None
     status: LoanStatusLiteral
+    status_reason: str | None = None
+    closed_at: datetime | None = None
     txns: list[LoanTxnRead]
 
 

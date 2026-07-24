@@ -1,8 +1,15 @@
 """add property_deals table + enum + RLS
 
 Revision ID: d6e7f8a9b0c1
-Revises: b3c4d5e6f7a8
+Revises: d5e6f7a8b9c0
 Create Date: 2026-07-23 21:10:00.000000
+
+Retargeted post-merge: originally forked from the shared ancestor b3c4d5e6f7a8
+alongside PR #93's loan-lifecycle migrations (c4d5e6f7a8b9, d5e6f7a8b9c0),
+since both PRs were open in parallel off the same main tip. #93 merged first;
+this migration is rebased onto its head (d5e6f7a8b9c0) here to keep the chain
+linear rather than adding an empty Alembic merge-migration for two siblings
+that don't touch overlapping schema.
 
 NOTE: Run directly against postgres:5432, NOT through pgBouncer (enum DDL +
 GRANT + RLS policy require a direct connection — ADR-0004 / see f2e4d6c8a0b1).
@@ -60,7 +67,7 @@ from sqlalchemy.dialects import postgresql
 from alembic import op
 
 revision: str = "d6e7f8a9b0c1"
-down_revision: str | Sequence[str] | None = "b3c4d5e6f7a8"
+down_revision: str | Sequence[str] | None = "d5e6f7a8b9c0"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 

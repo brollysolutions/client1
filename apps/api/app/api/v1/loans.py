@@ -24,8 +24,10 @@ from sqlalchemy.orm import joinedload
 
 from app.core.deps import CurrentUser, get_active_user
 from app.db.session import get_db
-from app.models.loan import LoanApplication, LoanType
+from app.models.loan import Bank, LoanApplication, LoanType
 from app.schemas.loans import (
+    BankListResponse,
+    BankRead,
     LoanApplicationCreate,
     LoanApplicationListResponse,
     LoanApplicationRead,
@@ -75,6 +77,16 @@ async def list_loan_types(
     return LoanTypeListResponse(
         loan_types=[LoanTypeRead.model_validate(lt, from_attributes=True) for lt in loan_types]
     )
+
+
+@router.get("/banks", response_model=BankListResponse)
+async def list_banks(
+    current_user: CurrentUser = Depends(get_active_user),  # noqa: ARG001
+    db: AsyncSession = Depends(get_db),
+) -> BankListResponse:
+    result = await db.execute(select(Bank).where(Bank.active.is_(True)).order_by(Bank.name))
+    banks = result.scalars().all()
+    return BankListResponse(banks=[BankRead.model_validate(b, from_attributes=True) for b in banks])
 
 
 @router.get("/applications", response_model=LoanApplicationListResponse)

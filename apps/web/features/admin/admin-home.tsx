@@ -1,25 +1,26 @@
 "use client";
 
 import Link from "next/link";
-import { ClipboardCheck, Home, UserPlus } from "lucide-react";
+import { ClipboardCheck, Home, Landmark, UserPlus } from "lucide-react";
 
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 // Minimal admin landing. Deliberately small: this slice ships staff
-// provisioning, the agent approval queue, and property-deal tracking — the
-// rest of the admin dashboard (loans, banks, banners, offers, reports, audit)
-// is deferred.
+// provisioning, the agent approval queue, loan application progression, and
+// property-deal tracking — the rest of the admin dashboard (banks config,
+// banners, offers, reports, audit) is deferred.
 export function AdminHome() {
   return (
     <div className="mx-auto w-full max-w-5xl space-y-6 px-4 sm:px-6 lg:px-10">
       <div>
         <h1 className="text-2xl font-semibold text-text-primary">Admin</h1>
         <p className="mt-1 text-sm text-text-secondary">
-          Provision staff accounts and review pending agent applications.
+          Provision staff accounts, review pending agent applications, and progress loan
+          applications and property deals.
         </p>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <Link href="/dashboard/users">
           <Card className="h-full transition-colors hover:border-brand-cta">
             <CardHeader>
@@ -39,6 +40,18 @@ export function AdminHome() {
               <CardTitle className="mt-2">Agent applications</CardTitle>
               <CardDescription>
                 Review pending real-estate agent applications and approve or reject them.
+              </CardDescription>
+            </CardHeader>
+          </Card>
+        </Link>
+
+        <Link href="/dashboard/loan-applications">
+          <Card className="h-full transition-colors hover:border-brand-cta">
+            <CardHeader>
+              <Landmark className="h-6 w-6 text-brand-cta" aria-hidden="true" />
+              <CardTitle className="mt-2">Loan applications</CardTitle>
+              <CardDescription>
+                Review any loan application and progress its status or deal terms.
               </CardDescription>
             </CardHeader>
           </Card>

@@ -14,6 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.deps import CurrentUser, require_telecaller
 from app.db.session import get_db
+from app.schemas.loans import LoanApplicationProgressUpdate
 from app.schemas.property_deals import PropertyDealProgressUpdate
 from app.schemas.telecaller import (
     LeadActivityCreate,
@@ -30,6 +31,14 @@ from app.schemas.telecaller import (
     TelecallerLeadUpdate,
     TelecallerLoanApplicationRead,
     TelecallerPropertyDealRead,
+)
+from app.services.loan_applications import InvalidStatusTransition as InvalidLoanStatusTransition
+from app.services.loan_applications import (
+    StatusReasonRequired,
+    TerminalApplication,
+    TermsNotAllowedAtStage,
+    UnknownBank,
+    apply_progress_update,
 )
 from app.services.property_deals import (
     ClientNotRegistered,
@@ -147,9 +156,16 @@ async def get_lead(
             TelecallerLoanApplicationRead(
                 id=application.id,
                 loan_type_name=application.loan_type.name,
+                bank_id=application.bank_id,
                 bank_name=application.bank.name if application.bank else None,
                 amount_requested=application.amount_requested,
+                amount_sanctioned=application.amount_sanctioned,
+                interest_rate=application.interest_rate,
+                processing_fee=application.processing_fee,
+                fee_outcome=application.fee_outcome,
                 status=application.status,
+                status_reason=application.status_reason,
+                closed_at=application.closed_at,
                 txns=[
                     LoanTxnRead.model_validate(txn, from_attributes=True)
                     for txn in txns_by_application.get(application.id, [])
@@ -251,6 +267,72 @@ async def create_loan_txn(
         ) from exc
     txn = await add_txn_history(db, application, staff_profile_uuid, payload)
     return LoanTxnRead.model_validate(txn, from_attributes=True)
+
+
+@router.patch(
+    "/loan-applications/{application_id}",
+    response_model=TelecallerLoanApplicationRead,
+)
+async def update_loan_application_progress(
+    application_id: UUID,
+    payload: LoanApplicationProgressUpdate,
+    current_user: CurrentUser = Depends(require_telecaller),
+    db: AsyncSession = Depends(get_db),
+) -> TelecallerLoanApplicationRead:
+    staff_profile_uuid = _staff_profile_uuid(current_user)
+    try:
+        application = await get_application_for_telecaller(db, application_id, staff_profile_uuid)
+    except LoanApplicationNotFound as exc:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Loan application not found.") from exc
+    except LoanApplicationNotLoansLine as exc:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT, "Loan status can only be updated on a loans-line application."
+        ) from exc
+
+    try:
+        application = await apply_progress_update(db, application, payload)
+    except TerminalApplication as exc:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT, "This application is already closed."
+        ) from exc
+    except InvalidLoanStatusTransition as exc:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT, "That status change is not allowed from the current status."
+        ) from exc
+    except StatusReasonRequired as exc:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            "A reason is required when moving to rejected or on hold.",
+        ) from exc
+    except TermsNotAllowedAtStage as exc:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            "Deal terms can only be set once the application has been submitted to a bank.",
+        ) from exc
+    except UnknownBank as exc:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY, "Unknown or inactive bank."
+        ) from exc
+
+    txns_by_application = await list_txns_for_applications(db, [application.id])
+    return TelecallerLoanApplicationRead(
+        id=application.id,
+        loan_type_name=application.loan_type.name,
+        bank_id=application.bank_id,
+        bank_name=application.bank.name if application.bank else None,
+        amount_requested=application.amount_requested,
+        amount_sanctioned=application.amount_sanctioned,
+        interest_rate=application.interest_rate,
+        processing_fee=application.processing_fee,
+        fee_outcome=application.fee_outcome,
+        status=application.status,
+        status_reason=application.status_reason,
+        closed_at=application.closed_at,
+        txns=[
+            LoanTxnRead.model_validate(txn, from_attributes=True)
+            for txn in txns_by_application.get(application.id, [])
+        ],
+    )
 
 
 @router.post(

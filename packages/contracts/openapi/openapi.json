@@ -1,6 +1,203 @@
 {
   "components": {
     "schemas": {
+      "AdminLoanApplicationListResponse": {
+        "properties": {
+          "applications": {
+            "items": {
+              "$ref": "#/components/schemas/AdminLoanApplicationRead"
+            },
+            "title": "Applications",
+            "type": "array"
+          }
+        },
+        "required": [
+          "applications"
+        ],
+        "title": "AdminLoanApplicationListResponse",
+        "type": "object"
+      },
+      "AdminLoanApplicationRead": {
+        "properties": {
+          "amount_requested": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Amount Requested"
+          },
+          "amount_sanctioned": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Amount Sanctioned"
+          },
+          "bank_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bank Id"
+          },
+          "bank_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bank Name"
+          },
+          "business_line": {
+            "enum": [
+              "loans",
+              "real_estate"
+            ],
+            "title": "Business Line",
+            "type": "string"
+          },
+          "closed_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Closed At"
+          },
+          "customer_code": {
+            "title": "Customer Code",
+            "type": "string"
+          },
+          "fee_outcome": {
+            "anyOf": [
+              {
+                "enum": [
+                  "waived",
+                  "cashback",
+                  "none"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fee Outcome"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "interest_rate": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Interest Rate"
+          },
+          "lead_uuid": {
+            "format": "uuid",
+            "title": "Lead Uuid",
+            "type": "string"
+          },
+          "loan_type_label": {
+            "title": "Loan Type Label",
+            "type": "string"
+          },
+          "opened_at": {
+            "format": "date-time",
+            "title": "Opened At",
+            "type": "string"
+          },
+          "processing_fee": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Processing Fee"
+          },
+          "status": {
+            "enum": [
+              "new",
+              "assigned",
+              "contacted",
+              "docs_collected",
+              "submitted_to_bank",
+              "sanctioned",
+              "disbursed",
+              "closed",
+              "rejected",
+              "on_hold"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "status_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status Reason"
+          }
+        },
+        "required": [
+          "id",
+          "lead_uuid",
+          "customer_code",
+          "loan_type_label",
+          "bank_id",
+          "bank_name",
+          "business_line",
+          "status",
+          "status_reason",
+          "amount_requested",
+          "amount_sanctioned",
+          "interest_rate",
+          "processing_fee",
+          "fee_outcome",
+          "opened_at",
+          "closed_at"
+        ],
+        "title": "AdminLoanApplicationRead",
+        "type": "object"
+      },
       "AdminPropertyDealListResponse": {
         "properties": {
           "deals": {
@@ -450,6 +647,41 @@
           "expires_in"
         ],
         "title": "AuthTokensResponse",
+        "type": "object"
+      },
+      "BankListResponse": {
+        "properties": {
+          "banks": {
+            "items": {
+              "$ref": "#/components/schemas/BankRead"
+            },
+            "title": "Banks",
+            "type": "array"
+          }
+        },
+        "required": [
+          "banks"
+        ],
+        "title": "BankListResponse",
+        "type": "object"
+      },
+      "BankRead": {
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ],
+        "title": "BankRead",
         "type": "object"
       },
       "BookmarkCreate": {
@@ -1422,6 +1654,106 @@
         "title": "LoanApplicationListResponse",
         "type": "object"
       },
+      "LoanApplicationProgressUpdate": {
+        "description": "Shared write shape for the Telecaller and Admin progression endpoints.\n\nShape-only validation here (types/ranges); the transition/reason/terms-\ngating rules depend on the application's CURRENT status, so they live in\nservices.loan_applications where that status is known.",
+        "properties": {
+          "amount_sanctioned": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Amount Sanctioned"
+          },
+          "bank_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bank Id"
+          },
+          "fee_outcome": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FeeOutcome"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "interest_rate": {
+            "anyOf": [
+              {
+                "maximum": 100.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Interest Rate"
+          },
+          "processing_fee": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Processing Fee"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LoanStatus"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "status_reason": {
+            "anyOf": [
+              {
+                "maxLength": 1000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status Reason"
+          }
+        },
+        "title": "LoanApplicationProgressUpdate",
+        "type": "object"
+      },
       "LoanApplicationRead": {
         "properties": {
           "amount_requested": {
@@ -1940,6 +2272,7 @@
           "support_ticket_received",
           "lead_assigned",
           "task_assigned",
+          "loan_status_updated",
           "property_deal_status_updated"
         ],
         "title": "NotificationType",
@@ -4345,6 +4678,30 @@
             ],
             "title": "Amount Requested"
           },
+          "amount_sanctioned": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Amount Sanctioned"
+          },
+          "bank_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bank Id"
+          },
           "bank_name": {
             "anyOf": [
               {
@@ -4356,14 +4713,66 @@
             ],
             "title": "Bank Name"
           },
+          "closed_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Closed At"
+          },
+          "fee_outcome": {
+            "anyOf": [
+              {
+                "enum": [
+                  "waived",
+                  "cashback",
+                  "none"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fee Outcome"
+          },
           "id": {
             "format": "uuid",
             "title": "Id",
             "type": "string"
           },
+          "interest_rate": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Interest Rate"
+          },
           "loan_type_name": {
             "title": "Loan Type Name",
             "type": "string"
+          },
+          "processing_fee": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Processing Fee"
           },
           "status": {
             "enum": [
@@ -4380,6 +4789,17 @@
             ],
             "title": "Status",
             "type": "string"
+          },
+          "status_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status Reason"
           },
           "txns": {
             "items": {
@@ -4872,6 +5292,118 @@
           }
         ],
         "summary": "Assign Lead",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/loan-applications/{application_id}": {
+      "patch": {
+        "operationId": "update_loan_application_progress_api_v1_admin_loan_applications__application_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "application_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Application Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoanApplicationProgressUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminLoanApplicationRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Update Loan Application Progress",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/loans": {
+      "get": {
+        "operationId": "list_loan_applications_api_v1_admin_loans_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "status_filter",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status Filter"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminLoanApplicationListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "List Loan Applications",
         "tags": [
           "admin"
         ]
@@ -6514,6 +7046,32 @@
         ]
       }
     },
+    "/api/v1/loans/banks": {
+      "get": {
+        "operationId": "list_banks_api_v1_loans_banks_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BankListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "List Banks",
+        "tags": [
+          "loans"
+        ]
+      }
+    },
     "/api/v1/loans/loan-types": {
       "get": {
         "operationId": "list_loan_types_api_v1_loans_loan_types_get",
@@ -7853,6 +8411,64 @@
           }
         ],
         "summary": "Create Task",
+        "tags": [
+          "telecaller"
+        ]
+      }
+    },
+    "/api/v1/telecaller/loan-applications/{application_id}": {
+      "patch": {
+        "operationId": "update_loan_application_progress_api_v1_telecaller_loan_applications__application_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "application_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Application Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoanApplicationProgressUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TelecallerLoanApplicationRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Update Loan Application Progress",
         "tags": [
           "telecaller"
         ]
