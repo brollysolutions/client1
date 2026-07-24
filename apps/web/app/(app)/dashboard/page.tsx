@@ -11,6 +11,7 @@ import { LoansApplications } from "@/features/dashboard/loans-applications";
 import { useMe } from "@/features/dashboard/me-provider";
 import { EmployeeHome } from "@/features/employee/employee-home";
 import { RealEstateHome } from "@/features/real-estate/real-estate-home";
+import { SubAdminHome } from "@/features/sub-admin/sub-admin-home";
 import { TelecallerHome } from "@/features/telecaller/telecaller-home";
 
 export default function DashboardPage() {
@@ -21,6 +22,10 @@ export default function DashboardPage() {
 
   if (session?.role === "admin") {
     return <AdminHome />;
+  }
+
+  if (session?.role === "sub_admin") {
+    return <SubAdminHome />;
   }
 
   if (session?.role === "telecaller") {

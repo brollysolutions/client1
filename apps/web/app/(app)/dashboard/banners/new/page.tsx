@@ -5,17 +5,15 @@ import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 
 import { useAuth } from "@/components/auth/session-provider";
-import { SubmitPropertyForm } from "@/features/real-estate/submit-property-form";
+import { BannerForm } from "@/features/sub-admin/banner-form";
 
-// Agent + Sub Admin-gated route. AppGuard (the (app) layout) enforces auth;
-// this adds the role gate. UX gate only: the API's require_re_submitter + RLS
-// are the real wall.
-const SUBMITTER_ROLES = new Set(["agent", "sub_admin"]);
-
-export default function PropertySubmitPage() {
+// Sub Admin-only route. AppGuard (the (app) layout) enforces auth; this adds
+// the role gate. UX gate only: the API's require_sub_admin + RLS are the real
+// wall.
+export default function NewBannerPage() {
   const router = useRouter();
   const { session, isLoading } = useAuth();
-  const allowed = session != null && SUBMITTER_ROLES.has(session.role);
+  const allowed = session != null && session.role === "sub_admin";
 
   React.useEffect(() => {
     if (!isLoading && !allowed) router.replace("/dashboard");
@@ -28,5 +26,5 @@ export default function PropertySubmitPage() {
       </div>
     );
   }
-  return <SubmitPropertyForm />;
+  return <BannerForm />;
 }

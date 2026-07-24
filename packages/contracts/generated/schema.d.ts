@@ -379,6 +379,93 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/banners": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Banners */
+        get: operations["list_banners_api_v1_banners_get"];
+        put?: never;
+        /** Create Banner */
+        post: operations["create_banner_api_v1_banners_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/banners/{banner_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Banner */
+        get: operations["get_banner_api_v1_banners__banner_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Banner */
+        patch: operations["update_banner_api_v1_banners__banner_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/banners/{banner_id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Approve */
+        post: operations["approve_api_v1_banners__banner_id__approve_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/banners/{banner_id}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reject */
+        post: operations["reject_api_v1_banners__banner_id__reject_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/banners/{banner_id}/submit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Submit */
+        post: operations["submit_api_v1_banners__banner_id__submit_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/bookmarks": {
         parameters: {
             query?: never;
@@ -1173,6 +1260,112 @@ export interface components {
              * @default bearer
              */
             token_type: string;
+        };
+        /** BannerCreate */
+        BannerCreate: {
+            /** Audience Rules */
+            audience_rules?: {
+                [key: string]: unknown;
+            };
+            banner_type: components["schemas"]["BannerType"];
+            /** Business Line */
+            business_line: string;
+            /** Deep Link */
+            deep_link?: string | null;
+            /** Ends At */
+            ends_at?: string | null;
+            /** Image Key */
+            image_key?: string | null;
+            /**
+             * Priority
+             * @default 0
+             */
+            priority: number;
+            /** Starts At */
+            starts_at?: string | null;
+            /** Title */
+            title: string;
+        };
+        /** BannerListResponse */
+        BannerListResponse: {
+            /** Banners */
+            banners: components["schemas"]["BannerRead"][];
+        };
+        /** BannerRead */
+        BannerRead: {
+            /** Approved By Uuid */
+            approved_by_uuid: string | null;
+            /** Audience Rules */
+            audience_rules: {
+                [key: string]: unknown;
+            };
+            banner_type: components["schemas"]["BannerType"];
+            /** Business Line */
+            business_line: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Created By Uuid
+             * Format: uuid
+             */
+            created_by_uuid: string;
+            /** Deep Link */
+            deep_link: string | null;
+            /** Ends At */
+            ends_at: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Image Key */
+            image_key: string | null;
+            /** Priority */
+            priority: number;
+            /** Review Note */
+            review_note: string | null;
+            /** Starts At */
+            starts_at: string | null;
+            status: components["schemas"]["BannerStatus"];
+            /** Title */
+            title: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /**
+         * BannerStatus
+         * @enum {string}
+         */
+        BannerStatus: "draft" | "pending_approval" | "approved" | "live" | "rejected" | "archived";
+        /**
+         * BannerType
+         * @enum {string}
+         */
+        BannerType: "default" | "personalized" | "action";
+        /** BannerUpdate */
+        BannerUpdate: {
+            /** Audience Rules */
+            audience_rules?: {
+                [key: string]: unknown;
+            } | null;
+            /** Deep Link */
+            deep_link?: string | null;
+            /** Ends At */
+            ends_at?: string | null;
+            /** Image Key */
+            image_key?: string | null;
+            /** Priority */
+            priority?: number | null;
+            /** Starts At */
+            starts_at?: string | null;
+            /** Title */
+            title?: string | null;
         };
         /** BookmarkCreate */
         BookmarkCreate: {
@@ -3248,6 +3441,233 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RegistrationTokenResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_banners_api_v1_banners_get: {
+        parameters: {
+            query?: {
+                status_filter?: components["schemas"]["BannerStatus"] | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BannerListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_banner_api_v1_banners_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BannerCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BannerRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_banner_api_v1_banners__banner_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                banner_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BannerRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_banner_api_v1_banners__banner_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                banner_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BannerUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BannerRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    approve_api_v1_banners__banner_id__approve_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                banner_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BannerRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reject_api_v1_banners__banner_id__reject_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                banner_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RejectRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BannerRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    submit_api_v1_banners__banner_id__submit_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                banner_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BannerRead"];
                 };
             };
             /** @description Validation Error */
