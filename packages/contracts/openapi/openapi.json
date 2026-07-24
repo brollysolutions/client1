@@ -198,6 +198,147 @@
         "title": "AdminLoanApplicationRead",
         "type": "object"
       },
+      "AdminPropertyDealListResponse": {
+        "properties": {
+          "deals": {
+            "items": {
+              "$ref": "#/components/schemas/AdminPropertyDealRead"
+            },
+            "title": "Deals",
+            "type": "array"
+          }
+        },
+        "required": [
+          "deals"
+        ],
+        "title": "AdminPropertyDealListResponse",
+        "type": "object"
+      },
+      "AdminPropertyDealRead": {
+        "properties": {
+          "booking_amount": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Booking Amount"
+          },
+          "business_line": {
+            "enum": [
+              "loans",
+              "real_estate"
+            ],
+            "title": "Business Line",
+            "type": "string"
+          },
+          "closed_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Closed At"
+          },
+          "customer_code": {
+            "title": "Customer Code",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "lead_uuid": {
+            "format": "uuid",
+            "title": "Lead Uuid",
+            "type": "string"
+          },
+          "opened_at": {
+            "format": "date-time",
+            "title": "Opened At",
+            "type": "string"
+          },
+          "price_quoted": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Price Quoted"
+          },
+          "property_title": {
+            "title": "Property Title",
+            "type": "string"
+          },
+          "site_visit_uuid": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Site Visit Uuid"
+          },
+          "status": {
+            "enum": [
+              "new",
+              "contacted",
+              "site_visit_done",
+              "negotiation",
+              "booked",
+              "agreement_signed",
+              "closed",
+              "rejected",
+              "on_hold"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "status_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status Reason"
+          }
+        },
+        "required": [
+          "id",
+          "lead_uuid",
+          "customer_code",
+          "property_title",
+          "business_line",
+          "status",
+          "status_reason",
+          "price_quoted",
+          "booking_amount",
+          "site_visit_uuid",
+          "opened_at",
+          "closed_at"
+        ],
+        "title": "AdminPropertyDealRead",
+        "type": "object"
+      },
       "AdminTaskRead": {
         "properties": {
           "assigned_employee_profile_uuid": {
@@ -727,6 +868,30 @@
         ],
         "title": "ConstructionStatus",
         "type": "string"
+      },
+      "DealPropertySummary": {
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "location": {
+            "title": "Location",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "location"
+        ],
+        "title": "DealPropertySummary",
+        "type": "object"
       },
       "EmailVerifyConfirmRequest": {
         "properties": {
@@ -2107,7 +2272,8 @@
           "support_ticket_received",
           "lead_assigned",
           "task_assigned",
-          "loan_status_updated"
+          "loan_status_updated",
+          "property_deal_status_updated"
         ],
         "title": "NotificationType",
         "type": "string"
@@ -2445,6 +2611,217 @@
           "commercial"
         ],
         "title": "PropertyCategory",
+        "type": "string"
+      },
+      "PropertyDealCreate": {
+        "properties": {
+          "property_id": {
+            "format": "uuid",
+            "title": "Property Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "property_id"
+        ],
+        "title": "PropertyDealCreate",
+        "type": "object"
+      },
+      "PropertyDealListResponse": {
+        "properties": {
+          "deals": {
+            "items": {
+              "$ref": "#/components/schemas/PropertyDealRead"
+            },
+            "title": "Deals",
+            "type": "array"
+          }
+        },
+        "required": [
+          "deals"
+        ],
+        "title": "PropertyDealListResponse",
+        "type": "object"
+      },
+      "PropertyDealProgressUpdate": {
+        "properties": {
+          "booking_amount": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "maximum": 999999999999.99,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Booking Amount"
+          },
+          "price_quoted": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "maximum": 999999999999.99,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Price Quoted"
+          },
+          "site_visit_uuid": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Site Visit Uuid"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PropertyDealStatus"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "status_reason": {
+            "anyOf": [
+              {
+                "maxLength": 1000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status Reason"
+          }
+        },
+        "title": "PropertyDealProgressUpdate",
+        "type": "object"
+      },
+      "PropertyDealRead": {
+        "properties": {
+          "booking_amount": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Booking Amount"
+          },
+          "closed_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Closed At"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "opened_at": {
+            "format": "date-time",
+            "title": "Opened At",
+            "type": "string"
+          },
+          "price_quoted": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Price Quoted"
+          },
+          "property": {
+            "$ref": "#/components/schemas/DealPropertySummary"
+          },
+          "site_visit_uuid": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Site Visit Uuid"
+          },
+          "status": {
+            "$ref": "#/components/schemas/PropertyDealStatus"
+          },
+          "status_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status Reason"
+          }
+        },
+        "required": [
+          "id",
+          "property",
+          "status",
+          "status_reason",
+          "price_quoted",
+          "booking_amount",
+          "site_visit_uuid",
+          "opened_at",
+          "closed_at"
+        ],
+        "title": "PropertyDealRead",
+        "type": "object"
+      },
+      "PropertyDealStatus": {
+        "enum": [
+          "new",
+          "contacted",
+          "site_visit_done",
+          "negotiation",
+          "booked",
+          "agreement_signed",
+          "closed",
+          "rejected",
+          "on_hold"
+        ],
+        "title": "PropertyDealStatus",
         "type": "string"
       },
       "PropertyListResponse": {
@@ -4083,6 +4460,14 @@
             ],
             "title": "Next Follow Up At"
           },
+          "property_deals": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/TelecallerPropertyDealRead"
+            },
+            "title": "Property Deals",
+            "type": "array"
+          },
           "requirement": {
             "anyOf": [
               {
@@ -4433,6 +4818,110 @@
           "txns"
         ],
         "title": "TelecallerLoanApplicationRead",
+        "type": "object"
+      },
+      "TelecallerPropertyDealRead": {
+        "properties": {
+          "booking_amount": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Booking Amount"
+          },
+          "closed_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Closed At"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "price_quoted": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Price Quoted"
+          },
+          "property_location": {
+            "title": "Property Location",
+            "type": "string"
+          },
+          "property_title": {
+            "title": "Property Title",
+            "type": "string"
+          },
+          "site_visit_uuid": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Site Visit Uuid"
+          },
+          "status": {
+            "enum": [
+              "new",
+              "contacted",
+              "site_visit_done",
+              "negotiation",
+              "booked",
+              "agreement_signed",
+              "closed",
+              "rejected",
+              "on_hold"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "status_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status Reason"
+          }
+        },
+        "required": [
+          "id",
+          "property_title",
+          "property_location",
+          "price_quoted",
+          "booking_amount",
+          "status",
+          "status_reason",
+          "site_visit_uuid",
+          "closed_at"
+        ],
+        "title": "TelecallerPropertyDealRead",
         "type": "object"
       },
       "TransactionListResponse": {
@@ -4915,6 +5404,118 @@
           }
         ],
         "summary": "List Loan Applications",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/property-deals": {
+      "get": {
+        "operationId": "list_property_deals_api_v1_admin_property_deals_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "status_filter",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status Filter"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminPropertyDealListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "List Property Deals",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/property-deals/{deal_id}": {
+      "patch": {
+        "operationId": "update_property_deal_progress_api_v1_admin_property_deals__deal_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "deal_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Deal Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PropertyDealProgressUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminPropertyDealRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Update Property Deal Progress",
         "tags": [
           "admin"
         ]
@@ -6939,6 +7540,80 @@
         ]
       }
     },
+    "/api/v1/property-deals": {
+      "get": {
+        "operationId": "list_property_deals_api_v1_property_deals_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PropertyDealListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "List Property Deals",
+        "tags": [
+          "property-deals"
+        ]
+      }
+    },
+    "/api/v1/property-deals/{deal_id}": {
+      "get": {
+        "operationId": "get_property_deal_api_v1_property_deals__deal_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "deal_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Deal Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PropertyDealRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Get Property Deal",
+        "tags": [
+          "property-deals"
+        ]
+      }
+    },
     "/api/v1/property-submissions": {
       "get": {
         "operationId": "list_submissions_api_v1_property_submissions_get",
@@ -7625,6 +8300,64 @@
         ]
       }
     },
+    "/api/v1/telecaller/leads/{lead_id}/property-deals": {
+      "post": {
+        "operationId": "create_property_deal_api_v1_telecaller_leads__lead_id__property_deals_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "lead_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Lead Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PropertyDealCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TelecallerPropertyDealRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Create Property Deal",
+        "tags": [
+          "telecaller"
+        ]
+      }
+    },
     "/api/v1/telecaller/leads/{lead_id}/tasks": {
       "post": {
         "operationId": "create_task_api_v1_telecaller_leads__lead_id__tasks_post",
@@ -7794,6 +8527,64 @@
           }
         ],
         "summary": "Create Loan Txn",
+        "tags": [
+          "telecaller"
+        ]
+      }
+    },
+    "/api/v1/telecaller/property-deals/{deal_id}": {
+      "patch": {
+        "operationId": "update_property_deal_progress_api_v1_telecaller_property_deals__deal_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "deal_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Deal Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PropertyDealProgressUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TelecallerPropertyDealRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Update Property Deal Progress",
         "tags": [
           "telecaller"
         ]

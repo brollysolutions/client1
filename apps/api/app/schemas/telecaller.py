@@ -22,6 +22,17 @@ LoanStatusLiteral = Literal[
     "rejected",
     "on_hold",
 ]
+PropertyDealStatusLiteral = Literal[
+    "new",
+    "contacted",
+    "site_visit_done",
+    "negotiation",
+    "booked",
+    "agreement_signed",
+    "closed",
+    "rejected",
+    "on_hold",
+]
 TaskTypeLiteral = Literal["document_collection", "property_visit", "background_check"]
 TaskStatusLiteral = Literal[
     "unassigned", "assigned", "in_progress", "completed", "cancelled", "blocked"
@@ -134,6 +145,22 @@ class TelecallerLoanApplicationRead(BaseModel):
     txns: list[LoanTxnRead]
 
 
+class PropertyDealCreate(BaseModel):
+    property_id: UUID
+
+
+class TelecallerPropertyDealRead(BaseModel):
+    id: UUID
+    property_title: str
+    property_location: str
+    price_quoted: Decimal | None
+    booking_amount: Decimal | None
+    status: PropertyDealStatusLiteral
+    status_reason: str | None
+    site_visit_uuid: UUID | None
+    closed_at: datetime | None
+
+
 class TaskCreate(BaseModel):
     notes: Annotated[str | None, Field(default=None, max_length=1000)] = None
     due_at: datetime | None = None
@@ -153,6 +180,7 @@ class TaskRead(BaseModel):
 class TelecallerLeadDetailRead(TelecallerLeadRead):
     activities: list[LeadActivityRead]
     loan_applications: list[TelecallerLoanApplicationRead] = []
+    property_deals: list[TelecallerPropertyDealRead] = []
     tasks: list[TaskRead] = []
 
 

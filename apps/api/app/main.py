@@ -27,6 +27,7 @@ from app.api.v1.loans import router as loans_router
 from app.api.v1.notifications import router as notifications_router
 from app.api.v1.payments import router as payments_router
 from app.api.v1.properties import router as properties_router
+from app.api.v1.property_deals import router as property_deals_router
 from app.api.v1.property_submissions import router as property_submissions_router
 from app.api.v1.site_visits import router as site_visits_router
 from app.api.v1.support_tickets import router as support_tickets_router
@@ -90,6 +91,7 @@ app.include_router(
     prefix="/api/v1/property-submissions",
     tags=["property-submissions"],
 )
+app.include_router(property_deals_router, prefix="/api/v1/property-deals", tags=["property-deals"])
 app.include_router(bookmarks_router, prefix="/api/v1/bookmarks", tags=["bookmarks"])
 app.include_router(notifications_router, prefix="/api/v1/notifications", tags=["notifications"])
 app.include_router(transactions_router, prefix="/api/v1/transactions", tags=["transactions"])
