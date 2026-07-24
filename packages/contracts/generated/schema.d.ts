@@ -2444,6 +2444,8 @@ export interface components {
             reject_reason: string | null;
             /** Rejected By User Uuid */
             rejected_by_user_uuid: string | null;
+            /** Reversal Transaction Id */
+            reversal_transaction_id: string | null;
             status: components["schemas"]["PayoutStatus"];
             type: components["schemas"]["PayoutType"];
             /**
