@@ -1,11 +1,15 @@
-"""transactions RLS — identity-level owner isolation, NO staff branch.
+"""transactions RLS — identity-level owner isolation, narrow sub_admin referral read.
 
-Verifies migration 7a8b9c1d2e3f's owner-only policy: a client sees only their
-own transaction, another client sees none, non-owner staff/agent see none
-(account-level, no business_line branch), an agent who OWNS a commission-type
-row sees it (confirming ownership is the account identity, not a client-only
-concept), and platform_scope (Admin/Sub Admin) sees all. Mirrors
-test_bookmarks_rls.py's harness (the owner-only shape).
+Verifies migration 7a8b9c1d2e3f's owner-only policy plus e8f9a0b1c2d3's
+tightening: a client sees only their own transaction, another client sees
+none, non-owner staff/agent see none (account-level, no business_line branch),
+an agent who OWNS a commission-type row sees it (confirming ownership is the
+account identity, not a client-only concept), and Admin's platform_scope bypass
+sees all types. Sub Admin no longer gets that blanket bypass — it sees only
+`referral_bonus` rows (Sub Admin's referral-bonus-config oversight view,
+SubAdmin_Dashboard_System_Design.md §6.4) and nothing else, since it never
+administers cashback or commission payouts. Mirrors test_bookmarks_rls.py's
+harness (the owner-only shape).
 
 Requires the Docker stack with migrations applied; auto-skips without Redis.
 """
@@ -157,3 +161,48 @@ async def test_admin_platform_scope_sees_all(client: AsyncClient) -> None:
 
     rows = await _select_as(role="admin", platform_scope="true")
     assert uuid.UUID(txn_id) in [r["id"] for r in rows]
+
+
+@pytest.mark.asyncio
+async def test_sub_admin_sees_referral_bonus_row(client: AsyncClient) -> None:
+    """e8f9a0b1c2d3: sub_admin's narrow read branch, scoped to referral_bonus."""
+    _, mobile = await full_registration(client, lines=["loans"])
+    uid = await _auth_user_uuid(mobile)
+    txn_id = await _seed_transaction(uid, txn_type="referral_bonus")
+
+    rows = await _select_as(role="sub_admin", platform_scope="true")
+    assert uuid.UUID(txn_id) in [r["id"] for r in rows]
+
+
+@pytest.mark.asyncio
+async def test_sub_admin_cannot_see_cashback_row(client: AsyncClient) -> None:
+    """Sub Admin's branch is type-scoped, not a blanket bypass — a shared dev DB
+    may hold other referral_bonus rows, so assert this row's absence, not an
+    empty result set."""
+    _, mobile = await full_registration(client, lines=["loans"])
+    uid = await _auth_user_uuid(mobile)
+    txn_id = await _seed_transaction(uid, txn_type="cashback")
+
+    rows = await _select_as(role="sub_admin", platform_scope="true")
+    assert uuid.UUID(txn_id) not in [r["id"] for r in rows]
+
+
+@pytest.mark.asyncio
+async def test_sub_admin_cannot_see_commission_row(client: AsyncClient) -> None:
+    _, mobile = await full_registration(client, lines=["loans"])
+    uid = await _auth_user_uuid(mobile)
+    txn_id = await _seed_transaction(uid, txn_type="commission")
+
+    rows = await _select_as(role="sub_admin", platform_scope="true")
+    assert uuid.UUID(txn_id) not in [r["id"] for r in rows]
+
+
+@pytest.mark.asyncio
+async def test_sub_admin_without_platform_scope_sees_nothing(client: AsyncClient) -> None:
+    """platform_scope is still required — the sub_admin branch is not a role-only bypass."""
+    _, mobile = await full_registration(client, lines=["loans"])
+    uid = await _auth_user_uuid(mobile)
+    await _seed_transaction(uid, txn_type="referral_bonus")
+
+    rows = await _select_as(role="sub_admin", platform_scope="false")
+    assert rows == []
