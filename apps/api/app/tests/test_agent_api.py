@@ -227,6 +227,141 @@ async def test_introduce_lead_same_line_different_agent_conflict_is_409(
 
 
 @pytest.mark.asyncio
+async def test_introduce_lead_cannot_mutate_assigned_cross_line_lead(client: AsyncClient) -> None:
+    """A real_estate lead already assigned to a telecaller must survive a loans
+    agent's introduce-lead call for the same mobile byte-for-byte — not just
+    return 409, but leave name/requirement/assignment untouched."""
+    import app.db.session as _session_mod
+    from app.models.lead import Lead, LeadOrigin, LeadStatus
+
+    mobile = unique_mobile()
+    telecaller_uuid = await _seed_telecaller_staff_profile("real_estate")
+    async with _session_mod.AsyncSessionLocal() as db:
+        lead = Lead(
+            mobile=mobile,
+            business_line="real_estate",
+            status=LeadStatus.ASSIGNED,
+            origin=LeadOrigin.DIRECT,
+            name="Original Name",
+            requirement={"k": "orig"},
+            assigned_telecaller_profile_uuid=telecaller_uuid,
+        )
+        db.add(lead)
+        await db.commit()
+        lead_id = lead.id
+
+    auth_uuid, agent_uuid = await _seed_agent("loans")
+    token = _agent_token(auth_uuid, agent_uuid)
+    res = await client.post(
+        "/api/v1/agent/leads",
+        json={"mobile": mobile, "name": "HIJACKED", "requirement": {"injected": "yes"}},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert res.status_code == 409
+
+    async with _session_mod.AsyncSessionLocal() as db:
+        refreshed = await db.get(Lead, lead_id)
+        assert refreshed.name == "Original Name"
+        assert refreshed.requirement == {"k": "orig"}
+        assert refreshed.status == LeadStatus.ASSIGNED
+        assert str(refreshed.assigned_telecaller_profile_uuid) == telecaller_uuid
+
+
+@pytest.mark.asyncio
+async def test_introduce_lead_cannot_mutate_assigned_same_line_lead(client: AsyncClient) -> None:
+    """A same-line lead already assigned to a telecaller must survive an
+    unrelated agent's introduce-lead call for the same mobile untouched."""
+    import app.db.session as _session_mod
+    from app.models.lead import Lead, LeadOrigin, LeadStatus
+
+    mobile = unique_mobile()
+    telecaller_uuid = await _seed_telecaller_staff_profile("loans")
+    async with _session_mod.AsyncSessionLocal() as db:
+        lead = Lead(
+            mobile=mobile,
+            business_line="loans",
+            status=LeadStatus.WORKING,
+            origin=LeadOrigin.DIRECT,
+            name="Original Name",
+            requirement={"income": "90000"},
+            assigned_telecaller_profile_uuid=telecaller_uuid,
+        )
+        db.add(lead)
+        await db.commit()
+        lead_id = lead.id
+
+    auth_uuid, agent_uuid = await _seed_agent("loans")
+    token = _agent_token(auth_uuid, agent_uuid)
+    res = await client.post(
+        "/api/v1/agent/leads",
+        json={"mobile": mobile, "name": "CLAIMED BY AGENT", "requirement": {"note": "mine now"}},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert res.status_code == 409
+
+    async with _session_mod.AsyncSessionLocal() as db:
+        refreshed = await db.get(Lead, lead_id)
+        assert refreshed.name == "Original Name"
+        assert refreshed.requirement == {"income": "90000"}
+        assert refreshed.status == LeadStatus.WORKING
+        assert refreshed.origin_agent_profile_uuid is None
+
+
+@pytest.mark.asyncio
+async def test_introduce_lead_cannot_steal_other_agents_unassigned_lead(
+    client: AsyncClient,
+) -> None:
+    """An unassigned lead already attributed to a DIFFERENT agent on the same
+    line must keep its name/requirement/attribution after a second agent's
+    introduce-lead call for the same mobile."""
+    first_auth_uuid, first_agent_uuid = await _seed_agent("loans")
+    first_token = _agent_token(first_auth_uuid, first_agent_uuid)
+    mobile = unique_mobile()
+    first_res = await client.post(
+        "/api/v1/agent/leads",
+        json={"mobile": mobile, "name": "First Agent's Lead", "requirement": {"k": "first"}},
+        headers={"Authorization": f"Bearer {first_token}"},
+    )
+    assert first_res.status_code == 201, first_res.text
+    lead_id = first_res.json()["id"]
+
+    second_auth_uuid, second_agent_uuid = await _seed_agent("loans")
+    second_token = _agent_token(second_auth_uuid, second_agent_uuid)
+    res = await client.post(
+        "/api/v1/agent/leads",
+        json={"mobile": mobile, "name": "STOLEN", "requirement": {"injected": "yes"}},
+        headers={"Authorization": f"Bearer {second_token}"},
+    )
+    assert res.status_code == 409
+
+    import app.db.session as _session_mod
+    from app.models.lead import Lead
+
+    async with _session_mod.AsyncSessionLocal() as db:
+        refreshed = await db.get(Lead, uuid.UUID(lead_id))
+        assert refreshed.name == "First Agent's Lead"
+        assert refreshed.requirement == {"k": "first"}
+        assert str(refreshed.origin_agent_profile_uuid) == first_agent_uuid
+
+
+@pytest.mark.asyncio
+async def test_lead_read_editable_reflects_assignment(client: AsyncClient) -> None:
+    auth_uuid, agent_uuid = await _seed_agent("loans")
+    token = _agent_token(auth_uuid, agent_uuid)
+    headers = {"Authorization": f"Bearer {token}"}
+    create_res = await client.post(
+        "/api/v1/agent/leads", json={"mobile": unique_mobile()}, headers=headers
+    )
+    lead_id = create_res.json()["id"]
+    assert create_res.json()["editable"] is True
+
+    await _assign_to_telecaller(lead_id)
+
+    get_res = await client.get(f"/api/v1/agent/leads/{lead_id}", headers=headers)
+    assert get_res.json()["editable"] is False
+
+
+@pytest.mark.asyncio
 async def test_list_leads_returns_own(client: AsyncClient) -> None:
     auth_uuid, agent_uuid = await _seed_agent("loans")
     token = _agent_token(auth_uuid, agent_uuid)

@@ -26,10 +26,19 @@ class AgentProfileNotFound(Exception):
 
 
 class LeadCaptureFailed(Exception):
-    """Raised when introduce_lead's capture write didn't produce a lead this
-    agent can see — either the write itself failed (best-effort, rare), or the
-    mobile's existing active lead is on the OTHER business line (see
-    leads_rls's business_line-gated agent branch)."""
+    """Raised when introduce_lead's capture write committed but produced no
+    lead this agent can see or claim — blocked by the conflict guard (the
+    mobile's existing active lead is on the OTHER business line, already
+    assigned to a telecaller, or attributed to a different agent; see
+    leads_rls's business_line-gated agent branch and services.leads.capture_lead's
+    conflict_guard)."""
+
+
+class LeadCaptureUnavailable(Exception):
+    """Raised when capture_lead's own write didn't commit (transient DB failure, rare).
+    Distinct from LeadCaptureFailed, which means the write committed fine but the
+    resulting lead isn't one this agent can see or claim (cross-line, locked, or
+    attributed to another agent)."""
 
 
 class LeadLocked(Exception):
@@ -75,7 +84,7 @@ async def introduce_lead(
         requirement=payload.requirement,
     )
     if not committed:
-        raise LeadCaptureFailed
+        raise LeadCaptureUnavailable
 
     lead = await db.scalar(
         select(Lead)
@@ -122,7 +131,7 @@ async def update_lead_for_agent(db: AsyncSession, lead: Lead, payload: AgentLead
     if payload.name is not None:
         lead.name = payload.name
     if payload.requirement is not None:
-        merged = dict(lead.requirement or {})
+        merged = dict(lead.requirement) if isinstance(lead.requirement, dict) else {}
         merged.update(payload.requirement)
         lead.requirement = merged
     try:

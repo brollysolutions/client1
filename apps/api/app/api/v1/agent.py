@@ -26,6 +26,7 @@ from app.services.agent import (
     AgentProfileNotFound,
     InvalidStatusFilter,
     LeadCaptureFailed,
+    LeadCaptureUnavailable,
     LeadLocked,
     get_home_summary,
     get_lead_for_agent,
@@ -53,6 +54,7 @@ def _to_agent_lead_read(lead: Lead) -> AgentLeadRead:
         status=lead.status,
         requirement=lead.requirement,
         registered=lead.client_profile_uuid is not None,
+        editable=lead.assigned_telecaller_profile_uuid is None,
         created_at=lead.created_at,
         updated_at=lead.updated_at,
     )
@@ -100,6 +102,11 @@ async def create_lead(
             business_line=business_line,
             payload=payload,
         )
+    except LeadCaptureUnavailable as exc:
+        raise HTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+            "Lead capture is temporarily unavailable. Please try again.",
+        ) from exc
     except LeadCaptureFailed as exc:
         raise HTTPException(
             status.HTTP_409_CONFLICT,

@@ -26,11 +26,7 @@ export function AgentLeadDetailView({ leadId }: { leadId: string }) {
   const { lead, status, error, errorStatus, retry, update } = useAgentLeadDetail(leadId);
   const [notes, setNotes] = React.useState("");
   const [saving, setSaving] = React.useState(false);
-  // Mirrors the DB truth: a telecaller pickup sets BOTH
-  // assigned_telecaller_profile_uuid and status="assigned" in the same
-  // transaction (services.leads.assign_lead_to_telecaller), so status="new"
-  // is an equivalent, simpler proxy for "still unassigned, still editable."
-  const editable = lead?.status === "new";
+  const editable = lead?.editable ?? false;
 
   React.useEffect(() => {
     if (lead?.requirement && typeof lead.requirement === "object") {

@@ -1674,6 +1674,8 @@ export interface components {
              * Format: date-time
              */
             created_at: string;
+            /** Editable */
+            editable: boolean;
             /**
              * Id
              * Format: uuid

@@ -681,6 +681,10 @@
             "title": "Created At",
             "type": "string"
           },
+          "editable": {
+            "title": "Editable",
+            "type": "boolean"
+          },
           "id": {
             "format": "uuid",
             "title": "Id",
@@ -743,6 +747,7 @@
           "status",
           "requirement",
           "registered",
+          "editable",
           "created_at",
           "updated_at"
         ],

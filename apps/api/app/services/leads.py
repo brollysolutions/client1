@@ -85,6 +85,26 @@ async def capture_lead(
                 status="new",
                 requirement=requirement,
             )
+            # Agent-sourced captures are the only caller allowed to mutate an
+            # EXISTING active lead through this bypass session, and only within
+            # strict bounds: same business_line, not yet locked by a telecaller,
+            # and not already attributed to a DIFFERENT agent. This session has
+            # no RLS (it's the 'app' superuser), so the guard must be a SQL
+            # predicate on the conflicting row itself — a pre-check-then-update
+            # would race. When this predicate is false, Postgres leaves the
+            # conflicting row completely untouched (0 rows affected, no error);
+            # introduce_lead's re-select then finds nothing and raises
+            # LeadCaptureFailed (409), exactly like a genuine cross-line conflict.
+            conflict_guard = None
+            if origin_agent_profile_uuid is not None:
+                conflict_guard = (
+                    (Lead.business_line == business_line)
+                    & Lead.assigned_telecaller_profile_uuid.is_(None)
+                    & (
+                        Lead.origin_agent_profile_uuid.is_(None)
+                        | (Lead.origin_agent_profile_uuid == origin_agent_profile_uuid)
+                    )
+                )
             stmt = stmt.on_conflict_do_update(
                 index_elements=[Lead.mobile],
                 index_where=text(_ACTIVE_PREDICATE),
@@ -112,6 +132,7 @@ async def capture_lead(
                     ),
                     "updated_at": func.now(),
                 },
+                where=conflict_guard,
             )
             await session.execute(stmt)
             await session.commit()

@@ -51,5 +51,6 @@ class AgentLeadRead(BaseModel):
     status: LeadStatusLiteral
     requirement: dict[str, Any] | None
     registered: bool
+    editable: bool
     created_at: datetime
     updated_at: datetime
