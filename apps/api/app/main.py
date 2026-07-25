@@ -22,6 +22,7 @@ from app.api.v1.agent import router as agent_router
 from app.api.v1.auth import router as auth_router
 from app.api.v1.banners import router as banners_router
 from app.api.v1.bookmarks import router as bookmarks_router
+from app.api.v1.content import router as content_router
 from app.api.v1.employee import router as employee_router
 from app.api.v1.enquiries import router as enquiries_router
 from app.api.v1.leads import router as leads_router
@@ -104,6 +105,7 @@ app.include_router(agent_router, prefix="/api/v1/agent", tags=["agent"])
 app.include_router(employee_router, prefix="/api/v1/employee", tags=["employee"])
 app.include_router(banners_router, prefix="/api/v1/banners", tags=["banners"])
 app.include_router(offers_router, prefix="/api/v1/offers", tags=["offers"])
+app.include_router(content_router, prefix="/api/v1/content-blocks", tags=["content-blocks"])
 
 
 @app.get("/")
