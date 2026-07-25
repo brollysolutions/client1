@@ -92,6 +92,11 @@ export type AuthTokens = {
   // accounts that must change their password on first login. The DB enforces
   // this; the flag is only a client routing hint.
   forceReset: boolean;
+  // Decoded from the access token's `business_line` claim. Only meaningful
+  // for single-line staff/agent roles (Agent/Telecaller/Employee); a client's
+  // lines live in Me.profiles[] instead, and platform-scoped staff (Admin,
+  // some Sub Admin) carry no line at all.
+  businessLine: BusinessLine | null;
 };
 
 // --- mapping helpers --------------------------------------------------------
@@ -140,6 +145,7 @@ function readClaims(accessToken: string): Record<string, unknown> {
 function toAuthTokens(data: Schemas["AuthTokensResponse"]): AuthTokens {
   const claims = readClaims(data.access_token);
   const role = claims.role as UserRole;
+  const businessLine = claims.business_line;
   return {
     accessToken: data.access_token,
     expiresIn: data.expires_in,
@@ -147,6 +153,7 @@ function toAuthTokens(data: Schemas["AuthTokensResponse"]): AuthTokens {
     emailVerified: data.email_verified,
     role: ROLES.has(role) ? role : "client",
     forceReset: claims.force_reset === true,
+    businessLine: businessLine === "loans" || businessLine === "real_estate" ? businessLine : null,
   };
 }
 

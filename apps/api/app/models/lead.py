@@ -65,7 +65,9 @@ class Lead(Base):
     )
     name: Mapped[str | None] = mapped_column(String, nullable=True)
     mobile: Mapped[str] = mapped_column(String, nullable=False, index=True)
-    requirement: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
+    requirement: Mapped[dict[str, Any] | None] = mapped_column(
+        JSONB(none_as_null=True), nullable=True
+    )
     status: Mapped[LeadStatus] = mapped_column(
         lead_status_enum, nullable=False, default=LeadStatus.NEW
     )

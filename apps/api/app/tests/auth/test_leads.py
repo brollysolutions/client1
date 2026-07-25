@@ -110,3 +110,153 @@ async def test_capture_keeps_first_set_business_line(client: AsyncClient) -> Non
     after = await _leads_for(mobile)
     assert len(after) == 1
     assert after[0].business_line == "loans"
+
+
+async def test_capture_sets_agent_attribution_on_insert(client: AsyncClient) -> None:
+    import uuid
+
+    import app.db.session as _session_mod
+    from app.models.profile import AgentProfile, ProfileStatus
+    from app.models.user import User
+    from app.services.leads import capture_lead
+
+    # Create an auth_user and agent profile to reference
+    agent_uuid = None
+    async with _session_mod.AsyncSessionLocal() as session:
+        agent_mobile = unique_mobile()
+        user = User(
+            first_name="Test",
+            last_name="Agent",
+            mobile=agent_mobile,
+            email=unique_email(),
+            password_hash="dummy_hash",
+        )
+        session.add(user)
+        await session.flush()
+
+        agent = AgentProfile(
+            auth_user_uuid=user.id,
+            agent_code="AGT" + str(uuid.uuid4().int)[:8],
+            business_line="loans",
+            status=ProfileStatus.ACTIVE,
+        )
+        session.add(agent)
+        await session.commit()
+        await session.refresh(agent)
+        agent_uuid = agent.id
+
+    mobile = unique_mobile()
+    await capture_lead(
+        mobile,
+        business_line="loans",
+        origin="agent",
+        origin_agent_profile_uuid=str(agent_uuid),
+    )
+    lead = (await _leads_for(mobile))[0]
+    assert str(lead.origin_agent_profile_uuid) == str(agent_uuid)
+    assert lead.origin == "agent"
+
+
+async def test_capture_keeps_first_set_agent_attribution(client: AsyncClient) -> None:
+    """origin_agent_profile_uuid is first-write-wins, same discipline as business_line:
+    a second agent introducing the same mobile must not steal attribution."""
+    import uuid
+
+    import app.db.session as _session_mod
+    from app.models.profile import AgentProfile, ProfileStatus
+    from app.models.user import User
+    from app.services.leads import capture_lead
+
+    # Create two auth_users and agent profiles to reference
+    first_agent_uuid = None
+    second_agent_uuid = None
+    async with _session_mod.AsyncSessionLocal() as session:
+        first_agent_mobile = unique_mobile()
+        first_user = User(
+            first_name="First",
+            last_name="Agent",
+            mobile=first_agent_mobile,
+            email=unique_email(),
+            password_hash="dummy_hash",
+        )
+        session.add(first_user)
+        await session.flush()
+
+        second_agent_mobile = unique_mobile()
+        second_user = User(
+            first_name="Second",
+            last_name="Agent",
+            mobile=second_agent_mobile,
+            email=unique_email(),
+            password_hash="dummy_hash",
+        )
+        session.add(second_user)
+        await session.flush()
+
+        first_agent = AgentProfile(
+            auth_user_uuid=first_user.id,
+            agent_code="AGT" + str(uuid.uuid4().int)[:8],
+            business_line="loans",
+            status=ProfileStatus.ACTIVE,
+        )
+        second_agent = AgentProfile(
+            auth_user_uuid=second_user.id,
+            agent_code="AGT" + str(uuid.uuid4().int)[:8],
+            business_line="loans",
+            status=ProfileStatus.ACTIVE,
+        )
+        session.add(first_agent)
+        session.add(second_agent)
+        await session.commit()
+        await session.refresh(first_agent)
+        await session.refresh(second_agent)
+        first_agent_uuid = first_agent.id
+        second_agent_uuid = second_agent.id
+
+    mobile = unique_mobile()
+    await capture_lead(
+        mobile,
+        business_line="loans",
+        origin="agent",
+        origin_agent_profile_uuid=str(first_agent_uuid),
+    )
+    await capture_lead(
+        mobile,
+        business_line="loans",
+        origin="agent",
+        origin_agent_profile_uuid=str(second_agent_uuid),
+    )
+
+    after = await _leads_for(mobile)
+    assert len(after) == 1
+    assert str(after[0].origin_agent_profile_uuid) == str(first_agent_uuid)
+
+
+async def test_capture_repeated_none_requirement_stays_null(client: AsyncClient) -> None:
+    """Regression for the JSONB none_as_null bug: two sequential captures for the
+    same mobile with no requirement passed either time (the normal register/login/
+    forgot case) must leave requirement as Python None, not corrupt it into
+    [None, None] via a spurious jsonb || merge."""
+    from app.services.leads import capture_lead
+
+    mobile = unique_mobile()
+    await capture_lead(mobile, business_line="loans")
+    await capture_lead(mobile, business_line="loans")
+
+    after = await _leads_for(mobile)
+    assert len(after) == 1
+    assert after[0].requirement is None
+
+
+async def test_capture_requirement_merge_still_works(client: AsyncClient) -> None:
+    """The none_as_null fix must not break the LEGITIMATE merge path: two captures
+    with real (non-None) requirement dicts still merge key-by-key."""
+    from app.services.leads import capture_lead
+
+    mobile = unique_mobile()
+    await capture_lead(mobile, business_line="loans", requirement={"a": 1})
+    await capture_lead(mobile, business_line="loans", requirement={"b": 2})
+
+    after = await _leads_for(mobile)
+    assert len(after) == 1
+    assert after[0].requirement == {"a": 1, "b": 2}

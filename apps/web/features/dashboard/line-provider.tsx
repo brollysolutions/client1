@@ -2,6 +2,7 @@
 
 import * as React from "react";
 
+import { useAuth } from "@/components/auth/session-provider";
 import type { BusinessLine } from "@/lib/auth";
 
 import { useMe } from "./me-provider";
@@ -20,6 +21,7 @@ const LineContext = React.createContext<LineState | null>(null);
 
 export function LineProvider({ children }: { children: React.ReactNode }) {
   const { me } = useMe();
+  const { session } = useAuth();
   // Restore the last-viewed line synchronously so a real-estate client never
   // sees a green loans frame flash before an effect flips it to amber. Safe to
   // touch localStorage in the initializer: this subtree only renders after the
@@ -49,9 +51,19 @@ export function LineProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem(ACTIVE_LINE_KEY, line);
   }, []);
 
+  // The switcher is a client-only concept (ADR-0007: staff/agent surfaces are
+  // single-line, per their JWT business_line, not the client_profiles this
+  // identity happens to hold). A self-registered client is always enrolled in
+  // both lines (see auth_service.register_set_password), so an Agent who
+  // applied through the client-first flow still carries two client_profiles
+  // alongside their AgentProfile — without the role check, lines.length > 1
+  // alone would wrongly show this client-only toggle on a single-line Agent/
+  // Telecaller/Employee dashboard.
+  const canSwitch = session?.role === "client" && lines.length > 1;
+
   const value = React.useMemo<LineState>(
-    () => ({ activeLine, setActiveLine, lines, canSwitch: lines.length > 1 }),
-    [activeLine, setActiveLine, lines],
+    () => ({ activeLine, setActiveLine, lines, canSwitch }),
+    [activeLine, setActiveLine, lines, canSwitch],
   );
 
   return <LineContext.Provider value={value}>{children}</LineContext.Provider>;
