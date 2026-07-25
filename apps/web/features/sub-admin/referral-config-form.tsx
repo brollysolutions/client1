@@ -36,8 +36,10 @@ export function ReferralConfigForm({ onCreated }: { onCreated: () => void }) {
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
-    const amount = Number(bonusAmount);
-    if (!bonusAmount || Number.isNaN(amount) || amount < 0) {
+    // bonusAmount is already digit/dot-only (see the input's onChange filter);
+    // validate without a Number()/String() round trip so the decimal string
+    // sent to the API is exactly what the user typed.
+    if (!bonusAmount || Number.isNaN(Number(bonusAmount)) || Number(bonusAmount) < 0) {
       setBonusError("Enter a valid bonus amount.");
       return;
     }
@@ -52,7 +54,7 @@ export function ReferralConfigForm({ onCreated }: { onCreated: () => void }) {
     setSubmitting(true);
     const res = await createReferralBonusConfig({
       business_line: businessLine,
-      bonus_amount: String(amount),
+      bonus_amount: bonusAmount,
       rule,
       active,
     });

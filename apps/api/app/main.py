@@ -35,6 +35,7 @@ from app.api.v1.property_deals import router as property_deals_router
 from app.api.v1.property_submissions import router as property_submissions_router
 from app.api.v1.referral_bonus import router as referral_bonus_router
 from app.api.v1.site_visits import router as site_visits_router
+from app.api.v1.sub_admin import router as sub_admin_router
 from app.api.v1.support_tickets import router as support_tickets_router
 from app.api.v1.telecaller import router as telecaller_router
 from app.api.v1.transactions import router as transactions_router
@@ -89,6 +90,7 @@ app.include_router(
     support_tickets_router, prefix="/api/v1/support-tickets", tags=["support-tickets"]
 )
 app.include_router(site_visits_router, prefix="/api/v1/site-visits", tags=["site-visits"])
+app.include_router(sub_admin_router, prefix="/api/v1/sub-admin", tags=["sub-admin"])
 app.include_router(enquiries_router, prefix="/api/v1/enquiries", tags=["enquiries"])
 app.include_router(properties_router, prefix="/api/v1/properties", tags=["properties"])
 app.include_router(
