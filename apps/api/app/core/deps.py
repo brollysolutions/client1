@@ -229,6 +229,19 @@ async def require_telecaller(
     return current_user
 
 
+async def require_agent(
+    current_user: CurrentUser = Depends(get_active_user),
+) -> CurrentUser:
+    """Only an agent may work the lead-introduction surface. App-layer defense atop
+    the leads_rls own-origin predicate."""
+    if current_user.role != "agent":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only agents may access this.",
+        )
+    return current_user
+
+
 async def require_employee(
     current_user: CurrentUser = Depends(get_active_user),
 ) -> CurrentUser:

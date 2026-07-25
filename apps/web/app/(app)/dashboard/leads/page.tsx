@@ -5,16 +5,19 @@ import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 
 import { useAuth } from "@/components/auth/session-provider";
+import { AgentLeadsView } from "@/features/agent/agent-leads-view";
 import { TelecallerLeadsView } from "@/features/telecaller/telecaller-leads-view";
 
-// Telecaller-only route. AppGuard (the (app) layout) already enforces auth; this
-// adds the role gate. UX gate only — the API's require_telecaller is the real wall.
-const TELECALLER_ROLES = new Set(["telecaller"]);
+// Telecaller- and Agent-gated route (each sees their own leads: assigned vs
+// introduced). AppGuard (the (app) layout) already enforces auth; this adds
+// the role gate. UX gate only — the API's require_telecaller / require_agent
+// are the real wall.
+const LEADS_ROLES = new Set(["telecaller", "agent"]);
 
 export default function LeadsPage() {
   const router = useRouter();
   const { session, isLoading } = useAuth();
-  const allowed = session != null && TELECALLER_ROLES.has(session.role);
+  const allowed = session != null && LEADS_ROLES.has(session.role);
 
   React.useEffect(() => {
     if (!isLoading && !allowed) router.replace("/dashboard");
@@ -27,5 +30,5 @@ export default function LeadsPage() {
       </div>
     );
   }
-  return <TelecallerLeadsView />;
+  return session?.role === "agent" ? <AgentLeadsView /> : <TelecallerLeadsView />;
 }

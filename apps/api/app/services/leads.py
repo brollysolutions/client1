@@ -63,6 +63,7 @@ async def capture_lead(
     name: str | None = None,
     business_line: str | None = None,
     origin: str = "direct",
+    origin_agent_profile_uuid: str | None = None,
     requirement: dict[str, Any] | None = None,
 ) -> bool:
     """Insert-or-enrich a lead for this mobile. Never raises.
@@ -80,9 +81,30 @@ async def capture_lead(
                 name=name,
                 business_line=business_line,
                 origin=origin,
+                origin_agent_profile_uuid=origin_agent_profile_uuid,
                 status="new",
                 requirement=requirement,
             )
+            # Agent-sourced captures are the only caller allowed to mutate an
+            # EXISTING active lead through this bypass session, and only within
+            # strict bounds: same business_line, not yet locked by a telecaller,
+            # and not already attributed to a DIFFERENT agent. This session has
+            # no RLS (it's the 'app' superuser), so the guard must be a SQL
+            # predicate on the conflicting row itself — a pre-check-then-update
+            # would race. When this predicate is false, Postgres leaves the
+            # conflicting row completely untouched (0 rows affected, no error);
+            # introduce_lead's re-select then finds nothing and raises
+            # LeadCaptureFailed (409), exactly like a genuine cross-line conflict.
+            conflict_guard = None
+            if origin_agent_profile_uuid is not None:
+                conflict_guard = (
+                    (Lead.business_line == business_line)
+                    & Lead.assigned_telecaller_profile_uuid.is_(None)
+                    & (
+                        Lead.origin_agent_profile_uuid.is_(None)
+                        | (Lead.origin_agent_profile_uuid == origin_agent_profile_uuid)
+                    )
+                )
             stmt = stmt.on_conflict_do_update(
                 index_elements=[Lead.mobile],
                 index_where=text(_ACTIVE_PREDICATE),
@@ -94,6 +116,12 @@ async def capture_lead(
                     # would raise on a cross-line re-enquiry and — since capture is
                     # best-effort/swallowed — silently drop the lead.
                     "business_line": func.coalesce(Lead.business_line, stmt.excluded.business_line),
+                    # Same first-write-wins discipline: an agent introducing an
+                    # already-known mobile enriches the lead but never steals
+                    # attribution from whichever origin touched it first.
+                    "origin_agent_profile_uuid": func.coalesce(
+                        Lead.origin_agent_profile_uuid, stmt.excluded.origin_agent_profile_uuid
+                    ),
                     # Merge requirement JSONB, newest value wins per key; an
                     # incoming NULL leaves the stored blob untouched.
                     "requirement": case(
@@ -104,6 +132,7 @@ async def capture_lead(
                     ),
                     "updated_at": func.now(),
                 },
+                where=conflict_guard,
             )
             await session.execute(stmt)
             await session.commit()
