@@ -3726,6 +3726,42 @@
         "title": "PayoutType",
         "type": "string"
       },
+      "PendingApprovalItem": {
+        "description": "An own-authored banner or property listing still awaiting Admin review.",
+        "properties": {
+          "business_line": {
+            "title": "Business Line",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "submitted_at": {
+            "format": "date-time",
+            "title": "Submitted At",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "title",
+          "business_line",
+          "submitted_at"
+        ],
+        "title": "PendingApprovalItem",
+        "type": "object"
+      },
       "PropertyCategory": {
         "enum": [
           "houses",
@@ -4982,6 +5018,45 @@
           "temp_password"
         ],
         "title": "StaffCreateResponse",
+        "type": "object"
+      },
+      "SubAdminHomeResponse": {
+        "properties": {
+          "content_drafts_count": {
+            "title": "Content Drafts Count",
+            "type": "integer"
+          },
+          "live_banners_count": {
+            "title": "Live Banners Count",
+            "type": "integer"
+          },
+          "live_offers_count": {
+            "title": "Live Offers Count",
+            "type": "integer"
+          },
+          "pending_approval": {
+            "items": {
+              "$ref": "#/components/schemas/PendingApprovalItem"
+            },
+            "title": "Pending Approval",
+            "type": "array"
+          },
+          "recent_referral_payouts": {
+            "items": {
+              "$ref": "#/components/schemas/ReferralPayoutActivityRead"
+            },
+            "title": "Recent Referral Payouts",
+            "type": "array"
+          }
+        },
+        "required": [
+          "pending_approval",
+          "live_banners_count",
+          "live_offers_count",
+          "content_drafts_count",
+          "recent_referral_payouts"
+        ],
+        "title": "SubAdminHomeResponse",
         "type": "object"
       },
       "SubmissionCreate": {
@@ -10765,6 +10840,32 @@
         "summary": "Cancel Site Visit Endpoint",
         "tags": [
           "site-visits"
+        ]
+      }
+    },
+    "/api/v1/sub-admin/home": {
+      "get": {
+        "operationId": "home_api_v1_sub_admin_home_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubAdminHomeResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Home",
+        "tags": [
+          "sub-admin"
         ]
       }
     },

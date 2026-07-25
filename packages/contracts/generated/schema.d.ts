@@ -1355,6 +1355,23 @@ export interface paths {
         patch: operations["cancel_site_visit_endpoint_api_v1_site_visits__visit_id__cancel_patch"];
         trace?: never;
     };
+    "/api/v1/sub-admin/home": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Home */
+        get: operations["home_api_v1_sub_admin_home_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/support-tickets/tickets": {
         parameters: {
             query?: never;
@@ -2798,6 +2815,28 @@ export interface components {
          */
         PayoutType: "cashback" | "referral_bonus" | "commission";
         /**
+         * PendingApprovalItem
+         * @description An own-authored banner or property listing still awaiting Admin review.
+         */
+        PendingApprovalItem: {
+            /** Business Line */
+            business_line: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Kind */
+            kind: string;
+            /**
+             * Submitted At
+             * Format: date-time
+             */
+            submitted_at: string;
+            /** Title */
+            title: string;
+        };
+        /**
          * PropertyCategory
          * @enum {string}
          */
@@ -3255,6 +3294,19 @@ export interface components {
             staff_code: string;
             /** Temp Password */
             temp_password: string | null;
+        };
+        /** SubAdminHomeResponse */
+        SubAdminHomeResponse: {
+            /** Content Drafts Count */
+            content_drafts_count: number;
+            /** Live Banners Count */
+            live_banners_count: number;
+            /** Live Offers Count */
+            live_offers_count: number;
+            /** Pending Approval */
+            pending_approval: components["schemas"]["PendingApprovalItem"][];
+            /** Recent Referral Payouts */
+            recent_referral_payouts: components["schemas"]["ReferralPayoutActivityRead"][];
         };
         /** SubmissionCreate */
         SubmissionCreate: {
@@ -6665,6 +6717,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    home_api_v1_sub_admin_home_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SubAdminHomeResponse"];
                 };
             };
         };
