@@ -113,6 +113,55 @@ async def test_admin_cannot_create(client: AsyncClient) -> None:
 
 
 @pytest.mark.asyncio
+async def test_telecaller_cannot_create(client: AsyncClient) -> None:
+    _, mobile = await full_registration(client, lines=["loans"])
+    uid = await _auth_user_uuid(mobile)
+    token = create_access_token(
+        {"sub": uid, "role": "telecaller", "business_line": "loans", "platform_scope": "false"}
+    )
+    res = await client.post(_URL, json=_payload(), headers={"Authorization": f"Bearer {token}"})
+    assert res.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_employee_cannot_create(client: AsyncClient) -> None:
+    _, mobile = await full_registration(client, lines=["loans"])
+    uid = await _auth_user_uuid(mobile)
+    token = create_access_token(
+        {"sub": uid, "role": "employee", "business_line": "loans", "platform_scope": "false"}
+    )
+    res = await client.post(_URL, json=_payload(), headers={"Authorization": f"Bearer {token}"})
+    assert res.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_agent_cannot_create(client: AsyncClient) -> None:
+    _, mobile = await full_registration(client, lines=["real_estate"])
+    uid = await _auth_user_uuid(mobile)
+    token = create_access_token(
+        {"sub": uid, "role": "agent", "business_line": "real_estate", "platform_scope": "false"}
+    )
+    res = await client.post(_URL, json=_payload(), headers={"Authorization": f"Bearer {token}"})
+    assert res.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_admin_cannot_update(client: AsyncClient) -> None:
+    """Same require_sub_admin guard as create — Admin has no write path here."""
+    _, mobile = await full_registration(client, lines=["loans"])
+    uid = await _auth_user_uuid(mobile)
+    headers = {"Authorization": f"Bearer {_sub_admin_token(uid)}"}
+    config = await _create(client, headers)
+
+    res = await client.patch(
+        f"{_URL}/{config['id']}",
+        json={"active": True},
+        headers={"Authorization": f"Bearer {_admin_token(uid)}"},
+    )
+    assert res.status_code == 403
+
+
+@pytest.mark.asyncio
 async def test_admin_can_list(client: AsyncClient) -> None:
     _, mobile = await full_registration(client, lines=["loans"])
     uid = await _auth_user_uuid(mobile)
@@ -310,43 +359,42 @@ async def test_payout_activity_excludes_cashback(client: AsyncClient) -> None:
 
 @pytest.mark.asyncio
 async def test_client_cannot_see_payout_activity(client: AsyncClient) -> None:
-    """RLS denial by absence — a plain client's own session sees no rows here
-    (their own transaction is theirs, but this endpoint is not client-facing UX;
-    it happens to run under get_active_user, so confirm RLS still walls off
-    other users' rows for a client role)."""
-    from app.models.transaction import Transaction, TransactionStatus, TransactionType
-
-    _, owner_mobile = await full_registration(client, lines=["loans"])
-    owner_uid = await _auth_user_uuid(owner_mobile)
-
-    import app.db.session as _session_mod
-
-    async with _session_mod.AsyncSessionLocal() as db:
-        txn = Transaction(
-            user_uuid=uuid.UUID(owner_uid),
-            business_line=None,
-            type=TransactionType.REFERRAL_BONUS,
-            status=TransactionStatus.PAID,
-            amount_paise=50_000,
-            currency="INR",
-            description="Referral payout",
-        )
-        db.add(txn)
-        await db.commit()
-        txn_id = str(txn.id)
-
-    _, other_mobile = await full_registration(client, lines=["loans"])
-    other_uid = await _auth_user_uuid(other_mobile)
+    """App-layer gate, not just RLS: transactions_rls's owner branch is
+    unconditional on role, so without an explicit check here a plain client
+    would get back their OWN referral_bonus rows from this staff-oversight
+    route (not a cross-tenant leak, but a contract mismatch). Assert the
+    route rejects non-staff outright rather than silently degrading to an
+    empty/partial "oversight" view."""
+    _, mobile = await full_registration(client, lines=["loans"])
+    uid = await _auth_user_uuid(mobile)
     token = create_access_token(
-        {
-            "sub": other_uid,
-            "role": "client",
-            "business_line": "loans",
-            "platform_scope": "false",
-        }
+        {"sub": uid, "role": "client", "business_line": "loans", "platform_scope": "false"}
     )
     res = await client.get(
         f"{_URL}/payout-activity/recent", headers={"Authorization": f"Bearer {token}"}
     )
+    assert res.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_agent_cannot_see_payout_activity(client: AsyncClient) -> None:
+    _, mobile = await full_registration(client, lines=["real_estate"])
+    uid = await _auth_user_uuid(mobile)
+    token = create_access_token(
+        {"sub": uid, "role": "agent", "business_line": "real_estate", "platform_scope": "false"}
+    )
+    res = await client.get(
+        f"{_URL}/payout-activity/recent", headers={"Authorization": f"Bearer {token}"}
+    )
+    assert res.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_admin_can_see_payout_activity(client: AsyncClient) -> None:
+    _, mobile = await full_registration(client, lines=["loans"])
+    uid = await _auth_user_uuid(mobile)
+    res = await client.get(
+        f"{_URL}/payout-activity/recent",
+        headers={"Authorization": f"Bearer {_admin_token(uid)}"},
+    )
     assert res.status_code == 200, res.text
-    assert txn_id not in [row["id"] for row in res.json()["activity"]]
