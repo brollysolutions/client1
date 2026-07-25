@@ -110,6 +110,17 @@ async def payout_activity(
     current_user: CurrentUser = Depends(get_active_user),
     db: AsyncSession = Depends(get_db),
 ) -> ReferralPayoutActivityListResponse:
+    # App-layer gate on top of transactions_rls: without this, a plain client
+    # or agent hitting this staff-oversight route would still get their OWN
+    # referral_bonus rows back (transactions_rls's owner branch is
+    # unconditional on role) — not a cross-tenant leak, but a contract
+    # mismatch against this route's staff-oversight purpose. 403 up front
+    # instead of a confusing empty/partial oversight view.
+    if current_user.role not in ("sub_admin", "admin"):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only Sub Admin or Admin may view referral payout activity.",
+        )
     # Filtered in the query as well as relying on transactions_rls's own
     # narrowing (e8f9a0b1c2d3) — defence in depth, and it keeps this endpoint
     # correct if that policy is ever widened.

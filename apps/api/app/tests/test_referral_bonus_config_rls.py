@@ -258,18 +258,25 @@ async def test_business_line_immutable_once_set(client: AsyncClient) -> None:
 
 
 @pytest.mark.asyncio
-async def test_sub_admin_has_no_write_endpoint_into_transactions(client: AsyncClient) -> None:
-    """Payout execution stays Admin/finance's — assert the absence of a write
-    path, not just a 403. No route in this router touches transactions except
-    the read-only payout-activity listing."""
-    from app.main import app as fastapi_app
-
-    write_methods = {"POST", "PUT", "PATCH", "DELETE"}
-    offending = [
-        f"{method} {route.path}"
-        for route in fastapi_app.routes
-        if getattr(route, "path", "").startswith("/api/v1/referral-bonus-config")
-        for method in getattr(route, "methods", set()) & write_methods
-        if "transactions" in route.path or "payout" in route.path
-    ]
-    assert offending == []
+async def test_api_user_has_no_write_grant_on_transactions(client: AsyncClient) -> None:
+    """Payout execution stays Admin/finance's. A route-path naming check (e.g.
+    "does any URL under this router contain the word 'transactions'") would
+    miss a differently-named write endpoint that still issued an INSERT/UPDATE
+    against the Transaction model internally. The real, durable guarantee is at
+    the database grant level: api_user has never held INSERT/UPDATE/DELETE on
+    transactions (7a8b9c1d2e3f granted SELECT only, unchanged since), so no
+    application code — in this router or anywhere else — can write to it no
+    matter what it's named. Assert that grant state directly."""
+    engine = _engine()
+    try:
+        async with engine.begin() as conn:
+            result = await conn.execute(
+                text(
+                    "SELECT privilege_type FROM information_schema.role_table_grants "
+                    "WHERE table_name = 'transactions' AND grantee = 'api_user'"
+                )
+            )
+            privileges = {row[0] for row in result.fetchall()}
+    finally:
+        await engine.dispose()
+    assert privileges == {"SELECT"}
