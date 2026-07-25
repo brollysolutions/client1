@@ -622,6 +622,76 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/content-blocks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Content Blocks */
+        get: operations["list_content_blocks_api_v1_content_blocks_get"];
+        put?: never;
+        /** Create Content Block */
+        post: operations["create_content_block_api_v1_content_blocks_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/content-blocks/{block_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Content Block */
+        get: operations["get_content_block_api_v1_content_blocks__block_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Content Block */
+        patch: operations["update_content_block_api_v1_content_blocks__block_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/content-blocks/{block_id}/archive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Archive */
+        post: operations["archive_api_v1_content_blocks__block_id__archive_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/content-blocks/{block_id}/publish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Publish */
+        post: operations["publish_api_v1_content_blocks__block_id__publish_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/employee/home": {
         parameters: {
             query?: never;
@@ -1941,6 +2011,72 @@ export interface components {
          * @enum {string}
          */
         ConstructionStatus: "ready" | "under_construction";
+        /** ContentBlockCreate */
+        ContentBlockCreate: {
+            /** Body */
+            body?: string | null;
+            /** Business Line */
+            business_line?: string | null;
+            /** Section */
+            section: string;
+            /** Slug */
+            slug: string;
+            /** Title */
+            title: string;
+        };
+        /** ContentBlockListResponse */
+        ContentBlockListResponse: {
+            /** Content Blocks */
+            content_blocks: components["schemas"]["ContentBlockRead"][];
+        };
+        /** ContentBlockRead */
+        ContentBlockRead: {
+            /** Body */
+            body: string | null;
+            /** Business Line */
+            business_line: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Created By Uuid
+             * Format: uuid
+             */
+            created_by_uuid: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Section */
+            section: string;
+            /** Slug */
+            slug: string;
+            status: components["schemas"]["ContentStatus"];
+            /** Title */
+            title: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** ContentBlockUpdate */
+        ContentBlockUpdate: {
+            /** Body */
+            body?: string | null;
+            /** Section */
+            section?: string | null;
+            /** Title */
+            title?: string | null;
+        };
+        /**
+         * ContentStatus
+         * @enum {string}
+         */
+        ContentStatus: "draft" | "published" | "archived";
         /** DealPropertySummary */
         DealPropertySummary: {
             /**
@@ -4764,6 +4900,198 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_content_blocks_api_v1_content_blocks_get: {
+        parameters: {
+            query?: {
+                status_filter?: components["schemas"]["ContentStatus"] | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContentBlockListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_content_block_api_v1_content_blocks_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ContentBlockCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContentBlockRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_content_block_api_v1_content_blocks__block_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                block_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContentBlockRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_content_block_api_v1_content_blocks__block_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                block_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ContentBlockUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContentBlockRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    archive_api_v1_content_blocks__block_id__archive_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                block_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContentBlockRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    publish_api_v1_content_blocks__block_id__publish_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                block_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContentBlockRead"];
+                };
             };
             /** @description Validation Error */
             422: {
