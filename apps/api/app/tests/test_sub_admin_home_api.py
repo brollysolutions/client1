@@ -105,6 +105,63 @@ async def test_other_sub_admins_pending_banner_not_in_my_queue(client: AsyncClie
     assert banner_id not in pending_ids
 
 
+_SUBMISSION_PAYLOAD = {
+    "title": "Home-queue submission",
+    "type": "Apartment",
+    "location": "Koramangala, Bengaluru",
+    "category": "apartments",
+    "city": "Bengaluru",
+    "locality": "Koramangala",
+    "pincode": "560095",
+    "price_paise": 78_00_00_000,
+    "furnishing": "furnished",
+    "construction_status": "ready",
+    "rera_number": "RERA/RE/2026/00099",
+}
+
+
+@pytest.mark.asyncio
+async def test_own_pending_property_submission_appears_in_queue(client: AsyncClient) -> None:
+    _, mobile = await full_registration(client, lines=["real_estate"])
+    uid = await _auth_user_uuid(mobile)
+    headers = {"Authorization": f"Bearer {_sub_admin_token(uid)}"}
+
+    create_res = await client.post(
+        "/api/v1/property-submissions", json=_SUBMISSION_PAYLOAD, headers=headers
+    )
+    assert create_res.status_code == 201, create_res.text
+    submission_id = create_res.json()["id"]
+
+    res = await client.get(_URL, headers=headers)
+    assert res.status_code == 200, res.text
+    pending_ids = [item["id"] for item in res.json()["pending_approval"]]
+    assert submission_id in pending_ids
+
+
+@pytest.mark.asyncio
+async def test_other_sub_admins_pending_submission_not_in_my_queue(client: AsyncClient) -> None:
+    """Same own-authored scoping as banners, applied to property_submissions
+    (submitter_uuid, not created_by_uuid) — the other field name this
+    aggregator has to get right."""
+    _, owner_mobile = await full_registration(client, lines=["real_estate"])
+    owner_uid = await _auth_user_uuid(owner_mobile)
+    owner_headers = {"Authorization": f"Bearer {_sub_admin_token(owner_uid)}"}
+
+    create_res = await client.post(
+        "/api/v1/property-submissions", json=_SUBMISSION_PAYLOAD, headers=owner_headers
+    )
+    submission_id = create_res.json()["id"]
+
+    _, other_mobile = await full_registration(client, lines=["real_estate"])
+    other_uid = await _auth_user_uuid(other_mobile)
+    other_headers = {"Authorization": f"Bearer {_sub_admin_token(other_uid)}"}
+
+    res = await client.get(_URL, headers=other_headers)
+    assert res.status_code == 200, res.text
+    pending_ids = [item["id"] for item in res.json()["pending_approval"]]
+    assert submission_id not in pending_ids
+
+
 @pytest.mark.asyncio
 async def test_client_cannot_load_home(client: AsyncClient) -> None:
     _, mobile = await full_registration(client, lines=["loans"])
@@ -131,10 +188,14 @@ async def test_admin_cannot_load_sub_admin_home(client: AsyncClient) -> None:
 
 @pytest.mark.asyncio
 async def test_recent_referral_payouts_capped_at_five(client: AsyncClient) -> None:
+    """Seeds the transactions under a DIFFERENT account than the querying
+    sub_admin, so this only passes via transactions_rls's platform sub_admin/
+    referral_bonus branch (e8f9a0b1c2d3) — not the unconditional owner branch,
+    which would pass even if that branch were broken."""
     from app.models.transaction import Transaction, TransactionStatus, TransactionType
 
-    _, mobile = await full_registration(client, lines=["loans"])
-    uid = await _auth_user_uuid(mobile)
+    _, owner_mobile = await full_registration(client, lines=["loans"])
+    owner_uid = await _auth_user_uuid(owner_mobile)
 
     import app.db.session as _session_mod
 
@@ -142,7 +203,7 @@ async def test_recent_referral_payouts_capped_at_five(client: AsyncClient) -> No
         for _ in range(7):
             db.add(
                 Transaction(
-                    user_uuid=uuid.UUID(uid),
+                    user_uuid=uuid.UUID(owner_uid),
                     business_line=None,
                     type=TransactionType.REFERRAL_BONUS,
                     status=TransactionStatus.PAID,
@@ -153,6 +214,10 @@ async def test_recent_referral_payouts_capped_at_five(client: AsyncClient) -> No
             )
         await db.commit()
 
-    res = await client.get(_URL, headers={"Authorization": f"Bearer {_sub_admin_token(uid)}"})
+    _, viewer_mobile = await full_registration(client, lines=["loans"])
+    viewer_uid = await _auth_user_uuid(viewer_mobile)
+    res = await client.get(
+        _URL, headers={"Authorization": f"Bearer {_sub_admin_token(viewer_uid)}"}
+    )
     assert res.status_code == 200, res.text
     assert len(res.json()["recent_referral_payouts"]) == 5

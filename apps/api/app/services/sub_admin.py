@@ -39,6 +39,7 @@ async def get_sub_admin_home(db: AsyncSession, auth_user_uuid: UUID) -> SubAdmin
                     Banner.status == BannerStatus.PENDING_APPROVAL,
                 )
                 .order_by(Banner.created_at.desc())
+                .limit(_PENDING_APPROVAL_LIMIT)
             )
         )
         .scalars()
@@ -54,6 +55,7 @@ async def get_sub_admin_home(db: AsyncSession, auth_user_uuid: UUID) -> SubAdmin
                     PropertySubmission.status == SubmissionStatus.PENDING,
                 )
                 .order_by(PropertySubmission.created_at.desc())
+                .limit(_PENDING_APPROVAL_LIMIT)
             )
         )
         .scalars()
