@@ -1267,6 +1267,59 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/referral-bonus-config": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Configs */
+        get: operations["list_configs_api_v1_referral_bonus_config_get"];
+        put?: never;
+        /** Create Config */
+        post: operations["create_config_api_v1_referral_bonus_config_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/referral-bonus-config/payout-activity/recent": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Payout Activity */
+        get: operations["payout_activity_api_v1_referral_bonus_config_payout_activity_recent_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/referral-bonus-config/{config_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Config */
+        get: operations["get_config_api_v1_referral_bonus_config__config_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Config */
+        patch: operations["update_config_api_v1_referral_bonus_config__config_id__patch"];
+        trace?: never;
+    };
     "/api/v1/site-visits": {
         parameters: {
             query?: never;
@@ -2886,6 +2939,109 @@ export interface components {
              * @default true
              */
             ok: boolean;
+        };
+        /** ReferralBonusConfigCreate */
+        ReferralBonusConfigCreate: {
+            /**
+             * Active
+             * @default false
+             */
+            active: boolean;
+            /** Bonus Amount */
+            bonus_amount: number | string;
+            /** Business Line */
+            business_line: string;
+            /** Rule */
+            rule?: {
+                [key: string]: unknown;
+            };
+        };
+        /** ReferralBonusConfigListResponse */
+        ReferralBonusConfigListResponse: {
+            /** Configs */
+            configs: components["schemas"]["ReferralBonusConfigRead"][];
+        };
+        /** ReferralBonusConfigRead */
+        ReferralBonusConfigRead: {
+            /** Active */
+            active: boolean;
+            /** Bonus Amount */
+            bonus_amount: string;
+            /** Business Line */
+            business_line: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Created By Uuid
+             * Format: uuid
+             */
+            created_by_uuid: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Rule */
+            rule: {
+                [key: string]: unknown;
+            };
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** ReferralBonusConfigUpdate */
+        ReferralBonusConfigUpdate: {
+            /** Active */
+            active?: boolean | null;
+            /** Bonus Amount */
+            bonus_amount?: number | string | null;
+            /** Rule */
+            rule?: {
+                [key: string]: unknown;
+            } | null;
+        };
+        /** ReferralPayoutActivityListResponse */
+        ReferralPayoutActivityListResponse: {
+            /** Activity */
+            activity: components["schemas"]["ReferralPayoutActivityRead"][];
+        };
+        /**
+         * ReferralPayoutActivityRead
+         * @description Read-only projection of a referral_bonus transaction row, for the Sub
+         *     Admin oversight view (spec §6.4). No write path into transactions exists
+         *     from this router at all.
+         */
+        ReferralPayoutActivityRead: {
+            /** Amount Paise */
+            amount_paise: number;
+            /** Business Line */
+            business_line: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Currency */
+            currency: string;
+            /** Description */
+            description: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Status */
+            status: string;
+            /**
+             * User Uuid
+             * Format: uuid
+             */
+            user_uuid: string;
         };
         /** RegisterInitiateRequest */
         RegisterInitiateRequest: {
@@ -6277,6 +6433,145 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SubmissionRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_configs_api_v1_referral_bonus_config_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReferralBonusConfigListResponse"];
+                };
+            };
+        };
+    };
+    create_config_api_v1_referral_bonus_config_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReferralBonusConfigCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReferralBonusConfigRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    payout_activity_api_v1_referral_bonus_config_payout_activity_recent_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReferralPayoutActivityListResponse"];
+                };
+            };
+        };
+    };
+    get_config_api_v1_referral_bonus_config__config_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                config_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReferralBonusConfigRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_config_api_v1_referral_bonus_config__config_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                config_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReferralBonusConfigUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReferralBonusConfigRead"];
                 };
             };
             /** @description Validation Error */
