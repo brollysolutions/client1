@@ -33,6 +33,7 @@ from app.api.v1.payments import router as payments_router
 from app.api.v1.properties import router as properties_router
 from app.api.v1.property_deals import router as property_deals_router
 from app.api.v1.property_submissions import router as property_submissions_router
+from app.api.v1.referral_bonus import router as referral_bonus_router
 from app.api.v1.site_visits import router as site_visits_router
 from app.api.v1.support_tickets import router as support_tickets_router
 from app.api.v1.telecaller import router as telecaller_router
@@ -106,6 +107,9 @@ app.include_router(employee_router, prefix="/api/v1/employee", tags=["employee"]
 app.include_router(banners_router, prefix="/api/v1/banners", tags=["banners"])
 app.include_router(offers_router, prefix="/api/v1/offers", tags=["offers"])
 app.include_router(content_router, prefix="/api/v1/content-blocks", tags=["content-blocks"])
+app.include_router(
+    referral_bonus_router, prefix="/api/v1/referral-bonus-config", tags=["referral-bonus-config"]
+)
 
 
 @app.get("/")

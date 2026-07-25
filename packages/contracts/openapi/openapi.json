@@ -4189,6 +4189,234 @@
         "title": "PublicLeadResponse",
         "type": "object"
       },
+      "ReferralBonusConfigCreate": {
+        "properties": {
+          "active": {
+            "default": false,
+            "title": "Active",
+            "type": "boolean"
+          },
+          "bonus_amount": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              }
+            ],
+            "title": "Bonus Amount"
+          },
+          "business_line": {
+            "pattern": "^(loans|real_estate|both)$",
+            "title": "Business Line",
+            "type": "string"
+          },
+          "rule": {
+            "additionalProperties": true,
+            "title": "Rule",
+            "type": "object"
+          }
+        },
+        "required": [
+          "business_line",
+          "bonus_amount"
+        ],
+        "title": "ReferralBonusConfigCreate",
+        "type": "object"
+      },
+      "ReferralBonusConfigListResponse": {
+        "properties": {
+          "configs": {
+            "items": {
+              "$ref": "#/components/schemas/ReferralBonusConfigRead"
+            },
+            "title": "Configs",
+            "type": "array"
+          }
+        },
+        "required": [
+          "configs"
+        ],
+        "title": "ReferralBonusConfigListResponse",
+        "type": "object"
+      },
+      "ReferralBonusConfigRead": {
+        "properties": {
+          "active": {
+            "title": "Active",
+            "type": "boolean"
+          },
+          "bonus_amount": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Bonus Amount",
+            "type": "string"
+          },
+          "business_line": {
+            "title": "Business Line",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "created_by_uuid": {
+            "format": "uuid",
+            "title": "Created By Uuid",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "rule": {
+            "additionalProperties": true,
+            "title": "Rule",
+            "type": "object"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "business_line",
+          "bonus_amount",
+          "rule",
+          "active",
+          "created_by_uuid",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "ReferralBonusConfigRead",
+        "type": "object"
+      },
+      "ReferralBonusConfigUpdate": {
+        "properties": {
+          "active": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Active"
+          },
+          "bonus_amount": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bonus Amount"
+          },
+          "rule": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rule"
+          }
+        },
+        "title": "ReferralBonusConfigUpdate",
+        "type": "object"
+      },
+      "ReferralPayoutActivityListResponse": {
+        "properties": {
+          "activity": {
+            "items": {
+              "$ref": "#/components/schemas/ReferralPayoutActivityRead"
+            },
+            "title": "Activity",
+            "type": "array"
+          }
+        },
+        "required": [
+          "activity"
+        ],
+        "title": "ReferralPayoutActivityListResponse",
+        "type": "object"
+      },
+      "ReferralPayoutActivityRead": {
+        "description": "Read-only projection of a referral_bonus transaction row, for the Sub\nAdmin oversight view (spec \u00a76.4). No write path into transactions exists\nfrom this router at all.",
+        "properties": {
+          "amount_paise": {
+            "title": "Amount Paise",
+            "type": "integer"
+          },
+          "business_line": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Business Line"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "currency": {
+            "title": "Currency",
+            "type": "string"
+          },
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "user_uuid": {
+            "format": "uuid",
+            "title": "User Uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "user_uuid",
+          "business_line",
+          "status",
+          "amount_paise",
+          "currency",
+          "description",
+          "created_at"
+        ],
+        "title": "ReferralPayoutActivityRead",
+        "type": "object"
+      },
       "RegisterInitiateRequest": {
         "properties": {
           "email": {
@@ -10219,6 +10447,206 @@
         "summary": "Reject",
         "tags": [
           "property-submissions"
+        ]
+      }
+    },
+    "/api/v1/referral-bonus-config": {
+      "get": {
+        "operationId": "list_configs_api_v1_referral_bonus_config_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReferralBonusConfigListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "List Configs",
+        "tags": [
+          "referral-bonus-config"
+        ]
+      },
+      "post": {
+        "operationId": "create_config_api_v1_referral_bonus_config_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReferralBonusConfigCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReferralBonusConfigRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Create Config",
+        "tags": [
+          "referral-bonus-config"
+        ]
+      }
+    },
+    "/api/v1/referral-bonus-config/payout-activity/recent": {
+      "get": {
+        "operationId": "payout_activity_api_v1_referral_bonus_config_payout_activity_recent_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReferralPayoutActivityListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Payout Activity",
+        "tags": [
+          "referral-bonus-config"
+        ]
+      }
+    },
+    "/api/v1/referral-bonus-config/{config_id}": {
+      "get": {
+        "operationId": "get_config_api_v1_referral_bonus_config__config_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "config_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Config Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReferralBonusConfigRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Get Config",
+        "tags": [
+          "referral-bonus-config"
+        ]
+      },
+      "patch": {
+        "operationId": "update_config_api_v1_referral_bonus_config__config_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "config_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Config Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReferralBonusConfigUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReferralBonusConfigRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Update Config",
+        "tags": [
+          "referral-bonus-config"
         ]
       }
     },
