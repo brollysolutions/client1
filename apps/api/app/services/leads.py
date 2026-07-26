@@ -53,6 +53,15 @@ class LeadHasNoBusinessLine(Exception):
     """Raised when the lead's line hasn't been triaged yet (business_line NULL)."""
 
 
+class LeadNotAssignable(Exception):
+    """Raised when the lead isn't in an assignable status (new/released). Guards
+    against the orphaned-FK edge case: a lead whose assigned_telecaller_profile_uuid
+    went NULL via ondelete="SET NULL" (e.g. the telecaller's staff profile was
+    removed) while status stayed assigned/working/converted/closed must NOT be
+    re-assignable via this path — that would silently rewind a forward-only
+    lifecycle back to 'assigned'."""
+
+
 class InvalidTelecaller(Exception):
     """Raised when the target staff profile isn't an active telecaller on the lead's line."""
 
@@ -243,6 +252,8 @@ async def assign_lead_to_telecaller(
         raise LeadAlreadyAssigned
     if lead.business_line is None:
         raise LeadHasNoBusinessLine
+    if lead.status not in (LeadStatus.NEW, LeadStatus.RELEASED):
+        raise LeadNotAssignable
 
     telecaller = await db.get(StaffProfile, telecaller_staff_profile_uuid)
     if (
@@ -266,3 +277,25 @@ async def assign_lead_to_telecaller(
         href="/dashboard/leads",
     )
     return lead
+
+
+async def list_unassigned_leads(db: AsyncSession, limit: int = 100, offset: int = 0) -> list[Lead]:
+    """Leads eligible for assignment right now: same predicate assign_lead_to_telecaller
+    itself validates against (unassigned + triaged + status new/released), so the
+    queue never lists a lead that would then 409/422 on assign. The status filter
+    also excludes the orphaned-FK edge case: a lead whose
+    assigned_telecaller_profile_uuid went NULL (ondelete="SET NULL") while it
+    stayed assigned/working/converted/closed is not "unassigned" — it must not be
+    listed here nor be assignable via assign_lead_to_telecaller."""
+    stmt = (
+        select(Lead)
+        .where(
+            Lead.assigned_telecaller_profile_uuid.is_(None),
+            Lead.business_line.is_not(None),
+            Lead.status.in_((LeadStatus.NEW, LeadStatus.RELEASED)),
+        )
+        .order_by(Lead.created_at.desc())
+        .limit(limit)
+        .offset(offset)
+    )
+    return list((await db.scalars(stmt)).all())

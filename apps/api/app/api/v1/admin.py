@@ -6,18 +6,20 @@ gate (see app/services/admin.py module docstring for why RLS alone isn't enough)
 
 from __future__ import annotations
 
+from typing import Literal
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.deps import CurrentUser, require_admin
 from app.db.session import get_db
-from app.models.profile import AgentApplication, SubmissionStatus
+from app.models.profile import AgentApplication, StaffRole, SubmissionStatus
 from app.schemas.admin import (
     AdminEmployeeRead,
     AdminHomeResponse,
+    AdminLeadRead,
     AdminLoanApplicationListResponse,
     AdminLoanApplicationRead,
     AdminPropertyDealListResponse,
@@ -47,8 +49,10 @@ from app.services.leads import (
     InvalidTelecaller,
     LeadAlreadyAssigned,
     LeadHasNoBusinessLine,
+    LeadNotAssignable,
     LeadNotFound,
     assign_lead_to_telecaller,
+    list_unassigned_leads,
 )
 from app.services.loan_applications import InvalidStatusTransition as InvalidLoanStatusTransition
 from app.services.loan_applications import (
@@ -249,6 +253,10 @@ async def assign_lead(
             status.HTTP_422_UNPROCESSABLE_ENTITY,
             "This lead has no business line yet and cannot be assigned.",
         ) from exc
+    except LeadNotAssignable as exc:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT, "This lead is not in an assignable state."
+        ) from exc
     except InvalidTelecaller as exc:
         raise HTTPException(
             status.HTTP_422_UNPROCESSABLE_ENTITY,
@@ -265,10 +273,13 @@ async def assign_lead(
 @router.get("/employees", response_model=list[AdminEmployeeRead])
 async def list_employees(
     business_line: str | None = None,
+    role: Literal["employee", "telecaller"] | None = None,
     current_user: CurrentUser = Depends(require_admin),
     db: AsyncSession = Depends(get_db),
 ) -> list[AdminEmployeeRead]:
-    rows = await list_active_employees(db, business_line)
+    rows = await list_active_employees(
+        db, business_line, StaffRole(role) if role else StaffRole.EMPLOYEE
+    )
     return [
         AdminEmployeeRead(
             id=profile.id,
@@ -279,6 +290,17 @@ async def list_employees(
         )
         for profile, user in rows
     ]
+
+
+@router.get("/leads", response_model=list[AdminLeadRead])
+async def list_leads(
+    limit: int = Query(default=100, ge=1, le=500),
+    offset: int = Query(default=0, ge=0),
+    current_user: CurrentUser = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+) -> list[AdminLeadRead]:
+    leads = await list_unassigned_leads(db, limit, offset)
+    return [AdminLeadRead.model_validate(lead, from_attributes=True) for lead in leads]
 
 
 @router.get("/tasks", response_model=list[AdminTaskRead])
