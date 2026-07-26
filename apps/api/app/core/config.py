@@ -143,6 +143,17 @@ class Settings(BaseSettings):
     # audit_paid_payouts_for_drift.
     PAYOUT_REVERSAL_AUDIT_WINDOW_DAYS: int = 7
 
+    # Web push (VAPID) — browser push delivery for the existing notifications
+    # feed (services/notifications.py::emit_notification). Live-vs-mock is
+    # switched by credential presence alone, exactly like Razorpay above:
+    # empty keys ⇒ push send is a no-op (see services/push.py::_is_live). The
+    # mainline ships these empty so push stays inert until a real VAPID
+    # keypair is provisioned. Unlike voice OTP, there's no separate "turn the
+    # channel on" business flag — the keypair existing IS the channel.
+    VAPID_PUBLIC_KEY: str = ""  # not secret — served to browsers via GET /push/vapid-public-key
+    VAPID_PRIVATE_KEY: str = ""  # secret
+    VAPID_SUBJECT: str = ""  # RFC 8292 aud claim, e.g. "mailto:ops@yourdomain.com"
+
     # Object storage — S3-compatible (minio in dev, DigitalOcean Spaces in
     # prod). Unlike payments/voice-OTP, this has no mock/live toggle: every
     # environment needs a real storage endpoint for the employee document
@@ -238,6 +249,23 @@ class Settings(BaseSettings):
                     "Live Razorpay payments require these settings outside "
                     f"development: {', '.join(missing)}."
                 )
+        return self
+
+    @model_validator(mode="after")
+    def _guard_live_push(self) -> "Settings":
+        # Same partial-credential silent-mock trap as _guard_live_payments:
+        # services.push._is_live() ANDs all three VAPID settings, so setting
+        # only some of them leaves push silently in mock mode in production —
+        # subscribe calls succeed, nothing ever delivers, nothing warns.
+        # Push moves no money, so no second "safety envelope" guard is needed
+        # here the way live payments requires one.
+        vapid_fields = (self.VAPID_PUBLIC_KEY, self.VAPID_PRIVATE_KEY, self.VAPID_SUBJECT)
+        vapid_set = [bool(f) for f in vapid_fields]
+        if self.ENV != "development" and len(set(vapid_set)) > 1:
+            raise ValueError(
+                "VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, and VAPID_SUBJECT must be set "
+                "together (all for live push, or none for mock). Only some are set."
+            )
         return self
 
 
