@@ -131,6 +131,14 @@ class TaskAssignRequest(BaseModel):
     employee_profile_uuid: UUID
 
 
+class AdminEmployeeRead(BaseModel):
+    id: UUID
+    staff_code: str
+    business_line: Literal["loans", "real_estate"]
+    first_name: str
+    last_name: str
+
+
 # ---------------------------------------------------------------------------
 # Loan applications (Loan Lifecycle Progression slice — platform-wide list +
 # override, on top of the same shared progress-update endpoint telecallers use)

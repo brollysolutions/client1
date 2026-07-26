@@ -1,6 +1,44 @@
 {
   "components": {
     "schemas": {
+      "AdminEmployeeRead": {
+        "properties": {
+          "business_line": {
+            "enum": [
+              "loans",
+              "real_estate"
+            ],
+            "title": "Business Line",
+            "type": "string"
+          },
+          "first_name": {
+            "title": "First Name",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "last_name": {
+            "title": "Last Name",
+            "type": "string"
+          },
+          "staff_code": {
+            "title": "Staff Code",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "staff_code",
+          "business_line",
+          "first_name",
+          "last_name"
+        ],
+        "title": "AdminEmployeeRead",
+        "type": "object"
+      },
       "AdminHomeResponse": {
         "properties": {
           "open_loan_applications_count": {
@@ -6758,6 +6796,64 @@
           }
         ],
         "summary": "Reject Agent",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/employees": {
+      "get": {
+        "operationId": "list_employees_api_v1_admin_employees_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "business_line",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Business Line"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/AdminEmployeeRead"
+                  },
+                  "title": "Response List Employees Api V1 Admin Employees Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "List Employees",
         "tags": [
           "admin"
         ]
