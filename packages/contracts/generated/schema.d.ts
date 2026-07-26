@@ -1483,6 +1483,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/public/properties": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Properties Public */
+        get: operations["list_properties_public_api_v1_public_properties_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/push/subscribe": {
         parameters: {
             query?: never;
@@ -3607,6 +3624,46 @@ export interface components {
              * @default true
              */
             ok: boolean;
+        };
+        /** PublicPropertyListResponse */
+        PublicPropertyListResponse: {
+            /** Properties */
+            properties: components["schemas"]["PublicPropertyRead"][];
+        };
+        /**
+         * PublicPropertyRead
+         * @description Anonymous-read shape (docs/specs/public-property-catalog.md).
+         *
+         *     Deliberately NOT PropertyRead: a separate schema means a future sensitive
+         *     column added to the authenticated read can never silently surface here.
+         *     Excludes the dashboard's entire filter-facet vocabulary (price_paise, bhk,
+         *     area_sqft, furnishing, construction_status, amenities, age_years, pincode,
+         *     city, locality) and internal metadata (active, created_at). `rera_number`
+         *     is deliberately included: RERA registration is a statutory disclosure on
+         *     any advertisement of a registered project, and a public listing page is
+         *     one.
+         */
+        PublicPropertyRead: {
+            category: components["schemas"]["PropertyCategory"];
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Image */
+            image: string | null;
+            /** Location */
+            location: string;
+            /** Meta */
+            meta: string | null;
+            /** Price Display */
+            price_display: string;
+            /** Rera Number */
+            rera_number: string;
+            /** Title */
+            title: string;
+            /** Type */
+            type: string;
         };
         /** PushSubscribeRequest */
         PushSubscribeRequest: {
@@ -7521,6 +7578,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_properties_public_api_v1_public_properties_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicPropertyListResponse"];
                 };
             };
         };

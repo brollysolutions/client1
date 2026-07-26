@@ -34,6 +34,7 @@ from app.api.v1.payments import router as payments_router
 from app.api.v1.properties import router as properties_router
 from app.api.v1.property_deals import router as property_deals_router
 from app.api.v1.property_submissions import router as property_submissions_router
+from app.api.v1.public_catalog import router as public_catalog_router
 from app.api.v1.push import router as push_router
 from app.api.v1.referral_bonus import router as referral_bonus_router
 from app.api.v1.site_visits import router as site_visits_router
@@ -90,6 +91,7 @@ app.include_router(leads_router, prefix="/api/v1/leads", tags=["leads"])
 app.include_router(
     agent_applications_router, prefix="/api/v1/agent-applications", tags=["agent-applications"]
 )
+app.include_router(public_catalog_router, prefix="/api/v1/public", tags=["public"])
 app.include_router(loans_router, prefix="/api/v1/loans", tags=["loans"])
 app.include_router(
     support_tickets_router, prefix="/api/v1/support-tickets", tags=["support-tickets"]
