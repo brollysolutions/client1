@@ -6932,6 +6932,10 @@
             "schema": {
               "anyOf": [
                 {
+                  "enum": [
+                    "employee",
+                    "telecaller"
+                  ],
                   "type": "string"
                 },
                 {

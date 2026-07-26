@@ -163,7 +163,8 @@ async def get_admin_home(db: AsyncSession) -> AdminHomeResponse:
         .select_from(Lead)
         .where(
             Lead.assigned_telecaller_profile_uuid.is_(None),
-            Lead.status == LeadStatus.NEW,
+            Lead.business_line.is_not(None),
+            Lead.status.in_((LeadStatus.NEW, LeadStatus.RELEASED)),
         )
     )
     unassigned_tasks_count = await db.scalar(

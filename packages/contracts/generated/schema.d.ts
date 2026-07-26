@@ -4158,7 +4158,7 @@ export interface operations {
         parameters: {
             query?: {
                 business_line?: string | null;
-                role?: string | null;
+                role?: ("employee" | "telecaller") | null;
             };
             header?: never;
             path?: never;

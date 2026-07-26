@@ -6,6 +6,7 @@ gate (see app/services/admin.py module docstring for why RLS alone isn't enough)
 
 from __future__ import annotations
 
+from typing import Literal
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -48,6 +49,7 @@ from app.services.leads import (
     InvalidTelecaller,
     LeadAlreadyAssigned,
     LeadHasNoBusinessLine,
+    LeadNotAssignable,
     LeadNotFound,
     assign_lead_to_telecaller,
     list_unassigned_leads,
@@ -251,6 +253,10 @@ async def assign_lead(
             status.HTTP_422_UNPROCESSABLE_ENTITY,
             "This lead has no business line yet and cannot be assigned.",
         ) from exc
+    except LeadNotAssignable as exc:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT, "This lead is not in an assignable state."
+        ) from exc
     except InvalidTelecaller as exc:
         raise HTTPException(
             status.HTTP_422_UNPROCESSABLE_ENTITY,
@@ -267,7 +273,7 @@ async def assign_lead(
 @router.get("/employees", response_model=list[AdminEmployeeRead])
 async def list_employees(
     business_line: str | None = None,
-    role: str | None = None,
+    role: Literal["employee", "telecaller"] | None = None,
     current_user: CurrentUser = Depends(require_admin),
     db: AsyncSession = Depends(get_db),
 ) -> list[AdminEmployeeRead]:

@@ -328,3 +328,28 @@ async def test_list_employees_default_role_unchanged(client: AsyncClient) -> Non
     ids = [row["id"] for row in res.json()]
     assert employee_uuid in ids
     assert telecaller_uuid not in ids
+
+
+@pytest.mark.asyncio
+async def test_list_employees_role_param_rejects_platform_scoped_roles(
+    client: AsyncClient,
+) -> None:
+    """H2 regression: sub_admin/admin are valid StaffRole values but have a
+    nullable (platform-scoped) business_line — AdminEmployeeRead.business_line is
+    a required Literal["loans", "real_estate"], so constructing it from a
+    sub_admin/admin StaffProfile 500s. The `role` query param is constrained to
+    Literal["employee", "telecaller"] so FastAPI 422s before the route body runs."""
+    _, mobile = await full_registration(client)
+    uid = await _auth_user_uuid(mobile)
+
+    res = await client.get(
+        "/api/v1/admin/employees?role=sub_admin",
+        headers={"Authorization": f"Bearer {_admin_token(uid)}"},
+    )
+    assert res.status_code == 422, res.text
+
+    res = await client.get(
+        "/api/v1/admin/employees?role=admin",
+        headers={"Authorization": f"Bearer {_admin_token(uid)}"},
+    )
+    assert res.status_code == 422, res.text
