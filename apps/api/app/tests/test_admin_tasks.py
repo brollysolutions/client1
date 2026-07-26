@@ -294,3 +294,37 @@ async def test_non_admin_cannot_list_employees(client: AsyncClient) -> None:
         headers={"Authorization": f"Bearer {_sub_admin_token(uid)}"},
     )
     assert res.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_list_employees_role_param_returns_telecallers(client: AsyncClient) -> None:
+    _, mobile = await full_registration(client)
+    uid = await _auth_user_uuid(mobile)
+    telecaller_uuid = await _seed_staff_profile("telecaller", "loans")
+    employee_uuid = await _seed_staff_profile("employee", "loans")
+
+    res = await client.get(
+        "/api/v1/admin/employees?role=telecaller",
+        headers={"Authorization": f"Bearer {_admin_token(uid)}"},
+    )
+    assert res.status_code == 200, res.text
+    ids = [row["id"] for row in res.json()]
+    assert telecaller_uuid in ids
+    assert employee_uuid not in ids
+
+
+@pytest.mark.asyncio
+async def test_list_employees_default_role_unchanged(client: AsyncClient) -> None:
+    _, mobile = await full_registration(client)
+    uid = await _auth_user_uuid(mobile)
+    employee_uuid = await _seed_staff_profile("employee", "loans")
+    telecaller_uuid = await _seed_staff_profile("telecaller", "loans")
+
+    res = await client.get(
+        "/api/v1/admin/employees",
+        headers={"Authorization": f"Bearer {_admin_token(uid)}"},
+    )
+    assert res.status_code == 200, res.text
+    ids = [row["id"] for row in res.json()]
+    assert employee_uuid in ids
+    assert telecaller_uuid not in ids

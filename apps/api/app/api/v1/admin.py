@@ -14,7 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.deps import CurrentUser, require_admin
 from app.db.session import get_db
-from app.models.profile import AgentApplication, SubmissionStatus
+from app.models.profile import AgentApplication, StaffRole, SubmissionStatus
 from app.schemas.admin import (
     AdminEmployeeRead,
     AdminHomeResponse,
@@ -267,10 +267,13 @@ async def assign_lead(
 @router.get("/employees", response_model=list[AdminEmployeeRead])
 async def list_employees(
     business_line: str | None = None,
+    role: str | None = None,
     current_user: CurrentUser = Depends(require_admin),
     db: AsyncSession = Depends(get_db),
 ) -> list[AdminEmployeeRead]:
-    rows = await list_active_employees(db, business_line)
+    rows = await list_active_employees(
+        db, business_line, StaffRole(role) if role else StaffRole.EMPLOYEE
+    )
     return [
         AdminEmployeeRead(
             id=profile.id,
