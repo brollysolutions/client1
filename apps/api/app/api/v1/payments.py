@@ -47,6 +47,7 @@ _ERROR_STATUS = {
     payments_service.RecipientNotFound: status.HTTP_404_NOT_FOUND,
     payments_service.PayoutNotFound: status.HTTP_404_NOT_FOUND,
     payments_service.RecipientInactive: status.HTTP_422_UNPROCESSABLE_ENTITY,
+    payments_service.RecipientLineMismatch: status.HTTP_422_UNPROCESSABLE_ENTITY,
     payments_service.PayoutAmountExceeded: status.HTTP_422_UNPROCESSABLE_ENTITY,
     payments_service.PayoutDailyCapExceeded: status.HTTP_422_UNPROCESSABLE_ENTITY,
     payments_service.PayoutCapNotConfigured: status.HTTP_422_UNPROCESSABLE_ENTITY,
@@ -90,25 +91,35 @@ async def _get_payout_or_404(db: AsyncSession, payout_id: UUID) -> Payout:
 
 
 async def _to_read(db: AsyncSession, payouts: Sequence[Payout]) -> list[PayoutRead]:
-    """Enrich payout rows with display identity in one batch (never per-row)."""
+    """Enrich payout rows with display identity in a small, bounded batch.
+
+    Resolves identities once per distinct business_line present in the batch
+    (at most 3: None/loans/real_estate), never once per row. A single shared
+    uuid->identity map would let the same recipient's displayed code leak
+    across two payouts on different lines within one page, since
+    resolve_identities picks exactly one code per uuid; grouping by line keeps
+    each payout's own business_line driving its own code choice.
+    """
     uuids: set[UUID] = set()
-    prefer_line: dict[UUID, str | None] = {}
     for p in payouts:
-        row_uuids = (
+        for uid in (
             p.recipient_user_uuid,
             p.maker_user_uuid,
             p.checker_user_uuid,
             p.rejected_by_user_uuid,
-        )
-        for uid in row_uuids:
+        ):
             if uid is not None:
                 uuids.add(uid)
-        prefer_line[p.recipient_user_uuid] = p.business_line
 
-    identities = await resolve_identities(db, uuids, prefer_line=prefer_line)
+    lines_present: set[str | None] = {p.business_line for p in payouts}
+    identities_by_line: dict[str | None, dict[UUID, object]] = {}
+    for line in lines_present:
+        prefer_line = {p.recipient_user_uuid: line for p in payouts if p.business_line == line}
+        identities_by_line[line] = await resolve_identities(db, uuids, prefer_line=prefer_line)
 
     reads: list[PayoutRead] = []
     for p in payouts:
+        identities = identities_by_line[p.business_line]
         recipient = identities.get(p.recipient_user_uuid)
         maker = identities.get(p.maker_user_uuid)
         checker = identities.get(p.checker_user_uuid) if p.checker_user_uuid else None

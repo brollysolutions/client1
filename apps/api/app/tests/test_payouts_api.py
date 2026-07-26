@@ -21,7 +21,7 @@ from sqlalchemy import text
 from app.core.config import settings
 from app.core.security import create_access_token
 from app.services import payments as payments_service
-from conftest import full_registration
+from conftest import full_registration, unique_mobile
 
 
 async def _auth_user_id(mobile: str) -> str:
@@ -63,6 +63,39 @@ def _create_body(recipient_uid: str, *, amount_paise: int = 50_000, **overrides)
     }
     body.update(overrides)
     return body
+
+
+async def _seed_agent(business_line: str = "loans") -> str:
+    """Create an auth_user + single-line AgentProfile. Returns the auth_user_uuid.
+
+    Unlike a self-registered client (always dual-line, see
+    docs/specs/dual-line-clients.md), an Agent holds exactly one business_line
+    — the only recipient kind that can actually exercise the create_payout
+    business_line/recipient-profile mismatch guard.
+    """
+    import app.db.session as _session_mod
+    from app.models.profile import AgentProfile, ProfileStatus
+    from app.models.user import User
+
+    async with _session_mod.AsyncSessionLocal() as db:
+        user = User(
+            first_name="Test",
+            last_name="Agent",
+            mobile=unique_mobile(),
+            email=f"ag_{uuid.uuid4().hex[:12]}@example.com",
+            password_hash="x",
+        )
+        db.add(user)
+        await db.flush()
+        profile = AgentProfile(
+            auth_user_uuid=user.id,
+            agent_code=f"AG-{uuid.uuid4().hex[:8]}",
+            business_line=business_line,
+            status=ProfileStatus.ACTIVE,
+        )
+        db.add(profile)
+        await db.commit()
+        return str(user.id)
 
 
 # ---------------------------------------------------------------------------
@@ -812,3 +845,103 @@ async def test_recipient_search_honours_limit(client: AsyncClient) -> None:
         params={"q": "Test", "limit": 1},
     )
     assert len(resp.json()["recipients"]) == 1
+
+
+@pytest.mark.asyncio
+async def test_recipient_search_wildcard_chars_are_literal(client: AsyncClient) -> None:
+    """A literal `%`/`_` in the query must not act as an ILIKE wildcard."""
+    admin_token, _ = await _make_admin(client)
+    _, recipient_mobile = await full_registration(client, lines=["loans"])
+    recipient_uid = await _auth_user_id(recipient_mobile)
+
+    resp = await client.get(
+        "/api/v1/payouts/recipients",
+        headers=_headers(admin_token),
+        params={"q": "Test%_zzz_not_a_real_name"},
+    )
+    assert resp.status_code == 200
+    uuids = [r["auth_user_uuid"] for r in resp.json()["recipients"]]
+    assert recipient_uid not in uuids
+
+
+# ---------------------------------------------------------------------------
+# business_line / recipient-profile mismatch guard
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_create_rejects_business_line_recipient_mismatch(client: AsyncClient) -> None:
+    """A loans-only Agent cannot receive a real_estate-tagged commission payout.
+
+    A self-registered CLIENT is always dual-line (docs/specs/dual-line-clients.md),
+    so only a single-line recipient (Agent/Staff) can exercise this guard.
+    """
+    maker_token, _ = await _make_admin(client)
+    agent_uid = await _seed_agent(business_line="loans")
+
+    resp = await client.post(
+        "/api/v1/payouts",
+        headers=_headers(maker_token),
+        json=_create_body(agent_uid, type="commission", business_line="real_estate"),
+    )
+    assert resp.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_create_accepts_matching_business_line(client: AsyncClient) -> None:
+    maker_token, _ = await _make_admin(client)
+    agent_uid = await _seed_agent(business_line="loans")
+
+    resp = await client.post(
+        "/api/v1/payouts",
+        headers=_headers(maker_token),
+        json=_create_body(agent_uid, type="commission", business_line="loans"),
+    )
+    assert resp.status_code == 201, resp.text
+
+
+@pytest.mark.asyncio
+async def test_list_shows_distinct_recipient_code_per_payout_line(client: AsyncClient) -> None:
+    """Same recipient, two payouts tagged with different lines in one list response:
+    each payout's recipient_code must reflect its OWN business_line, not whichever
+    payout happened to be resolved last (the prefer_line cross-contamination bug)."""
+    maker_token, _ = await _make_admin(client)
+    _, recipient_mobile = await full_registration(client, lines=["loans", "real_estate"])
+    recipient_uid = await _auth_user_id(recipient_mobile)
+
+    import app.db.session as _session_mod
+
+    async with _session_mod.AsyncSessionLocal() as db:
+        rows = (
+            await db.execute(
+                text(
+                    "SELECT business_line, customer_code FROM client_profiles "
+                    "WHERE auth_user_uuid = :i"
+                ),
+                {"i": recipient_uid},
+            )
+        ).fetchall()
+    codes_by_line = {str(r[0]): r[1] for r in rows}
+    assert set(codes_by_line) == {"loans", "real_estate"}
+
+    await client.post(
+        "/api/v1/payouts",
+        headers=_headers(maker_token),
+        json=_create_body(recipient_uid, business_line="loans", idempotency_key=uuid.uuid4().hex),
+    )
+    await client.post(
+        "/api/v1/payouts",
+        headers=_headers(maker_token),
+        json=_create_body(
+            recipient_uid, business_line="real_estate", idempotency_key=uuid.uuid4().hex
+        ),
+    )
+
+    listed = await client.get("/api/v1/payouts", headers=_headers(maker_token))
+    rows_by_line = {
+        p["business_line"]: p
+        for p in listed.json()["payouts"]
+        if p["recipient_user_uuid"] == recipient_uid
+    }
+    assert rows_by_line["loans"]["recipient_code"] == codes_by_line["loans"]
+    assert rows_by_line["real_estate"]["recipient_code"] == codes_by_line["real_estate"]

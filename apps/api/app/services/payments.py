@@ -32,13 +32,14 @@ import uuid
 from datetime import UTC, datetime, timedelta
 
 import httpx
-from sqlalchemy import func, select, text, update
+from sqlalchemy import func, or_, select, text, update
 from sqlalchemy.exc import IntegrityError
 
 from app.core.config import settings
 from app.core.masking import mask_bank_account, mask_vpa
 from app.db.session import AsyncSessionLocal
 from app.models.payout import Payout, PayoutDestination, PayoutStatus, PayoutType
+from app.models.profile import AgentProfile, ClientProfile, StaffProfile
 from app.models.transaction import Transaction, TransactionStatus, TransactionType
 
 logger = logging.getLogger(__name__)
@@ -92,6 +93,10 @@ class RecipientNotFound(PayoutError):
 
 class RecipientInactive(PayoutError):
     """recipient account exists but is not ACTIVE (suspended / de-linked)."""
+
+
+class RecipientLineMismatch(PayoutError):
+    """business_line was given but the recipient holds no profile on that line."""
 
 
 class SelfPayoutForbidden(PayoutError):
@@ -185,6 +190,49 @@ async def create_payout(
             raise RecipientNotFound("Unknown recipient account.")
         if str(recipient_status) in ("suspended", "soft_deleted"):
             raise RecipientInactive("Recipient account is not active.")
+
+        # Guard (d cont.): a specified business_line must match a profile the
+        # recipient actually holds, or the ledger row silently mis-tags itself
+        # for per-line reporting/reconciliation even though RLS visibility (by
+        # user_uuid) is unaffected. A staff profile with no line (line-agnostic
+        # staff) matches any requested line. Every self-registered CLIENT is
+        # dual-line by design (auth_service.register_set_password creates one
+        # ClientProfile per line, always both), so this only ever rejects in
+        # practice for a single-line Agent/Staff recipient (e.g. a commission
+        # payout tagged with the line the agent doesn't hold).
+        if business_line is not None:
+            client_match = (
+                select(ClientProfile.auth_user_uuid)
+                .where(
+                    ClientProfile.auth_user_uuid == recipient_user_uuid,
+                    ClientProfile.business_line == business_line,
+                )
+                .exists()
+            )
+            agent_match = (
+                select(AgentProfile.auth_user_uuid)
+                .where(
+                    AgentProfile.auth_user_uuid == recipient_user_uuid,
+                    AgentProfile.business_line == business_line,
+                )
+                .exists()
+            )
+            staff_match = (
+                select(StaffProfile.auth_user_uuid)
+                .where(
+                    StaffProfile.auth_user_uuid == recipient_user_uuid,
+                    or_(
+                        StaffProfile.business_line == business_line,
+                        StaffProfile.business_line.is_(None),
+                    ),
+                )
+                .exists()
+            )
+            matched = await db.scalar(select(or_(client_match, agent_match, staff_match)))
+            if not matched:
+                raise RecipientLineMismatch(
+                    "Recipient does not hold a profile on the specified business line."
+                )
 
         # Insider-fraud guard: the maker cannot pay themselves. (approve adds the
         # symmetric checker!=recipient guard, so no single admin can self-disburse.)

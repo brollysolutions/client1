@@ -56,7 +56,7 @@ export const EMPTY_PAYOUT_FORM: PayoutFormState = {
   accountName: "",
 };
 
-const AMOUNT_PATTERN = /^\d{1,10}(\.\d{1,2})?$/;
+const AMOUNT_PATTERN = /^(0|[1-9]\d{0,9})(\.\d{1,2})?$/;
 const MAX_AMOUNT_PAISE = 10_000_000_000;
 
 /**
@@ -72,7 +72,19 @@ export function rupeesToPaise(input: string): number | null {
   return paise > 0 && paise <= MAX_AMOUNT_PAISE ? paise : null;
 }
 
+/**
+ * Builds the create payload. Throws if the amount doesn't parse, rather than
+ * silently defaulting to 0 paise — this is a pure, exported function and a
+ * future caller must not be able to skip validatePayoutForm and money-move a
+ * ₹0 payout by accident. The dialog always validates first, so this path is
+ * unreachable there.
+ */
 export function buildPayoutPayload(form: PayoutFormState, idempotencyKey: string): PayoutCreate {
+  const amountPaise = rupeesToPaise(form.amountRupees);
+  if (amountPaise === null) {
+    throw new Error("buildPayoutPayload: amountRupees did not pass validation.");
+  }
+
   const destination =
     form.destinationType === "bank_account"
       ? {
@@ -86,7 +98,7 @@ export function buildPayoutPayload(form: PayoutFormState, idempotencyKey: string
     recipient_user_uuid: form.recipient?.authUserUuid ?? "",
     type: form.type as PayoutType,
     business_line: form.businessLine === "" ? null : form.businessLine,
-    amount_paise: rupeesToPaise(form.amountRupees) ?? 0,
+    amount_paise: amountPaise,
     destination_type: form.destinationType as PayoutDestination,
     destination,
     idempotency_key: idempotencyKey,

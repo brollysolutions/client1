@@ -23,6 +23,23 @@ describe("rupeesToPaise()", () => {
     expect(rupeesToPaise("")).toBeNull();
     expect(rupeesToPaise("100000000.01")).toBeNull();
   });
+
+  it("rejects leading zeros", () => {
+    expect(rupeesToPaise("0007.50")).toBeNull();
+    expect(rupeesToPaise("01")).toBeNull();
+  });
+
+  it("accepts exactly MAX_AMOUNT_PAISE and rejects one paisa over", () => {
+    expect(rupeesToPaise("100000000.00")).toBe(10_000_000_000);
+    expect(rupeesToPaise("100000000.01")).toBeNull();
+  });
+
+  it("would corrupt 19.99 by a paisa without Math.round (regression guard)", () => {
+    // Documents why Math.round is load-bearing: the naive float multiply
+    // undershoots the true integer paise value (1998.9999999999998).
+    expect(Number.parseFloat("19.99") * 100).toBeLessThan(1999);
+    expect(rupeesToPaise("19.99")).toBe(1999);
+  });
 });
 
 function form(overrides: Partial<PayoutFormState>): PayoutFormState {
@@ -68,6 +85,21 @@ describe("buildPayoutPayload()", () => {
       account_number: "1234567890",
       name: "Test User",
     });
+  });
+
+  it("throws rather than silently building a 0-paise payload when the amount is invalid", () => {
+    expect(() =>
+      buildPayoutPayload(
+        form({
+          recipient: { authUserUuid: "u1", name: "Test User", code: null },
+          type: "cashback",
+          amountRupees: "not-a-number",
+          destinationType: "vpa",
+          vpa: "payee@okhdfc",
+        }),
+        "idem-key-11111",
+      ),
+    ).toThrow();
   });
 });
 

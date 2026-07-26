@@ -129,13 +129,17 @@ async def search_recipients(
     would then 422/403 on submit: active only, never the caller themself.
     """
     limit = min(limit, _SEARCH_MAX_ROWS)
-    like = f"%{q}%"
+    # Escape the ILIKE wildcards themselves so a caller-typed `%` or `_` matches
+    # literally instead of silently widening/narrowing the search (backslash
+    # first, so escaping doesn't double-escape itself).
+    escaped = q.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+    like = f"%{escaped}%"
 
     client_exists = (
         select(ClientProfile.auth_user_uuid)
         .where(
             ClientProfile.auth_user_uuid == User.id,
-            ClientProfile.customer_code.ilike(like),
+            ClientProfile.customer_code.ilike(like, escape="\\"),
         )
         .exists()
     )
@@ -143,7 +147,7 @@ async def search_recipients(
         select(AgentProfile.auth_user_uuid)
         .where(
             AgentProfile.auth_user_uuid == User.id,
-            AgentProfile.agent_code.ilike(like),
+            AgentProfile.agent_code.ilike(like, escape="\\"),
         )
         .exists()
     )
@@ -151,15 +155,15 @@ async def search_recipients(
         select(StaffProfile.auth_user_uuid)
         .where(
             StaffProfile.auth_user_uuid == User.id,
-            StaffProfile.staff_code.ilike(like),
+            StaffProfile.staff_code.ilike(like, escape="\\"),
         )
         .exists()
     )
 
     filters = [
-        User.first_name.ilike(like),
-        User.last_name.ilike(like),
-        (User.first_name + " " + User.last_name).ilike(like),
+        User.first_name.ilike(like, escape="\\"),
+        User.last_name.ilike(like, escape="\\"),
+        (User.first_name + " " + User.last_name).ilike(like, escape="\\"),
         client_exists,
         agent_exists,
         staff_exists,
