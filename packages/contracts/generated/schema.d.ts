@@ -106,6 +106,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/leads": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Leads */
+        get: operations["list_leads_api_v1_admin_leads_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/leads/{lead_id}/assign": {
         parameters: {
             query?: never;
@@ -1709,6 +1726,33 @@ export interface components {
             unassigned_leads_count: number;
             /** Unassigned Tasks Count */
             unassigned_tasks_count: number;
+        };
+        /** AdminLeadRead */
+        AdminLeadRead: {
+            /**
+             * Business Line
+             * @enum {string}
+             */
+            business_line: "loans" | "real_estate";
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Mobile */
+            mobile: string;
+            /** Name */
+            name: string | null;
+            /**
+             * Origin
+             * @enum {string}
+             */
+            origin: "direct" | "agent";
         };
         /** AdminLoanApplicationListResponse */
         AdminLoanApplicationListResponse: {
@@ -4114,6 +4158,7 @@ export interface operations {
         parameters: {
             query?: {
                 business_line?: string | null;
+                role?: string | null;
             };
             header?: never;
             path?: never;
@@ -4157,6 +4202,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AdminHomeResponse"];
+                };
+            };
+        };
+    };
+    list_leads_api_v1_admin_leads_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminLeadRead"][];
                 };
             };
         };
