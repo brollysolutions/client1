@@ -329,6 +329,24 @@ async def test_platform_scope_sees_all(client: AsyncClient) -> None:
 
 
 @pytest.mark.asyncio
+async def test_sub_admin_platform_scope_cannot_see_it(client: AsyncClient) -> None:
+    """a0b1c2d3e4f5: the platform_scope bypass is admin-only now."""
+    _, staff_uuid = await _seed_staff_profile("telecaller", "loans")
+    _, application_id = await _seed_client_with_loan_application(
+        "loans", assigned_telecaller_staff_uuid=staff_uuid
+    )
+    txn_id = await _insert_txn_as(
+        application_id=application_id,
+        business_line="loans",
+        role="telecaller",
+        staff_profile_uuid=staff_uuid,
+    )
+
+    rows = await _select_as(role="sub_admin", platform_scope="true")
+    assert txn_id not in [str(r["id"]) for r in rows]
+
+
+@pytest.mark.asyncio
 async def test_update_denied_no_grant(client: AsyncClient) -> None:
     _, staff_uuid = await _seed_staff_profile("telecaller", "loans")
     _, application_id = await _seed_client_with_loan_application(
