@@ -150,12 +150,15 @@ export function AdminHome() {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-3">
-        <div className="rounded-2xl border border-border bg-card p-5">
+        <Link
+          href="/dashboard/admin-leads"
+          className="rounded-2xl border border-border bg-card p-5 transition-colors hover:border-brand-cta"
+        >
           <p className="text-sm text-text-secondary">Unassigned leads</p>
           <p className="mt-1 text-2xl font-semibold text-text-primary">
             {home.unassigned_leads_count}
           </p>
-        </div>
+        </Link>
         <Link
           href="/dashboard/admin-tasks"
           className="rounded-2xl border border-border bg-card p-5 transition-colors hover:border-brand-cta"

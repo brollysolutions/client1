@@ -46,13 +46,13 @@ async def list_unassigned_tasks(db: AsyncSession, status_filter: str | None = No
 
 
 async def list_active_employees(
-    db: AsyncSession, business_line: str | None = None
+    db: AsyncSession, business_line: str | None = None, role: StaffRole = StaffRole.EMPLOYEE
 ) -> list[tuple[StaffProfile, User]]:
     stmt = (
         select(StaffProfile, User)
         .join(User, User.id == StaffProfile.auth_user_uuid)
         .where(
-            StaffProfile.role == StaffRole.EMPLOYEE,
+            StaffProfile.role == role,
             StaffProfile.status == ProfileStatus.ACTIVE,
         )
     )

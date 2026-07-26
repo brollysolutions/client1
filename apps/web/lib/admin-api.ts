@@ -16,6 +16,7 @@ export type AgentApplication = Schemas["AgentApplicationRead"];
 export type AgentApproveResponse = Schemas["AgentApproveResponse"];
 export type AdminTask = Schemas["AdminTaskRead"];
 export type AdminEmployee = Schemas["AdminEmployeeRead"];
+export type AdminLead = Schemas["AdminLeadRead"];
 export type AdminLoanApplication = Schemas["AdminLoanApplicationRead"];
 export type LoanApplicationProgressUpdate = Schemas["LoanApplicationProgressUpdate"];
 export type AdminPropertyDeal = Schemas["AdminPropertyDealRead"];
@@ -71,10 +72,28 @@ export async function assignTask(
   });
 }
 
+export async function listAdminLeads(): Promise<ApiResponse<AdminLead[]>> {
+  return apiRequest<AdminLead[]>("/api/v1/admin/leads");
+}
+
+export async function assignLead(
+  leadId: string,
+  telecallerProfileUuid: string,
+): Promise<ApiResponse<Schemas["LeadAssignResponse"]>> {
+  return apiRequest<Schemas["LeadAssignResponse"]>(`/api/v1/admin/leads/${leadId}/assign`, {
+    method: "POST",
+    body: { telecaller_staff_profile_uuid: telecallerProfileUuid },
+  });
+}
+
 export async function listAdminEmployees(
   businessLine?: string,
+  role?: string,
 ): Promise<ApiResponse<AdminEmployee[]>> {
-  const query = businessLine ? `?business_line=${encodeURIComponent(businessLine)}` : "";
+  const params = new URLSearchParams();
+  if (businessLine) params.set("business_line", businessLine);
+  if (role) params.set("role", role);
+  const query = params.toString() ? `?${params.toString()}` : "";
   return apiRequest<AdminEmployee[]>(`/api/v1/admin/employees${query}`);
 }
 

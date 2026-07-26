@@ -199,3 +199,90 @@ async def test_non_admin_cannot_assign(client: AsyncClient) -> None:
         headers={"Authorization": f"Bearer {_sub_admin_token(uid)}"},
     )
     assert res.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_list_unassigned_leads_returns_assignable_only(client: AsyncClient) -> None:
+    _, mobile = await full_registration(client)
+    uid = await _auth_user_uuid(mobile)
+    assignable_id = await _seed_lead("loans")
+    untriaged_id = await _seed_lead(None)
+    already_assigned_telecaller = await _seed_telecaller_staff_profile("loans")
+    assigned_id = await _seed_lead("loans")
+    headers = {"Authorization": f"Bearer {_admin_token(uid)}"}
+    await client.post(
+        f"/api/v1/admin/leads/{assigned_id}/assign",
+        json={"telecaller_staff_profile_uuid": already_assigned_telecaller},
+        headers=headers,
+    )
+
+    res = await client.get("/api/v1/admin/leads", headers=headers)
+    assert res.status_code == 200, res.text
+    ids = [row["id"] for row in res.json()]
+    assert assignable_id in ids
+    assert untriaged_id not in ids
+    assert assigned_id not in ids
+
+
+@pytest.mark.asyncio
+async def test_converted_orphaned_fk_lead_not_listed_and_not_assignable(
+    client: AsyncClient,
+) -> None:
+    """Orphaned-FK edge case (H1): a lead that was assigned then converted, whose
+    assigned_telecaller_profile_uuid later went NULL (e.g. via the telecaller's
+    staff profile being removed — ondelete="SET NULL"), must NOT resurface as
+    "unassigned" in the queue, and must NOT be assignable — that would rewind a
+    forward-only lifecycle from converted back to assigned."""
+    _, mobile = await full_registration(client)
+    uid = await _auth_user_uuid(mobile)
+    orphaned_converted_id = await _seed_lead("loans", status="converted")
+    telecaller_uuid = await _seed_telecaller_staff_profile("loans")
+    headers = {"Authorization": f"Bearer {_admin_token(uid)}"}
+
+    res = await client.get("/api/v1/admin/leads", headers=headers)
+    assert res.status_code == 200, res.text
+    ids = [row["id"] for row in res.json()]
+    assert orphaned_converted_id not in ids
+
+    assign_res = await client.post(
+        f"/api/v1/admin/leads/{orphaned_converted_id}/assign",
+        json={"telecaller_staff_profile_uuid": telecaller_uuid},
+        headers=headers,
+    )
+    assert assign_res.status_code == 409, assign_res.text
+
+
+@pytest.mark.asyncio
+async def test_non_admin_cannot_list_leads(client: AsyncClient) -> None:
+    _, mobile = await full_registration(client)
+    uid = await _auth_user_uuid(mobile)
+
+    res = await client.get(
+        "/api/v1/admin/leads", headers={"Authorization": f"Bearer {_sub_admin_token(uid)}"}
+    )
+    assert res.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_list_leads_respects_limit(client: AsyncClient) -> None:
+    _, mobile = await full_registration(client)
+    uid = await _auth_user_uuid(mobile)
+    for _ in range(3):
+        await _seed_lead("loans")
+    headers = {"Authorization": f"Bearer {_admin_token(uid)}"}
+
+    res = await client.get("/api/v1/admin/leads?limit=2", headers=headers)
+    assert res.status_code == 200, res.text
+    assert len(res.json()) <= 2
+
+
+@pytest.mark.asyncio
+async def test_list_leads_rejects_limit_over_max(client: AsyncClient) -> None:
+    _, mobile = await full_registration(client)
+    uid = await _auth_user_uuid(mobile)
+
+    res = await client.get(
+        "/api/v1/admin/leads?limit=501",
+        headers={"Authorization": f"Bearer {_admin_token(uid)}"},
+    )
+    assert res.status_code == 422
