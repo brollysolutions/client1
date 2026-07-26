@@ -761,23 +761,7 @@
         "title": "AdminTaskRead",
         "type": "object"
       },
-      "AgentApplicationListResponse": {
-        "properties": {
-          "applications": {
-            "items": {
-              "$ref": "#/components/schemas/AgentApplicationRead"
-            },
-            "title": "Applications",
-            "type": "array"
-          }
-        },
-        "required": [
-          "applications"
-        ],
-        "title": "AgentApplicationListResponse",
-        "type": "object"
-      },
-      "AgentApplicationRead": {
+      "AgentApplicationDetailRead": {
         "properties": {
           "business_line": {
             "enum": [
@@ -791,6 +775,24 @@
             "format": "date-time",
             "title": "Created At",
             "type": "string"
+          },
+          "documents": {
+            "items": {
+              "$ref": "#/components/schemas/AgentApplicationDocument"
+            },
+            "title": "Documents",
+            "type": "array"
+          },
+          "email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
           },
           "first_name": {
             "anyOf": [
@@ -856,12 +858,432 @@
           "first_name",
           "last_name",
           "mobile",
+          "email",
+          "business_line",
+          "rera_code",
+          "status",
+          "created_at",
+          "documents"
+        ],
+        "title": "AgentApplicationDetailRead",
+        "type": "object"
+      },
+      "AgentApplicationDocument": {
+        "properties": {
+          "doc_type": {
+            "enum": [
+              "aadhaar_front",
+              "aadhaar_back",
+              "pan",
+              "photo"
+            ],
+            "title": "Doc Type",
+            "type": "string"
+          },
+          "download_url": {
+            "title": "Download Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "doc_type",
+          "download_url"
+        ],
+        "title": "AgentApplicationDocument",
+        "type": "object"
+      },
+      "AgentApplicationListResponse": {
+        "properties": {
+          "applications": {
+            "items": {
+              "$ref": "#/components/schemas/AgentApplicationRead"
+            },
+            "title": "Applications",
+            "type": "array"
+          }
+        },
+        "required": [
+          "applications"
+        ],
+        "title": "AgentApplicationListResponse",
+        "type": "object"
+      },
+      "AgentApplicationRead": {
+        "properties": {
+          "business_line": {
+            "enum": [
+              "loans",
+              "real_estate"
+            ],
+            "title": "Business Line",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
+          },
+          "first_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "First Name"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "last_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Name"
+          },
+          "mobile": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mobile"
+          },
+          "rera_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rera Code"
+          },
+          "status": {
+            "enum": [
+              "pending",
+              "approved",
+              "rejected"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "first_name",
+          "last_name",
+          "mobile",
+          "email",
           "business_line",
           "rera_code",
           "status",
           "created_at"
         ],
         "title": "AgentApplicationRead",
+        "type": "object"
+      },
+      "AgentApplicationSubmitRequest": {
+        "properties": {
+          "aadhaar_back_key": {
+            "maxLength": 200,
+            "title": "Aadhaar Back Key",
+            "type": "string"
+          },
+          "aadhaar_front_key": {
+            "maxLength": 200,
+            "title": "Aadhaar Front Key",
+            "type": "string"
+          },
+          "application_ticket": {
+            "title": "Application Ticket",
+            "type": "string"
+          },
+          "business_line": {
+            "enum": [
+              "loans",
+              "real_estate"
+            ],
+            "title": "Business Line",
+            "type": "string"
+          },
+          "company": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Company"
+          },
+          "email": {
+            "format": "email",
+            "title": "Email",
+            "type": "string"
+          },
+          "first_name": {
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "First Name",
+            "type": "string"
+          },
+          "last_name": {
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Last Name",
+            "type": "string"
+          },
+          "pan_key": {
+            "maxLength": 200,
+            "title": "Pan Key",
+            "type": "string"
+          },
+          "photo_key": {
+            "maxLength": 200,
+            "title": "Photo Key",
+            "type": "string"
+          },
+          "rera_code": {
+            "anyOf": [
+              {
+                "maxLength": 64,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rera Code"
+          }
+        },
+        "required": [
+          "application_ticket",
+          "first_name",
+          "last_name",
+          "email",
+          "business_line",
+          "aadhaar_front_key",
+          "aadhaar_back_key",
+          "pan_key",
+          "photo_key"
+        ],
+        "title": "AgentApplicationSubmitRequest",
+        "type": "object"
+      },
+      "AgentApplicationSubmitResponse": {
+        "properties": {
+          "ok": {
+            "default": true,
+            "title": "Ok",
+            "type": "boolean"
+          }
+        },
+        "title": "AgentApplicationSubmitResponse",
+        "type": "object"
+      },
+      "AgentApplyOtpInitiateRequest": {
+        "properties": {
+          "company": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Company"
+          },
+          "mobile": {
+            "pattern": "^\\+[1-9]\\d{6,14}$",
+            "title": "Mobile",
+            "type": "string"
+          }
+        },
+        "required": [
+          "mobile"
+        ],
+        "title": "AgentApplyOtpInitiateRequest",
+        "type": "object"
+      },
+      "AgentApplyOtpInitiateResponse": {
+        "properties": {
+          "delivery_channel": {
+            "enum": [
+              "voice",
+              "email",
+              "none"
+            ],
+            "title": "Delivery Channel",
+            "type": "string"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "otp_hint": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Otp Hint"
+          }
+        },
+        "required": [
+          "message",
+          "delivery_channel"
+        ],
+        "title": "AgentApplyOtpInitiateResponse",
+        "type": "object"
+      },
+      "AgentApplyOtpResendRequest": {
+        "properties": {
+          "mobile": {
+            "pattern": "^\\+[1-9]\\d{6,14}$",
+            "title": "Mobile",
+            "type": "string"
+          }
+        },
+        "required": [
+          "mobile"
+        ],
+        "title": "AgentApplyOtpResendRequest",
+        "type": "object"
+      },
+      "AgentApplyOtpVerifyRequest": {
+        "properties": {
+          "mobile": {
+            "pattern": "^\\+[1-9]\\d{6,14}$",
+            "title": "Mobile",
+            "type": "string"
+          },
+          "otp": {
+            "pattern": "^\\d{6}$",
+            "title": "Otp",
+            "type": "string"
+          }
+        },
+        "required": [
+          "mobile",
+          "otp"
+        ],
+        "title": "AgentApplyOtpVerifyRequest",
+        "type": "object"
+      },
+      "AgentApplyTicketResponse": {
+        "properties": {
+          "application_ticket": {
+            "title": "Application Ticket",
+            "type": "string"
+          },
+          "expires_in": {
+            "title": "Expires In",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "application_ticket",
+          "expires_in"
+        ],
+        "title": "AgentApplyTicketResponse",
+        "type": "object"
+      },
+      "AgentApplyUploadPresignRequest": {
+        "properties": {
+          "application_ticket": {
+            "title": "Application Ticket",
+            "type": "string"
+          },
+          "content_type": {
+            "enum": [
+              "image/jpeg",
+              "image/png",
+              "image/webp",
+              "application/pdf"
+            ],
+            "title": "Content Type",
+            "type": "string"
+          },
+          "doc_type": {
+            "enum": [
+              "aadhaar_front",
+              "aadhaar_back",
+              "pan",
+              "photo"
+            ],
+            "title": "Doc Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "application_ticket",
+          "doc_type",
+          "content_type"
+        ],
+        "title": "AgentApplyUploadPresignRequest",
+        "type": "object"
+      },
+      "AgentApplyUploadPresignResponse": {
+        "properties": {
+          "fields": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Fields",
+            "type": "object"
+          },
+          "max_bytes": {
+            "title": "Max Bytes",
+            "type": "integer"
+          },
+          "object_key": {
+            "title": "Object Key",
+            "type": "string"
+          },
+          "upload_url": {
+            "title": "Upload Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "object_key",
+          "upload_url",
+          "fields",
+          "max_bytes"
+        ],
+        "title": "AgentApplyUploadPresignResponse",
         "type": "object"
       },
       "AgentApproveResponse": {
@@ -7127,6 +7549,55 @@
         ]
       }
     },
+    "/api/v1/admin/agents/{application_id}": {
+      "get": {
+        "description": "Detail view, not fields on the list: presign_download URLs are 5-minute\nsigned links, so minting them at list time would leave most of them dead\nbefore an admin finishes scrolling. Fetched on dialog-open instead.",
+        "operationId": "get_agent_application_api_v1_admin_agents__application_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "application_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Application Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentApplicationDetailRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Get Agent Application",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
     "/api/v1/admin/agents/{application_id}/approve": {
       "post": {
         "operationId": "approve_agent_api_v1_admin_agents__application_id__approve_post",
@@ -7966,6 +8437,211 @@
         "summary": "Create Staff User",
         "tags": [
           "admin"
+        ]
+      }
+    },
+    "/api/v1/agent-applications": {
+      "post": {
+        "operationId": "submit_application_api_v1_agent_applications_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgentApplicationSubmitRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentApplicationSubmitResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Submit Application",
+        "tags": [
+          "agent-applications"
+        ]
+      }
+    },
+    "/api/v1/agent-applications/otp/initiate": {
+      "post": {
+        "operationId": "initiate_otp_api_v1_agent_applications_otp_initiate_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgentApplyOtpInitiateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentApplyOtpInitiateResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Initiate Otp",
+        "tags": [
+          "agent-applications"
+        ]
+      }
+    },
+    "/api/v1/agent-applications/otp/resend": {
+      "post": {
+        "operationId": "resend_otp_api_v1_agent_applications_otp_resend_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgentApplyOtpResendRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentApplyOtpInitiateResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Resend Otp",
+        "tags": [
+          "agent-applications"
+        ]
+      }
+    },
+    "/api/v1/agent-applications/otp/verify": {
+      "post": {
+        "operationId": "verify_otp_api_v1_agent_applications_otp_verify_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgentApplyOtpVerifyRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentApplyTicketResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Verify Otp",
+        "tags": [
+          "agent-applications"
+        ]
+      }
+    },
+    "/api/v1/agent-applications/uploads/presign": {
+      "post": {
+        "operationId": "presign_upload_api_v1_agent_applications_uploads_presign_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgentApplyUploadPresignRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentApplyUploadPresignResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Presign Upload",
+        "tags": [
+          "agent-applications"
         ]
       }
     },

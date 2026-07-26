@@ -16,28 +16,38 @@ import {
 import { toast } from "sonner";
 
 import { MobileInput } from "@/components/auth/mobile-input";
+import { OtpForm } from "@/components/auth/otp-form";
 import { IconInput } from "@/components/icon-input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
-import { submitAgentApplication } from "@/lib/agent-application";
+import {
+  initiateAgentApplyOtp,
+  resendAgentApplyOtp,
+  submitAgentApplication,
+  verifyAgentApplyOtp,
+} from "@/lib/agent-application";
 import type { LeadBusinessLine } from "@/lib/leads";
-import { isValidMobile } from "@/lib/phone";
+import { formatMobile, isValidMobile } from "@/lib/phone";
 import { FileField } from "@/components/apply-as-agent/file-field";
 import { FormProgress } from "@/components/apply-as-agent/form-progress";
 
 // Public agent-application form for /apply-as-agent. Collects name, mobile,
 // business_line, the KYC documents (Aadhaar front + back, PAN, photo; address
 // proof was dropped by product decision, and PAN has no back side worth
-// scanning), and rera_code for the real estate line. Email has no column yet,
-// held client-side until that migration lands. This is frontend-complete:
-// files are selected/validated/previewed here but not transmitted, see
-// lib/agent-application.ts for the submit seam. Blue-only, per the
-// public-site palette.
+// scanning), and rera_code for the real estate line. The mobile is OTP-verified
+// before anything is written (POST /api/v1/agent-applications/*): submitting
+// the details step only sends the OTP; the 4 files stay selected in memory
+// until the code is confirmed, at which point the ticket it mints authorizes
+// the uploads and the final submit. Blue-only, per the public-site palette.
 const LINES: { value: LeadBusinessLine; label: string }[] = [
   { value: "loans", label: "Loans" },
   { value: "real_estate", label: "Real Estate" },
 ];
+
+// Same idiom as app/(auth)/register/page.tsx: show the dev OTP hint in every
+// non-production environment, never in prod.
+const OTP_HINT_ALLOWED = process.env.NEXT_PUBLIC_ENV !== "production";
 
 // Same idiom as app/(auth)/register/page.tsx: a 2+ letter TLD so half-typed
 // addresses are rejected; names allow spaces/hyphens/apostrophes, no digits.
@@ -109,6 +119,13 @@ export function AgentApplicationForm({
   const [pan, setPan] = React.useState<File | null>(null);
   const [photo, setPhoto] = React.useState<File | null>(null);
   const [fileErrors, setFileErrors] = React.useState<Partial<Record<FileKey, string>>>({});
+  // Honeypot: hidden from real users, so any non-empty value marks automation.
+  const [company, setCompany] = React.useState("");
+
+  const [step, setStep] = React.useState<"form" | "otp" | "uploading">("form");
+  const [ticket, setTicket] = React.useState<string | null>(null);
+  const [uploaded, setUploaded] = React.useState(0);
+  const [uploadError, setUploadError] = React.useState<string | null>(null);
 
   const [submitting, setSubmitting] = React.useState(false);
   const [done, setDone] = React.useState(false);
@@ -209,8 +226,15 @@ export function AgentApplicationForm({
     setPan(null);
     setPhoto(null);
     setFileErrors({});
+    setCompany("");
+    setStep("form");
+    setTicket(null);
+    setUploaded(0);
+    setUploadError(null);
   }
 
+  // Details step: validate, then send the OTP. Nothing is written yet — the
+  // 4 files stay selected in memory until the code is confirmed.
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
     if (submitting) return;
@@ -220,27 +244,48 @@ export function AgentApplicationForm({
       return;
 
     setSubmitting(true);
-    const result = await submitAgentApplication({
-      firstName: fields.firstName.trim(),
-      lastName: fields.lastName.trim(),
-      mobile: fields.mobile,
-      email: fields.email.trim(),
-      businessLine: line,
-      rera: line === "real_estate" ? fields.rera.trim() : undefined,
-      aadhaarFront,
-      aadhaarBack,
-      pan,
-      photo,
-    });
+    const result = await initiateAgentApplyOtp(fields.mobile, company || undefined);
+    setSubmitting(false);
+    if (result.ok) {
+      setStep("otp");
+      if (result.data.otp_hint && OTP_HINT_ALLOWED) {
+        toast.info("Dev verification code", { description: result.data.otp_hint });
+      }
+    } else {
+      toast.error(result.error || "Couldn't send the verification code. Please try again.");
+    }
+  }
+
+  // OTP step succeeded: the ticket is minted, now upload the 4 documents and
+  // submit. Runs on its own screen (not inside OtpForm) so an upload failure
+  // never reads as "wrong code" — the ticket stays valid for a retry.
+  async function runUploadAndSubmit(applicationTicket: string) {
+    if (!aadhaarFront || !aadhaarBack || !pan || !photo) return;
+    setUploadError(null);
+    setUploaded(0);
+    const result = await submitAgentApplication(
+      {
+        ticket: applicationTicket,
+        firstName: fields.firstName.trim(),
+        lastName: fields.lastName.trim(),
+        email: fields.email.trim(),
+        businessLine: line,
+        rera: line === "real_estate" ? fields.rera.trim() : undefined,
+        aadhaarFront,
+        aadhaarBack,
+        pan,
+        photo,
+        company: company || undefined,
+      },
+      (done) => setUploaded(done),
+    );
 
     if (result.ok) {
       resetForm();
-      setSubmitting(false);
       setDone(true);
       toast.success("Application received. We'll be in touch shortly.");
     } else {
-      setSubmitting(false);
-      toast.error(result.error || "Something went wrong. Please try again.");
+      setUploadError(result.error || "Something went wrong. Please try again.");
     }
   }
 
@@ -269,9 +314,98 @@ export function AgentApplicationForm({
     );
   }
 
+  if (step === "otp") {
+    return (
+      <div className="grid gap-6">
+        <div className="grid gap-2">
+          <h3 className="font-heading text-xl font-semibold text-foreground">
+            Confirm your number
+          </h3>
+          <p className="text-sm text-text-secondary">
+            We sent a code to {formatMobile(fields.mobile)}. Enter it below to
+            verify your application.
+          </p>
+        </div>
+        <OtpForm
+          submitLabel="Verify and submit"
+          onSubmit={async (otp) => {
+            const result = await verifyAgentApplyOtp(fields.mobile, otp);
+            if (result.ok) {
+              setTicket(result.data.application_ticket);
+              setStep("uploading");
+              void runUploadAndSubmit(result.data.application_ticket);
+            }
+            return result;
+          }}
+          onResend={async () => {
+            const result = await resendAgentApplyOtp(fields.mobile);
+            if (result.ok && result.data.otp_hint && OTP_HINT_ALLOWED) {
+              toast.info("Dev verification code", { description: result.data.otp_hint });
+            }
+            return result;
+          }}
+        />
+        <button
+          type="button"
+          onClick={() => setStep("form")}
+          className="cursor-pointer text-center text-sm font-medium text-[var(--nav-primary)] underline-offset-4 hover:underline focus-visible:outline-none focus-visible:underline"
+        >
+          Change number
+        </button>
+      </div>
+    );
+  }
+
+  if (step === "uploading") {
+    return (
+      <div className="flex flex-col items-center gap-4 py-10 text-center">
+        {uploadError ? (
+          <>
+            <p className="max-w-sm text-destructive">{uploadError}</p>
+            <div className="flex gap-3">
+              <Button
+                type="button"
+                onClick={() => ticket && void runUploadAndSubmit(ticket)}
+                className="bg-[var(--nav-primary)] text-white hover:bg-[var(--nav-primary-hover)]"
+              >
+                Try again
+              </Button>
+              <Button type="button" variant="outline" onClick={resetForm}>
+                Start over
+              </Button>
+            </div>
+          </>
+        ) : (
+          <>
+            <Loader2 className="h-8 w-8 animate-spin text-[var(--nav-primary)]" aria-hidden />
+            <p className="text-text-secondary">
+              {uploaded > 0
+                ? `Uploading document ${uploaded} of 4...`
+                : "Submitting your application..."}
+            </p>
+          </>
+        )}
+      </div>
+    );
+  }
+
   return (
     <form onSubmit={handleSubmit} noValidate className="grid gap-8">
       <FormProgress value={progressPercent} />
+
+      {/* Honeypot: off-screen, out of the tab order, invisible to AT. */}
+      <div aria-hidden className="absolute -left-[9999px] top-auto h-px w-px overflow-hidden">
+        <label htmlFor="apply-company">Company</label>
+        <input
+          id="apply-company"
+          name="company"
+          type="text"
+          tabIndex={-1}
+          autoComplete="off"
+          value={company}
+          onChange={(event) => setCompany(event.target.value)}
+        />
+      </div>
 
       {/* Business line */}
       <fieldset className="grid min-w-0 gap-4 border-0 p-0">
@@ -518,7 +652,7 @@ export function AgentApplicationForm({
         className="h-12 bg-[var(--nav-primary)] text-base text-white hover:bg-[var(--nav-primary-hover)] focus-visible:ring-[var(--nav-primary)]"
       >
         {submitting && <Loader2 className="h-4 w-4 animate-spin" aria-hidden />}
-        {submitting ? "Submitting..." : "Submit application"}
+        {submitting ? "Sending code..." : "Continue"}
       </Button>
     </form>
   );

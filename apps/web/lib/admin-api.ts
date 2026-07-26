@@ -13,6 +13,8 @@ type Schemas = components["schemas"];
 export type StaffCreateRequest = Schemas["StaffCreateRequest"];
 export type StaffCreateResponse = Schemas["StaffCreateResponse"];
 export type AgentApplication = Schemas["AgentApplicationRead"];
+export type AgentApplicationDetail = Schemas["AgentApplicationDetailRead"];
+export type AgentApplicationDocument = Schemas["AgentApplicationDocument"];
 export type AgentApproveResponse = Schemas["AgentApproveResponse"];
 export type AdminTask = Schemas["AdminTaskRead"];
 export type AdminEmployee = Schemas["AdminEmployeeRead"];
@@ -38,6 +40,12 @@ export async function listPendingAgentApplications(): Promise<ApiResponse<AgentA
   const res = await apiRequest<Schemas["AgentApplicationListResponse"]>("/api/v1/admin/agents");
   if (!res.ok) return res;
   return { ok: true, status: res.status, data: res.data.applications };
+}
+
+export async function getAgentApplication(
+  id: string,
+): Promise<ApiResponse<AgentApplicationDetail>> {
+  return apiRequest<AgentApplicationDetail>(`/api/v1/admin/agents/${id}`);
 }
 
 export async function approveAgentApplication(

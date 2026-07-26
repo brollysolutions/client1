@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { CheckCircle2, Inbox, Loader2, XCircle } from "lucide-react";
+import { CheckCircle2, Download, FileWarning, Inbox, Loader2, XCircle } from "lucide-react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
@@ -19,13 +19,28 @@ import {
   approveAgentApplication,
   rejectAgentApplication,
   type AgentApplication,
+  type AgentApplicationDocument,
 } from "@/lib/admin-api";
 import { TempCredentialPanel } from "./temp-credential-panel";
+import { useAgentApplicationDetail } from "./use-agent-application-detail";
 import { useAgentQueue } from "./use-agent-queue";
+
+const DOC_LABELS: Record<AgentApplicationDocument["doc_type"], string> = {
+  aadhaar_front: "Aadhaar (front)",
+  aadhaar_back: "Aadhaar (back)",
+  pan: "PAN card",
+  photo: "Photo",
+};
 
 export function AgentQueueView() {
   const { items, loading, error, reload } = useAgentQueue();
   const [active, setActive] = React.useState<AgentApplication | null>(null);
+  const {
+    detail,
+    loading: detailLoading,
+    error: detailError,
+    reload: reloadDetail,
+  } = useAgentApplicationDetail(active?.id ?? null);
   const [rejecting, setRejecting] = React.useState(false);
   const [note, setNote] = React.useState("");
   const [busy, setBusy] = React.useState(false);
@@ -170,7 +185,55 @@ export function AgentQueueView() {
                     <dt className="text-text-secondary">RERA code</dt>
                     <dd className="font-medium text-text-primary">{active.rera_code ?? "—"}</dd>
                   </div>
+                  <div className="col-span-2">
+                    <dt className="text-text-secondary">Email</dt>
+                    <dd className="font-medium text-text-primary">{active.email ?? "—"}</dd>
+                  </div>
                 </dl>
+
+                <div className="space-y-2 border-t border-border pt-4">
+                  <p className="text-sm font-medium text-text-primary">KYC documents</p>
+                  {detailLoading ? (
+                    <div className="flex items-center justify-center py-4">
+                      <Loader2 className="h-5 w-5 animate-spin text-brand-navy" aria-hidden="true" />
+                    </div>
+                  ) : detailError ? (
+                    <div className="flex items-center justify-between gap-3 rounded-lg border border-border bg-muted/40 p-3 text-sm">
+                      <span className="flex items-center gap-2 text-text-secondary">
+                        <FileWarning className="h-4 w-4" aria-hidden="true" />
+                        {detailError}
+                      </span>
+                      <Button variant="outline" size="sm" onClick={() => void reloadDetail()}>
+                        Retry
+                      </Button>
+                    </div>
+                  ) : !detail || detail.documents.length === 0 ? (
+                    <p className="text-sm text-text-secondary">
+                      No documents on this application.
+                    </p>
+                  ) : (
+                    <>
+                      <ul className="grid grid-cols-2 gap-2">
+                        {detail.documents.map((doc) => (
+                          <li key={doc.doc_type}>
+                            <a
+                              href={doc.download_url}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium text-brand-navy transition-colors hover:border-brand-cta hover:text-brand-cta focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cta"
+                            >
+                              <Download className="h-4 w-4 shrink-0" aria-hidden="true" />
+                              <span className="truncate">{DOC_LABELS[doc.doc_type]}</span>
+                            </a>
+                          </li>
+                        ))}
+                      </ul>
+                      <p className="text-xs text-text-secondary">
+                        Links expire in a few minutes.
+                      </p>
+                    </>
+                  )}
+                </div>
 
                 {rejecting ? (
                   <Textarea

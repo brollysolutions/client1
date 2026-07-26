@@ -38,6 +38,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/agents/{application_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Agent Application
+         * @description Detail view, not fields on the list: presign_download URLs are 5-minute
+         *     signed links, so minting them at list time would leave most of them dead
+         *     before an admin finishes scrolling. Fetched on dialog-open instead.
+         */
+        get: operations["get_agent_application_api_v1_admin_agents__application_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/agents/{application_id}/approve": {
         parameters: {
             query?: never;
@@ -287,6 +309,91 @@ export interface paths {
         put?: never;
         /** Create Staff User */
         post: operations["create_staff_user_api_v1_admin_users_create_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/agent-applications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Submit Application */
+        post: operations["submit_application_api_v1_agent_applications_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/agent-applications/otp/initiate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Initiate Otp */
+        post: operations["initiate_otp_api_v1_agent_applications_otp_initiate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/agent-applications/otp/resend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Resend Otp */
+        post: operations["resend_otp_api_v1_agent_applications_otp_resend_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/agent-applications/otp/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Verify Otp */
+        post: operations["verify_otp_api_v1_agent_applications_otp_verify_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/agent-applications/uploads/presign": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Presign Upload */
+        post: operations["presign_upload_api_v1_agent_applications_uploads_presign_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2033,13 +2140,8 @@ export interface components {
              */
             updated_at: string;
         };
-        /** AgentApplicationListResponse */
-        AgentApplicationListResponse: {
-            /** Applications */
-            applications: components["schemas"]["AgentApplicationRead"][];
-        };
-        /** AgentApplicationRead */
-        AgentApplicationRead: {
+        /** AgentApplicationDetailRead */
+        AgentApplicationDetailRead: {
             /**
              * Business Line
              * @enum {string}
@@ -2050,6 +2152,10 @@ export interface components {
              * Format: date-time
              */
             created_at: string;
+            /** Documents */
+            documents: components["schemas"]["AgentApplicationDocument"][];
+            /** Email */
+            email: string | null;
             /** First Name */
             first_name: string | null;
             /**
@@ -2068,6 +2174,159 @@ export interface components {
              * @enum {string}
              */
             status: "pending" | "approved" | "rejected";
+        };
+        /** AgentApplicationDocument */
+        AgentApplicationDocument: {
+            /**
+             * Doc Type
+             * @enum {string}
+             */
+            doc_type: "aadhaar_front" | "aadhaar_back" | "pan" | "photo";
+            /** Download Url */
+            download_url: string;
+        };
+        /** AgentApplicationListResponse */
+        AgentApplicationListResponse: {
+            /** Applications */
+            applications: components["schemas"]["AgentApplicationRead"][];
+        };
+        /** AgentApplicationRead */
+        AgentApplicationRead: {
+            /**
+             * Business Line
+             * @enum {string}
+             */
+            business_line: "loans" | "real_estate";
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Email */
+            email: string | null;
+            /** First Name */
+            first_name: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Last Name */
+            last_name: string | null;
+            /** Mobile */
+            mobile: string | null;
+            /** Rera Code */
+            rera_code: string | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "pending" | "approved" | "rejected";
+        };
+        /** AgentApplicationSubmitRequest */
+        AgentApplicationSubmitRequest: {
+            /** Aadhaar Back Key */
+            aadhaar_back_key: string;
+            /** Aadhaar Front Key */
+            aadhaar_front_key: string;
+            /** Application Ticket */
+            application_ticket: string;
+            /**
+             * Business Line
+             * @enum {string}
+             */
+            business_line: "loans" | "real_estate";
+            /** Company */
+            company?: string | null;
+            /**
+             * Email
+             * Format: email
+             */
+            email: string;
+            /** First Name */
+            first_name: string;
+            /** Last Name */
+            last_name: string;
+            /** Pan Key */
+            pan_key: string;
+            /** Photo Key */
+            photo_key: string;
+            /** Rera Code */
+            rera_code?: string | null;
+        };
+        /** AgentApplicationSubmitResponse */
+        AgentApplicationSubmitResponse: {
+            /**
+             * Ok
+             * @default true
+             */
+            ok: boolean;
+        };
+        /** AgentApplyOtpInitiateRequest */
+        AgentApplyOtpInitiateRequest: {
+            /** Company */
+            company?: string | null;
+            /** Mobile */
+            mobile: string;
+        };
+        /** AgentApplyOtpInitiateResponse */
+        AgentApplyOtpInitiateResponse: {
+            /**
+             * Delivery Channel
+             * @enum {string}
+             */
+            delivery_channel: "voice" | "email" | "none";
+            /** Message */
+            message: string;
+            /** Otp Hint */
+            otp_hint?: string | null;
+        };
+        /** AgentApplyOtpResendRequest */
+        AgentApplyOtpResendRequest: {
+            /** Mobile */
+            mobile: string;
+        };
+        /** AgentApplyOtpVerifyRequest */
+        AgentApplyOtpVerifyRequest: {
+            /** Mobile */
+            mobile: string;
+            /** Otp */
+            otp: string;
+        };
+        /** AgentApplyTicketResponse */
+        AgentApplyTicketResponse: {
+            /** Application Ticket */
+            application_ticket: string;
+            /** Expires In */
+            expires_in: number;
+        };
+        /** AgentApplyUploadPresignRequest */
+        AgentApplyUploadPresignRequest: {
+            /** Application Ticket */
+            application_ticket: string;
+            /**
+             * Content Type
+             * @enum {string}
+             */
+            content_type: "image/jpeg" | "image/png" | "image/webp" | "application/pdf";
+            /**
+             * Doc Type
+             * @enum {string}
+             */
+            doc_type: "aadhaar_front" | "aadhaar_back" | "pan" | "photo";
+        };
+        /** AgentApplyUploadPresignResponse */
+        AgentApplyUploadPresignResponse: {
+            /** Fields */
+            fields: {
+                [key: string]: string;
+            };
+            /** Max Bytes */
+            max_bytes: number;
+            /** Object Key */
+            object_key: string;
+            /** Upload Url */
+            upload_url: string;
         };
         /** AgentApproveResponse */
         AgentApproveResponse: {
@@ -4264,6 +4523,37 @@ export interface operations {
             };
         };
     };
+    get_agent_application_api_v1_admin_agents__application_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                application_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentApplicationDetailRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     approve_agent_api_v1_admin_agents__application_id__approve_post: {
         parameters: {
             query?: never;
@@ -4734,6 +5024,171 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["StaffCreateResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    submit_application_api_v1_agent_applications_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AgentApplicationSubmitRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentApplicationSubmitResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    initiate_otp_api_v1_agent_applications_otp_initiate_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AgentApplyOtpInitiateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentApplyOtpInitiateResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    resend_otp_api_v1_agent_applications_otp_resend_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AgentApplyOtpResendRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentApplyOtpInitiateResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    verify_otp_api_v1_agent_applications_otp_verify_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AgentApplyOtpVerifyRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentApplyTicketResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    presign_upload_api_v1_agent_applications_uploads_presign_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AgentApplyUploadPresignRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentApplyUploadPresignResponse"];
                 };
             };
             /** @description Validation Error */

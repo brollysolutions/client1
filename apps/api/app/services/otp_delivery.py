@@ -118,8 +118,18 @@ async def deliver_otp(
     otp: str,
     *,
     via_email: bool = False,
+    allow_email_fallback: bool = True,
 ) -> DeliveryChannel:
-    """Deliver the OTP. Voice first, email fallback; via_email forces email only."""
+    """Deliver the OTP. Voice first, email fallback; via_email forces email only.
+
+    allow_email_fallback=False (public agent-application intake only): the
+    applicant's email is self-asserted, unverified input. If voice fails or is
+    disabled, falling back to that email would let anyone who knows a victim's
+    mobile number — but cannot answer it — still receive the code by typing
+    their own email address, defeating the entire point of proving control of
+    the mobile. Every other caller (register/forgot, both authenticated-adjacent
+    flows collecting the user's own verified-later email) keeps the default.
+    """
     if via_email:
         if await send_email(email, _OTP_EMAIL_SUBJECT, _otp_email_body(otp)):
             return "email"
@@ -127,6 +137,9 @@ async def deliver_otp(
 
     if await _send_via_voice(mobile, otp):
         return "voice"
+
+    if not allow_email_fallback:
+        return "none"
 
     # Voice failed/disabled — fall back to the same code over email.
     if await send_email(email, _OTP_EMAIL_SUBJECT, _otp_email_body(otp)):
