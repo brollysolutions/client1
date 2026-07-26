@@ -18,6 +18,7 @@ from app.models.profile import AgentApplication, SubmissionStatus
 from app.schemas.admin import (
     AdminEmployeeRead,
     AdminHomeResponse,
+    AdminLeadRead,
     AdminLoanApplicationListResponse,
     AdminLoanApplicationRead,
     AdminPropertyDealListResponse,
@@ -49,6 +50,7 @@ from app.services.leads import (
     LeadHasNoBusinessLine,
     LeadNotFound,
     assign_lead_to_telecaller,
+    list_unassigned_leads,
 )
 from app.services.loan_applications import InvalidStatusTransition as InvalidLoanStatusTransition
 from app.services.loan_applications import (
@@ -279,6 +281,15 @@ async def list_employees(
         )
         for profile, user in rows
     ]
+
+
+@router.get("/leads", response_model=list[AdminLeadRead])
+async def list_leads(
+    current_user: CurrentUser = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+) -> list[AdminLeadRead]:
+    leads = await list_unassigned_leads(db)
+    return [AdminLeadRead.model_validate(lead, from_attributes=True) for lead in leads]
 
 
 @router.get("/tasks", response_model=list[AdminTaskRead])

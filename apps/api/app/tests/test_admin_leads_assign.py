@@ -199,3 +199,37 @@ async def test_non_admin_cannot_assign(client: AsyncClient) -> None:
         headers={"Authorization": f"Bearer {_sub_admin_token(uid)}"},
     )
     assert res.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_list_unassigned_leads_returns_assignable_only(client: AsyncClient) -> None:
+    _, mobile = await full_registration(client)
+    uid = await _auth_user_uuid(mobile)
+    assignable_id = await _seed_lead("loans")
+    untriaged_id = await _seed_lead(None)
+    already_assigned_telecaller = await _seed_telecaller_staff_profile("loans")
+    assigned_id = await _seed_lead("loans")
+    headers = {"Authorization": f"Bearer {_admin_token(uid)}"}
+    await client.post(
+        f"/api/v1/admin/leads/{assigned_id}/assign",
+        json={"telecaller_staff_profile_uuid": already_assigned_telecaller},
+        headers=headers,
+    )
+
+    res = await client.get("/api/v1/admin/leads", headers=headers)
+    assert res.status_code == 200, res.text
+    ids = [row["id"] for row in res.json()]
+    assert assignable_id in ids
+    assert untriaged_id not in ids
+    assert assigned_id not in ids
+
+
+@pytest.mark.asyncio
+async def test_non_admin_cannot_list_leads(client: AsyncClient) -> None:
+    _, mobile = await full_registration(client)
+    uid = await _auth_user_uuid(mobile)
+
+    res = await client.get(
+        "/api/v1/admin/leads", headers={"Authorization": f"Bearer {_sub_admin_token(uid)}"}
+    )
+    assert res.status_code == 403

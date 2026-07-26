@@ -102,6 +102,15 @@ class LeadAssignResponse(BaseModel):
     status: Literal["new", "assigned", "working", "converted", "closed", "released"]
 
 
+class AdminLeadRead(BaseModel):
+    id: UUID
+    name: str | None
+    mobile: str
+    business_line: Literal["loans", "real_estate"]
+    origin: Literal["direct", "agent"]
+    created_at: datetime
+
+
 # ---------------------------------------------------------------------------
 # Field tasks (Telecaller Dashboard slice 2 — unassigned pool, minimal admin
 # endpoints only, no queue UI yet)
