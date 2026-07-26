@@ -19,6 +19,8 @@ export type AdminLoanApplication = Schemas["AdminLoanApplicationRead"];
 export type LoanApplicationProgressUpdate = Schemas["LoanApplicationProgressUpdate"];
 export type AdminPropertyDeal = Schemas["AdminPropertyDealRead"];
 export type PropertyDealProgressUpdate = Schemas["PropertyDealProgressUpdate"];
+export type AdminHome = Schemas["AdminHomeResponse"];
+export type AdminPendingItem = Schemas["AdminPendingItem"];
 
 export async function createStaff(
   payload: StaffCreateRequest,
@@ -108,4 +110,8 @@ export async function updateAdminPropertyDealProgress(
     method: "PATCH",
     body: payload,
   });
+}
+
+export async function getAdminHome(): Promise<ApiResponse<AdminHome>> {
+  return apiRequest<AdminHome>("/api/v1/admin/home");
 }

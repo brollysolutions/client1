@@ -98,7 +98,7 @@ importers:
         specifier: ^15.5.21
         version: 15.5.21(eslint@9.39.4(jiti@2.7.0))(typescript@5.9.3)
       postcss:
-        specifier: ^8.5.23
+        specifier: '>=8.5.10'
         version: 8.5.23
       svgo:
         specifier: ^4.0.1
