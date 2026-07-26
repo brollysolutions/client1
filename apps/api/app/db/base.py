@@ -31,3 +31,4 @@ from app.models.payout import Payout  # noqa
 from app.models.property import Property  # noqa
 from app.models.property_submission import PropertySubmission  # noqa
 from app.models.property_deal import PropertyDeal  # noqa
+from app.models.push_subscription import PushSubscription  # noqa

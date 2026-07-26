@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { FetchError } from "@/features/dashboard/fetch-error";
 import { useMe } from "@/features/dashboard/me-provider";
+import { PushSubscriptionCard } from "@/features/push-notifications/push-subscription-card";
 import { updateProfile, type Me } from "@/lib/auth";
 
 export default function SettingsPage() {
@@ -48,6 +49,8 @@ export default function SettingsPage() {
           }}
         />
       ) : null}
+
+      <PushSubscriptionCard />
     </div>
   );
 }

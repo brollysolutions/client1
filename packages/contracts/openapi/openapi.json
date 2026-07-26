@@ -4360,6 +4360,42 @@
         "title": "PublicLeadResponse",
         "type": "object"
       },
+      "PushSubscribeRequest": {
+        "properties": {
+          "auth": {
+            "title": "Auth",
+            "type": "string"
+          },
+          "endpoint": {
+            "title": "Endpoint",
+            "type": "string"
+          },
+          "p256dh": {
+            "title": "P256Dh",
+            "type": "string"
+          }
+        },
+        "required": [
+          "endpoint",
+          "p256dh",
+          "auth"
+        ],
+        "title": "PushSubscribeRequest",
+        "type": "object"
+      },
+      "PushUnsubscribeRequest": {
+        "properties": {
+          "endpoint": {
+            "title": "Endpoint",
+            "type": "string"
+          }
+        },
+        "required": [
+          "endpoint"
+        ],
+        "title": "PushUnsubscribeRequest",
+        "type": "object"
+      },
       "ReferralBonusConfigCreate": {
         "properties": {
           "active": {
@@ -6615,6 +6651,19 @@
           "type"
         ],
         "title": "ValidationError",
+        "type": "object"
+      },
+      "VapidPublicKeyResponse": {
+        "properties": {
+          "public_key": {
+            "title": "Public Key",
+            "type": "string"
+          }
+        },
+        "required": [
+          "public_key"
+        ],
+        "title": "VapidPublicKeyResponse",
         "type": "object"
       },
       "WebhookAck": {
@@ -10741,6 +10790,105 @@
         "summary": "Reject",
         "tags": [
           "property-submissions"
+        ]
+      }
+    },
+    "/api/v1/push/subscribe": {
+      "post": {
+        "operationId": "subscribe_api_v1_push_subscribe_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PushSubscribeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Subscribe",
+        "tags": [
+          "push"
+        ]
+      }
+    },
+    "/api/v1/push/unsubscribe": {
+      "post": {
+        "operationId": "unsubscribe_api_v1_push_unsubscribe_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PushUnsubscribeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Unsubscribe",
+        "tags": [
+          "push"
+        ]
+      }
+    },
+    "/api/v1/push/vapid-public-key": {
+      "get": {
+        "operationId": "get_vapid_public_key_api_v1_push_vapid_public_key_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VapidPublicKeyResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Vapid Public Key",
+        "tags": [
+          "push"
         ]
       }
     },

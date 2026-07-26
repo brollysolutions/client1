@@ -30,6 +30,13 @@ const nextConfig: NextConfig = {
           { key: "Cache-Control", value: "public, max-age=31536000, immutable" },
         ],
       },
+      {
+        // Opposite of the illustration rule above: a fix to the push/click
+        // handlers must take effect immediately, not get stuck behind a
+        // long-lived cache for weeks.
+        source: "/sw.js",
+        headers: [{ key: "Cache-Control", value: "no-cache" }],
+      },
     ];
   },
 };

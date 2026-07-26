@@ -9,6 +9,12 @@ change: the superuser session can already insert a row owned by any user.
 Best-effort: swallows all errors so a failed notification insert can never
 break the business action that triggered it (a booked site visit must
 succeed even if the "we got your request" notification fails to write).
+
+After the notification row commits, also fans out a browser push for it
+(services.push.send_to_user) on the same bypass session — a no-op in mock
+mode (no VAPID keys configured), and itself best-effort within this same
+try/except so a push failure is exactly as harmless as a notification-write
+failure.
 """
 
 from __future__ import annotations
@@ -18,6 +24,7 @@ from uuid import UUID
 
 from app.db.session import AsyncSessionLocal
 from app.models.notification import Notification, NotificationType
+from app.services import push
 
 logger = logging.getLogger(__name__)
 
@@ -42,6 +49,10 @@ async def emit_notification(
                 )
             )
             await session.commit()
+            if push._is_live():
+                await push.send_to_user(
+                    session, user_uuid=user_uuid, title=title, body=body, href=href
+                )
     except Exception:  # emit is best-effort; never break the triggering action
         logger.warning(
             "notification.emit_failed user_uuid=%s type=%s",
