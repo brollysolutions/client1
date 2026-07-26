@@ -19,6 +19,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.notification import NotificationType
 from app.models.profile import ProfileStatus, StaffProfile, StaffRole
 from app.models.task import Task, TaskStatus
+from app.models.user import User
 from app.services.notifications import emit_notification
 
 
@@ -42,6 +43,23 @@ async def list_unassigned_tasks(db: AsyncSession, status_filter: str | None = No
         stmt = stmt.where(Task.status == TaskStatus(status_filter))
     stmt = stmt.order_by(Task.created_at.desc())
     return list((await db.scalars(stmt)).all())
+
+
+async def list_active_employees(
+    db: AsyncSession, business_line: str | None = None
+) -> list[tuple[StaffProfile, User]]:
+    stmt = (
+        select(StaffProfile, User)
+        .join(User, User.id == StaffProfile.auth_user_uuid)
+        .where(
+            StaffProfile.role == StaffRole.EMPLOYEE,
+            StaffProfile.status == ProfileStatus.ACTIVE,
+        )
+    )
+    if business_line is not None:
+        stmt = stmt.where(StaffProfile.business_line == business_line)
+    stmt = stmt.order_by(User.first_name, User.last_name)
+    return [(profile, user) for profile, user in (await db.execute(stmt)).all()]
 
 
 async def assign_task_to_employee(

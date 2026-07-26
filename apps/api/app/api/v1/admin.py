@@ -16,6 +16,7 @@ from app.core.deps import CurrentUser, require_admin
 from app.db.session import get_db
 from app.models.profile import AgentApplication, SubmissionStatus
 from app.schemas.admin import (
+    AdminEmployeeRead,
     AdminHomeResponse,
     AdminLoanApplicationListResponse,
     AdminLoanApplicationRead,
@@ -80,6 +81,7 @@ from app.services.tasks import (
     TaskNotAssignable,
     TaskNotFound,
     assign_task_to_employee,
+    list_active_employees,
     list_unassigned_tasks,
 )
 
@@ -258,6 +260,25 @@ async def assign_lead(
         business_line=lead.business_line,
         status=lead.status,
     )
+
+
+@router.get("/employees", response_model=list[AdminEmployeeRead])
+async def list_employees(
+    business_line: str | None = None,
+    current_user: CurrentUser = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+) -> list[AdminEmployeeRead]:
+    rows = await list_active_employees(db, business_line)
+    return [
+        AdminEmployeeRead(
+            id=profile.id,
+            staff_code=profile.staff_code,
+            business_line=profile.business_line,
+            first_name=user.first_name,
+            last_name=user.last_name,
+        )
+        for profile, user in rows
+    ]
 
 
 @router.get("/tasks", response_model=list[AdminTaskRead])
