@@ -245,3 +245,20 @@ async def test_sub_admin_still_sees_whole_line(client: AsyncClient) -> None:
         params={"id": lead_id},
     )
     assert rowcount == 1, "sub_admin lost whole-line access to an unassigned lead"
+
+
+@pytest.mark.asyncio
+async def test_sub_admin_platform_scope_cross_line_cannot_write(client: AsyncClient) -> None:
+    """a0b1c2d3e4f5: the platform_scope bypass is admin-only now. Cross-line
+    business_line so the pre-existing line-scoped sub_admin branch (unchanged
+    by this migration) cannot mask a bypass regression — this must be denied
+    for a reason unrelated to line match."""
+    lead_id = await _seed_lead("loans", "new")
+    rowcount = await _run_as(
+        role="sub_admin",
+        business_line="real_estate",
+        platform_scope="true",
+        query="UPDATE leads SET status = 'working' WHERE id = :id",
+        params={"id": lead_id},
+    )
+    assert rowcount == 0, "sub_admin wrote a cross-line lead via the platform_scope bypass"

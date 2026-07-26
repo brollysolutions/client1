@@ -91,6 +91,7 @@ async def _seed_task_with_document(
 
 async def _select_documents_as(
     *,
+    role: str = "employee",
     staff_profile_uuid: str = "",
     platform_scope: str = "false",
     business_line: str = "loans",
@@ -112,7 +113,7 @@ async def _select_documents_as(
                 text(
                     "SELECT "
                     "set_config('app.auth_user_uuid', :uuid, true),"
-                    "set_config('app.role', 'employee', true),"
+                    "set_config('app.role', :role, true),"
                     "set_config('app.business_line', :bl, true),"
                     "set_config('app.client_profile_uuid', '', true),"
                     "set_config('app.agent_profile_uuid', '', true),"
@@ -121,6 +122,7 @@ async def _select_documents_as(
                 ),
                 {
                     "uuid": str(uuid.uuid4()),
+                    "role": role,
                     "bl": business_line,
                     "spu": staff_profile_uuid,
                     "ps": platform_scope,
@@ -186,5 +188,16 @@ async def test_platform_scope_sees_all(client: AsyncClient) -> None:
     employee_uuid = await _seed_staff_profile("employee", "loans")
     document_id = await _seed_task_with_document("loans", raiser_uuid, employee_uuid)
 
-    rows = await _select_documents_as(platform_scope="true")
+    rows = await _select_documents_as(role="admin", platform_scope="true")
     assert document_id in [str(r["id"]) for r in rows]
+
+
+@pytest.mark.asyncio
+async def test_sub_admin_platform_scope_cannot_see_it(client: AsyncClient) -> None:
+    """a0b1c2d3e4f5: the platform_scope bypass is admin-only now."""
+    raiser_uuid = await _seed_staff_profile("telecaller", "loans")
+    employee_uuid = await _seed_staff_profile("employee", "loans")
+    document_id = await _seed_task_with_document("loans", raiser_uuid, employee_uuid)
+
+    rows = await _select_documents_as(role="sub_admin", platform_scope="true")
+    assert document_id not in [str(r["id"]) for r in rows]

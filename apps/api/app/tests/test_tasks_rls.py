@@ -234,6 +234,16 @@ async def test_platform_scope_sees_all(client: AsyncClient) -> None:
 
 
 @pytest.mark.asyncio
+async def test_sub_admin_platform_scope_cannot_see_it(client: AsyncClient) -> None:
+    """a0b1c2d3e4f5: the platform_scope bypass is admin-only now."""
+    _, raiser_uuid = await _seed_staff_profile("telecaller", "loans")
+    task_id = await _seed_task("loans", raiser_uuid)
+
+    rows = await _select_as(role="sub_admin", platform_scope="true")
+    assert task_id not in [str(r["id"]) for r in rows]
+
+
+@pytest.mark.asyncio
 async def test_raiser_can_update_own_raised_task(client: AsyncClient) -> None:
     """Documents the grant surface: UPDATE is broader than this slice's
     endpoints use, but still constrained by own-rows RLS."""

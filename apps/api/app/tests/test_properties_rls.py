@@ -134,6 +134,14 @@ async def test_admin_platform_scope_sees_inactive(client: AsyncClient) -> None:
 
 
 @pytest.mark.asyncio
+async def test_platform_sub_admin_sees_inactive(client: AsyncClient) -> None:
+    """a0b1c2d3e4f5: Sub Admin keeps visibility of inactive listings, matching
+    Admin's existing reach into the catalog."""
+    pid = await _seed_property(active=False)
+    assert uuid.UUID(pid) in await _visible_ids(role="sub_admin", platform_scope="true")
+
+
+@pytest.mark.asyncio
 async def test_property_business_line_immutable(client: AsyncClient) -> None:
     """An already-set business_line cannot be flipped (shared trigger)."""
     import app.db.session as _session_mod

@@ -14,10 +14,28 @@ from datetime import date, timedelta
 
 import pytest
 from httpx import AsyncClient
+from sqlalchemy import text
 
+from app.core.security import create_access_token
 from conftest import full_registration
 
 _TOMORROW = (date.today() + timedelta(days=1)).isoformat()
+
+
+async def _auth_user_uuid(mobile: str) -> str:
+    import app.db.session as _session_mod
+
+    async with _session_mod.AsyncSessionLocal() as db:
+        row = (
+            await db.execute(text("SELECT id FROM auth_users WHERE mobile = :m"), {"m": mobile})
+        ).fetchone()
+        return str(row[0])
+
+
+def _admin_token(uid: str) -> str:
+    return create_access_token(
+        {"sub": uid, "role": "admin", "business_line": "", "platform_scope": "true"}
+    )
 
 
 @pytest.mark.asyncio
@@ -216,3 +234,56 @@ async def test_other_client_cannot_see_or_mark_notification(client: AsyncClient)
         headers={"Authorization": f"Bearer {other_token}"},
     )
     assert mark.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_platform_admin_list_and_count_are_own_only(client: AsyncClient) -> None:
+    """a0b1c2d3e4f5: notifications.py now filters every query by user_uuid, not
+    just RLS — an admin's own feed excludes another user's notification even
+    though the admin's platform_scope bypass can still reach the row via RLS."""
+    owner_token, owner_mobile = await full_registration(client, lines=["real_estate"])
+    await client.post(
+        "/api/v1/support-tickets/tickets",
+        headers={"Authorization": f"Bearer {owner_token}"},
+        json={"category": "general", "subject": "Help", "body": "I need help."},
+    )
+
+    _, admin_mobile = await full_registration(client, lines=["real_estate"])
+    admin_uid = await _auth_user_uuid(admin_mobile)
+    admin_headers = {"Authorization": f"Bearer {_admin_token(admin_uid)}"}
+
+    listed = await client.get("/api/v1/notifications", headers=admin_headers)
+    assert listed.json() == {"notifications": []}
+
+    count = await client.get("/api/v1/notifications/unread-count", headers=admin_headers)
+    assert count.json() == {"count": 0}
+
+
+@pytest.mark.asyncio
+async def test_platform_admin_read_all_does_not_touch_other_users(client: AsyncClient) -> None:
+    """a0b1c2d3e4f5: POST /read-all is owner-scoped for every role, admin
+    included — the reported bug was a platform-scoped caller mass-marking
+    every user's notifications read in one request."""
+    owner_token, owner_mobile = await full_registration(client, lines=["real_estate"])
+    owner_headers = {"Authorization": f"Bearer {owner_token}"}
+    await client.post(
+        "/api/v1/support-tickets/tickets",
+        headers=owner_headers,
+        json={"category": "general", "subject": "Help", "body": "I need help."},
+    )
+    owner_count_before = await client.get(
+        "/api/v1/notifications/unread-count", headers=owner_headers
+    )
+    assert owner_count_before.json() == {"count": 1}
+
+    _, admin_mobile = await full_registration(client, lines=["real_estate"])
+    admin_uid = await _auth_user_uuid(admin_mobile)
+    admin_headers = {"Authorization": f"Bearer {_admin_token(admin_uid)}"}
+
+    resp = await client.post("/api/v1/notifications/read-all", headers=admin_headers)
+    assert resp.status_code == 204
+
+    owner_count_after = await client.get(
+        "/api/v1/notifications/unread-count", headers=owner_headers
+    )
+    assert owner_count_after.json() == {"count": 1}, "admin's read-all touched another user's row"
