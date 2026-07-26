@@ -233,3 +233,28 @@ async def test_non_admin_cannot_list_leads(client: AsyncClient) -> None:
         "/api/v1/admin/leads", headers={"Authorization": f"Bearer {_sub_admin_token(uid)}"}
     )
     assert res.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_list_leads_respects_limit(client: AsyncClient) -> None:
+    _, mobile = await full_registration(client)
+    uid = await _auth_user_uuid(mobile)
+    for _ in range(3):
+        await _seed_lead("loans")
+    headers = {"Authorization": f"Bearer {_admin_token(uid)}"}
+
+    res = await client.get("/api/v1/admin/leads?limit=2", headers=headers)
+    assert res.status_code == 200, res.text
+    assert len(res.json()) <= 2
+
+
+@pytest.mark.asyncio
+async def test_list_leads_rejects_limit_over_max(client: AsyncClient) -> None:
+    _, mobile = await full_registration(client)
+    uid = await _auth_user_uuid(mobile)
+
+    res = await client.get(
+        "/api/v1/admin/leads?limit=501",
+        headers={"Authorization": f"Bearer {_admin_token(uid)}"},
+    )
+    assert res.status_code == 422

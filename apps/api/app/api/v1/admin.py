@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -288,10 +288,12 @@ async def list_employees(
 
 @router.get("/leads", response_model=list[AdminLeadRead])
 async def list_leads(
+    limit: int = Query(default=100, ge=1, le=500),
+    offset: int = Query(default=0, ge=0),
     current_user: CurrentUser = Depends(require_admin),
     db: AsyncSession = Depends(get_db),
 ) -> list[AdminLeadRead]:
-    leads = await list_unassigned_leads(db)
+    leads = await list_unassigned_leads(db, limit, offset)
     return [AdminLeadRead.model_validate(lead, from_attributes=True) for lead in leads]
 
 

@@ -268,7 +268,7 @@ async def assign_lead_to_telecaller(
     return lead
 
 
-async def list_unassigned_leads(db: AsyncSession) -> list[Lead]:
+async def list_unassigned_leads(db: AsyncSession, limit: int = 100, offset: int = 0) -> list[Lead]:
     """Leads eligible for assignment right now: same predicate assign_lead_to_telecaller
     itself validates against (unassigned + triaged), so the queue never lists a lead
     that would then 409/422 on assign."""
@@ -276,5 +276,7 @@ async def list_unassigned_leads(db: AsyncSession) -> list[Lead]:
         select(Lead)
         .where(Lead.assigned_telecaller_profile_uuid.is_(None), Lead.business_line.is_not(None))
         .order_by(Lead.created_at.desc())
+        .limit(limit)
+        .offset(offset)
     )
     return list((await db.scalars(stmt)).all())
