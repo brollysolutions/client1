@@ -118,6 +118,21 @@ async def test_admin_sees_all_payouts(client: AsyncClient) -> None:
 
 
 @pytest.mark.asyncio
+async def test_platform_sub_admin_sees_payouts(client: AsyncClient) -> None:
+    """a0b1c2d3e4f5: Sub Admin is the maker in the payouts maker-checker flow
+    (api/v1/payments.py::_require_platform_admin admits admin+sub_admin for
+    list/create/reject) — this narrow branch keeps that working."""
+    _, recipient_mobile = await full_registration(client, lines=["loans"])
+    _, maker_mobile = await full_registration(client, lines=["loans"])
+    recipient_uid = await _auth_user_uuid(recipient_mobile)
+    maker_uid = await _auth_user_uuid(maker_mobile)
+    payout_id = await _seed_payout(recipient_uid, maker_uid)
+
+    rows = await _select_as(role="sub_admin", platform_scope="true")
+    assert uuid.UUID(payout_id) in [r["id"] for r in rows]
+
+
+@pytest.mark.asyncio
 async def test_recipient_client_sees_no_payout(client: AsyncClient) -> None:
     """The payee must NOT see the payout workflow row — unlike transactions."""
     _, recipient_mobile = await full_registration(client, lines=["loans"])

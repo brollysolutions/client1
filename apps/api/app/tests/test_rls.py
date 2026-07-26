@@ -162,6 +162,7 @@ async def test_admin_platform_scope_sees_all(client: AsyncClient) -> None:
 
     rows = await _raw_select_as_api_user(
         acting_uuid=uuid_a,
+        role="admin",
         platform_scope="true",
         query="SELECT id::text FROM auth_users",
     )
@@ -169,6 +170,32 @@ async def test_admin_platform_scope_sees_all(client: AsyncClient) -> None:
 
     assert uuid_a in visible_ids
     assert uuid_b in visible_ids, "Admin cannot see all users — platform_scope bypass broken"
+
+
+@pytest.mark.asyncio
+async def test_sub_admin_platform_scope_cannot_see_other_users(client: AsyncClient) -> None:
+    """a0b1c2d3e4f5: the platform_scope bypass is admin-only now."""
+    from conftest import unique_mobile
+
+    mobile_a = unique_mobile()
+    mobile_b = unique_mobile()
+
+    _, _ = await full_registration(client, mobile=mobile_a)
+    _, _ = await full_registration(client, mobile=mobile_b)
+
+    uuid_a = await _get_user_id(client, mobile_a)
+    uuid_b = await _get_user_id(client, mobile_b)
+
+    rows = await _raw_select_as_api_user(
+        acting_uuid=uuid_a,
+        role="sub_admin",
+        platform_scope="true",
+        query="SELECT id::text FROM auth_users",
+    )
+    visible_ids = {r["id"] for r in rows}
+
+    assert uuid_a in visible_ids, "sub_admin cannot see their own row"
+    assert uuid_b not in visible_ids, "sub_admin can see another user's row via platform_scope"
 
 
 @pytest.mark.asyncio

@@ -234,6 +234,19 @@ async def test_admin_platform_scope_sees_all_lines(client: AsyncClient) -> None:
 
 
 @pytest.mark.asyncio
+async def test_sub_admin_platform_scope_cross_line_cannot_see_it(client: AsyncClient) -> None:
+    """a0b1c2d3e4f5: the platform_scope bypass is admin-only now. Uses a
+    cross-line business_line so the pre-existing line-scoped sub_admin branch
+    cannot mask a bypass regression."""
+    _, mobile = await full_registration(client, lines=["loans"])
+    cpu = await _client_profile_uuid(mobile)
+    app_id = await _seed_loan_application(cpu)
+
+    rows = await _select_as(role="sub_admin", business_line="real_estate", platform_scope="true")
+    assert uuid.UUID(app_id) not in [r["id"] for r in rows]
+
+
+@pytest.mark.asyncio
 async def test_application_created_via_endpoint_is_still_rls_scoped(client: AsyncClient) -> None:
     """End-to-end sibling of the tests above: a row created through the new
     POST /applications write path (not directly seeded) obeys the exact same

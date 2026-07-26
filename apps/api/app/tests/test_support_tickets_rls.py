@@ -126,3 +126,14 @@ async def test_admin_platform_scope_sees_all(client: AsyncClient) -> None:
 
     rows = await _select_as(role="admin", platform_scope="true")
     assert uuid.UUID(ticket_id) in [r["id"] for r in rows]
+
+
+@pytest.mark.asyncio
+async def test_sub_admin_platform_scope_cannot_see_it(client: AsyncClient) -> None:
+    """a0b1c2d3e4f5: the platform_scope bypass is admin-only now."""
+    _, mobile = await full_registration(client, lines=["loans"])
+    uid = await _auth_user_uuid(mobile)
+    ticket_id = await _seed_ticket(uid)
+
+    rows = await _select_as(role="sub_admin", platform_scope="true")
+    assert uuid.UUID(ticket_id) not in [r["id"] for r in rows]
