@@ -16,6 +16,7 @@ from app.core.deps import CurrentUser, require_admin
 from app.db.session import get_db
 from app.models.profile import AgentApplication, SubmissionStatus
 from app.schemas.admin import (
+    AdminHomeResponse,
     AdminLoanApplicationListResponse,
     AdminLoanApplicationRead,
     AdminPropertyDealListResponse,
@@ -40,6 +41,7 @@ from app.services.admin import (
     create_staff,
     reject_agent_application,
 )
+from app.services.admin_home import get_admin_home
 from app.services.leads import (
     InvalidTelecaller,
     LeadAlreadyAssigned,
@@ -82,6 +84,15 @@ from app.services.tasks import (
 )
 
 router = APIRouter()
+
+
+@router.get("/home", response_model=AdminHomeResponse)
+async def home(
+    current_user: CurrentUser = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+) -> AdminHomeResponse:
+    del current_user  # gate only; every query below is platform-wide, not own-scoped
+    return await get_admin_home(db)
 
 
 def _to_admin_loan_application_read(application) -> AdminLoanApplicationRead:  # noqa: ANN001

@@ -46,7 +46,7 @@ _ORDER = [
     PropertyDealStatus.CLOSED,
 ]
 _ORDER_INDEX = {status: i for i, status in enumerate(_ORDER)}
-_TERMINAL = {PropertyDealStatus.CLOSED, PropertyDealStatus.REJECTED}
+TERMINAL_STATUSES = {PropertyDealStatus.CLOSED, PropertyDealStatus.REJECTED}
 _SIDE_BRANCH = {PropertyDealStatus.ON_HOLD, PropertyDealStatus.REJECTED}
 _BOOKED_INDEX = _ORDER_INDEX[PropertyDealStatus.BOOKED]
 
@@ -103,7 +103,7 @@ def _effective_index(status: PropertyDealStatus) -> int:
 
 
 def validate_transition(current: PropertyDealStatus, target: PropertyDealStatus) -> None:
-    if current in _TERMINAL:
+    if current in TERMINAL_STATUSES:
         raise TerminalDeal
     if target in _SIDE_BRANCH:
         return
@@ -154,7 +154,7 @@ async def apply_progress_update(
     assert locked is not None  # the caller's own accessor just loaded this row
     deal = locked
 
-    if deal.status in _TERMINAL:
+    if deal.status in TERMINAL_STATUSES:
         raise TerminalDeal
 
     client_auth_user_uuid = await db.scalar(
@@ -170,7 +170,7 @@ async def apply_progress_update(
             raise StatusReasonRequired
         deal.status = payload.status
         deal.status_reason = payload.status_reason
-        if payload.status in _TERMINAL:
+        if payload.status in TERMINAL_STATUSES:
             deal.closed_at = datetime.now(UTC)
         status_changed = True
     elif payload.status_reason is not None:

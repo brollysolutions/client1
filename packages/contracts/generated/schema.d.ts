@@ -72,6 +72,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/home": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Home */
+        get: operations["home_api_v1_admin_home_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/leads/{lead_id}/assign": {
         parameters: {
             query?: never;
@@ -1585,6 +1602,27 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** AdminHomeResponse */
+        AdminHomeResponse: {
+            /** Open Loan Applications Count */
+            open_loan_applications_count: number;
+            /** Open Property Deals Count */
+            open_property_deals_count: number;
+            /** Payouts Awaiting Approval Count */
+            payouts_awaiting_approval_count: number;
+            /** Pending Agent Applications Count */
+            pending_agent_applications_count: number;
+            /** Pending Banners Count */
+            pending_banners_count: number;
+            /** Pending Property Submissions Count */
+            pending_property_submissions_count: number;
+            /** Pending Review */
+            pending_review: components["schemas"]["AdminPendingItem"][];
+            /** Unassigned Leads Count */
+            unassigned_leads_count: number;
+            /** Unassigned Tasks Count */
+            unassigned_tasks_count: number;
+        };
         /** AdminLoanApplicationListResponse */
         AdminLoanApplicationListResponse: {
             /** Applications */
@@ -1639,6 +1677,31 @@ export interface components {
             status: "new" | "assigned" | "contacted" | "docs_collected" | "submitted_to_bank" | "sanctioned" | "disbursed" | "closed" | "rejected" | "on_hold";
             /** Status Reason */
             status_reason: string | null;
+        };
+        /**
+         * AdminPendingItem
+         * @description An agent application, banner, or property listing awaiting Admin review.
+         */
+        AdminPendingItem: {
+            /** Business Line */
+            business_line: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "agent_application" | "banner" | "property_submission";
+            /**
+             * Submitted At
+             * Format: date-time
+             */
+            submitted_at: string;
+            /** Title */
+            title: string;
         };
         /** AdminPropertyDealListResponse */
         AdminPropertyDealListResponse: {
@@ -3937,6 +4000,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    home_api_v1_admin_home_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminHomeResponse"];
                 };
             };
         };
