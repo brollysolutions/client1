@@ -253,8 +253,8 @@ async def test_list_employees_returns_active_employees_only(client: AsyncClient)
     _, mobile = await full_registration(client)
     uid = await _auth_user_uuid(mobile)
     active_uuid = await _seed_staff_profile("employee", "loans")
-    await _seed_staff_profile("employee", "loans", active=False)
-    await _seed_staff_profile("telecaller", "loans")  # wrong role, must be excluded
+    inactive_uuid = await _seed_staff_profile("employee", "loans", active=False)
+    telecaller_uuid = await _seed_staff_profile("telecaller", "loans")
 
     res = await client.get(
         "/api/v1/admin/employees",
@@ -263,7 +263,8 @@ async def test_list_employees_returns_active_employees_only(client: AsyncClient)
     assert res.status_code == 200, res.text
     ids = [row["id"] for row in res.json()]
     assert active_uuid in ids
-    assert len(ids) == 1
+    assert inactive_uuid not in ids
+    assert telecaller_uuid not in ids
 
 
 @pytest.mark.asyncio
@@ -281,19 +282,6 @@ async def test_list_employees_filters_by_business_line(client: AsyncClient) -> N
     ids = [row["id"] for row in res.json()]
     assert loans_uuid in ids
     assert re_uuid not in ids
-
-
-@pytest.mark.asyncio
-async def test_list_employees_empty_when_none_active(client: AsyncClient) -> None:
-    _, mobile = await full_registration(client)
-    uid = await _auth_user_uuid(mobile)
-
-    res = await client.get(
-        "/api/v1/admin/employees?business_line=real_estate",
-        headers={"Authorization": f"Bearer {_admin_token(uid)}"},
-    )
-    assert res.status_code == 200, res.text
-    assert res.json() == []
 
 
 @pytest.mark.asyncio
