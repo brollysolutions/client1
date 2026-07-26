@@ -7,6 +7,7 @@ import {
   FilePlus2,
   FolderClosed,
   House,
+  Landmark,
   MessageSquare,
   PhoneCall,
   Scale,
@@ -34,6 +35,12 @@ export type NavItem = {
   // Agent-only surface. Shown alongside Home for role=agent, hidden for
   // every other role (same pattern as telecallerOnly/employeeOnly).
   agentOnly?: boolean;
+  // Admin-only surface. Shown alongside Home for role=admin, hidden for
+  // every other role (same pattern as telecallerOnly/employeeOnly/agentOnly).
+  // Only the two stateful pipelines earn a rail slot; Admin's approval
+  // surfaces (agents, banners, property-review) are reached from the Home
+  // queue, which shows live counts a rail icon cannot.
+  adminOnly?: boolean;
 };
 
 // Slim workspace rail. Near-white chrome, icon-only with tooltips on desktop.
@@ -65,5 +72,19 @@ export const NAV_ITEMS: NavItem[] = [
     icon: Building2,
     agentOnly: true,
     realEstateOnly: true,
+  },
+  {
+    key: "admin-loans",
+    label: "Loan applications",
+    href: "/dashboard/loan-applications",
+    icon: Landmark,
+    adminOnly: true,
+  },
+  {
+    key: "admin-deals",
+    label: "Property deals",
+    href: "/dashboard/property-deals",
+    icon: Building2,
+    adminOnly: true,
   },
 ];
