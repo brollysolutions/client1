@@ -43,6 +43,10 @@ class AgentApplicationAlreadyReviewed(Exception):
     """Raised when approve/reject targets a row that is no longer pending."""
 
 
+class AgentApplicationEmailConflict(Exception):
+    """Raised when the application's email already belongs to another account."""
+
+
 async def create_staff(
     db: AsyncSession, actor_id: UUID, payload: StaffCreateRequest
 ) -> tuple[StaffProfile, str | None]:
@@ -134,20 +138,30 @@ async def approve_agent_application(
         if not application.mobile:
             raise ValueError("Application has no applicant account and no mobile to create one.")
         temp_password = generate_temp_password(application.mobile)
+        # The public intake endpoint (migration c1d2e3f4a5b6) now collects a
+        # real email; use it so the new agent can actually receive
+        # notifications and complete email-verify 2FA. Rows predating that
+        # migration (seed data, legacy) have no email — fall back to the
+        # non-deliverable placeholder rather than block approval on old data.
+        email = application.email or f"agent-{application.id.hex[:12]}@no-reply.invalid"
+        if application.email and await db.scalar(select(User).where(User.email == email)):
+            # Admin-gated endpoint, so revealing "this email is taken" here is
+            # not an enumeration risk the way it would be on a public route.
+            raise AgentApplicationEmailConflict
         user = User(
             first_name=application.first_name or "",
             last_name=application.last_name or "",
             mobile=application.mobile,
-            # Public agent applications don't collect an email; auth_users.email is
-            # UNIQUE NOT NULL, so synthesize a clearly non-deliverable placeholder
-            # keyed on the application id (never a real address to guard against).
-            email=f"agent-{application.id.hex[:12]}@no-reply.invalid",
+            email=email,
             password_hash=await hash_password(temp_password),
             status=UserStatus.PENDING_PASSWORD_RESET,
             phone_verified_at=datetime.now(UTC),
         )
         db.add(user)
-        await db.flush()
+        try:
+            await db.flush()
+        except IntegrityError as exc:  # UNIQUE race between the check above and this insert
+            raise AgentApplicationEmailConflict from exc
 
     profile = AgentProfile(
         auth_user_uuid=user.id,

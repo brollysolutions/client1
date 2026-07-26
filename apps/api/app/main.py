@@ -19,6 +19,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.v1.admin import router as admin_router
 from app.api.v1.agent import router as agent_router
+from app.api.v1.agent_applications import router as agent_applications_router
 from app.api.v1.auth import router as auth_router
 from app.api.v1.banners import router as banners_router
 from app.api.v1.bookmarks import router as bookmarks_router
@@ -86,6 +87,9 @@ app.add_middleware(
 app.include_router(auth_router, prefix="/api/v1/auth", tags=["auth"])
 app.include_router(admin_router, prefix="/api/v1/admin", tags=["admin"])
 app.include_router(leads_router, prefix="/api/v1/leads", tags=["leads"])
+app.include_router(
+    agent_applications_router, prefix="/api/v1/agent-applications", tags=["agent-applications"]
+)
 app.include_router(loans_router, prefix="/api/v1/loans", tags=["loans"])
 app.include_router(
     support_tickets_router, prefix="/api/v1/support-tickets", tags=["support-tickets"]

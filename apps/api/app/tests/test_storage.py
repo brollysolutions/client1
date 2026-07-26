@@ -4,6 +4,12 @@ reachable minio/Spaces endpoint."""
 
 from __future__ import annotations
 
+import base64
+import json
+
+import pytest
+from botocore.exceptions import ClientError
+
 from app.core.config import settings
 from app.services import storage
 
@@ -48,3 +54,62 @@ def test_presign_falls_back_to_internal_endpoint_when_public_unset() -> None:
         assert url.startswith(settings.SPACES_ENDPOINT_URL)
     finally:
         settings.SPACES_PUBLIC_ENDPOINT_URL = original
+
+
+def test_presign_upload_post_signs_size_cap_into_policy() -> None:
+    url, fields = storage.presign_upload_post(
+        "agent-applications/abc/def-photo", "image/jpeg", max_bytes=5 * 1024 * 1024
+    )
+    assert url.startswith("http")
+    assert fields["key"] == "agent-applications/abc/def-photo"
+    assert fields["Content-Type"] == "image/jpeg"
+
+    policy_json = base64.b64decode(fields["policy"])
+    policy = json.loads(policy_json)
+    conditions = policy["conditions"]
+    length_range = next(
+        c for c in conditions if isinstance(c, list) and c[0] == "content-length-range"
+    )
+    assert length_range == ["content-length-range", 1, 5 * 1024 * 1024]
+
+
+def test_presign_upload_post_uses_public_endpoint_when_set() -> None:
+    original = settings.SPACES_PUBLIC_ENDPOINT_URL
+    settings.SPACES_PUBLIC_ENDPOINT_URL = "http://localhost:9000"
+    try:
+        url, _fields = storage.presign_upload_post(
+            "agent-applications/abc/def-photo", "image/jpeg", max_bytes=1024
+        )
+        assert url.startswith("http://localhost:9000/")
+    finally:
+        settings.SPACES_PUBLIC_ENDPOINT_URL = original
+
+
+class _FakeS3Client:
+    def __init__(self, error_code: str | None, size: int = 1024) -> None:
+        self._error_code = error_code
+        self._size = size
+
+    def head_object(self, Bucket: str, Key: str) -> dict:  # noqa: N803 — boto3 param casing
+        if self._error_code is not None:
+            raise ClientError({"Error": {"Code": self._error_code, "Message": "x"}}, "HeadObject")
+        return {"ContentLength": self._size}
+
+
+def test_head_object_returns_none_for_missing_key(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(storage, "_client", lambda _endpoint: _FakeS3Client("404"))
+    assert storage.head_object("agent-applications/abc/def-photo") is None
+
+
+def test_head_object_returns_size_for_existing_key(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(storage, "_client", lambda _endpoint: _FakeS3Client(None, size=2048))
+    assert storage.head_object("agent-applications/abc/def-photo") == 2048
+
+
+def test_head_object_reraises_on_transport_failure(monkeypatch: pytest.MonkeyPatch) -> None:
+    # A non-404 ClientError (e.g. connection/auth failure surfaced as 500) must
+    # propagate, not be swallowed into None — submit() depends on this to fail
+    # closed with a 502 rather than silently accepting an unverified upload.
+    monkeypatch.setattr(storage, "_client", lambda _endpoint: _FakeS3Client("500"))
+    with pytest.raises(ClientError):
+        storage.head_object("agent-applications/abc/def-photo")

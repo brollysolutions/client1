@@ -30,6 +30,27 @@ LEAD_RATE_MOBILE = "lead_rate_mobile:{mobile}"
 JWT_BLACKLIST = "jwt_blacklist:{jti}"
 REG_DATA = "reg_data:{mobile}"
 
+# Public agent-application intake (POST /api/v1/agent-applications). OTP_AGENT_APPLY
+# shares the otp:* purpose-key family (see services/otp.py::_otp_key) and the
+# existing otp_rate/otp_rate_ip daily+per-IP OTP budgets — deliberately: one
+# attacker budget across register/reset/agent_apply. AGENT_APPLY_RATE_IP is a
+# separate per-IP cap on the *submit* call (distinct from the OTP-initiate
+# caps above). AGENT_APPLY_PRESIGN is a per-ticket (per-jti) quota on the
+# upload-presign call, capping retries at 4 documents x up to 3 attempts each.
+# AGENT_APPLY_OTP_DAILY is an ADDITIONAL purpose-scoped daily cap on top of the
+# shared otp_rate/{mobile} budget: this route is the first unauthenticated
+# endpoint reachable with only a target mobile number, so without its own cap
+# an attacker could burn a victim's entire shared daily OTP budget through
+# this route alone (security review finding, 2026-07-26).
+# Owner: services/agent_applications.py. Invalidation: OTP_AGENT_APPLY is
+# burned by verify_otp on success; AGENT_APPLY_PRESIGN expires with the
+# ticket's own TTL; AGENT_APPLY_RATE_IP and AGENT_APPLY_OTP_DAILY are plain
+# rolling windows.
+OTP_AGENT_APPLY = "otp:agent_apply:{mobile}"
+AGENT_APPLY_RATE_IP = "agent_apply_rate_ip:{ip}"
+AGENT_APPLY_OTP_DAILY = "agent_apply_otp_daily:{mobile}"
+AGENT_APPLY_PRESIGN = "agent_apply_presign:{jti}"
+
 # TTLs in seconds
 TTL_OTP = 5 * 60  # 5 min
 TTL_OTP_RESEND = 60 * 60  # 1 hour window + lock duration
@@ -38,6 +59,9 @@ TTL_OTP_RATE_IP = 60 * 60  # 1 h rolling per-IP window
 TTL_LOGIN_LOCK = 15 * 60  # 15 min lockout
 TTL_LOGIN_RATE_IP = 60 * 60  # 1 h rolling per-IP failed-login window
 TTL_LEAD_RATE = 60 * 60  # 1 h rolling window, both lead-form caps
+TTL_AGENT_APPLY_RATE = 60 * 60  # 1 h rolling window, submit per-IP cap
+TTL_AGENT_APPLY_PRESIGN = 15 * 60  # matches the ticket's own 15 min exp
+TTL_AGENT_APPLY_OTP_DAILY = 24 * 60 * 60  # 24 h daily cap, purpose-scoped
 
 
 # ---------------------------------------------------------------------------
@@ -152,3 +176,19 @@ def jwt_blacklist_key(jti: str) -> str:
 
 def reg_data_key(mobile: str) -> str:
     return REG_DATA.format(mobile=mobile)
+
+
+def otp_agent_apply_key(mobile: str) -> str:
+    return OTP_AGENT_APPLY.format(mobile=mobile)
+
+
+def agent_apply_rate_ip_key(ip: str) -> str:
+    return AGENT_APPLY_RATE_IP.format(ip=ip)
+
+
+def agent_apply_presign_key(jti: str) -> str:
+    return AGENT_APPLY_PRESIGN.format(jti=jti)
+
+
+def agent_apply_otp_daily_key(mobile: str) -> str:
+    return AGENT_APPLY_OTP_DAILY.format(mobile=mobile)

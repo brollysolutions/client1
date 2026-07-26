@@ -26,6 +26,8 @@ from app.schemas.admin import (
     AdminPropertyDealListResponse,
     AdminPropertyDealRead,
     AdminTaskRead,
+    AgentApplicationDetailRead,
+    AgentApplicationDocument,
     AgentApplicationListResponse,
     AgentApplicationRead,
     AgentApproveResponse,
@@ -40,8 +42,10 @@ from app.schemas.admin import (
 )
 from app.schemas.loans import LoanApplicationProgressUpdate
 from app.schemas.property_deals import PropertyDealProgressUpdate
+from app.services import storage
 from app.services.admin import (
     AgentApplicationAlreadyReviewed,
+    AgentApplicationEmailConflict,
     StaffAlreadyExists,
     approve_agent_application,
     create_staff,
@@ -188,6 +192,38 @@ async def list_pending_agent_applications(
     )
 
 
+@router.get("/agents/{application_id}", response_model=AgentApplicationDetailRead)
+async def get_agent_application(
+    application_id: UUID,
+    current_user: CurrentUser = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+) -> AgentApplicationDetailRead:
+    """Detail view, not fields on the list: presign_download URLs are 5-minute
+    signed links, so minting them at list time would leave most of them dead
+    before an admin finishes scrolling. Fetched on dialog-open instead."""
+    application = await db.scalar(
+        select(AgentApplication).where(AgentApplication.id == application_id)
+    )
+    if application is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Application not found.")
+
+    doc_refs: list[tuple[str, str | None]] = [
+        ("aadhaar_front", application.aadhaar_ref),
+        ("aadhaar_back", application.aadhaar_back_ref),
+        ("pan", application.pan_ref),
+        ("photo", application.photo_ref),
+    ]
+    documents = [
+        AgentApplicationDocument(doc_type=doc_type, download_url=storage.presign_download(ref))
+        for doc_type, ref in doc_refs
+        if ref is not None
+    ]
+    return AgentApplicationDetailRead(
+        **AgentApplicationRead.model_validate(application, from_attributes=True).model_dump(),
+        documents=documents,
+    )
+
+
 @router.post("/agents/{application_id}/approve", response_model=AgentApproveResponse)
 async def approve_agent(
     application_id: UUID,
@@ -202,6 +238,14 @@ async def approve_agent(
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="This application has already been reviewed.",
+        ) from exc
+    except AgentApplicationEmailConflict as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=(
+                "This email already belongs to another account. Ask the applicant "
+                "to apply again with a different email."
+            ),
         ) from exc
     if result is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Application not found.")

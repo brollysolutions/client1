@@ -26,6 +26,7 @@ import logging
 import boto3
 from botocore.client import BaseClient
 from botocore.client import Config as BotoConfig
+from botocore.exceptions import ClientError
 
 from app.core.config import settings
 
@@ -70,6 +71,62 @@ def presign_upload(object_key: str, content_type: str) -> str:
     )
 
 
+def presign_upload_post(
+    object_key: str,
+    content_type: str,
+    *,
+    max_bytes: int,
+    expires_in: int = _PRESIGN_EXPIRE_SECONDS,
+) -> tuple[str, dict[str, str]]:
+    """Browser multipart-POST presign with a SIGNED size cap.
+
+    Unlike presign_upload's PUT (which signs only bucket/key/content-type and
+    has no size bound at all — fine for authenticated staff uploads, not fine
+    for an anonymous public endpoint), the POST policy document is part of the
+    signature: storage itself rejects an oversize or wrong-typed body, so
+    nothing about the cap depends on the browser behaving. Used exclusively by
+    the public agent-application KYC upload path.
+
+    Returns (url, fields). The caller POSTs both back to `url` as multipart
+    form fields alongside the file; the file part must be appended LAST — S3/
+    MinIO ignore any field that comes after it.
+    """
+    resp = _client(_public_endpoint()).generate_presigned_post(
+        Bucket=settings.SPACES_BUCKET,
+        Key=object_key,
+        Fields={"Content-Type": content_type, "success_action_status": "201"},
+        Conditions=[
+            {"Content-Type": content_type},
+            {"success_action_status": "201"},
+            ["content-length-range", 1, max_bytes],
+        ],
+        ExpiresIn=expires_in,
+    )
+    return resp["url"], resp["fields"]
+
+
+def head_object(object_key: str) -> int | None:
+    """Object size in bytes, or None if it does not exist.
+
+    Runs server-side against SPACES_ENDPOINT_URL (container network) — never
+    reaches the browser. Distinguishes "doesn't exist" (safe to reject the
+    submission) from a transport failure (re-raised, so the caller fails
+    closed with a 502 instead of silently accepting an unverified upload).
+    _client already bounds this to a 3s timeout with no retries, so a dead
+    storage endpoint cannot hang the request.
+    """
+    try:
+        resp = _client(settings.SPACES_ENDPOINT_URL).head_object(
+            Bucket=settings.SPACES_BUCKET, Key=object_key
+        )
+    except ClientError as exc:
+        code = exc.response.get("Error", {}).get("Code")
+        if code in ("404", "NoSuchKey"):
+            return None
+        raise
+    return int(resp["ContentLength"])
+
+
 def presign_download(object_key: str) -> str:
     return _client(_public_endpoint()).generate_presigned_url(
         "get_object",
@@ -83,6 +140,24 @@ def presign_download(object_key: str) -> str:
         },
         ExpiresIn=_PRESIGN_EXPIRE_SECONDS,
     )
+
+
+def list_objects(prefix: str) -> list[dict]:
+    """List every object under `prefix` as [{"key", "last_modified"}, ...].
+
+    Server-side only (SPACES_ENDPOINT_URL, container network) — never reaches
+    the browser. Paginated so a large prefix doesn't silently truncate.
+    Unlike delete_object, this is NOT best-effort: the orphan-purge job that
+    calls this needs to know if the sweep actually ran, so a transport
+    failure propagates rather than being swallowed into an empty list.
+    """
+    client = _client(settings.SPACES_ENDPOINT_URL)
+    paginator = client.get_paginator("list_objects_v2")
+    results: list[dict] = []
+    for page in paginator.paginate(Bucket=settings.SPACES_BUCKET, Prefix=prefix):
+        for obj in page.get("Contents", []):
+            results.append({"key": obj["Key"], "last_modified": obj["LastModified"]})
+    return results
 
 
 def delete_object(object_key: str) -> None:

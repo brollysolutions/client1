@@ -141,6 +141,36 @@ async def test_lead_activity_business_line_cannot_change(client: AsyncClient) ->
 
 
 @pytest.mark.asyncio
+async def test_agent_application_business_line_cannot_change(client: AsyncClient) -> None:
+    """agent_applications carries the same trigger (e5f6a7b8c9d0). The public
+    submit upsert (services/agent_applications.py::submit) relies on this: it
+    keys its ON CONFLICT on (mobile, business_line) and never puts
+    business_line in the SET clause, precisely because a direct UPDATE to a
+    different line would raise here."""
+    import app.db.session as _session_mod
+    from app.models.profile import AgentApplication, SubmissionStatus
+
+    async with _session_mod.AsyncSessionLocal() as db:
+        application = AgentApplication(
+            mobile=unique_mobile(),
+            business_line="loans",
+            status=SubmissionStatus.PENDING,
+        )
+        db.add(application)
+        await db.commit()
+        app_id = application.id
+
+    async with _session_mod.AsyncSessionLocal() as db:
+        with pytest.raises(Exception) as exc:  # noqa: B017 — plpgsql check_violation
+            await db.execute(
+                text("UPDATE agent_applications SET business_line = 'real_estate' WHERE id = :id"),
+                {"id": app_id},
+            )
+            await db.commit()
+    assert "immutable" in str(exc.value).lower()
+
+
+@pytest.mark.asyncio
 async def test_perf_indexes_exist(client: AsyncClient) -> None:
     import app.db.session as _session_mod
 
