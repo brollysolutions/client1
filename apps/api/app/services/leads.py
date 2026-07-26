@@ -21,6 +21,7 @@ Design notes:
 from __future__ import annotations
 
 import logging
+from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID
 
@@ -60,6 +61,19 @@ class LeadNotAssignable(Exception):
     removed) while status stayed assigned/working/converted/closed must NOT be
     re-assignable via this path — that would silently rewind a forward-only
     lifecycle back to 'assigned'."""
+
+
+class LeadNotReleasable(Exception):
+    """Raised when the lead isn't in a releasable status (assigned/working).
+
+    Deliberately does NOT require assigned_telecaller_profile_uuid to be set —
+    unlike LeadNotAssignable's guard (which stops a forward-only lifecycle from
+    rewinding through an orphaned FK), an assigned/working lead whose FK already
+    went NULL (ondelete="SET NULL", the telecaller's staff profile was removed)
+    is exactly the case release_lead_from_telecaller exists to repair: releasing
+    it (no target) flips it to RELEASED and re-surfaces it in
+    list_unassigned_leads for a normal assign.
+    """
 
 
 class InvalidTelecaller(Exception):
@@ -279,6 +293,87 @@ async def assign_lead_to_telecaller(
     return lead
 
 
+async def release_lead_from_telecaller(
+    db: AsyncSession,
+    lead_id: UUID,
+    *,
+    telecaller_staff_profile_uuid: UUID | None,
+    release_reason: str | None,
+) -> tuple[Lead, UUID | None]:
+    """Release an assigned/working lead, optionally reassigning it to a new
+    telecaller in the SAME transaction (no intermediate unassigned window).
+    Admin-only (core.deps.require_admin).
+
+    Validation order mirrors assign_lead_to_telecaller: lock row, validate lead
+    state (LeadNotReleasable), validate the target telecaller only if one was
+    given (InvalidTelecaller — same exists/role/status/business_line checks),
+    mutate, commit, refresh, then best-effort notify. Runs on the admin's own
+    request session for the same reason assign_lead_to_telecaller does (JWT
+    platform_scope bypasses leads_rls, no superuser session needed).
+
+    Returns (lead, previous_telecaller_staff_profile_uuid) — the previous id is
+    captured before mutation since a reassign overwrites
+    assigned_telecaller_profile_uuid with the new target.
+    """
+    lead = await db.get(Lead, lead_id, with_for_update=True)
+    if lead is None:
+        raise LeadNotFound
+    if lead.status not in (LeadStatus.ASSIGNED, LeadStatus.WORKING):
+        raise LeadNotReleasable
+
+    previous_telecaller_uuid = lead.assigned_telecaller_profile_uuid
+    previous_telecaller = (
+        await db.get(StaffProfile, previous_telecaller_uuid)
+        if previous_telecaller_uuid is not None
+        else None
+    )
+
+    new_telecaller = None
+    if telecaller_staff_profile_uuid is not None:
+        new_telecaller = await db.get(StaffProfile, telecaller_staff_profile_uuid)
+        if (
+            new_telecaller is None
+            or new_telecaller.role != StaffRole.TELECALLER
+            or new_telecaller.status != ProfileStatus.ACTIVE
+            or new_telecaller.business_line != lead.business_line
+        ):
+            raise InvalidTelecaller
+
+    lead.released_at = datetime.now(UTC)
+    lead.release_reason = release_reason
+    if new_telecaller is not None:
+        lead.assigned_telecaller_profile_uuid = new_telecaller.id
+        lead.status = LeadStatus.ASSIGNED
+    else:
+        lead.assigned_telecaller_profile_uuid = None
+        lead.status = LeadStatus.RELEASED
+
+    await db.commit()
+    await db.refresh(lead)
+
+    if previous_telecaller is not None:
+        await emit_notification(
+            user_uuid=previous_telecaller.auth_user_uuid,
+            notification_type=NotificationType.LEAD_RELEASED,
+            title="Lead reassigned" if new_telecaller is not None else "Lead released",
+            body=(
+                f"A {lead.business_line} lead has been reassigned to another telecaller."
+                if new_telecaller is not None
+                else f"A {lead.business_line} lead has been released back to the queue."
+            ),
+            href="/dashboard/leads",
+        )
+    if new_telecaller is not None:
+        await emit_notification(
+            user_uuid=new_telecaller.auth_user_uuid,
+            notification_type=NotificationType.LEAD_ASSIGNED,
+            title="New lead assigned",
+            body=f"A {lead.business_line} lead has been assigned to you.",
+            href="/dashboard/leads",
+        )
+    return lead, previous_telecaller_uuid
+
+
 async def list_unassigned_leads(db: AsyncSession, limit: int = 100, offset: int = 0) -> list[Lead]:
     """Leads eligible for assignment right now: same predicate assign_lead_to_telecaller
     itself validates against (unassigned + triaged + status new/released), so the
@@ -299,3 +394,25 @@ async def list_unassigned_leads(db: AsyncSession, limit: int = 100, offset: int 
         .offset(offset)
     )
     return list((await db.scalars(stmt)).all())
+
+
+async def list_assigned_leads(
+    db: AsyncSession, limit: int = 100, offset: int = 0
+) -> list[tuple[Lead, StaffProfile | None, User | None]]:
+    """Leads currently ASSIGNED/WORKING, joined to their telecaller. Uses an
+    OUTER join (not inner) so a lead whose assigned_telecaller_profile_uuid went
+    NULL via ondelete="SET NULL" while status stayed assigned/working (the
+    orphaned-FK edge case LeadNotAssignable/LeadNotReleasable guard against)
+    still surfaces here with staff/user None — giving admin the one place to
+    find and repair it via release_lead_from_telecaller (no target)."""
+    stmt = (
+        select(Lead, StaffProfile, User)
+        .outerjoin(StaffProfile, StaffProfile.id == Lead.assigned_telecaller_profile_uuid)
+        .outerjoin(User, User.id == StaffProfile.auth_user_uuid)
+        .where(Lead.status.in_((LeadStatus.ASSIGNED, LeadStatus.WORKING)))
+        .order_by(Lead.updated_at.desc())
+        .limit(limit)
+        .offset(offset)
+    )
+    result = await db.execute(stmt)
+    return [(lead, staff, user) for lead, staff, user in result.all()]
