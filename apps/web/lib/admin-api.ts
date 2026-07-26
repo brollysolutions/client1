@@ -15,6 +15,7 @@ export type StaffCreateResponse = Schemas["StaffCreateResponse"];
 export type AgentApplication = Schemas["AgentApplicationRead"];
 export type AgentApproveResponse = Schemas["AgentApproveResponse"];
 export type AdminTask = Schemas["AdminTaskRead"];
+export type AdminEmployee = Schemas["AdminEmployeeRead"];
 export type AdminLoanApplication = Schemas["AdminLoanApplicationRead"];
 export type LoanApplicationProgressUpdate = Schemas["LoanApplicationProgressUpdate"];
 export type AdminPropertyDeal = Schemas["AdminPropertyDealRead"];
@@ -68,6 +69,13 @@ export async function assignTask(
     method: "POST",
     body: { employee_profile_uuid: employeeProfileUuid },
   });
+}
+
+export async function listAdminEmployees(
+  businessLine?: string,
+): Promise<ApiResponse<AdminEmployee[]>> {
+  const query = businessLine ? `?business_line=${encodeURIComponent(businessLine)}` : "";
+  return apiRequest<AdminEmployee[]>(`/api/v1/admin/employees${query}`);
 }
 
 export async function listAdminLoans(
