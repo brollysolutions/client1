@@ -41,7 +41,7 @@ _ORDER = [
     LoanStatus.CLOSED,
 ]
 _ORDER_INDEX = {status: i for i, status in enumerate(_ORDER)}
-_TERMINAL = {LoanStatus.CLOSED, LoanStatus.REJECTED}
+TERMINAL_STATUSES = {LoanStatus.CLOSED, LoanStatus.REJECTED}
 _SIDE_BRANCH = {LoanStatus.ON_HOLD, LoanStatus.REJECTED}
 _SUBMITTED_INDEX = _ORDER_INDEX[LoanStatus.SUBMITTED_TO_BANK]
 _SANCTIONED_INDEX = _ORDER_INDEX[LoanStatus.SANCTIONED]
@@ -87,7 +87,7 @@ def _effective_index(status: LoanStatus) -> int:
 
 
 def validate_transition(current: LoanStatus, target: LoanStatus) -> None:
-    if current in _TERMINAL:
+    if current in TERMINAL_STATUSES:
         raise TerminalApplication
     if target in _SIDE_BRANCH:
         return
@@ -112,7 +112,7 @@ async def apply_progress_update(
     assert locked is not None  # the caller's own accessor just loaded this row
     application = locked
 
-    if application.status in _TERMINAL:
+    if application.status in TERMINAL_STATUSES:
         raise TerminalApplication
 
     status_changed = False
@@ -124,7 +124,7 @@ async def apply_progress_update(
             raise StatusReasonRequired
         application.status = payload.status
         application.status_reason = payload.status_reason
-        if payload.status in _TERMINAL:
+        if payload.status in TERMINAL_STATUSES:
             application.closed_at = datetime.now(UTC)
         status_changed = True
     elif payload.status_reason is not None:

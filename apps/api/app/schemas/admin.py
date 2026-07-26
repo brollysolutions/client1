@@ -207,3 +207,40 @@ class AdminPropertyDealRead(BaseModel):
 
 class AdminPropertyDealListResponse(BaseModel):
     deals: list[AdminPropertyDealRead]
+
+
+# ---------------------------------------------------------------------------
+# Composed home (Admin Dashboard slice 1) — aggregates the cross-domain
+# approval queue plus pipeline/queue counts into one payload, following the
+# SubAdminHomeResponse convention. Not a shared schema with sub_admin's
+# PendingApprovalItem: the two field shapes match today by coincidence, but
+# sharing one OpenAPI component across two role contracts would let a Sub
+# Admin rename silently break the Admin client.
+# ---------------------------------------------------------------------------
+
+
+class AdminPendingItem(BaseModel):
+    """An agent application, banner, or property listing awaiting Admin review."""
+
+    id: UUID
+    kind: Literal["agent_application", "banner", "property_submission"]
+    title: str
+    business_line: str
+    submitted_at: datetime
+
+
+class AdminHomeResponse(BaseModel):
+    # Merged, newest-first, capped at _PENDING_QUEUE_LIMIT. The three counts
+    # below are UNCAPPED so the UI can render "showing N of total".
+    pending_review: list[AdminPendingItem]
+
+    pending_agent_applications_count: int
+    pending_banners_count: int
+    pending_property_submissions_count: int
+
+    open_loan_applications_count: int
+    open_property_deals_count: int
+
+    unassigned_leads_count: int
+    unassigned_tasks_count: int
+    payouts_awaiting_approval_count: int
