@@ -21,6 +21,7 @@ from app.cache.redis_keys import (
     login_fail_key,
     login_lock_key,
     login_rate_ip_key,
+    otp_agent_apply_key,
     otp_email_verify_key,
     otp_lock_key,
     otp_rate_ip_key,
@@ -49,6 +50,8 @@ def _otp_key(mobile: str, purpose: str) -> str:
         return otp_reset_key(mobile)
     if purpose == "email_verify":
         return otp_email_verify_key(mobile)
+    if purpose == "agent_apply":
+        return otp_agent_apply_key(mobile)
     raise ValueError(f"Unknown OTP purpose: {purpose}")
 
 
@@ -119,7 +122,7 @@ async def verify_otp(cache: RedisCache, mobile: str, purpose: str, code: str) ->
 
 async def resend_otp(cache: RedisCache, mobile: str, purpose: str) -> str:
     """Resend OTP. Max 3 resends per window, then 1-hour lock (Auth Design §8)."""
-    otp_key = otp_register_key(mobile) if purpose == "register" else otp_reset_key(mobile)
+    otp_key = _otp_key(mobile, purpose)
     if not await cache.exists(otp_key):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,

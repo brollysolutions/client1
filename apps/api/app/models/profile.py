@@ -124,6 +124,15 @@ class StaffProfile(Base):
 
 
 class AgentApplication(Base):
+    """Public agent-application intake row.
+
+    aadhaar_ref is the FRONT side; aadhaar_back_ref (migration c1d2e3f4a5b6)
+    is the back. address_proof_ref is legacy and unwritten — product dropped
+    that document (2026-07-12) but the column is kept per expand/contract
+    discipline. email is nullable: rows created before c1d2e3f4a5b6 (incl.
+    scripts/seed_agent_applications.py) have none.
+    """
+
     __tablename__ = "agent_applications"
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
@@ -133,8 +142,10 @@ class AgentApplication(Base):
     first_name: Mapped[str | None] = mapped_column(String, nullable=True)
     last_name: Mapped[str | None] = mapped_column(String, nullable=True)
     mobile: Mapped[str | None] = mapped_column(String, nullable=True)
+    email: Mapped[str | None] = mapped_column(String, nullable=True)
     business_line: Mapped[str] = mapped_column(business_line_enum, nullable=False)
     aadhaar_ref: Mapped[str | None] = mapped_column(String, nullable=True)
+    aadhaar_back_ref: Mapped[str | None] = mapped_column(String, nullable=True)
     pan_ref: Mapped[str | None] = mapped_column(String, nullable=True)
     photo_ref: Mapped[str | None] = mapped_column(String, nullable=True)
     address_proof_ref: Mapped[str | None] = mapped_column(String, nullable=True)

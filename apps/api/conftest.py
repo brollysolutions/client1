@@ -68,6 +68,7 @@ def _patch_db_null_pool() -> None:
             "prepared_statement_name_func": lambda: f"__asyncpg_{uuid.uuid4()}__",
         },
     )
+    import app.services.agent_applications as _agent_applications_mod
     import app.services.banners as _banners_mod
     import app.services.leads as _leads_mod
     import app.services.notifications as _notifications_mod
@@ -98,6 +99,8 @@ def _patch_db_null_pool() -> None:
     _banners_mod.AsyncSessionLocal = null_pool_sessionmaker
     original_push = _push_mod.AsyncSessionLocal
     _push_mod.AsyncSessionLocal = null_pool_sessionmaker
+    original_agent_applications = _agent_applications_mod.AsyncSessionLocal
+    _agent_applications_mod.AsyncSessionLocal = null_pool_sessionmaker
     yield
     _session_mod.AsyncSessionLocal = original
     _leads_mod.AsyncSessionLocal = original_leads
@@ -106,6 +109,7 @@ def _patch_db_null_pool() -> None:
     _psub_mod.AsyncSessionLocal = original_psub
     _banners_mod.AsyncSessionLocal = original_banners
     _push_mod.AsyncSessionLocal = original_push
+    _agent_applications_mod.AsyncSessionLocal = original_agent_applications
 
 
 # ---------------------------------------------------------------------------

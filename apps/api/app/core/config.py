@@ -63,6 +63,26 @@ class Settings(BaseSettings):
     LEAD_RATE_LIMIT_PER_IP: int = 10
     LEAD_RATE_LIMIT_PER_MOBILE: int = 5
 
+    # Public agent-application intake (POST /api/v1/agent-applications) abuse
+    # caps. Per-IP submit cap is a separate hourly window from the shared
+    # otp_rate/otp_rate_ip OTP budget (register/reset share that one). Presign
+    # quota is per-ticket (4 documents x up to 3 retries each).
+    AGENT_APPLY_RATE_LIMIT_PER_IP: int = 20
+    AGENT_APPLY_PRESIGN_LIMIT_PER_TICKET: int = 12
+    # Purpose-scoped daily cap, independent of the shared otp_rate/{mobile} 5-per-
+    # day budget (register/reset/agent_apply all draw from that one). Without
+    # this, this endpoint is unauthenticated and needs only a target mobile
+    # number — an attacker who knows a victim's number could burn their whole
+    # shared daily OTP budget through this route alone, locking them out of
+    # register/forgot for the day. Security review finding, 2026-07-26.
+    AGENT_APPLY_OTP_DAILY_LIMIT: int = 3
+
+    # Max KYC upload size for agent-application intake, signed into the
+    # presigned-POST policy (storage rejects oversize bodies itself — never
+    # trust the browser's own check). Mirrors DEFAULT_MAX_BYTES in
+    # apps/web/components/apply-as-agent/file-field.tsx; keep both in sync.
+    AGENT_APPLICATION_MAX_UPLOAD_BYTES: int = 5 * 1024 * 1024
+
     # Return the plaintext OTP in the API response (otp_hint) when delivery is
     # mocked, so local/dev flows are testable without a real voice/email channel.
     # SECURITY: fail-closed. Must be explicitly turned on; never enable in any

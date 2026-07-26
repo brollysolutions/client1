@@ -64,6 +64,7 @@ class AgentApplicationRead(BaseModel):
     first_name: str | None
     last_name: str | None
     mobile: str | None
+    email: str | None  # additive: rows predating migration c1d2e3f4a5b6 have none
     business_line: Literal["loans", "real_estate"]
     rera_code: str | None
     status: Literal["pending", "approved", "rejected"]
@@ -74,6 +75,20 @@ class AgentApplicationListResponse(BaseModel):
     applications: list[AgentApplicationRead]
 
 
+AgentDocumentTypeLiteral = Literal["aadhaar_front", "aadhaar_back", "pan", "photo"]
+
+
+class AgentApplicationDocument(BaseModel):
+    doc_type: AgentDocumentTypeLiteral
+    # 5-minute presigned GET, minted fresh per request — never persisted, so a
+    # stale copy of this response can't leak a working download link later.
+    download_url: str
+
+
+class AgentApplicationDetailRead(AgentApplicationRead):
+    documents: list[AgentApplicationDocument]
+
+
 class AgentApproveResponse(BaseModel):
     agent_code: str
     business_line: Literal["loans", "real_estate"]
@@ -81,8 +96,9 @@ class AgentApproveResponse(BaseModel):
 
 
 class AgentRejectRequest(BaseModel):
-    # Accepted for reviewer context but NOT persisted this slice — agent_applications
-    # has no review_note column; adding one needs a migration (see plan risks).
+    # Accepted for reviewer context but NOT persisted — agent_applications has
+    # no review_note column. Migration c1d2e3f4a5b6 (agent-application intake)
+    # deliberately left this out of scope; adding one needs a further migration.
     note: Annotated[str, Field(min_length=1, max_length=1000)]
 
 
