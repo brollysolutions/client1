@@ -156,12 +156,15 @@ export function AdminHome() {
             {home.unassigned_leads_count}
           </p>
         </div>
-        <div className="rounded-2xl border border-border bg-card p-5">
+        <Link
+          href="/dashboard/admin-tasks"
+          className="rounded-2xl border border-border bg-card p-5 transition-colors hover:border-brand-cta"
+        >
           <p className="text-sm text-text-secondary">Unassigned tasks</p>
           <p className="mt-1 text-2xl font-semibold text-text-primary">
             {home.unassigned_tasks_count}
           </p>
-        </div>
+        </Link>
         <div className="rounded-2xl border border-border bg-card p-5">
           <p className="text-sm text-text-secondary">Payouts awaiting approval</p>
           <p className="mt-1 text-2xl font-semibold text-text-primary">
