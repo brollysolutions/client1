@@ -15,6 +15,7 @@ import hashlib
 import hmac
 import json
 import logging
+from collections.abc import Sequence
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
@@ -29,10 +30,13 @@ from app.schemas.payments import (
     PayoutCreate,
     PayoutListResponse,
     PayoutRead,
+    PayoutRecipientListResponse,
+    PayoutRecipientRead,
     PayoutReject,
     WebhookAck,
 )
 from app.services import payments as payments_service
+from app.services.payout_recipients import resolve_identities, search_recipients
 
 logger = logging.getLogger(__name__)
 
@@ -68,12 +72,12 @@ def _require_platform_admin(current_user: CurrentUser) -> None:
         )
 
 
-def _require_admin(current_user: CurrentUser) -> None:
-    """Approving a value-moving payout is restricted to full Admin (checker)."""
+def _require_admin(current_user: CurrentUser, action: str = "Approving a payout") -> None:
+    """Full-Admin-only actions (checker approve, recipient lookup)."""
     if current_user.role != "admin" or current_user.platform_scope != "true":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Approving a payout is restricted to platform admins.",
+            detail=f"{action} is restricted to platform admins.",
         )
 
 
@@ -83,6 +87,40 @@ async def _get_payout_or_404(db: AsyncSession, payout_id: UUID) -> Payout:
         # RLS already scopes to platform admins; a miss reads as "not found".
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Payout not found.")
     return payout
+
+
+async def _to_read(db: AsyncSession, payouts: Sequence[Payout]) -> list[PayoutRead]:
+    """Enrich payout rows with display identity in one batch (never per-row)."""
+    uuids: set[UUID] = set()
+    prefer_line: dict[UUID, str | None] = {}
+    for p in payouts:
+        row_uuids = (
+            p.recipient_user_uuid,
+            p.maker_user_uuid,
+            p.checker_user_uuid,
+            p.rejected_by_user_uuid,
+        )
+        for uid in row_uuids:
+            if uid is not None:
+                uuids.add(uid)
+        prefer_line[p.recipient_user_uuid] = p.business_line
+
+    identities = await resolve_identities(db, uuids, prefer_line=prefer_line)
+
+    reads: list[PayoutRead] = []
+    for p in payouts:
+        recipient = identities.get(p.recipient_user_uuid)
+        maker = identities.get(p.maker_user_uuid)
+        checker = identities.get(p.checker_user_uuid) if p.checker_user_uuid else None
+        rejected_by = identities.get(p.rejected_by_user_uuid) if p.rejected_by_user_uuid else None
+        read = PayoutRead.model_validate(p, from_attributes=True)
+        read.recipient_name = recipient.name if recipient else None
+        read.recipient_code = recipient.code if recipient else None
+        read.maker_name = maker.name if maker else None
+        read.checker_name = checker.name if checker else None
+        read.rejected_by_name = rejected_by.name if rejected_by else None
+        reads.append(read)
+    return reads
 
 
 @router.post("", response_model=PayoutRead, status_code=status.HTTP_201_CREATED)
@@ -107,7 +145,7 @@ async def create_payout(
         raise _map_error(exc) from None
 
     payout = await _get_payout_or_404(db, payout_id)
-    return PayoutRead.model_validate(payout, from_attributes=True)
+    return (await _to_read(db, [payout]))[0]
 
 
 @router.post("/{payout_id}/approve", response_model=PayoutRead)
@@ -125,7 +163,7 @@ async def approve_payout(
         raise _map_error(exc) from None
 
     payout = await _get_payout_or_404(db, payout_id)
-    return PayoutRead.model_validate(payout, from_attributes=True)
+    return (await _to_read(db, [payout]))[0]
 
 
 @router.post("/{payout_id}/reject", response_model=PayoutRead)
@@ -146,7 +184,36 @@ async def reject_payout(
         raise _map_error(exc) from None
 
     payout = await _get_payout_or_404(db, payout_id)
-    return PayoutRead.model_validate(payout, from_attributes=True)
+    return (await _to_read(db, [payout]))[0]
+
+
+@router.get("/recipients", response_model=PayoutRecipientListResponse)
+async def list_payout_recipients(
+    q: str = Query(min_length=2, max_length=64),
+    limit: int = Query(default=20, ge=1, le=50),
+    current_user: CurrentUser = Depends(get_active_user),
+    db: AsyncSession = Depends(get_db),
+) -> PayoutRecipientListResponse:
+    """Recipient picker search for the payout create form.
+
+    Admin-only (not _require_platform_admin): a Sub Admin passing the looser
+    guard would hit auth_users_rls and get an always-empty 200, the worst
+    possible failure mode for a search box. An honest 403 says what is true.
+    """
+    _require_admin(current_user, action="Recipient lookup")
+    hits = await search_recipients(db, q=q, limit=limit, exclude_user_uuid=current_user.id)
+    return PayoutRecipientListResponse(
+        recipients=[
+            PayoutRecipientRead(
+                auth_user_uuid=h.auth_user_uuid,
+                name=h.name,
+                codes=h.codes,
+                kind=h.kind,
+                mobile_last4=h.mobile_last4,
+            )
+            for h in hits
+        ]
+    )
 
 
 @router.get("", response_model=PayoutListResponse)
@@ -163,9 +230,7 @@ async def list_payouts(
         stmt = stmt.where(Payout.status == status_filter)
     result = await db.execute(stmt)
     payouts = result.scalars().all()
-    return PayoutListResponse(
-        payouts=[PayoutRead.model_validate(p, from_attributes=True) for p in payouts]
-    )
+    return PayoutListResponse(payouts=await _to_read(db, payouts))
 
 
 @router.post("/webhook/razorpay", response_model=WebhookAck)

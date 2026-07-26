@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 
-import { formatCompactINR, formatINR, formatNumber, formatPaiseCompact, formatPercent } from "@/lib/format";
+import {
+  formatCompactINR,
+  formatINR,
+  formatNumber,
+  formatPaise,
+  formatPaiseCompact,
+  formatPercent,
+} from "@/lib/format";
 
 describe("formatINR()", () => {
   it("uses en-IN grouping and the rupee symbol", () => {
@@ -21,6 +28,19 @@ describe("formatNumber() / formatPercent()", () => {
   it("formats plain numbers and percentages", () => {
     expect(formatNumber(240)).toBe("240");
     expect(formatPercent(8.5)).toBe("8.50%");
+  });
+});
+
+describe("formatPaise()", () => {
+  it("renders exact rupees without rounding to L/Cr", () => {
+    expect(formatPaise(0)).toBe("₹0");
+    expect(formatPaise(1)).toBe("₹0.01");
+    expect(formatPaise(12345)).toBe("₹123.45");
+    expect(formatPaise(100_000)).toBe("₹1,000");
+    expect(formatPaise(100_000_000)).toBe("₹10,00,000");
+  });
+  it("renders a clawback (negative amount_paise) with a leading minus", () => {
+    expect(formatPaise(-50_000)).toBe("-₹500");
   });
 });
 

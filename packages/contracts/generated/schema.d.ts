@@ -1124,6 +1124,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/payouts/recipients": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Payout Recipients
+         * @description Recipient picker search for the payout create form.
+         *
+         *     Admin-only (not _require_platform_admin): a Sub Admin passing the looser
+         *     guard would hit auth_users_rls and get an always-empty 200, the worst
+         *     possible failure mode for a search box. An honest 403 says what is true.
+         */
+        get: operations["list_payout_recipients_api_v1_payouts_recipients_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/payouts/webhook/razorpay": {
         parameters: {
             query?: never;
@@ -2946,6 +2970,8 @@ export interface components {
             amount_paise: number;
             /** Business Line */
             business_line: string | null;
+            /** Checker Name */
+            checker_name?: string | null;
             /** Checker User Uuid */
             checker_user_uuid: string | null;
             /**
@@ -2969,11 +2995,17 @@ export interface components {
              * Format: uuid
              */
             id: string;
+            /** Maker Name */
+            maker_name?: string | null;
             /**
              * Maker User Uuid
              * Format: uuid
              */
             maker_user_uuid: string;
+            /** Recipient Code */
+            recipient_code?: string | null;
+            /** Recipient Name */
+            recipient_name?: string | null;
             /**
              * Recipient User Uuid
              * Format: uuid
@@ -2981,6 +3013,8 @@ export interface components {
             recipient_user_uuid: string;
             /** Reject Reason */
             reject_reason: string | null;
+            /** Rejected By Name */
+            rejected_by_name?: string | null;
             /** Rejected By User Uuid */
             rejected_by_user_uuid: string | null;
             /** Reversal Transaction Id */
@@ -2992,6 +3026,35 @@ export interface components {
              * Format: date-time
              */
             updated_at: string;
+        };
+        /** PayoutRecipientListResponse */
+        PayoutRecipientListResponse: {
+            /** Recipients */
+            recipients: components["schemas"]["PayoutRecipientRead"][];
+        };
+        /**
+         * PayoutRecipientRead
+         * @description One recipient-search hit. mobile_last4 (not full mobile) is the standard
+         *     bank/UPI confirmation affordance for disambiguating a name collision without
+         *     putting a full mobile number into a broad admin payload.
+         */
+        PayoutRecipientRead: {
+            /**
+             * Auth User Uuid
+             * Format: uuid
+             */
+            auth_user_uuid: string;
+            /** Codes */
+            codes: string[];
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "client" | "agent" | "staff";
+            /** Mobile Last4 */
+            mobile_last4: string;
+            /** Name */
+            name: string;
         };
         /** PayoutReject */
         PayoutReject: {
@@ -6433,6 +6496,38 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PayoutRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_payout_recipients_api_v1_payouts_recipients_get: {
+        parameters: {
+            query: {
+                q: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PayoutRecipientListResponse"];
                 };
             };
             /** @description Validation Error */
