@@ -70,6 +70,17 @@ class PayoutRead(BaseModel):
     created_at: datetime
     updated_at: datetime
 
+    # Enriched for display only (services.payout_recipients.resolve_identities).
+    # ALWAYS nullable: a platform Sub Admin caller legitimately resolves nothing
+    # here (auth_users_rls scopes the full-table bypass to role='admin'), and a
+    # recipient whose profile rows are gone resolves to None too. Never mobile
+    # or email here — see PayoutRecipientRead for the search-only mobile_last4.
+    recipient_name: str | None = None
+    recipient_code: str | None = None
+    maker_name: str | None = None
+    checker_name: str | None = None
+    rejected_by_name: str | None = None
+
 
 class PayoutListResponse(BaseModel):
     payouts: list[PayoutRead]
@@ -81,3 +92,19 @@ class PayoutReject(BaseModel):
 
 class WebhookAck(BaseModel):
     status: str = "ok"
+
+
+class PayoutRecipientRead(BaseModel):
+    """One recipient-search hit. mobile_last4 (not full mobile) is the standard
+    bank/UPI confirmation affordance for disambiguating a name collision without
+    putting a full mobile number into a broad admin payload."""
+
+    auth_user_uuid: UUID
+    name: str
+    codes: list[str]
+    kind: Literal["client", "agent", "staff"]
+    mobile_last4: str
+
+
+class PayoutRecipientListResponse(BaseModel):
+    recipients: list[PayoutRecipientRead]
