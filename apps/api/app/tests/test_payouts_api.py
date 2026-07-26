@@ -21,7 +21,7 @@ from sqlalchemy import text
 from app.core.config import settings
 from app.core.security import create_access_token
 from app.services import payments as payments_service
-from conftest import full_registration
+from conftest import full_registration, unique_mobile
 
 
 async def _auth_user_id(mobile: str) -> str:
@@ -63,6 +63,39 @@ def _create_body(recipient_uid: str, *, amount_paise: int = 50_000, **overrides)
     }
     body.update(overrides)
     return body
+
+
+async def _seed_agent(business_line: str = "loans") -> str:
+    """Create an auth_user + single-line AgentProfile. Returns the auth_user_uuid.
+
+    Unlike a self-registered client (always dual-line, see
+    docs/specs/dual-line-clients.md), an Agent holds exactly one business_line
+    — the only recipient kind that can actually exercise the create_payout
+    business_line/recipient-profile mismatch guard.
+    """
+    import app.db.session as _session_mod
+    from app.models.profile import AgentProfile, ProfileStatus
+    from app.models.user import User
+
+    async with _session_mod.AsyncSessionLocal() as db:
+        user = User(
+            first_name="Test",
+            last_name="Agent",
+            mobile=unique_mobile(),
+            email=f"ag_{uuid.uuid4().hex[:12]}@example.com",
+            password_hash="x",
+        )
+        db.add(user)
+        await db.flush()
+        profile = AgentProfile(
+            auth_user_uuid=user.id,
+            agent_code=f"AG-{uuid.uuid4().hex[:8]}",
+            business_line=business_line,
+            status=ProfileStatus.ACTIVE,
+        )
+        db.add(profile)
+        await db.commit()
+        return str(user.id)
 
 
 # ---------------------------------------------------------------------------
@@ -567,3 +600,348 @@ async def test_initiate_failure_marks_failed_no_ledger(client: AsyncClient, monk
 
     ledger = await client.get("/api/v1/transactions", headers=_headers(recipient_token))
     assert ledger.json()["transactions"] == []
+
+
+# ---------------------------------------------------------------------------
+# identity enrichment (P1)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_list_includes_recipient_identity(client: AsyncClient) -> None:
+    maker_token, _ = await _make_admin(client)
+    _, recipient_mobile = await full_registration(client, lines=["loans"])
+    recipient_uid = await _auth_user_id(recipient_mobile)
+
+    await client.post(
+        "/api/v1/payouts", headers=_headers(maker_token), json=_create_body(recipient_uid)
+    )
+
+    listed = await client.get("/api/v1/payouts", headers=_headers(maker_token))
+    row = next(p for p in listed.json()["payouts"] if p["recipient_user_uuid"] == recipient_uid)
+    assert row["recipient_name"] == "Test User"
+    assert row["recipient_code"].startswith("CL-")
+
+
+@pytest.mark.asyncio
+async def test_create_response_includes_maker_name(client: AsyncClient) -> None:
+    maker_token, _ = await _make_admin(client)
+    _, recipient_mobile = await full_registration(client, lines=["loans"])
+    recipient_uid = await _auth_user_id(recipient_mobile)
+
+    created = await client.post(
+        "/api/v1/payouts", headers=_headers(maker_token), json=_create_body(recipient_uid)
+    )
+    assert created.json()["maker_name"] == "Test User"
+
+
+@pytest.mark.asyncio
+async def test_approve_response_includes_checker_name(client: AsyncClient) -> None:
+    maker_token, _ = await _make_admin(client)
+    checker_token, _ = await _make_admin(client)
+    _, recipient_mobile = await full_registration(client, lines=["loans"])
+    recipient_uid = await _auth_user_id(recipient_mobile)
+
+    created = await client.post(
+        "/api/v1/payouts", headers=_headers(maker_token), json=_create_body(recipient_uid)
+    )
+    payout_id = created.json()["id"]
+
+    approved = await client.post(
+        f"/api/v1/payouts/{payout_id}/approve", headers=_headers(checker_token)
+    )
+    body = approved.json()
+    # Every test account is named "Test User" (conftest), so this only proves
+    # the checker slot is enriched at all -- not identity distinctness, which
+    # the maker != checker uuid guard (services/payments.py) already enforces.
+    assert body["checker_name"] == "Test User"
+    assert body["checker_user_uuid"] != body["maker_user_uuid"]
+
+
+@pytest.mark.asyncio
+async def test_read_never_exposes_recipient_mobile(client: AsyncClient) -> None:
+    maker_token, _ = await _make_admin(client)
+    _, recipient_mobile = await full_registration(client, lines=["loans"])
+    recipient_uid = await _auth_user_id(recipient_mobile)
+
+    await client.post(
+        "/api/v1/payouts",
+        headers=_headers(maker_token),
+        json=_create_body(recipient_uid, destination={"vpa": "payee@okhdfc"}),
+    )
+
+    listed = await client.get("/api/v1/payouts", headers=_headers(maker_token))
+    assert recipient_mobile not in listed.text
+    assert recipient_mobile[-4:] not in listed.text
+
+
+@pytest.mark.asyncio
+async def test_sub_admin_list_identity_is_null(client: AsyncClient) -> None:
+    maker_token, _ = await _make_admin(client)
+    sub_admin_token, _ = await _make_admin(client, role="sub_admin")
+    _, recipient_mobile = await full_registration(client, lines=["loans"])
+    recipient_uid = await _auth_user_id(recipient_mobile)
+
+    await client.post(
+        "/api/v1/payouts", headers=_headers(maker_token), json=_create_body(recipient_uid)
+    )
+
+    listed = await client.get("/api/v1/payouts", headers=_headers(sub_admin_token))
+    row = next(p for p in listed.json()["payouts"] if p["recipient_user_uuid"] == recipient_uid)
+    assert row["recipient_name"] is None
+
+
+# ---------------------------------------------------------------------------
+# recipient search (P2)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_recipient_search_by_name(client: AsyncClient) -> None:
+    admin_token, _ = await _make_admin(client)
+    _, recipient_mobile = await full_registration(client, lines=["loans"])
+    recipient_uid = await _auth_user_id(recipient_mobile)
+
+    resp = await client.get(
+        "/api/v1/payouts/recipients", headers=_headers(admin_token), params={"q": "Test"}
+    )
+    assert resp.status_code == 200
+    hit = next(r for r in resp.json()["recipients"] if r["auth_user_uuid"] == recipient_uid)
+    assert hit["kind"] == "client"
+    assert len(hit["codes"]) >= 1
+
+
+@pytest.mark.asyncio
+async def test_recipient_search_by_code(client: AsyncClient) -> None:
+    admin_token, _ = await _make_admin(client)
+    _, recipient_mobile = await full_registration(client, lines=["loans"])
+    recipient_uid = await _auth_user_id(recipient_mobile)
+
+    import app.db.session as _session_mod
+
+    async with _session_mod.AsyncSessionLocal() as db:
+        row = (
+            await db.execute(
+                text("SELECT customer_code FROM client_profiles WHERE auth_user_uuid = :i"),
+                {"i": recipient_uid},
+            )
+        ).fetchone()
+        code = row[0]
+
+    resp = await client.get(
+        "/api/v1/payouts/recipients", headers=_headers(admin_token), params={"q": code}
+    )
+    assert resp.status_code == 200
+    uuids = [r["auth_user_uuid"] for r in resp.json()["recipients"]]
+    assert recipient_uid in uuids
+
+
+@pytest.mark.asyncio
+async def test_recipient_search_by_mobile_suffix(client: AsyncClient) -> None:
+    admin_token, _ = await _make_admin(client)
+    _, recipient_mobile = await full_registration(client, lines=["loans"])
+    recipient_uid = await _auth_user_id(recipient_mobile)
+
+    resp = await client.get(
+        "/api/v1/payouts/recipients",
+        headers=_headers(admin_token),
+        params={"q": recipient_mobile[-8:]},
+    )
+    assert resp.status_code == 200
+    uuids = [r["auth_user_uuid"] for r in resp.json()["recipients"]]
+    assert recipient_uid in uuids
+
+
+@pytest.mark.asyncio
+async def test_recipient_search_returns_mobile_last4_only(client: AsyncClient) -> None:
+    admin_token, _ = await _make_admin(client)
+    _, recipient_mobile = await full_registration(client, lines=["loans"])
+    recipient_uid = await _auth_user_id(recipient_mobile)
+
+    resp = await client.get(
+        "/api/v1/payouts/recipients",
+        headers=_headers(admin_token),
+        params={"q": recipient_mobile[-8:]},
+    )
+    hit = next(r for r in resp.json()["recipients"] if r["auth_user_uuid"] == recipient_uid)
+    assert hit["mobile_last4"] == recipient_mobile[-4:]
+    assert recipient_mobile not in resp.text
+
+
+@pytest.mark.asyncio
+async def test_recipient_search_excludes_self(client: AsyncClient) -> None:
+    admin_token, admin_uid = await _make_admin(client)
+
+    resp = await client.get(
+        "/api/v1/payouts/recipients", headers=_headers(admin_token), params={"q": "Test"}
+    )
+    uuids = [r["auth_user_uuid"] for r in resp.json()["recipients"]]
+    assert admin_uid not in uuids
+
+
+@pytest.mark.asyncio
+async def test_recipient_search_excludes_suspended(client: AsyncClient) -> None:
+    admin_token, _ = await _make_admin(client)
+    _, recipient_mobile = await full_registration(client, lines=["loans"])
+    recipient_uid = await _auth_user_id(recipient_mobile)
+
+    import app.db.session as _session_mod
+
+    async with _session_mod.AsyncSessionLocal() as db:
+        await db.execute(
+            text("UPDATE auth_users SET status = 'suspended' WHERE id = :i"),
+            {"i": recipient_uid},
+        )
+        await db.commit()
+
+    resp = await client.get(
+        "/api/v1/payouts/recipients",
+        headers=_headers(admin_token),
+        params={"q": recipient_mobile[-8:]},
+    )
+    uuids = [r["auth_user_uuid"] for r in resp.json()["recipients"]]
+    assert recipient_uid not in uuids
+
+
+@pytest.mark.asyncio
+async def test_recipient_search_rejects_sub_admin(client: AsyncClient) -> None:
+    sub_admin_token, _ = await _make_admin(client, role="sub_admin")
+    resp = await client.get(
+        "/api/v1/payouts/recipients", headers=_headers(sub_admin_token), params={"q": "Test"}
+    )
+    assert resp.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_recipient_search_rejects_client_and_anon(client: AsyncClient) -> None:
+    client_token, _ = await full_registration(client, lines=["loans"])
+    resp = await client.get(
+        "/api/v1/payouts/recipients", headers=_headers(client_token), params={"q": "Test"}
+    )
+    assert resp.status_code == 403
+
+    anon = await client.get("/api/v1/payouts/recipients", params={"q": "Test"})
+    assert anon.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_recipient_search_min_query_length(client: AsyncClient) -> None:
+    admin_token, _ = await _make_admin(client)
+    resp = await client.get(
+        "/api/v1/payouts/recipients", headers=_headers(admin_token), params={"q": "a"}
+    )
+    assert resp.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_recipient_search_honours_limit(client: AsyncClient) -> None:
+    admin_token, _ = await _make_admin(client)
+    await full_registration(client, lines=["loans"])
+    await full_registration(client, lines=["loans"])
+
+    resp = await client.get(
+        "/api/v1/payouts/recipients",
+        headers=_headers(admin_token),
+        params={"q": "Test", "limit": 1},
+    )
+    assert len(resp.json()["recipients"]) == 1
+
+
+@pytest.mark.asyncio
+async def test_recipient_search_wildcard_chars_are_literal(client: AsyncClient) -> None:
+    """A literal `%`/`_` in the query must not act as an ILIKE wildcard."""
+    admin_token, _ = await _make_admin(client)
+    _, recipient_mobile = await full_registration(client, lines=["loans"])
+    recipient_uid = await _auth_user_id(recipient_mobile)
+
+    resp = await client.get(
+        "/api/v1/payouts/recipients",
+        headers=_headers(admin_token),
+        params={"q": "Test%_zzz_not_a_real_name"},
+    )
+    assert resp.status_code == 200
+    uuids = [r["auth_user_uuid"] for r in resp.json()["recipients"]]
+    assert recipient_uid not in uuids
+
+
+# ---------------------------------------------------------------------------
+# business_line / recipient-profile mismatch guard
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_create_rejects_business_line_recipient_mismatch(client: AsyncClient) -> None:
+    """A loans-only Agent cannot receive a real_estate-tagged commission payout.
+
+    A self-registered CLIENT is always dual-line (docs/specs/dual-line-clients.md),
+    so only a single-line recipient (Agent/Staff) can exercise this guard.
+    """
+    maker_token, _ = await _make_admin(client)
+    agent_uid = await _seed_agent(business_line="loans")
+
+    resp = await client.post(
+        "/api/v1/payouts",
+        headers=_headers(maker_token),
+        json=_create_body(agent_uid, type="commission", business_line="real_estate"),
+    )
+    assert resp.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_create_accepts_matching_business_line(client: AsyncClient) -> None:
+    maker_token, _ = await _make_admin(client)
+    agent_uid = await _seed_agent(business_line="loans")
+
+    resp = await client.post(
+        "/api/v1/payouts",
+        headers=_headers(maker_token),
+        json=_create_body(agent_uid, type="commission", business_line="loans"),
+    )
+    assert resp.status_code == 201, resp.text
+
+
+@pytest.mark.asyncio
+async def test_list_shows_distinct_recipient_code_per_payout_line(client: AsyncClient) -> None:
+    """Same recipient, two payouts tagged with different lines in one list response:
+    each payout's recipient_code must reflect its OWN business_line, not whichever
+    payout happened to be resolved last (the prefer_line cross-contamination bug)."""
+    maker_token, _ = await _make_admin(client)
+    _, recipient_mobile = await full_registration(client, lines=["loans", "real_estate"])
+    recipient_uid = await _auth_user_id(recipient_mobile)
+
+    import app.db.session as _session_mod
+
+    async with _session_mod.AsyncSessionLocal() as db:
+        rows = (
+            await db.execute(
+                text(
+                    "SELECT business_line, customer_code FROM client_profiles "
+                    "WHERE auth_user_uuid = :i"
+                ),
+                {"i": recipient_uid},
+            )
+        ).fetchall()
+    codes_by_line = {str(r[0]): r[1] for r in rows}
+    assert set(codes_by_line) == {"loans", "real_estate"}
+
+    await client.post(
+        "/api/v1/payouts",
+        headers=_headers(maker_token),
+        json=_create_body(recipient_uid, business_line="loans", idempotency_key=uuid.uuid4().hex),
+    )
+    await client.post(
+        "/api/v1/payouts",
+        headers=_headers(maker_token),
+        json=_create_body(
+            recipient_uid, business_line="real_estate", idempotency_key=uuid.uuid4().hex
+        ),
+    )
+
+    listed = await client.get("/api/v1/payouts", headers=_headers(maker_token))
+    rows_by_line = {
+        p["business_line"]: p
+        for p in listed.json()["payouts"]
+        if p["recipient_user_uuid"] == recipient_uid
+    }
+    assert rows_by_line["loans"]["recipient_code"] == codes_by_line["loans"]
+    assert rows_by_line["real_estate"]["recipient_code"] == codes_by_line["real_estate"]

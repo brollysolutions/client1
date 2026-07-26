@@ -6,6 +6,7 @@ import type { LucideIcon } from "lucide-react";
 
 import { Skeleton } from "@/components/ui/skeleton";
 import { FetchError } from "@/features/dashboard/fetch-error";
+import { formatPaise } from "@/lib/format";
 import {
   getTransactions,
   type Transaction,
@@ -33,16 +34,6 @@ const STATUS_LABEL: Record<TransactionStatus, string> = {
   pending: "Pending",
   failed: "Failed",
 };
-
-const inr = new Intl.NumberFormat("en-IN", {
-  style: "currency",
-  currency: "INR",
-  maximumFractionDigits: 0,
-});
-
-function formatPaise(paise: number): string {
-  return inr.format(paise / 100);
-}
 
 function formatDate(iso: string): string {
   const d = new Date(iso);

@@ -3731,6 +3731,17 @@
             ],
             "title": "Business Line"
           },
+          "checker_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Checker Name"
+          },
           "checker_user_uuid": {
             "anyOf": [
               {
@@ -3797,10 +3808,43 @@
             "title": "Id",
             "type": "string"
           },
+          "maker_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Maker Name"
+          },
           "maker_user_uuid": {
             "format": "uuid",
             "title": "Maker User Uuid",
             "type": "string"
+          },
+          "recipient_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Recipient Code"
+          },
+          "recipient_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Recipient Name"
           },
           "recipient_user_uuid": {
             "format": "uuid",
@@ -3817,6 +3861,17 @@
               }
             ],
             "title": "Reject Reason"
+          },
+          "rejected_by_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rejected By Name"
           },
           "rejected_by_user_uuid": {
             "anyOf": [
@@ -3876,6 +3931,65 @@
           "updated_at"
         ],
         "title": "PayoutRead",
+        "type": "object"
+      },
+      "PayoutRecipientListResponse": {
+        "properties": {
+          "recipients": {
+            "items": {
+              "$ref": "#/components/schemas/PayoutRecipientRead"
+            },
+            "title": "Recipients",
+            "type": "array"
+          }
+        },
+        "required": [
+          "recipients"
+        ],
+        "title": "PayoutRecipientListResponse",
+        "type": "object"
+      },
+      "PayoutRecipientRead": {
+        "description": "One recipient-search hit. mobile_last4 (not full mobile) is the standard\nbank/UPI confirmation affordance for disambiguating a name collision without\nputting a full mobile number into a broad admin payload.",
+        "properties": {
+          "auth_user_uuid": {
+            "format": "uuid",
+            "title": "Auth User Uuid",
+            "type": "string"
+          },
+          "codes": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Codes",
+            "type": "array"
+          },
+          "kind": {
+            "enum": [
+              "client",
+              "agent",
+              "staff"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "mobile_last4": {
+            "title": "Mobile Last4",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "auth_user_uuid",
+          "name",
+          "codes",
+          "kind",
+          "mobile_last4"
+        ],
+        "title": "PayoutRecipientRead",
         "type": "object"
       },
       "PayoutReject": {
@@ -10400,6 +10514,68 @@
           }
         ],
         "summary": "Create Payout",
+        "tags": [
+          "payouts"
+        ]
+      }
+    },
+    "/api/v1/payouts/recipients": {
+      "get": {
+        "description": "Recipient picker search for the payout create form.\n\nAdmin-only (not _require_platform_admin): a Sub Admin passing the looser\nguard would hit auth_users_rls and get an always-empty 200, the worst\npossible failure mode for a search box. An honest 403 says what is true.",
+        "operationId": "list_payout_recipients_api_v1_payouts_recipients_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "q",
+            "required": true,
+            "schema": {
+              "maxLength": 64,
+              "minLength": 2,
+              "title": "Q",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "maximum": 50,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PayoutRecipientListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "List Payout Recipients",
         "tags": [
           "payouts"
         ]

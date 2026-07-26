@@ -8,6 +8,13 @@ const inr = new Intl.NumberFormat("en-IN", {
   maximumFractionDigits: 0,
 });
 
+const inrExact = new Intl.NumberFormat("en-IN", {
+  style: "currency",
+  currency: "INR",
+  minimumFractionDigits: 0,
+  maximumFractionDigits: 2,
+});
+
 const num = new Intl.NumberFormat("en-IN", { maximumFractionDigits: 0 });
 
 /** e.g. 100000 -> "₹1,00,000". */
@@ -44,6 +51,15 @@ export function formatPercent(value: number, digits = 2): string {
  * review queue and the agent's my-submissions list (submissions carry
  * price_paise, not a display string).
  */
+/**
+ * Exact rupees from an integer paise amount: 12345 -> "₹123.45", 100000 ->
+ * "₹1,000". Unlike formatPaiseCompact this never rounds to L/Cr, so it is the
+ * one to use for a money ledger or a payout amount, not a headline figure.
+ */
+export function formatPaise(paise: number): string {
+  return inrExact.format(paise / 100);
+}
+
 export function formatPaiseCompact(paise: number): string {
   const rupees = Math.floor(paise / 100);
   if (rupees >= 10_000_000) {
