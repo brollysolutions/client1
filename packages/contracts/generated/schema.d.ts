@@ -123,6 +123,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/leads/assigned": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Assigned */
+        get: operations["list_assigned_api_v1_admin_leads_assigned_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/leads/{lead_id}/assign": {
         parameters: {
             query?: never;
@@ -134,6 +151,23 @@ export interface paths {
         put?: never;
         /** Assign Lead */
         post: operations["assign_lead_api_v1_admin_leads__lead_id__assign_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/leads/{lead_id}/release": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Release Lead */
+        post: operations["release_lead_api_v1_admin_leads__lead_id__release_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1711,6 +1745,49 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** AdminAssignedLeadRead */
+        AdminAssignedLeadRead: {
+            /** Assigned Telecaller Name */
+            assigned_telecaller_name: string | null;
+            /** Assigned Telecaller Staff Code */
+            assigned_telecaller_staff_code: string | null;
+            /** Assigned Telecaller Staff Profile Uuid */
+            assigned_telecaller_staff_profile_uuid: string | null;
+            /**
+             * Business Line
+             * @enum {string}
+             */
+            business_line: "loans" | "real_estate";
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Mobile */
+            mobile: string;
+            /** Name */
+            name: string | null;
+            /**
+             * Origin
+             * @enum {string}
+             */
+            origin: "direct" | "agent";
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "assigned" | "working";
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
         /** AdminEmployeeRead */
         AdminEmployeeRead: {
             /**
@@ -2639,6 +2716,42 @@ export interface components {
              */
             telecaller_staff_profile_uuid: string;
         };
+        /** LeadReleaseRequest */
+        LeadReleaseRequest: {
+            /** Release Reason */
+            release_reason?: string | null;
+            /** Telecaller Staff Profile Uuid */
+            telecaller_staff_profile_uuid?: string | null;
+        };
+        /** LeadReleaseResponse */
+        LeadReleaseResponse: {
+            /**
+             * Business Line
+             * @enum {string}
+             */
+            business_line: "loans" | "real_estate";
+            /**
+             * Lead Id
+             * Format: uuid
+             */
+            lead_id: string;
+            /** Previous Telecaller Staff Profile Uuid */
+            previous_telecaller_staff_profile_uuid: string | null;
+            /** Release Reason */
+            release_reason: string | null;
+            /**
+             * Released At
+             * Format: date-time
+             */
+            released_at: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "assigned" | "released";
+            /** Telecaller Staff Profile Uuid */
+            telecaller_staff_profile_uuid: string | null;
+        };
         /** LoanApplicationCreate */
         LoanApplicationCreate: {
             /** Amount Requested */
@@ -2841,7 +2954,7 @@ export interface components {
          * NotificationType
          * @enum {string}
          */
-        NotificationType: "site_visit_requested" | "site_visit_cancelled" | "support_ticket_received" | "lead_assigned" | "task_assigned" | "loan_status_updated" | "property_deal_status_updated";
+        NotificationType: "site_visit_requested" | "site_visit_cancelled" | "support_ticket_received" | "lead_assigned" | "lead_released" | "task_assigned" | "loan_status_updated" | "property_deal_status_updated";
         /** OfferCreate */
         OfferCreate: {
             /** Business Line */
@@ -4301,6 +4414,38 @@ export interface operations {
             };
         };
     };
+    list_assigned_api_v1_admin_leads_assigned_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminAssignedLeadRead"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     assign_lead_api_v1_admin_leads__lead_id__assign_post: {
         parameters: {
             query?: never;
@@ -4323,6 +4468,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["LeadAssignResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    release_lead_api_v1_admin_leads__lead_id__release_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                lead_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LeadReleaseRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeadReleaseResponse"];
                 };
             };
             /** @description Validation Error */

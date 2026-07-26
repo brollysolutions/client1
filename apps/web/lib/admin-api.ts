@@ -17,6 +17,7 @@ export type AgentApproveResponse = Schemas["AgentApproveResponse"];
 export type AdminTask = Schemas["AdminTaskRead"];
 export type AdminEmployee = Schemas["AdminEmployeeRead"];
 export type AdminLead = Schemas["AdminLeadRead"];
+export type AdminAssignedLead = Schemas["AdminAssignedLeadRead"];
 export type AdminLoanApplication = Schemas["AdminLoanApplicationRead"];
 export type LoanApplicationProgressUpdate = Schemas["LoanApplicationProgressUpdate"];
 export type AdminPropertyDeal = Schemas["AdminPropertyDealRead"];
@@ -83,6 +84,24 @@ export async function assignLead(
   return apiRequest<Schemas["LeadAssignResponse"]>(`/api/v1/admin/leads/${leadId}/assign`, {
     method: "POST",
     body: { telecaller_staff_profile_uuid: telecallerProfileUuid },
+  });
+}
+
+export async function listAdminAssignedLeads(): Promise<ApiResponse<AdminAssignedLead[]>> {
+  return apiRequest<AdminAssignedLead[]>("/api/v1/admin/leads/assigned");
+}
+
+export async function releaseLead(
+  leadId: string,
+  telecallerProfileUuid: string | null,
+  releaseReason: string | null,
+): Promise<ApiResponse<Schemas["LeadReleaseResponse"]>> {
+  return apiRequest<Schemas["LeadReleaseResponse"]>(`/api/v1/admin/leads/${leadId}/release`, {
+    method: "POST",
+    body: {
+      telecaller_staff_profile_uuid: telecallerProfileUuid,
+      release_reason: releaseReason,
+    },
   });
 }
 

@@ -12,6 +12,7 @@ import {
   Home,
   Landmark,
   PhoneCall,
+  Undo2,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
@@ -32,6 +33,7 @@ const TYPE_ICON: Record<NotificationType, LucideIcon> = {
   site_visit_cancelled: CalendarX,
   support_ticket_received: Headset,
   lead_assigned: PhoneCall,
+  lead_released: Undo2,
   task_assigned: ClipboardList,
   loan_status_updated: Landmark,
   property_deal_status_updated: Home,

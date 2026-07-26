@@ -17,6 +17,7 @@ from app.core.deps import CurrentUser, require_admin
 from app.db.session import get_db
 from app.models.profile import AgentApplication, StaffRole, SubmissionStatus
 from app.schemas.admin import (
+    AdminAssignedLeadRead,
     AdminEmployeeRead,
     AdminHomeResponse,
     AdminLeadRead,
@@ -31,6 +32,8 @@ from app.schemas.admin import (
     AgentRejectRequest,
     LeadAssignRequest,
     LeadAssignResponse,
+    LeadReleaseRequest,
+    LeadReleaseResponse,
     StaffCreateRequest,
     StaffCreateResponse,
     TaskAssignRequest,
@@ -51,8 +54,11 @@ from app.services.leads import (
     LeadHasNoBusinessLine,
     LeadNotAssignable,
     LeadNotFound,
+    LeadNotReleasable,
     assign_lead_to_telecaller,
+    list_assigned_leads,
     list_unassigned_leads,
+    release_lead_from_telecaller,
 )
 from app.services.loan_applications import InvalidStatusTransition as InvalidLoanStatusTransition
 from app.services.loan_applications import (
@@ -270,6 +276,42 @@ async def assign_lead(
     )
 
 
+@router.post("/leads/{lead_id}/release", response_model=LeadReleaseResponse)
+async def release_lead(
+    lead_id: UUID,
+    payload: LeadReleaseRequest,
+    current_user: CurrentUser = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+) -> LeadReleaseResponse:
+    try:
+        lead, previous_telecaller_uuid = await release_lead_from_telecaller(
+            db,
+            lead_id,
+            telecaller_staff_profile_uuid=payload.telecaller_staff_profile_uuid,
+            release_reason=payload.release_reason,
+        )
+    except LeadNotFound as exc:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Lead not found.") from exc
+    except LeadNotReleasable as exc:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT, "This lead is not in a releasable state."
+        ) from exc
+    except InvalidTelecaller as exc:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            "Target account is not an active telecaller on this lead's business line.",
+        ) from exc
+    return LeadReleaseResponse(
+        lead_id=lead.id,
+        business_line=lead.business_line,
+        status=lead.status,
+        previous_telecaller_staff_profile_uuid=previous_telecaller_uuid,
+        telecaller_staff_profile_uuid=lead.assigned_telecaller_profile_uuid,
+        released_at=lead.released_at,
+        release_reason=lead.release_reason,
+    )
+
+
 @router.get("/employees", response_model=list[AdminEmployeeRead])
 async def list_employees(
     business_line: str | None = None,
@@ -301,6 +343,34 @@ async def list_leads(
 ) -> list[AdminLeadRead]:
     leads = await list_unassigned_leads(db, limit, offset)
     return [AdminLeadRead.model_validate(lead, from_attributes=True) for lead in leads]
+
+
+@router.get("/leads/assigned", response_model=list[AdminAssignedLeadRead])
+async def list_assigned(
+    limit: int = Query(default=100, ge=1, le=500),
+    offset: int = Query(default=0, ge=0),
+    current_user: CurrentUser = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+) -> list[AdminAssignedLeadRead]:
+    rows = await list_assigned_leads(db, limit, offset)
+    return [
+        AdminAssignedLeadRead(
+            id=lead.id,
+            name=lead.name,
+            mobile=lead.mobile,
+            business_line=lead.business_line,
+            origin=lead.origin,
+            status=lead.status,
+            assigned_telecaller_staff_profile_uuid=staff.id if staff else None,
+            assigned_telecaller_name=(
+                f"{user.first_name} {user.last_name}" if user is not None else None
+            ),
+            assigned_telecaller_staff_code=staff.staff_code if staff else None,
+            created_at=lead.created_at,
+            updated_at=lead.updated_at,
+        )
+        for lead, staff, user in rows
+    ]
 
 
 @router.get("/tasks", response_model=list[AdminTaskRead])

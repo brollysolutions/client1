@@ -111,6 +111,39 @@ class AdminLeadRead(BaseModel):
     created_at: datetime
 
 
+class LeadReleaseRequest(BaseModel):
+    # None = release to queue (status becomes "released"). Set = release + assign
+    # to this telecaller in one step (status becomes "assigned"), no intermediate
+    # unassigned window.
+    telecaller_staff_profile_uuid: UUID | None = None
+    release_reason: Annotated[str, Field(max_length=1000)] | None = None
+
+
+class LeadReleaseResponse(BaseModel):
+    lead_id: UUID
+    business_line: Literal["loans", "real_estate"]
+    # Only two outcomes are reachable from release_lead_from_telecaller.
+    status: Literal["assigned", "released"]
+    previous_telecaller_staff_profile_uuid: UUID | None
+    telecaller_staff_profile_uuid: UUID | None
+    released_at: datetime
+    release_reason: str | None
+
+
+class AdminAssignedLeadRead(BaseModel):
+    id: UUID
+    name: str | None
+    mobile: str
+    business_line: Literal["loans", "real_estate"]
+    origin: Literal["direct", "agent"]
+    status: Literal["assigned", "working"]
+    assigned_telecaller_staff_profile_uuid: UUID | None
+    assigned_telecaller_name: str | None
+    assigned_telecaller_staff_code: str | None
+    created_at: datetime
+    updated_at: datetime
+
+
 # ---------------------------------------------------------------------------
 # Field tasks (Telecaller Dashboard slice 2 — unassigned pool, minimal admin
 # endpoints only, no queue UI yet)
