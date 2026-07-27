@@ -10,8 +10,10 @@ customer-facing filtering.
 
 State machine: draft -> pending_approval -> approved -> live -> archived, with a
 rejected side-branch back to draft (edit + resubmit). Sub Admin can reach
-pending_approval; approved/live is Admin's transition, run on a bypass session
+pending_approval; approved is Admin's transition, run on a bypass session
 (services/banners.py), the same mechanism as services/property_submissions.py.
+approved -> live and live -> archived are written by the scheduler
+(app/jobs/cms_activation.py), not by any request handler.
 """
 
 from __future__ import annotations
@@ -58,6 +60,8 @@ class Banner(Base):
     business_line: Mapped[str] = mapped_column(business_line_enum, nullable=False)
     banner_type: Mapped[BannerType] = mapped_column(banner_type_enum, nullable=False)
     title: Mapped[str] = mapped_column(Text, nullable=False)
+    subtitle: Mapped[str | None] = mapped_column(Text, nullable=True)
+    cta_label: Mapped[str | None] = mapped_column(Text, nullable=True)
     image_key: Mapped[str | None] = mapped_column(Text, nullable=True)
     deep_link: Mapped[str | None] = mapped_column(Text, nullable=True)
     # user_type / location / business_status matchers — write-only in slice 1, no

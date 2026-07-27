@@ -15,9 +15,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.offer import Offer, OfferStatus
 
-# Forward-only edges. `expired` has no manual writer (reserved for a future
-# scheduler job) and `archived` is reachable from either scheduled or active
-# (cancel-in-place).
+# Forward-only edges for what a sub_admin HTTP request may do. `expired` has
+# no manual writer here by design -- it is scheduler-owned
+# (app/jobs/cms_activation.py flips active -> expired on ends_at, bypassing
+# this map entirely since the job runs on a superuser session, not a request).
+# Adding ACTIVE -> EXPIRED here would let a human expire an offer early, which
+# is exactly what ends_at exists to prevent. `archived` is reachable from
+# either scheduled or active (cancel-in-place) through this map.
 _TRANSITIONS: dict[OfferStatus, set[OfferStatus]] = {
     OfferStatus.DRAFT: {OfferStatus.SCHEDULED},
     OfferStatus.SCHEDULED: {OfferStatus.ACTIVE, OfferStatus.ARCHIVED},

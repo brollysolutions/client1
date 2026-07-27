@@ -2,11 +2,12 @@
 
 The second of four Sub Admin content tables (SubAdmin_Dashboard_System_Design.md
 §5.2). Like banners, a SHARED content-team surface — any sub_admin sees every
-offer, not just ones they created (migration b5c6d7e8f9a0). Unlike banners, the
-entire lifecycle is sub_admin-owned: draft -> scheduled -> active -> archived
-(forward-only, app-layer guarded in services/offers.py), plus a reserved
-`expired` value with no writer this slice. Admin has read-only oversight only —
-no approve/reject step, no bypass session.
+offer, not just ones they created (migration b5c6d7e8f9a0). The sub_admin-owned
+part of the lifecycle is draft -> scheduled -> active -> archived (forward-only,
+app-layer guarded in services/offers.py); scheduled -> active and active ->
+expired are written by the scheduler (app/jobs/cms_activation.py), not by any
+request handler. Admin has read-only oversight only — no approve/reject step,
+no bypass session.
 
 discount_type is plain text (percentage/flat/cashback-tie), validated at the
 schema layer rather than a DB enum (spec §5.2).

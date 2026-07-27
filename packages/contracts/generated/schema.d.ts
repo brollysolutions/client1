@@ -1483,6 +1483,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/public/banners": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Banners Public */
+        get: operations["list_banners_public_api_v1_public_banners_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/public/properties": {
         parameters: {
             query?: never;
@@ -2494,6 +2511,8 @@ export interface components {
             banner_type: components["schemas"]["BannerType"];
             /** Business Line */
             business_line: string;
+            /** Cta Label */
+            cta_label?: string | null;
             /** Deep Link */
             deep_link?: string | null;
             /** Ends At */
@@ -2507,6 +2526,8 @@ export interface components {
             priority: number;
             /** Starts At */
             starts_at?: string | null;
+            /** Subtitle */
+            subtitle?: string | null;
             /** Title */
             title: string;
         };
@@ -2536,6 +2557,8 @@ export interface components {
              * Format: uuid
              */
             created_by_uuid: string;
+            /** Cta Label */
+            cta_label: string | null;
             /** Deep Link */
             deep_link: string | null;
             /** Ends At */
@@ -2554,6 +2577,8 @@ export interface components {
             /** Starts At */
             starts_at: string | null;
             status: components["schemas"]["BannerStatus"];
+            /** Subtitle */
+            subtitle: string | null;
             /** Title */
             title: string;
             /**
@@ -2578,6 +2603,8 @@ export interface components {
             audience_rules?: {
                 [key: string]: unknown;
             } | null;
+            /** Cta Label */
+            cta_label?: string | null;
             /** Deep Link */
             deep_link?: string | null;
             /** Ends At */
@@ -2588,6 +2615,8 @@ export interface components {
             priority?: number | null;
             /** Starts At */
             starts_at?: string | null;
+            /** Subtitle */
+            subtitle?: string | null;
             /** Title */
             title?: string | null;
         };
@@ -3594,6 +3623,67 @@ export interface components {
             title: string;
             /** Type */
             type: string;
+        };
+        /** PublicBannerListResponse */
+        PublicBannerListResponse: {
+            /** Banners */
+            banners: components["schemas"]["PublicBannerRead"][];
+        };
+        /**
+         * PublicBannerRead
+         * @description Anonymous-read shape (docs/specs/public-banner-serving.md).
+         *
+         *     Deliberately NOT a subclass of BannerRead: a separate hand-written schema
+         *     means a future sensitive column added to the authenticated read can never
+         *     silently surface here. Every exclusion below has a reason:
+         *
+         *     - image_key: deferred this slice, and it's a storage key, not a URL --
+         *       services/storage.py's presign_download forces
+         *       ResponseContentDisposition: attachment (unusable as an <img> src) and
+         *       next.config.ts has no images.remotePatterns configured. Serving banner
+         *       images needs its own slice and its own security review.
+         *     - audience_rules: targeting internals, meaningless (and a segmentation
+         *       disclosure) to an anonymous client that can never be targeted.
+         *     - priority: an ordering INPUT, already fully expressed by response order.
+         *       Exposing it invites a client-side re-sort that would diverge from the
+         *       server's.
+         *     - status: constant "live" by construction on this path. Exposing a
+         *       constant invites a client-side filter that would quietly become the
+         *       de-facto access control.
+         *     - created_by_uuid / approved_by_uuid: staff identities, never public.
+         *     - review_note: candid reviewer-to-author feedback.
+         *     - starts_at / ends_at: the endpoint has already applied the window
+         *       (services/public_catalog.py); republishing it lets a client
+         *       second-guess the server and discloses unlaunched campaign timing.
+         *     - created_at / updated_at: internal metadata, no display use.
+         *     - business_line: the public hero is cross-line (ADR-0007 makes both lines
+         *       render identically -- blue-only accent), so nothing in the hero varies
+         *       by line. Exposing it would also invite a client-side line filter that
+         *       could become shadow access control.
+         *     - banner_type: the two servable types (default, action) render
+         *       identically on the hero; exposing it invites a client branch and makes
+         *       a future enum value a silent frontend break instead of a backend
+         *       allowlist decision (see services/public_catalog.py's banner_type filter).
+         *
+         *     deep_link IS included -- it is the CTA href, author-supplied, and the hero
+         *     cannot function without it. The frontend (lib/public-banners.ts) applies
+         *     a same-origin guard before building a CTA from it; this schema stores
+         *     exactly what the author typed.
+         */
+        PublicBannerRead: {
+            /** Cta Label */
+            cta_label: string | null;
+            /** Deep Link */
+            deep_link: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Subtitle */
+            subtitle: string | null;
+            /** Title */
+            title: string;
         };
         /** PublicLeadCreate */
         PublicLeadCreate: {
@@ -7578,6 +7668,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_banners_public_api_v1_public_banners_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicBannerListResponse"];
                 };
             };
         };
