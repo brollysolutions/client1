@@ -44,6 +44,14 @@ function refreshOnce(): Promise<string | null> {
 // handshake — retrying would recurse or mislead).
 const NO_AUTO_REFRESH = ["/api/v1/auth/refresh", "/api/v1/auth/login"];
 
+// DELETE /me's 401 is always a wrong-password rejection, never an expired
+// token (unlike GET/PATCH /me, which legitimately benefit from the retry) —
+// excluded by method + path, not by path alone, so those keep auto-refreshing.
+function isNoRetryRequest(method: string, path: string): boolean {
+  if (NO_AUTO_REFRESH.some((p) => path.startsWith(p))) return true;
+  return method === "DELETE" && path === "/api/v1/auth/me";
+}
+
 export type ApiResponse<T> =
   | { ok: true; data: T; status: number }
   | { ok: false; error: string; status: number };
@@ -131,11 +139,7 @@ export async function apiRequest<TResponse = undefined>(
   // Expired access token mid-session: silently rotate once and retry. Skipped
   // when the caller owns its token (explicit `bearer`, e.g. forced-reset) or the
   // call itself is the refresh/login handshake.
-  if (
-    res.status === 401 &&
-    bearer === undefined &&
-    !NO_AUTO_REFRESH.some((p) => path.startsWith(p))
-  ) {
+  if (res.status === 401 && bearer === undefined && !isNoRetryRequest(method, path)) {
     const newToken = await refreshOnce();
     if (newToken) {
       const retry = await attempt(newToken);

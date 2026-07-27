@@ -2,7 +2,16 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, BackgroundTasks, Cookie, Depends, Request, Response, status
+from fastapi import (
+    APIRouter,
+    BackgroundTasks,
+    Cookie,
+    Depends,
+    HTTPException,
+    Request,
+    Response,
+    status,
+)
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.cache.redis_keys import RedisCache
@@ -10,6 +19,7 @@ from app.core.client_ip import get_client_ip
 from app.core.deps import CurrentUser, get_active_user, get_cache, get_current_user
 from app.db.session import get_db
 from app.schemas.auth import (
+    AccountDeleteRequest,
     AuthTokensResponse,
     ChangePasswordRequest,
     EmailVerifyConfirmRequest,
@@ -32,6 +42,7 @@ from app.schemas.auth import (
     SetPasswordRequest,
 )
 from app.services import auth_service
+from app.services.account_deletion import AccountAlreadyDeleted
 
 router = APIRouter()
 
@@ -238,6 +249,39 @@ async def change_password(
         user_agent=request.headers.get("user-agent"),
     )
     return MessageResponse(message="Password changed successfully.")
+
+
+@router.delete(
+    "/me",
+    response_model=MessageResponse,
+    status_code=status.HTTP_200_OK,
+)
+async def delete_me(
+    req: AccountDeleteRequest,
+    request: Request,
+    response: Response,
+    db: AsyncSession = Depends(get_db),
+    cache: RedisCache = Depends(get_cache),
+    current_user: CurrentUser = Depends(get_active_user),
+) -> MessageResponse:
+    try:
+        await auth_service.delete_own_account(
+            db,
+            cache,
+            req,
+            current_user_id=current_user.id,
+            jti=current_user.jti,
+            access_token_exp=current_user.exp,
+            ip=_get_client_ip(request),
+            user_agent=request.headers.get("user-agent"),
+        )
+    except AccountAlreadyDeleted as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="This account has already been deleted.",
+        ) from exc
+    _clear_refresh_cookie(response)
+    return MessageResponse(message="Your account has been deleted.")
 
 
 # ---------------------------------------------------------------------------

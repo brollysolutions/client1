@@ -9,14 +9,17 @@ from __future__ import annotations
 from typing import Literal
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.deps import CurrentUser, require_admin
+from app.cache.redis_keys import RedisCache
+from app.core.client_ip import get_client_ip
+from app.core.deps import CurrentUser, get_cache, require_admin
 from app.db.session import get_db
 from app.models.profile import AgentApplication, StaffRole, SubmissionStatus
 from app.schemas.admin import (
+    AdminAccountDeleteRequest,
     AdminAssignedLeadRead,
     AdminEmployeeRead,
     AdminHomeResponse,
@@ -40,9 +43,11 @@ from app.schemas.admin import (
     StaffCreateResponse,
     TaskAssignRequest,
 )
+from app.schemas.auth import MessageResponse
 from app.schemas.loans import LoanApplicationProgressUpdate
 from app.schemas.property_deals import PropertyDealProgressUpdate
 from app.services import storage
+from app.services.account_deletion import AccountAlreadyDeleted, AccountNotFound, delete_account
 from app.services.admin import (
     AgentApplicationAlreadyReviewed,
     AgentApplicationEmailConflict,
@@ -173,6 +178,51 @@ async def create_staff_user(
         staff_code=profile.staff_code,
         temp_password=temp_password,
     )
+
+
+@router.post("/users/{auth_user_uuid}/delete", response_model=MessageResponse)
+async def delete_user(
+    auth_user_uuid: UUID,
+    payload: AdminAccountDeleteRequest,
+    request: Request,
+    current_user: CurrentUser = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+    cache: RedisCache = Depends(get_cache),
+) -> MessageResponse:
+    """FR-17.4 — Admin removal of a suspicious account. Admin-only (not Sub
+    Admin): mirrors the require_admin wall on the other irreversible
+    platform-identity actions above (staff provisioning, agent-app review)."""
+    if auth_user_uuid == current_user.id:
+        # This path never blacklists the caller's own current access token
+        # (actor_jti is always None here) — self-deletion belongs to
+        # DELETE /auth/me, which does. Rejecting outright avoids a soft-deleted
+        # Admin whose live token keeps working for the rest of its TTL.
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Use account settings to delete your own account.",
+        )
+    try:
+        await delete_account(
+            db,
+            cache,
+            target_auth_user_uuid=auth_user_uuid,
+            actor_auth_user_uuid=current_user.id,
+            actor_jti=None,
+            actor_access_token_exp=None,
+            reason=payload.reason,
+            ip=get_client_ip(request),
+            user_agent=request.headers.get("user-agent"),
+        )
+    except AccountNotFound as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Account not found."
+        ) from exc
+    except AccountAlreadyDeleted as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="This account has already been deleted.",
+        ) from exc
+    return MessageResponse(message="Account deleted.")
 
 
 @router.get("/agents", response_model=AgentApplicationListResponse)

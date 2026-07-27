@@ -186,6 +186,14 @@ class MessageResponse(BaseModel):
     message: str
 
 
+class AccountDeleteRequest(BaseModel):
+    """Re-confirmation for self-service deletion — same bar as change-password:
+    the caller already holds a live session, so password re-entry proves
+    intent at equal strength without a new OTP purpose."""
+
+    current_password: Annotated[str, Field(min_length=1, max_length=128)]
+
+
 # ---------------------------------------------------------------------------
 # Current user (dashboard)
 # ---------------------------------------------------------------------------

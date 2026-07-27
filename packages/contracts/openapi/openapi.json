@@ -1,6 +1,38 @@
 {
   "components": {
     "schemas": {
+      "AccountDeleteRequest": {
+        "description": "Re-confirmation for self-service deletion \u2014 same bar as change-password:\nthe caller already holds a live session, so password re-entry proves\nintent at equal strength without a new OTP purpose.",
+        "properties": {
+          "current_password": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Current Password",
+            "type": "string"
+          }
+        },
+        "required": [
+          "current_password"
+        ],
+        "title": "AccountDeleteRequest",
+        "type": "object"
+      },
+      "AdminAccountDeleteRequest": {
+        "description": "FR-17.4 \u2014 Admin removal of a suspicious account. Unlike AgentRejectRequest.note\nabove, this reason IS persisted (AuthEvent.detail.reason).",
+        "properties": {
+          "reason": {
+            "maxLength": 1000,
+            "minLength": 1,
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "reason"
+        ],
+        "title": "AdminAccountDeleteRequest",
+        "type": "object"
+      },
       "AdminAssignedLeadRead": {
         "properties": {
           "assigned_telecaller_name": {
@@ -9130,6 +9162,65 @@
         ]
       }
     },
+    "/api/v1/admin/users/{auth_user_uuid}/delete": {
+      "post": {
+        "description": "FR-17.4 \u2014 Admin removal of a suspicious account. Admin-only (not Sub\nAdmin): mirrors the require_admin wall on the other irreversible\nplatform-identity actions above (staff provisioning, agent-app review).",
+        "operationId": "delete_user_api_v1_admin_users__auth_user_uuid__delete_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "auth_user_uuid",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Auth User Uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminAccountDeleteRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Delete User",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
     "/api/v1/agent-applications": {
       "post": {
         "operationId": "submit_application_api_v1_agent_applications_post",
@@ -9876,6 +9967,50 @@
       }
     },
     "/api/v1/auth/me": {
+      "delete": {
+        "operationId": "delete_me_api_v1_auth_me_delete",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AccountDeleteRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Delete Me",
+        "tags": [
+          "auth"
+        ]
+      },
       "get": {
         "operationId": "me_api_v1_auth_me_get",
         "responses": {

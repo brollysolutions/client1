@@ -102,6 +102,13 @@ class AgentRejectRequest(BaseModel):
     note: Annotated[str, Field(min_length=1, max_length=1000)]
 
 
+class AdminAccountDeleteRequest(BaseModel):
+    """FR-17.4 — Admin removal of a suspicious account. Unlike AgentRejectRequest.note
+    above, this reason IS persisted (AuthEvent.detail.reason)."""
+
+    reason: Annotated[str, Field(min_length=1, max_length=1000)]
+
+
 # ---------------------------------------------------------------------------
 # Lead assignment (Telecaller Dashboard slice 1 — minimal, no admin queue UI yet)
 # ---------------------------------------------------------------------------
