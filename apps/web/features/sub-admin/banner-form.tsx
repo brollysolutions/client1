@@ -37,6 +37,8 @@ export function BannerForm() {
   const [bannerType, setBannerType] =
     React.useState<(typeof TYPE_OPTIONS)[number]["value"]>("default");
   const [title, setTitle] = React.useState("");
+  const [subtitle, setSubtitle] = React.useState("");
+  const [ctaLabel, setCtaLabel] = React.useState("");
   const [imageKey, setImageKey] = React.useState("");
   const [deepLink, setDeepLink] = React.useState("");
   const [priority, setPriority] = React.useState("0");
@@ -55,6 +57,8 @@ export function BannerForm() {
       business_line: businessLine,
       banner_type: bannerType,
       title: title.trim(),
+      subtitle: subtitle.trim() || null,
+      cta_label: ctaLabel.trim() || null,
       image_key: imageKey.trim() || null,
       deep_link: deepLink.trim() || null,
       audience_rules: {},
@@ -130,18 +134,43 @@ export function BannerForm() {
         </div>
 
         <div>
-          <Label htmlFor="deep-link">Deep link</Label>
+          <Label htmlFor="subtitle">Subtitle</Label>
           <Input
-            id="deep-link"
-            placeholder="https://…"
-            value={deepLink}
-            onChange={(e) => setDeepLink(e.target.value)}
-            maxLength={1000}
+            id="subtitle"
+            placeholder="A short line under the title"
+            value={subtitle}
+            onChange={(e) => setSubtitle(e.target.value)}
+            maxLength={300}
           />
-          <p className="mt-1 text-xs text-text-secondary">
-            Where a click on this banner takes the customer.
-          </p>
         </div>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div>
+            <Label htmlFor="cta-label">Button label</Label>
+            <Input
+              id="cta-label"
+              placeholder="Learn more"
+              value={ctaLabel}
+              onChange={(e) => setCtaLabel(e.target.value)}
+              maxLength={40}
+            />
+          </div>
+          <div>
+            <Label htmlFor="deep-link">Deep link</Label>
+            <Input
+              id="deep-link"
+              placeholder="/loans"
+              value={deepLink}
+              onChange={(e) => setDeepLink(e.target.value)}
+              maxLength={1000}
+            />
+          </div>
+        </div>
+        <p className="-mt-3 text-xs text-text-secondary">
+          The button label and deep link together become the banner&apos;s call to action. Use a
+          path starting with a single / to link within the site. An external link (including one
+          starting with //) will not show a button on the public homepage.
+        </p>
 
         <div className="grid gap-4 sm:grid-cols-2">
           <div>

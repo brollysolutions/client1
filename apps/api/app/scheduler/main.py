@@ -21,6 +21,7 @@ import app.db.session as db_session
 from app.core.config import settings
 from app.jobs.audit_paid_payouts import audit_paid_payouts
 from app.jobs.backfill_customer_codes import backfill_customer_codes
+from app.jobs.cms_activation import cms_activation
 from app.jobs.purge_agent_application_orphans import purge_agent_application_orphans
 from app.jobs.reconcile_payouts import reconcile_payouts
 from app.models.auth import RefreshToken
@@ -137,6 +138,17 @@ def build_scheduler() -> AsyncIOScheduler:
         trigger="interval",
         hours=24,  # storage cost cleanup, not time-critical
         id="purge_agent_application_orphans",
+        max_instances=1,
+        coalesce=True,
+        replace_existing=True,
+    )
+    scheduler.add_job(
+        cms_activation,
+        trigger="interval",
+        minutes=5,  # bounds worst-case publish latency: 5 min here + the
+        # homepage's 60s ISR window puts a banner live within ~6 min of its
+        # starts_at. Cost is 4 indexed UPDATEs matching 0 rows most ticks.
+        id="cms_activation",
         max_instances=1,
         coalesce=True,
         replace_existing=True,

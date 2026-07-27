@@ -18,8 +18,9 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.session import get_db
+from app.schemas.banners import PublicBannerListResponse, PublicBannerRead
 from app.schemas.properties import PublicPropertyListResponse, PublicPropertyRead
-from app.services.public_catalog import list_public_properties
+from app.services.public_catalog import list_public_banners, list_public_properties
 
 router = APIRouter()
 
@@ -31,4 +32,14 @@ async def list_properties_public(
     properties = await list_public_properties(db)
     return PublicPropertyListResponse(
         properties=[PublicPropertyRead.model_validate(p, from_attributes=True) for p in properties]
+    )
+
+
+@router.get("/banners", response_model=PublicBannerListResponse)
+async def list_banners_public(
+    db: AsyncSession = Depends(get_db),
+) -> PublicBannerListResponse:
+    banners = await list_public_banners(db)
+    return PublicBannerListResponse(
+        banners=[PublicBannerRead.model_validate(b, from_attributes=True) for b in banners]
     )

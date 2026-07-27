@@ -13,53 +13,16 @@ import {
   CarouselPrevious,
   type CarouselApi,
 } from "@/components/ui/carousel";
+import type { HeroBanner } from "@/lib/banners";
 import { cn } from "@/lib/utils";
 
-// Dynamic-ready banner shape, aligned to the specced `banners` table
-// (docs/architecture/master_erd.mermaid). Today the array below is hardcoded
-// placeholders; later this becomes data fetched from /api/v1/banners and passed
-// in as a prop — no layout rework needed.
-type Banner = {
-  id: string;
-  title: string;
-  subtitle?: string; // placeholder flavor; real banners bake copy into the image
-  image?: string; // ERD image_key → resolved URL; undefined ⇒ cream placeholder
-  cta?: { label: string; href: string }; // href ⇒ ERD deep_link
-  // future: business_line, priority, status, starts_at, ends_at
-};
-
-// Landscape-only banners (~3:1). Recommended upload: 2400×800, JPG/WebP.
-const BANNERS: Banner[] = [
-  {
-    id: "loans",
-    title: "Loans, cards, and insurance that fit you",
-    subtitle:
-      "All kinds of loans, credit cards, and insurance, matched to what you need.",
-    cta: { label: "Explore loans", href: "/loans" },
-  },
-  {
-    id: "real-estate",
-    title: "Buy your property with confidence",
-    subtitle: "Verified properties and trusted partners, all in one place.",
-    cta: { label: "Explore properties", href: "/real-estate" },
-  },
-  {
-    id: "why-us",
-    title: "One bridge between you and the banks",
-    subtitle:
-      "We connect you with the right banks and partners, and stay with you at every step.",
-    cta: { label: "Get in touch", href: "/contact" },
-  },
-  {
-    id: "trust",
-    title: "Safe and secure, always verified",
-    subtitle:
-      "OTP login and KYC-verified partners keep every deal safe.",
-    cta: { label: "Learn more", href: "#security" },
-  },
-];
-
-export function HeroCarousel() {
+// Banners now come from GET /api/v1/public/banners (see
+// docs/specs/public-banner-serving.md), fetched server-side by
+// app/(public)/page.tsx and passed in here. `banners` is a required prop with
+// no default so tsc catches a call site that forgot to fetch; the caller is
+// also responsible for falling back to lib/banners.ts's
+// FALLBACK_HERO_BANNERS when the CMS has nothing live.
+export function HeroCarousel({ banners }: { banners: HeroBanner[] }) {
   const [api, setApi] = useState<CarouselApi>();
   const [selected, setSelected] = useState(0);
   const [count, setCount] = useState(0);
@@ -131,6 +94,11 @@ export function HeroCarousel() {
     };
   }, [api]);
 
+  // Embla with zero slides is undefined behavior; the page never intends to
+  // pass zero (it falls back to FALLBACK_HERO_BANNERS), but this is
+  // belt-and-braces against a caller that forgets to.
+  if (banners.length === 0) return null;
+
   return (
     // Cream section spans edge to edge, flush against the sticky NavBar above
     // it (no top padding); the carousel itself is a centered, fixed-size
@@ -145,7 +113,7 @@ export function HeroCarousel() {
             peek math (container - basis)/2 exact; the visual gap between
             center and peeked neighbors comes from scale-95 below instead. */}
         <CarouselContent className="ml-0">
-          {BANNERS.map((banner, i) => {
+          {banners.map((banner, i) => {
             const isSelected = i === selected;
             return (
               <CarouselItem
@@ -240,17 +208,25 @@ export function HeroCarousel() {
             width from hero's isSelected item) minus a fixed gap, so the arrow
             sits just outside the main banner instead of over the blurred peek.
             Card basis must stay in sync with the CarouselItem basis classes above
-            (90vw / 720px / 1200px). */}
-        <CarouselPrevious
-          variant="ghost"
-          onClick={goPrev}
-          className="left-[calc(50%-45vw-2.75rem)] h-12 w-12 cursor-pointer rounded-full border-none bg-transparent text-brand-blue drop-shadow-sm transition-all duration-300 hover:bg-white/40 hover:text-brand-blue hover:backdrop-blur-md hover:shadow-md [&_svg]:size-7 sm:left-[calc(50%-360px-3rem)] sm:h-14 sm:w-14 sm:[&_svg]:size-8 lg:left-[calc(50%-600px-3rem)]"
-        />
-        <CarouselNext
-          variant="ghost"
-          onClick={goNext}
-          className="right-[calc(50%-45vw-0.75rem)] h-12 w-12 cursor-pointer rounded-full border-none bg-transparent text-brand-blue drop-shadow-sm transition-all duration-300 hover:bg-white/40 hover:text-brand-blue hover:backdrop-blur-md hover:shadow-md [&_svg]:size-7 sm:right-[calc(50%-360px-0.75rem)] sm:h-14 sm:w-14 sm:[&_svg]:size-8 lg:right-[calc(50%-600px-0.75rem)]"
-        />
+            (90vw / 720px / 1200px). Guarded on banners.length > 1, matching the
+            dot-strip guard below: with loop: true and exactly one slide, Embla
+            disables looping and both arrows would otherwise sit there as
+            visible no-ops -- the most likely day-one production state (one
+            approved banner). */}
+        {banners.length > 1 && (
+          <>
+            <CarouselPrevious
+              variant="ghost"
+              onClick={goPrev}
+              className="left-[calc(50%-45vw-2.75rem)] h-12 w-12 cursor-pointer rounded-full border-none bg-transparent text-brand-blue drop-shadow-sm transition-all duration-300 hover:bg-white/40 hover:text-brand-blue hover:backdrop-blur-md hover:shadow-md [&_svg]:size-7 sm:left-[calc(50%-360px-3rem)] sm:h-14 sm:w-14 sm:[&_svg]:size-8 lg:left-[calc(50%-600px-3rem)]"
+            />
+            <CarouselNext
+              variant="ghost"
+              onClick={goNext}
+              className="right-[calc(50%-45vw-0.75rem)] h-12 w-12 cursor-pointer rounded-full border-none bg-transparent text-brand-blue drop-shadow-sm transition-all duration-300 hover:bg-white/40 hover:text-brand-blue hover:backdrop-blur-md hover:shadow-md [&_svg]:size-7 sm:right-[calc(50%-360px-0.75rem)] sm:h-14 sm:w-14 sm:[&_svg]:size-8 lg:right-[calc(50%-600px-0.75rem)]"
+            />
+          </>
+        )}
       </Carousel>
 
       {/* Dot indicators — in the cream strip below the banner (robust over any image). */}

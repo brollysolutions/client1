@@ -8,8 +8,19 @@ import { HowItWorks } from "@/components/how-it-works";
 import { LineSplit } from "@/components/line-split";
 import { PartnerCta } from "@/components/partner-cta";
 import { WhyChooseUs } from "@/components/why-choose-us";
+import { FALLBACK_HERO_BANNERS } from "@/lib/banners";
 import { faqPageJsonLd, HOME_FAQ_ITEMS } from "@/lib/faq";
+import { getHeroBanners } from "@/lib/public-banners";
 import { SITE_NAME, SITE_URL } from "@/lib/site";
+
+// The hero is the one CMS surface with an explicit starts_at/ends_at contract
+// (docs/specs/public-banner-serving.md), so visitor-visible publish latency is
+// scheduler interval + this window: at 60s that's ~6 minutes past a banner's
+// stated go-live time. /real-estate uses 300 because properties have no
+// timestamp promise and a human-paced approval loop; this page's traffic is
+// higher but the per-request cost is identical (one fetch either way), so the
+// shorter window costs nothing extra per visitor.
+export const revalidate = 60;
 
 // Landing-scoped SEO metadata. Overrides the generic root-layout default
 // (which stays as the internal fallback for authenticated dashboard routes).
@@ -43,7 +54,14 @@ const homeFaqJsonLd = {
   publisher: { "@type": "Organization", name: SITE_NAME, url: SITE_URL },
 };
 
-export default function Home() {
+export default async function Home() {
+  // Empty table or a failed fetch both collapse to []: getHeroBanners()
+  // never throws (see lib/public-banners.ts), and we deliberately don't
+  // distinguish the two here either -- FALLBACK_HERO_BANNERS is what renders
+  // in either case, so the homepage is never blank.
+  const liveBanners = await getHeroBanners();
+  const banners = liveBanners.length > 0 ? liveBanners : FALLBACK_HERO_BANNERS;
+
   return (
     <>
       <script
@@ -57,7 +75,7 @@ export default function Home() {
         Compare personal, business, property, vehicle and education loans, credit
         cards, insurance, and verified real estate in one place
       </h1>
-      <HeroCarousel />
+      <HeroCarousel banners={banners} />
       {/* Floating natural-color finance doodles overlay the LineSplit bands and the
           WhyChooseUs bento (lg+, pointer-events-none), hugging the outer gutters. */}
       <div className="relative">
