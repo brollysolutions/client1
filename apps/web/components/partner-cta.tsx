@@ -22,9 +22,9 @@ export function PartnerCta() {
       className="relative w-full overflow-hidden scroll-mt-16 border-t border-[var(--nav-border)] bg-[var(--nav-bg)]"
     >
       <div className="relative mx-auto max-w-6xl px-4 py-12 sm:px-6 sm:py-16 lg:px-8 lg:py-20">
-        <div className="grid items-center gap-10 lg:grid-cols-[minmax(0,5fr)_minmax(0,8fr)] lg:gap-16">
+        <div className="grid items-center gap-10 md:grid-cols-2 lg:grid-cols-[minmax(0,5fr)_minmax(0,8fr)] lg:gap-16">
           {/* Content */}
-          <div className="lg:order-1">
+          <div className="md:order-1">
             <h2
               id="partners-heading"
               className="font-heading text-3xl font-semibold text-foreground sm:text-4xl lg:text-5xl"
@@ -78,17 +78,18 @@ export function PartnerCta() {
             </p>
           </div>
 
-          {/* Illustration (decorative + desktop-only, lg+). Transparent, sits
-              directly on the cream section so it blends, no boxed panel. Large and
-              centered in the right column, like the line-split band illustrations. */}
-          <div className="hidden lg:order-2 lg:flex lg:items-center lg:justify-center">
+          {/* Illustration (decorative, md+). Transparent, sits directly on the
+              cream section so it blends, no boxed panel. Centered in the right
+              column, like the line-split band illustrations, which also split
+              side-by-side from md so tablets read like the desktop layout. */}
+          <div className="hidden md:order-2 md:flex md:items-center md:justify-center">
             <Image
               src="/illustrations/earn-with-us.svg"
               alt=""
               width={500}
               height={500}
-              sizes="560px"
-              className="mx-auto h-auto w-full max-w-[560px]"
+              sizes="(min-width: 1024px) 560px, 50vw"
+              className="mx-auto h-auto w-full max-w-[460px] lg:max-w-[560px]"
               priority={false}
               aria-hidden
             />

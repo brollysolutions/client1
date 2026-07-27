@@ -1,12 +1,18 @@
 import {
+  BadgeCheck,
   Briefcase,
   Car,
   CreditCard,
   FileCheck,
   GraduationCap,
   Handshake,
+  HeartHandshake,
   Home,
+  KeyRound,
+  Landmark,
   Lock,
+  MessageSquareText,
+  PhoneCall,
   ShieldCheck,
   Wallet,
   type LucideIcon,
@@ -35,6 +41,11 @@ export type JourneyStep = {
   description: string;
   /** Decorative scene for the loans illustrated-band journey (lg+ only). */
   image?: string;
+  /**
+   * Decorative badge on the step number, mobile journey only (mirrors the home
+   * "How it works" nodes in components/how-it-works.tsx).
+   */
+  icon?: LucideIcon;
 };
 
 // Trust points shown as the premium strip under the products grid.
@@ -149,24 +160,28 @@ export const LOAN_JOURNEY: JourneyStep[] = [
     description:
       "Pick a loan type and share a few basic details. It takes a couple of minutes.",
     image: "/illustrations/journey-tell-us.svg",
+    icon: MessageSquareText,
   },
   {
     title: "We match you",
     description:
       "We compare offers from KYC-verified banks and lenders and shortlist the ones that fit you.",
     image: "/illustrations/journey-match.svg",
+    icon: BadgeCheck,
   },
   {
     title: "We call you back",
     description:
       "An advisor helps you check eligibility, gather documents, and complete the application.",
     image: "/illustrations/journey-call.svg",
+    icon: PhoneCall,
   },
   {
     title: "Money reaches your account",
     description:
       "Once your loan is approved and paperwork is done, the amount is disbursed to you.",
     image: "/illustrations/journey-money.svg",
+    icon: Landmark,
   },
 ];
 
@@ -176,23 +191,27 @@ export const REAL_ESTATE_JOURNEY: JourneyStep[] = [
     description:
       "Tell us the kind of property you want to buy, your budget, and the areas you like.",
     image: "/illustrations/journey-re-look.svg",
+    icon: MessageSquareText,
   },
   {
     title: "See only verified options",
     description:
       "We show you properties and agents that are checked and verified before they reach you.",
     image: "/illustrations/journey-re-verified.svg",
+    icon: BadgeCheck,
   },
   {
     title: "One person guides you",
     description:
       "A single point of contact stays with you from the first visit to the final paperwork.",
     image: "/illustrations/journey-re-guide.svg",
+    icon: HeartHandshake,
   },
   {
     title: "Close with confidence",
     description:
       "Everything is verified in advance, so you reach the finish line with no surprises.",
     image: "/illustrations/journey-re-close.svg",
+    icon: KeyRound,
   },
 ];

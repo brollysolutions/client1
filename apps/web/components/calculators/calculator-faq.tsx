@@ -6,13 +6,15 @@ import type { CalculatorFaq as Faq } from "@/lib/calculators/types";
 // registry `faq` array), so the page and the structured data never drift.
 // Server Component, native <details>/<summary> accordion matching the public
 // faq-section pattern: keyboard-native, no client JS, animated height via the
-// .faq-details rule in globals.css (progressive enhancement).
+// .faq-details rule in globals.css (progressive enhancement). Rows share one
+// <details name> group so only one answer is open at a time.
 export function CalculatorFaq({ items }: { items: Faq[] }) {
   return (
     <div className="overflow-hidden rounded-2xl border border-[var(--nav-border)] bg-white shadow-sm">
       {items.map((item, index) => (
         <details
           key={item.q}
+          name="calculator-faq"
           className={
             index === 0
               ? "faq-details group"

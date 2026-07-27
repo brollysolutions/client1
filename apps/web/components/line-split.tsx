@@ -1,3 +1,5 @@
+import { type CSSProperties } from "react";
+
 import { CheckIcon } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -72,32 +74,52 @@ function Band({ line, paddingClassName }: { line: Line; paddingClassName: string
       id={line.id}
       aria-labelledby={`${line.id}-heading`}
       className={cn(
-        "w-full scroll-mt-16",
+        // overflow-x-clip: the lg+ illustration scale transform can extend the
+        // scrollable area past the viewport on narrow desktops (~1024px),
+        // producing a page-wide horizontal scrollbar; clip (not hidden) trims
+        // the decorative spill without creating a scroll container.
+        "w-full scroll-mt-16 overflow-x-clip",
         line.tint === "cream" ? "bg-[var(--nav-bg)]" : "bg-surface",
         paddingClassName
       )}
     >
       <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
-        <div className="grid items-center gap-10 lg:grid-cols-2 lg:gap-16">
-          {/* Illustration */}
+        <div className="grid items-center gap-8 sm:gap-10 md:grid-cols-2 lg:gap-16">
+          {/* Illustration. Stacked above the copy on mobile (it opens the band),
+              side-by-side with it from md so tablets read like the desktop
+              layout. Sizes step up with the viewport; below md the grid is one
+              column so the mx-auto cap keeps the scene from swallowing the
+              screen. */}
           <div
             className={cn(
-              "mx-auto hidden w-full max-w-[560px] lg:block",
-              imageOnRight ? "lg:order-2" : "lg:order-1"
+              "mx-auto w-full max-w-[280px] sm:max-w-[380px] md:max-w-[460px] lg:max-w-[560px]",
+              imageOnRight ? "md:order-2" : "md:order-1"
             )}
           >
             {/* Illustration is decorative (alt=""); the band heading carries the
                 line name, so no separate DOM label here. imageScale corrects for
                 the two illustrations filling their shared 500x500 canvas at
-                different visual densities (see Line type comment). */}
+                different visual densities (see Line type comment) — applied lg+
+                only: below lg the transform's visual overflow could poke past
+                the viewport / into the copy column. NB the arbitrary
+                [transform:...] writes the transform property directly, so don't
+                add Tailwind translate/rotate/scale utilities to this element —
+                they'd emit a second, conflicting transform declaration. */}
             <Image
               src={line.image}
               alt=""
               width={500}
               height={500}
-              sizes="560px"
-              className="h-auto w-full"
-              style={line.imageScale ? { transform: `scale(${line.imageScale})` } : undefined}
+              sizes="(min-width: 1024px) 560px, (min-width: 768px) 50vw, (min-width: 640px) 380px, 280px"
+              className={cn(
+                "h-auto w-full",
+                line.imageScale && "lg:[transform:scale(var(--illus-scale))]"
+              )}
+              style={
+                line.imageScale
+                  ? ({ "--illus-scale": line.imageScale } as CSSProperties)
+                  : undefined
+              }
               priority={false}
             />
           </div>
@@ -105,13 +127,15 @@ function Band({ line, paddingClassName }: { line: Line; paddingClassName: string
           {/* Copy */}
           <div
             className={cn(
-              "text-center lg:text-left",
-              imageOnRight ? "lg:order-1" : "lg:order-2"
+              "text-left",
+              imageOnRight ? "md:order-1" : "md:order-2"
             )}
           >
+            {/* The sm→md size DOWN-step is deliberate: at md the grid splits into
+                two columns, so the heading's room halves until lg widens it. */}
             <h2
               id={`${line.id}-heading`}
-              className="font-heading text-3xl font-semibold text-[var(--nav-text)] sm:text-4xl lg:text-5xl"
+              className="font-heading text-3xl font-semibold text-[var(--nav-text)] sm:text-4xl md:text-3xl lg:text-5xl"
             >
               {line.title}
             </h2>
@@ -131,7 +155,7 @@ function Band({ line, paddingClassName }: { line: Line; paddingClassName: string
                 </li>
               ))}
             </ul>
-            <div className="mt-6 flex justify-center lg:justify-start">
+            <div className="mt-6 flex justify-start">
               <Button
                 asChild
                 className="w-full bg-[var(--nav-primary)] text-white hover:bg-[var(--nav-primary-hover)] focus-visible:ring-[var(--nav-primary)] sm:w-auto"

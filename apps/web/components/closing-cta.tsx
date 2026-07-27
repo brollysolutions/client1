@@ -66,15 +66,18 @@ export function ClosingCta({
 
 // Faint finance line-doodles bleeding in from the edges, matching the same
 // vocabulary + treatment as product-page.tsx's CtaBandDoodles so both closing
-// bands read as one family. Decorative, lg+ only.
+// bands read as one family. Decorative on every viewport: at 10% opacity they
+// are texture, not content, so below lg they shrink and tuck into opposite
+// corners (top-left / bottom-right) instead of sitting mid-band behind the
+// centered copy.
 function CtaBandDoodles() {
   return (
     <div
       aria-hidden
-      className="pointer-events-none absolute inset-0 z-0 hidden overflow-hidden text-white opacity-10 lg:block"
+      className="pointer-events-none absolute inset-0 z-0 overflow-hidden text-white opacity-10"
     >
       <svg
-        className="absolute -left-6 top-1/2 h-40 w-52 -translate-y-1/2"
+        className="absolute -left-8 top-4 h-24 w-32 sm:h-32 sm:w-40 lg:-left-6 lg:top-1/2 lg:h-40 lg:w-52 lg:-translate-y-1/2"
         viewBox="0 0 200 160"
         fill="none"
         stroke="currentColor"
@@ -109,7 +112,7 @@ function CtaBandDoodles() {
       </svg>
 
       <svg
-        className="absolute -right-6 top-1/2 h-40 w-52 -translate-y-1/2"
+        className="absolute -right-8 bottom-4 h-24 w-32 sm:h-32 sm:w-40 lg:bottom-auto lg:-right-6 lg:top-1/2 lg:h-40 lg:w-52 lg:-translate-y-1/2"
         viewBox="0 0 200 160"
         fill="none"
         stroke="currentColor"

@@ -18,7 +18,7 @@ export function TrustStrip({
         aria-hidden
         className="absolute inset-x-0 top-0 h-[3px] bg-gradient-to-r from-transparent via-brand-blue to-transparent"
       />
-      <div className="px-6 py-9 sm:px-10">
+      <div className="px-3 py-9 sm:px-2 lg:px-10">
         {eyebrow ? (
           <p className="text-center font-geist text-xs font-semibold uppercase tracking-[0.2em] text-brand-blue">
             {eyebrow}
@@ -28,7 +28,7 @@ export function TrustStrip({
           {points.map((point) => (
             <div
               key={point.label}
-              className="flex flex-col items-center px-6 text-center transition duration-200 hover:-translate-y-1 motion-reduce:transition-none motion-reduce:hover:translate-y-0"
+              className="flex flex-col items-center px-2 text-center transition duration-200 sm:px-3 lg:px-6 hover:-translate-y-1 motion-reduce:transition-none motion-reduce:hover:translate-y-0"
             >
               <span className="flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-white to-[var(--nav-tint)] text-brand-blue shadow-sm ring-2 ring-brand-blue/20">
                 <point.icon className="h-6 w-6" aria-hidden />

@@ -23,8 +23,8 @@ import { Button } from "@/components/ui/button";
 //
 // Blue-only like the rest of the public site (loans-green / realestate-amber stay
 // reserved for authenticated dashboards, per docs/design/ui-principles.md). The
-// anchor is a soft blue tint; the closing CTA band is solid blue, so hierarchy
-// reads correctly between them.
+// anchor shares the supporting cards' surface and is set apart by a blue border
+// instead; the closing CTA band is solid blue, so hierarchy reads correctly.
 type Benefit = { title: string; detail: string; icon: LucideIcon };
 
 // Supporting cards (the anchor card is authored inline below). Icons carry the
@@ -101,16 +101,21 @@ export function WhyChooseUs() {
           </p>
         </div>
 
-        {/* Bento benefit grid: anchor card + supporting cards */}
-        <ul className="mt-12 grid auto-rows-fr gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        {/* Bento benefit grid: anchor card + supporting cards. auto-rows-fr is
+            lg-only: it exists to square up the 2x2 supporting block against the
+            row-span-2 anchor. Below lg (anchor in its own row, taller than the
+            supporting cards) it would stretch every supporting card to the
+            anchor's height, leaving dead space under their two lines of
+            copy — so smaller viewports let rows size to content instead. */}
+        <ul className="mt-12 grid gap-5 sm:grid-cols-2 lg:auto-rows-fr lg:grid-cols-3">
           {/* Anchor card (core promise) */}
           <li className="sm:col-span-2 lg:row-span-2">
-            <article className="h-full rounded-2xl border border-[var(--nav-primary)]/20 bg-[var(--nav-tint)]/60 p-6 shadow-sm sm:p-8">
-              <div className="flex h-full flex-col gap-6 lg:flex-row lg:items-center lg:gap-8">
+            <article className="h-full rounded-2xl border border-[var(--nav-primary)]/20 bg-surface p-6 shadow-sm sm:p-8">
+              <div className="flex h-full flex-col gap-6 md:flex-row md:items-center lg:gap-8">
                 {/* Copy. Narrower than a 50/50 split so the illustration column
                     (below) gets more width to grow into the row-span-2 height
                     instead of leaving dead space. */}
-                <div className="lg:basis-[42%]">
+                <div className="md:basis-[42%]">
                   <IconChip icon={Layers} large />
                   <h3 className="mt-6 font-heading text-xl font-semibold text-foreground sm:text-2xl">
                     One partner for loans and property
@@ -123,17 +128,21 @@ export function WhyChooseUs() {
                     Loans and property, one account.
                   </p>
                 </div>
-                {/* Illustration fills the right half (desktop-only, per the
-                    illustrations lg+ rule). Storyset scene recolored to the public
-                    blue palette; decorative, so alt="". */}
-                <div className="hidden lg:flex lg:h-full lg:basis-[58%] lg:items-center lg:justify-center">
+                {/* Illustration: md+ only — hidden on mobile so the anchor card
+                    stays a compact copy-only card there. Fills the right half of
+                    the card from md up. At md it sizes intrinsically
+                    (width-capped, h-auto); the h-full/max-h height-driven recipe
+                    only applies at lg where the row-span-2 grid row makes the
+                    100%-height chain reliable. Storyset scene recolored to the
+                    public blue palette; decorative, so alt="". */}
+                <div className="hidden items-center justify-center md:flex md:h-full md:basis-[58%]">
                   <Image
                     src="/illustrations/why-choose-us.svg"
                     alt=""
                     width={480}
                     height={360}
-                    sizes="480px"
-                    className="h-full max-h-[280px] w-auto max-w-full"
+                    sizes="(min-width: 768px) 480px, 0px"
+                    className="h-auto w-full max-w-[380px] lg:h-full lg:max-h-[280px] lg:w-auto lg:max-w-full"
                     aria-hidden
                   />
                 </div>
@@ -169,7 +178,7 @@ export function WhyChooseUs() {
             <h3 className="font-heading text-base font-semibold text-foreground">
               Refer and earn cashback
             </h3>
-            <p className="text-sm leading-snug text-text-secondary">
+            <p className="mt-1 text-sm leading-relaxed text-text-secondary">
               Share your referral code with friends. When someone you refer
               buys a property or closes a loan, you earn cashback.
             </p>

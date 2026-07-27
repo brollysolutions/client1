@@ -211,61 +211,67 @@ export function ProductPage({
             ))}
 
             {productsCta ? (
-              <div className="hidden h-full flex-col rounded-xl bg-[var(--nav-primary)] p-6 text-white shadow-sm sm:flex">
-                <div>
-                  <h3 className="font-heading text-lg font-semibold">
-                    {productsCta.title}
-                  </h3>
-                  <p className="mt-2 text-sm text-white/85">
-                    {productsCta.text}
-                  </p>
-                </div>
+              // The CTA is a standard service card: same Card skeleton as the
+              // products above (illustration band -> header -> footer, same
+              // gaps/padding/radius/hover), so it shares their exact sizing at
+              // every breakpoint. Only its identity differs: navy fill + white
+              // ink instead of the light card surface.
+              <Card className="group flex h-full flex-col overflow-hidden border-transparent bg-[var(--nav-primary)] pt-0 text-white transition duration-200 hover:-translate-y-0.5 hover:shadow-md motion-reduce:transition-none motion-reduce:hover:translate-y-0">
                 {/* faceless advisor + headset, white monoline on the blue card
-                    (illustration-style.md: figures faceless, never blob). Decorative
-                    and desktop-only per the illustrations lg+ rule. flex-1 wrapper
-                    centers it in the card's middle so no gap sits above the button. */}
-                <div className="flex flex-1 items-center justify-center">
-                <svg
-                  aria-hidden
-                  viewBox="0 0 240 180"
-                  className="hidden h-40 w-auto lg:block"
-                  fill="none"
-                  stroke="#FFFFFF"
-                  strokeWidth={3}
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  {/* depth dots */}
-                  <circle cx="40" cy="44" r="4" fill="#FFFFFF" stroke="none" opacity="0.3" />
-                  <circle cx="34" cy="132" r="3" fill="#FFFFFF" stroke="none" opacity="0.3" />
-                  <circle cx="208" cy="128" r="5" fill="#FFFFFF" stroke="none" opacity="0.25" />
-                  {/* bust */}
-                  <rect x="108" y="98" width="20" height="28" fill="#FFFFFF" fillOpacity="0.12" stroke="none" />
-                  <path d="M70 180 C70 138 96 124 118 124 C140 124 168 138 168 180" fill="#FFFFFF" fillOpacity="0.12" />
-                  {/* head */}
-                  <circle cx="118" cy="74" r="30" fill="#FFFFFF" fillOpacity="0.12" />
-                  {/* headset band + ear cups */}
-                  <path d="M86 72 Q118 24 150 72" strokeWidth={5} />
-                  <rect x="80" y="64" width="13" height="24" rx="6" fill="#FFFFFF" fillOpacity="0.22" />
-                  <rect x="143" y="64" width="13" height="24" rx="6" fill="#FFFFFF" fillOpacity="0.22" />
-                  {/* mic boom */}
-                  <path d="M87 86 Q90 106 108 103" />
-                  <circle cx="110" cy="103" r="4" fill="#FFFFFF" stroke="none" />
-                  {/* chat bubble with rupee */}
-                  <rect x="166" y="34" width="54" height="40" rx="11" fill="#FFFFFF" fillOpacity="0.15" />
-                  <path d="M178 72 L172 86 L188 78 Z" fill="#FFFFFF" fillOpacity="0.15" stroke="none" />
-                  <text x="193" y="61" fontSize="22" fontWeight={700} fill="#FFFFFF" stroke="none" textAnchor="middle" fontFamily="system-ui, sans-serif">&#8377;</text>
-                </svg>
+                    (illustration-style.md: figures faceless, never blob). Sits in
+                    the same aspect-[4/3] band the product cards use for their art. */}
+                <div className="relative aspect-[4/3] w-full bg-white/5">
+                  <div className="absolute inset-0 flex items-center justify-center p-6">
+                    <svg
+                      aria-hidden
+                      viewBox="0 0 240 180"
+                      className="h-full w-full"
+                      fill="none"
+                      stroke="#FFFFFF"
+                      strokeWidth={3}
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      {/* depth dots */}
+                      <circle cx="40" cy="44" r="4" fill="#FFFFFF" stroke="none" opacity="0.3" />
+                      <circle cx="34" cy="132" r="3" fill="#FFFFFF" stroke="none" opacity="0.3" />
+                      <circle cx="208" cy="128" r="5" fill="#FFFFFF" stroke="none" opacity="0.25" />
+                      {/* bust */}
+                      <rect x="108" y="98" width="20" height="28" fill="#FFFFFF" fillOpacity="0.12" stroke="none" />
+                      <path d="M70 180 C70 138 96 124 118 124 C140 124 168 138 168 180" fill="#FFFFFF" fillOpacity="0.12" />
+                      {/* head */}
+                      <circle cx="118" cy="74" r="30" fill="#FFFFFF" fillOpacity="0.12" />
+                      {/* headset band + ear cups */}
+                      <path d="M86 72 Q118 24 150 72" strokeWidth={5} />
+                      <rect x="80" y="64" width="13" height="24" rx="6" fill="#FFFFFF" fillOpacity="0.22" />
+                      <rect x="143" y="64" width="13" height="24" rx="6" fill="#FFFFFF" fillOpacity="0.22" />
+                      {/* mic boom */}
+                      <path d="M87 86 Q90 106 108 103" />
+                      <circle cx="110" cy="103" r="4" fill="#FFFFFF" stroke="none" />
+                      {/* chat bubble with rupee */}
+                      <rect x="166" y="34" width="54" height="40" rx="11" fill="#FFFFFF" fillOpacity="0.15" />
+                      <path d="M178 72 L172 86 L188 78 Z" fill="#FFFFFF" fillOpacity="0.15" stroke="none" />
+                      <text x="193" y="61" fontSize="22" fontWeight={700} fill="#FFFFFF" stroke="none" textAnchor="middle" fontFamily="system-ui, sans-serif">&#8377;</text>
+                    </svg>
+                  </div>
                 </div>
-                <div className="pt-2">
+                <CardHeader className="flex-1">
+                  <CardTitle className="font-heading text-lg text-white">
+                    {productsCta.title}
+                  </CardTitle>
+                  <CardDescription className="text-base text-white/85">
+                    {productsCta.text}
+                  </CardDescription>
+                </CardHeader>
+                <CardFooter>
                   <LeadDialog
                     businessLine={businessLine}
                     triggerLabel={productsCta.label}
                     triggerVariant="invert"
                     href={contactHref({ line: businessLine })}
                   />
-                </div>
-              </div>
+                </CardFooter>
+              </Card>
             ) : null}
           </div>
 
@@ -287,21 +293,64 @@ export function ProductPage({
           </h2>
           {journeyTimeline ? (
             <>
-              {/* Below lg: text-only stacked steps. Illustrations + footprint trail
-                  are lg+ only (locked rule: illustrations/decoration render lg+,
-                  never phone/tablet; memory: illustrations-desktop-only). */}
-              <ol className="mt-10 grid gap-8 sm:grid-cols-2 lg:hidden">
+              {/* Below lg: text-only steps. Illustrations + footprint trail are
+                  lg+ only (locked rule: illustrations/decoration render lg+, never
+                  phone/tablet; memory: illustrations-desktop-only). */}
+
+              {/* Mobile only (<sm): stacked centered steps that mirror the home
+                  "How it works" nodes (components/how-it-works.tsx) exactly, so
+                  both flows read as the same pattern on a phone: large numbered
+                  circle with a small icon badge, no connector spine. */}
+              <ol className="mt-14 grid gap-12 sm:hidden">
                 {journey.map((step, index) => (
-                  <li key={step.title} className="flex flex-col">
-                    <span className="flex h-11 w-11 items-center justify-center rounded-full bg-[var(--nav-primary)] font-heading text-lg font-semibold text-white">
+                  <li
+                    key={step.title}
+                    className="flex flex-col items-center text-center"
+                  >
+                    <span className="relative z-10 flex h-16 w-16 items-center justify-center rounded-full bg-[var(--nav-primary)] font-heading text-2xl font-semibold text-white ring-8 ring-[var(--nav-bg)]">
                       {index + 1}
+                      {step.icon ? (
+                        <span className="absolute -bottom-1 -right-1 flex h-7 w-7 items-center justify-center rounded-full bg-[var(--nav-tint)] text-brand-blue ring-1 ring-[var(--nav-border)]">
+                          <step.icon className="h-4 w-4" aria-hidden />
+                        </span>
+                      ) : null}
                     </span>
-                    <h3 className="mt-5 font-heading text-xl font-semibold text-[var(--nav-text)]">
+                    <h3 className="mt-6 font-heading text-xl font-semibold text-foreground">
                       {step.title}
                     </h3>
-                    <p className="mt-2 text-lg text-[var(--nav-text)]">
+                    <p className="mt-2 max-w-xs text-base text-text-secondary">
                       {step.description}
                     </p>
+                  </li>
+                ))}
+              </ol>
+
+              {/* Tablet (sm–lg): the home "Why choose us" bento card
+                  (components/why-choose-us.tsx) — same rounded-2xl surface card,
+                  chip size, small heading, muted body, hover lift — so the journey
+                  reads as the same system as the home page at tablet width. The
+                  marker itself is the mobile node above scaled down: solid primary
+                  chip carrying the step number, tinted glyph badge in the corner,
+                  so the two breakpoints match. Illustrations stay lg+ only. */}
+              <ol className="mt-12 hidden gap-5 sm:grid sm:grid-cols-2 lg:hidden">
+                {journey.map((step, index) => (
+                  <li key={step.title}>
+                    <article className="flex h-full flex-col rounded-2xl border border-[var(--nav-border)] bg-surface p-6 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-md">
+                      <span className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[var(--nav-primary)] font-heading text-lg font-semibold text-white">
+                        {index + 1}
+                        {step.icon ? (
+                          <span className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-[var(--nav-tint)] text-brand-blue ring-1 ring-[var(--nav-border)]">
+                            <step.icon className="h-3.5 w-3.5" aria-hidden />
+                          </span>
+                        ) : null}
+                      </span>
+                      <h3 className="mt-5 font-heading text-base font-semibold text-foreground">
+                        {step.title}
+                      </h3>
+                      <p className="mt-1 text-sm leading-relaxed text-text-secondary">
+                        {step.description}
+                      </p>
+                    </article>
                   </li>
                 ))}
               </ol>
@@ -455,7 +504,7 @@ function HeroIllustration({
   return (
     <div
       aria-hidden
-      className="hidden shrink-0 items-center justify-center lg:flex lg:w-[460px]"
+      className="flex shrink-0 items-center justify-center lg:w-[460px]"
     >
       <Image
         src={src}
@@ -463,8 +512,8 @@ function HeroIllustration({
         aria-hidden
         width={500}
         height={500}
-        sizes="460px"
-        className="h-auto w-full max-w-[460px]"
+        sizes="(min-width:1024px) 460px, (min-width:640px) 360px, 260px"
+        className="h-auto w-full max-w-[260px] sm:max-w-[360px] lg:max-w-[460px]"
         priority
       />
     </div>

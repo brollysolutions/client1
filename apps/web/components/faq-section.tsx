@@ -8,6 +8,9 @@ import { cn } from "@/lib/utils";
 // estate, earn-with-us). Server Component, native <details>/<summary>
 // accordion, no client JS or shadcn accordion needed. Accessible and
 // keyboard-native by default (Enter/Space toggles the native <summary>).
+// Exclusive accordion: all rows in a section share one <details name>, so the
+// browser closes the open item when another opens (one open at a time, even
+// across the two-column split); clicking the open item again closes it.
 // Open/close height transition is progressive enhancement (see .faq-details
 // in globals.css); browsers without support fall back to an instant toggle.
 export type FaqSectionProps = {
@@ -76,7 +79,7 @@ export function FaqSection({
           )}
         >
           {groups.map((group, groupIndex) => (
-            <FaqCard key={groupIndex} items={group} size={size} />
+            <FaqCard key={groupIndex} items={group} size={size} name={id} />
           ))}
         </div>
       </div>
@@ -90,9 +93,12 @@ export function FaqSection({
 function FaqCard({
   items,
   size = "default",
+  name,
 }: {
   items: FaqItem[];
   size?: "default" | "lg";
+  /** <details name> group — shared per section for exclusive open behavior. */
+  name: string;
 }) {
   const isLg = size === "lg";
   return (
@@ -100,6 +106,7 @@ function FaqCard({
       {items.map((item, index) => (
         <details
           key={item.q}
+          name={name}
           className={
             index === 0
               ? "faq-details group"
