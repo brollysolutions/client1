@@ -1671,6 +1671,18 @@
             "title": "Business Line",
             "type": "string"
           },
+          "cta_label": {
+            "anyOf": [
+              {
+                "maxLength": 40,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cta Label"
+          },
           "deep_link": {
             "anyOf": [
               {
@@ -1724,6 +1736,18 @@
               }
             ],
             "title": "Starts At"
+          },
+          "subtitle": {
+            "anyOf": [
+              {
+                "maxLength": 300,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Subtitle"
           },
           "title": {
             "maxLength": 500,
@@ -1791,6 +1815,17 @@
             "format": "uuid",
             "title": "Created By Uuid",
             "type": "string"
+          },
+          "cta_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cta Label"
           },
           "deep_link": {
             "anyOf": [
@@ -1861,6 +1896,17 @@
           "status": {
             "$ref": "#/components/schemas/BannerStatus"
           },
+          "subtitle": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Subtitle"
+          },
           "title": {
             "title": "Title",
             "type": "string"
@@ -1876,6 +1922,8 @@
           "business_line",
           "banner_type",
           "title",
+          "subtitle",
+          "cta_label",
           "image_key",
           "deep_link",
           "audience_rules",
@@ -1926,6 +1974,18 @@
               }
             ],
             "title": "Audience Rules"
+          },
+          "cta_label": {
+            "anyOf": [
+              {
+                "maxLength": 40,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cta Label"
           },
           "deep_link": {
             "anyOf": [
@@ -1986,6 +2046,18 @@
               }
             ],
             "title": "Starts At"
+          },
+          "subtitle": {
+            "anyOf": [
+              {
+                "maxLength": 300,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Subtitle"
           },
           "title": {
             "anyOf": [
@@ -5067,6 +5139,78 @@
           "created_at"
         ],
         "title": "PropertyRead",
+        "type": "object"
+      },
+      "PublicBannerListResponse": {
+        "properties": {
+          "banners": {
+            "items": {
+              "$ref": "#/components/schemas/PublicBannerRead"
+            },
+            "title": "Banners",
+            "type": "array"
+          }
+        },
+        "required": [
+          "banners"
+        ],
+        "title": "PublicBannerListResponse",
+        "type": "object"
+      },
+      "PublicBannerRead": {
+        "description": "Anonymous-read shape (docs/specs/public-banner-serving.md).\n\nDeliberately NOT a subclass of BannerRead: a separate hand-written schema\nmeans a future sensitive column added to the authenticated read can never\nsilently surface here. Every exclusion below has a reason:\n\n- image_key: deferred this slice, and it's a storage key, not a URL --\n  services/storage.py's presign_download forces\n  ResponseContentDisposition: attachment (unusable as an <img> src) and\n  next.config.ts has no images.remotePatterns configured. Serving banner\n  images needs its own slice and its own security review.\n- audience_rules: targeting internals, meaningless (and a segmentation\n  disclosure) to an anonymous client that can never be targeted.\n- priority: an ordering INPUT, already fully expressed by response order.\n  Exposing it invites a client-side re-sort that would diverge from the\n  server's.\n- status: constant \"live\" by construction on this path. Exposing a\n  constant invites a client-side filter that would quietly become the\n  de-facto access control.\n- created_by_uuid / approved_by_uuid: staff identities, never public.\n- review_note: candid reviewer-to-author feedback.\n- starts_at / ends_at: the endpoint has already applied the window\n  (services/public_catalog.py); republishing it lets a client\n  second-guess the server and discloses unlaunched campaign timing.\n- created_at / updated_at: internal metadata, no display use.\n- business_line: the public hero is cross-line (ADR-0007 makes both lines\n  render identically -- blue-only accent), so nothing in the hero varies\n  by line. Exposing it would also invite a client-side line filter that\n  could become shadow access control.\n- banner_type: the two servable types (default, action) render\n  identically on the hero; exposing it invites a client branch and makes\n  a future enum value a silent frontend break instead of a backend\n  allowlist decision (see services/public_catalog.py's banner_type filter).\n\ndeep_link IS included -- it is the CTA href, author-supplied, and the hero\ncannot function without it. The frontend (lib/public-banners.ts) applies\na same-origin guard before building a CTA from it; this schema stores\nexactly what the author typed.",
+        "properties": {
+          "cta_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cta Label"
+          },
+          "deep_link": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Deep Link"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "subtitle": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Subtitle"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "subtitle",
+          "cta_label",
+          "deep_link"
+        ],
+        "title": "PublicBannerRead",
         "type": "object"
       },
       "PublicLeadCreate": {
@@ -12203,6 +12347,27 @@
         "summary": "Reject",
         "tags": [
           "property-submissions"
+        ]
+      }
+    },
+    "/api/v1/public/banners": {
+      "get": {
+        "operationId": "list_banners_public_api_v1_public_banners_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicBannerListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "List Banners Public",
+        "tags": [
+          "public"
         ]
       }
     },

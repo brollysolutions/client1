@@ -1,0 +1,292 @@
+"""/api/v1/public/banners — the unauthenticated hero-banner read.
+
+There is no anonymous Postgres role in this system, so this endpoint runs as
+the `app` superuser and RLS never engages (see services/public_catalog.py's
+docstring). The `status == LIVE` predicate in that service is the ONLY access
+control on this path -- test_non_live_statuses_hidden_from_anonymous and
+test_approved_row_is_visible_to_a_raw_superuser_session together prove that
+the filtering is coming from the app predicate, not from RLS.
+
+Unlike test_public_properties.py's per-category window, PUBLIC_BANNERS_LIMIT
+is a flat cap with no partition axis, so a leftover LIVE row from another test
+file (or a prior run) can crowd a presence assertion out of the top 8. Every
+presence-test banner here is seeded with priority=100 (default banners.priority
+is 0), guaranteeing it sorts ahead of ordinary seeds regardless of history.
+Every test also deletes its own seeded rows in a finally block, both to avoid
+polluting later runs and because a leaked LIVE row would itself become exactly
+that kind of crowd-out hazard.
+
+Requires: running Postgres + Redis (docker compose up -d).
+"""
+
+from __future__ import annotations
+
+import uuid
+from datetime import UTC, datetime, timedelta
+
+import pytest
+from httpx import AsyncClient
+from sqlalchemy import delete, select, text
+
+from app.services.public_catalog import PUBLIC_BANNERS_LIMIT
+from conftest import full_registration, unique_mobile
+
+
+async def _author_uuid(client: AsyncClient) -> str:
+    """A real auth_users row is required (created_by_uuid FK) -- registers a
+    throwaway account through the real endpoint, same as
+    test_cms_activation.py's helper."""
+    mobile = unique_mobile()
+    await full_registration(client, mobile=mobile, lines=["loans"])
+    import app.db.session as _session_mod
+
+    async with _session_mod.AsyncSessionLocal() as db:
+        row = (
+            await db.execute(text("SELECT id FROM auth_users WHERE mobile = :m"), {"m": mobile})
+        ).fetchone()
+        assert row is not None
+        return str(row[0])
+
+
+async def _seed_banner(
+    *,
+    author: str,
+    status: str,
+    title: str,
+    banner_type: str = "default",
+    priority: int = 100,
+    starts_at: datetime | None = None,
+    ends_at: datetime | None = None,
+    subtitle: str | None = None,
+    cta_label: str | None = None,
+    deep_link: str | None = None,
+) -> str:
+    import app.db.session as _session_mod
+    from app.models.banner import Banner
+
+    async with _session_mod.AsyncSessionLocal() as db:
+        banner = Banner(
+            business_line="loans",
+            banner_type=banner_type,
+            title=title,
+            subtitle=subtitle,
+            cta_label=cta_label,
+            deep_link=deep_link,
+            status=status,
+            priority=priority,
+            created_by_uuid=uuid.UUID(author),
+            starts_at=starts_at,
+            ends_at=ends_at,
+        )
+        db.add(banner)
+        await db.commit()
+        return str(banner.id)
+
+
+async def _delete_banners(*banner_ids: str) -> None:
+    import app.db.session as _session_mod
+    from app.models.banner import Banner
+
+    ids = [uuid.UUID(bid) for bid in banner_ids]
+    async with _session_mod.AsyncSessionLocal() as db:
+        await db.execute(delete(Banner).where(Banner.id.in_(ids)))
+        await db.commit()
+
+
+async def _superuser_sees(banner_id: str) -> bool:
+    import app.db.session as _session_mod
+    from app.models.banner import Banner
+
+    async with _session_mod.AsyncSessionLocal() as db:
+        result = await db.execute(select(Banner).where(Banner.id == uuid.UUID(banner_id)))
+        return result.scalar_one_or_none() is not None
+
+
+@pytest.mark.asyncio
+async def test_no_auth_required(client: AsyncClient) -> None:
+    resp = await client.get("/api/v1/public/banners")
+    assert resp.status_code == 200
+
+    # Contrast with the authenticated twin, to pin the distinction this
+    # endpoint exists to make.
+    auth_resp = await client.get("/api/v1/banners")
+    assert auth_resp.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_live_banner_is_returned(client: AsyncClient) -> None:
+    author = await _author_uuid(client)
+    banner_id = await _seed_banner(
+        author=author,
+        status="live",
+        title="Public Live Banner",
+        subtitle="A short subtitle",
+        cta_label="Apply now",
+        deep_link="/loans",
+    )
+    try:
+        resp = await client.get("/api/v1/public/banners")
+        assert resp.status_code == 200
+        rows = {b["id"]: b for b in resp.json()["banners"]}
+        assert banner_id in rows
+        row = rows[banner_id]
+        assert row["title"] == "Public Live Banner"
+        assert row["subtitle"] == "A short subtitle"
+        assert row["cta_label"] == "Apply now"
+        assert row["deep_link"] == "/loans"
+    finally:
+        await _delete_banners(banner_id)
+
+
+@pytest.mark.asyncio
+async def test_non_live_statuses_hidden_from_anonymous(client: AsyncClient) -> None:
+    """The access-control guard: nothing but `live` may ever reach a visitor."""
+    author = await _author_uuid(client)
+    ids = {
+        status: await _seed_banner(author=author, status=status, title=f"Hidden {status}")
+        for status in ("draft", "pending_approval", "approved", "rejected", "archived")
+    }
+    try:
+        resp = await client.get("/api/v1/public/banners")
+        assert resp.status_code == 200
+        returned_ids = {b["id"] for b in resp.json()["banners"]}
+        for status, banner_id in ids.items():
+            assert banner_id not in returned_ids, f"{status} banner leaked to public response"
+    finally:
+        await _delete_banners(*ids.values())
+
+
+@pytest.mark.asyncio
+async def test_approved_row_is_visible_to_a_raw_superuser_session(client: AsyncClient) -> None:
+    """Proves the previous test's exclusion came from the app predicate, not
+    RLS. A superuser session bypasses RLS entirely, so if this row is present
+    here but absent over HTTP, the HTTP exclusion can only be the explicit
+    `status == LIVE` filter in services.public_catalog. Delete this test and
+    the reason for that WHERE clause is lost."""
+    author = await _author_uuid(client)
+    banner_id = await _seed_banner(author=author, status="approved", title="Superuser-Visible")
+    try:
+        assert await _superuser_sees(banner_id) is True
+
+        resp = await client.get("/api/v1/public/banners")
+        returned_ids = {b["id"] for b in resp.json()["banners"]}
+        assert banner_id not in returned_ids
+    finally:
+        await _delete_banners(banner_id)
+
+
+@pytest.mark.asyncio
+async def test_response_omits_internal_fields(client: AsyncClient) -> None:
+    author = await _author_uuid(client)
+    banner_id = await _seed_banner(author=author, status="live", title="Field Leak Check")
+    try:
+        resp = await client.get("/api/v1/public/banners")
+        row = next(b for b in resp.json()["banners"] if b["id"] == banner_id)
+        assert set(row.keys()) == {"id", "title", "subtitle", "cta_label", "deep_link"}
+        internal_fields = {
+            "image_key",
+            "audience_rules",
+            "priority",
+            "status",
+            "banner_type",
+            "business_line",
+            "created_by_uuid",
+            "approved_by_uuid",
+            "review_note",
+            "starts_at",
+            "ends_at",
+            "created_at",
+            "updated_at",
+        }
+        for field in internal_fields:
+            assert field not in row, f"internal field {field!r} leaked to public response"
+    finally:
+        await _delete_banners(banner_id)
+
+
+@pytest.mark.asyncio
+async def test_personalized_banner_is_excluded(client: AsyncClient) -> None:
+    """audience_rules can't be evaluated for an anonymous visitor, so a
+    personalized banner must never reach this endpoint even when live. Seeds a
+    LIVE `action` banner in the same run to prove the filter is an allowlist
+    (personalized excluded, action included), not just "not default"."""
+    author = await _author_uuid(client)
+    personalized_id = await _seed_banner(
+        author=author, status="live", banner_type="personalized", title="Personalized Hidden"
+    )
+    action_id = await _seed_banner(
+        author=author, status="live", banner_type="action", title="Action Visible"
+    )
+    try:
+        resp = await client.get("/api/v1/public/banners")
+        returned_ids = {b["id"] for b in resp.json()["banners"]}
+        assert personalized_id not in returned_ids
+        assert action_id in returned_ids
+    finally:
+        await _delete_banners(personalized_id, action_id)
+
+
+@pytest.mark.asyncio
+async def test_future_starts_at_is_hidden(client: AsyncClient) -> None:
+    """The stalled-scheduler defence: even if status were somehow live ahead
+    of its start (it shouldn't be, cms_activation guards this), the endpoint's
+    own re-check must still hide it."""
+    author = await _author_uuid(client)
+    future = datetime.now(UTC) + timedelta(hours=1)
+    banner_id = await _seed_banner(
+        author=author, status="live", title="Future Start Hidden", starts_at=future
+    )
+    try:
+        resp = await client.get("/api/v1/public/banners")
+        returned_ids = {b["id"] for b in resp.json()["banners"]}
+        assert banner_id not in returned_ids
+    finally:
+        await _delete_banners(banner_id)
+
+
+@pytest.mark.asyncio
+async def test_past_ends_at_is_hidden(client: AsyncClient) -> None:
+    """Same defence on the far side. A LIVE row with both bounds NULL is
+    seeded in the same run to prove evergreen banners still serve fine."""
+    author = await _author_uuid(client)
+    past = datetime.now(UTC) - timedelta(hours=1)
+    expired_id = await _seed_banner(
+        author=author, status="live", title="Past End Hidden", ends_at=past
+    )
+    evergreen_id = await _seed_banner(author=author, status="live", title="Evergreen Visible")
+    try:
+        resp = await client.get("/api/v1/public/banners")
+        returned_ids = {b["id"] for b in resp.json()["banners"]}
+        assert expired_id not in returned_ids
+        assert evergreen_id in returned_ids
+    finally:
+        await _delete_banners(expired_id, evergreen_id)
+
+
+@pytest.mark.asyncio
+async def test_ordering_is_priority_then_created_at(client: AsyncClient) -> None:
+    """Relative order of the seeded ids only -- never absolute positions, the
+    DB is shared. Higher priority must sort first regardless of insert order."""
+    author = await _author_uuid(client)
+    low_id = await _seed_banner(author=author, status="live", title="Low Priority", priority=100)
+    high_id = await _seed_banner(author=author, status="live", title="High Priority", priority=101)
+    try:
+        resp = await client.get("/api/v1/public/banners")
+        ids_in_order = [b["id"] for b in resp.json()["banners"]]
+        assert ids_in_order.index(high_id) < ids_in_order.index(low_id)
+    finally:
+        await _delete_banners(low_id, high_id)
+
+
+@pytest.mark.asyncio
+async def test_response_cap(client: AsyncClient) -> None:
+    author = await _author_uuid(client)
+    ids = [
+        await _seed_banner(author=author, status="live", title=f"Cap Test {i}")
+        for i in range(PUBLIC_BANNERS_LIMIT + 3)
+    ]
+    try:
+        resp = await client.get("/api/v1/public/banners")
+        assert len(resp.json()["banners"]) == PUBLIC_BANNERS_LIMIT
+    finally:
+        await _delete_banners(*ids)

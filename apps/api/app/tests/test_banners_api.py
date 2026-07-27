@@ -344,3 +344,31 @@ async def test_non_sub_admin_non_admin_sees_empty_list(client: AsyncClient) -> N
     )
     assert res.status_code == 200
     assert res.json()["banners"] == []
+
+
+@pytest.mark.asyncio
+async def test_create_and_patch_carry_subtitle_and_cta_label(client: AsyncClient) -> None:
+    """subtitle/cta_label (public-banner-serving PR B) round-trip through create and patch,
+    same as every other free-text field on this schema."""
+    _, mobile = await full_registration(client, lines=["loans"])
+    uid = await _auth_user_uuid(mobile)
+    payload = {**_PAYLOAD, "subtitle": "Limited period offer", "cta_label": "Apply now"}
+    created = await client.post(
+        "/api/v1/banners",
+        json=payload,
+        headers={"Authorization": f"Bearer {_sub_admin_token(uid)}"},
+    )
+    assert created.status_code == 201, created.text
+    body = created.json()
+    assert body["subtitle"] == "Limited period offer"
+    assert body["cta_label"] == "Apply now"
+
+    banner_id = body["id"]
+    patched = await client.patch(
+        f"/api/v1/banners/{banner_id}",
+        json={"cta_label": "Get started"},
+        headers={"Authorization": f"Bearer {_sub_admin_token(uid)}"},
+    )
+    assert patched.status_code == 200, patched.text
+    assert patched.json()["cta_label"] == "Get started"
+    assert patched.json()["subtitle"] == "Limited period offer"
