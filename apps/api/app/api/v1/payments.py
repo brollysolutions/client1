@@ -25,7 +25,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import settings
 from app.core.deps import CurrentUser, get_active_user
 from app.db.session import get_db
-from app.models.payout import Payout, PayoutStatus
+from app.models.payout import Payout, PayoutStatus, PayoutType
 from app.schemas.payments import (
     PayoutCreate,
     PayoutListResponse,
@@ -185,6 +185,16 @@ async def reject_payout(
     db: AsyncSession = Depends(get_db),
 ) -> PayoutRead:
     _require_platform_admin(current_user)
+    payout = await _get_payout_or_404(db, payout_id)
+    if payout.type == PayoutType.REFERRAL_BONUS:
+        # FR-9.5 (referrals.py's module docstring): Sub Admin manages
+        # referral bonus RULES only, never referral activity — referrals_rls
+        # has no sub_admin branch. Rejecting a referral_bonus payout runs
+        # services.referrals.release_payout_link on the bypass session,
+        # which writes to that table; the looser _require_platform_admin
+        # check above would otherwise be a side door around that boundary
+        # for this one payout type.
+        _require_admin(current_user, action="Rejecting a referral bonus payout")
     try:
         await payments_service.reject_payout(
             payout_id=payout_id,
@@ -194,6 +204,15 @@ async def reject_payout(
     except payments_service.PayoutError as exc:
         raise _map_error(exc) from None
 
+    # reject_payout mutates through a DIFFERENT session (the bypass
+    # AsyncSessionLocal) than this request's `db`. Without expiring first,
+    # `db`'s identity map still holds the `payout` object loaded by the
+    # pre-check above and a re-SELECT on the same primary key returns that
+    # same stale in-memory object rather than re-reading the row (the same
+    # class of gotcha as the post-commit re-query note in
+    # services/payments.py's own module — here it bites the request session
+    # instead of the ORM-vs-Core split there).
+    db.expire(payout)
     payout = await _get_payout_or_404(db, payout_id)
     return (await _to_read(db, [payout]))[0]
 

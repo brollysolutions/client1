@@ -6,13 +6,15 @@ import { formatPaise } from "@/lib/format";
 import type { Referral } from "@/lib/referrals-api";
 import { cn } from "@/lib/utils";
 
-const LINE_LABEL: Record<string, string> = {
+// Exported so features/admin/referral-payouts-view.tsx can reuse the exact
+// same status vocabulary instead of drifting a second copy.
+export const LINE_LABEL: Record<string, string> = {
   loans: "Loans",
   real_estate: "Real Estate",
   both: "Both lines",
 };
 
-const STATUS_STYLE: Record<string, string> = {
+export const STATUS_STYLE: Record<string, string> = {
   pending: "bg-warning/10 text-warning",
   converted: "bg-muted text-text-secondary",
   accrued: "bg-success/10 text-success",
@@ -20,7 +22,7 @@ const STATUS_STYLE: Record<string, string> = {
   void: "bg-destructive/10 text-destructive",
 };
 
-const STATUS_LABEL: Record<string, string> = {
+export const STATUS_LABEL: Record<string, string> = {
   pending: "Pending",
   converted: "Converted",
   accrued: "Bonus accrued",

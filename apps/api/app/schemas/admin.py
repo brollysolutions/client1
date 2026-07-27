@@ -310,3 +310,4 @@ class AdminHomeResponse(BaseModel):
     unassigned_leads_count: int
     unassigned_tasks_count: int
     payouts_awaiting_approval_count: int
+    referrals_awaiting_payout_count: int

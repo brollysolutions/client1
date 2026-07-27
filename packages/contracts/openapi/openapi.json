@@ -179,6 +179,10 @@
             "title": "Pending Review",
             "type": "array"
           },
+          "referrals_awaiting_payout_count": {
+            "title": "Referrals Awaiting Payout Count",
+            "type": "integer"
+          },
           "unassigned_leads_count": {
             "title": "Unassigned Leads Count",
             "type": "integer"
@@ -197,7 +201,8 @@
           "open_property_deals_count",
           "unassigned_leads_count",
           "unassigned_tasks_count",
-          "payouts_awaiting_approval_count"
+          "payouts_awaiting_approval_count",
+          "referrals_awaiting_payout_count"
         ],
         "title": "AdminHomeResponse",
         "type": "object"
@@ -634,6 +639,156 @@
           "closed_at"
         ],
         "title": "AdminPropertyDealRead",
+        "type": "object"
+      },
+      "AdminReferralListResponse": {
+        "properties": {
+          "referrals": {
+            "items": {
+              "$ref": "#/components/schemas/AdminReferralRead"
+            },
+            "title": "Referrals",
+            "type": "array"
+          }
+        },
+        "required": [
+          "referrals"
+        ],
+        "title": "AdminReferralListResponse",
+        "type": "object"
+      },
+      "AdminReferralRead": {
+        "description": "Adds what ReferralRead deliberately withholds from the client: the\naccrual reason (so Admin can see WHY a converted row never accrued) and\nthe reward linkage. Still only the masked mobile \u2014 D15 holds for Admin\nreads too, the raw column is never serialized anywhere.",
+        "properties": {
+          "accrual_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Accrual Reason"
+          },
+          "bonus_amount_paise": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bonus Amount Paise"
+          },
+          "business_line": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Business Line"
+          },
+          "conversion_status": {
+            "title": "Conversion Status",
+            "type": "string"
+          },
+          "converted_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Converted At"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "referred_mobile_masked": {
+            "title": "Referred Mobile Masked",
+            "type": "string"
+          },
+          "referrer_auth_user_uuid": {
+            "format": "uuid",
+            "title": "Referrer Auth User Uuid",
+            "type": "string"
+          },
+          "referrer_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Referrer Code"
+          },
+          "referrer_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Referrer Name"
+          },
+          "reward_payout_uuid": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reward Payout Uuid"
+          },
+          "reward_txn_uuid": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reward Txn Uuid"
+          }
+        },
+        "required": [
+          "id",
+          "referrer_auth_user_uuid",
+          "referred_mobile_masked",
+          "business_line",
+          "conversion_status",
+          "accrual_reason",
+          "bonus_amount_paise",
+          "reward_payout_uuid",
+          "reward_txn_uuid",
+          "converted_at",
+          "created_at"
+        ],
+        "title": "AdminReferralRead",
         "type": "object"
       },
       "AdminTaskRead": {
@@ -5720,6 +5875,37 @@
         "title": "ReferralPayoutActivityRead",
         "type": "object"
       },
+      "ReferralPayoutRequest": {
+        "description": "No amount, no recipient, no idempotency key: only the destination the\nreferrer will actually receive money at. Amount and recipient come from\nthe referral row (D-invariant, see the router). The idempotency key is\nderived server-side from the referral id (`ref-{uuid.hex}`), not accepted\nfrom the client \u2014 a client-chosen key let two concurrent \"Pay bonus\"\nclicks (two tabs, two admins) each pick a fresh key and both slip past\ncreate_payout's dedupe guard, creating a second, orphaned pending_approval\npayout no later check ever reconciled. A deterministic per-referral key\nmakes the second concurrent create collide with the first inside\ncreate_payout itself (the dedupe window, or the partial-unique index on a\ngenuine race) \u2014 the orphan can no longer be created at all, not just\ncaught after the fact.",
+        "properties": {
+          "destination": {
+            "$ref": "#/components/schemas/PayoutDestinationInput"
+          },
+          "destination_type": {
+            "$ref": "#/components/schemas/PayoutDestination"
+          }
+        },
+        "required": [
+          "destination_type",
+          "destination"
+        ],
+        "title": "ReferralPayoutRequest",
+        "type": "object"
+      },
+      "ReferralPayoutResponse": {
+        "properties": {
+          "payout_id": {
+            "format": "uuid",
+            "title": "Payout Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "payout_id"
+        ],
+        "title": "ReferralPayoutResponse",
+        "type": "object"
+      },
       "ReferralRead": {
         "properties": {
           "bonus_amount_paise": {
@@ -5834,6 +6020,17 @@
         ],
         "title": "ReferralStats",
         "type": "object"
+      },
+      "ReferralStatus": {
+        "enum": [
+          "pending",
+          "converted",
+          "accrued",
+          "paid",
+          "void"
+        ],
+        "title": "ReferralStatus",
+        "type": "string"
       },
       "RegisterInitiateRequest": {
         "properties": {
@@ -12906,6 +13103,104 @@
         ]
       }
     },
+    "/api/v1/referrals/admin": {
+      "get": {
+        "description": "No default status filter here (mirrors GET /payouts) \u2014 the actionable\n\"accrued\" default lives in the frontend hook, same split as\nuse-admin-payouts.ts's statusFilter default.",
+        "operationId": "list_referrals_admin_api_v1_referrals_admin_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "status_filter",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/ReferralStatus"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status Filter"
+            }
+          },
+          {
+            "in": "query",
+            "name": "business_line",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "loans",
+                    "real_estate"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Business Line"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 100,
+              "maximum": 500,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminReferralListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "List Referrals Admin",
+        "tags": [
+          "referrals"
+        ]
+      }
+    },
     "/api/v1/referrals/me": {
       "get": {
         "operationId": "get_my_referral_api_v1_referrals_me_get",
@@ -12927,6 +13222,65 @@
           }
         ],
         "summary": "Get My Referral",
+        "tags": [
+          "referrals"
+        ]
+      }
+    },
+    "/api/v1/referrals/{referral_id}/payout": {
+      "post": {
+        "description": "Turns one accrued referral into a real payout. Amount and recipient\ncome from the referral row, never from the request body \u2014 only the\ndestination the referrer actually receives money at is caller-supplied.\nApproval is a separate step at POST /payouts/{id}/approve: this endpoint\nis the maker, never the checker.",
+        "operationId": "create_referral_payout_api_v1_referrals__referral_id__payout_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "referral_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Referral Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReferralPayoutRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReferralPayoutResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Create Referral Payout",
         "tags": [
           "referrals"
         ]
