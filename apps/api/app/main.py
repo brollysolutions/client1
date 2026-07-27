@@ -37,6 +37,7 @@ from app.api.v1.property_submissions import router as property_submissions_route
 from app.api.v1.public_catalog import router as public_catalog_router
 from app.api.v1.push import router as push_router
 from app.api.v1.referral_bonus import router as referral_bonus_router
+from app.api.v1.referrals import router as referrals_router
 from app.api.v1.site_visits import router as site_visits_router
 from app.api.v1.sub_admin import router as sub_admin_router
 from app.api.v1.support_tickets import router as support_tickets_router
@@ -110,6 +111,7 @@ app.include_router(bookmarks_router, prefix="/api/v1/bookmarks", tags=["bookmark
 app.include_router(notifications_router, prefix="/api/v1/notifications", tags=["notifications"])
 app.include_router(push_router, prefix="/api/v1/push", tags=["push"])
 app.include_router(transactions_router, prefix="/api/v1/transactions", tags=["transactions"])
+app.include_router(referrals_router, prefix="/api/v1/referrals", tags=["referrals"])
 app.include_router(payments_router, prefix="/api/v1/payouts", tags=["payouts"])
 app.include_router(telecaller_router, prefix="/api/v1/telecaller", tags=["telecaller"])
 app.include_router(agent_router, prefix="/api/v1/agent", tags=["agent"])

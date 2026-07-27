@@ -28,6 +28,7 @@ from app.models.loan import Bank, LoanApplication, LoanStatus
 from app.models.notification import NotificationType
 from app.models.profile import ClientProfile
 from app.schemas.loans import LoanApplicationProgressUpdate
+from app.services import referrals
 from app.services.notifications import emit_notification
 
 _ORDER = [
@@ -202,6 +203,17 @@ async def apply_progress_update(
                 body=f"Your loan application is now {label}.",
                 href=f"/dashboard/loans/{application.id}",
             )
+            # Referral conversion trigger (docs/specs/referral-program.md):
+            # disbursed is the terminal-success event for loans. Best-effort —
+            # record_conversion never raises, so a referral bug can never
+            # fail a disbursal.
+            if application.status == LoanStatus.DISBURSED:
+                await referrals.record_conversion(
+                    referred_auth_user_uuid=client_auth_user_uuid,
+                    business_line="loans",
+                    ref_type="loan_application",
+                    ref_uuid=application.id,
+                )
 
     return application
 

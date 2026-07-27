@@ -184,6 +184,44 @@ def _clean_name(name: str, cap: int = 4) -> str:
     return re.sub(r"[^A-Z]", "", name.upper())[:cap]
 
 
+# ---------------------------------------------------------------------------
+# Referral codes  (docs/specs/referral-program.md D1-D3)
+# ---------------------------------------------------------------------------
+
+# Same alphabet as profile codes (Crockford base32, no I/L/O/U), but a
+# STANDALONE 8-char code with no role/line prefix and no embedded name.
+# Deliberately does NOT reuse generate_profile_code: that function embeds the
+# client's first name (e.g. CL-LN7K9JOHN) — this token gets pasted into
+# public WhatsApp groups and shared over links, so a name-carrying code would
+# leak PII by design. One code per auth_user (Client_Dashboard_System_Design
+# §5.7), so it also carries no line prefix.
+REFERRAL_CODE_LENGTH = 8
+REFERRAL_CODE_RE = re.compile(rf"^[{_CROCKFORD}]{{{REFERRAL_CODE_LENGTH}}}$")
+
+# Crockford's own reading aliases: a human transcribing a code from a phone
+# screen or a WhatsApp message types O for 0 and I/L for 1. Without aliasing
+# that typo silently loses attribution instead of erroring.
+_REFERRAL_CODE_ALIASES = str.maketrans({"O": "0", "I": "1", "L": "1"})
+
+
+def generate_referral_code() -> str:
+    """Generate a standalone 8-char Crockford base32 referral code.
+
+    Caller must catch IntegrityError and retry on UNIQUE collision (same
+    contract as generate_profile_code).
+    """
+    n = secrets.randbits(5 * REFERRAL_CODE_LENGTH)
+    return _encode_crockford(n, REFERRAL_CODE_LENGTH)
+
+
+def normalize_referral_code(raw: str | None) -> str | None:
+    """Strip/uppercase/alias a user-entered referral code. None/empty -> None."""
+    if raw is None:
+        return None
+    cleaned = raw.strip().upper().translate(_REFERRAL_CODE_ALIASES)
+    return cleaned or None
+
+
 def generate_profile_code(role: str, first_name: str, business_line: str | None = None) -> str:
     """
     Generate a Crockford base32 profile code.

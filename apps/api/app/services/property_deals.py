@@ -33,6 +33,7 @@ from app.models.property import Property
 from app.models.property_deal import PropertyDeal, PropertyDealStatus
 from app.models.site_visit import SiteVisit
 from app.schemas.property_deals import PropertyDealProgressUpdate
+from app.services import referrals
 from app.services.leads import resolve_realestate_client_profile
 from app.services.notifications import emit_notification
 
@@ -229,6 +230,17 @@ async def apply_progress_update(
             body=f"Your property deal is now {label}.",
             href=f"/dashboard/property-deals/{deal.id}",
         )
+        # Referral conversion trigger (docs/specs/referral-program.md): closed
+        # is the terminal-success event for real estate. Best-effort —
+        # record_conversion never raises, so a referral bug can never fail a
+        # deal close.
+        if deal.status == PropertyDealStatus.CLOSED:
+            await referrals.record_conversion(
+                referred_auth_user_uuid=client_auth_user_uuid,
+                business_line="real_estate",
+                ref_type="property_deal",
+                ref_uuid=deal.id,
+            )
 
     return deal
 

@@ -2,8 +2,8 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { ArrowLeft, Lock, Smartphone } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { ArrowLeft, Loader2, Lock, Smartphone } from "lucide-react";
 import { toast } from "sonner";
 
 import {
@@ -28,6 +28,7 @@ import {
   resendOtp,
 } from "@/lib/auth";
 import { formatMobile, isValidMobile, toE164 } from "@/lib/phone";
+import { isValidReferralCodeFormat, normalizeReferralCode } from "@/lib/referral-share";
 
 // Defense-in-depth: never render a dev OTP hint in a production build, even if
 // the backend (which is the real gate) were ever misconfigured to send one (L3).
@@ -119,10 +120,28 @@ type Details = {
   lastName: string;
   email: string;
   mobile: string;
+  referralCode: string;
 };
 
+function RegisterPageFallback() {
+  return (
+    <div className="flex min-h-screen items-center justify-center">
+      <Loader2 className="h-6 w-6 animate-spin text-brand-navy" aria-hidden="true" />
+    </div>
+  );
+}
+
 export default function RegisterPage() {
+  return (
+    <React.Suspense fallback={<RegisterPageFallback />}>
+      <RegisterPageContent />
+    </React.Suspense>
+  );
+}
+
+function RegisterPageContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { setSession } = useAuth();
   const [step, setStep] = React.useState(0);
 
@@ -131,11 +150,15 @@ export default function RegisterPage() {
     lastName: "",
     email: "",
     mobile: "",
+    referralCode: "",
   });
   const [errors, setErrors] = React.useState<Partial<Record<keyof Details, string>>>({});
   const [submitting, setSubmitting] = React.useState(false);
   const [e164, setE164] = React.useState("");
   const [registrationToken, setRegistrationToken] = React.useState("");
+  // True only while the code still matches what ?ref= supplied — cleared the
+  // moment the person edits it themselves, so the confirmation never lies.
+  const [refFromUrl, setRefFromUrl] = React.useState(false);
   // Every field validates live once the user has left it once (on blur). Until
   // then we stay quiet so we don't nag mid-typing on a fresh field.
   const [touched, setTouched] = React.useState<Partial<Record<keyof Details, boolean>>>({});
@@ -150,8 +173,17 @@ export default function RegisterPage() {
       setE164(saved.e164);
       setRegistrationToken(saved.registrationToken);
       setDetails((d) => ({ ...d, mobile: saved.mobile }));
+      return;
     }
-  }, []);
+    // Fresh start only — a resumed mid-wizard session never shows step 0
+    // again, so a ?ref= on that reload would have nowhere to apply.
+    const ref = searchParams.get("ref");
+    if (ref) {
+      const normalized = normalizeReferralCode(ref);
+      setDetails((d) => ({ ...d, referralCode: normalized }));
+      setRefFromUrl(true);
+    }
+  }, [searchParams]);
 
   // Single source of truth for a field's error, shared by the live (on-change)
   // check and the full pre-submit check so the two never disagree.
@@ -165,6 +197,12 @@ export default function RegisterPage() {
     }
     if (key === "email") {
       return EMAIL_RE.test(value.trim()) ? undefined : "Enter a valid email address.";
+    }
+    if (key === "referralCode") {
+      // Optional — an unmatched or absent code never blocks registration
+      // server-side either (docs/specs/referral-program.md D4). Format only.
+      if (!value) return undefined;
+      return isValidReferralCodeFormat(value) ? undefined : "That doesn't look like a valid referral code.";
     }
     return isValidMobile(value) ? undefined : "Enter a valid 10-digit mobile number.";
   }
@@ -194,7 +232,13 @@ export default function RegisterPage() {
     setErrors(next);
     // A submit attempt makes every field "touched" so edits from here on
     // live-clear immediately, even for a field the user never blurred.
-    setTouched({ firstName: true, lastName: true, email: true, mobile: true });
+    setTouched({
+      firstName: true,
+      lastName: true,
+      email: true,
+      mobile: true,
+      referralCode: true,
+    });
     return Object.keys(next).length === 0;
   }
 
@@ -210,6 +254,7 @@ export default function RegisterPage() {
       lastName: details.lastName.trim(),
       email: details.email.trim().toLowerCase(),
       mobile: mobileE164,
+      referralCode: details.referralCode || undefined,
     });
     setSubmitting(false);
 
@@ -353,6 +398,35 @@ export default function RegisterPage() {
                   {errors.mobile}
                 </p>
               )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="referralCode" className="text-[15px]">
+                Referral code{" "}
+                <span className="font-normal text-text-secondary">(optional)</span>
+              </Label>
+              <Input
+                id="referralCode"
+                value={details.referralCode}
+                onChange={(e) => {
+                  setRefFromUrl(false);
+                  set("referralCode", normalizeReferralCode(e.target.value));
+                }}
+                onBlur={() => touchField("referralCode")}
+                autoComplete="off"
+                placeholder="AB12CD34"
+                aria-invalid={!!errors.referralCode}
+                aria-describedby={errors.referralCode ? "referralCode-error" : undefined}
+                disabled={submitting}
+                className="h-12 rounded-lg text-base font-mono uppercase tracking-widest"
+              />
+              {errors.referralCode ? (
+                <p id="referralCode-error" className="text-sm text-destructive">
+                  {errors.referralCode}
+                </p>
+              ) : refFromUrl && details.referralCode ? (
+                <p className="text-sm text-success">Referral code applied.</p>
+              ) : null}
             </div>
 
             <Button

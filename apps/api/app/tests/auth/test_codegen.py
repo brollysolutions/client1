@@ -9,9 +9,10 @@ import re
 
 import pytest
 
-from app.core.security import generate_profile_code
+from app.core.security import generate_profile_code, generate_referral_code, normalize_referral_code
 
 _CROCKFORD_CHARS = set("0123456789ABCDEFGHJKMNPQRSTVWXYZ")
+_REFERRAL_CODE_RE = re.compile(r"^[0-9A-HJKMNP-TV-Z]{8}$")
 
 # Regex captures: role_prefix, line_prefix (optional), code_chars, name_suffix (optional)
 # Full format: {ROLE}-{LINE_PREFIX?}{CODE}{NAME?}
@@ -99,3 +100,42 @@ class TestAgentCode:
     def test_unknown_role_uses_xx_prefix(self) -> None:
         code = generate_profile_code("mystery_role", "John")
         assert code.startswith("XX-"), f"Bad fallback prefix: {code}"
+
+
+class TestReferralCode:
+    """generate_referral_code / normalize_referral_code (docs/specs/referral-program.md D1-D3).
+
+    Deliberately NOT generate_profile_code: no role/line prefix, no embedded
+    name — a referral code is a standalone public token shared over WhatsApp.
+    """
+
+    def test_format(self) -> None:
+        code = generate_referral_code()
+        assert _REFERRAL_CODE_RE.match(code), f"Bad format: {code}"
+
+    def test_chars_are_crockford_no_confusables(self) -> None:
+        code = generate_referral_code()
+        assert all(c in _CROCKFORD_CHARS for c in code)
+        assert not (set(code) & set("ILOU"))
+
+    def test_no_name_or_prefix_embedded(self) -> None:
+        code = generate_referral_code()
+        assert "-" not in code
+        assert len(code) == 8
+
+    def test_uniqueness_across_1000_calls(self) -> None:
+        codes = {generate_referral_code() for _ in range(1000)}
+        # 32^8 keyspace — collisions in 1000 draws should be astronomically
+        # rare; a broken/non-random generator would produce many dupes.
+        assert len(codes) >= 999
+
+    def test_normalize_strips_and_uppercases(self) -> None:
+        assert normalize_referral_code("  ab12cd34  ") == "AB12CD34"
+
+    def test_normalize_aliases_o_i_l_to_digits(self) -> None:
+        assert normalize_referral_code("O1I2L3") == "011213"
+
+    def test_normalize_empty_and_none_return_none(self) -> None:
+        assert normalize_referral_code(None) is None
+        assert normalize_referral_code("") is None
+        assert normalize_referral_code("   ") is None

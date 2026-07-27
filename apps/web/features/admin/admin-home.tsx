@@ -283,7 +283,7 @@ export function AdminHome() {
             </Card>
           </Link>
 
-          <Link href="/dashboard/referrals">
+          <Link href="/dashboard/referral-rules">
             <Card className="h-full transition-colors hover:border-brand-cta">
               <CardHeader>
                 <Gift className="h-6 w-6 text-brand-cta" aria-hidden="true" />

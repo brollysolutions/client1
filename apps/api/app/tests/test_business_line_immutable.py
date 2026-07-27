@@ -170,6 +170,59 @@ async def test_agent_application_business_line_cannot_change(client: AsyncClient
     assert "immutable" in str(exc.value).lower()
 
 
+async def _seed_referral_row() -> str:
+    """A referrer needs a real auth_users row (FK) — seed a throwaway one, same
+    shape as the telecaller/staff seeds elsewhere in this file."""
+    import uuid
+
+    import app.db.session as _session_mod
+    from app.models.referral import Referral
+    from app.models.user import User
+
+    async with _session_mod.AsyncSessionLocal() as db:
+        user = User(
+            first_name="Test",
+            last_name="Referrer",
+            mobile=unique_mobile(),
+            email=f"ref_{uuid.uuid4().hex[:12]}@example.com",
+            password_hash="x",
+        )
+        db.add(user)
+        await db.flush()
+        referral = Referral(referrer_auth_user_uuid=user.id, referred_mobile=unique_mobile())
+        db.add(referral)
+        await db.commit()
+        return str(referral.id)
+
+
+async def _update_referral_line(referral_id: str, new_line: str | None) -> None:
+    import app.db.session as _session_mod
+
+    async with _session_mod.AsyncSessionLocal() as db:
+        await db.execute(
+            text("UPDATE referrals SET business_line = :bl WHERE id = :id"),
+            {"bl": new_line, "id": referral_id},
+        )
+        await db.commit()
+
+
+@pytest.mark.asyncio
+async def test_referral_business_line_can_be_first_assigned_then_locked(
+    client: AsyncClient,
+) -> None:
+    """referrals.business_line ships NULL (unknown at signup — see
+    docs/specs/referral-program.md D13) and is set exactly once, at
+    conversion. Same NULL -> value permission this trigger already grants
+    leads, just exercised on a different table."""
+    referral_id = await _seed_referral_row()
+
+    await _update_referral_line(referral_id, "loans")  # must not raise
+
+    with pytest.raises(Exception) as exc:  # noqa: B017 — plpgsql check_violation
+        await _update_referral_line(referral_id, "real_estate")
+    assert "immutable" in str(exc.value).lower()
+
+
 @pytest.mark.asyncio
 async def test_perf_indexes_exist(client: AsyncClient) -> None:
     import app.db.session as _session_mod

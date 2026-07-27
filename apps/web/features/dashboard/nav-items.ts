@@ -6,6 +6,7 @@ import {
   ClipboardList,
   FilePlus2,
   FolderClosed,
+  Gift,
   House,
   Landmark,
   MessageSquare,
@@ -45,10 +46,11 @@ export type NavItem = {
 
 // Slim workspace rail. Near-white chrome, icon-only with tooltips on desktop.
 // Icons are gray and turn blue on hover; the active item shows a blue icon plus
-// a left indicator bar (set in app-sidebar). Home + Transactions show for both
-// lines; Apply and Documents are loans-only; Bookmarks/Enquiries/Site Visits/
-// Compare/My Agent are real-estate-only. Notifications live in the top bar,
-// Support + Profile in the account menu; identity sits in the rail's bottom block.
+// a left indicator bar (set in app-sidebar). Home, Transactions and Referrals
+// show for both lines; Apply and Documents are loans-only; Bookmarks/Enquiries/
+// Site Visits/Compare/My Agent are real-estate-only. Notifications live in the
+// top bar, Support + Profile in the account menu; identity sits in the rail's
+// bottom block.
 export const NAV_ITEMS: NavItem[] = [
   { key: "home", label: "Home", href: "/dashboard", icon: House },
   { key: "explore", label: "Explore", href: "/dashboard/explore", icon: Telescope },
@@ -62,6 +64,7 @@ export const NAV_ITEMS: NavItem[] = [
   { key: "compare", label: "Compare", href: "/dashboard/compare", icon: Scale, realEstateOnly: true },
   { key: "agent", label: "My Agent", href: "/dashboard/agent", icon: UserRound, realEstateOnly: true },
   { key: "transactions", label: "Transactions", href: "/dashboard/transactions", icon: ArrowLeftRight },
+  { key: "referrals", label: "Referrals", href: "/dashboard/referrals", icon: Gift },
   { key: "leads", label: "Leads", href: "/dashboard/leads", icon: PhoneCall, telecallerOnly: true },
   { key: "tasks", label: "Tasks", href: "/dashboard/tasks", icon: ClipboardList, employeeOnly: true },
   { key: "agent-leads", label: "Leads", href: "/dashboard/leads", icon: PhoneCall, agentOnly: true },

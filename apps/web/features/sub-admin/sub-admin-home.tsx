@@ -154,7 +154,7 @@ export function SubAdminHome() {
       <div className="rounded-2xl border border-border bg-card p-5">
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-semibold text-text-primary">Recent referral payouts</h2>
-          <Link href="/dashboard/referrals" className="text-xs text-brand-cta hover:underline">
+          <Link href="/dashboard/referral-rules" className="text-xs text-brand-cta hover:underline">
             View all
           </Link>
         </div>
@@ -225,7 +225,7 @@ export function SubAdminHome() {
             </div>
           </Link>
 
-          <Link href="/dashboard/referrals">
+          <Link href="/dashboard/referral-rules">
             <div className="flex h-full items-start gap-3 rounded-2xl border border-border bg-card p-4 transition-colors hover:border-brand-cta">
               <Gift className="h-5 w-5 shrink-0 text-brand-cta" aria-hidden="true" />
               <div>
