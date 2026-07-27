@@ -149,7 +149,7 @@ export function AdminHome() {
         </Link>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Link
           href="/dashboard/admin-leads"
           className="rounded-2xl border border-border bg-card p-5 transition-colors hover:border-brand-cta"
@@ -175,6 +175,15 @@ export function AdminHome() {
           <p className="text-sm text-text-secondary">Payouts awaiting approval</p>
           <p className="mt-1 text-2xl font-semibold text-text-primary">
             {home.payouts_awaiting_approval_count}
+          </p>
+        </Link>
+        <Link
+          href="/dashboard/referral-payouts"
+          className="rounded-2xl border border-border bg-card p-5 transition-colors hover:border-brand-cta"
+        >
+          <p className="text-sm text-text-secondary">Referral payouts awaiting payment</p>
+          <p className="mt-1 text-2xl font-semibold text-text-primary">
+            {home.referrals_awaiting_payout_count}
           </p>
         </Link>
       </div>
@@ -287,9 +296,9 @@ export function AdminHome() {
             <Card className="h-full transition-colors hover:border-brand-cta">
               <CardHeader>
                 <Gift className="h-6 w-6 text-brand-cta" aria-hidden="true" />
-                <CardTitle className="mt-2">Referral bonus</CardTitle>
+                <CardTitle className="mt-2">Referral bonus rules</CardTitle>
                 <CardDescription>
-                  Review referral bonus rules and recent payout activity.
+                  Set the bonus amount, minimum conversions, and cap per business line.
                 </CardDescription>
               </CardHeader>
             </Card>

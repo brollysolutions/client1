@@ -18,6 +18,12 @@ import { useEffect, useRef } from "react";
 
 type Step = { n: string; title: string; text: string };
 
+// Decorative stand-in for a real referral code (which is per-account and
+// never rendered here — this scene is aria-hidden and unauthenticated). Eight
+// characters to match the real code's length (core/security.py::generate_referral_code)
+// without asserting any specific value, live or fake.
+const CODE_PLACEHOLDER = "••••••••";
+
 // Small gold coin (natural money color, per the illustration palette).
 function Coin() {
   return (
@@ -120,7 +126,7 @@ export function ReferFlowScene({ steps }: { steps: Step[] }) {
               </p>
               <div className="refer-anim-fade-in mt-8 flex items-center gap-3">
                 <span className="rounded-xl border border-dashed border-[var(--nav-primary)] bg-[var(--nav-tint)] px-6 py-3 font-mono text-2xl font-bold tracking-[0.3em] text-[#293681]">
-                  RE4K9F
+                  {CODE_PLACEHOLDER}
                 </span>
                 <span className="refer-anim-press-a relative rounded-lg bg-[var(--nav-primary)] px-4 py-3 text-sm font-medium text-white">
                   Copy
@@ -136,7 +142,7 @@ export function ReferFlowScene({ steps }: { steps: Step[] }) {
             <div className="refer-anim-scene-b absolute inset-0 flex flex-col items-center justify-center p-6">
               <div className="relative flex items-center gap-3">
                 <span className="rounded-lg border border-[var(--nav-border)] bg-[var(--nav-bg)] px-4 py-2 font-mono text-lg font-bold tracking-[0.25em] text-[#293681]">
-                  RE4K9F
+                  {CODE_PLACEHOLDER}
                 </span>
                 <span className="refer-anim-press-b flex items-center gap-2 rounded-lg bg-[var(--nav-primary)] px-4 py-2.5 text-sm font-medium text-white">
                   <Plane />
