@@ -1638,6 +1638,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/referrals/admin": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Referrals Admin
+         * @description No default status filter here (mirrors GET /payouts) — the actionable
+         *     "accrued" default lives in the frontend hook, same split as
+         *     use-admin-payouts.ts's statusFilter default.
+         */
+        get: operations["list_referrals_admin_api_v1_referrals_admin_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/referrals/me": {
         parameters: {
             query?: never;
@@ -1649,6 +1671,30 @@ export interface paths {
         get: operations["get_my_referral_api_v1_referrals_me_get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/referrals/{referral_id}/payout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create Referral Payout
+         * @description Turns one accrued referral into a real payout. Amount and recipient
+         *     come from the referral row, never from the request body — only the
+         *     destination the referrer actually receives money at is caller-supplied.
+         *     Approval is a separate step at POST /payouts/{id}/approve: this endpoint
+         *     is the maker, never the checker.
+         */
+        post: operations["create_referral_payout_api_v1_referrals__referral_id__payout_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1998,6 +2044,8 @@ export interface components {
             pending_property_submissions_count: number;
             /** Pending Review */
             pending_review: components["schemas"]["AdminPendingItem"][];
+            /** Referrals Awaiting Payout Count */
+            referrals_awaiting_payout_count: number;
             /** Unassigned Leads Count */
             unassigned_leads_count: number;
             /** Unassigned Tasks Count */
@@ -2156,6 +2204,55 @@ export interface components {
             status: "new" | "contacted" | "site_visit_done" | "negotiation" | "booked" | "agreement_signed" | "closed" | "rejected" | "on_hold";
             /** Status Reason */
             status_reason: string | null;
+        };
+        /** AdminReferralListResponse */
+        AdminReferralListResponse: {
+            /** Referrals */
+            referrals: components["schemas"]["AdminReferralRead"][];
+        };
+        /**
+         * AdminReferralRead
+         * @description Adds what ReferralRead deliberately withholds from the client: the
+         *     accrual reason (so Admin can see WHY a converted row never accrued) and
+         *     the reward linkage. Still only the masked mobile — D15 holds for Admin
+         *     reads too, the raw column is never serialized anywhere.
+         */
+        AdminReferralRead: {
+            /** Accrual Reason */
+            accrual_reason: string | null;
+            /** Bonus Amount Paise */
+            bonus_amount_paise: number | null;
+            /** Business Line */
+            business_line: string | null;
+            /** Conversion Status */
+            conversion_status: string;
+            /** Converted At */
+            converted_at: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Referred Mobile Masked */
+            referred_mobile_masked: string;
+            /**
+             * Referrer Auth User Uuid
+             * Format: uuid
+             */
+            referrer_auth_user_uuid: string;
+            /** Referrer Code */
+            referrer_code?: string | null;
+            /** Referrer Name */
+            referrer_name?: string | null;
+            /** Reward Payout Uuid */
+            reward_payout_uuid: string | null;
+            /** Reward Txn Uuid */
+            reward_txn_uuid: string | null;
         };
         /** AdminTaskRead */
         AdminTaskRead: {
@@ -3921,6 +4018,33 @@ export interface components {
              */
             user_uuid: string;
         };
+        /**
+         * ReferralPayoutRequest
+         * @description No amount, no recipient, no idempotency key: only the destination the
+         *     referrer will actually receive money at. Amount and recipient come from
+         *     the referral row (D-invariant, see the router). The idempotency key is
+         *     derived server-side from the referral id (`ref-{uuid.hex}`), not accepted
+         *     from the client — a client-chosen key let two concurrent "Pay bonus"
+         *     clicks (two tabs, two admins) each pick a fresh key and both slip past
+         *     create_payout's dedupe guard, creating a second, orphaned pending_approval
+         *     payout no later check ever reconciled. A deterministic per-referral key
+         *     makes the second concurrent create collide with the first inside
+         *     create_payout itself (the dedupe window, or the partial-unique index on a
+         *     genuine race) — the orphan can no longer be created at all, not just
+         *     caught after the fact.
+         */
+        ReferralPayoutRequest: {
+            destination: components["schemas"]["PayoutDestinationInput"];
+            destination_type: components["schemas"]["PayoutDestination"];
+        };
+        /** ReferralPayoutResponse */
+        ReferralPayoutResponse: {
+            /**
+             * Payout Id
+             * Format: uuid
+             */
+            payout_id: string;
+        };
         /** ReferralRead */
         ReferralRead: {
             /** Bonus Amount Paise */
@@ -3963,6 +4087,11 @@ export interface components {
             /** Void */
             void: number;
         };
+        /**
+         * ReferralStatus
+         * @enum {string}
+         */
+        ReferralStatus: "pending" | "converted" | "accrued" | "paid" | "void";
         /** RegisterInitiateRequest */
         RegisterInitiateRequest: {
             /**
@@ -8046,6 +8175,40 @@ export interface operations {
             };
         };
     };
+    list_referrals_admin_api_v1_referrals_admin_get: {
+        parameters: {
+            query?: {
+                status_filter?: components["schemas"]["ReferralStatus"] | null;
+                business_line?: ("loans" | "real_estate") | null;
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminReferralListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_my_referral_api_v1_referrals_me_get: {
         parameters: {
             query?: never;
@@ -8062,6 +8225,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MyReferralResponse"];
+                };
+            };
+        };
+    };
+    create_referral_payout_api_v1_referrals__referral_id__payout_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                referral_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReferralPayoutRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReferralPayoutResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

@@ -8,7 +8,9 @@ table's existing RLS policy (agent_applications_rls, banners_select,
 property_submissions_select, leads_rls, tasks_rls, loan_applications_rls,
 property_deals_rls, payouts_rls) — this module adds no bypass session and no
 new access path, only read-side aggregation of rows the caller could already
-see one-by-one via the sibling routers.
+see one-by-one via the sibling routers. referrals_rls's admin bypass is the
+same Group-1 (platform_scope='true' AND role='admin') shape as every table
+below except banners_select — see note 1.
 
 Two RLS shapes worth knowing before touching this module:
 
@@ -43,6 +45,7 @@ from app.models.profile import SubmissionStatus as AgentSubmissionStatus
 from app.models.property_deal import PropertyDeal
 from app.models.property_submission import PropertySubmission
 from app.models.property_submission import SubmissionStatus as PropertySubmissionStatus
+from app.models.referral import Referral, ReferralStatus
 from app.models.task import Task, TaskStatus
 from app.schemas.admin import AdminHomeResponse, AdminPendingItem
 from app.services.loan_applications import TERMINAL_STATUSES as LOAN_TERMINAL_STATUSES
@@ -175,6 +178,18 @@ async def get_admin_home(db: AsyncSession) -> AdminHomeResponse:
         .select_from(Payout)
         .where(Payout.status == PayoutStatus.PENDING_APPROVAL)
     )
+    referrals_awaiting_payout_count = await db.scalar(
+        select(func.count())
+        .select_from(Referral)
+        .where(
+            Referral.conversion_status == ReferralStatus.ACCRUED,
+            # A row with a payout already raised (awaiting approval, not yet
+            # paid) is still "accrued" — excluding it here matches the
+            # referral-payouts-view.tsx "payable" check, so the tile and the
+            # queue it links to never disagree about what still needs action.
+            Referral.reward_payout_uuid.is_(None),
+        )
+    )
 
     return AdminHomeResponse(
         pending_review=pending_review,
@@ -186,4 +201,5 @@ async def get_admin_home(db: AsyncSession) -> AdminHomeResponse:
         unassigned_leads_count=unassigned_leads_count,
         unassigned_tasks_count=unassigned_tasks_count,
         payouts_awaiting_approval_count=payouts_awaiting_approval_count,
+        referrals_awaiting_payout_count=referrals_awaiting_payout_count,
     )

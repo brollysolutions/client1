@@ -1,4 +1,10 @@
-"""Referral program domain service (PR 1 — accrue only, never pays).
+"""Referral program domain service.
+
+PR 1 built accrual only (never paid). PR 2 (below, "Admin execution") adds the
+Admin-facing list and the two functions that link/settle a referral against a
+real services.payments payout — record_conversion itself still never calls
+create_payout directly (ADR-0008 decision B): the admin router does, then
+attach_payout links the result.
 
 Decisions D1-D18 are recorded in docs/specs/referral-program.md; the load-
 bearing ones repeated here for anyone reading this file cold:
@@ -506,3 +512,116 @@ async def list_referrals(db: AsyncSession) -> list[Referral]:
     # Trust RLS, same convention as _compute_stats / api/v1/transactions.py.
     result = await db.execute(select(Referral).order_by(Referral.created_at.desc()))
     return list(result.scalars().all())
+
+
+# ---------------------------------------------------------------------------
+# Admin execution (PR 2) — turning an accrued row into a real payout
+# ---------------------------------------------------------------------------
+
+
+async def list_for_admin(
+    db: AsyncSession,
+    *,
+    status_filter: ReferralStatus | None = None,
+    business_line: str | None = None,
+    limit: int = 100,
+    offset: int = 0,
+) -> list[Referral]:
+    """Admin oversight read (FR-9.5). Runs on the caller's REQUEST session, not
+    the bypass session: referrals_rls's platform-admin branch already grants
+    full reach across every referrer, same trust-RLS convention as
+    list_referrals / _compute_stats."""
+    stmt = select(Referral).order_by(Referral.created_at.desc()).limit(limit).offset(offset)
+    if status_filter is not None:
+        stmt = stmt.where(Referral.conversion_status == status_filter)
+    if business_line is not None:
+        stmt = stmt.where(Referral.business_line == business_line)
+    result = await db.execute(stmt)
+    return list(result.scalars().all())
+
+
+async def attach_payout(*, referral_id: UUID, payout_id: UUID) -> bool:
+    """Links a newly-created payout to an accrued, unlinked referral row.
+
+    The CAS (WHERE conversion_status='accrued' AND reward_payout_uuid IS NULL)
+    is the double-pay guard: two concurrent admin actions on the same referral
+    can only ever have one winner. A False return means the row was already
+    claimed (or is no longer accrued) — the router turns that into a 409. The
+    payout itself is NOT rolled back here; it is left pending_approval for a
+    human to reject, the same "never auto-cancel a maker-checker artifact"
+    discipline services/payments.py already follows elsewhere.
+    """
+    async with db_session.AsyncSessionLocal() as session:
+        result = await session.execute(
+            update(Referral)
+            .where(
+                Referral.id == referral_id,
+                Referral.conversion_status == ReferralStatus.ACCRUED,
+                Referral.reward_payout_uuid.is_(None),
+            )
+            .values(reward_payout_uuid=payout_id, updated_at=func.now())
+            .returning(Referral.id)
+        )
+        claimed = result.scalar_one_or_none()
+        await session.commit()
+        return claimed is not None
+
+
+async def mark_paid_from_payout(*, payout_id: UUID, transaction_id: UUID) -> None:
+    """Called by services.payments once a REFERRAL_BONUS payout settles to PAID
+    (mock-path settle and the webhook settle path both call this).
+
+    Best-effort: swallows every error so a referral bug can never fail a
+    payment settlement, same discipline as record_conversion. The CAS (WHERE
+    conversion_status='accrued') makes a redelivered settle a no-op — the
+    second call finds the row already 'paid' and updates zero rows.
+    """
+    try:
+        async with db_session.AsyncSessionLocal() as session:
+            await session.execute(
+                update(Referral)
+                .where(
+                    Referral.reward_payout_uuid == payout_id,
+                    Referral.conversion_status == ReferralStatus.ACCRUED,
+                )
+                .values(
+                    conversion_status=ReferralStatus.PAID,
+                    reward_txn_uuid=transaction_id,
+                    updated_at=func.now(),
+                )
+            )
+            await session.commit()
+    except Exception:
+        logger.warning("referrals.mark_paid_failed payout_id=%s", payout_id, exc_info=True)
+
+
+async def release_payout_link(*, payout_id: UUID) -> None:
+    """Called by services.payments when a REFERRAL_BONUS payout lands on a
+    terminal non-paid status (failed, rejected, or reversed after having been
+    paid). Frees the referral row so Admin can pay it again: back to accrued,
+    both reward UUIDs cleared.
+
+    Matches on reward_payout_uuid alone (not a status filter) so it correctly
+    unwinds both a payout that never reached paid (referral still 'accrued')
+    and a post-settlement reversal (referral already flipped to 'paid' by
+    mark_paid_from_payout) in one shared path. Idempotent: a row with no
+    matching reward_payout_uuid (already released, or never linked) updates
+    zero rows. Best-effort, same discipline as mark_paid_from_payout.
+    """
+    try:
+        async with db_session.AsyncSessionLocal() as session:
+            await session.execute(
+                update(Referral)
+                .where(Referral.reward_payout_uuid == payout_id)
+                .values(
+                    conversion_status=ReferralStatus.ACCRUED,
+                    reward_payout_uuid=None,
+                    reward_txn_uuid=None,
+                    updated_at=func.now(),
+                )
+            )
+            await session.commit()
+    except Exception:
+        logger.warning(
+            "referrals.release_payout_link_failed payout_id=%s", payout_id, exc_info=True
+        )
