@@ -1,4 +1,5 @@
-"""Public property catalog — unauthenticated read (docs/specs/public-property-catalog.md).
+"""Public property/banner/offer read (docs/specs/public-property-catalog.md,
+docs/specs/public-banner-serving.md, docs/specs/public-offer-serving.md).
 
 There is no anonymous Postgres role in this system: api_user is only ever
 assumed inside _set_rls_context (app/core/deps.py), called exclusively from
@@ -30,6 +31,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import aliased
 
 from app.models.banner import Banner, BannerStatus, BannerType
+from app.models.offer import Offer, OfferStatus
 from app.models.property import Property
 
 PUBLIC_CATALOG_PER_CATEGORY = 12
@@ -109,6 +111,71 @@ async def list_public_banners(db: AsyncSession) -> Sequence[Banner]:
         )
         .order_by(Banner.priority.desc(), Banner.created_at.asc(), Banner.id.asc())
         .limit(PUBLIC_BANNERS_LIMIT)
+    )
+    result = await db.execute(stmt)
+    return result.scalars().all()
+
+
+# Capped PER business_line (not a flat LIMIT) via a row_number() window, same
+# shape as PUBLIC_CATALOG_PER_CATEGORY above -- NOT the same shape as
+# PUBLIC_BANNERS_LIMIT. The partition axis exists precisely BECAUSE the web
+# layer splits offers into a per-line strip (/loans, /real-estate): a flat
+# cap ordered newest-first lets one line's publishing volume starve the
+# other's out of the response entirely (offers have no priority column to
+# force a starved line's offer back in, unlike banners), and since every
+# real offer is evergreen in practice (offer-form.tsx has no starts_at/
+# ends_at inputs, so nothing but a manual archive ever removes one), active
+# rows accumulate monotonically -- this is a ceiling every line crosses
+# permanently, not one approached slowly. Ceiling is 3 * 8 = 24 rows.
+PUBLIC_OFFERS_PER_LINE = 8
+
+
+async def list_public_offers(db: AsyncSession) -> Sequence[Offer]:
+    """The offer analogue of list_public_banners -- same no-RLS reasoning
+    (module docstring above). Differences from the banner query:
+
+    - No banner_type-style allowlist: offers have no audience_rules /
+      personalization concept, so status + the window is the entire filter.
+    - business_line IS exposed on PublicOfferRead (unlike PublicBannerRead):
+      offers are genuinely line-scoped and the frontend renders a separate
+      strip per line, reading business_line to decide which one(s) an offer
+      belongs in.
+    - starts_at/ends_at re-check is defence in depth only, not the access
+      control (status == ACTIVE is) -- guards against
+      app/jobs/cms_activation.py's scheduler container lagging or being
+      down. Same exact-complement boundary convention as banners: inclusive
+      start (starts_at <= now()), exclusive end (ends_at > now()). Changing
+      either operator alone silently creates a gap or an overlap.
+    - Ordered newest-first (created_at DESC) within each line's partition,
+      unlike properties/banners' oldest-first order: offers have no priority
+      column to guarantee a freshly-published promotion survives the cap
+      ahead of older ones in the same line, so newest-first is what keeps a
+      just-activated offer visible instead of silently sitting past
+      PUBLIC_OFFERS_PER_LINE.
+    """
+    ranked = (
+        select(
+            Offer,
+            func.row_number()
+            .over(
+                partition_by=Offer.business_line,
+                order_by=(Offer.created_at.desc(), Offer.id.desc()),
+            )
+            .label("rn"),
+        )
+        .where(
+            # This predicate IS the access control on this route. No RLS runs here.
+            Offer.status == OfferStatus.ACTIVE,
+            or_(Offer.starts_at.is_(None), Offer.starts_at <= func.now()),
+            or_(Offer.ends_at.is_(None), Offer.ends_at > func.now()),
+        )
+        .subquery()
+    )
+    o = aliased(Offer, ranked)
+    stmt = (
+        select(o)
+        .where(ranked.c.rn <= PUBLIC_OFFERS_PER_LINE)
+        .order_by(ranked.c.created_at.desc(), ranked.c.id.desc())
     )
     result = await db.execute(stmt)
     return result.scalars().all()

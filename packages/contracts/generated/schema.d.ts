@@ -1500,6 +1500,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/public/offers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Offers Public */
+        get: operations["list_offers_public_api_v1_public_offers_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/public/properties": {
         parameters: {
             query?: never;
@@ -3855,6 +3872,51 @@ export interface components {
              * @default true
              */
             ok: boolean;
+        };
+        /** PublicOfferListResponse */
+        PublicOfferListResponse: {
+            /** Offers */
+            offers: components["schemas"]["PublicOfferRead"][];
+        };
+        /**
+         * PublicOfferRead
+         * @description Anonymous-read shape (docs/specs/public-offer-serving.md).
+         *
+         *     Deliberately NOT a subclass of OfferRead -- a future sensitive column
+         *     added to the authenticated read can never silently surface here.
+         *
+         *     - status: constant "active" by construction on this path (see
+         *       services/public_catalog.py::list_public_offers). Exposing a constant
+         *       invites a client-side filter that would quietly become the de-facto
+         *       access control.
+         *     - created_by_uuid: staff identity, never public.
+         *     - starts_at / ends_at: the endpoint has already applied the window;
+         *       republishing it lets a client second-guess the server and discloses
+         *       unlaunched-campaign timing (same reasoning as PublicBannerRead).
+         *     - created_at: internal metadata, no display use.
+         *
+         *     business_line IS included, unlike PublicBannerRead: offers are line-scoped
+         *     by design (an offer applies to loans, real_estate, or both) and the
+         *     frontend needs it to decide which strip(s) an offer renders in.
+         */
+        PublicOfferRead: {
+            /** Business Line */
+            business_line: string;
+            /** Code */
+            code: string | null;
+            /** Description */
+            description: string | null;
+            /** Discount Type */
+            discount_type: string;
+            /** Discount Value */
+            discount_value: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Title */
+            title: string;
         };
         /** PublicPropertyListResponse */
         PublicPropertyListResponse: {
@@ -7910,6 +7972,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PublicBannerListResponse"];
+                };
+            };
+        };
+    };
+    list_offers_public_api_v1_public_offers_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicOfferListResponse"];
                 };
             };
         };
