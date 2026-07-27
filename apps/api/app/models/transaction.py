@@ -63,8 +63,12 @@ class Transaction(Base):
     __tablename__ = "transactions"
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    user_uuid: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("auth_users.id"), nullable=False
+    # Nullable + SET NULL: account deletion de-links this row from the identity
+    # instead of deleting it (SRS 5.1 — retain financial records 7 years, but
+    # not against the deleted person's own PII). retained_ref/delinked_at below
+    # carry the de-link's internal reference and the future purge job's anchor.
+    user_uuid: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("auth_users.id", ondelete="SET NULL"), nullable=True
     )
     # Provenance only — no RLS branch reads this column (see module docstring).
     business_line: Mapped[str | None] = mapped_column(business_line_enum, nullable=True)
@@ -77,6 +81,13 @@ class Transaction(Base):
     description: Mapped[str] = mapped_column(String(200), nullable=False)
     # External payout id / future money-layer idempotency key.
     reference: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    # Set only at account-deletion de-link time (never at created_at). Internal
+    # reference to the now-scrubbed identity (its former auth_users.id, which is
+    # never hard-deleted) — not the person's own PII.
+    retained_ref: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    # Anchor for the future 7-year retention-purge job (SRS 5.1): the clock
+    # starts at de-link, not at record creation.
+    delinked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, default=datetime.utcnow
     )

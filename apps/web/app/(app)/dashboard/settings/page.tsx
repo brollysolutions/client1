@@ -6,6 +6,7 @@ import { toast } from "sonner";
 
 import { EmailVerifyBanner } from "@/components/auth/email-verify-banner";
 import { useAuth } from "@/components/auth/session-provider";
+import { DeleteAccountDialog } from "@/components/settings/delete-account-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -51,6 +52,16 @@ export default function SettingsPage() {
       ) : null}
 
       <PushSubscriptionCard />
+
+      <div className="space-y-3 rounded-xl border border-destructive/30 bg-destructive/5 p-6">
+        <div>
+          <h2 className="text-sm font-semibold text-text-primary">Danger zone</h2>
+          <p className="text-sm text-text-secondary">
+            Permanently delete your account and personal details.
+          </p>
+        </div>
+        <DeleteAccountDialog />
+      </div>
     </div>
   );
 }

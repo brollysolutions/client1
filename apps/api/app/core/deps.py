@@ -143,10 +143,20 @@ async def get_current_user(
 
     # Fetch mobile from DB (needed for change-password policy check)
 
-    from app.models.user import User  # local import to avoid circular
+    from app.models.user import User, UserStatus  # local import to avoid circular
 
     user = await db.get(User, user_id)
     if not user:
+        raise credentials_error
+    # Mirrors login()'s own gate (auth_service.py) — without this, an account
+    # deleted/suspended mid-session keeps authenticating on every endpoint for
+    # the rest of its access token's TTL, since the JWT blacklist only covers
+    # the specific token the deletion/suspension actor happened to hold (which,
+    # for an admin acting on someone else, is never the target's own token at
+    # all). PENDING_PASSWORD_RESET is deliberately NOT rejected here — that
+    # status's whole point is a restricted token that must still reach
+    # change-password via this same dependency.
+    if user.status in (UserStatus.SOFT_DELETED, UserStatus.SUSPENDED):
         raise credentials_error
 
     return CurrentUser(

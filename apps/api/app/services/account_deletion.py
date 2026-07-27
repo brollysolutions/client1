@@ -1,0 +1,249 @@
+"""Account deletion — self-service + admin-initiated (SRS 5.1, FR-17.3/17.4).
+
+Two phases, on two different sessions — not a stylistic choice, an RLS one:
+
+Phase A runs on the CALLER's request-scoped session (RLS-enforced). It only
+touches tables whose RLS policy has a genuine "own row" branch for every actor
+this function serves: `auth_users` (own-row-or-platform-scope),
+`agent_applications` (own-application-or-platform-scope), and
+`client_profiles`/`agent_profiles` (own-uuid-or-platform-scope). Both a
+self-deleting user and an Admin acting on someone else's account can write
+these rows under their own RLS context — see
+`f2e4d6c8a0b1_add_rls_policies.py`'s WITH CHECK clauses.
+
+Phase B runs on a bypass (app-superuser) session, `import app.db.session as
+db_session` resolved at call time — never a module-level `from
+app.db.session import AsyncSessionLocal` (see conftest's NullPool rebind list;
+this convention keeps this module OFF that list). It is limited to exactly the
+two tables whose RLS genuinely cannot be satisfied by either actor under their
+own session, keeping the best-effort blast radius as small as the RLS gap
+actually forces:
+
+  - `staff_profiles_rls`'s WITH CHECK is platform_scope-only (no owner branch)
+    — a staff member self-deleting cannot flip their own row under their own
+    session.
+  - `refresh_tokens_rls` has NO platform_scope branch at all (owner-only) — an
+    Admin's own request-scoped session cannot revoke a DIFFERENT user's
+    refresh tokens.
+
+The financial de-link (`transactions`/`payouts`) also runs here since those
+tables grant `api_user` SELECT only — no request-scoped session, self-service
+or admin, could write them regardless of RLS.
+
+Phase B is best-effort: logged on failure, never re-raised. Once Phase A
+commits, the identity is already irreversibly scrubbed and status is already
+SOFT_DELETED — failing the HTTP response at that point would be misleading
+(the account genuinely is deleted), and a client retry would just re-hit the
+already-deleted guard, permanently blocking Phase B from ever running. Two
+independent backstops cover a delayed/failed Phase B in the meantime: login
+already rejects SOFT_DELETED (auth_service.login), and refresh_token() itself
+re-checks status != ACTIVE on its own always-superuser session and revokes
+the chain there regardless of whether Phase B's bulk revoke ran.
+"""
+
+from __future__ import annotations
+
+import logging
+from datetime import UTC, datetime
+from uuid import UUID
+
+from sqlalchemy import select, update
+from sqlalchemy.ext.asyncio import AsyncSession
+
+import app.db.session as db_session
+from app.cache.redis_keys import RedisCache, jwt_blacklist_key
+from app.models.auth import AuthEvent, RefreshToken
+from app.models.payout import Payout
+from app.models.profile import (
+    AgentApplication,
+    AgentProfile,
+    ClientProfile,
+    ProfileStatus,
+    StaffProfile,
+)
+from app.models.transaction import Transaction
+from app.models.user import User, UserStatus
+from app.services import storage
+
+logger = logging.getLogger(__name__)
+
+_DOC_REF_FIELDS = (
+    "aadhaar_ref",
+    "aadhaar_back_ref",
+    "pan_ref",
+    "photo_ref",
+    "address_proof_ref",
+)
+
+
+class AccountNotFound(Exception):
+    """Raised when the target auth_users row does not exist."""
+
+
+class AccountAlreadyDeleted(Exception):
+    """Raised when the target account is already SOFT_DELETED (idempotency guard)."""
+
+
+def _tombstone_mobile(user_id: UUID) -> str:
+    # Fails RegisterInitiateRequest.mobile's `^\+[1-9]\d{6,14}$` pattern by
+    # construction (no leading '+') — can never collide with a real
+    # registration, so the real number is genuinely freed for reuse.
+    return f"deleted-{user_id}"
+
+
+def _tombstone_email(user_id: UUID) -> str:
+    # Reserved .invalid TLD (RFC 2606) — never a real, re-registerable address.
+    return f"deleted+{user_id}@deleted.invalid"
+
+
+async def delete_account(
+    db: AsyncSession,
+    cache: RedisCache,
+    *,
+    target_auth_user_uuid: UUID,
+    actor_auth_user_uuid: UUID,
+    actor_jti: str | None,
+    actor_access_token_exp: int | None,
+    reason: str | None,
+    ip: str | None,
+    user_agent: str | None,
+) -> None:
+    """Erase a user's identity, de-link their financial records, kill their
+    sessions. `actor_jti`/`actor_access_token_exp` are set only for self-service
+    (blacklists the caller's own current access token); admin-initiated calls
+    pass None for both since the admin's own session is untouched.
+    """
+    self_service = actor_auth_user_uuid == target_auth_user_uuid
+
+    # --- Phase A: request-scoped session, RLS-enforced ---
+    # populate_existing=True is required alongside with_for_update: the
+    # self-service caller (auth_service.delete_own_account) already loaded
+    # this same row, unlocked, on this same session to verify the password.
+    # with_for_update alone still emits a fresh, lock-acquiring SELECT (it
+    # bypasses the identity-map short-circuit), but WITHOUT populate_existing
+    # the ORM leaves that already-cached instance's attributes as they were
+    # instead of overwriting them with the row just locked — so a second,
+    # concurrent caller blocked on this same lock would resume holding a
+    # stale in-memory `status` (still ACTIVE) even though the row it just
+    # locked is genuinely SOFT_DELETED, defeating the AccountAlreadyDeleted
+    # guard below entirely. Caught by
+    # test_concurrent_delete_requests_serialize_via_row_lock.
+    user = await db.get(User, target_auth_user_uuid, with_for_update=True, populate_existing=True)
+    if user is None:
+        raise AccountNotFound
+    if user.status == UserStatus.SOFT_DELETED:
+        raise AccountAlreadyDeleted
+
+    user.first_name = "Deleted"
+    user.last_name = "User"
+    user.mobile = _tombstone_mobile(user.id)
+    user.email = _tombstone_email(user.id)
+    user.password_hash = None
+    user.phone_verified_at = None
+    user.email_verified_at = None
+    user.status = UserStatus.SOFT_DELETED
+
+    applications = (
+        await db.scalars(
+            select(AgentApplication).where(
+                AgentApplication.applicant_auth_user_uuid == target_auth_user_uuid
+            )
+        )
+    ).all()
+    doc_keys: list[str] = []
+    for application in applications:
+        for field in _DOC_REF_FIELDS:
+            value = getattr(application, field)
+            if value:
+                doc_keys.append(value)
+            setattr(application, field, None)
+        application.first_name = None
+        application.last_name = None
+        application.mobile = None
+        application.email = None
+    if applications:
+        await db.flush()  # DB write durable before touching external storage
+    for key in doc_keys:
+        storage.delete_object(key)  # best-effort, already swallows failures
+
+    # client_profiles/agent_profiles both have an owner WITH CHECK branch, so
+    # unlike staff_profiles/refresh_tokens (Phase B) these are safe to write
+    # here, atomically with the identity scrub.
+    await db.execute(
+        update(ClientProfile)
+        .where(ClientProfile.auth_user_uuid == target_auth_user_uuid)
+        .values(status=ProfileStatus.INACTIVE)
+    )
+    await db.execute(
+        update(AgentProfile)
+        .where(AgentProfile.auth_user_uuid == target_auth_user_uuid)
+        .values(status=ProfileStatus.INACTIVE)
+    )
+
+    db.add(
+        AuthEvent(
+            auth_user_uuid=target_auth_user_uuid,
+            event_type="account_deleted",
+            mobile=None,  # the mobile is being erased in this same transaction
+            ip=ip,
+            user_agent=user_agent,
+            success=True,
+            detail={
+                "actor_auth_user_uuid": str(actor_auth_user_uuid),
+                "self_service": self_service,
+                "reason": reason,
+            },
+        )
+    )
+    await db.commit()
+
+    # Blacklist AFTER the commit succeeds, never before: this is a Redis write,
+    # not transactional with the Postgres commit above. Doing it first would
+    # burn the caller's own token even if the commit then failed and rolled
+    # back everything else — a bounded, self-inflicted lockout on an otherwise
+    # fully-reversible error path.
+    if self_service and actor_jti and actor_access_token_exp is not None:
+        now_ts = int(datetime.now(UTC).timestamp())
+        ttl = max(actor_access_token_exp - now_ts, 1)
+        await cache.set(jwt_blacklist_key(actor_jti), 1, ttl)
+
+    # --- Phase B: bypass session, best-effort (see module docstring) ---
+    retained_ref = str(target_auth_user_uuid)
+    try:
+        async with db_session.AsyncSessionLocal() as session:
+            await session.execute(
+                update(StaffProfile)
+                .where(StaffProfile.auth_user_uuid == target_auth_user_uuid)
+                .values(status=ProfileStatus.INACTIVE)
+            )
+            await session.execute(
+                update(RefreshToken)
+                .where(
+                    RefreshToken.auth_user_uuid == target_auth_user_uuid,
+                    RefreshToken.revoked.is_(False),
+                )
+                .values(revoked=True)
+            )
+            await session.execute(
+                update(Transaction)
+                .where(Transaction.user_uuid == target_auth_user_uuid)
+                .values(
+                    user_uuid=None,
+                    retained_ref=retained_ref,
+                    delinked_at=datetime.now(UTC),
+                )
+            )
+            await session.execute(
+                update(Payout)
+                .where(Payout.recipient_user_uuid == target_auth_user_uuid)
+                .values(
+                    recipient_user_uuid=None,
+                    retained_ref=retained_ref,
+                    delinked_at=datetime.now(UTC),
+                )
+            )
+            await session.commit()
+    except Exception:
+        logger.exception(
+            "account_deletion.phase_b_failed target_auth_user_uuid=%s", target_auth_user_uuid
+        )

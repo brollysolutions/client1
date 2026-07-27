@@ -70,8 +70,11 @@ class Payout(Base):
     __tablename__ = "payouts"
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    recipient_user_uuid: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("auth_users.id"), nullable=False
+    # Nullable + SET NULL: account deletion de-links this row from the identity
+    # instead of deleting it (SRS 5.1). retained_ref/delinked_at carry the
+    # de-link's internal reference and the future purge job's anchor.
+    recipient_user_uuid: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("auth_users.id", ondelete="SET NULL"), nullable=True
     )
     # Provenance only (null = platform-level, e.g. referral); copied onto the
     # emitted ledger row. No RLS branch reads it (same stance as transactions).
@@ -122,6 +125,14 @@ class Payout(Base):
     reversal_transaction_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("transactions.id"), nullable=True
     )
+
+    # Set only at account-deletion de-link time (never at created_at). Internal
+    # reference to the now-scrubbed recipient identity (their former
+    # auth_users.id, which is never hard-deleted) — not the person's own PII.
+    retained_ref: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    # Anchor for the future 7-year retention-purge job (SRS 5.1): the clock
+    # starts at de-link, not at record creation.
+    delinked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, default=lambda: datetime.now(UTC)

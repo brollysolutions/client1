@@ -288,6 +288,18 @@ export async function updateProfile(input: {
   return toResult(res, mapMe);
 }
 
+// DELETE /auth/me → permanently deletes the account (SRS 5.1). Re-confirmation
+// is the current password, same bar as change-password. On success the server
+// has already blacklisted this access token and cleared the refresh cookie, so
+// the caller should clear the local session directly, not call logout().
+export async function deleteAccount(currentPassword: string): Promise<AuthResult> {
+  const res = await apiRequest<Schemas["MessageResponse"]>("/api/v1/auth/me", {
+    method: "DELETE",
+    body: { current_password: currentPassword } satisfies Schemas["AccountDeleteRequest"],
+  });
+  return toResult(res, () => undefined);
+}
+
 // Serialize /auth/refresh across all tabs of this origin. The refresh cookie is
 // shared per-origin and rotated on every use; if two tabs refresh at once they
 // send the same cookie, and the second (now stale) one trips server-side reuse
