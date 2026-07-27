@@ -1621,6 +1621,40 @@ export interface paths {
         patch: operations["update_config_api_v1_referral_bonus_config__config_id__patch"];
         trace?: never;
     };
+    "/api/v1/referrals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Referrals */
+        get: operations["list_referrals_api_v1_referrals_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/referrals/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get My Referral */
+        get: operations["get_my_referral_api_v1_referrals_me_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/site-visits": {
         parameters: {
             query?: never;
@@ -3228,6 +3262,16 @@ export interface components {
             /** Message */
             message: string;
         };
+        /** MyReferralResponse */
+        MyReferralResponse: {
+            /** Code */
+            code: string | null;
+            /** Eligible */
+            eligible: boolean;
+            /** Ineligible Reason */
+            ineligible_reason: ("agent" | "staff" | "no_client_profile") | null;
+            stats: components["schemas"]["ReferralStats"];
+        };
         /** NotificationListResponse */
         NotificationListResponse: {
             /** Notifications */
@@ -3259,7 +3303,7 @@ export interface components {
          * NotificationType
          * @enum {string}
          */
-        NotificationType: "site_visit_requested" | "site_visit_cancelled" | "support_ticket_received" | "lead_assigned" | "lead_released" | "task_assigned" | "loan_status_updated" | "property_deal_status_updated";
+        NotificationType: "site_visit_requested" | "site_visit_cancelled" | "support_ticket_received" | "lead_assigned" | "lead_released" | "task_assigned" | "loan_status_updated" | "property_deal_status_updated" | "referral_converted";
         /** OfferCreate */
         OfferCreate: {
             /** Business Line */
@@ -3834,6 +3878,11 @@ export interface components {
                 [key: string]: unknown;
             } | null;
         };
+        /** ReferralListResponse */
+        ReferralListResponse: {
+            /** Referrals */
+            referrals: components["schemas"]["ReferralRead"][];
+        };
         /** ReferralPayoutActivityListResponse */
         ReferralPayoutActivityListResponse: {
             /** Activity */
@@ -3872,6 +3921,48 @@ export interface components {
              */
             user_uuid: string;
         };
+        /** ReferralRead */
+        ReferralRead: {
+            /** Bonus Amount Paise */
+            bonus_amount_paise: number | null;
+            /** Business Line */
+            business_line: string | null;
+            /** Conversion Status */
+            conversion_status: string;
+            /** Converted At */
+            converted_at: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Referred Mobile Masked */
+            referred_mobile_masked: string;
+        };
+        /** ReferralStats */
+        ReferralStats: {
+            /** Accrued */
+            accrued: number;
+            /** Accrued Amount Paise */
+            accrued_amount_paise: number;
+            /** Converted */
+            converted: number;
+            /** Paid */
+            paid: number;
+            /** Paid Amount Paise */
+            paid_amount_paise: number;
+            /** Pending */
+            pending: number;
+            /** Total */
+            total: number;
+            /** Void */
+            void: number;
+        };
         /** RegisterInitiateRequest */
         RegisterInitiateRequest: {
             /**
@@ -3885,6 +3976,8 @@ export interface components {
             last_name: string;
             /** Mobile */
             mobile: string;
+            /** Referral Code */
+            referral_code?: string | null;
         };
         /** RegisterInitiateResponse */
         RegisterInitiateResponse: {
@@ -7929,6 +8022,46 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_referrals_api_v1_referrals_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReferralListResponse"];
+                };
+            };
+        };
+    };
+    get_my_referral_api_v1_referrals_me_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MyReferralResponse"];
                 };
             };
         };

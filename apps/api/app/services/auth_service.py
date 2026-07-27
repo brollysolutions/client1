@@ -53,6 +53,7 @@ from app.schemas.auth import (
     ResetTokenResponse,
     SetPasswordRequest,
 )
+from app.services import referrals
 from app.services.leads import capture_lead
 from app.services.otp import (
     check_login_lock,
@@ -276,6 +277,7 @@ async def register_initiate(
                 "first_name": req.first_name,
                 "last_name": req.last_name,
                 "email": req.email,
+                "referral_code": req.referral_code,
             }
         ),
         TTL_OTP,
@@ -319,6 +321,9 @@ async def register_verify_otp(
             "first_name": reg_data.get("first_name", ""),
             "last_name": reg_data.get("last_name", ""),
             "email": reg_data.get("email", ""),
+            # A referral code is a public shareable token, not a secret — fine
+            # to carry in a signed, short-lived registration token.
+            "referral_code": reg_data.get("referral_code"),
         }
     )
     return RegistrationTokenResponse(registration_token=reg_token)
@@ -418,7 +423,28 @@ async def register_set_password(
                         detail="Could not generate unique profile code. Please try again.",
                     ) from None
 
+    # Issue this new client's own referral code inside the same transaction as
+    # the profile rows, same savepoint + retry shape. skip_eligibility=True:
+    # a brand-new self-registered client is eligible by construction (no
+    # agent/staff profile can possibly exist yet for this auth_user). This
+    # unauthenticated endpoint has no auth dependency, so get_current_user's
+    # `SET LOCAL ROLE api_user` never runs on `db` — the session still holds
+    # the engine's default (superuser) role, same as customer_code above, so
+    # it can write the SELECT-only-for-api_user referral_codes table directly.
+    await referrals.issue_code_on_session(db, user.id, skip_eligibility=True)
+
     await db.commit()
+
+    # Best-effort attribution against the code the registering person entered
+    # (if any). Never blocks or fails registration — see
+    # services.referrals.attribute_signup's own try/except.
+    referral_code: str | None = claims.get("referral_code")
+    unmatched_code = await referrals.attribute_signup(
+        code=referral_code,
+        referred_mobile=mobile,
+        referred_auth_user_uuid=user.id,
+    )
+
     await _log_event(
         db,
         auth_user_uuid=user.id,
@@ -427,6 +453,7 @@ async def register_set_password(
         ip=ip,
         user_agent=user_agent,
         success=True,
+        detail={"referral_code_unmatched": unmatched_code} if unmatched_code else None,
     )
 
     return await _issue_tokens(db, user)

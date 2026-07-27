@@ -3886,6 +3886,52 @@
         "title": "MessageResponse",
         "type": "object"
       },
+      "MyReferralResponse": {
+        "properties": {
+          "code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Code"
+          },
+          "eligible": {
+            "title": "Eligible",
+            "type": "boolean"
+          },
+          "ineligible_reason": {
+            "anyOf": [
+              {
+                "enum": [
+                  "agent",
+                  "staff",
+                  "no_client_profile"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ineligible Reason"
+          },
+          "stats": {
+            "$ref": "#/components/schemas/ReferralStats"
+          }
+        },
+        "required": [
+          "code",
+          "eligible",
+          "ineligible_reason",
+          "stats"
+        ],
+        "title": "MyReferralResponse",
+        "type": "object"
+      },
       "NotificationListResponse": {
         "properties": {
           "notifications": {
@@ -3970,7 +4016,8 @@
           "lead_released",
           "task_assigned",
           "loan_status_updated",
-          "property_deal_status_updated"
+          "property_deal_status_updated",
+          "referral_converted"
         ],
         "title": "NotificationType",
         "type": "string"
@@ -5582,6 +5629,22 @@
         "title": "ReferralBonusConfigUpdate",
         "type": "object"
       },
+      "ReferralListResponse": {
+        "properties": {
+          "referrals": {
+            "items": {
+              "$ref": "#/components/schemas/ReferralRead"
+            },
+            "title": "Referrals",
+            "type": "array"
+          }
+        },
+        "required": [
+          "referrals"
+        ],
+        "title": "ReferralListResponse",
+        "type": "object"
+      },
       "ReferralPayoutActivityListResponse": {
         "properties": {
           "activity": {
@@ -5657,6 +5720,121 @@
         "title": "ReferralPayoutActivityRead",
         "type": "object"
       },
+      "ReferralRead": {
+        "properties": {
+          "bonus_amount_paise": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bonus Amount Paise"
+          },
+          "business_line": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Business Line"
+          },
+          "conversion_status": {
+            "title": "Conversion Status",
+            "type": "string"
+          },
+          "converted_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Converted At"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "referred_mobile_masked": {
+            "title": "Referred Mobile Masked",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "referred_mobile_masked",
+          "business_line",
+          "conversion_status",
+          "bonus_amount_paise",
+          "converted_at",
+          "created_at"
+        ],
+        "title": "ReferralRead",
+        "type": "object"
+      },
+      "ReferralStats": {
+        "properties": {
+          "accrued": {
+            "title": "Accrued",
+            "type": "integer"
+          },
+          "accrued_amount_paise": {
+            "title": "Accrued Amount Paise",
+            "type": "integer"
+          },
+          "converted": {
+            "title": "Converted",
+            "type": "integer"
+          },
+          "paid": {
+            "title": "Paid",
+            "type": "integer"
+          },
+          "paid_amount_paise": {
+            "title": "Paid Amount Paise",
+            "type": "integer"
+          },
+          "pending": {
+            "title": "Pending",
+            "type": "integer"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          },
+          "void": {
+            "title": "Void",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "total",
+          "pending",
+          "converted",
+          "accrued",
+          "paid",
+          "void",
+          "accrued_amount_paise",
+          "paid_amount_paise"
+        ],
+        "title": "ReferralStats",
+        "type": "object"
+      },
       "RegisterInitiateRequest": {
         "properties": {
           "email": {
@@ -5680,6 +5858,17 @@
             "pattern": "^\\+[1-9]\\d{6,14}$",
             "title": "Mobile",
             "type": "string"
+          },
+          "referral_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Referral Code"
           }
         },
         "required": [
@@ -12688,6 +12877,58 @@
         "summary": "Update Config",
         "tags": [
           "referral-bonus-config"
+        ]
+      }
+    },
+    "/api/v1/referrals": {
+      "get": {
+        "operationId": "list_referrals_api_v1_referrals_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReferralListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "List Referrals",
+        "tags": [
+          "referrals"
+        ]
+      }
+    },
+    "/api/v1/referrals/me": {
+      "get": {
+        "operationId": "get_my_referral_api_v1_referrals_me_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MyReferralResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Get My Referral",
+        "tags": [
+          "referrals"
         ]
       }
     },

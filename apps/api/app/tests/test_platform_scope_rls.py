@@ -66,6 +66,10 @@ _ALL_PLATFORM_SCOPE_POLICIES = {
     ("property_submissions", "property_submissions_select"),
     ("payouts", "payouts_rls"),
     ("transactions", "transactions_rls"),
+    # 9f8e7d6c5b4a — admin-only bypass, no sub_admin branch (FR-9.5), so these
+    # are NOT in _DOCUMENTED_SUB_ADMIN_EXCEPTIONS above.
+    ("referral_codes", "referral_codes_rls"),
+    ("referrals", "referrals_rls"),
 }
 
 

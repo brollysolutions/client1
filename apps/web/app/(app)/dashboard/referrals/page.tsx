@@ -5,32 +5,33 @@ import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 
 import { useAuth } from "@/components/auth/session-provider";
-import { ReferralsView } from "@/features/sub-admin/referrals-view";
+import { ClientReferralsView } from "@/features/referrals/client-referrals-view";
 
-// Sub Admin owns the bonus rules; Admin gets read-only oversight of the same
-// shared queue plus the payout-activity feed (RLS's referral_bonus_config_select
-// policy grants both, migration f9a0b1c2d3e4; transactions_rls's narrowed
-// referral_bonus branch grants Admin the same read, e8f9a0b1c2d3). AppGuard
-// (the (app) layout) enforces auth; this adds the role gate. UX gate only: the
-// API's require_sub_admin + RLS are the real wall, and there is no Admin write
-// endpoint at all for referral bonus config.
-const REFERRAL_ROLES = new Set(["sub_admin", "admin"]);
+// Client_Dashboard_System_Design.md §3: "my referral code, share (wa.me),
+// conversion tracking". Sub Admin/Admin previously owned this URL for the
+// bonus-rules editor; that surface moved to /dashboard/referral-rules
+// (referral-program PR 1) so this route can be the spec'd client one.
+// UX gate only — RLS (referrals_rls, referral_codes_rls) is the real wall,
+// and eligibility (FR-9.1, clients only) is resolved server-side and
+// reflected in the response body, not by a role check here: an agent still
+// reaches this page, they just see why they have no code.
+const STAFF_ROLES = new Set(["sub_admin", "admin"]);
 
 export default function ReferralsPage() {
   const router = useRouter();
   const { session, isLoading } = useAuth();
-  const allowed = session != null && REFERRAL_ROLES.has(session.role);
+  const isStaff = session != null && STAFF_ROLES.has(session.role);
 
   React.useEffect(() => {
-    if (!isLoading && !allowed) router.replace("/dashboard");
-  }, [isLoading, allowed, router]);
+    if (!isLoading && isStaff) router.replace("/dashboard/referral-rules");
+  }, [isLoading, isStaff, router]);
 
-  if (isLoading || !allowed) {
+  if (isLoading || isStaff) {
     return (
       <div className="flex min-h-[50vh] items-center justify-center">
         <Loader2 className="h-6 w-6 animate-spin text-brand-navy" aria-hidden="true" />
       </div>
     );
   }
-  return <ReferralsView />;
+  return <ClientReferralsView />;
 }

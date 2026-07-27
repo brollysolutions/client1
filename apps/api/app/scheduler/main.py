@@ -21,6 +21,7 @@ import app.db.session as db_session
 from app.core.config import settings
 from app.jobs.audit_paid_payouts import audit_paid_payouts
 from app.jobs.backfill_customer_codes import backfill_customer_codes
+from app.jobs.backfill_referral_codes import backfill_referral_codes
 from app.jobs.cms_activation import cms_activation
 from app.jobs.purge_agent_application_orphans import purge_agent_application_orphans
 from app.jobs.reconcile_payouts import reconcile_payouts
@@ -110,6 +111,16 @@ def build_scheduler() -> AsyncIOScheduler:
         trigger="interval",
         hours=6,  # safety net; registration provisions codes synchronously, so hits are ~0
         id="backfill_customer_codes",
+        max_instances=1,
+        coalesce=True,
+        replace_existing=True,
+    )
+    scheduler.add_job(
+        backfill_referral_codes,
+        trigger="interval",
+        hours=6,  # safety net; GET /referrals/me self-heals on visit, so hits
+        # trend toward 0 as the active client population opens the page
+        id="backfill_referral_codes",
         max_instances=1,
         coalesce=True,
         replace_existing=True,

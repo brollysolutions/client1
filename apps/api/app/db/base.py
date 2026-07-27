@@ -32,3 +32,15 @@ from app.models.property import Property  # noqa
 from app.models.property_submission import PropertySubmission  # noqa
 from app.models.property_deal import PropertyDeal  # noqa
 from app.models.push_subscription import PushSubscription  # noqa
+
+# Banner, Offer, ContentBlock, ReferralBonusConfig predate this import (each
+# landed in its own earlier PR, hand-migrated, never registered here), so
+# Base.metadata was silently missing four real tables — an `alembic revision
+# --autogenerate` against main would have proposed dropping them. Fixed here
+# as a drive-by while adding the referral models below, which depend on
+# ReferralBonusConfig (FK) needing to already be on Base.metadata.
+from app.models.banner import Banner  # noqa
+from app.models.offer import Offer  # noqa
+from app.models.content_block import ContentBlock  # noqa
+from app.models.referral_bonus_config import ReferralBonusConfig  # noqa
+from app.models.referral import ReferralCode, Referral  # noqa
