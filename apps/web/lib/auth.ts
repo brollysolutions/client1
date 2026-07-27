@@ -55,6 +55,9 @@ export type RegisterDetails = {
   lastName: string;
   mobile: string; // E.164, e.g. +919876543210
   email: string;
+  // Format-checked client-side only; the backend never fails registration on
+  // an unmatched code (docs/specs/referral-program.md D4).
+  referralCode?: string;
 };
 
 // One client profile per business line (self-registered clients hold both).
@@ -182,6 +185,7 @@ export async function registerInitiate(
         last_name: input.lastName,
         mobile: input.mobile,
         email: input.email,
+        referral_code: input.referralCode || undefined,
       } satisfies Schemas["RegisterInitiateRequest"],
     },
   );

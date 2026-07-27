@@ -8,6 +8,7 @@ import {
   CalendarX,
   CheckCheck,
   ClipboardList,
+  Gift,
   Headset,
   Home,
   Landmark,
@@ -37,6 +38,7 @@ const TYPE_ICON: Record<NotificationType, LucideIcon> = {
   task_assigned: ClipboardList,
   loan_status_updated: Landmark,
   property_deal_status_updated: Home,
+  referral_converted: Gift,
 };
 
 function formatRelativeTime(iso: string): string {

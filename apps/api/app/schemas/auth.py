@@ -6,6 +6,8 @@ from typing import Annotated, Literal
 
 from pydantic import BaseModel, EmailStr, Field, field_validator
 
+from app.core.security import REFERRAL_CODE_RE, normalize_referral_code
+
 # Channel an OTP was actually delivered through. "none" = all channels mocked/failed
 # (dev only — the response then carries otp_hint in non-production).
 DeliveryChannel = Literal["voice", "email", "none"]
@@ -22,11 +24,26 @@ class RegisterInitiateRequest(BaseModel):
     email: EmailStr  # mandatory + unique; OTP fallback channel + post-login 2FA target
     # No line picker: every client is enrolled in both loans and real_estate at
     # signup (one User, two ClientProfiles). See docs/specs/dual-line-clients.md.
+    # Format-validated only — whether it matches a real referral code is never
+    # checked here (docs/specs/referral-program.md D4): that would turn this
+    # public endpoint into a code-existence oracle. An unmatched code is
+    # silently ignored later in register_set_password.
+    referral_code: str | None = None
 
     @field_validator("email")
     @classmethod
     def email_normalize(cls, v: str) -> str:
         return v.strip().lower()
+
+    @field_validator("referral_code")
+    @classmethod
+    def referral_code_format(cls, v: str | None) -> str | None:
+        normalized = normalize_referral_code(v)
+        if normalized is None:
+            return None
+        if not REFERRAL_CODE_RE.match(normalized):
+            raise ValueError("Invalid referral code.")
+        return normalized
 
 
 class RegisterInitiateResponse(BaseModel):

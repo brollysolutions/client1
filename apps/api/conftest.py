@@ -199,18 +199,19 @@ async def initiate_and_get_otp(
     mobile: str,
     lines: list[str] | None = None,
     email: str | None = None,
+    referral_code: str | None = None,
 ) -> str:
     """POST register/initiate, return OTP hint. Asserts 200 and mock mode."""
-    resp = await client.post(
-        "/api/v1/auth/register/initiate",
-        json={
-            "first_name": "Test",
-            "last_name": "User",
-            "mobile": mobile,
-            "email": email or unique_email(),
-            "lines": lines or ["loans"],
-        },
-    )
+    body = {
+        "first_name": "Test",
+        "last_name": "User",
+        "mobile": mobile,
+        "email": email or unique_email(),
+        "lines": lines or ["loans"],
+    }
+    if referral_code is not None:
+        body["referral_code"] = referral_code
+    resp = await client.post("/api/v1/auth/register/initiate", json=body)
     assert resp.status_code == 200, resp.text
     data = resp.json()
     # Mock mode (no voice/email creds) → no channel delivered, OTP returned as hint.
@@ -226,11 +227,12 @@ async def full_registration(
     password: str = PASSWORD,
     lines: list[str] | None = None,
     email: str | None = None,
+    referral_code: str | None = None,
 ) -> tuple[str, str]:
     """Complete 3-step registration. Returns (access_token, mobile)."""
     if mobile is None:
         mobile = unique_mobile()
-    otp = await initiate_and_get_otp(client, mobile, lines, email)
+    otp = await initiate_and_get_otp(client, mobile, lines, email, referral_code)
 
     verify_resp = await client.post(
         "/api/v1/auth/register/verify-otp",
