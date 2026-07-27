@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { login, registerInitiate } from "@/lib/auth";
+import { deleteAccount, login, registerInitiate } from "@/lib/auth";
 
 // Guards the snake_case <-> camelCase mapping and the FastAPI error extraction.
 // These are the pieces most likely to break silently when the OpenAPI contract
@@ -130,5 +130,39 @@ describe("registerInitiate()", () => {
     const res = await registerInitiate({ ...details });
     expect(res.ok).toBe(true);
     if (res.ok) expect(res.data.otpHint).toBeUndefined();
+  });
+});
+
+describe("deleteAccount()", () => {
+  it("sends current_password as the DELETE body and reports ok", async () => {
+    const fetchMock = mockFetch(200, { message: "Your account has been deleted." });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const res = await deleteAccount("MyPass@1234");
+
+    expect(res.ok).toBe(true);
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(init.method).toBe("DELETE");
+    expect(JSON.parse(init.body as string)).toEqual({ current_password: "MyPass@1234" });
+  });
+
+  it("surfaces a wrong-password 401 as a friendly error", async () => {
+    vi.stubGlobal("fetch", mockFetch(401, { detail: "Current password is incorrect." }));
+    const res = await deleteAccount("WrongPass@1");
+    expect(res).toEqual({
+      ok: false,
+      error: "Current password is incorrect.",
+      status: 401,
+    });
+  });
+
+  it("surfaces an already-deleted 409", async () => {
+    vi.stubGlobal(
+      "fetch",
+      mockFetch(409, { detail: "This account has already been deleted." }),
+    );
+    const res = await deleteAccount("MyPass@1234");
+    expect(res.ok).toBe(false);
+    if (!res.ok) expect(res.status).toBe(409);
   });
 });

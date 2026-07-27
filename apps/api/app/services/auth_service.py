@@ -35,6 +35,7 @@ from app.models.profile import (
 )
 from app.models.user import User, UserStatus
 from app.schemas.auth import (
+    AccountDeleteRequest,
     AuthTokensResponse,
     ChangePasswordRequest,
     ClientProfileSummary,
@@ -53,7 +54,7 @@ from app.schemas.auth import (
     ResetTokenResponse,
     SetPasswordRequest,
 )
-from app.services import referrals
+from app.services import account_deletion, referrals
 from app.services.leads import capture_lead
 from app.services.otp import (
     check_login_lock,
@@ -911,6 +912,50 @@ async def change_password(
         ip=ip,
         user_agent=user_agent,
         success=True,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Account deletion (SRS 5.1, FR-17.3) — self-service
+# ---------------------------------------------------------------------------
+
+
+async def delete_own_account(
+    db: AsyncSession,
+    cache: RedisCache,
+    req: AccountDeleteRequest,
+    current_user_id: UUID,
+    jti: str,
+    access_token_exp: int,
+    ip: str | None = None,
+    user_agent: str | None = None,
+) -> None:
+    """Verify the caller's current password, then run the shared deletion flow.
+
+    Password re-entry is this product's existing bar for a security-sensitive
+    action taken from within a live session (see change_password) — the SRS
+    only mandates a warning/confirmation step, not a new OTP purpose.
+    """
+    user = await db.get(User, current_user_id)
+    if not user or not user.password_hash:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized.")
+
+    if not await verify_password(req.current_password, user.password_hash):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Current password is incorrect.",
+        )
+
+    await account_deletion.delete_account(
+        db,
+        cache,
+        target_auth_user_uuid=current_user_id,
+        actor_auth_user_uuid=current_user_id,
+        actor_jti=jti,
+        actor_access_token_exp=access_token_exp,
+        reason=None,
+        ip=ip,
+        user_agent=user_agent,
     )
 
 
