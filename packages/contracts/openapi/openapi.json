@@ -5165,6 +5165,90 @@
         "title": "PublicLeadResponse",
         "type": "object"
       },
+      "PublicPropertyListResponse": {
+        "properties": {
+          "properties": {
+            "items": {
+              "$ref": "#/components/schemas/PublicPropertyRead"
+            },
+            "title": "Properties",
+            "type": "array"
+          }
+        },
+        "required": [
+          "properties"
+        ],
+        "title": "PublicPropertyListResponse",
+        "type": "object"
+      },
+      "PublicPropertyRead": {
+        "description": "Anonymous-read shape (docs/specs/public-property-catalog.md).\n\nDeliberately NOT PropertyRead: a separate schema means a future sensitive\ncolumn added to the authenticated read can never silently surface here.\nExcludes the dashboard's entire filter-facet vocabulary (price_paise, bhk,\narea_sqft, furnishing, construction_status, amenities, age_years, pincode,\ncity, locality) and internal metadata (active, created_at). `rera_number`\nis deliberately included: RERA registration is a statutory disclosure on\nany advertisement of a registered project, and a public listing page is\none.",
+        "properties": {
+          "category": {
+            "$ref": "#/components/schemas/PropertyCategory"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "image": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Image"
+          },
+          "location": {
+            "title": "Location",
+            "type": "string"
+          },
+          "meta": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meta"
+          },
+          "price_display": {
+            "title": "Price Display",
+            "type": "string"
+          },
+          "rera_number": {
+            "title": "Rera Number",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "type": {
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "type",
+          "location",
+          "price_display",
+          "meta",
+          "image",
+          "category",
+          "rera_number"
+        ],
+        "title": "PublicPropertyRead",
+        "type": "object"
+      },
       "PushSubscribeRequest": {
         "properties": {
           "auth": {
@@ -12119,6 +12203,27 @@
         "summary": "Reject",
         "tags": [
           "property-submissions"
+        ]
+      }
+    },
+    "/api/v1/public/properties": {
+      "get": {
+        "operationId": "list_properties_public_api_v1_public_properties_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicPropertyListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "List Properties Public",
+        "tags": [
+          "public"
         ]
       }
     },

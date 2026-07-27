@@ -1,12 +1,20 @@
 import type { Metadata } from "next";
 
+import { PropertyCatalogEmpty } from "@/components/property-catalog-empty";
 import { ProductPage, PropertyDoodles } from "@/components/product-page";
 import { PropertyRow } from "@/components/property-row";
 import { TrustStrip } from "@/components/trust-strip";
 import { faqPageJsonLd, REAL_ESTATE_FAQ_ITEMS } from "@/lib/faq";
 import { RE_TRUST, REAL_ESTATE_JOURNEY } from "@/lib/products";
-import { getListingsByCategory, PROPERTY_CATEGORIES } from "@/lib/properties";
+import { getPublicListings } from "@/lib/public-properties";
+import { groupByCategory, PROPERTY_CATEGORIES } from "@/lib/properties";
 import { SITE_NAME, SITE_URL } from "@/lib/site";
+
+// First server-side data fetch on the public site. Regenerated at most every
+// 5 minutes (ISR): the properties table can ship empty on day one and the
+// admin-approval workflow that populates it is human-paced, so this is not
+// real-time data, but it should not need a redeploy to appear either.
+export const revalidate = 300;
 
 export const metadata: Metadata = {
   title: "Properties: Buy Verified Property in India",
@@ -50,13 +58,15 @@ const realEstateJsonLd = {
   publisher: { "@type": "Organization", name: SITE_NAME, url: SITE_URL },
 };
 
-// Only render category rows that actually have listings (empty-state guard, so
-// a category with no mock data does not render an empty scroller).
-const POPULATED_CATEGORIES = PROPERTY_CATEGORIES.filter(
-  (category) => getListingsByCategory(category.key).length > 0,
-);
+export default async function RealEstatePage() {
+  const listings = await getPublicListings();
+  const grouped = groupByCategory(listings);
+  // Only render category rows that actually have listings (empty-state guard,
+  // so a category with nothing to show does not render an empty scroller).
+  const populatedCategories = PROPERTY_CATEGORIES.filter(
+    (category) => (grouped.get(category.key)?.length ?? 0) > 0,
+  );
 
-export default function RealEstatePage() {
   return (
     <>
       <script
@@ -72,15 +82,19 @@ export default function RealEstatePage() {
           <div className="relative w-full border-t border-[var(--nav-border)] bg-[var(--nav-bg)] py-20 sm:py-24 lg:py-28">
             <PropertyDoodles />
             <div className="relative z-10 space-y-16 sm:space-y-20">
-              {POPULATED_CATEGORIES.map((category) => (
-                <PropertyRow
-                  key={category.key}
-                  id={category.key}
-                  heading={category.label}
-                  types={category.blurb}
-                  listings={getListingsByCategory(category.key)}
-                />
-              ))}
+              {populatedCategories.length > 0 ? (
+                populatedCategories.map((category) => (
+                  <PropertyRow
+                    key={category.key}
+                    id={category.key}
+                    heading={category.label}
+                    types={category.blurb}
+                    listings={grouped.get(category.key) ?? []}
+                  />
+                ))
+              ) : (
+                <PropertyCatalogEmpty />
+              )}
               <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
                 <TrustStrip eyebrow="Why people trust us" points={RE_TRUST} />
               </div>

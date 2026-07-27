@@ -135,6 +135,14 @@ services:
         NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL?set NEXT_PUBLIC_API_BASE_URL for the prod web build (empty = same-origin behind nginx)}
     # No command override: the standalone prod image's CMD is `node server.js`
     # (pnpm and package.json scripts are not present in that image).
+    #
+    # API_INTERNAL_URL (runtime, server-resolved — used by lib/api/server.ts
+    # for ISR-fetched public pages) belongs in ./apps/web/.env.prod, not here:
+    # unlike NEXT_PUBLIC_API_BASE_URL above, it is never baked into the
+    # browser bundle, so it needs no build arg. Point it at wherever the API
+    # is reachable from the web container/host in this deployment (e.g. the
+    # api service's docker-network name, or its origin if same-origin behind
+    # nginx does not apply server-side).
     env_file:
       - ./apps/web/.env.prod
     depends_on:

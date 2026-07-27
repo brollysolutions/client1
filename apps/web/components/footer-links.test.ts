@@ -24,8 +24,8 @@ describe("FOOTER_COLUMNS integrity", () => {
     ]);
   });
 
-  it("Real Estate column resolves all 4 property categories", () => {
-    expect(column("Real Estate").links).toHaveLength(4);
+  it("Real Estate column resolves all 5 property categories", () => {
+    expect(column("Real Estate").links).toHaveLength(5);
   });
 
   it("Resources column resolves all 4 calculators plus the hub link", () => {

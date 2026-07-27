@@ -55,6 +55,9 @@ export function PropertyCard({ listing }: { listing: PropertyListing }) {
         {listing.meta ? (
           <p className="text-sm text-text-secondary">{listing.meta}</p>
         ) : null}
+        {listing.reraNumber ? (
+          <p className="text-xs text-muted-foreground">RERA {listing.reraNumber}</p>
+        ) : null}
       </CardHeader>
 
       <CardContent className="pt-1">
