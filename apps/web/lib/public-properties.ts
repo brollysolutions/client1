@@ -1,0 +1,45 @@
+// Server-only client for the public property catalog
+// (GET /api/v1/public/properties). Separate from lib/properties-api.ts,
+// which is the authenticated DASHBOARD client (REListing shape, goes through
+// the client-side apiRequest wrapper) — this module returns the public
+// PropertyListing shape and goes through the server-only serverFetchJson, so
+// it must never be imported by a Client Component.
+
+import type { components } from "@contracts/generated/schema";
+
+import { serverFetchJson } from "@/lib/api/server";
+import type { PropertyListing } from "@/lib/properties";
+
+type Schemas = components["schemas"];
+
+export function mapPublicListing(raw: Schemas["PublicPropertyRead"]): PropertyListing {
+  return {
+    id: raw.id,
+    title: raw.title,
+    location: raw.location,
+    price: raw.price_display,
+    type: raw.type,
+    category: raw.category,
+    meta: raw.meta ?? undefined,
+    // next/image has no configured remote hosts (no images.remotePatterns);
+    // an absolute URL from a future non-local upload origin would crash the
+    // page mid-render. Repo-local paths only; anything else falls back to
+    // the existing "Sample" placeholder band.
+    image: raw.image?.startsWith("/") ? raw.image : undefined,
+    reraNumber: raw.rera_number,
+  };
+}
+
+// Never throws, never rejects: an ISR-fetched Server Component page must
+// keep rendering its other sections (hero, journey, FAQ, CTA) even when the
+// catalog fetch fails or the table is simply empty. Every failure path here
+// collapses to an empty array; distinguishing "empty" from "failed" buys the
+// visitor nothing actionable, so we don't.
+export async function getPublicListings(): Promise<PropertyListing[]> {
+  const res = await serverFetchJson<Schemas["PublicPropertyListResponse"]>(
+    "/api/v1/public/properties",
+    { revalidate: 300 },
+  );
+  if (!res.ok) return [];
+  return res.data.properties.map(mapPublicListing);
+}

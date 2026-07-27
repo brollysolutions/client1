@@ -150,8 +150,20 @@ services:
     command: pnpm dev --hostname 0.0.0.0
     ports:
       - "3000:3000"
+    depends_on:
+      - api
     environment:
+      # Build-time-inlined, browser-resolved (apps/web/Dockerfile ARGs this in):
+      # the browser is on the host network, so it reaches the api container
+      # through the published port, not the docker network.
       NEXT_PUBLIC_API_BASE_URL: http://localhost:8000
+      # Runtime-only, server-resolved (lib/api/server.ts): Server Components
+      # (e.g. ISR-fetched public pages) run inside THIS container, where
+      # "localhost" means itself, not the api container — hence a separate
+      # var reachable over the docker network, deliberately NOT NEXT_PUBLIC_*
+      # so it is read fresh on every request/regeneration instead of being
+      # baked into the client bundle at build time.
+      API_INTERNAL_URL: http://api:8000
       CI: "true"
     healthcheck:
       # node:alpine has no curl; verify the Next.js listener accepts connections.

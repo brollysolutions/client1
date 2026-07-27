@@ -42,3 +42,31 @@ class PropertyRead(BaseModel):
 
 class PropertyListResponse(BaseModel):
     properties: list[PropertyRead]
+
+
+class PublicPropertyRead(BaseModel):
+    """Anonymous-read shape (docs/specs/public-property-catalog.md).
+
+    Deliberately NOT PropertyRead: a separate schema means a future sensitive
+    column added to the authenticated read can never silently surface here.
+    Excludes the dashboard's entire filter-facet vocabulary (price_paise, bhk,
+    area_sqft, furnishing, construction_status, amenities, age_years, pincode,
+    city, locality) and internal metadata (active, created_at). `rera_number`
+    is deliberately included: RERA registration is a statutory disclosure on
+    any advertisement of a registered project, and a public listing page is
+    one.
+    """
+
+    id: UUID
+    title: str
+    type: str
+    location: str
+    price_display: str
+    meta: str | None
+    image: str | None
+    category: PropertyCategory
+    rera_number: str
+
+
+class PublicPropertyListResponse(BaseModel):
+    properties: list[PublicPropertyRead]
