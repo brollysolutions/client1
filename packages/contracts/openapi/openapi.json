@@ -5511,6 +5511,82 @@
         "title": "PublicLeadResponse",
         "type": "object"
       },
+      "PublicOfferListResponse": {
+        "properties": {
+          "offers": {
+            "items": {
+              "$ref": "#/components/schemas/PublicOfferRead"
+            },
+            "title": "Offers",
+            "type": "array"
+          }
+        },
+        "required": [
+          "offers"
+        ],
+        "title": "PublicOfferListResponse",
+        "type": "object"
+      },
+      "PublicOfferRead": {
+        "description": "Anonymous-read shape (docs/specs/public-offer-serving.md).\n\nDeliberately NOT a subclass of OfferRead -- a future sensitive column\nadded to the authenticated read can never silently surface here.\n\n- status: constant \"active\" by construction on this path (see\n  services/public_catalog.py::list_public_offers). Exposing a constant\n  invites a client-side filter that would quietly become the de-facto\n  access control.\n- created_by_uuid: staff identity, never public.\n- starts_at / ends_at: the endpoint has already applied the window;\n  republishing it lets a client second-guess the server and discloses\n  unlaunched-campaign timing (same reasoning as PublicBannerRead).\n- created_at: internal metadata, no display use.\n\nbusiness_line IS included, unlike PublicBannerRead: offers are line-scoped\nby design (an offer applies to loans, real_estate, or both) and the\nfrontend needs it to decide which strip(s) an offer renders in.",
+        "properties": {
+          "business_line": {
+            "title": "Business Line",
+            "type": "string"
+          },
+          "code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Code"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "discount_type": {
+            "title": "Discount Type",
+            "type": "string"
+          },
+          "discount_value": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Discount Value",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "business_line",
+          "title",
+          "description",
+          "discount_type",
+          "discount_value",
+          "code"
+        ],
+        "title": "PublicOfferRead",
+        "type": "object"
+      },
       "PublicPropertyListResponse": {
         "properties": {
           "properties": {
@@ -12752,6 +12828,27 @@
           }
         },
         "summary": "List Banners Public",
+        "tags": [
+          "public"
+        ]
+      }
+    },
+    "/api/v1/public/offers": {
+      "get": {
+        "operationId": "list_offers_public_api_v1_public_offers_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicOfferListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "List Offers Public",
         "tags": [
           "public"
         ]

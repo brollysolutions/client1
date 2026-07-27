@@ -1,11 +1,13 @@
 import type { Metadata } from "next";
 
+import { OfferStrip } from "@/components/offer-strip";
 import { PropertyCatalogEmpty } from "@/components/property-catalog-empty";
 import { ProductPage, PropertyDoodles } from "@/components/product-page";
 import { PropertyRow } from "@/components/property-row";
 import { TrustStrip } from "@/components/trust-strip";
 import { faqPageJsonLd, REAL_ESTATE_FAQ_ITEMS } from "@/lib/faq";
 import { RE_TRUST, REAL_ESTATE_JOURNEY } from "@/lib/products";
+import { getPublicOffers } from "@/lib/public-offers";
 import { getPublicListings } from "@/lib/public-properties";
 import { groupByCategory, PROPERTY_CATEGORIES } from "@/lib/properties";
 import { SITE_NAME, SITE_URL } from "@/lib/site";
@@ -59,7 +61,9 @@ const realEstateJsonLd = {
 };
 
 export default async function RealEstatePage() {
-  const listings = await getPublicListings();
+  // Parallel, not sequential: two independent 5s serverFetchJson timeouts
+  // should not stack on a single page render.
+  const [listings, offers] = await Promise.all([getPublicListings(), getPublicOffers()]);
   const grouped = groupByCategory(listings);
   // Only render category rows that actually have listings (empty-state guard,
   // so a category with nothing to show does not render an empty scroller).
@@ -79,27 +83,35 @@ export default async function RealEstatePage() {
         heroDoodles
         heroPlant="/illustrations/heroes/real-estate.svg"
         beforeJourney={
-          <div className="relative w-full border-t border-[var(--nav-border)] bg-[var(--nav-bg)] py-20 sm:py-24 lg:py-28">
-            <PropertyDoodles />
-            <div className="relative z-10 space-y-16 sm:space-y-20">
-              {populatedCategories.length > 0 ? (
-                populatedCategories.map((category) => (
-                  <PropertyRow
-                    key={category.key}
-                    id={category.key}
-                    heading={category.label}
-                    types={category.blurb}
-                    listings={grouped.get(category.key) ?? []}
-                  />
-                ))
-              ) : (
-                <PropertyCatalogEmpty />
-              )}
-              <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-                <TrustStrip eyebrow="Why people trust us" points={RE_TRUST} />
+          <>
+            <div className="relative w-full border-t border-[var(--nav-border)] bg-[var(--nav-bg)] py-20 sm:py-24 lg:py-28">
+              <PropertyDoodles />
+              <div className="relative z-10 space-y-16 sm:space-y-20">
+                {populatedCategories.length > 0 ? (
+                  populatedCategories.map((category) => (
+                    <PropertyRow
+                      key={category.key}
+                      id={category.key}
+                      heading={category.label}
+                      types={category.blurb}
+                      listings={grouped.get(category.key) ?? []}
+                    />
+                  ))
+                ) : (
+                  <PropertyCatalogEmpty />
+                )}
+                <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+                  <TrustStrip eyebrow="Why people trust us" points={RE_TRUST} />
+                </div>
               </div>
             </div>
-          </div>
+            <OfferStrip
+              offers={offers}
+              line="real_estate"
+              heading="Offers running right now"
+              subheading="Live discounts on the properties and services we help you buy."
+            />
+          </>
         }
         journeyHeading="What happens when you reach out"
         journey={REAL_ESTATE_JOURNEY}

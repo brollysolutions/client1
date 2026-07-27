@@ -71,3 +71,37 @@ class OfferRead(BaseModel):
 
 class OfferListResponse(BaseModel):
     offers: list[OfferRead]
+
+
+class PublicOfferRead(BaseModel):
+    """Anonymous-read shape (docs/specs/public-offer-serving.md).
+
+    Deliberately NOT a subclass of OfferRead -- a future sensitive column
+    added to the authenticated read can never silently surface here.
+
+    - status: constant "active" by construction on this path (see
+      services/public_catalog.py::list_public_offers). Exposing a constant
+      invites a client-side filter that would quietly become the de-facto
+      access control.
+    - created_by_uuid: staff identity, never public.
+    - starts_at / ends_at: the endpoint has already applied the window;
+      republishing it lets a client second-guess the server and discloses
+      unlaunched-campaign timing (same reasoning as PublicBannerRead).
+    - created_at: internal metadata, no display use.
+
+    business_line IS included, unlike PublicBannerRead: offers are line-scoped
+    by design (an offer applies to loans, real_estate, or both) and the
+    frontend needs it to decide which strip(s) an offer renders in.
+    """
+
+    id: UUID
+    business_line: str
+    title: str
+    description: str | None
+    discount_type: str
+    discount_value: Decimal
+    code: str | None
+
+
+class PublicOfferListResponse(BaseModel):
+    offers: list[PublicOfferRead]

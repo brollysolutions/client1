@@ -1,9 +1,18 @@
 import type { Metadata } from "next";
 
+import { OfferStrip } from "@/components/offer-strip";
 import { ProductPage } from "@/components/product-page";
 import { faqPageJsonLd, LOAN_FAQ_ITEMS } from "@/lib/faq";
+import { getPublicOffers } from "@/lib/public-offers";
 import { LOAN_JOURNEY, LOAN_PRODUCTS, LOAN_TRUST } from "@/lib/products";
 import { SITE_NAME, SITE_URL } from "@/lib/site";
+
+// First server-side data fetch on this page. Matches /real-estate's ISR
+// window: CMS-authored content is human-paced, not real-time, so a five
+// minute regeneration keeps the page from needing a redeploy to show a new
+// offer without adding meaningful load (at most ~12 requests/hour from the
+// web container, regardless of visitor volume).
+export const revalidate = 300;
 
 export const metadata: Metadata = {
   title: "Loans: Personal, Business, Property, Vehicle & Education",
@@ -48,7 +57,9 @@ const loansJsonLd = {
   publisher: { "@type": "Organization", name: SITE_NAME, url: SITE_URL },
 };
 
-export default function LoansPage() {
+export default async function LoansPage() {
+  const offers = await getPublicOffers();
+
   return (
     <>
       <script
@@ -70,6 +81,14 @@ export default function LoansPage() {
           label: "Talk to an advisor",
         }}
         products={LOAN_PRODUCTS}
+        beforeJourney={
+          <OfferStrip
+            offers={offers}
+            line="loans"
+            heading="Offers running right now"
+            subheading="Live discounts on the loans, cards, and insurance we help you apply for."
+          />
+        }
         journeyHeading="What happens when you apply?"
         journey={LOAN_JOURNEY}
         journeyTimeline
