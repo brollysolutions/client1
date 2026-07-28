@@ -32,6 +32,15 @@ merges first.
 
 Rollback: drops the grant and the column. Safe pre-use; once any row has a real
 resolution_note, dropping the column loses it (standard column-drop caveat).
+
+`downgrade()` deliberately revokes only `status`/`resolution_note`, NOT the shared
+`updated_at`: the sibling branch `875b08101bea` also depends on that column
+privilege, and unlike GRANT, REVOKE is *not* additive — one REVOKE drops the single
+underlying privilege regardless of how many times it was granted. Revoking it here
+would 500 every account deletion while that sibling is still applied. The cost is
+that downgrading past both branches leaves a residual `UPDATE (updated_at)` grant;
+that is inert on its own (no other column of this table is writable by `api_user`
+at that point) and is the strictly safer of the two failure modes.
 """
 
 from collections.abc import Sequence
@@ -52,7 +61,5 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    op.execute(
-        "REVOKE UPDATE (status, resolution_note, updated_at) ON support_tickets FROM api_user"
-    )
+    op.execute("REVOKE UPDATE (status, resolution_note) ON support_tickets FROM api_user")
     op.drop_column("support_tickets", "resolution_note")
