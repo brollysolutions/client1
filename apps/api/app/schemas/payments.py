@@ -51,7 +51,10 @@ class PayoutCreate(BaseModel):
 
 class PayoutRead(BaseModel):
     id: UUID
-    recipient_user_uuid: UUID
+    # Nullable: account deletion de-links a payout from its recipient (SRS
+    # 5.1) instead of deleting the row, so a listed/read payout can
+    # legitimately have no recipient left.
+    recipient_user_uuid: UUID | None
     type: PayoutType
     business_line: str | None
     amount_paise: int

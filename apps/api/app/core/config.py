@@ -163,6 +163,11 @@ class Settings(BaseSettings):
     # audit_paid_payouts_for_drift.
     PAYOUT_REVERSAL_AUDIT_WINDOW_DAYS: int = 7
 
+    # 7-year PII retention purge (SRS 5.1). Anchor is `delinked_at` on
+    # transactions/payouts, stamped by services/account_deletion.py's Phase B
+    # — never `created_at`. See services/retention_purge.py.
+    FINANCIAL_RECORD_RETENTION_YEARS: int = 7
+
     # Web push (VAPID) — browser push delivery for the existing notifications
     # feed (services/notifications.py::emit_notification). Live-vs-mock is
     # switched by credential presence alone, exactly like Razorpay above:

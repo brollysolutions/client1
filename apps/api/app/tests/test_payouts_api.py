@@ -389,6 +389,39 @@ async def test_list_payouts_admin_only(client: AsyncClient) -> None:
     assert denied.status_code == 403
 
 
+@pytest.mark.asyncio
+async def test_list_survives_a_delinked_payout(client: AsyncClient) -> None:
+    """Account deletion (SRS 5.1) de-links a payout by nulling
+    recipient_user_uuid rather than deleting the row (services/
+    account_deletion.py). PayoutRead.recipient_user_uuid must tolerate that —
+    regression for a validation crash where the schema still required a UUID."""
+    maker_token, _ = await _make_admin(client)
+    _, recipient_mobile = await full_registration(client, lines=["loans"])
+    recipient_uid = await _auth_user_id(recipient_mobile)
+
+    created = await client.post(
+        "/api/v1/payouts", headers=_headers(maker_token), json=_create_body(recipient_uid)
+    )
+    payout_id = created.json()["id"]
+
+    import app.db.session as _session_mod
+    from app.models.payout import Payout
+
+    async with _session_mod.AsyncSessionLocal() as db:
+        await db.execute(
+            Payout.__table__.update()
+            .where(Payout.id == uuid.UUID(payout_id))
+            .values(recipient_user_uuid=None, retained_ref=recipient_uid)
+        )
+        await db.commit()
+
+    listed = await client.get("/api/v1/payouts", headers=_headers(maker_token))
+    assert listed.status_code == 200
+    delinked = next(p for p in listed.json()["payouts"] if p["id"] == payout_id)
+    assert delinked["recipient_user_uuid"] is None
+    assert delinked["recipient_code"] is None
+
+
 # ---------------------------------------------------------------------------
 # insider-fraud guards (self-payout)
 # ---------------------------------------------------------------------------

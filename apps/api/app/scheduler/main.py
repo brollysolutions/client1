@@ -25,6 +25,7 @@ from app.jobs.backfill_referral_codes import backfill_referral_codes
 from app.jobs.cms_activation import cms_activation
 from app.jobs.purge_agent_application_orphans import purge_agent_application_orphans
 from app.jobs.reconcile_payouts import reconcile_payouts
+from app.jobs.retention_purge import retention_purge_job
 from app.models.auth import RefreshToken
 
 logger = logging.getLogger("scheduler")
@@ -160,6 +161,15 @@ def build_scheduler() -> AsyncIOScheduler:
         # homepage's 60s ISR window puts a banner live within ~6 min of its
         # starts_at. Cost is 4 indexed UPDATEs matching 0 rows most ticks.
         id="cms_activation",
+        max_instances=1,
+        coalesce=True,
+        replace_existing=True,
+    )
+    scheduler.add_job(
+        retention_purge_job,
+        trigger="interval",
+        hours=24,  # compliance cleanup, not time-critical
+        id="retention_purge",
         max_instances=1,
         coalesce=True,
         replace_existing=True,
