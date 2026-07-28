@@ -33,6 +33,7 @@ class NotificationType(enum.StrEnum):
     LOAN_STATUS_UPDATED = "loan_status_updated"
     PROPERTY_DEAL_STATUS_UPDATED = "property_deal_status_updated"
     REFERRAL_CONVERTED = "referral_converted"
+    SUPPORT_TICKET_RESOLVED = "support_ticket_resolved"
 
 
 _ev = lambda x: [e.value for e in x]  # noqa: E731

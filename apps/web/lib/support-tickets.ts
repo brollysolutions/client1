@@ -22,6 +22,25 @@ export type SupportTicket = {
   createdOn: string; // ISO date
 };
 
+// Shared between the client's own ticket list (app/(app)/dashboard/support/page.tsx)
+// and the Admin console (features/admin/support-tickets-view.tsx) so the two
+// surfaces can never show different words for the same category/status.
+export const CATEGORY_LABEL: Record<SupportCategory, string> = {
+  account_login: "Login problem",
+  otp: "OTP not received",
+  lost_mobile: "Lost my mobile number",
+  general: "Something else",
+};
+
+export const CATEGORIES: SupportCategory[] = ["account_login", "otp", "lost_mobile", "general"];
+
+export const STATUS_STYLES: Record<SupportStatus, { label: string; className: string }> = {
+  open: { label: "Open", className: "bg-warning/10 text-warning" },
+  in_progress: { label: "In progress", className: "bg-loans-soft text-loans-accent" },
+  resolved: { label: "Resolved", className: "bg-success/10 text-success" },
+  closed: { label: "Closed", className: "bg-muted text-text-secondary" },
+};
+
 function mapTicket(raw: Schemas["SupportTicketRead"]): SupportTicket {
   return {
     id: raw.id,
