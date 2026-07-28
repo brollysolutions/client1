@@ -264,6 +264,40 @@ export interface paths {
         patch: operations["update_property_deal_progress_api_v1_admin_property_deals__deal_id__patch"];
         trace?: never;
     };
+    "/api/v1/admin/support-tickets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Support Tickets */
+        get: operations["list_support_tickets_api_v1_admin_support_tickets_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/support-tickets/{ticket_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Advance Support Ticket */
+        patch: operations["advance_support_ticket_api_v1_admin_support_tickets__ticket_id__patch"];
+        trace?: never;
+    };
     "/api/v1/admin/tasks": {
         parameters: {
             query?: never;
@@ -3459,7 +3493,7 @@ export interface components {
          * NotificationType
          * @enum {string}
          */
-        NotificationType: "site_visit_requested" | "site_visit_cancelled" | "support_ticket_received" | "lead_assigned" | "lead_released" | "task_assigned" | "loan_status_updated" | "property_deal_status_updated" | "referral_converted";
+        NotificationType: "site_visit_requested" | "site_visit_cancelled" | "support_ticket_received" | "lead_assigned" | "lead_released" | "task_assigned" | "loan_status_updated" | "property_deal_status_updated" | "referral_converted" | "support_ticket_resolved";
         /** OfferCreate */
         OfferCreate: {
             /** Business Line */
@@ -4549,6 +4583,61 @@ export interface components {
          * @enum {string}
          */
         SupportStatus: "open" | "in_progress" | "resolved" | "closed";
+        /** SupportTicketAdminListResponse */
+        SupportTicketAdminListResponse: {
+            /** Tickets */
+            tickets: components["schemas"]["SupportTicketAdminRead"][];
+        };
+        /**
+         * SupportTicketAdminRead
+         * @description Admin-only shape. Deliberately NOT a subclass of SupportTicketRead -- a
+         *     future sensitive column added to the client-facing read can never
+         *     silently surface here, and vice versa: resolution_note and the resolved
+         *     requester identity must never leak into SupportTicketRead.
+         *
+         *     requester_name / requester_mobile are resolved server-side from
+         *     auth_user_uuid (services/support_tickets.py::list_for_admin) so the
+         *     client never sees a raw UUID it has no use for. Both are None when the
+         *     account is soft-deleted (account_deletion.py has already tombstoned the
+         *     real mobile by then) -- the frontend renders "Deleted account" for that
+         *     case, same convention apps/web/features/admin/payouts-view.tsx uses for
+         *     a delinked payout recipient.
+         */
+        SupportTicketAdminRead: {
+            /** Body */
+            body: string;
+            category: components["schemas"]["SupportCategory"];
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Requester Mobile */
+            requester_mobile: string | null;
+            /** Requester Name */
+            requester_name: string | null;
+            /** Resolution Note */
+            resolution_note: string | null;
+            status: components["schemas"]["SupportStatus"];
+            /** Subject */
+            subject: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** SupportTicketAdvanceRequest */
+        SupportTicketAdvanceRequest: {
+            /** Resolution Note */
+            resolution_note?: string | null;
+            status: components["schemas"]["SupportStatus"];
+        };
         /** SupportTicketCreate */
         SupportTicketCreate: {
             /** Body */
@@ -5398,6 +5487,72 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AdminPropertyDealRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_support_tickets_api_v1_admin_support_tickets_get: {
+        parameters: {
+            query?: {
+                status?: components["schemas"]["SupportStatus"] | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SupportTicketAdminListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    advance_support_ticket_api_v1_admin_support_tickets__ticket_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                ticket_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SupportTicketAdvanceRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SupportTicketAdminRead"];
                 };
             };
             /** @description Validation Error */

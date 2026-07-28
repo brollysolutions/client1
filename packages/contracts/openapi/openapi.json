@@ -4204,7 +4204,8 @@
           "task_assigned",
           "loan_status_updated",
           "property_deal_status_updated",
-          "referral_converted"
+          "referral_converted",
+          "support_ticket_resolved"
         ],
         "title": "NotificationType",
         "type": "string"
@@ -7111,6 +7112,127 @@
         "title": "SupportStatus",
         "type": "string"
       },
+      "SupportTicketAdminListResponse": {
+        "properties": {
+          "tickets": {
+            "items": {
+              "$ref": "#/components/schemas/SupportTicketAdminRead"
+            },
+            "title": "Tickets",
+            "type": "array"
+          }
+        },
+        "required": [
+          "tickets"
+        ],
+        "title": "SupportTicketAdminListResponse",
+        "type": "object"
+      },
+      "SupportTicketAdminRead": {
+        "description": "Admin-only shape. Deliberately NOT a subclass of SupportTicketRead -- a\nfuture sensitive column added to the client-facing read can never\nsilently surface here, and vice versa: resolution_note and the resolved\nrequester identity must never leak into SupportTicketRead.\n\nrequester_name / requester_mobile are resolved server-side from\nauth_user_uuid (services/support_tickets.py::list_for_admin) so the\nclient never sees a raw UUID it has no use for. Both are None when the\naccount is soft-deleted (account_deletion.py has already tombstoned the\nreal mobile by then) -- the frontend renders \"Deleted account\" for that\ncase, same convention apps/web/features/admin/payouts-view.tsx uses for\na delinked payout recipient.",
+        "properties": {
+          "body": {
+            "title": "Body",
+            "type": "string"
+          },
+          "category": {
+            "$ref": "#/components/schemas/SupportCategory"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "requester_mobile": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Requester Mobile"
+          },
+          "requester_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Requester Name"
+          },
+          "resolution_note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resolution Note"
+          },
+          "status": {
+            "$ref": "#/components/schemas/SupportStatus"
+          },
+          "subject": {
+            "title": "Subject",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "category",
+          "subject",
+          "body",
+          "status",
+          "resolution_note",
+          "created_at",
+          "updated_at",
+          "requester_name",
+          "requester_mobile"
+        ],
+        "title": "SupportTicketAdminRead",
+        "type": "object"
+      },
+      "SupportTicketAdvanceRequest": {
+        "properties": {
+          "resolution_note": {
+            "anyOf": [
+              {
+                "maxLength": 2000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resolution Note"
+          },
+          "status": {
+            "$ref": "#/components/schemas/SupportStatus"
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "title": "SupportTicketAdvanceRequest",
+        "type": "object"
+      },
       "SupportTicketCreate": {
         "properties": {
           "body": {
@@ -8995,6 +9117,118 @@
           }
         ],
         "summary": "Update Property Deal Progress",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/support-tickets": {
+      "get": {
+        "operationId": "list_support_tickets_api_v1_admin_support_tickets_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/SupportStatus"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SupportTicketAdminListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "List Support Tickets",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/support-tickets/{ticket_id}": {
+      "patch": {
+        "operationId": "advance_support_ticket_api_v1_admin_support_tickets__ticket_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ticket_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Ticket Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SupportTicketAdvanceRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SupportTicketAdminRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Advance Support Ticket",
         "tags": [
           "admin"
         ]

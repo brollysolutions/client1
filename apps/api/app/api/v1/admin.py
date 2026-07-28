@@ -18,6 +18,7 @@ from app.core.client_ip import get_client_ip
 from app.core.deps import CurrentUser, get_cache, require_admin
 from app.db.session import get_db
 from app.models.profile import AgentApplication, StaffRole, SubmissionStatus
+from app.models.support_ticket import SupportStatus
 from app.schemas.admin import (
     AdminAccountDeleteRequest,
     AdminAssignedLeadRead,
@@ -46,6 +47,11 @@ from app.schemas.admin import (
 from app.schemas.auth import MessageResponse
 from app.schemas.loans import LoanApplicationProgressUpdate
 from app.schemas.property_deals import PropertyDealProgressUpdate
+from app.schemas.support_tickets import (
+    SupportTicketAdminListResponse,
+    SupportTicketAdminRead,
+    SupportTicketAdvanceRequest,
+)
 from app.services import storage
 from app.services.account_deletion import AccountAlreadyDeleted, AccountNotFound, delete_account
 from app.services.admin import (
@@ -94,6 +100,18 @@ from app.services.property_deals import (
 )
 from app.services.property_deals import (
     apply_progress_update as apply_deal_progress_update,
+)
+from app.services.support_tickets import (
+    AdminTicketView,
+    TicketIllegalTransition,
+    TicketNotFound,
+    advance_ticket,
+)
+from app.services.support_tickets import (
+    list_for_admin as list_support_tickets_for_admin,
+)
+from app.services.support_tickets import (
+    view_for_admin as view_support_ticket_for_admin,
 )
 from app.services.tasks import (
     InvalidEmployee,
@@ -600,3 +618,54 @@ async def update_property_deal_progress(
     deal = await get_deal_for_admin(db, deal_id)
     assert deal is not None  # just updated it above
     return _to_admin_property_deal_read(deal)
+
+
+def _to_support_ticket_admin_read(view: AdminTicketView) -> SupportTicketAdminRead:
+    t = view.ticket
+    return SupportTicketAdminRead(
+        id=t.id,
+        category=t.category,
+        subject=t.subject,
+        body=t.body,
+        status=t.status,
+        resolution_note=t.resolution_note,
+        created_at=t.created_at,
+        updated_at=t.updated_at,
+        requester_name=view.requester_name,
+        requester_mobile=view.requester_mobile,
+    )
+
+
+@router.get("/support-tickets", response_model=SupportTicketAdminListResponse)
+async def list_support_tickets(
+    status_filter: SupportStatus | None = Query(default=None, alias="status"),
+    current_user: CurrentUser = Depends(require_admin),  # noqa: ARG001
+    db: AsyncSession = Depends(get_db),
+) -> SupportTicketAdminListResponse:
+    views = await list_support_tickets_for_admin(db, status_filter=status_filter)
+    return SupportTicketAdminListResponse(tickets=[_to_support_ticket_admin_read(v) for v in views])
+
+
+@router.patch("/support-tickets/{ticket_id}", response_model=SupportTicketAdminRead)
+async def advance_support_ticket(
+    ticket_id: UUID,
+    payload: SupportTicketAdvanceRequest,
+    current_user: CurrentUser = Depends(require_admin),  # noqa: ARG001
+    db: AsyncSession = Depends(get_db),
+) -> SupportTicketAdminRead:
+    try:
+        ticket = await advance_ticket(
+            db,
+            ticket_id,
+            target_status=payload.status,
+            resolution_note=payload.resolution_note,
+        )
+    except TicketNotFound as exc:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Support ticket not found.") from exc
+    except TicketIllegalTransition as exc:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT, "That status change is not allowed from the current status."
+        ) from exc
+
+    view = await view_support_ticket_for_admin(db, ticket)
+    return _to_support_ticket_admin_read(view)
