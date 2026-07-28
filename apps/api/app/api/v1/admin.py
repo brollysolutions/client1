@@ -6,6 +6,7 @@ gate (see app/services/admin.py module docstring for why RLS alone isn't enough)
 
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Literal
 from uuid import UUID
 
@@ -17,6 +18,7 @@ from app.cache.redis_keys import RedisCache
 from app.core.client_ip import get_client_ip
 from app.core.deps import CurrentUser, get_cache, require_admin
 from app.db.session import get_db
+from app.models.audit_log import AuditAction
 from app.models.profile import AgentApplication, StaffRole, SubmissionStatus
 from app.models.support_ticket import SupportStatus
 from app.schemas.admin import (
@@ -44,6 +46,7 @@ from app.schemas.admin import (
     StaffCreateResponse,
     TaskAssignRequest,
 )
+from app.schemas.audit_log import AuditLogListResponse, AuditLogRead
 from app.schemas.auth import MessageResponse
 from app.schemas.loans import LoanApplicationProgressUpdate
 from app.schemas.property_deals import PropertyDealProgressUpdate
@@ -63,6 +66,8 @@ from app.services.admin import (
     reject_agent_application,
 )
 from app.services.admin_home import get_admin_home
+from app.services.audit_log import AuditEntryView
+from app.services.audit_log import list_for_admin as list_audit_log
 from app.services.leads import (
     InvalidTelecaller,
     LeadAlreadyAssigned,
@@ -181,7 +186,9 @@ async def create_staff_user(
     db: AsyncSession = Depends(get_db),
 ) -> StaffCreateResponse:
     try:
-        profile, temp_password = await create_staff(db, current_user.id, payload)
+        profile, temp_password = await create_staff(
+            db, current_user.id, payload, actor_role=current_user.role
+        )
     except StaffAlreadyExists as exc:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
@@ -230,6 +237,7 @@ async def delete_user(
             reason=payload.reason,
             ip=get_client_ip(request),
             user_agent=request.headers.get("user-agent"),
+            actor_role=current_user.role,
         )
     except AccountNotFound as exc:
         raise HTTPException(
@@ -300,7 +308,11 @@ async def approve_agent(
 ) -> AgentApproveResponse:
     try:
         result = await approve_agent_application(
-            db, application_id, current_user.staff_profile_uuid
+            db,
+            application_id,
+            current_user.staff_profile_uuid,
+            actor_uuid=current_user.id,
+            actor_role=current_user.role,
         )
     except AgentApplicationAlreadyReviewed as exc:
         raise HTTPException(
@@ -334,7 +346,12 @@ async def reject_agent(
 ) -> AgentApplicationRead:
     try:
         ok = await reject_agent_application(
-            db, application_id, current_user.staff_profile_uuid, payload.note
+            db,
+            application_id,
+            current_user.staff_profile_uuid,
+            payload.note,
+            actor_uuid=current_user.id,
+            actor_role=current_user.role,
         )
     except AgentApplicationAlreadyReviewed as exc:
         raise HTTPException(
@@ -650,7 +667,7 @@ async def list_support_tickets(
 async def advance_support_ticket(
     ticket_id: UUID,
     payload: SupportTicketAdvanceRequest,
-    current_user: CurrentUser = Depends(require_admin),  # noqa: ARG001
+    current_user: CurrentUser = Depends(require_admin),
     db: AsyncSession = Depends(get_db),
 ) -> SupportTicketAdminRead:
     try:
@@ -659,6 +676,8 @@ async def advance_support_ticket(
             ticket_id,
             target_status=payload.status,
             resolution_note=payload.resolution_note,
+            actor_uuid=current_user.id,
+            actor_role=current_user.role,
         )
     except TicketNotFound as exc:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Support ticket not found.") from exc
@@ -669,3 +688,53 @@ async def advance_support_ticket(
 
     view = await view_support_ticket_for_admin(db, ticket)
     return _to_support_ticket_admin_read(view)
+
+
+def _to_audit_log_read(view: AuditEntryView) -> AuditLogRead:
+    e = view.entry
+    return AuditLogRead(
+        id=e.id,
+        actor_uuid=e.actor_uuid,
+        actor_name=view.actor_name,
+        actor_role=e.actor_role,
+        action=e.action,
+        entity_type=e.entity_type,
+        entity_uuid=e.entity_uuid,
+        business_line=e.business_line,
+        detail=e.detail,
+        created_at=e.created_at,
+    )
+
+
+@router.get("/audit-log", response_model=AuditLogListResponse)
+async def list_audit_entries(
+    action: AuditAction | None = Query(default=None),
+    actor_uuid: UUID | None = Query(default=None),
+    entity_type: str | None = Query(default=None, max_length=64),
+    entity_uuid: UUID | None = Query(default=None),
+    since: datetime | None = Query(default=None),
+    until: datetime | None = Query(default=None),
+    limit: int = Query(default=50, ge=1, le=200),
+    offset: int = Query(default=0, ge=0),
+    current_user: CurrentUser = Depends(require_admin),  # noqa: ARG001
+    db: AsyncSession = Depends(get_db),
+) -> AuditLogListResponse:
+    """Read-only activity feed (Admin design §5.6). Admin-only twice over: this
+    guard, and `audit_log_select` in the database, which no other role satisfies.
+
+    There is deliberately no POST/PATCH/DELETE counterpart anywhere in the API —
+    the table grants `api_user` only SELECT/INSERT, and the INSERT path belongs to
+    the services that perform audited actions, not to a caller.
+    """
+    views, total = await list_audit_log(
+        db,
+        action=action,
+        actor_uuid=actor_uuid,
+        entity_type=entity_type,
+        entity_uuid=entity_uuid,
+        since=since,
+        until=until,
+        limit=limit,
+        offset=offset,
+    )
+    return AuditLogListResponse(entries=[_to_audit_log_read(v) for v in views], total=total)

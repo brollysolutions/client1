@@ -929,6 +929,7 @@ async def delete_own_account(
     access_token_exp: int,
     ip: str | None = None,
     user_agent: str | None = None,
+    actor_role: str | None = None,
 ) -> None:
     """Verify the caller's current password, then run the shared deletion flow.
 
@@ -956,6 +957,7 @@ async def delete_own_account(
         reason=None,
         ip=ip,
         user_agent=user_agent,
+        actor_role=actor_role,
     )
 
 

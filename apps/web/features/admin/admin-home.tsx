@@ -11,6 +11,7 @@ import {
   Headset,
   Landmark,
   Megaphone,
+  ScrollText,
   UserPlus,
 } from "lucide-react";
 
@@ -259,6 +260,18 @@ export function AdminHome() {
                 <CardTitle className="mt-2">Support tickets</CardTitle>
                 <CardDescription>
                   Triage and resolve login, OTP, and lost-mobile requests (Admin-exclusive).
+                </CardDescription>
+              </CardHeader>
+            </Card>
+          </Link>
+
+          <Link href="/dashboard/audit-log">
+            <Card className="h-full transition-colors hover:border-brand-cta">
+              <CardHeader>
+                <ScrollText className="h-6 w-6 text-brand-cta" aria-hidden="true" />
+                <CardTitle className="mt-2">Activity log</CardTitle>
+                <CardDescription>
+                  Every approval, payout, and account removal, in order (Admin-exclusive).
                 </CardDescription>
               </CardHeader>
             </Card>

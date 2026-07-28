@@ -237,6 +237,7 @@ async def create_referral_payout(
                 payout_id=payout_id,
                 rejector_user_uuid=current_user.id,
                 reason="Referral was claimed by another payout concurrently.",
+                rejector_role=current_user.role,
             )
         except payments_service.PayoutError:
             logger.warning(

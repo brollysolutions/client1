@@ -1775,6 +1775,149 @@
         "title": "AgentRejectRequest",
         "type": "object"
       },
+      "AuditAction": {
+        "description": "Every value here has a real writer in `app/services/`. The spec names\n`commission_entered` as a fourth example alongside the three below; agent\ncommission entry (\u00a73 #5 of the feature-status tracker) is not built, so that\nvalue is deliberately absent rather than shipped dead \u2014 adding an enum value\nlater is a one-line migration, and this repo's convention is one such value\nper migration.",
+        "enum": [
+          "agent_approved",
+          "agent_rejected",
+          "staff_created",
+          "account_removed",
+          "payout_approved",
+          "payout_rejected",
+          "property_submission_approved",
+          "property_submission_rejected",
+          "support_ticket_advanced",
+          "retention_purged"
+        ],
+        "title": "AuditAction",
+        "type": "string"
+      },
+      "AuditLogListResponse": {
+        "properties": {
+          "entries": {
+            "items": {
+              "$ref": "#/components/schemas/AuditLogRead"
+            },
+            "title": "Entries",
+            "type": "array"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "entries",
+          "total"
+        ],
+        "title": "AuditLogListResponse",
+        "type": "object"
+      },
+      "AuditLogRead": {
+        "description": "One audit entry.\n\n`actor_name` is resolved server-side from `actor_uuid` (the same convention\n`SupportTicketAdminRead.requester_name` uses) so the console does not render a\nraw UUID. It is None in two distinct cases the frontend renders differently:\na NULL `actor_uuid` means a scheduler job acted, while a non-NULL\n`actor_uuid` with no resolvable name means the actor's account was since\ndeleted.\n\n`actor_role` is the role held AT THE TIME of the action, read straight off the\nrow rather than re-derived from today's profile state \u2014 see the model\ndocstring for why that distinction matters.\n\nDeliberately no mobile/email field: this is an activity feed, not a contact\ndirectory, and `.claude/rules/security.md` keeps PII out of surfaces that do\nnot need it. `detail` is bounded by the same rule at write time \u2014\n`services/audit_log.py` rejects PII-shaped keys outright.",
+        "properties": {
+          "action": {
+            "$ref": "#/components/schemas/AuditAction"
+          },
+          "actor_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actor Name"
+          },
+          "actor_role": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actor Role"
+          },
+          "actor_uuid": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actor Uuid"
+          },
+          "business_line": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Business Line"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "detail": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Detail"
+          },
+          "entity_type": {
+            "title": "Entity Type",
+            "type": "string"
+          },
+          "entity_uuid": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Entity Uuid"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "actor_uuid",
+          "actor_name",
+          "actor_role",
+          "action",
+          "entity_type",
+          "entity_uuid",
+          "business_line",
+          "detail",
+          "created_at"
+        ],
+        "title": "AuditLogRead",
+        "type": "object"
+      },
       "AuthTokensResponse": {
         "properties": {
           "access_token": {
@@ -8614,6 +8757,169 @@
           }
         ],
         "summary": "Reject Agent",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/audit-log": {
+      "get": {
+        "description": "Read-only activity feed (Admin design \u00a75.6). Admin-only twice over: this\nguard, and `audit_log_select` in the database, which no other role satisfies.\n\nThere is deliberately no POST/PATCH/DELETE counterpart anywhere in the API \u2014\nthe table grants `api_user` only SELECT/INSERT, and the INSERT path belongs to\nthe services that perform audited actions, not to a caller.",
+        "operationId": "list_audit_entries_api_v1_admin_audit_log_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "action",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/AuditAction"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Action"
+            }
+          },
+          {
+            "in": "query",
+            "name": "actor_uuid",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Actor Uuid"
+            }
+          },
+          {
+            "in": "query",
+            "name": "entity_type",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 64,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Entity Type"
+            }
+          },
+          {
+            "in": "query",
+            "name": "entity_uuid",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Entity Uuid"
+            }
+          },
+          {
+            "in": "query",
+            "name": "since",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Since"
+            }
+          },
+          {
+            "in": "query",
+            "name": "until",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Until"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuditLogListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "List Audit Entries",
         "tags": [
           "admin"
         ]

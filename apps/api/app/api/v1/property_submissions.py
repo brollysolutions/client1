@@ -90,7 +90,9 @@ async def approve(
     db: AsyncSession = Depends(get_db),
 ) -> SubmissionRead:
     try:
-        property_id = await approve_submission(submission_id, current_user.id)
+        property_id = await approve_submission(
+            submission_id, current_user.id, reviewer_role=current_user.role
+        )
     except SubmissionAlreadyReviewed as exc:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
@@ -112,7 +114,9 @@ async def reject(
     db: AsyncSession = Depends(get_db),
 ) -> SubmissionRead:
     try:
-        ok = await reject_submission(submission_id, current_user.id, payload.note)
+        ok = await reject_submission(
+            submission_id, current_user.id, payload.note, reviewer_role=current_user.role
+        )
     except SubmissionAlreadyReviewed as exc:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
