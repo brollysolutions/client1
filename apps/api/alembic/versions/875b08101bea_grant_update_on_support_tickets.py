@@ -30,6 +30,13 @@ backstop that would otherwise catch a future bug (e.g. a careless
 ticket-edit endpoint letting a client rewrite its own `status`/`category`).
 Column privileges are the narrower, still-correct grant for the one write
 path that actually exists today (security review finding, 2026-07-28).
+
+`downgrade()` deliberately revokes only `subject`/`body`, NOT the shared
+`updated_at`: the sibling branch `871d5a7c34e1` (Admin support-ticket console) also
+depends on that column privilege, and unlike GRANT, REVOKE is *not* additive — one
+REVOKE drops the single underlying privilege however many times it was granted.
+Revoking it here would 500 every Admin ticket resolve while that sibling is still
+applied. See that migration's docstring for the same note from the other side.
 """
 
 from collections.abc import Sequence
@@ -47,4 +54,4 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    op.execute("REVOKE UPDATE (subject, body, updated_at) ON support_tickets FROM api_user")
+    op.execute("REVOKE UPDATE (subject, body) ON support_tickets FROM api_user")
