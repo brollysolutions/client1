@@ -199,7 +199,8 @@ export function PayoutsView() {
                     </div>
                     <p className="truncate text-sm text-text-secondary">
                       {p.recipient_name ?? "Unknown recipient"} ·{" "}
-                      {p.recipient_code ?? shortId(p.recipient_user_uuid)}
+                      {p.recipient_code ??
+                        (p.recipient_user_uuid ? shortId(p.recipient_user_uuid) : "Deleted account")}
                     </p>
                     <p className="truncate text-xs text-text-secondary">
                       {TYPE_LABEL[p.type] ?? p.type} · {p.destination_hint} · Raised by{" "}
@@ -252,7 +253,10 @@ export function PayoutsView() {
                 <DialogTitle>{formatPaise(active.amount_paise)}</DialogTitle>
                 <DialogDescription>
                   {active.recipient_name ?? "Unknown recipient"} ·{" "}
-                  {active.recipient_code ?? shortId(active.recipient_user_uuid)}
+                  {active.recipient_code ??
+                    (active.recipient_user_uuid
+                      ? shortId(active.recipient_user_uuid)
+                      : "Deleted account")}
                 </DialogDescription>
               </DialogHeader>
 

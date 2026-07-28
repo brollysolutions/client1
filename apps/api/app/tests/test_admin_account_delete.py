@@ -58,6 +58,37 @@ async def _get_auth_event_reason(uid: str) -> tuple[str | None, str | None]:
         return detail.get("actor_auth_user_uuid"), detail.get("reason")
 
 
+async def _seed_ticket(auth_user_uuid: str) -> str:
+    """Insert a support_ticket via the app superuser (bypasses RLS)."""
+    import app.db.session as _session_mod
+    from app.models.support_ticket import SupportCategory, SupportTicket
+
+    async with _session_mod.AsyncSessionLocal() as db:
+        ticket = SupportTicket(
+            auth_user_uuid=uuid.UUID(auth_user_uuid),
+            category=SupportCategory.GENERAL,
+            subject="Need help",
+            body="Something went wrong.",
+        )
+        db.add(ticket)
+        await db.commit()
+        return str(ticket.id)
+
+
+async def _get_ticket(ticket_id: str) -> dict:
+    import app.db.session as _session_mod
+
+    async with _session_mod.AsyncSessionLocal() as db:
+        row = (
+            await db.execute(
+                text("SELECT subject, body, category, status FROM support_tickets WHERE id = :id"),
+                {"id": ticket_id},
+            )
+        ).fetchone()
+        assert row is not None
+        return dict(row._mapping)
+
+
 def _admin_token(uid: str) -> str:
     return create_access_token(
         {"sub": uid, "role": "admin", "business_line": "", "platform_scope": "true"}
@@ -161,6 +192,27 @@ async def test_admin_delete_missing_reason_returns_422(client: AsyncClient) -> N
         headers={"Authorization": f"Bearer {_admin_token(admin_uid)}"},
     )
     assert resp.status_code == 422
+
+
+async def test_admin_delete_scrubs_target_support_ticket_text(client: AsyncClient) -> None:
+    _, admin_mobile = await full_registration(client)
+    admin_uid = await _auth_user_uuid(admin_mobile)
+    _, target_mobile = await full_registration(client)
+    target_uid = await _auth_user_uuid(target_mobile)
+    ticket_id = await _seed_ticket(target_uid)
+
+    resp = await client.post(
+        f"/api/v1/admin/users/{target_uid}/delete",
+        json={"reason": "r"},
+        headers={"Authorization": f"Bearer {_admin_token(admin_uid)}"},
+    )
+    assert resp.status_code == 200
+
+    ticket = await _get_ticket(ticket_id)
+    assert ticket["subject"] == "[deleted account — content removed]"
+    assert ticket["body"] == "[deleted account — content removed]"
+    assert ticket["category"] == "general"
+    assert ticket["status"] == "open"
 
 
 async def test_admin_delete_revokes_target_refresh_token(client: AsyncClient) -> None:

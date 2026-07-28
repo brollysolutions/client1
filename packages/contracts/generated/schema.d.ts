@@ -3624,11 +3624,8 @@ export interface components {
             recipient_code?: string | null;
             /** Recipient Name */
             recipient_name?: string | null;
-            /**
-             * Recipient User Uuid
-             * Format: uuid
-             */
-            recipient_user_uuid: string;
+            /** Recipient User Uuid */
+            recipient_user_uuid: string | null;
             /** Reject Reason */
             reject_reason: string | null;
             /** Rejected By Name */
