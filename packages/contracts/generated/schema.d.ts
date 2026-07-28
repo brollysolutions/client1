@@ -1523,6 +1523,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/public/content-blocks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Content Blocks Public */
+        get: operations["list_content_blocks_public_api_v1_public_content_blocks_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/public/offers": {
         parameters: {
             query?: never;
@@ -3882,6 +3899,41 @@ export interface components {
             id: string;
             /** Subtitle */
             subtitle: string | null;
+            /** Title */
+            title: string;
+        };
+        /** PublicContentBlockListResponse */
+        PublicContentBlockListResponse: {
+            /** Content Blocks */
+            content_blocks: components["schemas"]["PublicContentBlockRead"][];
+        };
+        /**
+         * PublicContentBlockRead
+         * @description Anonymous-read shape (docs/specs/public-content-block-serving.md).
+         *
+         *     Deliberately NOT a subclass of ContentBlockRead -- a future sensitive
+         *     column added to the authenticated read can never silently surface here.
+         *
+         *     - id: no public use, would only invite ID-based scraping.
+         *     - status: constant "published" by construction on this path (see
+         *       services/public_catalog.py::list_public_content_blocks). Exposing a
+         *       constant invites a client-side filter that would quietly become the
+         *       de-facto access control (same reasoning as PublicOfferRead).
+         *     - created_by_uuid: staff identity, never public.
+         *     - created_at / updated_at: internal metadata, no display use.
+         *
+         *     business_line IS included: a block can be line-scoped (spec §5.3), and a
+         *     future line-specific placement needs it to decide whether to render.
+         */
+        PublicContentBlockRead: {
+            /** Body */
+            body: string | null;
+            /** Business Line */
+            business_line: string | null;
+            /** Section */
+            section: string;
+            /** Slug */
+            slug: string;
             /** Title */
             title: string;
         };
@@ -8082,6 +8134,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PublicBannerListResponse"];
+                };
+            };
+        };
+    };
+    list_content_blocks_public_api_v1_public_content_blocks_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicContentBlockListResponse"];
                 };
             };
         };

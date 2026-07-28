@@ -49,3 +49,32 @@ class ContentBlockRead(BaseModel):
 
 class ContentBlockListResponse(BaseModel):
     content_blocks: list[ContentBlockRead]
+
+
+class PublicContentBlockRead(BaseModel):
+    """Anonymous-read shape (docs/specs/public-content-block-serving.md).
+
+    Deliberately NOT a subclass of ContentBlockRead -- a future sensitive
+    column added to the authenticated read can never silently surface here.
+
+    - id: no public use, would only invite ID-based scraping.
+    - status: constant "published" by construction on this path (see
+      services/public_catalog.py::list_public_content_blocks). Exposing a
+      constant invites a client-side filter that would quietly become the
+      de-facto access control (same reasoning as PublicOfferRead).
+    - created_by_uuid: staff identity, never public.
+    - created_at / updated_at: internal metadata, no display use.
+
+    business_line IS included: a block can be line-scoped (spec §5.3), and a
+    future line-specific placement needs it to decide whether to render.
+    """
+
+    slug: str
+    section: str
+    title: str
+    body: str | None
+    business_line: str | None
+
+
+class PublicContentBlockListResponse(BaseModel):
+    content_blocks: list[PublicContentBlockRead]

@@ -19,10 +19,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.session import get_db
 from app.schemas.banners import PublicBannerListResponse, PublicBannerRead
+from app.schemas.content import PublicContentBlockListResponse, PublicContentBlockRead
 from app.schemas.offers import PublicOfferListResponse, PublicOfferRead
 from app.schemas.properties import PublicPropertyListResponse, PublicPropertyRead
 from app.services.public_catalog import (
     list_public_banners,
+    list_public_content_blocks,
     list_public_offers,
     list_public_properties,
 )
@@ -57,4 +59,16 @@ async def list_offers_public(
     offers = await list_public_offers(db)
     return PublicOfferListResponse(
         offers=[PublicOfferRead.model_validate(o, from_attributes=True) for o in offers]
+    )
+
+
+@router.get("/content-blocks", response_model=PublicContentBlockListResponse)
+async def list_content_blocks_public(
+    db: AsyncSession = Depends(get_db),
+) -> PublicContentBlockListResponse:
+    blocks = await list_public_content_blocks(db)
+    return PublicContentBlockListResponse(
+        content_blocks=[
+            PublicContentBlockRead.model_validate(b, from_attributes=True) for b in blocks
+        ]
     )
