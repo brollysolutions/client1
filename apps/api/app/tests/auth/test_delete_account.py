@@ -253,6 +253,37 @@ async def _get_transaction(txn_id: str) -> dict:
         return dict(row._mapping)
 
 
+async def _seed_ticket(auth_user_uuid: str) -> str:
+    """Insert a support_ticket via the app superuser (bypasses RLS)."""
+    import app.db.session as _session_mod
+    from app.models.support_ticket import SupportCategory, SupportTicket
+
+    async with _session_mod.AsyncSessionLocal() as db:
+        ticket = SupportTicket(
+            auth_user_uuid=uuid.UUID(auth_user_uuid),
+            category=SupportCategory.GENERAL,
+            subject="Need help",
+            body="Something went wrong.",
+        )
+        db.add(ticket)
+        await db.commit()
+        return str(ticket.id)
+
+
+async def _get_ticket(ticket_id: str) -> dict:
+    import app.db.session as _session_mod
+
+    async with _session_mod.AsyncSessionLocal() as db:
+        row = (
+            await db.execute(
+                text("SELECT subject, body, category, status FROM support_tickets WHERE id = :id"),
+                {"id": ticket_id},
+            )
+        ).fetchone()
+        assert row is not None
+        return dict(row._mapping)
+
+
 # ---------------------------------------------------------------------------
 # Core flow
 # ---------------------------------------------------------------------------
@@ -452,6 +483,27 @@ async def test_delete_delinks_payout(client: AsyncClient) -> None:
     assert row["recipient_user_uuid"] is None
     assert row["retained_ref"] == uid
     assert row["delinked_at"] is not None
+
+
+# ---------------------------------------------------------------------------
+# Support-ticket PII scrub
+# ---------------------------------------------------------------------------
+
+
+async def test_delete_scrubs_support_ticket_text_keeps_category_and_status(
+    client: AsyncClient,
+) -> None:
+    access_token, mobile = await full_registration(client)
+    uid = await _auth_user_uuid(mobile)
+    ticket_id = await _seed_ticket(uid)
+
+    await _delete_me(client, access_token)
+
+    row = await _get_ticket(ticket_id)
+    assert row["subject"] == "[deleted account — content removed]"
+    assert row["body"] == "[deleted account — content removed]"
+    assert row["category"] == "general"
+    assert row["status"] == "open"
 
 
 # ---------------------------------------------------------------------------

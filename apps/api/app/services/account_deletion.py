@@ -5,8 +5,11 @@ Two phases, on two different sessions — not a stylistic choice, an RLS one:
 Phase A runs on the CALLER's request-scoped session (RLS-enforced). It only
 touches tables whose RLS policy has a genuine "own row" branch for every actor
 this function serves: `auth_users` (own-row-or-platform-scope),
-`agent_applications` (own-application-or-platform-scope), and
-`client_profiles`/`agent_profiles` (own-uuid-or-platform-scope). Both a
+`agent_applications` (own-application-or-platform-scope),
+`client_profiles`/`agent_profiles` (own-uuid-or-platform-scope), and
+`support_tickets` (own-uuid-or-platform-scope, same shape — see
+`875b08101bea_grant_update_on_support_tickets.py`, which had to grant `UPDATE`
+first since the table previously only had `SELECT, INSERT`). Both a
 self-deleting user and an Admin acting on someone else's account can write
 these rows under their own RLS context — see
 `f2e4d6c8a0b1_add_rls_policies.py`'s WITH CHECK clauses.
@@ -61,11 +64,16 @@ from app.models.profile import (
     ProfileStatus,
     StaffProfile,
 )
+from app.models.support_ticket import SupportTicket
 from app.models.transaction import Transaction
 from app.models.user import User, UserStatus
 from app.services import storage
 
 logger = logging.getLogger(__name__)
+
+# Preserves category/status/timestamps (ticket history is left visible to
+# Admin) while removing the deleted identity's own free text.
+_SCRUBBED_TICKET_TEXT = "[deleted account — content removed]"
 
 _DOC_REF_FIELDS = (
     "aadhaar_ref",
@@ -178,6 +186,16 @@ async def delete_account(
         update(AgentProfile)
         .where(AgentProfile.auth_user_uuid == target_auth_user_uuid)
         .values(status=ProfileStatus.INACTIVE)
+    )
+
+    # support_tickets has the same owner-or-admin RLS branch as the two
+    # profile tables above, so it belongs in Phase A too — see module
+    # docstring. Only the free text is scrubbed; category/status/timestamps
+    # stay intact for Admin's own ticket-history view.
+    await db.execute(
+        update(SupportTicket)
+        .where(SupportTicket.auth_user_uuid == target_auth_user_uuid)
+        .values(subject=_SCRUBBED_TICKET_TEXT, body=_SCRUBBED_TICKET_TEXT)
     )
 
     db.add(
