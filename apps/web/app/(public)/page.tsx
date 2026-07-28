@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
 import { ClosingCta } from "@/components/closing-cta";
+import { ContentBlockSection } from "@/components/content-block-section";
 import { FaqSection } from "@/components/faq-section";
 import { FloatingDoodles } from "@/components/floating-doodles";
 import { HeroCarousel } from "@/components/hero-carousel";
@@ -11,6 +12,7 @@ import { WhyChooseUs } from "@/components/why-choose-us";
 import { FALLBACK_HERO_BANNERS } from "@/lib/banners";
 import { faqPageJsonLd, HOME_FAQ_ITEMS } from "@/lib/faq";
 import { getHeroBanners } from "@/lib/public-banners";
+import { getPublicContentBlocks } from "@/lib/public-content-blocks";
 import { SITE_NAME, SITE_URL } from "@/lib/site";
 
 // The hero is the one CMS surface with an explicit starts_at/ends_at contract
@@ -59,7 +61,10 @@ export default async function Home() {
   // never throws (see lib/public-banners.ts), and we deliberately don't
   // distinguish the two here either -- FALLBACK_HERO_BANNERS is what renders
   // in either case, so the homepage is never blank.
-  const liveBanners = await getHeroBanners();
+  const [liveBanners, contentBlocks] = await Promise.all([
+    getHeroBanners(),
+    getPublicContentBlocks(),
+  ]);
   const banners = liveBanners.length > 0 ? liveBanners : FALLBACK_HERO_BANNERS;
 
   return (
@@ -93,6 +98,7 @@ export default async function Home() {
         subheading="Answers to what people usually ask before they get started."
         items={HOME_FAQ_ITEMS}
       />
+      <ContentBlockSection slug="homepage-closing" blocks={contentBlocks} />
       <ClosingCta href="/contact" />
     </>
   );

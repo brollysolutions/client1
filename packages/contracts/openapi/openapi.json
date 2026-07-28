@@ -5454,6 +5454,70 @@
         "title": "PublicBannerRead",
         "type": "object"
       },
+      "PublicContentBlockListResponse": {
+        "properties": {
+          "content_blocks": {
+            "items": {
+              "$ref": "#/components/schemas/PublicContentBlockRead"
+            },
+            "title": "Content Blocks",
+            "type": "array"
+          }
+        },
+        "required": [
+          "content_blocks"
+        ],
+        "title": "PublicContentBlockListResponse",
+        "type": "object"
+      },
+      "PublicContentBlockRead": {
+        "description": "Anonymous-read shape (docs/specs/public-content-block-serving.md).\n\nDeliberately NOT a subclass of ContentBlockRead -- a future sensitive\ncolumn added to the authenticated read can never silently surface here.\n\n- id: no public use, would only invite ID-based scraping.\n- status: constant \"published\" by construction on this path (see\n  services/public_catalog.py::list_public_content_blocks). Exposing a\n  constant invites a client-side filter that would quietly become the\n  de-facto access control (same reasoning as PublicOfferRead).\n- created_by_uuid: staff identity, never public.\n- created_at / updated_at: internal metadata, no display use.\n\nbusiness_line IS included: a block can be line-scoped (spec \u00a75.3), and a\nfuture line-specific placement needs it to decide whether to render.",
+        "properties": {
+          "body": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Body"
+          },
+          "business_line": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Business Line"
+          },
+          "section": {
+            "title": "Section",
+            "type": "string"
+          },
+          "slug": {
+            "title": "Slug",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "slug",
+          "section",
+          "title",
+          "body",
+          "business_line"
+        ],
+        "title": "PublicContentBlockRead",
+        "type": "object"
+      },
       "PublicLeadCreate": {
         "properties": {
           "company": {
@@ -12970,6 +13034,27 @@
           }
         },
         "summary": "List Banners Public",
+        "tags": [
+          "public"
+        ]
+      }
+    },
+    "/api/v1/public/content-blocks": {
+      "get": {
+        "operationId": "list_content_blocks_public_api_v1_public_content_blocks_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicContentBlockListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "List Content Blocks Public",
         "tags": [
           "public"
         ]
