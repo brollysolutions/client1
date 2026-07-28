@@ -32,14 +32,15 @@ from app.schemas.telecaller import (
     TelecallerLoanApplicationRead,
     TelecallerPropertyDealRead,
 )
-from app.services.loan_applications import InvalidStatusTransition as InvalidLoanStatusTransition
 from app.services.loan_applications import (
+    BankNotAvailableForLoanType,
     StatusReasonRequired,
     TerminalApplication,
     TermsNotAllowedAtStage,
     UnknownBank,
     apply_progress_update,
 )
+from app.services.loan_applications import InvalidStatusTransition as InvalidLoanStatusTransition
 from app.services.property_deals import (
     ClientNotRegistered,
     LeadNotRealEstateLine,
@@ -155,6 +156,7 @@ async def get_lead(
         loan_applications = [
             TelecallerLoanApplicationRead(
                 id=application.id,
+                loan_type_id=application.loan_type_id,
                 loan_type_name=application.loan_type.name,
                 bank_id=application.bank_id,
                 bank_name=application.bank.name if application.bank else None,
@@ -313,10 +315,15 @@ async def update_loan_application_progress(
         raise HTTPException(
             status.HTTP_422_UNPROCESSABLE_ENTITY, "Unknown or inactive bank."
         ) from exc
+    except BankNotAvailableForLoanType as exc:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY, "This bank does not offer that loan type."
+        ) from exc
 
     txns_by_application = await list_txns_for_applications(db, [application.id])
     return TelecallerLoanApplicationRead(
         id=application.id,
+        loan_type_id=application.loan_type_id,
         loan_type_name=application.loan_type.name,
         bank_id=application.bank_id,
         bank_name=application.bank.name if application.bank else None,

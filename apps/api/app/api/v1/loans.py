@@ -16,7 +16,7 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -24,7 +24,7 @@ from sqlalchemy.orm import joinedload
 
 from app.core.deps import CurrentUser, get_active_user
 from app.db.session import get_db
-from app.models.loan import Bank, LoanApplication, LoanType
+from app.models.loan import Bank, BankLoanTypeAvailability, LoanApplication, LoanType
 from app.schemas.loans import (
     BankListResponse,
     BankRead,
@@ -81,10 +81,30 @@ async def list_loan_types(
 
 @router.get("/banks", response_model=BankListResponse)
 async def list_banks(
+    loan_type_id: UUID | None = Query(default=None),
     current_user: CurrentUser = Depends(get_active_user),  # noqa: ARG001
     db: AsyncSession = Depends(get_db),
 ) -> BankListResponse:
-    result = await db.execute(select(Bank).where(Bank.active.is_(True)).order_by(Bank.name))
+    if loan_type_id is not None:
+        loan_type = await db.get(LoanType, loan_type_id)
+        if loan_type is None:
+            # A typo'd param silently falling back to the unfiltered list would
+            # be indistinguishable from "every bank offers this type" — the
+            # exact dead-config failure this endpoint exists to prevent.
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Unknown loan type.")
+
+    stmt = select(Bank).where(Bank.active.is_(True))
+    if loan_type_id is not None:
+        stmt = stmt.where(
+            ~select(BankLoanTypeAvailability.bank_id)
+            .where(
+                BankLoanTypeAvailability.bank_id == Bank.id,
+                BankLoanTypeAvailability.loan_type_id == loan_type_id,
+                BankLoanTypeAvailability.available.is_(False),
+            )
+            .exists()
+        )
+    result = await db.execute(stmt.order_by(Bank.name))
     banks = result.scalars().all()
     return BankListResponse(banks=[BankRead.model_validate(b, from_attributes=True) for b in banks])
 

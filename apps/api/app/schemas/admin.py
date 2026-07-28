@@ -227,6 +227,7 @@ class AdminLoanApplicationRead(BaseModel):
     id: UUID
     lead_uuid: UUID
     customer_code: str
+    loan_type_id: UUID
     loan_type_label: str
     bank_id: UUID | None
     bank_name: str | None

@@ -29,6 +29,7 @@ from app.models.notification import NotificationType
 from app.models.profile import ClientProfile
 from app.schemas.loans import LoanApplicationProgressUpdate
 from app.services import referrals
+from app.services.loan_config import is_bank_available
 from app.services.notifications import emit_notification
 
 _ORDER = [
@@ -79,6 +80,11 @@ class TermsNotAllowedAtStage(Exception):
 
 class UnknownBank(Exception):
     """Raised when bank_id doesn't reference an existing active bank."""
+
+
+class BankNotAvailableForLoanType(Exception):
+    """Raised when bank_id is a real, active bank but has been explicitly
+    excluded (bank_loan_type_availability) from this application's loan type."""
 
 
 def _effective_index(status: LoanStatus) -> int:
@@ -150,10 +156,23 @@ async def apply_progress_update(
     if payload.fee_outcome is not None and effective_index < _SANCTIONED_INDEX:
         raise TermsNotAllowedAtStage
 
-    if payload.bank_id is not None:
+    if payload.bank_id is not None and payload.bank_id != application.bank_id:
+        # Only re-validate on an actual change. Before Admin could deactivate a
+        # bank or exclude it for a loan type (this slice's own new
+        # capability), bank_id was immutable seed data, so this distinction
+        # didn't matter. Now: the shared progress form always resends the
+        # application's current bank_id on every submit (status moves, terms
+        # edits, fee outcome — see loan-progress-form.tsx), not just when the
+        # bank field itself changes. Re-running UnknownBank/availability on an
+        # unchanged value would let a bank that was fine at assignment time,
+        # then later deactivated or excluded, permanently block ALL further
+        # progress on every application that already has it — including
+        # edits that have nothing to do with the bank.
         bank = await db.get(Bank, payload.bank_id)
         if bank is None or not bank.active:
             raise UnknownBank
+        if not await is_bank_available(db, payload.bank_id, application.loan_type_id):
+            raise BankNotAvailableForLoanType
         # Assign the relationship (not just bank_id): keeps application.bank in
         # sync in memory without a relationship reload below, which async
         # SQLAlchemy can't do via an implicit lazy access.

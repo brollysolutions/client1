@@ -140,6 +140,75 @@
         "title": "AdminAssignedLeadRead",
         "type": "object"
       },
+      "AdminBankListResponse": {
+        "properties": {
+          "banks": {
+            "items": {
+              "$ref": "#/components/schemas/AdminBankRead"
+            },
+            "title": "Banks",
+            "type": "array"
+          }
+        },
+        "required": [
+          "banks"
+        ],
+        "title": "AdminBankListResponse",
+        "type": "object"
+      },
+      "AdminBankRead": {
+        "properties": {
+          "active": {
+            "title": "Active",
+            "type": "boolean"
+          },
+          "application_count": {
+            "title": "Application Count",
+            "type": "integer"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "logo_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Logo Key"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "logo_key",
+          "active",
+          "created_at",
+          "updated_at",
+          "application_count"
+        ],
+        "title": "AdminBankRead",
+        "type": "object"
+      },
       "AdminEmployeeRead": {
         "properties": {
           "business_line": {
@@ -421,6 +490,11 @@
             "title": "Lead Uuid",
             "type": "string"
           },
+          "loan_type_id": {
+            "format": "uuid",
+            "title": "Loan Type Id",
+            "type": "string"
+          },
           "loan_type_label": {
             "title": "Loan Type Label",
             "type": "string"
@@ -474,6 +548,7 @@
           "id",
           "lead_uuid",
           "customer_code",
+          "loan_type_id",
           "loan_type_label",
           "bank_id",
           "bank_name",
@@ -489,6 +564,81 @@
           "closed_at"
         ],
         "title": "AdminLoanApplicationRead",
+        "type": "object"
+      },
+      "AdminLoanTypeListResponse": {
+        "properties": {
+          "loan_types": {
+            "items": {
+              "$ref": "#/components/schemas/AdminLoanTypeRead"
+            },
+            "title": "Loan Types",
+            "type": "array"
+          }
+        },
+        "required": [
+          "loan_types"
+        ],
+        "title": "AdminLoanTypeListResponse",
+        "type": "object"
+      },
+      "AdminLoanTypeRead": {
+        "properties": {
+          "active": {
+            "title": "Active",
+            "type": "boolean"
+          },
+          "application_count": {
+            "title": "Application Count",
+            "type": "integer"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "custom_fields": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Custom Fields"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "label",
+          "active",
+          "custom_fields",
+          "created_at",
+          "updated_at",
+          "application_count"
+        ],
+        "title": "AdminLoanTypeRead",
         "type": "object"
       },
       "AdminPendingItem": {
@@ -1776,7 +1926,7 @@
         "type": "object"
       },
       "AuditAction": {
-        "description": "Every value here has a real writer in `app/services/`. The spec names\n`commission_entered` as a fourth example alongside the three below; agent\ncommission entry (\u00a73 #5 of the feature-status tracker) is not built, so that\nvalue is deliberately absent rather than shipped dead \u2014 adding an enum value\nlater is a one-line migration, and this repo's convention is one such value\nper migration.",
+        "description": "Every value here has a real writer in `app/services/`. The spec names\n`commission_entered` as a fourth example alongside the three below; agent\ncommission entry (\u00a73 #5 of the feature-status tracker) is not built, so that\nvalue is deliberately absent rather than shipped dead \u2014 adding an enum value\nlater is a one-line migration, and this repo's convention is one such value\nper migration.\n\nThe five LOAN_TYPE_*/BANK_* values (migration 1dd0bc6bed88) are written by\n`services/loan_config.py`. No `*_deleted` siblings exist \u2014 that module never\ndeletes a row, only toggles `active`, which is just another `*_updated`.",
         "enum": [
           "agent_approved",
           "agent_rejected",
@@ -1787,7 +1937,12 @@
           "property_submission_approved",
           "property_submission_rejected",
           "support_ticket_advanced",
-          "retention_purged"
+          "retention_purged",
+          "loan_type_created",
+          "loan_type_updated",
+          "bank_created",
+          "bank_updated",
+          "bank_availability_updated"
         ],
         "title": "AuditAction",
         "type": "string"
@@ -1951,6 +2106,128 @@
         "title": "AuthTokensResponse",
         "type": "object"
       },
+      "BankAvailabilityEntry": {
+        "properties": {
+          "available": {
+            "title": "Available",
+            "type": "boolean"
+          },
+          "bank_id": {
+            "format": "uuid",
+            "title": "Bank Id",
+            "type": "string"
+          },
+          "loan_type_id": {
+            "format": "uuid",
+            "title": "Loan Type Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "bank_id",
+          "loan_type_id",
+          "available"
+        ],
+        "title": "BankAvailabilityEntry",
+        "type": "object"
+      },
+      "BankAvailabilityMatrixResponse": {
+        "description": "The full picture the admin console renders as a grid: every loan type\n(columns) x every bank (rows), plus the sparse set of explicit overrides.\nA (bank_id, loan_type_id) pair absent from `entries` is available \u2014 see the\nmodule docstring on `services/loan_config.py`.",
+        "properties": {
+          "banks": {
+            "items": {
+              "$ref": "#/components/schemas/AdminBankRead"
+            },
+            "title": "Banks",
+            "type": "array"
+          },
+          "entries": {
+            "items": {
+              "$ref": "#/components/schemas/BankAvailabilityEntry"
+            },
+            "title": "Entries",
+            "type": "array"
+          },
+          "loan_types": {
+            "items": {
+              "$ref": "#/components/schemas/AdminLoanTypeRead"
+            },
+            "title": "Loan Types",
+            "type": "array"
+          }
+        },
+        "required": [
+          "banks",
+          "loan_types",
+          "entries"
+        ],
+        "title": "BankAvailabilityMatrixResponse",
+        "type": "object"
+      },
+      "BankAvailabilitySet": {
+        "description": "PUT body for one bank's availability overrides.\n\nThis is an UPSERT, not a full-replace: `services/loan_config.py::\nset_bank_availability` writes exactly the rows submitted here and never\ndeletes a row omitted from `entries` (the table's grant has no DELETE, by\ndesign \u2014 migration 678f7a77e812). An omitted loan_type_id keeps whatever\nit already was, not the permissive default. The admin console's checkbox\ngrid always submits every current loan type on every save, so in\npractice a save behaves like a full-replace \u2014 but that is a UI\nconvention, not something this endpoint enforces.",
+        "properties": {
+          "entries": {
+            "items": {
+              "$ref": "#/components/schemas/BankAvailabilitySetEntry"
+            },
+            "maxItems": 500,
+            "title": "Entries",
+            "type": "array"
+          }
+        },
+        "required": [
+          "entries"
+        ],
+        "title": "BankAvailabilitySet",
+        "type": "object"
+      },
+      "BankAvailabilitySetEntry": {
+        "properties": {
+          "available": {
+            "title": "Available",
+            "type": "boolean"
+          },
+          "loan_type_id": {
+            "format": "uuid",
+            "title": "Loan Type Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "loan_type_id",
+          "available"
+        ],
+        "title": "BankAvailabilitySetEntry",
+        "type": "object"
+      },
+      "BankCreate": {
+        "properties": {
+          "logo_key": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Logo Key"
+          },
+          "name": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "title": "BankCreate",
+        "type": "object"
+      },
       "BankListResponse": {
         "properties": {
           "banks": {
@@ -1984,6 +2261,48 @@
           "name"
         ],
         "title": "BankRead",
+        "type": "object"
+      },
+      "BankUpdate": {
+        "properties": {
+          "active": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Active"
+          },
+          "logo_key": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Logo Key"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          }
+        },
+        "title": "BankUpdate",
         "type": "object"
       },
       "BannerCreate": {
@@ -4052,6 +4371,21 @@
         "title": "LoanTxnRead",
         "type": "object"
       },
+      "LoanTypeCreate": {
+        "properties": {
+          "label": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Label",
+            "type": "string"
+          }
+        },
+        "required": [
+          "label"
+        ],
+        "title": "LoanTypeCreate",
+        "type": "object"
+      },
       "LoanTypeListResponse": {
         "properties": {
           "loan_types": {
@@ -4104,6 +4438,36 @@
           "label"
         ],
         "title": "LoanTypeSummary",
+        "type": "object"
+      },
+      "LoanTypeUpdate": {
+        "properties": {
+          "active": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Active"
+          },
+          "label": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Label"
+          }
+        },
+        "title": "LoanTypeUpdate",
         "type": "object"
       },
       "LoginRequest": {
@@ -8219,6 +8583,11 @@
             ],
             "title": "Interest Rate"
           },
+          "loan_type_id": {
+            "format": "uuid",
+            "title": "Loan Type Id",
+            "type": "string"
+          },
           "loan_type_name": {
             "title": "Loan Type Name",
             "type": "string"
@@ -8272,6 +8641,7 @@
         },
         "required": [
           "id",
+          "loan_type_id",
           "loan_type_name",
           "bank_name",
           "amount_requested",
@@ -8925,6 +9295,218 @@
         ]
       }
     },
+    "/api/v1/admin/bank-availability": {
+      "get": {
+        "operationId": "get_bank_availability_matrix_api_v1_admin_bank_availability_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BankAvailabilityMatrixResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Get Bank Availability Matrix",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/banks": {
+      "get": {
+        "operationId": "list_admin_banks_api_v1_admin_banks_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminBankListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "List Admin Banks",
+        "tags": [
+          "admin"
+        ]
+      },
+      "post": {
+        "operationId": "create_admin_bank_api_v1_admin_banks_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BankCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminBankRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Create Admin Bank",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/banks/{bank_id}": {
+      "patch": {
+        "operationId": "update_admin_bank_api_v1_admin_banks__bank_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "bank_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Bank Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BankUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminBankRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Update Admin Bank",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/banks/{bank_id}/availability": {
+      "put": {
+        "operationId": "set_admin_bank_availability_api_v1_admin_banks__bank_id__availability_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "bank_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Bank Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BankAvailabilitySet"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BankAvailabilityMatrixResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Set Admin Bank Availability",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
     "/api/v1/admin/employees": {
       "get": {
         "operationId": "list_employees_api_v1_admin_employees_get",
@@ -9328,6 +9910,134 @@
           }
         ],
         "summary": "Update Loan Application Progress",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/loan-types": {
+      "get": {
+        "operationId": "list_admin_loan_types_api_v1_admin_loan_types_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminLoanTypeListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "List Admin Loan Types",
+        "tags": [
+          "admin"
+        ]
+      },
+      "post": {
+        "operationId": "create_admin_loan_type_api_v1_admin_loan_types_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoanTypeCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminLoanTypeRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Create Admin Loan Type",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/loan-types/{loan_type_id}": {
+      "patch": {
+        "operationId": "update_admin_loan_type_api_v1_admin_loan_types__loan_type_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "loan_type_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Loan Type Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoanTypeUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminLoanTypeRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Update Admin Loan Type",
         "tags": [
           "admin"
         ]
@@ -12333,6 +13043,25 @@
     "/api/v1/loans/banks": {
       "get": {
         "operationId": "list_banks_api_v1_loans_banks_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "loan_type_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Loan Type Id"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {
@@ -12343,6 +13072,16 @@
               }
             },
             "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
           }
         },
         "security": [

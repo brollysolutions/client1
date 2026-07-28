@@ -131,6 +131,7 @@ class LoanTxnRead(BaseModel):
 
 class TelecallerLoanApplicationRead(BaseModel):
     id: UUID
+    loan_type_id: UUID
     loan_type_name: str
     bank_id: UUID | None = None
     bank_name: str | None

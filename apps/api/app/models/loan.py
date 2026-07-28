@@ -54,9 +54,15 @@ class LoanType(Base):
     name: Mapped[str] = mapped_column(String, unique=True, nullable=False)
     label: Mapped[str] = mapped_column(String, nullable=False)
     active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    # Open Item A (Admin_Dashboard_System_Design.md §5.2): null = shared field
+    # set, populated = per-type field builder. The builder itself is out of
+    # scope (feature-status.md §4) — read-only everywhere this column is exposed.
     custom_fields: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, default=datetime.utcnow
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow
     )
 
 
@@ -69,6 +75,39 @@ class Bank(Base):
     active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, default=datetime.utcnow
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow
+    )
+
+
+class BankLoanTypeAvailability(Base):
+    """Per-bank loan-type availability (FR-6.3, master_erd.mermaid
+    §bank_loan_type_availability). Explicit override, permissive default: a
+    missing (bank_id, loan_type_id) row means available — only an explicit
+    `available=false` row excludes a bank. See migration 678f7a77e812's
+    docstring for why this direction was chosen over a seeded full matrix.
+
+    No `id`/`active` — the composite PK IS the identity, and there is no soft-
+    disable state distinct from deleting the row (CASCADE on both FKs is safe
+    here specifically because this table is pure config, not a financial or
+    audit record).
+    """
+
+    __tablename__ = "bank_loan_type_availability"
+
+    bank_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("banks.id", ondelete="CASCADE"), primary_key=True
+    )
+    loan_type_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("loan_types.id", ondelete="CASCADE"), primary_key=True
+    )
+    available: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    updated_by_uuid: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("auth_users.id", ondelete="SET NULL"), nullable=True
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow
     )
 
 
