@@ -77,8 +77,8 @@ function formatDate(iso: string): string {
     : d.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
 }
 
-function shortId(id: string): string {
-  return `${id.slice(0, 8)}…`;
+function shortId(id: string | null): string {
+  return id ? `${id.slice(0, 8)}…` : "deleted account";
 }
 
 export function PayoutsView() {

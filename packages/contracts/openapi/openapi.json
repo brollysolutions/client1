@@ -4790,9 +4790,16 @@
             "title": "Recipient Name"
           },
           "recipient_user_uuid": {
-            "format": "uuid",
-            "title": "Recipient User Uuid",
-            "type": "string"
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Recipient User Uuid"
           },
           "reject_reason": {
             "anyOf": [

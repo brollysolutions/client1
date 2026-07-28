@@ -51,7 +51,7 @@ class PayoutCreate(BaseModel):
 
 class PayoutRead(BaseModel):
     id: UUID
-    recipient_user_uuid: UUID
+    recipient_user_uuid: UUID | None
     type: PayoutType
     business_line: str | None
     amount_paise: int
