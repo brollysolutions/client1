@@ -50,6 +50,10 @@ class AuditAction(enum.StrEnum):
     value is deliberately absent rather than shipped dead — adding an enum value
     later is a one-line migration, and this repo's convention is one such value
     per migration.
+
+    The five LOAN_TYPE_*/BANK_* values (migration 1dd0bc6bed88) are written by
+    `services/loan_config.py`. No `*_deleted` siblings exist — that module never
+    deletes a row, only toggles `active`, which is just another `*_updated`.
     """
 
     AGENT_APPROVED = "agent_approved"
@@ -62,6 +66,11 @@ class AuditAction(enum.StrEnum):
     PROPERTY_SUBMISSION_REJECTED = "property_submission_rejected"
     SUPPORT_TICKET_ADVANCED = "support_ticket_advanced"
     RETENTION_PURGED = "retention_purged"
+    LOAN_TYPE_CREATED = "loan_type_created"
+    LOAN_TYPE_UPDATED = "loan_type_updated"
+    BANK_CREATED = "bank_created"
+    BANK_UPDATED = "bank_updated"
+    BANK_AVAILABILITY_UPDATED = "bank_availability_updated"
 
 
 _ev = lambda x: [e.value for e in x]  # noqa: E731

@@ -38,6 +38,7 @@ export type LoanStatusValue =
 
 export type LoanProgressApplication = {
   id: string;
+  loan_type_id: string;
   status: LoanStatusValue;
   status_reason: string | null;
   amount_sanctioned: string | null;
@@ -124,13 +125,25 @@ export function LoanProgressForm({
 
   React.useEffect(() => {
     let active = true;
-    void getBanks().then((res) => {
-      if (active && res.ok) setBanks(res.data);
+    void getBanks(application.loan_type_id).then((res) => {
+      if (!active || !res.ok) return;
+      // Union in the application's already-assigned bank: if it was excluded
+      // for this loan type after assignment, the filtered list would drop it
+      // and the Select would render blank -- reading as a silent unset rather
+      // than what it is, a bank that's no longer offered going forward.
+      const fetched = res.data;
+      const assigned = application.bank_id;
+      const hasAssigned = assigned !== null && fetched.some((b) => b.id === assigned);
+      setBanks(
+        !hasAssigned && assigned !== null
+          ? [...fetched, { id: assigned, name: "Previously assigned bank" }]
+          : fetched,
+      );
     });
     return () => {
       active = false;
     };
-  }, []);
+  }, [application.loan_type_id, application.bank_id]);
 
   const isTerminal = TERMINAL.has(application.status);
   const termsEnabled = effectiveIndex(application.status) >= SUBMITTED_INDEX && !isTerminal;

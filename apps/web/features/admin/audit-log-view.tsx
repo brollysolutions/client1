@@ -8,8 +8,10 @@ import {
   Eraser,
   Headset,
   Home,
+  Landmark,
   Loader2,
   ScrollText,
+  SlidersHorizontal,
   UserMinus,
   UserPlus,
   Wallet,
@@ -71,6 +73,31 @@ const ACTION_META: Record<AuditAction, { label: string; icon: LucideIcon; tone: 
     label: "Records purged",
     icon: Eraser,
     tone: "bg-muted text-text-secondary",
+  },
+  loan_type_created: {
+    label: "Loan type added",
+    icon: SlidersHorizontal,
+    tone: "bg-loans-soft text-loans-accent",
+  },
+  loan_type_updated: {
+    label: "Loan type updated",
+    icon: SlidersHorizontal,
+    tone: "bg-loans-soft text-loans-accent",
+  },
+  bank_created: {
+    label: "Bank added",
+    icon: Landmark,
+    tone: "bg-loans-soft text-loans-accent",
+  },
+  bank_updated: {
+    label: "Bank updated",
+    icon: Landmark,
+    tone: "bg-loans-soft text-loans-accent",
+  },
+  bank_availability_updated: {
+    label: "Bank availability updated",
+    icon: Landmark,
+    tone: "bg-loans-soft text-loans-accent",
   },
 };
 

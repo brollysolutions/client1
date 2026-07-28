@@ -48,6 +48,19 @@ from app.schemas.admin import (
 )
 from app.schemas.audit_log import AuditLogListResponse, AuditLogRead
 from app.schemas.auth import MessageResponse
+from app.schemas.loan_config import (
+    AdminBankListResponse,
+    AdminBankRead,
+    AdminLoanTypeListResponse,
+    AdminLoanTypeRead,
+    BankAvailabilityEntry,
+    BankAvailabilityMatrixResponse,
+    BankAvailabilitySet,
+    BankCreate,
+    BankUpdate,
+    LoanTypeCreate,
+    LoanTypeUpdate,
+)
 from app.schemas.loans import LoanApplicationProgressUpdate
 from app.schemas.property_deals import PropertyDealProgressUpdate
 from app.schemas.support_tickets import (
@@ -80,8 +93,8 @@ from app.services.leads import (
     list_unassigned_leads,
     release_lead_from_telecaller,
 )
-from app.services.loan_applications import InvalidStatusTransition as InvalidLoanStatusTransition
 from app.services.loan_applications import (
+    BankNotAvailableForLoanType,
     StatusReasonRequired,
     TerminalApplication,
     TermsNotAllowedAtStage,
@@ -89,6 +102,23 @@ from app.services.loan_applications import (
     apply_progress_update,
     get_application_for_admin,
     list_applications_for_admin,
+)
+from app.services.loan_applications import InvalidStatusTransition as InvalidLoanStatusTransition
+from app.services.loan_config import (
+    BankNotFound,
+    DuplicateBankName,
+    DuplicateLoanTypeName,
+    LoanTypeNotFound,
+    bank_application_counts,
+    create_bank,
+    create_loan_type,
+    list_availability_entries,
+    list_banks,
+    list_loan_types,
+    loan_type_application_counts,
+    set_bank_availability,
+    update_bank,
+    update_loan_type,
 )
 from app.services.property_deals import InvalidStatusTransition as InvalidDealStatusTransition
 from app.services.property_deals import (
@@ -144,6 +174,7 @@ def _to_admin_loan_application_read(application) -> AdminLoanApplicationRead:  #
         id=application.id,
         lead_uuid=application.lead_uuid,
         customer_code=application.client_profile.customer_code,
+        loan_type_id=application.loan_type_id,
         loan_type_label=application.loan_type.label,
         bank_id=application.bank_id,
         bank_name=application.bank.name if application.bank else None,
@@ -582,6 +613,10 @@ async def update_loan_application_progress(
         raise HTTPException(
             status.HTTP_422_UNPROCESSABLE_ENTITY, "Unknown or inactive bank."
         ) from exc
+    except BankNotAvailableForLoanType as exc:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY, "This bank does not offer that loan type."
+        ) from exc
 
     application = await get_application_for_admin(db, application_id)
     assert application is not None  # just updated it above
@@ -738,3 +773,177 @@ async def list_audit_entries(
         offset=offset,
     )
     return AuditLogListResponse(entries=[_to_audit_log_read(v) for v in views], total=total)
+
+
+# ---------------------------------------------------------------------------
+# Loan config — loan types, banks, per-bank availability (FR-6.3/FR-6.4)
+# ---------------------------------------------------------------------------
+
+
+def _to_admin_loan_type_read(loan_type, count: int) -> AdminLoanTypeRead:  # noqa: ANN001
+    return AdminLoanTypeRead(
+        id=loan_type.id,
+        name=loan_type.name,
+        label=loan_type.label,
+        active=loan_type.active,
+        custom_fields=loan_type.custom_fields,
+        created_at=loan_type.created_at,
+        updated_at=loan_type.updated_at,
+        application_count=count,
+    )
+
+
+def _to_admin_bank_read(bank, count: int) -> AdminBankRead:  # noqa: ANN001
+    return AdminBankRead(
+        id=bank.id,
+        name=bank.name,
+        logo_key=bank.logo_key,
+        active=bank.active,
+        created_at=bank.created_at,
+        updated_at=bank.updated_at,
+        application_count=count,
+    )
+
+
+@router.get("/loan-types", response_model=AdminLoanTypeListResponse)
+async def list_admin_loan_types(
+    current_user: CurrentUser = Depends(require_admin),  # noqa: ARG001
+    db: AsyncSession = Depends(get_db),
+) -> AdminLoanTypeListResponse:
+    loan_types = await list_loan_types(db)
+    counts = await loan_type_application_counts(db)
+    return AdminLoanTypeListResponse(
+        loan_types=[_to_admin_loan_type_read(lt, counts.get(lt.id, 0)) for lt in loan_types]
+    )
+
+
+@router.post("/loan-types", response_model=AdminLoanTypeRead, status_code=status.HTTP_201_CREATED)
+async def create_admin_loan_type(
+    payload: LoanTypeCreate,
+    current_user: CurrentUser = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+) -> AdminLoanTypeRead:
+    try:
+        loan_type = await create_loan_type(
+            db, payload, actor_uuid=current_user.id, actor_role=current_user.role
+        )
+    except DuplicateLoanTypeName as exc:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT, "A loan type with an equivalent name already exists."
+        ) from exc
+    return _to_admin_loan_type_read(loan_type, 0)
+
+
+@router.patch("/loan-types/{loan_type_id}", response_model=AdminLoanTypeRead)
+async def update_admin_loan_type(
+    loan_type_id: UUID,
+    payload: LoanTypeUpdate,
+    current_user: CurrentUser = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+) -> AdminLoanTypeRead:
+    try:
+        loan_type = await update_loan_type(
+            db, loan_type_id, payload, actor_uuid=current_user.id, actor_role=current_user.role
+        )
+    except LoanTypeNotFound as exc:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Loan type not found.") from exc
+    counts = await loan_type_application_counts(db)
+    return _to_admin_loan_type_read(loan_type, counts.get(loan_type.id, 0))
+
+
+@router.get("/banks", response_model=AdminBankListResponse)
+async def list_admin_banks(
+    current_user: CurrentUser = Depends(require_admin),  # noqa: ARG001
+    db: AsyncSession = Depends(get_db),
+) -> AdminBankListResponse:
+    banks = await list_banks(db)
+    counts = await bank_application_counts(db)
+    return AdminBankListResponse(banks=[_to_admin_bank_read(b, counts.get(b.id, 0)) for b in banks])
+
+
+@router.post("/banks", response_model=AdminBankRead, status_code=status.HTTP_201_CREATED)
+async def create_admin_bank(
+    payload: BankCreate,
+    current_user: CurrentUser = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+) -> AdminBankRead:
+    try:
+        bank = await create_bank(
+            db, payload, actor_uuid=current_user.id, actor_role=current_user.role
+        )
+    except DuplicateBankName as exc:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT, "A bank with an equivalent name already exists."
+        ) from exc
+    return _to_admin_bank_read(bank, 0)
+
+
+@router.patch("/banks/{bank_id}", response_model=AdminBankRead)
+async def update_admin_bank(
+    bank_id: UUID,
+    payload: BankUpdate,
+    current_user: CurrentUser = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+) -> AdminBankRead:
+    try:
+        bank = await update_bank(
+            db, bank_id, payload, actor_uuid=current_user.id, actor_role=current_user.role
+        )
+    except BankNotFound as exc:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Bank not found.") from exc
+    except DuplicateBankName as exc:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT, "A bank with an equivalent name already exists."
+        ) from exc
+    counts = await bank_application_counts(db)
+    return _to_admin_bank_read(bank, counts.get(bank.id, 0))
+
+
+async def _availability_matrix(db: AsyncSession) -> BankAvailabilityMatrixResponse:
+    loan_types = await list_loan_types(db)
+    banks = await list_banks(db)
+    lt_counts = await loan_type_application_counts(db)
+    bank_counts = await bank_application_counts(db)
+    entries = await list_availability_entries(db)
+    return BankAvailabilityMatrixResponse(
+        banks=[_to_admin_bank_read(b, bank_counts.get(b.id, 0)) for b in banks],
+        loan_types=[_to_admin_loan_type_read(lt, lt_counts.get(lt.id, 0)) for lt in loan_types],
+        entries=[
+            BankAvailabilityEntry(
+                bank_id=e.bank_id, loan_type_id=e.loan_type_id, available=e.available
+            )
+            for e in entries
+        ],
+    )
+
+
+@router.get("/bank-availability", response_model=BankAvailabilityMatrixResponse)
+async def get_bank_availability_matrix(
+    current_user: CurrentUser = Depends(require_admin),  # noqa: ARG001
+    db: AsyncSession = Depends(get_db),
+) -> BankAvailabilityMatrixResponse:
+    return await _availability_matrix(db)
+
+
+@router.put("/banks/{bank_id}/availability", response_model=BankAvailabilityMatrixResponse)
+async def set_admin_bank_availability(
+    bank_id: UUID,
+    payload: BankAvailabilitySet,
+    current_user: CurrentUser = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+) -> BankAvailabilityMatrixResponse:
+    try:
+        await set_bank_availability(
+            db,
+            bank_id,
+            payload.entries,
+            actor_uuid=current_user.id,
+            actor_role=current_user.role,
+        )
+    except BankNotFound as exc:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Bank not found.") from exc
+    except LoanTypeNotFound as exc:
+        raise HTTPException(
+            status.HTTP_404_NOT_FOUND, "One or more loan types in the request were not found."
+        ) from exc
+    return await _availability_matrix(db)

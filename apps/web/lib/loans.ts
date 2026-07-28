@@ -71,8 +71,11 @@ export async function getLoanTypes(): Promise<ApiResponse<LoanTypeOption[]>> {
 
 export type Bank = Schemas["BankRead"];
 
-export async function getBanks(): Promise<ApiResponse<Bank[]>> {
-  const res = await apiRequest<Schemas["BankListResponse"]>("/api/v1/loans/banks");
+// loanTypeId filters to banks that offer that loan type (FR-6.3 per-bank
+// availability) -- omitted, every active bank is returned unfiltered.
+export async function getBanks(loanTypeId?: string): Promise<ApiResponse<Bank[]>> {
+  const qs = loanTypeId ? `?loan_type_id=${loanTypeId}` : "";
+  const res = await apiRequest<Schemas["BankListResponse"]>(`/api/v1/loans/banks${qs}`);
   if (!res.ok) return res;
   return { ok: true, status: res.status, data: res.data.banks };
 }

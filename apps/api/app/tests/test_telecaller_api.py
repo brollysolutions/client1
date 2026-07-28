@@ -104,7 +104,7 @@ async def _seed_loan_application(lead_id: str, business_line: str = "loans") -> 
             status=ProfileStatus.ACTIVE,
         )
         loan_type = LoanType(name=f"lt_{uuid.uuid4().hex[:8]}", label="Home Loan")
-        bank = Bank(name="Test Bank")
+        bank = Bank(name=f"Test Bank {uuid.uuid4().hex[:8]}")
         db.add_all([client_profile, loan_type, bank])
         await db.flush()
         application = LoanApplication(
