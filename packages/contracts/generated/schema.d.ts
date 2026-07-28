@@ -94,6 +94,31 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/audit-log": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Audit Entries
+         * @description Read-only activity feed (Admin design §5.6). Admin-only twice over: this
+         *     guard, and `audit_log_select` in the database, which no other role satisfies.
+         *
+         *     There is deliberately no POST/PATCH/DELETE counterpart anywhere in the API —
+         *     the table grants `api_user` only SELECT/INSERT, and the INSERT path belongs to
+         *     the services that perform audited actions, not to a caller.
+         */
+        get: operations["list_audit_entries_api_v1_admin_audit_log_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/employees": {
         parameters: {
             query?: never;
@@ -2706,6 +2731,73 @@ export interface components {
             /** Note */
             note: string;
         };
+        /**
+         * AuditAction
+         * @description Every value here has a real writer in `app/services/`. The spec names
+         *     `commission_entered` as a fourth example alongside the three below; agent
+         *     commission entry (§3 #5 of the feature-status tracker) is not built, so that
+         *     value is deliberately absent rather than shipped dead — adding an enum value
+         *     later is a one-line migration, and this repo's convention is one such value
+         *     per migration.
+         * @enum {string}
+         */
+        AuditAction: "agent_approved" | "agent_rejected" | "staff_created" | "account_removed" | "payout_approved" | "payout_rejected" | "property_submission_approved" | "property_submission_rejected" | "support_ticket_advanced" | "retention_purged";
+        /** AuditLogListResponse */
+        AuditLogListResponse: {
+            /** Entries */
+            entries: components["schemas"]["AuditLogRead"][];
+            /** Total */
+            total: number;
+        };
+        /**
+         * AuditLogRead
+         * @description One audit entry.
+         *
+         *     `actor_name` is resolved server-side from `actor_uuid` (the same convention
+         *     `SupportTicketAdminRead.requester_name` uses) so the console does not render a
+         *     raw UUID. It is None in two distinct cases the frontend renders differently:
+         *     a NULL `actor_uuid` means a scheduler job acted, while a non-NULL
+         *     `actor_uuid` with no resolvable name means the actor's account was since
+         *     deleted.
+         *
+         *     `actor_role` is the role held AT THE TIME of the action, read straight off the
+         *     row rather than re-derived from today's profile state — see the model
+         *     docstring for why that distinction matters.
+         *
+         *     Deliberately no mobile/email field: this is an activity feed, not a contact
+         *     directory, and `.claude/rules/security.md` keeps PII out of surfaces that do
+         *     not need it. `detail` is bounded by the same rule at write time —
+         *     `services/audit_log.py` rejects PII-shaped keys outright.
+         */
+        AuditLogRead: {
+            action: components["schemas"]["AuditAction"];
+            /** Actor Name */
+            actor_name: string | null;
+            /** Actor Role */
+            actor_role: string | null;
+            /** Actor Uuid */
+            actor_uuid: string | null;
+            /** Business Line */
+            business_line: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Detail */
+            detail: {
+                [key: string]: unknown;
+            } | null;
+            /** Entity Type */
+            entity_type: string;
+            /** Entity Uuid */
+            entity_uuid: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+        };
         /** AuthTokensResponse */
         AuthTokensResponse: {
             /** Access Token */
@@ -5218,6 +5310,44 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AgentApplicationRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_audit_entries_api_v1_admin_audit_log_get: {
+        parameters: {
+            query?: {
+                action?: components["schemas"]["AuditAction"] | null;
+                actor_uuid?: string | null;
+                entity_type?: string | null;
+                entity_uuid?: string | null;
+                since?: string | null;
+                until?: string | null;
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditLogListResponse"];
                 };
             };
             /** @description Validation Error */

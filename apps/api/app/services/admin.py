@@ -22,6 +22,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.security import generate_profile_code, generate_temp_password, hash_password
+from app.models.audit_log import AuditAction
 from app.models.profile import (
     AgentApplication,
     AgentProfile,
@@ -33,6 +34,7 @@ from app.models.profile import (
 )
 from app.models.user import User, UserStatus
 from app.schemas.admin import StaffCreateRequest
+from app.services.audit_log import record as record_audit
 
 
 class StaffAlreadyExists(Exception):
@@ -48,7 +50,11 @@ class AgentApplicationEmailConflict(Exception):
 
 
 async def create_staff(
-    db: AsyncSession, actor_id: UUID, payload: StaffCreateRequest
+    db: AsyncSession,
+    actor_id: UUID,
+    payload: StaffCreateRequest,
+    *,
+    actor_role: str | None = None,
 ) -> tuple[StaffProfile, str | None]:
     """Create or attach a staff profile. Returns (profile, temp_password).
 
@@ -111,12 +117,35 @@ async def create_staff(
             if attempt == 4:
                 raise
 
+    # Same transaction as the provisioning itself, so a rolled-back create leaves
+    # no audit row claiming it happened. No mobile/email in `detail` — the service
+    # layer's audit helper rejects those keys outright.
+    await record_audit(
+        db,
+        action=AuditAction.STAFF_CREATED,
+        entity_type="staff_profile",
+        entity_uuid=profile.id,
+        actor_uuid=actor_id,
+        actor_role=actor_role,
+        business_line=business_line,
+        detail={
+            "role": role.value,
+            "scope": scope.value,
+            "staff_code": profile.staff_code,
+            "new_account": temp_password is not None,
+        },
+    )
     await db.commit()
     return profile, temp_password
 
 
 async def approve_agent_application(
-    db: AsyncSession, application_id: UUID, reviewer_staff_uuid: UUID | None
+    db: AsyncSession,
+    application_id: UUID,
+    reviewer_staff_uuid: UUID | None,
+    *,
+    actor_uuid: UUID | None = None,
+    actor_role: str | None = None,
 ) -> tuple[AgentProfile, str | None] | None:
     """Approve a pending agent application. Returns (profile, temp_password), or
     None if the application id doesn't exist. Raises AgentApplicationAlreadyReviewed
@@ -188,6 +217,25 @@ async def approve_agent_application(
     application.status = SubmissionStatus.APPROVED
     application.reviewed_by_staff_profile_uuid = reviewer_staff_uuid
     application.reviewed_at = datetime.now(UTC)
+    # entity is the application (the thing reviewed); the profile it produced goes
+    # in `detail` so the trail reads "approved application X, which created agent Y".
+    await record_audit(
+        db,
+        action=AuditAction.AGENT_APPROVED,
+        entity_type="agent_application",
+        entity_uuid=application.id,
+        actor_uuid=actor_uuid,
+        actor_role=actor_role,
+        business_line=application.business_line,
+        detail={
+            "agent_profile_uuid": str(profile.id),
+            "agent_code": profile.agent_code,
+            "reviewer_staff_profile_uuid": (
+                str(reviewer_staff_uuid) if reviewer_staff_uuid else None
+            ),
+            "new_account": temp_password is not None,
+        },
+    )
     await db.commit()
     return profile, temp_password
 
@@ -196,7 +244,10 @@ async def reject_agent_application(
     db: AsyncSession,
     application_id: UUID,
     reviewer_staff_uuid: UUID | None,
-    note: str,  # noqa: ARG001 — accepted for reviewer context, not persisted this slice
+    note: str,
+    *,
+    actor_uuid: UUID | None = None,
+    actor_role: str | None = None,
 ) -> bool:
     application = await db.get(AgentApplication, application_id, with_for_update=True)
     if application is None:
@@ -206,5 +257,23 @@ async def reject_agent_application(
     application.status = SubmissionStatus.REJECTED
     application.reviewed_by_staff_profile_uuid = reviewer_staff_uuid
     application.reviewed_at = datetime.now(UTC)
+    # `note` still has no column on agent_applications (feature-status §2 row 10),
+    # but it is no longer discarded entirely: the audit trail now preserves the
+    # reviewer's stated reason, which was the point of collecting it.
+    await record_audit(
+        db,
+        action=AuditAction.AGENT_REJECTED,
+        entity_type="agent_application",
+        entity_uuid=application.id,
+        actor_uuid=actor_uuid,
+        actor_role=actor_role,
+        business_line=application.business_line,
+        detail={
+            "note": note,
+            "reviewer_staff_profile_uuid": (
+                str(reviewer_staff_uuid) if reviewer_staff_uuid else None
+            ),
+        },
+    )
     await db.commit()
     return True

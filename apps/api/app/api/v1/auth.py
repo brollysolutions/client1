@@ -274,6 +274,7 @@ async def delete_me(
             access_token_exp=current_user.exp,
             ip=_get_client_ip(request),
             user_agent=request.headers.get("user-agent"),
+            actor_role=current_user.role,
         )
     except AccountAlreadyDeleted as exc:
         raise HTTPException(

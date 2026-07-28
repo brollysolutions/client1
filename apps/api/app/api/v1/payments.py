@@ -168,7 +168,9 @@ async def approve_payout(
     _require_admin(current_user)
     try:
         await payments_service.approve_payout(
-            payout_id=payout_id, checker_user_uuid=current_user.id
+            payout_id=payout_id,
+            checker_user_uuid=current_user.id,
+            checker_role=current_user.role,
         )
     except payments_service.PayoutError as exc:
         raise _map_error(exc) from None
@@ -200,6 +202,7 @@ async def reject_payout(
             payout_id=payout_id,
             rejector_user_uuid=current_user.id,
             reason=req.reason,
+            rejector_role=current_user.role,
         )
     except payments_service.PayoutError as exc:
         raise _map_error(exc) from None

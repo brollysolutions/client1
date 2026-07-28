@@ -28,6 +28,8 @@ export type AdminHome = Schemas["AdminHomeResponse"];
 export type AdminPendingItem = Schemas["AdminPendingItem"];
 export type SupportTicketAdmin = Schemas["SupportTicketAdminRead"];
 export type SupportTicketAdvanceRequest = Schemas["SupportTicketAdvanceRequest"];
+export type AuditLogEntry = Schemas["AuditLogRead"];
+export type AuditAction = Schemas["AuditAction"];
 
 export async function createStaff(
   payload: StaffCreateRequest,
@@ -191,4 +193,31 @@ export async function advanceSupportTicket(
     method: "PATCH",
     body: payload,
   });
+}
+
+export type AuditLogFilters = {
+  action?: AuditAction;
+  actorUuid?: string;
+  entityType?: string;
+  entityUuid?: string;
+  limit?: number;
+  offset?: number;
+};
+
+export async function listAuditLog(
+  filters: AuditLogFilters = {},
+): Promise<ApiResponse<{ entries: AuditLogEntry[]; total: number }>> {
+  const params = new URLSearchParams();
+  if (filters.action) params.set("action", filters.action);
+  if (filters.actorUuid) params.set("actor_uuid", filters.actorUuid);
+  if (filters.entityType) params.set("entity_type", filters.entityType);
+  if (filters.entityUuid) params.set("entity_uuid", filters.entityUuid);
+  if (filters.limit !== undefined) params.set("limit", String(filters.limit));
+  if (filters.offset !== undefined) params.set("offset", String(filters.offset));
+  const query = params.size > 0 ? `?${params.toString()}` : "";
+  const res = await apiRequest<Schemas["AuditLogListResponse"]>(
+    `/api/v1/admin/audit-log${query}`,
+  );
+  if (!res.ok) return res;
+  return { ok: true, status: res.status, data: { entries: res.data.entries, total: res.data.total } };
 }

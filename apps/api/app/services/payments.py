@@ -44,10 +44,12 @@ from sqlalchemy.exc import IntegrityError
 from app.core.config import settings
 from app.core.masking import mask_bank_account, mask_vpa
 from app.db.session import AsyncSessionLocal
+from app.models.audit_log import AuditAction
 from app.models.payout import Payout, PayoutDestination, PayoutStatus, PayoutType
 from app.models.profile import AgentProfile, ClientProfile, StaffProfile
 from app.models.transaction import Transaction, TransactionStatus, TransactionType
 from app.services import referrals
+from app.services.audit_log import record as record_audit
 
 logger = logging.getLogger(__name__)
 
@@ -344,7 +346,12 @@ async def create_payout(
 # ---------------------------------------------------------------------------
 
 
-async def approve_payout(*, payout_id: uuid.UUID, checker_user_uuid: uuid.UUID) -> None:
+async def approve_payout(
+    *,
+    payout_id: uuid.UUID,
+    checker_user_uuid: uuid.UUID,
+    checker_role: str | None = None,
+) -> None:
     """Approve a pending payout (checker) and initiate the transfer.
 
     Enforces maker != checker and checker != recipient. The status flip is an
@@ -377,6 +384,23 @@ async def approve_payout(*, payout_id: uuid.UUID, checker_user_uuid: uuid.UUID) 
             # Lost a concurrent race — another approver already advanced it.
             await db.rollback()
             raise PayoutStateError("Payout is not awaiting approval.")
+        # Written inside the same transaction as the compare-and-swap, so the
+        # loser of a concurrent approval logs nothing: exactly one audit row per
+        # payout approval, matching the one that actually moved money.
+        await record_audit(
+            db,
+            action=AuditAction.PAYOUT_APPROVED,
+            entity_type="payout",
+            entity_uuid=payout_id,
+            actor_uuid=checker_user_uuid,
+            actor_role=checker_role,
+            business_line=payout.business_line,
+            detail={
+                "amount_paise": payout.amount_paise,
+                "payout_type": payout.type.value,
+                "maker_user_uuid": str(payout.maker_user_uuid),
+            },
+        )
         await db.commit()
 
     # Separate step: initiate on its own session, best-effort.
@@ -384,7 +408,11 @@ async def approve_payout(*, payout_id: uuid.UUID, checker_user_uuid: uuid.UUID) 
 
 
 async def reject_payout(
-    *, payout_id: uuid.UUID, rejector_user_uuid: uuid.UUID, reason: str
+    *,
+    payout_id: uuid.UUID,
+    rejector_user_uuid: uuid.UUID,
+    reason: str,
+    rejector_role: str | None = None,
 ) -> None:
     """Reject a pending payout. Reject is not value-moving, so maker==rejector is allowed."""
     async with AsyncSessionLocal() as db:
@@ -396,6 +424,20 @@ async def reject_payout(
         payout.status = PayoutStatus.REJECTED
         payout.rejected_by_user_uuid = rejector_user_uuid
         payout.reject_reason = reason
+        await record_audit(
+            db,
+            action=AuditAction.PAYOUT_REJECTED,
+            entity_type="payout",
+            entity_uuid=payout_id,
+            actor_uuid=rejector_user_uuid,
+            actor_role=rejector_role,
+            business_line=payout.business_line,
+            detail={
+                "amount_paise": payout.amount_paise,
+                "payout_type": payout.type.value,
+                "reason": reason,
+            },
+        )
         await db.commit()
         await _referral_payout_released_hook(payout)
 

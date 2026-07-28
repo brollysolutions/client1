@@ -52,9 +52,11 @@ from sqlalchemy import delete, func, select, update
 
 import app.db.session as db_session
 from app.core.config import settings
+from app.models.audit_log import AuditAction
 from app.models.payout import Payout
 from app.models.referral import Referral
 from app.models.transaction import Transaction
+from app.services.audit_log import record as record_audit
 
 
 def _retention_cutoff(now: datetime, years: int) -> datetime:
@@ -118,6 +120,43 @@ async def purge_delinked_financial_records(*, retention_years: int | None = None
                 .execution_options(synchronize_session=False)
             )
         ).all()
+
+        # The reason audit_log exists (migration a1c4e77b93d2). This is an
+        # irreversible hard DELETE of financial records, and until this table
+        # landed the only record of which rows were destroyed was a log line —
+        # gone with the next log rotation. Written in the same transaction as the
+        # DELETEs, so the audit entry and the purge commit or roll back together.
+        #
+        # actor_uuid is NULL: a scheduler job has no human actor. This runs on a
+        # superuser session that bypasses RLS, which is the only way a NULL actor
+        # can be written at all (the audit_log_insert policy pins a non-NULL actor
+        # to the session identity), so "the platform did this" is unforgeable
+        # from a request.
+        #
+        # Only ids and retained_refs go in `detail` — never the purged rows'
+        # amounts or counterparties. A retained_ref is an opaque uuid string, not
+        # PII, which is the whole point of the de-link seam.
+        if payouts_purged_rows or transactions_purged_rows:
+            await record_audit(
+                session,
+                action=AuditAction.RETENTION_PURGED,
+                entity_type="financial_records",
+                entity_uuid=None,
+                actor_uuid=None,
+                actor_role=None,
+                detail={
+                    "retention_years": years,
+                    "cutoff": cutoff.isoformat(),
+                    "payouts_purged": [
+                        {"id": str(row.id), "retained_ref": row.retained_ref}
+                        for row in payouts_purged_rows
+                    ],
+                    "transactions_purged": [
+                        {"id": str(row.id), "retained_ref": row.retained_ref}
+                        for row in transactions_purged_rows
+                    ],
+                },
+            )
         await session.commit()
 
     return {
