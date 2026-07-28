@@ -83,7 +83,7 @@ async def _seed_client_with_loan_application(
         db.add(client_profile)
         loan_type = LoanType(name=f"lt_{uuid.uuid4().hex[:8]}", label="Home Loan")
         db.add(loan_type)
-        bank = Bank(name="Test Bank")
+        bank = Bank(name=f"Test Bank {uuid.uuid4().hex[:8]}")
         db.add(bank)
         await db.flush()
 

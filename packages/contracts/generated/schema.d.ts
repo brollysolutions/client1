@@ -119,6 +119,75 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/bank-availability": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Bank Availability Matrix */
+        get: operations["get_bank_availability_matrix_api_v1_admin_bank_availability_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/banks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Admin Banks */
+        get: operations["list_admin_banks_api_v1_admin_banks_get"];
+        put?: never;
+        /** Create Admin Bank */
+        post: operations["create_admin_bank_api_v1_admin_banks_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/banks/{bank_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Admin Bank */
+        patch: operations["update_admin_bank_api_v1_admin_banks__bank_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/admin/banks/{bank_id}/availability": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Set Admin Bank Availability */
+        put: operations["set_admin_bank_availability_api_v1_admin_banks__bank_id__availability_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/employees": {
         parameters: {
             query?: never;
@@ -236,6 +305,41 @@ export interface paths {
         head?: never;
         /** Update Loan Application Progress */
         patch: operations["update_loan_application_progress_api_v1_admin_loan_applications__application_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/admin/loan-types": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Admin Loan Types */
+        get: operations["list_admin_loan_types_api_v1_admin_loan_types_get"];
+        put?: never;
+        /** Create Admin Loan Type */
+        post: operations["create_admin_loan_type_api_v1_admin_loan_types_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/loan-types/{loan_type_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Admin Loan Type */
+        patch: operations["update_admin_loan_type_api_v1_admin_loan_types__loan_type_id__patch"];
         trace?: never;
     };
     "/api/v1/admin/loans": {
@@ -2144,6 +2248,37 @@ export interface components {
              */
             updated_at: string;
         };
+        /** AdminBankListResponse */
+        AdminBankListResponse: {
+            /** Banks */
+            banks: components["schemas"]["AdminBankRead"][];
+        };
+        /** AdminBankRead */
+        AdminBankRead: {
+            /** Active */
+            active: boolean;
+            /** Application Count */
+            application_count: number;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Logo Key */
+            logo_key: string | null;
+            /** Name */
+            name: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
         /** AdminEmployeeRead */
         AdminEmployeeRead: {
             /**
@@ -2251,6 +2386,11 @@ export interface components {
              * Format: uuid
              */
             lead_uuid: string;
+            /**
+             * Loan Type Id
+             * Format: uuid
+             */
+            loan_type_id: string;
             /** Loan Type Label */
             loan_type_label: string;
             /**
@@ -2267,6 +2407,41 @@ export interface components {
             status: "new" | "assigned" | "contacted" | "docs_collected" | "submitted_to_bank" | "sanctioned" | "disbursed" | "closed" | "rejected" | "on_hold";
             /** Status Reason */
             status_reason: string | null;
+        };
+        /** AdminLoanTypeListResponse */
+        AdminLoanTypeListResponse: {
+            /** Loan Types */
+            loan_types: components["schemas"]["AdminLoanTypeRead"][];
+        };
+        /** AdminLoanTypeRead */
+        AdminLoanTypeRead: {
+            /** Active */
+            active: boolean;
+            /** Application Count */
+            application_count: number;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Custom Fields */
+            custom_fields: {
+                [key: string]: unknown;
+            } | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Label */
+            label: string;
+            /** Name */
+            name: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
         };
         /**
          * AdminPendingItem
@@ -2739,9 +2914,13 @@ export interface components {
          *     value is deliberately absent rather than shipped dead — adding an enum value
          *     later is a one-line migration, and this repo's convention is one such value
          *     per migration.
+         *
+         *     The five LOAN_TYPE_*\/BANK_* values (migration 1dd0bc6bed88) are written by
+         *     `services/loan_config.py`. No `*_deleted` siblings exist — that module never
+         *     deletes a row, only toggles `active`, which is just another `*_updated`.
          * @enum {string}
          */
-        AuditAction: "agent_approved" | "agent_rejected" | "staff_created" | "account_removed" | "payout_approved" | "payout_rejected" | "property_submission_approved" | "property_submission_rejected" | "support_ticket_advanced" | "retention_purged";
+        AuditAction: "agent_approved" | "agent_rejected" | "staff_created" | "account_removed" | "payout_approved" | "payout_rejected" | "property_submission_approved" | "property_submission_rejected" | "support_ticket_advanced" | "retention_purged" | "loan_type_created" | "loan_type_updated" | "bank_created" | "bank_updated" | "bank_availability_updated";
         /** AuditLogListResponse */
         AuditLogListResponse: {
             /** Entries */
@@ -2820,6 +2999,70 @@ export interface components {
              */
             token_type: string;
         };
+        /** BankAvailabilityEntry */
+        BankAvailabilityEntry: {
+            /** Available */
+            available: boolean;
+            /**
+             * Bank Id
+             * Format: uuid
+             */
+            bank_id: string;
+            /**
+             * Loan Type Id
+             * Format: uuid
+             */
+            loan_type_id: string;
+        };
+        /**
+         * BankAvailabilityMatrixResponse
+         * @description The full picture the admin console renders as a grid: every loan type
+         *     (columns) x every bank (rows), plus the sparse set of explicit overrides.
+         *     A (bank_id, loan_type_id) pair absent from `entries` is available — see the
+         *     module docstring on `services/loan_config.py`.
+         */
+        BankAvailabilityMatrixResponse: {
+            /** Banks */
+            banks: components["schemas"]["AdminBankRead"][];
+            /** Entries */
+            entries: components["schemas"]["BankAvailabilityEntry"][];
+            /** Loan Types */
+            loan_types: components["schemas"]["AdminLoanTypeRead"][];
+        };
+        /**
+         * BankAvailabilitySet
+         * @description PUT body for one bank's availability overrides.
+         *
+         *     This is an UPSERT, not a full-replace: `services/loan_config.py::
+         *     set_bank_availability` writes exactly the rows submitted here and never
+         *     deletes a row omitted from `entries` (the table's grant has no DELETE, by
+         *     design — migration 678f7a77e812). An omitted loan_type_id keeps whatever
+         *     it already was, not the permissive default. The admin console's checkbox
+         *     grid always submits every current loan type on every save, so in
+         *     practice a save behaves like a full-replace — but that is a UI
+         *     convention, not something this endpoint enforces.
+         */
+        BankAvailabilitySet: {
+            /** Entries */
+            entries: components["schemas"]["BankAvailabilitySetEntry"][];
+        };
+        /** BankAvailabilitySetEntry */
+        BankAvailabilitySetEntry: {
+            /** Available */
+            available: boolean;
+            /**
+             * Loan Type Id
+             * Format: uuid
+             */
+            loan_type_id: string;
+        };
+        /** BankCreate */
+        BankCreate: {
+            /** Logo Key */
+            logo_key?: string | null;
+            /** Name */
+            name: string;
+        };
         /** BankListResponse */
         BankListResponse: {
             /** Banks */
@@ -2834,6 +3077,15 @@ export interface components {
             id: string;
             /** Name */
             name: string;
+        };
+        /** BankUpdate */
+        BankUpdate: {
+            /** Active */
+            active?: boolean | null;
+            /** Logo Key */
+            logo_key?: string | null;
+            /** Name */
+            name?: string | null;
         };
         /** BannerCreate */
         BannerCreate: {
@@ -3497,6 +3749,11 @@ export interface components {
             /** Txn Date */
             txn_date: string | null;
         };
+        /** LoanTypeCreate */
+        LoanTypeCreate: {
+            /** Label */
+            label: string;
+        };
         /** LoanTypeListResponse */
         LoanTypeListResponse: {
             /** Loan Types */
@@ -3521,6 +3778,13 @@ export interface components {
             id: string;
             /** Label */
             label: string;
+        };
+        /** LoanTypeUpdate */
+        LoanTypeUpdate: {
+            /** Active */
+            active?: boolean | null;
+            /** Label */
+            label?: string | null;
         };
         /** LoginRequest */
         LoginRequest: {
@@ -5067,6 +5331,11 @@ export interface components {
             id: string;
             /** Interest Rate */
             interest_rate?: string | null;
+            /**
+             * Loan Type Id
+             * Format: uuid
+             */
+            loan_type_id: string;
             /** Loan Type Name */
             loan_type_name: string;
             /** Processing Fee */
@@ -5361,6 +5630,149 @@ export interface operations {
             };
         };
     };
+    get_bank_availability_matrix_api_v1_admin_bank_availability_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BankAvailabilityMatrixResponse"];
+                };
+            };
+        };
+    };
+    list_admin_banks_api_v1_admin_banks_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminBankListResponse"];
+                };
+            };
+        };
+    };
+    create_admin_bank_api_v1_admin_banks_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BankCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminBankRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_admin_bank_api_v1_admin_banks__bank_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                bank_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BankUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminBankRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_admin_bank_availability_api_v1_admin_banks__bank_id__availability_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                bank_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BankAvailabilitySet"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BankAvailabilityMatrixResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_employees_api_v1_admin_employees_get: {
         parameters: {
             query?: {
@@ -5569,6 +5981,94 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AdminLoanApplicationRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_admin_loan_types_api_v1_admin_loan_types_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminLoanTypeListResponse"];
+                };
+            };
+        };
+    };
+    create_admin_loan_type_api_v1_admin_loan_types_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LoanTypeCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminLoanTypeRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_admin_loan_type_api_v1_admin_loan_types__loan_type_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                loan_type_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LoanTypeUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminLoanTypeRead"];
                 };
             };
             /** @description Validation Error */
@@ -7603,7 +8103,9 @@ export interface operations {
     };
     list_banks_api_v1_loans_banks_get: {
         parameters: {
-            query?: never;
+            query?: {
+                loan_type_id?: string | null;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -7617,6 +8119,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["BankListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

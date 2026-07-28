@@ -12,6 +12,7 @@ import {
   Landmark,
   Megaphone,
   ScrollText,
+  SlidersHorizontal,
   UserPlus,
 } from "lucide-react";
 
@@ -272,6 +273,18 @@ export function AdminHome() {
                 <CardTitle className="mt-2">Activity log</CardTitle>
                 <CardDescription>
                   Every approval, payout, and account removal, in order (Admin-exclusive).
+                </CardDescription>
+              </CardHeader>
+            </Card>
+          </Link>
+
+          <Link href="/dashboard/loan-config">
+            <Card className="h-full transition-colors hover:border-brand-cta">
+              <CardHeader>
+                <SlidersHorizontal className="h-6 w-6 text-brand-cta" aria-hidden="true" />
+                <CardTitle className="mt-2">Loan configuration</CardTitle>
+                <CardDescription>
+                  Add loan types and banks, and set which bank offers which loan type.
                 </CardDescription>
               </CardHeader>
             </Card>

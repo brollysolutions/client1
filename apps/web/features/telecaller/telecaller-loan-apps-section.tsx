@@ -192,6 +192,7 @@ export function TelecallerLoanAppsSection({
               <LoanProgressForm
                 application={{
                   id: application.id,
+                  loan_type_id: application.loan_type_id,
                   status: application.status,
                   status_reason: application.status_reason ?? null,
                   amount_sanctioned: application.amount_sanctioned ?? null,
