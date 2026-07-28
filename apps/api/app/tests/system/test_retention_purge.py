@@ -14,6 +14,7 @@ stack; auto-skips without Redis/Postgres.
 
 from __future__ import annotations
 
+import json
 import uuid
 from datetime import UTC, datetime, timedelta
 
@@ -241,3 +242,72 @@ async def test_purge_is_idempotent(client: AsyncClient) -> None:
 
     second = await purge_delinked_financial_records(retention_years=7)  # must not error
     assert second["transactions_purged"] == 0
+
+
+@pytest.mark.asyncio
+async def test_purge_writes_an_audit_entry_with_the_purged_ids(client: AsyncClient) -> None:
+    """The reason `audit_log` exists (migration a1c4e77b93d2). This is an
+    irreversible hard DELETE, and before that table landed the only record of
+    which rows were destroyed was a log line that the next rotation would take
+    with it.
+
+    actor_uuid must be NULL: a scheduler job has no human actor, and the
+    audit_log_insert policy pins any non-NULL actor to the session identity, so
+    a NULL one is only writable from the RLS-bypassing job session.
+    """
+    import app.db.session as _session_mod
+
+    mobile = unique_mobile()
+    await full_registration(client, mobile=mobile)
+    uid = await _user_id(mobile)
+    old_txn = await _seed_transaction(uid, delinked_at=_OLD)
+
+    await purge_delinked_financial_records(retention_years=7)
+    assert await _count_transactions(old_txn) == 0
+
+    async with _session_mod.AsyncSessionLocal() as db:
+        row = (
+            await db.execute(
+                text(
+                    "SELECT actor_uuid, actor_role, entity_type, entity_uuid, detail "
+                    "FROM audit_log WHERE action = 'retention_purged' "
+                    # CAST(), not `:needle::jsonb` -- text()'s bind-param scanner
+                    # reads the `::` as part of the parameter name and emits
+                    # invalid SQL.
+                    "AND detail -> 'transactions_purged' @> CAST(:needle AS jsonb) "
+                    "ORDER BY created_at DESC LIMIT 1"
+                ),
+                {"needle": json.dumps([{"id": old_txn}])},
+            )
+        ).fetchone()
+
+    assert row is not None, "purging a transaction wrote no audit entry naming it"
+    assert row.actor_uuid is None, "a scheduler job must not claim a human actor"
+    assert row.actor_role is None
+    assert row.entity_type == "financial_records"
+    # A sweep is not one record, so there is no single entity to point at.
+    assert row.entity_uuid is None
+    assert row.detail["retention_years"] == 7
+    assert "cutoff" in row.detail
+
+
+@pytest.mark.asyncio
+async def test_purge_writes_no_audit_entry_when_nothing_was_purged(client: AsyncClient) -> None:
+    """A daily no-op sweep must not append a row every single day — that would
+    bury the entries that matter under a year of empty ones."""
+    import app.db.session as _session_mod
+
+    async with _session_mod.AsyncSessionLocal() as db:
+        before = await db.scalar(
+            text("SELECT count(*) FROM audit_log WHERE action = 'retention_purged'")
+        )
+
+    summary = await purge_delinked_financial_records(retention_years=7)
+    assert summary["transactions_purged"] == 0
+    assert summary["payouts_purged"] == 0
+
+    async with _session_mod.AsyncSessionLocal() as db:
+        after = await db.scalar(
+            text("SELECT count(*) FROM audit_log WHERE action = 'retention_purged'")
+        )
+    assert after == before

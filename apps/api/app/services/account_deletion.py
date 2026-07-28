@@ -55,6 +55,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 import app.db.session as db_session
 from app.cache.redis_keys import RedisCache, jwt_blacklist_key
+from app.models.audit_log import AuditAction
 from app.models.auth import AuthEvent, RefreshToken
 from app.models.payout import Payout
 from app.models.profile import (
@@ -68,6 +69,7 @@ from app.models.support_ticket import SupportTicket
 from app.models.transaction import Transaction
 from app.models.user import User, UserStatus
 from app.services import storage
+from app.services.audit_log import record as record_audit
 
 logger = logging.getLogger(__name__)
 
@@ -115,6 +117,7 @@ async def delete_account(
     reason: str | None,
     ip: str | None,
     user_agent: str | None,
+    actor_role: str | None = None,
 ) -> None:
     """Erase a user's identity, de-link their financial records, kill their
     sessions. `actor_jti`/`actor_access_token_exp` are set only for self-service
@@ -212,6 +215,19 @@ async def delete_account(
                 "reason": reason,
             },
         )
+    )
+    # Separate from the AuthEvent above, deliberately. That row is a security
+    # event on the *target's* identity timeline; this one is a business action on
+    # the Admin oversight timeline (spec §5.6 names `account_removed` explicitly).
+    # Both are written in this same transaction, so they cannot disagree.
+    await record_audit(
+        db,
+        action=AuditAction.ACCOUNT_REMOVED,
+        entity_type="auth_user",
+        entity_uuid=target_auth_user_uuid,
+        actor_uuid=actor_auth_user_uuid,
+        actor_role=actor_role,
+        detail={"self_service": self_service, "reason": reason},
     )
     await db.commit()
 

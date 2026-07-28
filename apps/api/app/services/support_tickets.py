@@ -19,9 +19,11 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.models.audit_log import AuditAction
 from app.models.notification import NotificationType
 from app.models.support_ticket import SupportStatus, SupportTicket
 from app.models.user import User, UserStatus
+from app.services.audit_log import record as record_audit
 from app.services.notifications import emit_notification
 
 # Forward-only, `closed` reachable as a manual override from any non-terminal
@@ -122,6 +124,8 @@ async def advance_ticket(
     *,
     target_status: SupportStatus,
     resolution_note: str | None,
+    actor_uuid: UUID | None = None,
+    actor_role: str | None = None,
 ) -> SupportTicket:
     ticket = await db.scalar(
         select(SupportTicket).where(SupportTicket.id == ticket_id).with_for_update()
@@ -131,9 +135,28 @@ async def advance_ticket(
     if target_status not in _TRANSITIONS.get(ticket.status, set()):
         raise TicketIllegalTransition
 
+    previous_status = ticket.status
     ticket.status = target_status
     if resolution_note is not None:
         ticket.resolution_note = resolution_note
+    # Recorded because these tickets are the account-recovery channel (FR-14.2):
+    # "who closed the lost-mobile request, and what did they say" is exactly the
+    # question an audit trail exists to answer. Ticket subject/body are NOT
+    # copied in — they are user free text that can carry the reporter's own PII.
+    await record_audit(
+        db,
+        action=AuditAction.SUPPORT_TICKET_ADVANCED,
+        entity_type="support_ticket",
+        entity_uuid=ticket.id,
+        actor_uuid=actor_uuid,
+        actor_role=actor_role,
+        detail={
+            "from_status": previous_status.value,
+            "to_status": target_status.value,
+            "category": ticket.category.value,
+            "resolution_note": resolution_note,
+        },
+    )
     await db.commit()
     await db.refresh(ticket)
 

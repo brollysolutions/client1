@@ -14,8 +14,10 @@ from datetime import UTC, datetime
 from uuid import UUID
 
 from app.db.session import AsyncSessionLocal
+from app.models.audit_log import AuditAction
 from app.models.property import Property
 from app.models.property_submission import PropertySubmission, SubmissionStatus
+from app.services.audit_log import record as record_audit
 
 
 class SubmissionAlreadyReviewed(Exception):
@@ -36,7 +38,9 @@ def format_inr_display(paise: int) -> str:
     return f"₹{text} {unit}"
 
 
-async def approve_submission(submission_id: UUID, reviewer_uuid: UUID) -> UUID | None:
+async def approve_submission(
+    submission_id: UUID, reviewer_uuid: UUID, *, reviewer_role: str | None = None
+) -> UUID | None:
     async with AsyncSessionLocal() as session:
         # FOR UPDATE: serialize concurrent approvals so the second sees status !=
         # pending (no duplicate Property).
@@ -74,11 +78,30 @@ async def approve_submission(submission_id: UUID, reviewer_uuid: UUID) -> UUID |
         sub.reviewed_by_uuid = reviewer_uuid
         sub.reviewed_at = datetime.now(UTC)
         sub.approved_property_id = prop.id
+        # Approval is what makes a listing publicly visible, so it is the audited
+        # moment. Same transaction as the Property insert and the status flip.
+        await record_audit(
+            session,
+            action=AuditAction.PROPERTY_SUBMISSION_APPROVED,
+            entity_type="property_submission",
+            entity_uuid=sub.id,
+            actor_uuid=reviewer_uuid,
+            actor_role=reviewer_role,
+            business_line=sub.business_line,
+            detail={
+                "created_property_uuid": str(prop.id),
+                "submitter_uuid": str(sub.submitter_uuid),
+                "price_paise": sub.price_paise,
+                "city": sub.city,
+            },
+        )
         await session.commit()
         return prop.id
 
 
-async def reject_submission(submission_id: UUID, reviewer_uuid: UUID, note: str) -> bool:
+async def reject_submission(
+    submission_id: UUID, reviewer_uuid: UUID, note: str, *, reviewer_role: str | None = None
+) -> bool:
     async with AsyncSessionLocal() as session:
         sub = await session.get(PropertySubmission, submission_id, with_for_update=True)
         if sub is None:
@@ -89,5 +112,15 @@ async def reject_submission(submission_id: UUID, reviewer_uuid: UUID, note: str)
         sub.review_note = note
         sub.reviewed_by_uuid = reviewer_uuid
         sub.reviewed_at = datetime.now(UTC)
+        await record_audit(
+            session,
+            action=AuditAction.PROPERTY_SUBMISSION_REJECTED,
+            entity_type="property_submission",
+            entity_uuid=sub.id,
+            actor_uuid=reviewer_uuid,
+            actor_role=reviewer_role,
+            business_line=sub.business_line,
+            detail={"note": note, "submitter_uuid": str(sub.submitter_uuid)},
+        )
         await session.commit()
         return True
