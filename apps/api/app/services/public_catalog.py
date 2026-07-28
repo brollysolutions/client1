@@ -1,5 +1,6 @@
-"""Public property/banner/offer read (docs/specs/public-property-catalog.md,
-docs/specs/public-banner-serving.md, docs/specs/public-offer-serving.md).
+"""Public property/banner/offer/content-block read (docs/specs/public-property-catalog.md,
+docs/specs/public-banner-serving.md, docs/specs/public-offer-serving.md,
+docs/specs/public-content-block-serving.md).
 
 There is no anonymous Postgres role in this system: api_user is only ever
 assumed inside _set_rls_context (app/core/deps.py), called exclusively from
@@ -31,6 +32,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import aliased
 
 from app.models.banner import Banner, BannerStatus, BannerType
+from app.models.content_block import ContentBlock, ContentStatus
 from app.models.offer import Offer, OfferStatus
 from app.models.property import Property
 
@@ -176,6 +178,49 @@ async def list_public_offers(db: AsyncSession) -> Sequence[Offer]:
         select(o)
         .where(ranked.c.rn <= PUBLIC_OFFERS_PER_LINE)
         .order_by(ranked.c.created_at.desc(), ranked.c.id.desc())
+    )
+    result = await db.execute(stmt)
+    return result.scalars().all()
+
+
+# Flat cap, same DoS-backstop role as PUBLIC_BANNERS_LIMIT -- no partition
+# axis needed (unlike offers): content blocks are hand-authored, curated Sub
+# Admin copy, not user/volume-driven, so this is a defensive ceiling that
+# should never actually bind in practice, not a product-shaping cap.
+PUBLIC_CONTENT_BLOCKS_LIMIT = 50
+
+
+async def list_public_content_blocks(db: AsyncSession) -> Sequence[ContentBlock]:
+    """The content-block analogue of list_public_banners/list_public_offers --
+    same no-RLS reasoning (module docstring above), but simpler than either:
+
+    - No starts_at/ends_at re-check: unlike banners/offers, content_blocks has
+      no scheduling columns at all. Its status transitions
+      (draft -> published -> archived) are direct, synchronous Sub-Admin
+      actions (api/v1/content.py POST /{id}/publish|/archive), not driven by
+      app/jobs/cms_activation.py, so there is no scheduler-lag window for a
+      defence-in-depth re-check to guard against. status == PUBLISHED is the
+      entire filter.
+    - No per-line partition: unlike offers, nothing on the frontend renders a
+      per-line strip of content blocks (yet) -- callers look a specific block
+      up by its unique slug, so a flat cap is enough.
+    - Ordered NEWEST-first (created_at DESC), not oldest-first: same
+      flat-cap-starvation reasoning as list_public_offers. A block is looked
+      up by slug, not position, so ordering has no product meaning here --
+      but PUBLIC_CONTENT_BLOCKS_LIMIT still exists as a DoS backstop, and an
+      oldest-first order combined with any cap means a freshly published
+      block can silently fall outside the response once the table
+      accumulates more rows than the cap (verified against this exact
+      failure mode in test_public_content_blocks.py, where the shared dev
+      Postgres already carries dozens of published rows from unrelated
+      tests' fixtures).
+    """
+    stmt = (
+        select(ContentBlock)
+        # This predicate IS the access control on this route. No RLS runs here.
+        .where(ContentBlock.status == ContentStatus.PUBLISHED)
+        .order_by(ContentBlock.created_at.desc(), ContentBlock.id.desc())
+        .limit(PUBLIC_CONTENT_BLOCKS_LIMIT)
     )
     result = await db.execute(stmt)
     return result.scalars().all()
