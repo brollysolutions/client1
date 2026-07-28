@@ -33,6 +33,7 @@ const TYPE_ICON: Record<NotificationType, LucideIcon> = {
   site_visit_requested: CalendarCheck,
   site_visit_cancelled: CalendarX,
   support_ticket_received: Headset,
+  support_ticket_resolved: Headset,
   lead_assigned: PhoneCall,
   lead_released: Undo2,
   task_assigned: ClipboardList,

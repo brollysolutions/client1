@@ -18,28 +18,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { FetchError } from "@/features/dashboard/fetch-error";
 import { cn } from "@/lib/utils";
 import {
+  CATEGORIES,
+  CATEGORY_LABEL,
   createSupportTicket,
   getSupportTickets,
+  STATUS_STYLES,
   type SupportCategory,
-  type SupportStatus,
   type SupportTicket,
 } from "@/lib/support-tickets";
-
-const CATEGORY_LABEL: Record<SupportCategory, string> = {
-  account_login: "Login problem",
-  otp: "OTP not received",
-  lost_mobile: "Lost my mobile number",
-  general: "Something else",
-};
-
-const CATEGORIES: SupportCategory[] = ["account_login", "otp", "lost_mobile", "general"];
-
-const STATUS_STYLES: Record<SupportStatus, { label: string; className: string }> = {
-  open: { label: "Open", className: "bg-warning/10 text-warning" },
-  in_progress: { label: "In progress", className: "bg-loans-soft text-loans-accent" },
-  resolved: { label: "Resolved", className: "bg-success/10 text-success" },
-  closed: { label: "Closed", className: "bg-muted text-text-secondary" },
-};
 
 function formatDate(iso: string): string {
   const d = new Date(iso);

@@ -26,6 +26,8 @@ export type AdminPropertyDeal = Schemas["AdminPropertyDealRead"];
 export type PropertyDealProgressUpdate = Schemas["PropertyDealProgressUpdate"];
 export type AdminHome = Schemas["AdminHomeResponse"];
 export type AdminPendingItem = Schemas["AdminPendingItem"];
+export type SupportTicketAdmin = Schemas["SupportTicketAdminRead"];
+export type SupportTicketAdvanceRequest = Schemas["SupportTicketAdvanceRequest"];
 
 export async function createStaff(
   payload: StaffCreateRequest,
@@ -168,4 +170,25 @@ export async function updateAdminPropertyDealProgress(
 
 export async function getAdminHome(): Promise<ApiResponse<AdminHome>> {
   return apiRequest<AdminHome>("/api/v1/admin/home");
+}
+
+export async function listSupportTicketsAdmin(
+  statusFilter?: string,
+): Promise<ApiResponse<SupportTicketAdmin[]>> {
+  const query = statusFilter ? `?status=${encodeURIComponent(statusFilter)}` : "";
+  const res = await apiRequest<Schemas["SupportTicketAdminListResponse"]>(
+    `/api/v1/admin/support-tickets${query}`,
+  );
+  if (!res.ok) return res;
+  return { ok: true, status: res.status, data: res.data.tickets };
+}
+
+export async function advanceSupportTicket(
+  ticketId: string,
+  payload: SupportTicketAdvanceRequest,
+): Promise<ApiResponse<SupportTicketAdmin>> {
+  return apiRequest<SupportTicketAdmin>(`/api/v1/admin/support-tickets/${ticketId}`, {
+    method: "PATCH",
+    body: payload,
+  });
 }

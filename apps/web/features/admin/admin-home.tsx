@@ -8,6 +8,7 @@ import {
   Clock,
   FileText,
   Gift,
+  Headset,
   Landmark,
   Megaphone,
   UserPlus,
@@ -246,6 +247,18 @@ export function AdminHome() {
                 <CardTitle className="mt-2">Listing approvals</CardTitle>
                 <CardDescription>
                   Approve or reject property listings submitted for review.
+                </CardDescription>
+              </CardHeader>
+            </Card>
+          </Link>
+
+          <Link href="/dashboard/support-tickets">
+            <Card className="h-full transition-colors hover:border-brand-cta">
+              <CardHeader>
+                <Headset className="h-6 w-6 text-brand-cta" aria-hidden="true" />
+                <CardTitle className="mt-2">Support tickets</CardTitle>
+                <CardDescription>
+                  Triage and resolve login, OTP, and lost-mobile requests (Admin-exclusive).
                 </CardDescription>
               </CardHeader>
             </Card>

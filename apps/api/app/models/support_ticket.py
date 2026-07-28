@@ -54,6 +54,10 @@ class SupportTicket(Base):
     status: Mapped[SupportStatus] = mapped_column(
         support_status_enum, nullable=False, default=SupportStatus.OPEN
     )
+    # Staff-only: what Admin told the ticket's author, off-platform (WhatsApp/
+    # phone — this product has no in-app reply thread). Never exposed on
+    # SupportTicketRead, only on the admin-only SupportTicketAdminRead.
+    resolution_note: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, default=datetime.utcnow
     )
