@@ -27,6 +27,7 @@ import { formatPaise } from "@/lib/format";
 import type { CommissionRead, EligibleDeal } from "@/lib/admin-commissions-api";
 
 import { CommissionEntryDialog } from "./commission-entry-dialog";
+import { CommissionPayoutDialog } from "./commission-payout-dialog";
 import { useAdminCommissions } from "./use-admin-commissions";
 
 const LINE_LABEL: Record<string, string> = { loans: "Loans", real_estate: "Real Estate" };
@@ -85,11 +86,22 @@ function EligibleDealRow({ deal, onPick }: { deal: EligibleDeal; onPick: () => v
 
 function CommissionRow({
   commission,
+  onPay,
   onCancel,
 }: {
   commission: CommissionRead;
+  onPay: () => void;
   onCancel: () => void;
 }) {
+  // payout_uuid set but status still "pending" is the real state between
+  // "Pay commission" raising a payout and that payout being approved —
+  // approval is what flips status to "paid". Checking status alone would
+  // leave the button live and re-clickable for that whole window (the exact
+  // bug PR #117's review caught on the referral-payout equivalent of this
+  // row): a confused admin has no way to tell it already worked.
+  const awaitingApproval = commission.status === "pending" && commission.payout_uuid != null;
+  const payable = commission.status === "pending" && commission.payout_uuid == null;
+
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border bg-card p-4">
       <div className="min-w-0 space-y-1">
@@ -117,10 +129,17 @@ function CommissionRow({
           </p>
         ) : null}
       </div>
-      {commission.status === "pending" && commission.payout_uuid == null ? (
-        <Button size="sm" variant="outline" onClick={onCancel}>
-          Cancel
-        </Button>
+      {payable ? (
+        <div className="flex shrink-0 items-center gap-2">
+          <Button size="sm" variant="outline" onClick={onCancel}>
+            Cancel
+          </Button>
+          <Button size="sm" onClick={onPay}>
+            Pay commission
+          </Button>
+        </div>
+      ) : awaitingApproval ? (
+        <Badge className="bg-warning/10 text-warning">Payout raised</Badge>
       ) : null}
     </div>
   );
@@ -137,8 +156,10 @@ export function CommissionsView() {
     reload,
     enterCommission,
     cancel,
+    payCommission,
   } = useAdminCommissions();
   const [activeDeal, setActiveDeal] = React.useState<EligibleDeal | null>(null);
+  const [payTarget, setPayTarget] = React.useState<CommissionRead | null>(null);
   const [cancelTarget, setCancelTarget] = React.useState<CommissionRead | null>(null);
   const [cancelReason, setCancelReason] = React.useState("");
   const [cancelling, setCancelling] = React.useState(false);
@@ -239,7 +260,11 @@ export function CommissionsView() {
               <ul className="space-y-3">
                 {commissions.map((c) => (
                   <li key={c.id}>
-                    <CommissionRow commission={c} onCancel={() => setCancelTarget(c)} />
+                    <CommissionRow
+                      commission={c}
+                      onPay={() => setPayTarget(c)}
+                      onCancel={() => setCancelTarget(c)}
+                    />
                   </li>
                 ))}
               </ul>
@@ -252,6 +277,12 @@ export function CommissionsView() {
         deal={activeDeal}
         onOpenChange={(open) => !open && setActiveDeal(null)}
         onEnter={enterCommission}
+      />
+
+      <CommissionPayoutDialog
+        commission={payTarget}
+        onOpenChange={(open) => !open && setPayTarget(null)}
+        onPay={payCommission}
       />
 
       <Dialog open={cancelTarget != null} onOpenChange={(o) => !o && closeCancelDialog()}>

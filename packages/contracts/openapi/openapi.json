@@ -3216,6 +3216,37 @@
         "title": "CommissionListResponse",
         "type": "object"
       },
+      "CommissionPayoutRequest": {
+        "description": "No amount, no recipient: both come from the commission row\n(services/commissions.py::attach_payout), never the request body \u2014 same\ninvariant as ReferralPayoutRequest. The idempotency key is derived\nserver-side from the commission id (`com-{uuid.hex}`), not accepted from\nthe client, for the identical reason ReferralPayoutRequest's docstring\nrecords: a client-chosen key let two concurrent \"Pay commission\" clicks\neach pick a fresh key and both slip past create_payout's dedupe guard.",
+        "properties": {
+          "destination": {
+            "$ref": "#/components/schemas/PayoutDestinationInput"
+          },
+          "destination_type": {
+            "$ref": "#/components/schemas/PayoutDestination"
+          }
+        },
+        "required": [
+          "destination_type",
+          "destination"
+        ],
+        "title": "CommissionPayoutRequest",
+        "type": "object"
+      },
+      "CommissionPayoutResponse": {
+        "properties": {
+          "payout_id": {
+            "format": "uuid",
+            "title": "Payout Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "payout_id"
+        ],
+        "title": "CommissionPayoutResponse",
+        "type": "object"
+      },
       "CommissionRead": {
         "properties": {
           "agent_code": {
@@ -10484,6 +10515,65 @@
           }
         ],
         "summary": "Cancel Commission",
+        "tags": [
+          "commissions"
+        ]
+      }
+    },
+    "/api/v1/admin/commissions/{commission_id}/payout": {
+      "post": {
+        "description": "Turns one pending commission into a real payout. Amount and recipient\ncome from the commission row, never from the request body \u2014 only the\ndestination the agent actually receives money at is caller-supplied.\nApproval is a separate step at POST /payouts/{id}/approve: this endpoint\nis the maker, never the checker.",
+        "operationId": "create_commission_payout_api_v1_admin_commissions__commission_id__payout_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "commission_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Commission Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CommissionPayoutRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommissionPayoutResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Create Commission Payout",
         "tags": [
           "commissions"
         ]

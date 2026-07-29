@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { IndianRupee } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
@@ -112,6 +113,14 @@ export function AgentEarningsView() {
                   {formatDate(row.created_at)}
                 </p>
               </div>
+              {row.status === "paid" && row.payout_txn_uuid ? (
+                <Link
+                  href="/dashboard/transactions"
+                  className="shrink-0 text-sm font-medium text-brand-cta hover:underline"
+                >
+                  View in transactions
+                </Link>
+              ) : null}
             </li>
           ))}
         </ul>
