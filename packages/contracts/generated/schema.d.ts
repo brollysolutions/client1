@@ -834,7 +834,7 @@ export interface paths {
         /**
          * Delete User
          * @description FR-17.4 — Admin removal of a suspicious account. Admin-only (not Sub
-         *     Admin): mirrors the require_admin wall on the other irreversible
+         *     Admin): mirrors the require_platform_admin wall on the other irreversible
          *     platform-identity actions above (staff provisioning, agent-app review).
          */
         post: operations["delete_user_api_v1_admin_users__auth_user_uuid__delete_post"];
@@ -3149,6 +3149,8 @@ export interface components {
             mobile: string | null;
             /** Rera Code */
             rera_code: string | null;
+            /** Review Note */
+            review_note?: string | null;
             /**
              * Status
              * @enum {string}

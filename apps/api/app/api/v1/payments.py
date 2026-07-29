@@ -23,7 +23,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
-from app.core.deps import CurrentUser, get_active_user
+from app.core.deps import CurrentUser, get_active_user, is_platform_admin
 from app.db.session import get_db
 from app.models.payout import Payout, PayoutStatus, PayoutType
 from app.schemas.payments import (
@@ -77,8 +77,11 @@ def _require_platform_admin(current_user: CurrentUser) -> None:
 
 
 def _require_admin(current_user: CurrentUser, action: str = "Approving a payout") -> None:
-    """Full-Admin-only actions (checker approve, recipient lookup)."""
-    if current_user.role != "admin" or current_user.platform_scope != "true":
+    """Full-Admin-only actions (checker approve, recipient lookup). Thin
+    wrapper around deps.is_platform_admin (feature-status.md §2-20) — kept
+    local only for this per-call custom error message; the condition itself
+    is no longer duplicated."""
+    if not is_platform_admin(current_user):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail=f"{action} is restricted to platform admins.",

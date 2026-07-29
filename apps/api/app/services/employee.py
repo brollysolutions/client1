@@ -71,6 +71,19 @@ class TaskDocumentKeyMismatch(Exception):
     to attach an object from elsewhere (security review finding)."""
 
 
+class TaskDocumentContentTypeUnrecognized(Exception):
+    """The uploaded object's actual leading bytes don't sniff to any of the
+    accepted document content types. Security-review finding (feature-
+    status.md §2-12) — presign_task_document_upload uses the uncapped PUT
+    (no signed content-type policy the way the other two upload flows'
+    signed-POST has), so this confirm-time check is this flow's only
+    content-type enforcement at all."""
+
+
+class TaskDocumentStorageUnavailable(Exception):
+    """Storage was unreachable while verifying an upload. Fail closed."""
+
+
 def _base_stmt():
     return select(Task, Lead.name, Lead.mobile).join(Lead, Lead.id == Task.lead_uuid)
 
@@ -216,6 +229,18 @@ async def create_task_document(
     _check_document_writable(task)
     if not object_key.startswith(_document_key_prefix(task.id)):
         raise TaskDocumentKeyMismatch
+    try:
+        recognized = storage.content_type_is_recognized(object_key)
+    except Exception as exc:  # transport failure — fail closed, don't swallow
+        raise TaskDocumentStorageUnavailable from exc
+    if not recognized:
+        # A missing object and an unrecognized/polyglot object both fail
+        # this single check (content_type_is_recognized returns False for
+        # both) — this flow has no separate existence/size verification
+        # (unlike the other two upload flows), so both cases are rejected
+        # here alike.
+        storage.delete_object(object_key)
+        raise TaskDocumentContentTypeUnrecognized
     document = TaskDocument(task_uuid=task.id, doc_type=doc_type, object_key=object_key)
     db.add(document)
     await db.commit()

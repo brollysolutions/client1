@@ -1180,6 +1180,17 @@
             ],
             "title": "Rera Code"
           },
+          "review_note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Review Note"
+          },
           "status": {
             "enum": [
               "pending",
@@ -14012,7 +14023,7 @@
     },
     "/api/v1/admin/users/{auth_user_uuid}/delete": {
       "post": {
-        "description": "FR-17.4 \u2014 Admin removal of a suspicious account. Admin-only (not Sub\nAdmin): mirrors the require_admin wall on the other irreversible\nplatform-identity actions above (staff provisioning, agent-app review).",
+        "description": "FR-17.4 \u2014 Admin removal of a suspicious account. Admin-only (not Sub\nAdmin): mirrors the require_platform_admin wall on the other irreversible\nplatform-identity actions above (staff provisioning, agent-app review).",
         "operationId": "delete_user_api_v1_admin_users__auth_user_uuid__delete_post",
         "parameters": [
           {

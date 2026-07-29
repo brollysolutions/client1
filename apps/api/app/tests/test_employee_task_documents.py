@@ -4,7 +4,12 @@ Mints an employee access token the same way test_employee_api.py does.
 Presigning/download-url generation are pure local boto3 signing calls, so
 these tests never need a reachable minio/Spaces endpoint. delete_document's
 storage-side delete is best-effort (services/storage.py swallows failures),
-so it's also safe to exercise without live storage.
+so it's also safe to exercise without live storage. confirm_document's
+magic-byte sniff (feature-status.md §2-12, services.storage.
+content_type_is_recognized) is a real ranged GET and would otherwise be the
+one exception to that "no live storage" design — module-scoped autouse
+fixture below keeps it mocked True, since none of these tests actually PUT
+real file bytes to the presigned URL.
 """
 
 from __future__ import annotations
@@ -15,7 +20,13 @@ import pytest
 from httpx import AsyncClient
 
 from app.core.security import create_access_token
+from app.services import storage
 from conftest import unique_mobile
+
+
+@pytest.fixture(autouse=True)
+def _mock_content_type_sniff(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(storage, "content_type_is_recognized", lambda _key: True)
 
 
 async def _seed_employee(business_line: str = "loans") -> tuple[str, str]:
@@ -209,6 +220,30 @@ async def test_cross_employee_delete_is_404(client: AsyncClient) -> None:
         headers={"Authorization": f"Bearer {token_a}"},
     )
     assert res.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_confirm_polyglot_content_rejected_and_deletes_object(
+    client: AsyncClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Closes feature-status.md §2-12. This flow's presign uses the uncapped
+    PUT (no signed content-type policy the way the other two flows' signed-
+    POST has), so this confirm-time sniff is its only content-type
+    enforcement at all — overrides the module's autouse True-mock to
+    simulate a real polyglot upload."""
+    monkeypatch.setattr(storage, "content_type_is_recognized", lambda _key: False)
+    deleted_keys: list[str] = []
+    monkeypatch.setattr(storage, "delete_object", lambda key: deleted_keys.append(key))
+
+    auth_uuid, staff_uuid = await _seed_employee("loans")
+    task_id = await _seed_task("loans", staff_uuid)
+    token = _employee_token(auth_uuid, staff_uuid)
+
+    presign_res = await _presign(client, token, task_id)
+    object_key = presign_res.json()["object_key"]
+    confirm_res = await _confirm(client, token, task_id, object_key)
+    assert confirm_res.status_code == 422, confirm_res.text
+    assert deleted_keys == [object_key]
 
 
 @pytest.mark.asyncio

@@ -28,6 +28,10 @@ def _headers(token: str) -> dict[str, str]:
 
 def _mock_uploads_ok(monkeypatch: pytest.MonkeyPatch, size: int = 2048) -> None:
     monkeypatch.setattr(storage, "head_object", lambda _key: size)
+    # Orthogonal to size/existence — the magic-byte sniff (feature-status.md
+    # §2-12) does a real ranged GET, and these tests never PUT real bytes to
+    # the presigned URL, so it would 404 and mask whatever this is testing.
+    monkeypatch.setattr(storage, "content_matches_declared_type", lambda _key, _ct: True)
 
 
 def _mock_uploads_missing(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -172,6 +176,28 @@ async def test_confirm_happy_path(client: AsyncClient, monkeypatch: pytest.Monke
     assert body["verified"] is False
     assert body["review_note"] is None
     assert "download_url" in body
+
+
+async def test_confirm_content_type_mismatch_rejected_and_deletes_object(
+    client: AsyncClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Closes feature-status.md §2-12: the declared content_type is signed
+    into the presigned-POST policy, but nothing previously verified the
+    uploaded BYTES matched it. Simulates the real-PNG-declared-as-JPEG case
+    (content_matches_declared_type is the strict variant available here,
+    since content_type is carried at confirm time — unlike the other two
+    upload flows)."""
+    from app.services import storage
+
+    monkeypatch.setattr(storage, "head_object", lambda _key: 2048)
+    monkeypatch.setattr(storage, "content_matches_declared_type", lambda _key, _ct: False)
+    deleted_keys: list[str] = []
+    monkeypatch.setattr(storage, "delete_object", lambda key: deleted_keys.append(key))
+
+    token, application_id = await _make_client_with_application(client)
+    res = await _presign_and_confirm(client, token, application_id)
+    assert res.status_code == 422, res.text
+    assert len(deleted_keys) == 1  # the mismatched object was cleaned up, not left orphaned
 
 
 async def test_confirm_foreign_object_key_rejected(
