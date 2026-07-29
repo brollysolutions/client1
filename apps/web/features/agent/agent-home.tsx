@@ -2,11 +2,13 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { PhoneCall, UserRound } from "lucide-react";
+import { IndianRupee, PhoneCall, UserRound } from "lucide-react";
 
 import { Skeleton } from "@/components/ui/skeleton";
 import { FetchError } from "@/features/dashboard/fetch-error";
+import { formatPaise } from "@/lib/format";
 
+import { useAgentEarnings } from "./use-agent-earnings";
 import { useAgentHome } from "./use-agent-home";
 
 const STATUS_LABEL: Record<string, string> = {
@@ -38,6 +40,7 @@ function formatDate(iso: string | null | undefined): string {
 // posture — this slice ships the lead-sourcing flow only.
 export function AgentHome() {
   const { home, status, error, errorStatus, retry } = useAgentHome();
+  const { earnings, status: earningsStatus, retry: retryEarnings } = useAgentEarnings();
 
   if (status === "loading") {
     return (
@@ -72,7 +75,7 @@ export function AgentHome() {
         </Link>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="grid gap-4 lg:grid-cols-3">
         <div className="rounded-2xl border border-border bg-card p-5">
           <h2 className="text-sm font-semibold text-text-primary">Your leads</h2>
           {Object.keys(home.counts_by_status).length === 0 ? (
@@ -126,6 +129,50 @@ export function AgentHome() {
               <dd className="font-medium text-text-primary">{formatDate(home.profile.approved_at)}</dd>
             </div>
           </dl>
+        </div>
+
+        <div className="rounded-2xl border border-border bg-card p-5">
+          <h2 className="flex items-center gap-2 text-sm font-semibold text-text-primary">
+            <IndianRupee className="h-4 w-4 text-text-secondary" aria-hidden="true" />
+            Commission summary
+          </h2>
+          {earningsStatus === "loading" ? (
+            <Skeleton className="mt-3 h-16 rounded-lg" />
+          ) : earningsStatus === "error" ? (
+            <div className="mt-3 flex items-center justify-between gap-2 text-sm">
+              <p className="text-text-secondary">Couldn&apos;t load your earnings.</p>
+              <button
+                type="button"
+                onClick={retryEarnings}
+                className="font-medium text-brand-cta hover:underline"
+              >
+                Retry
+              </button>
+            </div>
+          ) : earnings && earnings.rows.length > 0 ? (
+            <dl className="mt-3 space-y-2 text-sm">
+              <div className="flex items-center justify-between">
+                <dt className="text-text-secondary">Pending</dt>
+                <dd className="font-medium text-text-primary">
+                  {formatPaise(earnings.totals.pending_amount_paise)}
+                </dd>
+              </div>
+              <div className="flex items-center justify-between">
+                <dt className="text-text-secondary">Paid</dt>
+                <dd className="font-medium text-text-primary">
+                  {formatPaise(earnings.totals.paid_amount_paise)}
+                </dd>
+              </div>
+            </dl>
+          ) : (
+            <p className="mt-3 text-sm text-text-secondary">No commissions recorded yet.</p>
+          )}
+          <Link
+            href="/dashboard/earnings"
+            className="mt-4 inline-block text-sm font-medium text-brand-cta hover:underline"
+          >
+            View earnings
+          </Link>
         </div>
       </div>
     </div>

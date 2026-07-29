@@ -188,6 +188,58 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/commissions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Commissions */
+        get: operations["list_commissions_api_v1_admin_commissions_get"];
+        put?: never;
+        /** Create Commission */
+        post: operations["create_commission_api_v1_admin_commissions_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/commissions/eligible": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Eligible */
+        get: operations["list_eligible_api_v1_admin_commissions_eligible_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/commissions/{commission_id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cancel Commission */
+        post: operations["cancel_commission_api_v1_admin_commissions__commission_id__cancel_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/employees": {
         parameters: {
             query?: never;
@@ -715,6 +767,28 @@ export interface paths {
         put?: never;
         /** Presign Upload */
         post: operations["presign_upload_api_v1_agent_applications_uploads_presign_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/agent/earnings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Earnings
+         * @description Read-only commission ledger + totals. No agent_profile_uuid filter
+         *     needed here — commissions_select RLS already scopes to the caller's own
+         *     agent_auth_user_uuid + business_line.
+         */
+        get: operations["earnings_api_v1_agent_earnings_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -2951,6 +3025,52 @@ export interface components {
             /** Temp Password */
             temp_password: string | null;
         };
+        /** AgentEarningsResponse */
+        AgentEarningsResponse: {
+            /** Rows */
+            rows: components["schemas"]["AgentEarningsRow"][];
+            totals: components["schemas"]["AgentEarningsTotals"];
+        };
+        /** AgentEarningsRow */
+        AgentEarningsRow: {
+            /** Agreed Amount Paise */
+            agreed_amount_paise: number;
+            /** Business Line */
+            business_line: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Deal Type
+             * @enum {string}
+             */
+            deal_type: "loan_application" | "property_deal";
+            /**
+             * Deal Uuid
+             * Format: uuid
+             */
+            deal_uuid: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Payout Txn Uuid */
+            payout_txn_uuid: string | null;
+            /** Status */
+            status: string;
+        };
+        /** AgentEarningsTotals */
+        AgentEarningsTotals: {
+            /** Paid Amount Paise */
+            paid_amount_paise: number;
+            /** Pending Amount Paise */
+            pending_amount_paise: number;
+            /** Total Amount Paise */
+            total_amount_paise: number;
+        };
         /** AgentHomeResponse */
         AgentHomeResponse: {
             /** Counts By Status */
@@ -3112,7 +3232,7 @@ export interface components {
          *     deletes a row, only toggles `active`, which is just another `*_updated`.
          * @enum {string}
          */
-        AuditAction: "agent_approved" | "agent_rejected" | "staff_created" | "account_removed" | "payout_approved" | "payout_rejected" | "property_submission_approved" | "property_submission_rejected" | "support_ticket_advanced" | "retention_purged" | "loan_type_created" | "loan_type_updated" | "bank_created" | "bank_updated" | "bank_availability_updated";
+        AuditAction: "agent_approved" | "agent_rejected" | "staff_created" | "account_removed" | "payout_approved" | "payout_rejected" | "property_submission_approved" | "property_submission_rejected" | "support_ticket_advanced" | "retention_purged" | "loan_type_created" | "loan_type_updated" | "bank_created" | "bank_updated" | "bank_availability_updated" | "commission_entered" | "commission_cancelled";
         /** AuditLogListResponse */
         AuditLogListResponse: {
             /** Entries */
@@ -3453,6 +3573,89 @@ export interface components {
             /** Customer Code */
             customer_code: string;
         };
+        /** CommissionCancelRequest */
+        CommissionCancelRequest: {
+            /** Reason */
+            reason: string;
+        };
+        /** CommissionCreate */
+        CommissionCreate: {
+            /** Agreed Amount Paise */
+            agreed_amount_paise: number;
+            /**
+             * Deal Type
+             * @enum {string}
+             */
+            deal_type: "loan_application" | "property_deal";
+            /**
+             * Deal Uuid
+             * Format: uuid
+             */
+            deal_uuid: string;
+            /** Notes */
+            notes?: string | null;
+        };
+        /** CommissionListResponse */
+        CommissionListResponse: {
+            /** Commissions */
+            commissions: components["schemas"]["CommissionRead"][];
+            /** Total */
+            total: number;
+        };
+        /** CommissionRead */
+        CommissionRead: {
+            /** Agent Code */
+            agent_code: string;
+            /** Agent Name */
+            agent_name: string | null;
+            /**
+             * Agent Profile Uuid
+             * Format: uuid
+             */
+            agent_profile_uuid: string;
+            /** Agreed Amount Paise */
+            agreed_amount_paise: number;
+            /** Business Line */
+            business_line: string;
+            /** Cancelled Reason */
+            cancelled_reason: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Deal Type
+             * @enum {string}
+             */
+            deal_type: "loan_application" | "property_deal";
+            /**
+             * Deal Uuid
+             * Format: uuid
+             */
+            deal_uuid: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Notes */
+            notes: string | null;
+            /** Payout Uuid */
+            payout_uuid: string | null;
+            /** Status */
+            status: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /**
+         * CommissionStatus
+         * @enum {string}
+         */
+        CommissionStatus: "pending" | "paid" | "cancelled";
         /**
          * ConstructionStatus
          * @enum {string}
@@ -3555,6 +3758,48 @@ export interface components {
             business_line: string;
             /** Converted */
             converted: number;
+            /** Total */
+            total: number;
+        };
+        /**
+         * EligibleDeal
+         * @description One row in the Admin entry queue: a disbursed loan or a closed_won
+         *     property deal with an origin agent and no live commission yet.
+         */
+        EligibleDeal: {
+            /** Agent Code */
+            agent_code: string;
+            /** Agent Name */
+            agent_name: string | null;
+            /**
+             * Agent Profile Uuid
+             * Format: uuid
+             */
+            agent_profile_uuid: string;
+            /** Business Line */
+            business_line: string;
+            /**
+             * Deal Type
+             * @enum {string}
+             */
+            deal_type: "loan_application" | "property_deal";
+            /**
+             * Deal Uuid
+             * Format: uuid
+             */
+            deal_uuid: string;
+            /** Eligible Since */
+            eligible_since: string | null;
+            /**
+             * Lead Uuid
+             * Format: uuid
+             */
+            lead_uuid: string;
+        };
+        /** EligibleDealListResponse */
+        EligibleDealListResponse: {
+            /** Deals */
+            deals: components["schemas"]["EligibleDeal"][];
             /** Total */
             total: number;
         };
@@ -6043,6 +6288,139 @@ export interface operations {
             };
         };
     };
+    list_commissions_api_v1_admin_commissions_get: {
+        parameters: {
+            query?: {
+                status_filter?: components["schemas"]["CommissionStatus"] | null;
+                business_line?: ("loans" | "real_estate") | null;
+                agent_profile_uuid?: string | null;
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommissionListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_commission_api_v1_admin_commissions_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CommissionCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommissionRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_eligible_api_v1_admin_commissions_eligible_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EligibleDealListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    cancel_commission_api_v1_admin_commissions__commission_id__cancel_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                commission_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CommissionCancelRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_employees_api_v1_admin_employees_get: {
         parameters: {
             query?: {
@@ -7104,6 +7482,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    earnings_api_v1_agent_earnings_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentEarningsResponse"];
                 };
             };
         };

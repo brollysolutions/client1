@@ -12,9 +12,14 @@ export type AgentHome = Schemas["AgentHomeResponse"];
 export type AgentLead = Schemas["AgentLeadRead"];
 export type AgentLeadCreate = Schemas["AgentLeadCreate"];
 export type AgentLeadUpdate = Schemas["AgentLeadUpdate"];
+export type AgentEarnings = Schemas["AgentEarningsResponse"];
 
 export async function getAgentHome(): Promise<ApiResponse<AgentHome>> {
   return apiRequest<AgentHome>("/api/v1/agent/home");
+}
+
+export async function getAgentEarnings(): Promise<ApiResponse<AgentEarnings>> {
+  return apiRequest<AgentEarnings>("/api/v1/agent/earnings");
 }
 
 export async function listAgentLeads(statusFilter?: string): Promise<ApiResponse<AgentLead[]>> {

@@ -284,6 +284,55 @@ async def test_empty_payload_rejected(client: AsyncClient) -> None:
     assert res.status_code == 422
 
 
+async def _disbursed_at(application_id: str) -> str | None:
+    import app.db.session as _session_mod
+
+    async with _session_mod.AsyncSessionLocal() as db:
+        row = (
+            await db.execute(
+                text("SELECT disbursed_at FROM loan_applications WHERE id = :id"),
+                {"id": application_id},
+            )
+        ).fetchone()
+        assert row is not None
+        return row[0]
+
+
+@pytest.mark.asyncio
+async def test_disbursed_at_set_once_on_first_disbursed_transition_and_survives_close(
+    client: AsyncClient,
+) -> None:
+    """Regression for the agent-commission-entry review finding (2026-07-29):
+    disbursed_at is an event marker, set once at the moment status first
+    reaches DISBURSED, and must NOT be cleared or overwritten by a later
+    transition to CLOSED (DISBURSED's normal next step) — commission
+    eligibility depends on it staying set."""
+    auth_uuid, staff_uuid = await _seed_telecaller("loans")
+    lead_id = await _seed_assigned_lead("loans", staff_uuid)
+    application_id = await _seed_loan_application(lead_id, "loans")
+    headers = {"Authorization": f"Bearer {_telecaller_token(auth_uuid, staff_uuid)}"}
+
+    assert await _disbursed_at(application_id) is None
+
+    res = await client.patch(
+        f"/api/v1/telecaller/loan-applications/{application_id}",
+        json={"status": "disbursed"},
+        headers=headers,
+    )
+    assert res.status_code == 200, res.text
+    first_disbursed_at = await _disbursed_at(application_id)
+    assert first_disbursed_at is not None
+
+    res = await client.patch(
+        f"/api/v1/telecaller/loan-applications/{application_id}",
+        json={"status": "closed"},
+        headers=headers,
+    )
+    assert res.status_code == 200, res.text
+    assert res.json()["closed_at"] is not None
+    assert await _disbursed_at(application_id) == first_disbursed_at
+
+
 @pytest.mark.asyncio
 async def test_patch_on_terminal_application_rejected(client: AsyncClient) -> None:
     auth_uuid, staff_uuid = await _seed_telecaller("loans")
