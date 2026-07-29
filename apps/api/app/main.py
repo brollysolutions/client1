@@ -38,6 +38,7 @@ from app.api.v1.public_catalog import router as public_catalog_router
 from app.api.v1.push import router as push_router
 from app.api.v1.referral_bonus import router as referral_bonus_router
 from app.api.v1.referrals import router as referrals_router
+from app.api.v1.reporting import router as reporting_router
 from app.api.v1.site_visits import router as site_visits_router
 from app.api.v1.sub_admin import router as sub_admin_router
 from app.api.v1.support_tickets import router as support_tickets_router
@@ -122,6 +123,7 @@ app.include_router(content_router, prefix="/api/v1/content-blocks", tags=["conte
 app.include_router(
     referral_bonus_router, prefix="/api/v1/referral-bonus-config", tags=["referral-bonus-config"]
 )
+app.include_router(reporting_router, prefix="/api/v1/admin/reports", tags=["reports"])
 
 
 @app.get("/")
