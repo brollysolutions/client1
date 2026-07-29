@@ -197,6 +197,14 @@ async def reject_payout(
         # check above would otherwise be a side door around that boundary
         # for this one payout type.
         _require_admin(current_user, action="Rejecting a referral bonus payout")
+    elif payout.type == PayoutType.COMMISSION:
+        # Same side-door shape as REFERRAL_BONUS above: commissions_update
+        # RLS is full-Admin only (IDR §5.5, no Sub Admin reading/writing
+        # counterpart), but rejecting a commission payout runs
+        # services.commissions.release_payout_link on the bypass session —
+        # the looser _require_platform_admin check would let a Sub Admin
+        # indirectly write to a table they have no direct RLS access to.
+        _require_admin(current_user, action="Rejecting a commission payout")
     try:
         await payments_service.reject_payout(
             payout_id=payout_id,

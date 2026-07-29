@@ -5,9 +5,11 @@ import * as React from "react";
 import {
   cancelCommission,
   createCommission,
+  createCommissionPayout,
   listAdminCommissions,
   listEligibleDeals,
   type CommissionCreate,
+  type CommissionPayoutRequest,
   type CommissionRead,
   type EligibleDeal,
 } from "@/lib/admin-commissions-api";
@@ -53,6 +55,15 @@ export function useAdminCommissions() {
     return res;
   }
 
+  async function payCommission(
+    commissionId: string,
+    body: CommissionPayoutRequest,
+  ): Promise<ApiResponse<unknown>> {
+    const res = await createCommissionPayout(commissionId, body);
+    if (res.ok) void load(statusFilter);
+    return res;
+  }
+
   return {
     eligible,
     commissions,
@@ -63,5 +74,6 @@ export function useAdminCommissions() {
     reload: () => load(statusFilter),
     enterCommission,
     cancel,
+    payCommission,
   };
 }
