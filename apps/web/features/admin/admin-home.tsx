@@ -10,6 +10,7 @@ import {
   FileText,
   Gift,
   Headset,
+  IndianRupee,
   Landmark,
   Megaphone,
   ScrollText,
@@ -299,6 +300,18 @@ export function AdminHome() {
                 <CardDescription>
                   Lead, loan, and deal activity by week or month, filterable by line and agent,
                   with CSV export.
+                </CardDescription>
+              </CardHeader>
+            </Card>
+          </Link>
+
+          <Link href="/dashboard/commissions">
+            <Card className="h-full transition-colors hover:border-brand-cta">
+              <CardHeader>
+                <IndianRupee className="h-6 w-6 text-brand-cta" aria-hidden="true" />
+                <CardTitle className="mt-2">Agent commissions</CardTitle>
+                <CardDescription>
+                  Record the negotiated commission for a disbursed loan or a closed deal.
                 </CardDescription>
               </CardHeader>
             </Card>

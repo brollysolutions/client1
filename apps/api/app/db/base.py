@@ -45,3 +45,4 @@ from app.models.content_block import ContentBlock  # noqa
 from app.models.referral_bonus_config import ReferralBonusConfig  # noqa
 from app.models.referral import ReferralCode, Referral  # noqa
 from app.models.audit_log import AuditLog  # noqa
+from app.models.commission import Commission  # noqa

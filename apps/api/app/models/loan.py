@@ -144,6 +144,17 @@ class LoanApplication(Base):
         DateTime(timezone=True), nullable=False, default=datetime.utcnow
     )
     closed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    # Set once, at the moment `status` first reaches DISBURSED
+    # (services/loan_applications.py::apply_progress_update) — an EVENT
+    # marker, not a live-status mirror. DISBURSED is not itself terminal
+    # (only CLOSED/REJECTED are, see TERMINAL_STATUSES); the forward-only
+    # status machine still allows a disbursed loan to later move to CLOSED
+    # (its normal next step) or, via the REJECTED side-branch, to REJECTED.
+    # services/commissions.py's eligibility check reads THIS column, not
+    # `status == DISBURSED`, specifically so a loan that disburses and is
+    # later closed doesn't silently and permanently lose commission
+    # eligibility (found in review, 2026-07-29 — see docs/specs/agent-commission.md).
+    disbursed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     loan_type: Mapped["LoanType"] = relationship("LoanType")
     bank: Mapped[Optional["Bank"]] = relationship("Bank")

@@ -133,6 +133,8 @@ async def apply_progress_update(
         application.status_reason = payload.status_reason
         if payload.status in TERMINAL_STATUSES:
             application.closed_at = datetime.now(UTC)
+        if payload.status == LoanStatus.DISBURSED and application.disbursed_at is None:
+            application.disbursed_at = datetime.now(UTC)
         status_changed = True
     elif payload.status_reason is not None:
         application.status_reason = payload.status_reason
