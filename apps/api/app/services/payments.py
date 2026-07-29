@@ -48,10 +48,12 @@ from app.core.config import settings
 from app.core.masking import mask_bank_account, mask_vpa
 from app.db.session import AsyncSessionLocal
 from app.models.audit_log import AuditAction
+from app.models.notification import NotificationType
 from app.models.payout import Payout, PayoutDestination, PayoutStatus, PayoutType
 from app.models.profile import AgentProfile, ClientProfile, StaffProfile
 from app.models.transaction import Transaction, TransactionStatus, TransactionType
 from app.services import payout_links
+from app.services.admin_notify import notify_admins
 from app.services.audit_log import record as record_audit
 
 logger = logging.getLogger(__name__)
@@ -406,6 +408,14 @@ async def approve_payout(
         )
         await db.commit()
 
+    await notify_admins(
+        notification_type=NotificationType.ADMIN_PAYOUT_REVIEWED,
+        title="Payout approved",
+        body=f"A {payout.type.value.replace('_', ' ')} payout was approved.",
+        href="/dashboard/payouts",
+        exclude_user_uuid=checker_user_uuid,
+    )
+
     # Separate step: initiate on its own session, best-effort.
     await initiate_payout(payout_id)
 
@@ -443,6 +453,14 @@ async def reject_payout(
         )
         await db.commit()
         await _payout_released_hook(payout)
+
+    await notify_admins(
+        notification_type=NotificationType.ADMIN_PAYOUT_REVIEWED,
+        title="Payout rejected",
+        body=f"A {payout.type.value.replace('_', ' ')} payout was rejected: {reason}",
+        href="/dashboard/payouts",
+        exclude_user_uuid=rejector_user_uuid,
+    )
 
 
 # ---------------------------------------------------------------------------

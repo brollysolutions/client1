@@ -71,9 +71,11 @@ from app.core.config import settings
 from app.models.audit_log import AuditAction
 from app.models.commission import Commission
 from app.models.fee_cashback import FeeCashback
+from app.models.notification import NotificationType
 from app.models.payout import Payout
 from app.models.referral import Referral
 from app.models.transaction import Transaction
+from app.services.admin_notify import notify_admins
 from app.services.audit_log import record as record_audit
 
 
@@ -196,6 +198,23 @@ async def purge_delinked_financial_records(*, retention_years: int | None = None
                 },
             )
         await session.commit()
+
+    if payouts_purged_rows or transactions_purged_rows:
+        # actor_uuid is None: no human actor initiated a scheduler sweep.
+        # Counts only — the purged ids/refs already live in the audit row
+        # above; a push notification payload leaves the server, an audit
+        # detail field doesn't.
+        await notify_admins(
+            notification_type=NotificationType.ADMIN_RETENTION_PURGED,
+            title="Retention purge ran",
+            body=(
+                f"Purged {len(payouts_purged_rows)} payout(s) and "
+                f"{len(transactions_purged_rows)} transaction(s) past the "
+                f"{years}-year retention window."
+            ),
+            href="/dashboard/audit-log",
+            exclude_user_uuid=None,
+        )
 
     return {
         "payouts_scanned": payouts_scanned or 0,

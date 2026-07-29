@@ -13,6 +13,7 @@ import {
   IndianRupee,
   Landmark,
   Loader2,
+  Megaphone,
   RefreshCw,
   ScrollText,
   SlidersHorizontal,
@@ -137,6 +138,11 @@ const ACTION_META: Record<AuditAction, { label: string; icon: LucideIcon; tone: 
     label: "Payout link auto-repaired",
     icon: RefreshCw,
     tone: "bg-muted text-text-secondary",
+  },
+  notification_broadcast: {
+    label: "Broadcast sent",
+    icon: Megaphone,
+    tone: "bg-loans-soft text-loans-accent",
   },
 };
 

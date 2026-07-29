@@ -8,13 +8,17 @@ import {
   CalendarX,
   CheckCheck,
   ClipboardList,
+  Eraser,
   FileCheck2,
   Gift,
   Headset,
   Home,
   Landmark,
+  Megaphone,
   PhoneCall,
+  ShieldAlert,
   Undo2,
+  Wallet,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
@@ -42,6 +46,10 @@ const TYPE_ICON: Record<NotificationType, LucideIcon> = {
   property_deal_status_updated: Home,
   referral_converted: Gift,
   document_review_updated: FileCheck2,
+  admin_payout_reviewed: Wallet,
+  admin_account_action: ShieldAlert,
+  admin_retention_purged: Eraser,
+  admin_broadcast: Megaphone,
 };
 
 function formatRelativeTime(iso: string): string {

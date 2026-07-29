@@ -1735,6 +1735,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/notifications/broadcast": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Send Broadcast */
+        post: operations["send_broadcast_api_v1_notifications_broadcast_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/notifications/broadcast/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Preview Broadcast
+         * @description Dry run: resolves and counts the audience without sending anything.
+         *     A broadcast is unretractable (no delete endpoint exists, and none should
+         *     be added), so an admin should see "this reaches N people" before
+         *     committing to a send.
+         */
+        get: operations["preview_broadcast_api_v1_notifications_broadcast_preview_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/notifications/read-all": {
         parameters: {
             query?: never;
@@ -3485,7 +3525,7 @@ export interface components {
          *     `services/fee_cashbacks.py` (FR-6.6 processing-fee cashback).
          * @enum {string}
          */
-        AuditAction: "agent_approved" | "agent_rejected" | "staff_created" | "account_removed" | "payout_approved" | "payout_rejected" | "property_submission_approved" | "property_submission_rejected" | "support_ticket_advanced" | "retention_purged" | "loan_type_created" | "loan_type_updated" | "bank_created" | "bank_updated" | "bank_availability_updated" | "commission_entered" | "commission_cancelled" | "fee_cashback_entered" | "fee_cashback_cancelled" | "document_verified" | "document_unverified" | "payout_link_reconciled";
+        AuditAction: "agent_approved" | "agent_rejected" | "staff_created" | "account_removed" | "payout_approved" | "payout_rejected" | "property_submission_approved" | "property_submission_rejected" | "support_ticket_advanced" | "retention_purged" | "loan_type_created" | "loan_type_updated" | "bank_created" | "bank_updated" | "bank_availability_updated" | "commission_entered" | "commission_cancelled" | "fee_cashback_entered" | "fee_cashback_cancelled" | "document_verified" | "document_unverified" | "payout_link_reconciled" | "notification_broadcast";
         /** AuditLogListResponse */
         AuditLogListResponse: {
             /** Entries */
@@ -3806,6 +3846,33 @@ export interface components {
             property_ref: string;
             /** Title */
             title: string | null;
+        };
+        /**
+         * BroadcastAudience
+         * @enum {string}
+         */
+        BroadcastAudience: "admins" | "staff" | "agents" | "clients" | "all";
+        /** BroadcastPreviewResponse */
+        BroadcastPreviewResponse: {
+            /** Recipients */
+            recipients: number;
+        };
+        /** BroadcastRequest */
+        BroadcastRequest: {
+            audience: components["schemas"]["BroadcastAudience"];
+            /** Body */
+            body: string;
+            /** Business Line */
+            business_line?: ("loans" | "real_estate") | null;
+            /** Href */
+            href?: string | null;
+            /** Title */
+            title: string;
+        };
+        /** BroadcastResponse */
+        BroadcastResponse: {
+            /** Recipients */
+            recipients: number;
         };
         /** ChangePasswordRequest */
         ChangePasswordRequest: {
@@ -4892,7 +4959,7 @@ export interface components {
          * NotificationType
          * @enum {string}
          */
-        NotificationType: "site_visit_requested" | "site_visit_cancelled" | "support_ticket_received" | "lead_assigned" | "lead_released" | "task_assigned" | "loan_status_updated" | "property_deal_status_updated" | "referral_converted" | "support_ticket_resolved" | "document_review_updated";
+        NotificationType: "site_visit_requested" | "site_visit_cancelled" | "support_ticket_received" | "lead_assigned" | "lead_released" | "task_assigned" | "loan_status_updated" | "property_deal_status_updated" | "referral_converted" | "support_ticket_resolved" | "document_review_updated" | "admin_payout_reviewed" | "admin_account_action" | "admin_retention_purged" | "admin_broadcast";
         /** OfferCreate */
         OfferCreate: {
             /** Business Line */
@@ -10173,6 +10240,71 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["NotificationListResponse"];
+                };
+            };
+        };
+    };
+    send_broadcast_api_v1_notifications_broadcast_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BroadcastRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BroadcastResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    preview_broadcast_api_v1_notifications_broadcast_preview_get: {
+        parameters: {
+            query: {
+                audience: string;
+                business_line?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BroadcastPreviewResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

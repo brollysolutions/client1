@@ -282,6 +282,18 @@ export function AdminHome() {
             </Card>
           </Link>
 
+          <Link href="/dashboard/broadcast">
+            <Card className="h-full transition-colors hover:border-brand-cta">
+              <CardHeader>
+                <Megaphone className="h-6 w-6 text-brand-cta" aria-hidden="true" />
+                <CardTitle className="mt-2">Broadcast</CardTitle>
+                <CardDescription>
+                  Send a notification to staff, agents, or clients (Admin-exclusive).
+                </CardDescription>
+              </CardHeader>
+            </Card>
+          </Link>
+
           <Link href="/dashboard/loan-config">
             <Card className="h-full transition-colors hover:border-brand-cta">
               <CardHeader>
