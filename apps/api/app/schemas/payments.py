@@ -89,6 +89,21 @@ class PayoutListResponse(BaseModel):
     payouts: list[PayoutRead]
 
 
+class PayoutLinkDivergenceRead(BaseModel):
+    payout_id: UUID
+    payout_type: PayoutType
+
+
+class PayoutLinkDivergencesRead(BaseModel):
+    """Read-only view for services/payout_links.py::list_link_divergences —
+    payouts whose linked referral/commission/fee_cashback row hasn't caught
+    up yet. No mutating endpoint exists for this on purpose; see that
+    module's docstring."""
+
+    paid_direction: list[PayoutLinkDivergenceRead]
+    release_direction: list[PayoutLinkDivergenceRead]
+
+
 class PayoutReject(BaseModel):
     reason: str = Field(min_length=1, max_length=200)
 

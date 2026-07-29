@@ -26,6 +26,7 @@ from app.jobs.cms_activation import cms_activation
 from app.jobs.purge_agent_application_orphans import purge_agent_application_orphans
 from app.jobs.purge_loan_document_orphans import purge_loan_document_orphans
 from app.jobs.purge_task_document_orphans import purge_task_document_orphans
+from app.jobs.reconcile_payout_links import reconcile_payout_links
 from app.jobs.reconcile_payouts import reconcile_payouts
 from app.jobs.retention_purge import retention_purge_job
 from app.models.auth import RefreshToken
@@ -143,6 +144,16 @@ def build_scheduler() -> AsyncIOScheduler:
         hours=24,  # reversals are bank-side/slow, not a webhook-delivery race —
         # daily bounds RazorpayX API load; a no-op in mock mode (main/dev)
         id="audit_paid_payouts",
+        max_instances=1,
+        coalesce=True,
+        replace_existing=True,
+    )
+    scheduler.add_job(
+        reconcile_payout_links,
+        trigger="interval",
+        minutes=30,  # repairs a display bug (stuck accrued/pending row), not a
+        # money-safety gap — runs in mock AND live mode, unlike the two jobs above
+        id="reconcile_payout_links",
         max_instances=1,
         coalesce=True,
         replace_existing=True,

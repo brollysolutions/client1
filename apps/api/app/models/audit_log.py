@@ -75,6 +75,7 @@ class AuditAction(enum.StrEnum):
     FEE_CASHBACK_CANCELLED = "fee_cashback_cancelled"
     DOCUMENT_VERIFIED = "document_verified"
     DOCUMENT_UNVERIFIED = "document_unverified"
+    PAYOUT_LINK_RECONCILED = "payout_link_reconciled"
 
 
 _ev = lambda x: [e.value for e in x]  # noqa: E731

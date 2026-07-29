@@ -167,6 +167,12 @@ class Settings(BaseSettings):
     # every future tick forever. See services/payments.py::
     # audit_paid_payouts_for_drift.
     PAYOUT_REVERSAL_AUDIT_WINDOW_DAYS: int = 7
+    # Payout-linkage reconciliation grace: a referral/commission/fee_cashback
+    # row is only swept for divergence from its payout once this long has
+    # passed, so the sweep never races a settle/reject that is still mid-hook
+    # (the source-row write happens on a session separate from the payout's
+    # own commit). See services/payout_links.py.
+    PAYOUT_LINK_RECONCILE_GRACE_MINUTES: int = 10
 
     # 7-year PII retention purge (SRS 5.1). Anchor is `delinked_at` on
     # transactions/payouts, stamped by services/account_deletion.py's Phase B
