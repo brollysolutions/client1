@@ -154,3 +154,57 @@ export async function apiRequest<TResponse = undefined>(
   }
   return { ok: true, status: res.status, data: payload as TResponse };
 }
+
+// Blob-returning sibling of apiRequest, for the handful of endpoints that
+// stream a file (CSV exports) instead of JSON. Reuses the same auth header +
+// single-flight 401-refresh-and-retry logic rather than a one-off fetch in
+// feature code, then triggers the download via the same
+// createObjectURL + synthetic <a download> + revokeObjectURL pattern as
+// components/calculators/export-share-bar.tsx.
+export async function apiDownload(
+  path: string,
+  filename: string,
+): Promise<{ ok: true } | { ok: false; error: string; status: number }> {
+  const attempt = async (token: string | null): Promise<Response | null> => {
+    const headers: Record<string, string> = {};
+    if (token) headers.Authorization = `Bearer ${token}`;
+    try {
+      return await fetch(`${BASE_URL}${path}`, {
+        method: "GET",
+        headers,
+        credentials: "include",
+        signal: timeoutSignal(),
+      });
+    } catch {
+      return null;
+    }
+  };
+
+  let res = await attempt(readAccessToken());
+  if (res === null) return { ok: false, status: 0, error: NETWORK_ERROR };
+
+  if (res.status === 401) {
+    const newToken = await refreshOnce();
+    if (newToken) {
+      const retry = await attempt(newToken);
+      if (retry === null) return { ok: false, status: 0, error: NETWORK_ERROR };
+      res = retry;
+    }
+  }
+
+  if (!res.ok) {
+    const payload = safeParse(await res.text());
+    return { ok: false, status: res.status, error: errorMessage(payload, res.status) };
+  }
+
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+  return { ok: true };
+}

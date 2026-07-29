@@ -3,6 +3,7 @@
 import Link from "next/link";
 import {
   BadgePercent,
+  BarChart3,
   Building2,
   ClipboardCheck,
   Clock,
@@ -285,6 +286,19 @@ export function AdminHome() {
                 <CardTitle className="mt-2">Loan configuration</CardTitle>
                 <CardDescription>
                   Add loan types and banks, and set which bank offers which loan type.
+                </CardDescription>
+              </CardHeader>
+            </Card>
+          </Link>
+
+          <Link href="/dashboard/analytics">
+            <Card className="h-full transition-colors hover:border-brand-cta">
+              <CardHeader>
+                <BarChart3 className="h-6 w-6 text-brand-cta" aria-hidden="true" />
+                <CardTitle className="mt-2">Analytics &amp; reports</CardTitle>
+                <CardDescription>
+                  Lead, loan, and deal activity by week or month, filterable by line and agent,
+                  with CSV export.
                 </CardDescription>
               </CardHeader>
             </Card>
