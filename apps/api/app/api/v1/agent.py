@@ -22,6 +22,8 @@ from app.schemas.agent import (
     AgentLeadUpdate,
     AgentProfileStatusRead,
 )
+from app.schemas.commissions import AgentEarningsResponse
+from app.services import commissions
 from app.services.agent import (
     AgentProfileNotFound,
     InvalidStatusFilter,
@@ -163,3 +165,14 @@ async def patch_lead(
             "This lead has been assigned to a telecaller and can no longer be edited.",
         ) from exc
     return _to_agent_lead_read(lead)
+
+
+@router.get("/earnings", response_model=AgentEarningsResponse)
+async def earnings(
+    current_user: CurrentUser = Depends(require_agent),
+    db: AsyncSession = Depends(get_db),
+) -> AgentEarningsResponse:
+    """Read-only commission ledger + totals. No agent_profile_uuid filter
+    needed here — commissions_select RLS already scopes to the caller's own
+    agent_auth_user_uuid + business_line."""
+    return await commissions.list_for_agent(db)

@@ -1657,6 +1657,112 @@
         "title": "AgentApproveResponse",
         "type": "object"
       },
+      "AgentEarningsResponse": {
+        "properties": {
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/AgentEarningsRow"
+            },
+            "title": "Rows",
+            "type": "array"
+          },
+          "totals": {
+            "$ref": "#/components/schemas/AgentEarningsTotals"
+          }
+        },
+        "required": [
+          "rows",
+          "totals"
+        ],
+        "title": "AgentEarningsResponse",
+        "type": "object"
+      },
+      "AgentEarningsRow": {
+        "properties": {
+          "agreed_amount_paise": {
+            "title": "Agreed Amount Paise",
+            "type": "integer"
+          },
+          "business_line": {
+            "title": "Business Line",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "deal_type": {
+            "enum": [
+              "loan_application",
+              "property_deal"
+            ],
+            "title": "Deal Type",
+            "type": "string"
+          },
+          "deal_uuid": {
+            "format": "uuid",
+            "title": "Deal Uuid",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "payout_txn_uuid": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Payout Txn Uuid"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "business_line",
+          "deal_type",
+          "deal_uuid",
+          "agreed_amount_paise",
+          "status",
+          "payout_txn_uuid",
+          "created_at"
+        ],
+        "title": "AgentEarningsRow",
+        "type": "object"
+      },
+      "AgentEarningsTotals": {
+        "properties": {
+          "paid_amount_paise": {
+            "title": "Paid Amount Paise",
+            "type": "integer"
+          },
+          "pending_amount_paise": {
+            "title": "Pending Amount Paise",
+            "type": "integer"
+          },
+          "total_amount_paise": {
+            "title": "Total Amount Paise",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "pending_amount_paise",
+          "paid_amount_paise",
+          "total_amount_paise"
+        ],
+        "title": "AgentEarningsTotals",
+        "type": "object"
+      },
       "AgentHomeResponse": {
         "properties": {
           "counts_by_status": {
@@ -2070,7 +2176,9 @@
           "loan_type_updated",
           "bank_created",
           "bank_updated",
-          "bank_availability_updated"
+          "bank_availability_updated",
+          "commission_entered",
+          "commission_cancelled"
         ],
         "title": "AuditAction",
         "type": "string"
@@ -3030,6 +3138,209 @@
         "title": "ClientProfileSummary",
         "type": "object"
       },
+      "CommissionCancelRequest": {
+        "properties": {
+          "reason": {
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "reason"
+        ],
+        "title": "CommissionCancelRequest",
+        "type": "object"
+      },
+      "CommissionCreate": {
+        "properties": {
+          "agreed_amount_paise": {
+            "exclusiveMinimum": 0.0,
+            "maximum": 10000000000.0,
+            "title": "Agreed Amount Paise",
+            "type": "integer"
+          },
+          "deal_type": {
+            "enum": [
+              "loan_application",
+              "property_deal"
+            ],
+            "title": "Deal Type",
+            "type": "string"
+          },
+          "deal_uuid": {
+            "format": "uuid",
+            "title": "Deal Uuid",
+            "type": "string"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "maxLength": 1000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          }
+        },
+        "required": [
+          "deal_type",
+          "deal_uuid",
+          "agreed_amount_paise"
+        ],
+        "title": "CommissionCreate",
+        "type": "object"
+      },
+      "CommissionListResponse": {
+        "properties": {
+          "commissions": {
+            "items": {
+              "$ref": "#/components/schemas/CommissionRead"
+            },
+            "title": "Commissions",
+            "type": "array"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "commissions",
+          "total"
+        ],
+        "title": "CommissionListResponse",
+        "type": "object"
+      },
+      "CommissionRead": {
+        "properties": {
+          "agent_code": {
+            "title": "Agent Code",
+            "type": "string"
+          },
+          "agent_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Agent Name"
+          },
+          "agent_profile_uuid": {
+            "format": "uuid",
+            "title": "Agent Profile Uuid",
+            "type": "string"
+          },
+          "agreed_amount_paise": {
+            "title": "Agreed Amount Paise",
+            "type": "integer"
+          },
+          "business_line": {
+            "title": "Business Line",
+            "type": "string"
+          },
+          "cancelled_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cancelled Reason"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "deal_type": {
+            "enum": [
+              "loan_application",
+              "property_deal"
+            ],
+            "title": "Deal Type",
+            "type": "string"
+          },
+          "deal_uuid": {
+            "format": "uuid",
+            "title": "Deal Uuid",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "payout_uuid": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Payout Uuid"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "agent_profile_uuid",
+          "agent_code",
+          "agent_name",
+          "business_line",
+          "deal_type",
+          "deal_uuid",
+          "agreed_amount_paise",
+          "status",
+          "payout_uuid",
+          "notes",
+          "cancelled_reason",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "CommissionRead",
+        "type": "object"
+      },
+      "CommissionStatus": {
+        "enum": [
+          "pending",
+          "paid",
+          "cancelled"
+        ],
+        "title": "CommissionStatus",
+        "type": "string"
+      },
       "ConstructionStatus": {
         "enum": [
           "ready",
@@ -3312,6 +3623,98 @@
           "converted"
         ],
         "title": "DealsReportRow",
+        "type": "object"
+      },
+      "EligibleDeal": {
+        "description": "One row in the Admin entry queue: a disbursed loan or a closed_won\nproperty deal with an origin agent and no live commission yet.",
+        "properties": {
+          "agent_code": {
+            "title": "Agent Code",
+            "type": "string"
+          },
+          "agent_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Agent Name"
+          },
+          "agent_profile_uuid": {
+            "format": "uuid",
+            "title": "Agent Profile Uuid",
+            "type": "string"
+          },
+          "business_line": {
+            "title": "Business Line",
+            "type": "string"
+          },
+          "deal_type": {
+            "enum": [
+              "loan_application",
+              "property_deal"
+            ],
+            "title": "Deal Type",
+            "type": "string"
+          },
+          "deal_uuid": {
+            "format": "uuid",
+            "title": "Deal Uuid",
+            "type": "string"
+          },
+          "eligible_since": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Eligible Since"
+          },
+          "lead_uuid": {
+            "format": "uuid",
+            "title": "Lead Uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "deal_type",
+          "deal_uuid",
+          "business_line",
+          "agent_profile_uuid",
+          "agent_code",
+          "agent_name",
+          "lead_uuid",
+          "eligible_since"
+        ],
+        "title": "EligibleDeal",
+        "type": "object"
+      },
+      "EligibleDealListResponse": {
+        "properties": {
+          "deals": {
+            "items": {
+              "$ref": "#/components/schemas/EligibleDeal"
+            },
+            "title": "Deals",
+            "type": "array"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "deals",
+          "total"
+        ],
+        "title": "EligibleDealListResponse",
         "type": "object"
       },
       "EmailVerifyConfirmRequest": {
@@ -9816,6 +10219,276 @@
         ]
       }
     },
+    "/api/v1/admin/commissions": {
+      "get": {
+        "operationId": "list_commissions_api_v1_admin_commissions_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "status_filter",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/CommissionStatus"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status Filter"
+            }
+          },
+          {
+            "in": "query",
+            "name": "business_line",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "loans",
+                    "real_estate"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Business Line"
+            }
+          },
+          {
+            "in": "query",
+            "name": "agent_profile_uuid",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Agent Profile Uuid"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommissionListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "List Commissions",
+        "tags": [
+          "commissions"
+        ]
+      },
+      "post": {
+        "operationId": "create_commission_api_v1_admin_commissions_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CommissionCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommissionRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Create Commission",
+        "tags": [
+          "commissions"
+        ]
+      }
+    },
+    "/api/v1/admin/commissions/eligible": {
+      "get": {
+        "operationId": "list_eligible_api_v1_admin_commissions_eligible_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EligibleDealListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "List Eligible",
+        "tags": [
+          "commissions"
+        ]
+      }
+    },
+    "/api/v1/admin/commissions/{commission_id}/cancel": {
+      "post": {
+        "operationId": "cancel_commission_api_v1_admin_commissions__commission_id__cancel_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "commission_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Commission Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CommissionCancelRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Cancel Commission",
+        "tags": [
+          "commissions"
+        ]
+      }
+    },
     "/api/v1/admin/employees": {
       "get": {
         "operationId": "list_employees_api_v1_admin_employees_get",
@@ -12127,6 +12800,33 @@
         "summary": "Presign Upload",
         "tags": [
           "agent-applications"
+        ]
+      }
+    },
+    "/api/v1/agent/earnings": {
+      "get": {
+        "description": "Read-only commission ledger + totals. No agent_profile_uuid filter\nneeded here \u2014 commissions_select RLS already scopes to the caller's own\nagent_auth_user_uuid + business_line.",
+        "operationId": "earnings_api_v1_agent_earnings_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentEarningsResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Earnings",
+        "tags": [
+          "agent"
         ]
       }
     },

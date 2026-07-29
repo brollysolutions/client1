@@ -8,6 +8,7 @@ import {
   Eraser,
   Headset,
   Home,
+  IndianRupee,
   Landmark,
   Loader2,
   ScrollText,
@@ -98,6 +99,16 @@ const ACTION_META: Record<AuditAction, { label: string; icon: LucideIcon; tone: 
     label: "Bank availability updated",
     icon: Landmark,
     tone: "bg-loans-soft text-loans-accent",
+  },
+  commission_entered: {
+    label: "Commission entered",
+    icon: IndianRupee,
+    tone: "bg-success/10 text-success",
+  },
+  commission_cancelled: {
+    label: "Commission cancelled",
+    icon: IndianRupee,
+    tone: "bg-muted text-text-secondary",
   },
 };
 

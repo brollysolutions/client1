@@ -8,6 +8,7 @@ import {
   FolderClosed,
   Gift,
   House,
+  IndianRupee,
   Landmark,
   MessageSquare,
   PhoneCall,
@@ -76,6 +77,7 @@ export const NAV_ITEMS: NavItem[] = [
     agentOnly: true,
     realEstateOnly: true,
   },
+  { key: "agent-earnings", label: "Earnings", href: "/dashboard/earnings", icon: IndianRupee, agentOnly: true },
   {
     key: "admin-loans",
     label: "Loan applications",

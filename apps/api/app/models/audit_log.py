@@ -71,6 +71,8 @@ class AuditAction(enum.StrEnum):
     BANK_CREATED = "bank_created"
     BANK_UPDATED = "bank_updated"
     BANK_AVAILABILITY_UPDATED = "bank_availability_updated"
+    COMMISSION_ENTERED = "commission_entered"
+    COMMISSION_CANCELLED = "commission_cancelled"
 
 
 _ev = lambda x: [e.value for e in x]  # noqa: E731
