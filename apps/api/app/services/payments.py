@@ -22,11 +22,11 @@ Split of concerns:
     NEVER raises into the caller (a gateway fault sets status=failed and is
     visible in the admin list), the same discipline as OTP delivery.
 
-A REFERRAL_BONUS payout's source row (services.referrals) hears about every
-terminal transition via _referral_payout_paid_hook / _referral_payout_released_hook,
-called right after each status-changing commit — see those call sites in
-initiate_payout (mock), settle_from_webhook (paid/reversed/failed), reject_payout,
-and _mark_failed.
+A REFERRAL_BONUS or COMMISSION payout's source row (services.referrals /
+services.commissions respectively) hears about every terminal transition via
+_payout_paid_hook / _payout_released_hook, called right after each
+status-changing commit — see those call sites in initiate_payout (mock),
+settle_from_webhook (paid/reversed/failed), reject_payout, and _mark_failed.
 
 Money is integer minor units (amount_paise), never a float.
 """
@@ -48,7 +48,7 @@ from app.models.audit_log import AuditAction
 from app.models.payout import Payout, PayoutDestination, PayoutStatus, PayoutType
 from app.models.profile import AgentProfile, ClientProfile, StaffProfile
 from app.models.transaction import Transaction, TransactionStatus, TransactionType
-from app.services import referrals
+from app.services import commissions, referrals
 from app.services.audit_log import record as record_audit
 
 logger = logging.getLogger(__name__)
@@ -439,7 +439,7 @@ async def reject_payout(
             },
         )
         await db.commit()
-        await _referral_payout_released_hook(payout)
+        await _payout_released_hook(payout)
 
 
 # ---------------------------------------------------------------------------
@@ -498,7 +498,7 @@ async def initiate_payout(payout_id: uuid.UUID) -> None:
                 )
                 await _settle_paid(db, payout)
                 await db.commit()
-                await _referral_payout_paid_hook(payout, payout.ledger_transaction_id)
+                await _payout_paid_hook(payout, payout.ledger_transaction_id)
                 return
 
             # Real RazorpayX transfer. Contact+fund_account were provisioned at
@@ -558,7 +558,7 @@ async def settle_from_webhook(*, event: str, gateway_payout_id: str) -> None:
                 await db.rollback()  # lost the race — no second ledger row
                 return
             await db.commit()
-            await _referral_payout_paid_hook(payout, txn_id)
+            await _payout_paid_hook(payout, txn_id)
             return
 
         # FAILED / REVERSED. A settled (PAID) payout must never regress to FAILED
@@ -593,7 +593,7 @@ async def settle_from_webhook(*, event: str, gateway_payout_id: str) -> None:
                     await db.rollback()  # redelivery — no second clawback row
                     return
                 await db.commit()
-                await _referral_payout_released_hook(payout)
+                await _payout_released_hook(payout)
             else:
                 logger.warning("payout.stale_failed_ignored payout_id=%s", payout.id)
             return
@@ -603,7 +603,7 @@ async def settle_from_webhook(*, event: str, gateway_payout_id: str) -> None:
         if target == PayoutStatus.FAILED:
             payout.failure_reason = "Gateway reported payout failed."
         await db.commit()
-        await _referral_payout_released_hook(payout)
+        await _payout_released_hook(payout)
 
 
 # ---------------------------------------------------------------------------
@@ -834,28 +834,31 @@ async def _mark_failed(payout_id: uuid.UUID, reason: str) -> None:
             payout.status = PayoutStatus.FAILED
             payout.failure_reason = reason
             await db.commit()
-            await _referral_payout_released_hook(payout)
+            await _payout_released_hook(payout)
     except Exception:
         logger.warning("payout.mark_failed_failed payout_id=%s", payout_id, exc_info=True)
 
 
-async def _referral_payout_paid_hook(payout: Payout, transaction_id: uuid.UUID) -> None:
-    """Referral bonuses (PR 2) are the only payout type with a source row that
-    needs to hear about settlement. mark_paid_from_payout is best-effort on its
-    own side (never raises), so this is a plain call, no local try/except —
-    same discipline as the record_conversion call sites in
+async def _payout_paid_hook(payout: Payout, transaction_id: uuid.UUID) -> None:
+    """REFERRAL_BONUS and COMMISSION are the only payout types with a source
+    row that needs to hear about settlement; every other type is a no-op.
+    Both mark_paid_from_payout implementations are best-effort on their own
+    side (never raise), so this is a plain call, no local try/except — same
+    discipline as the record_conversion call sites in
     services/loan_applications.py and services/property_deals.py."""
-    if payout.type != PayoutType.REFERRAL_BONUS:
-        return
-    await referrals.mark_paid_from_payout(payout_id=payout.id, transaction_id=transaction_id)
+    if payout.type == PayoutType.REFERRAL_BONUS:
+        await referrals.mark_paid_from_payout(payout_id=payout.id, transaction_id=transaction_id)
+    elif payout.type == PayoutType.COMMISSION:
+        await commissions.mark_paid_from_payout(payout_id=payout.id, transaction_id=transaction_id)
 
 
-async def _referral_payout_released_hook(payout: Payout) -> None:
-    """Symmetric release for a REFERRAL_BONUS payout that lands on failed,
-    rejected, or reversed — frees the referral row to be paid again."""
-    if payout.type != PayoutType.REFERRAL_BONUS:
-        return
-    await referrals.release_payout_link(payout_id=payout.id)
+async def _payout_released_hook(payout: Payout) -> None:
+    """Symmetric release for a REFERRAL_BONUS or COMMISSION payout that lands
+    on failed, rejected, or reversed — frees the source row to be paid again."""
+    if payout.type == PayoutType.REFERRAL_BONUS:
+        await referrals.release_payout_link(payout_id=payout.id)
+    elif payout.type == PayoutType.COMMISSION:
+        await commissions.release_payout_link(payout_id=payout.id)
 
 
 def _ledger_description(payout_type: PayoutType) -> str:

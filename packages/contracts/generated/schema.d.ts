@@ -240,6 +240,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/commissions/{commission_id}/payout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create Commission Payout
+         * @description Turns one pending commission into a real payout. Amount and recipient
+         *     come from the commission row, never from the request body — only the
+         *     destination the agent actually receives money at is caller-supplied.
+         *     Approval is a separate step at POST /payouts/{id}/approve: this endpoint
+         *     is the maker, never the checker.
+         */
+        post: operations["create_commission_payout_api_v1_admin_commissions__commission_id__payout_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/employees": {
         parameters: {
             query?: never;
@@ -3602,6 +3626,28 @@ export interface components {
             /** Total */
             total: number;
         };
+        /**
+         * CommissionPayoutRequest
+         * @description No amount, no recipient: both come from the commission row
+         *     (services/commissions.py::attach_payout), never the request body — same
+         *     invariant as ReferralPayoutRequest. The idempotency key is derived
+         *     server-side from the commission id (`com-{uuid.hex}`), not accepted from
+         *     the client, for the identical reason ReferralPayoutRequest's docstring
+         *     records: a client-chosen key let two concurrent "Pay commission" clicks
+         *     each pick a fresh key and both slip past create_payout's dedupe guard.
+         */
+        CommissionPayoutRequest: {
+            destination: components["schemas"]["PayoutDestinationInput"];
+            destination_type: components["schemas"]["PayoutDestination"];
+        };
+        /** CommissionPayoutResponse */
+        CommissionPayoutResponse: {
+            /**
+             * Payout Id
+             * Format: uuid
+             */
+            payout_id: string;
+        };
         /** CommissionRead */
         CommissionRead: {
             /** Agent Code */
@@ -6409,6 +6455,41 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_commission_payout_api_v1_admin_commissions__commission_id__payout_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                commission_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CommissionPayoutRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommissionPayoutResponse"];
+                };
             };
             /** @description Validation Error */
             422: {

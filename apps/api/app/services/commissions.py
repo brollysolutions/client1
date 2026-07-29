@@ -16,6 +16,7 @@ instead of an admin fighting a stale list.
 
 from __future__ import annotations
 
+import logging
 import uuid
 
 from sqlalchemy import func, select, update
@@ -23,6 +24,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import aliased
 
+import app.db.session as db_session
 from app.models.commission import Commission, CommissionStatus
 from app.models.lead import Lead
 from app.models.loan import LoanApplication
@@ -38,6 +40,8 @@ from app.schemas.commissions import (
 )
 from app.services import audit_log
 from app.services.audit_log import AuditAction
+
+logger = logging.getLogger(__name__)
 
 
 class CommissionError(Exception):
@@ -413,3 +417,105 @@ async def list_for_agent(db: AsyncSession) -> AgentEarningsResponse:
             total_amount_paise=pending + paid,
         ),
     )
+
+
+# ---------------------------------------------------------------------------
+# Payout execution (PR 2) — turning a pending commission into a real payout
+# ---------------------------------------------------------------------------
+#
+# The three functions below run on the BYPASS session (db_session.AsyncSessionLocal,
+# module-qualified access — not `from ... import AsyncSessionLocal`, so conftest's
+# NullPool patch of the module attribute is picked up automatically with no
+# separate _patch_db_null_pool entry needed, same trick services/referrals.py
+# already uses), mirroring services/referrals.py::attach_payout /
+# mark_paid_from_payout / release_payout_link exactly: services/payments.py
+# calls these from contexts with no admin JWT session at all (the auth-less
+# webhook receiver, a scheduler-driven reconcile job), so they cannot depend
+# on commissions_update RLS, which requires an admin request context.
+
+
+async def attach_payout(*, commission_id: uuid.UUID, payout_id: uuid.UUID) -> bool:
+    """Links a newly-created payout to a pending, unlinked commission.
+
+    The CAS (WHERE status='pending' AND payout_uuid IS NULL) is the
+    double-pay guard: two concurrent "Pay commission" clicks can only ever
+    have one winner. A False return means the row was already claimed (or is
+    no longer pending) — the router turns that into a 409. The payout itself
+    is NOT rolled back here; it is left pending_approval for a human to
+    reject, the same "never auto-cancel a maker-checker artifact" discipline
+    services/payments.py follows elsewhere and referrals.attach_payout mirrors.
+    """
+    async with db_session.AsyncSessionLocal() as session:
+        result = await session.execute(
+            update(Commission)
+            .where(
+                Commission.id == commission_id,
+                Commission.status == CommissionStatus.PENDING,
+                Commission.payout_uuid.is_(None),
+            )
+            .values(payout_uuid=payout_id, updated_at=func.now())
+            .returning(Commission.id)
+        )
+        claimed = result.scalar_one_or_none()
+        await session.commit()
+        return claimed is not None
+
+
+async def mark_paid_from_payout(*, payout_id: uuid.UUID, transaction_id: uuid.UUID) -> None:
+    """Called by services.payments once a COMMISSION payout settles to PAID
+    (mock-path settle and the webhook settle path both call this).
+
+    Best-effort: swallows every error so a commission-ledger bug can never
+    fail a payment settlement, same discipline as referrals.mark_paid_from_payout.
+    The CAS (WHERE status='pending') makes a redelivered settle a no-op — the
+    second call finds the row already 'paid' and updates zero rows.
+    """
+    try:
+        async with db_session.AsyncSessionLocal() as session:
+            await session.execute(
+                update(Commission)
+                .where(
+                    Commission.payout_uuid == payout_id,
+                    Commission.status == CommissionStatus.PENDING,
+                )
+                .values(
+                    status=CommissionStatus.PAID,
+                    payout_txn_uuid=transaction_id,
+                    updated_at=func.now(),
+                )
+            )
+            await session.commit()
+    except Exception:
+        logger.warning("commissions.mark_paid_failed payout_id=%s", payout_id, exc_info=True)
+
+
+async def release_payout_link(*, payout_id: uuid.UUID) -> None:
+    """Called by services.payments when a COMMISSION payout lands on a
+    terminal non-paid status (failed, rejected, or reversed after having been
+    paid). Frees the commission row so Admin can pay it again: back to
+    pending, both payout uuids cleared.
+
+    Matches on payout_uuid alone (not a status filter) so it correctly
+    unwinds both a payout that never reached paid (commission still
+    'pending') and a post-settlement reversal (commission already flipped to
+    'paid' by mark_paid_from_payout) in one shared path. Idempotent: a row
+    with no matching payout_uuid (already released, or never linked) updates
+    zero rows. Best-effort, same discipline as mark_paid_from_payout.
+    """
+    try:
+        async with db_session.AsyncSessionLocal() as session:
+            await session.execute(
+                update(Commission)
+                .where(Commission.payout_uuid == payout_id)
+                .values(
+                    status=CommissionStatus.PENDING,
+                    payout_uuid=None,
+                    payout_txn_uuid=None,
+                    updated_at=func.now(),
+                )
+            )
+            await session.commit()
+    except Exception:
+        logger.warning(
+            "commissions.release_payout_link_failed payout_id=%s", payout_id, exc_info=True
+        )

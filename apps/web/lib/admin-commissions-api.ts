@@ -11,6 +11,7 @@ type Schemas = components["schemas"];
 export type EligibleDeal = Schemas["EligibleDeal"];
 export type CommissionRead = Schemas["CommissionRead"];
 export type CommissionCreate = Schemas["CommissionCreate"];
+export type CommissionPayoutRequest = Schemas["CommissionPayoutRequest"];
 
 // Same reasoning as REFERRAL_PAYOUT_PAGE_LIMIT — requested explicitly so a
 // filter switch and the initial load always agree on how much can be truncated.
@@ -50,4 +51,14 @@ export async function cancelCommission(
     method: "POST",
     body: { reason },
   });
+}
+
+export async function createCommissionPayout(
+  commissionId: string,
+  body: CommissionPayoutRequest,
+): Promise<ApiResponse<Schemas["CommissionPayoutResponse"]>> {
+  return apiRequest<Schemas["CommissionPayoutResponse"]>(
+    `/api/v1/admin/commissions/${commissionId}/payout`,
+    { method: "POST", body },
+  );
 }

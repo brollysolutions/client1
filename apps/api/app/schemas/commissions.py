@@ -13,7 +13,10 @@ from datetime import datetime
 from typing import Literal
 from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
+
+from app.models.payout import PayoutDestination
+from app.schemas.payments import PayoutDestinationInput
 
 DealType = Literal["loan_application", "property_deal"]
 
@@ -94,3 +97,30 @@ class AgentEarningsTotals(BaseModel):
 class AgentEarningsResponse(BaseModel):
     rows: list[AgentEarningsRow]
     totals: AgentEarningsTotals
+
+
+class CommissionPayoutRequest(BaseModel):
+    """No amount, no recipient: both come from the commission row
+    (services/commissions.py::attach_payout), never the request body — same
+    invariant as ReferralPayoutRequest. The idempotency key is derived
+    server-side from the commission id (`com-{uuid.hex}`), not accepted from
+    the client, for the identical reason ReferralPayoutRequest's docstring
+    records: a client-chosen key let two concurrent "Pay commission" clicks
+    each pick a fresh key and both slip past create_payout's dedupe guard."""
+
+    destination_type: PayoutDestination
+    destination: PayoutDestinationInput
+
+    @model_validator(mode="after")
+    def _require_matching_destination(self) -> CommissionPayoutRequest:
+        if self.destination_type == PayoutDestination.VPA:
+            if not self.destination.vpa or "@" not in self.destination.vpa:
+                raise ValueError("A valid UPI VPA (name@bank) is required for a vpa payout.")
+        else:  # bank_account
+            if not self.destination.ifsc or not self.destination.account_number:
+                raise ValueError("ifsc and account_number are required for a bank_account payout.")
+        return self
+
+
+class CommissionPayoutResponse(BaseModel):
+    payout_id: UUID
