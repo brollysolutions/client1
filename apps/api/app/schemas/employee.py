@@ -27,7 +27,7 @@ DocTypeLiteral = Literal[
     "photo",
     "other",
 ]
-DocContentTypeLiteral = Literal["image/jpeg", "image/png", "application/pdf"]
+DocContentTypeLiteral = Literal["image/jpeg", "image/png", "image/webp", "application/pdf"]
 
 
 class EmployeeTaskRead(BaseModel):
