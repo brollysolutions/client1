@@ -31,7 +31,16 @@ actually forces:
 
 The financial de-link (`transactions`/`payouts`) also runs here since those
 tables grant `api_user` SELECT only — no request-scoped session, self-service
-or admin, could write them regardless of RLS.
+or admin, could write them regardless of RLS. Before the de-link, any payout
+still `PENDING_APPROVAL`/`APPROVED` (not yet sent to the gateway) is rejected
+outright rather than merely de-linked, so a deleted account is never paid —
+see `_REJECTABLE_ON_DELETION`. The APPROVED race against
+`services.payments.initiate_payout` is safe without a lock: `initiate_payout`
+claims with `UPDATE ... WHERE status='approved'`. If deletion wins that race,
+initiate's CAS matches zero rows and money never leaves; if initiate wins,
+the payout is already `INITIATED` by the time this UPDATE's predicate is
+evaluated, so it falls through untouched to the ordinary de-link path below.
+Do not "fix" this with a `SELECT FOR UPDATE` — there is nothing to fix.
 
 Phase B is best-effort: logged on failure, never re-raised. Once Phase A
 commits, the identity is already irreversibly scrubbed and status is already
@@ -58,7 +67,7 @@ from app.cache.redis_keys import RedisCache, jwt_blacklist_key
 from app.models.audit_log import AuditAction
 from app.models.auth import AuthEvent, RefreshToken
 from app.models.loan_document import LoanDocument
-from app.models.payout import Payout
+from app.models.payout import Payout, PayoutStatus, PayoutType
 from app.models.profile import (
     AgentApplication,
     AgentProfile,
@@ -69,7 +78,7 @@ from app.models.profile import (
 from app.models.support_ticket import SupportTicket
 from app.models.transaction import Transaction
 from app.models.user import User, UserStatus
-from app.services import storage
+from app.services import payout_links, storage
 from app.services.audit_log import record as record_audit
 
 logger = logging.getLogger(__name__)
@@ -77,6 +86,15 @@ logger = logging.getLogger(__name__)
 # Preserves category/status/timestamps (ticket history is left visible to
 # Admin) while removing the deleted identity's own free text.
 _SCRUBBED_TICKET_TEXT = "[deleted account — content removed]"
+
+# A payout still awaiting a maker-checker decision, or approved but not yet
+# sent to the gateway, has not left the platform — reject it outright rather
+# than merely de-linking it, so a deleted account is never paid (feature-
+# status.md §2 #17). An INITIATED payout is NOT covered here: it may already
+# be at the gateway and unrecallable, so it falls through to the de-link path
+# below instead (see the module docstring addendum on Phase B financials).
+_REJECTABLE_ON_DELETION = (PayoutStatus.PENDING_APPROVAL, PayoutStatus.APPROVED)
+_DELETION_REJECT_REASON = "Recipient account deleted before payout was initiated."
 
 _DOC_REF_FIELDS = (
     "aadhaar_ref",
@@ -270,6 +288,7 @@ async def delete_account(
 
     # --- Phase B: bypass session, best-effort (see module docstring) ---
     retained_ref = str(target_auth_user_uuid)
+    rejected_payouts: list[tuple[UUID, PayoutType]] = []
     try:
         async with db_session.AsyncSessionLocal() as session:
             await session.execute(
@@ -285,6 +304,44 @@ async def delete_account(
                 )
                 .values(revoked=True)
             )
+
+            # Reject any payout that has not yet left the platform — see
+            # _REJECTABLE_ON_DELETION and the module docstring. rejected_by_user_uuid
+            # stays NULL: this is a platform action, not a human checker's decision
+            # (the column is nullable for exactly this case).
+            rejected_rows = (
+                await session.execute(
+                    update(Payout)
+                    .where(
+                        Payout.recipient_user_uuid == target_auth_user_uuid,
+                        Payout.status.in_(_REJECTABLE_ON_DELETION),
+                    )
+                    .values(status=PayoutStatus.REJECTED, reject_reason=_DELETION_REJECT_REASON)
+                    .returning(Payout.id, Payout.type, Payout.business_line, Payout.amount_paise)
+                    .execution_options(synchronize_session=False)
+                )
+            ).all()
+            for row in rejected_rows:
+                rejected_payouts.append((row.id, row.type))
+                # actor_uuid is the account being deleted (self-service) or the
+                # admin who deleted it — never NULL, unlike a scheduler action:
+                # a real actor initiated this, and record_audit's WITH CHECK
+                # requires a non-NULL actor to be the session identity anyway.
+                await record_audit(
+                    session,
+                    action=AuditAction.PAYOUT_REJECTED,
+                    entity_type="payout",
+                    entity_uuid=row.id,
+                    actor_uuid=actor_auth_user_uuid,
+                    actor_role=actor_role,
+                    business_line=row.business_line,
+                    detail={
+                        "amount_paise": row.amount_paise,
+                        "payout_type": row.type.value,
+                        "reason": _DELETION_REJECT_REASON,
+                    },
+                )
+
             await session.execute(
                 update(Transaction)
                 .where(Transaction.user_uuid == target_auth_user_uuid)
@@ -304,6 +361,17 @@ async def delete_account(
                 )
             )
             await session.commit()
+
+        # Release each rejected payout's source row (referral/commission/
+        # fee_cashback) AFTER commit, same convention as
+        # services.payments.reject_payout driving _payout_released_hook post-
+        # commit: this is a separate best-effort side effect, not part of the
+        # de-link transaction above. Without this, a rejected payout's source
+        # row is stranded pointing at a dead payout, permanently unpayable
+        # (jobs/reconcile_payout_links.py would eventually catch it too, but
+        # driving it directly here closes the gap immediately).
+        for payout_id, payout_type in rejected_payouts:
+            await payout_links.apply_release_link(payout_type=payout_type, payout_id=payout_id)
     except Exception:
         logger.exception(
             "account_deletion.phase_b_failed target_auth_user_uuid=%s", target_auth_user_uuid
