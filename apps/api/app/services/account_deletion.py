@@ -57,6 +57,7 @@ import app.db.session as db_session
 from app.cache.redis_keys import RedisCache, jwt_blacklist_key
 from app.models.audit_log import AuditAction
 from app.models.auth import AuthEvent, RefreshToken
+from app.models.loan_document import LoanDocument
 from app.models.payout import Payout
 from app.models.profile import (
     AgentApplication,
@@ -175,6 +176,32 @@ async def delete_account(
     if applications:
         await db.flush()  # DB write durable before touching external storage
     for key in doc_keys:
+        storage.delete_object(key)  # best-effort, already swallows failures
+
+    # loan_documents (client-uploaded KYC scans) has the same owner-or-admin
+    # RLS branch as agent_applications above, so it belongs in Phase A too.
+    # Deleted unconditionally, including a verified=true row: the ordinary
+    # DocumentAlreadyVerified guard (services/loan_documents.py) is an API-
+    # layer convenience, not a durable-PII-deletion obligation, and the
+    # DELETE RLS policy deliberately carries no `verified = false` clause for
+    # the identical reason (migration f5a6b7c8d9e0's docstring).
+    loan_docs = (
+        await db.scalars(
+            select(LoanDocument).where(
+                LoanDocument.client_profile_uuid.in_(
+                    select(ClientProfile.id).where(
+                        ClientProfile.auth_user_uuid == target_auth_user_uuid
+                    )
+                )
+            )
+        )
+    ).all()
+    loan_doc_keys = [d.object_key for d in loan_docs]
+    for d in loan_docs:
+        await db.delete(d)
+    if loan_docs:
+        await db.flush()
+    for key in loan_doc_keys:
         storage.delete_object(key)  # best-effort, already swallows failures
 
     # client_profiles/agent_profiles both have an owner WITH CHECK branch, so

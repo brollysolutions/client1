@@ -4,8 +4,10 @@ import * as React from "react";
 import {
   Ban,
   BadgeCheck,
+  Banknote,
   CircleSlash,
   Eraser,
+  FileCheck2,
   Headset,
   Home,
   IndianRupee,
@@ -109,6 +111,26 @@ const ACTION_META: Record<AuditAction, { label: string; icon: LucideIcon; tone: 
     label: "Commission cancelled",
     icon: IndianRupee,
     tone: "bg-muted text-text-secondary",
+  },
+  fee_cashback_entered: {
+    label: "Fee cashback entered",
+    icon: Banknote,
+    tone: "bg-success/10 text-success",
+  },
+  fee_cashback_cancelled: {
+    label: "Fee cashback cancelled",
+    icon: Banknote,
+    tone: "bg-muted text-text-secondary",
+  },
+  document_verified: {
+    label: "Document verified",
+    icon: FileCheck2,
+    tone: "bg-success/10 text-success",
+  },
+  document_unverified: {
+    label: "Document sent back for re-collection",
+    icon: FileCheck2,
+    tone: "bg-warning/10 text-warning",
   },
 };
 

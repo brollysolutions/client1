@@ -264,6 +264,62 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/document-verification/documents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Documents */
+        get: operations["list_documents_api_v1_admin_document_verification_documents_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/document-verification/documents/{document_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Verify Document
+         * @description `source` is a required query param: `document_id` alone is ambiguous
+         *     across two tables, and two route families would mean more URLs for one
+         *     operation.
+         */
+        patch: operations["verify_document_api_v1_admin_document_verification_documents__document_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/admin/document-verification/subjects": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Subjects */
+        get: operations["list_subjects_api_v1_admin_document_verification_subjects_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/employees": {
         parameters: {
             query?: never;
@@ -275,6 +331,82 @@ export interface paths {
         get: operations["list_employees_api_v1_admin_employees_get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/fee-cashbacks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Fee Cashbacks */
+        get: operations["list_fee_cashbacks_api_v1_admin_fee_cashbacks_get"];
+        put?: never;
+        /** Create Fee Cashback */
+        post: operations["create_fee_cashback_api_v1_admin_fee_cashbacks_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/fee-cashbacks/eligible": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Eligible */
+        get: operations["list_eligible_api_v1_admin_fee_cashbacks_eligible_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/fee-cashbacks/{cashback_id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cancel Fee Cashback */
+        post: operations["cancel_fee_cashback_api_v1_admin_fee_cashbacks__cashback_id__cancel_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/fee-cashbacks/{cashback_id}/payout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create Fee Cashback Payout
+         * @description Turns one pending cashback into a real payout. Amount and recipient
+         *     come from the cashback row, never from the request body — only the
+         *     destination the client actually receives money at is caller-supplied.
+         *     Approval is a separate step at POST /payouts/{id}/approve: this endpoint
+         *     is the maker, never the checker.
+         */
+        post: operations["create_fee_cashback_payout_api_v1_admin_fee_cashbacks__cashback_id__payout_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1478,6 +1610,58 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/loans/applications/{application_id}/documents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Loan Documents For Application */
+        get: operations["list_loan_documents_for_application_api_v1_loans_applications__application_id__documents_get"];
+        put?: never;
+        /** Confirm Loan Document */
+        post: operations["confirm_loan_document_api_v1_loans_applications__application_id__documents_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/loans/applications/{application_id}/documents/presign": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Presign Loan Document */
+        post: operations["presign_loan_document_api_v1_loans_applications__application_id__documents_presign_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/loans/applications/{application_id}/documents/{document_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete Loan Document */
+        delete: operations["delete_loan_document_api_v1_loans_applications__application_id__documents__document_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/loans/banks": {
         parameters: {
             query?: never;
@@ -1487,6 +1671,28 @@ export interface paths {
         };
         /** List Banks */
         get: operations["list_banks_api_v1_loans_banks_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/loans/documents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Own Loan Documents
+         * @description All of the caller's documents across every application — RLS's
+         *     client-owner branch on `loan_documents_select` is the only filter that
+         *     matters.
+         */
+        get: operations["list_own_loan_documents_api_v1_loans_documents_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3244,19 +3450,17 @@ export interface components {
         };
         /**
          * AuditAction
-         * @description Every value here has a real writer in `app/services/`. The spec names
-         *     `commission_entered` as a fourth example alongside the three below; agent
-         *     commission entry (§3 #5 of the feature-status tracker) is not built, so that
-         *     value is deliberately absent rather than shipped dead — adding an enum value
-         *     later is a one-line migration, and this repo's convention is one such value
-         *     per migration.
+         * @description Every value here has a real writer in `app/services/`.
          *
          *     The five LOAN_TYPE_*\/BANK_* values (migration 1dd0bc6bed88) are written by
          *     `services/loan_config.py`. No `*_deleted` siblings exist — that module never
          *     deletes a row, only toggles `active`, which is just another `*_updated`.
+         *
+         *     The two FEE_CASHBACK_* values (migration d3e4f5a6b7c8) are written by
+         *     `services/fee_cashbacks.py` (FR-6.6 processing-fee cashback).
          * @enum {string}
          */
-        AuditAction: "agent_approved" | "agent_rejected" | "staff_created" | "account_removed" | "payout_approved" | "payout_rejected" | "property_submission_approved" | "property_submission_rejected" | "support_ticket_advanced" | "retention_purged" | "loan_type_created" | "loan_type_updated" | "bank_created" | "bank_updated" | "bank_availability_updated" | "commission_entered" | "commission_cancelled";
+        AuditAction: "agent_approved" | "agent_rejected" | "staff_created" | "account_removed" | "payout_approved" | "payout_rejected" | "property_submission_approved" | "property_submission_rejected" | "support_ticket_advanced" | "retention_purged" | "loan_type_created" | "loan_type_updated" | "bank_created" | "bank_updated" | "bank_availability_updated" | "commission_entered" | "commission_cancelled" | "fee_cashback_entered" | "fee_cashback_cancelled" | "document_verified" | "document_unverified";
         /** AuditLogListResponse */
         AuditLogListResponse: {
             /** Entries */
@@ -3807,6 +4011,55 @@ export interface components {
             /** Total */
             total: number;
         };
+        /** DocumentSubjectListResponse */
+        DocumentSubjectListResponse: {
+            /** Subjects */
+            subjects: components["schemas"]["DocumentSubjectRead"][];
+            /** Total */
+            total: number;
+        };
+        /** DocumentSubjectRead */
+        DocumentSubjectRead: {
+            /** Business Line */
+            business_line: string;
+            /**
+             * Latest Upload At
+             * Format: date-time
+             */
+            latest_upload_at: string;
+            /** Lead Mobile Masked */
+            lead_mobile_masked: string;
+            /** Lead Name */
+            lead_name: string | null;
+            /**
+             * Lead Uuid
+             * Format: uuid
+             */
+            lead_uuid: string;
+            /**
+             * Source
+             * @enum {string}
+             */
+            source: "task" | "loan_application";
+            /** Subject Label */
+            subject_label: string;
+            /**
+             * Subject Uuid
+             * Format: uuid
+             */
+            subject_uuid: string;
+            /** Total Count */
+            total_count: number;
+            /** Verified Count */
+            verified_count: number;
+        };
+        /** DocumentVerifyRequest */
+        DocumentVerifyRequest: {
+            /** Review Note */
+            review_note?: string | null;
+            /** Verified */
+            verified: boolean;
+        };
         /**
          * EligibleDeal
          * @description One row in the Admin entry queue: a disbursed loan or a closed_won
@@ -3846,6 +4099,39 @@ export interface components {
         EligibleDealListResponse: {
             /** Deals */
             deals: components["schemas"]["EligibleDeal"][];
+            /** Total */
+            total: number;
+        };
+        /**
+         * EligibleFeeApplication
+         * @description One row in the Admin entry queue: a disbursed loan application with
+         *     fee_outcome='cashback', a positive processing_fee, and no live cashback
+         *     row yet.
+         */
+        EligibleFeeApplication: {
+            /** Business Line */
+            business_line: string;
+            /** Client Name */
+            client_name: string | null;
+            /**
+             * Client Profile Uuid
+             * Format: uuid
+             */
+            client_profile_uuid: string;
+            /** Eligible Since */
+            eligible_since: string | null;
+            /**
+             * Loan Application Uuid
+             * Format: uuid
+             */
+            loan_application_uuid: string;
+            /** Processing Fee Paise */
+            processing_fee_paise: number;
+        };
+        /** EligibleFeeApplicationListResponse */
+        EligibleFeeApplicationListResponse: {
+            /** Applications */
+            applications: components["schemas"]["EligibleFeeApplication"][];
             /** Total */
             total: number;
         };
@@ -3998,6 +4284,100 @@ export interface components {
          * @enum {string}
          */
         EnquiryStatus: "new" | "contacted" | "closed";
+        /** FeeCashbackCancelRequest */
+        FeeCashbackCancelRequest: {
+            /** Reason */
+            reason: string;
+        };
+        /** FeeCashbackCreate */
+        FeeCashbackCreate: {
+            /** Amount Paise */
+            amount_paise: number;
+            /**
+             * Loan Application Uuid
+             * Format: uuid
+             */
+            loan_application_uuid: string;
+            /** Notes */
+            notes?: string | null;
+        };
+        /** FeeCashbackListResponse */
+        FeeCashbackListResponse: {
+            /** Cashbacks */
+            cashbacks: components["schemas"]["FeeCashbackRead"][];
+            /** Total */
+            total: number;
+        };
+        /**
+         * FeeCashbackPayoutRequest
+         * @description No amount, no recipient: both come from the cashback row
+         *     (services/fee_cashbacks.py::attach_payout), never the request body — same
+         *     invariant as CommissionPayoutRequest. The idempotency key is derived
+         *     server-side from the cashback id (`fcb-{uuid.hex}`), not accepted from the
+         *     client, for the identical reason CommissionPayoutRequest's docstring
+         *     records.
+         */
+        FeeCashbackPayoutRequest: {
+            destination: components["schemas"]["PayoutDestinationInput"];
+            destination_type: components["schemas"]["PayoutDestination"];
+        };
+        /** FeeCashbackPayoutResponse */
+        FeeCashbackPayoutResponse: {
+            /**
+             * Payout Id
+             * Format: uuid
+             */
+            payout_id: string;
+        };
+        /** FeeCashbackRead */
+        FeeCashbackRead: {
+            /** Amount Paise */
+            amount_paise: number;
+            /** Business Line */
+            business_line: string;
+            /** Cancelled Reason */
+            cancelled_reason: string | null;
+            /** Client Name */
+            client_name: string | null;
+            /**
+             * Client Profile Uuid
+             * Format: uuid
+             */
+            client_profile_uuid: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Loan Application Uuid
+             * Format: uuid
+             */
+            loan_application_uuid: string;
+            /** Notes */
+            notes: string | null;
+            /** Payout Uuid */
+            payout_uuid: string | null;
+            /** Processing Fee Paise */
+            processing_fee_paise: number;
+            /** Status */
+            status: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /**
+         * FeeCashbackStatus
+         * @enum {string}
+         */
+        FeeCashbackStatus: "pending" | "paid" | "cancelled";
         /**
          * FeeOutcome
          * @enum {string}
@@ -4234,6 +4614,78 @@ export interface components {
             /** Status Reason */
             status_reason: string | null;
         };
+        /** LoanDocumentCreate */
+        LoanDocumentCreate: {
+            /**
+             * Content Type
+             * @enum {string}
+             */
+            content_type: "image/jpeg" | "image/png" | "image/webp" | "application/pdf";
+            /**
+             * Doc Type
+             * @enum {string}
+             */
+            doc_type: "aadhaar_front" | "aadhaar_back" | "pan" | "salary_slip" | "bank_statement" | "sale_deed" | "photo" | "other";
+            /** Object Key */
+            object_key: string;
+        };
+        /** LoanDocumentListResponse */
+        LoanDocumentListResponse: {
+            /** Documents */
+            documents: components["schemas"]["LoanDocumentRead"][];
+        };
+        /** LoanDocumentPresignRequest */
+        LoanDocumentPresignRequest: {
+            /**
+             * Content Type
+             * @enum {string}
+             */
+            content_type: "image/jpeg" | "image/png" | "image/webp" | "application/pdf";
+            /**
+             * Doc Type
+             * @enum {string}
+             */
+            doc_type: "aadhaar_front" | "aadhaar_back" | "pan" | "salary_slip" | "bank_statement" | "sale_deed" | "photo" | "other";
+        };
+        /** LoanDocumentPresignResponse */
+        LoanDocumentPresignResponse: {
+            /** Fields */
+            fields: {
+                [key: string]: string;
+            };
+            /** Max Bytes */
+            max_bytes: number;
+            /** Object Key */
+            object_key: string;
+            /** Upload Url */
+            upload_url: string;
+        };
+        /** LoanDocumentRead */
+        LoanDocumentRead: {
+            /** Doc Type */
+            doc_type: string;
+            /** Download Url */
+            download_url: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Loan Application Uuid
+             * Format: uuid
+             */
+            loan_application_uuid: string;
+            /** Review Note */
+            review_note: string | null;
+            /**
+             * Uploaded At
+             * Format: date-time
+             */
+            uploaded_at: string;
+            /** Verified */
+            verified: boolean;
+        };
         /**
          * LoanStatus
          * @enum {string}
@@ -4415,7 +4867,7 @@ export interface components {
          * NotificationType
          * @enum {string}
          */
-        NotificationType: "site_visit_requested" | "site_visit_cancelled" | "support_ticket_received" | "lead_assigned" | "lead_released" | "task_assigned" | "loan_status_updated" | "property_deal_status_updated" | "referral_converted" | "support_ticket_resolved";
+        NotificationType: "site_visit_requested" | "site_visit_cancelled" | "support_ticket_received" | "lead_assigned" | "lead_released" | "task_assigned" | "loan_status_updated" | "property_deal_status_updated" | "referral_converted" | "support_ticket_resolved" | "document_review_updated";
         /** OfferCreate */
         OfferCreate: {
             /** Business Line */
@@ -5697,6 +6149,8 @@ export interface components {
              * Format: uuid
              */
             id: string;
+            /** Review Note */
+            review_note: string | null;
             /**
              * Uploaded At
              * Format: date-time
@@ -5996,6 +6450,46 @@ export interface components {
         VapidPublicKeyResponse: {
             /** Public Key */
             public_key: string;
+        };
+        /** VerifiableDocumentListResponse */
+        VerifiableDocumentListResponse: {
+            /** Documents */
+            documents: components["schemas"]["VerifiableDocumentRead"][];
+        };
+        /** VerifiableDocumentRead */
+        VerifiableDocumentRead: {
+            /** Doc Type */
+            doc_type: string;
+            /**
+             * Document Id
+             * Format: uuid
+             */
+            document_id: string;
+            /** Download Url */
+            download_url: string;
+            /** Review Note */
+            review_note: string | null;
+            /**
+             * Source
+             * @enum {string}
+             */
+            source: "task" | "loan_application";
+            /**
+             * Subject Uuid
+             * Format: uuid
+             */
+            subject_uuid: string;
+            /**
+             * Uploaded At
+             * Format: date-time
+             */
+            uploaded_at: string;
+            /** Verified */
+            verified: boolean;
+            /** Verified At */
+            verified_at: string | null;
+            /** Verified By Name */
+            verified_by_name: string | null;
         };
         /** WebhookAck */
         WebhookAck: {
@@ -6502,6 +6996,109 @@ export interface operations {
             };
         };
     };
+    list_documents_api_v1_admin_document_verification_documents_get: {
+        parameters: {
+            query: {
+                source: "task" | "loan_application";
+                subject_uuid: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VerifiableDocumentListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    verify_document_api_v1_admin_document_verification_documents__document_id__patch: {
+        parameters: {
+            query: {
+                source: "task" | "loan_application";
+            };
+            header?: never;
+            path: {
+                document_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DocumentVerifyRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VerifiableDocumentRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_subjects_api_v1_admin_document_verification_subjects_get: {
+        parameters: {
+            query?: {
+                only_unverified?: boolean;
+                business_line?: ("loans" | "real_estate") | null;
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentSubjectListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_employees_api_v1_admin_employees_get: {
         parameters: {
             query?: {
@@ -6521,6 +7118,173 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AdminEmployeeRead"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_fee_cashbacks_api_v1_admin_fee_cashbacks_get: {
+        parameters: {
+            query?: {
+                status_filter?: components["schemas"]["FeeCashbackStatus"] | null;
+                business_line?: ("loans" | "real_estate") | null;
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeeCashbackListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_fee_cashback_api_v1_admin_fee_cashbacks_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FeeCashbackCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeeCashbackRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_eligible_api_v1_admin_fee_cashbacks_eligible_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EligibleFeeApplicationListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    cancel_fee_cashback_api_v1_admin_fee_cashbacks__cashback_id__cancel_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                cashback_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FeeCashbackCancelRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_fee_cashback_payout_api_v1_admin_fee_cashbacks__cashback_id__payout_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                cashback_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FeeCashbackPayoutRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeeCashbackPayoutResponse"];
                 };
             };
             /** @description Validation Error */
@@ -9144,6 +9908,137 @@ export interface operations {
             };
         };
     };
+    list_loan_documents_for_application_api_v1_loans_applications__application_id__documents_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                application_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LoanDocumentListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    confirm_loan_document_api_v1_loans_applications__application_id__documents_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                application_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LoanDocumentCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LoanDocumentRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    presign_loan_document_api_v1_loans_applications__application_id__documents_presign_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                application_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LoanDocumentPresignRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LoanDocumentPresignResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_loan_document_api_v1_loans_applications__application_id__documents__document_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                application_id: string;
+                document_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_banks_api_v1_loans_banks_get: {
         parameters: {
             query?: {
@@ -9171,6 +10066,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_own_loan_documents_api_v1_loans_documents_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LoanDocumentListResponse"];
                 };
             };
         };

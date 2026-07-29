@@ -4,9 +4,11 @@ import Link from "next/link";
 import {
   BadgePercent,
   BarChart3,
+  Banknote,
   Building2,
   ClipboardCheck,
   Clock,
+  FileCheck2,
   FileText,
   Gift,
   Headset,
@@ -312,6 +314,31 @@ export function AdminHome() {
                 <CardTitle className="mt-2">Agent commissions</CardTitle>
                 <CardDescription>
                   Record the negotiated commission for a disbursed loan or a closed deal.
+                </CardDescription>
+              </CardHeader>
+            </Card>
+          </Link>
+
+          <Link href="/dashboard/fee-cashbacks">
+            <Card className="h-full transition-colors hover:border-brand-cta">
+              <CardHeader>
+                <Banknote className="h-6 w-6 text-brand-cta" aria-hidden="true" />
+                <CardTitle className="mt-2">Processing-fee cashback</CardTitle>
+                <CardDescription>
+                  Return the processing fee to a client whose loan disbursed with a cashback
+                  outcome.
+                </CardDescription>
+              </CardHeader>
+            </Card>
+          </Link>
+
+          <Link href="/dashboard/document-verification">
+            <Card className="h-full transition-colors hover:border-brand-cta">
+              <CardHeader>
+                <FileCheck2 className="h-6 w-6 text-brand-cta" aria-hidden="true" />
+                <CardTitle className="mt-2">Document verification</CardTitle>
+                <CardDescription>
+                  Confirm field-collected and client-uploaded documents are complete and usable.
                 </CardDescription>
               </CardHeader>
             </Card>

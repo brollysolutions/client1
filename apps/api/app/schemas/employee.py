@@ -83,5 +83,6 @@ class TaskDocumentRead(BaseModel):
     id: UUID
     doc_type: str
     verified: bool
+    review_note: str | None
     uploaded_at: datetime
     download_url: str

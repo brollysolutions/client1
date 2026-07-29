@@ -82,9 +82,11 @@ class Task(Base):
 class TaskDocument(Base):
     """One row per file collected during a document_collection task (§5.2).
 
-    `verified`/`verified_by_profile_uuid`/`verified_at` are written by a later
-    Admin-side slice, never by the collecting employee — kept here so that
-    slice extends this table rather than re-migrating it.
+    `verified`/`verified_by_profile_uuid`/`verified_at`/`review_note` are
+    written by the Admin document-verification slice (FR-7.4,
+    services/document_verification.py), never by the collecting employee —
+    the RLS/GRANT split that makes this safe lives in migration
+    c8d9e0f1a2b3.
     """
 
     __tablename__ = "task_documents"
@@ -100,6 +102,7 @@ class TaskDocument(Base):
         UUID(as_uuid=True), ForeignKey("staff_profiles.id"), nullable=True
     )
     verified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    review_note: Mapped[str | None] = mapped_column(Text, nullable=True)
     uploaded_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, default=datetime.utcnow
     )

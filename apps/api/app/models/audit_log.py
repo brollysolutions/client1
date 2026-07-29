@@ -44,16 +44,14 @@ from app.models.user import business_line_enum
 
 
 class AuditAction(enum.StrEnum):
-    """Every value here has a real writer in `app/services/`. The spec names
-    `commission_entered` as a fourth example alongside the three below; agent
-    commission entry (§3 #5 of the feature-status tracker) is not built, so that
-    value is deliberately absent rather than shipped dead — adding an enum value
-    later is a one-line migration, and this repo's convention is one such value
-    per migration.
+    """Every value here has a real writer in `app/services/`.
 
     The five LOAN_TYPE_*/BANK_* values (migration 1dd0bc6bed88) are written by
     `services/loan_config.py`. No `*_deleted` siblings exist — that module never
     deletes a row, only toggles `active`, which is just another `*_updated`.
+
+    The two FEE_CASHBACK_* values (migration d3e4f5a6b7c8) are written by
+    `services/fee_cashbacks.py` (FR-6.6 processing-fee cashback).
     """
 
     AGENT_APPROVED = "agent_approved"
@@ -73,6 +71,10 @@ class AuditAction(enum.StrEnum):
     BANK_AVAILABILITY_UPDATED = "bank_availability_updated"
     COMMISSION_ENTERED = "commission_entered"
     COMMISSION_CANCELLED = "commission_cancelled"
+    FEE_CASHBACK_ENTERED = "fee_cashback_entered"
+    FEE_CASHBACK_CANCELLED = "fee_cashback_cancelled"
+    DOCUMENT_VERIFIED = "document_verified"
+    DOCUMENT_UNVERIFIED = "document_unverified"
 
 
 _ev = lambda x: [e.value for e in x]  # noqa: E731

@@ -25,8 +25,10 @@ from app.api.v1.banners import router as banners_router
 from app.api.v1.bookmarks import router as bookmarks_router
 from app.api.v1.commissions import router as commissions_router
 from app.api.v1.content import router as content_router
+from app.api.v1.document_verification import router as document_verification_router
 from app.api.v1.employee import router as employee_router
 from app.api.v1.enquiries import router as enquiries_router
+from app.api.v1.fee_cashbacks import router as fee_cashbacks_router
 from app.api.v1.leads import router as leads_router
 from app.api.v1.loans import router as loans_router
 from app.api.v1.notifications import router as notifications_router
@@ -126,6 +128,14 @@ app.include_router(
 )
 app.include_router(reporting_router, prefix="/api/v1/admin/reports", tags=["reports"])
 app.include_router(commissions_router, prefix="/api/v1/admin/commissions", tags=["commissions"])
+app.include_router(
+    fee_cashbacks_router, prefix="/api/v1/admin/fee-cashbacks", tags=["fee-cashbacks"]
+)
+app.include_router(
+    document_verification_router,
+    prefix="/api/v1/admin/document-verification",
+    tags=["document-verification"],
+)
 
 
 @app.get("/")
