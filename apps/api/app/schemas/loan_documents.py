@@ -1,11 +1,9 @@
 """Client KYC-upload schemas against a loan application (docs/specs/client-kyc-upload.md).
 
 Same fixed doc-type vocabulary as `schemas/employee.DocTypeLiteral` (the DB
-column stays free TEXT, per the ERD convention). Content types include
-`image/webp`, matching `schemas/agent_applications.AgentDocContentTypeLiteral`
-and what `file-field.tsx` already advertises — `schemas/employee.
-DocContentTypeLiteral` excluding webp while its own tiles offer it is a
-separate, pre-existing bug (feature-status.md §2), not widened here.
+column stays free TEXT, per the ERD convention). Content types match
+`schemas/agent_applications.AgentDocContentTypeLiteral` and
+`schemas/employee.DocContentTypeLiteral` — all three are the same set.
 """
 
 from __future__ import annotations
