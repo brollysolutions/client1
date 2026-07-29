@@ -50,7 +50,11 @@ async def _seed(mobile: str, role_value: str, business_line: str | None) -> None
         print(f"[seed_staff] Invalid role '{role_value}'. Choose one of: {valid}.")
         return
 
-    scope = ProfileScope.PLATFORM if role == StaffRole.SUB_ADMIN else ProfileScope.LINE
+    scope = (
+        ProfileScope.PLATFORM
+        if role in (StaffRole.SUB_ADMIN, StaffRole.ADMIN)
+        else ProfileScope.LINE
+    )
     if scope == ProfileScope.LINE:
         if business_line not in ("loans", "real_estate"):
             print(
