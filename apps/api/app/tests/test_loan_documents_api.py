@@ -1,0 +1,398 @@
+"""Client KYC-upload against a loan application (docs/specs/client-kyc-upload.md).
+
+Covers presign/confirm/list/delete, the object-key-claim guards (foreign
+prefix, doc_type-suffix mismatch, replay), the confirm-time head_object
+verification (missing object -> 422, transport failure -> 502), the
+per-application document cap, the terminal-application write guard, cross-
+client 404 (RLS-indistinguishable-from-missing), and the
+verified-document-cannot-be-deleted guard.
+"""
+
+from __future__ import annotations
+
+import uuid
+
+import pytest
+from httpx import AsyncClient
+from sqlalchemy import text
+
+from app.services import storage
+from conftest import full_registration
+
+pytestmark = pytest.mark.asyncio
+
+
+def _headers(token: str) -> dict[str, str]:
+    return {"Authorization": f"Bearer {token}"}
+
+
+def _mock_uploads_ok(monkeypatch: pytest.MonkeyPatch, size: int = 2048) -> None:
+    monkeypatch.setattr(storage, "head_object", lambda _key: size)
+
+
+def _mock_uploads_missing(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(storage, "head_object", lambda _key: None)
+
+
+def _mock_uploads_transport_error(monkeypatch: pytest.MonkeyPatch) -> None:
+    def fake(_key: str) -> int:
+        raise ConnectionError("storage unreachable")
+
+    monkeypatch.setattr(storage, "head_object", fake)
+
+
+async def _make_client_with_application(client: AsyncClient) -> tuple[str, str]:
+    """Registers a real client and creates a real loan application via the
+    HTTP API. Returns (access_token, application_id)."""
+    token, _mobile = await full_registration(client, lines=["loans"])
+    res = await client.get("/api/v1/loans/loan-types", headers=_headers(token))
+    assert res.status_code == 200, res.text
+    loan_types = res.json()["loan_types"]
+    if not loan_types:
+        # Seed one directly if none exist yet in this dev/test DB.
+        loan_type_id = await _seed_loan_type()
+    else:
+        loan_type_id = loan_types[0]["id"]
+
+    create_res = await client.post(
+        "/api/v1/loans/applications",
+        headers=_headers(token),
+        json={"loan_type_id": loan_type_id, "amount_requested": "100000"},
+    )
+    assert create_res.status_code == 201, create_res.text
+    return token, create_res.json()["id"]
+
+
+async def _seed_loan_type() -> str:
+    import app.db.session as _session_mod
+    from app.models.loan import LoanType
+
+    async with _session_mod.AsyncSessionLocal() as db:
+        loan_type = LoanType(name=f"lt_{uuid.uuid4().hex[:8]}", label="Test Loan Type")
+        db.add(loan_type)
+        await db.commit()
+        return str(loan_type.id)
+
+
+async def _presign_and_confirm(
+    client: AsyncClient, token: str, application_id: str, *, doc_type: str = "aadhaar_front"
+) -> dict:
+    presign_res = await client.post(
+        f"/api/v1/loans/applications/{application_id}/documents/presign",
+        headers=_headers(token),
+        json={"doc_type": doc_type, "content_type": "image/jpeg"},
+    )
+    assert presign_res.status_code == 200, presign_res.text
+    object_key = presign_res.json()["object_key"]
+
+    confirm_res = await client.post(
+        f"/api/v1/loans/applications/{application_id}/documents",
+        headers=_headers(token),
+        json={"doc_type": doc_type, "object_key": object_key, "content_type": "image/jpeg"},
+    )
+    return confirm_res
+
+
+async def _set_application_status(application_id: str, status: str) -> None:
+    import app.db.session as _session_mod
+
+    async with _session_mod.AsyncSessionLocal() as db:
+        await db.execute(
+            text("UPDATE loan_applications SET status = :s WHERE id = :id"),
+            {"s": status, "id": application_id},
+        )
+        await db.commit()
+
+
+async def _set_document_verified(document_id: str, verified: bool = True) -> None:
+    import app.db.session as _session_mod
+
+    async with _session_mod.AsyncSessionLocal() as db:
+        await db.execute(
+            text("UPDATE loan_documents SET verified = :v WHERE id = :id"),
+            {"v": verified, "id": document_id},
+        )
+        await db.commit()
+
+
+# ---------------------------------------------------------------------------
+# Presign
+# ---------------------------------------------------------------------------
+
+
+async def test_presign_returns_fields_and_max_bytes(client: AsyncClient) -> None:
+    token, application_id = await _make_client_with_application(client)
+    res = await client.post(
+        f"/api/v1/loans/applications/{application_id}/documents/presign",
+        headers=_headers(token),
+        json={"doc_type": "aadhaar_front", "content_type": "image/jpeg"},
+    )
+    assert res.status_code == 200, res.text
+    body = res.json()
+    assert body["object_key"].startswith(f"loan-applications/{application_id}/")
+    assert "upload_url" in body
+    assert isinstance(body["fields"], dict)
+    assert body["max_bytes"] == 5 * 1024 * 1024
+
+
+async def test_presign_on_closed_application_conflicts(client: AsyncClient) -> None:
+    token, application_id = await _make_client_with_application(client)
+    await _set_application_status(application_id, "closed")
+    res = await client.post(
+        f"/api/v1/loans/applications/{application_id}/documents/presign",
+        headers=_headers(token),
+        json={"doc_type": "aadhaar_front", "content_type": "image/jpeg"},
+    )
+    assert res.status_code == 409, res.text
+
+
+async def test_presign_on_another_clients_application_404s(client: AsyncClient) -> None:
+    _owner_token, application_id = await _make_client_with_application(client)
+    other_token, _mobile = await full_registration(client, lines=["loans"])
+    res = await client.post(
+        f"/api/v1/loans/applications/{application_id}/documents/presign",
+        headers=_headers(other_token),
+        json={"doc_type": "aadhaar_front", "content_type": "image/jpeg"},
+    )
+    assert res.status_code == 404, res.text
+
+
+# ---------------------------------------------------------------------------
+# Confirm — key-claim guards + head_object verification
+# ---------------------------------------------------------------------------
+
+
+async def test_confirm_happy_path(client: AsyncClient, monkeypatch: pytest.MonkeyPatch) -> None:
+    _mock_uploads_ok(monkeypatch)
+    token, application_id = await _make_client_with_application(client)
+    res = await _presign_and_confirm(client, token, application_id)
+    assert res.status_code == 201, res.text
+    body = res.json()
+    assert body["doc_type"] == "aadhaar_front"
+    assert body["verified"] is False
+    assert body["review_note"] is None
+    assert "download_url" in body
+
+
+async def test_confirm_foreign_object_key_rejected(
+    client: AsyncClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _mock_uploads_ok(monkeypatch)
+    token, application_id = await _make_client_with_application(client)
+    res = await client.post(
+        f"/api/v1/loans/applications/{application_id}/documents",
+        headers=_headers(token),
+        json={
+            "doc_type": "aadhaar_front",
+            "object_key": f"loan-applications/{uuid.uuid4()}/{uuid.uuid4().hex}-aadhaar_front",
+            "content_type": "image/jpeg",
+        },
+    )
+    assert res.status_code == 400, res.text
+
+
+async def test_confirm_doc_type_suffix_mismatch_rejected(
+    client: AsyncClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _mock_uploads_ok(monkeypatch)
+    token, application_id = await _make_client_with_application(client)
+    presign_res = await client.post(
+        f"/api/v1/loans/applications/{application_id}/documents/presign",
+        headers=_headers(token),
+        json={"doc_type": "aadhaar_front", "content_type": "image/jpeg"},
+    )
+    object_key = presign_res.json()["object_key"]
+    # Confirm with a DIFFERENT doc_type than the key was presigned for.
+    res = await client.post(
+        f"/api/v1/loans/applications/{application_id}/documents",
+        headers=_headers(token),
+        json={"doc_type": "pan", "object_key": object_key, "content_type": "image/jpeg"},
+    )
+    assert res.status_code == 400, res.text
+
+
+async def test_confirm_missing_upload_rejected(
+    client: AsyncClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    token, application_id = await _make_client_with_application(client)
+    presign_res = await client.post(
+        f"/api/v1/loans/applications/{application_id}/documents/presign",
+        headers=_headers(token),
+        json={"doc_type": "aadhaar_front", "content_type": "image/jpeg"},
+    )
+    object_key = presign_res.json()["object_key"]
+    _mock_uploads_missing(monkeypatch)
+    res = await client.post(
+        f"/api/v1/loans/applications/{application_id}/documents",
+        headers=_headers(token),
+        json={"doc_type": "aadhaar_front", "object_key": object_key, "content_type": "image/jpeg"},
+    )
+    assert res.status_code == 422, res.text
+
+
+async def test_confirm_storage_transport_error_502s(
+    client: AsyncClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    token, application_id = await _make_client_with_application(client)
+    presign_res = await client.post(
+        f"/api/v1/loans/applications/{application_id}/documents/presign",
+        headers=_headers(token),
+        json={"doc_type": "aadhaar_front", "content_type": "image/jpeg"},
+    )
+    object_key = presign_res.json()["object_key"]
+    _mock_uploads_transport_error(monkeypatch)
+    res = await client.post(
+        f"/api/v1/loans/applications/{application_id}/documents",
+        headers=_headers(token),
+        json={"doc_type": "aadhaar_front", "object_key": object_key, "content_type": "image/jpeg"},
+    )
+    assert res.status_code == 502, res.text
+
+
+async def test_confirm_key_replay_rejected(
+    client: AsyncClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _mock_uploads_ok(monkeypatch)
+    token, application_id = await _make_client_with_application(client)
+    presign_res = await client.post(
+        f"/api/v1/loans/applications/{application_id}/documents/presign",
+        headers=_headers(token),
+        json={"doc_type": "aadhaar_front", "content_type": "image/jpeg"},
+    )
+    object_key = presign_res.json()["object_key"]
+    body = {"doc_type": "aadhaar_front", "object_key": object_key, "content_type": "image/jpeg"}
+    res1 = await client.post(
+        f"/api/v1/loans/applications/{application_id}/documents",
+        headers=_headers(token),
+        json=body,
+    )
+    assert res1.status_code == 201, res1.text
+    res2 = await client.post(
+        f"/api/v1/loans/applications/{application_id}/documents",
+        headers=_headers(token),
+        json=body,
+    )
+    assert res2.status_code == 400, res2.text
+
+
+async def test_confirm_on_closed_application_conflicts(
+    client: AsyncClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _mock_uploads_ok(monkeypatch)
+    token, application_id = await _make_client_with_application(client)
+    presign_res = await client.post(
+        f"/api/v1/loans/applications/{application_id}/documents/presign",
+        headers=_headers(token),
+        json={"doc_type": "aadhaar_front", "content_type": "image/jpeg"},
+    )
+    object_key = presign_res.json()["object_key"]
+    await _set_application_status(application_id, "closed")
+    res = await client.post(
+        f"/api/v1/loans/applications/{application_id}/documents",
+        headers=_headers(token),
+        json={"doc_type": "aadhaar_front", "object_key": object_key, "content_type": "image/jpeg"},
+    )
+    assert res.status_code == 409, res.text
+
+
+async def test_document_cap_enforced(client: AsyncClient, monkeypatch: pytest.MonkeyPatch) -> None:
+    _mock_uploads_ok(monkeypatch)
+    token, application_id = await _make_client_with_application(client)
+    doc_types = [
+        "aadhaar_front",
+        "aadhaar_back",
+        "pan",
+        "salary_slip",
+        "bank_statement",
+        "sale_deed",
+        "photo",
+        "other",
+        "aadhaar_front",
+        "aadhaar_back",
+        "pan",
+        "salary_slip",
+    ]
+    assert len(doc_types) == 12
+    for doc_type in doc_types:
+        res = await _presign_and_confirm(client, token, application_id, doc_type=doc_type)
+        assert res.status_code == 201, res.text
+
+    # 13th document exceeds LOAN_DOCUMENT_MAX_PER_APPLICATION (12).
+    over_cap_res = await _presign_and_confirm(
+        client, token, application_id, doc_type="bank_statement"
+    )
+    assert over_cap_res.status_code == 409, over_cap_res.text
+
+
+# ---------------------------------------------------------------------------
+# List
+# ---------------------------------------------------------------------------
+
+
+async def test_list_per_application(client: AsyncClient, monkeypatch: pytest.MonkeyPatch) -> None:
+    _mock_uploads_ok(monkeypatch)
+    token, application_id = await _make_client_with_application(client)
+    await _presign_and_confirm(client, token, application_id)
+
+    res = await client.get(
+        f"/api/v1/loans/applications/{application_id}/documents", headers=_headers(token)
+    )
+    assert res.status_code == 200, res.text
+    assert len(res.json()["documents"]) == 1
+
+
+async def test_list_own_documents_across_applications_scoped_to_caller(
+    client: AsyncClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _mock_uploads_ok(monkeypatch)
+    token_a, application_a = await _make_client_with_application(client)
+    await _presign_and_confirm(client, token_a, application_a)
+
+    token_b, application_b = await _make_client_with_application(client)
+    await _presign_and_confirm(client, token_b, application_b)
+
+    res_a = await client.get("/api/v1/loans/documents", headers=_headers(token_a))
+    assert res_a.status_code == 200, res_a.text
+    ids_a = {d["loan_application_uuid"] for d in res_a.json()["documents"]}
+    assert application_a in ids_a
+    assert application_b not in ids_a
+
+
+# ---------------------------------------------------------------------------
+# Delete
+# ---------------------------------------------------------------------------
+
+
+async def test_delete_own_document(client: AsyncClient, monkeypatch: pytest.MonkeyPatch) -> None:
+    _mock_uploads_ok(monkeypatch)
+    token, application_id = await _make_client_with_application(client)
+    confirm_res = await _presign_and_confirm(client, token, application_id)
+    document_id = confirm_res.json()["id"]
+
+    delete_res = await client.delete(
+        f"/api/v1/loans/applications/{application_id}/documents/{document_id}",
+        headers=_headers(token),
+    )
+    assert delete_res.status_code == 204, delete_res.text
+
+    list_res = await client.get(
+        f"/api/v1/loans/applications/{application_id}/documents", headers=_headers(token)
+    )
+    assert list_res.json()["documents"] == []
+
+
+async def test_delete_verified_document_conflicts(
+    client: AsyncClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _mock_uploads_ok(monkeypatch)
+    token, application_id = await _make_client_with_application(client)
+    confirm_res = await _presign_and_confirm(client, token, application_id)
+    document_id = confirm_res.json()["id"]
+
+    await _set_document_verified(document_id, verified=True)
+
+    delete_res = await client.delete(
+        f"/api/v1/loans/applications/{application_id}/documents/{document_id}",
+        headers=_headers(token),
+    )
+    assert delete_res.status_code == 409, delete_res.text

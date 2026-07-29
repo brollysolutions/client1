@@ -83,6 +83,11 @@ class Settings(BaseSettings):
     # apps/web/components/apply-as-agent/file-field.tsx; keep both in sync.
     AGENT_APPLICATION_MAX_UPLOAD_BYTES: int = 5 * 1024 * 1024
 
+    # Same reasoning as AGENT_APPLICATION_MAX_UPLOAD_BYTES, for the client
+    # loan-application KYC upload path (services/loan_documents.py).
+    LOAN_DOCUMENT_MAX_UPLOAD_BYTES: int = 5 * 1024 * 1024
+    LOAN_DOCUMENT_MAX_PER_APPLICATION: int = 12
+
     # Return the plaintext OTP in the API response (otp_hint) when delivery is
     # mocked, so local/dev flows are testable without a real voice/email channel.
     # SECURITY: fail-closed. Must be explicitly turned on; never enable in any
