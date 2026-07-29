@@ -13,6 +13,11 @@ import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { FetchError } from "@/features/dashboard/fetch-error";
 import {
+  uploadLoanDocuments,
+  type LoanDocType,
+  type LoanDocumentUploadEntry,
+} from "@/lib/loan-documents";
+import {
   createLoanApplication,
   getLoanApplications,
   getLoanTypes,
@@ -40,10 +45,9 @@ function validateAmount(value: string): string | undefined {
 // Dashboard "Apply" — creates a real loan_application (not a lead). Rebuilt
 // in the landing partner-form's design language (IconInput, FileField KYC
 // tiles, a completion meter): components/apply-as-agent/file-field.tsx,
-// components/icon-input.tsx. KYC tiles render and validate but stay optional
-// here (upload itself is stubbed, same as the partner form today — see
-// TODO(loan-kyc-upload)); gating a real application on files that go nowhere
-// yet would be misleading, so only loan type + amount are required.
+// components/icon-input.tsx. KYC tiles are optional — a representative can
+// also collect these later — so only loan type + amount are required to
+// submit; any files picked upload right after the application is created.
 export default function ApplyPage() {
   const router = useRouter();
 
@@ -58,13 +62,14 @@ export default function ApplyPage() {
   const [loanTypeId, setLoanTypeId] = React.useState("");
   const [amount, setAmount] = React.useState("");
   const [amountError, setAmountError] = React.useState<string | undefined>();
-  // TODO(loan-kyc-upload): wire these to a real upload once file storage
-  // ships; today they're selected/previewed/validated client-side only.
   const [aadhaarFront, setAadhaarFront] = React.useState<File | null>(null);
   const [aadhaarBack, setAadhaarBack] = React.useState<File | null>(null);
   const [pan, setPan] = React.useState<File | null>(null);
 
   const [submitting, setSubmitting] = React.useState(false);
+  const [uploadProgress, setUploadProgress] = React.useState<{ done: number; total: number } | null>(
+    null,
+  );
 
   const retry = React.useCallback(() => {
     setStatus("loading");
@@ -117,21 +122,55 @@ export default function ApplyPage() {
     setSubmitting(true);
     const result = await createLoanApplication({ loanTypeId, amountRequested: amount.trim() });
 
-    if (result.ok) {
-      toast.success("Application submitted", {
-        description: "We'll be in touch about the next steps.",
-      });
-      router.push(`/dashboard/loans/${result.data.id}`);
+    if (!result.ok) {
+      setSubmitting(false);
+      if (result.status === 409) {
+        const appsRes = await getLoanApplications();
+        setActiveApplication(appsRes.ok ? findActiveApplication(appsRes.data) : null);
+        return;
+      }
+      toast.error(result.error || "Couldn't submit your application. Please try again.");
       return;
     }
 
-    setSubmitting(false);
-    if (result.status === 409) {
-      const appsRes = await getLoanApplications();
-      setActiveApplication(appsRes.ok ? findActiveApplication(appsRes.data) : null);
+    // The application itself is created — this is the part the user actually
+    // asked for, so confirm it immediately and never roll it back over a
+    // document-upload failure. Uploads run after, sequentially; a bad file
+    // must not cost the other, already-succeeded ones.
+    toast.success("Application submitted", {
+      description: "We'll be in touch about the next steps.",
+    });
+    const applicationId = result.data.id;
+
+    const entries: LoanDocumentUploadEntry[] = (
+      [
+        { docType: "aadhaar_front" as LoanDocType, file: aadhaarFront },
+        { docType: "aadhaar_back" as LoanDocType, file: aadhaarBack },
+        { docType: "pan" as LoanDocType, file: pan },
+      ] as const
+    )
+      .filter((e): e is { docType: LoanDocType; file: File } => e.file !== null)
+      .map((e) => ({ docType: e.docType, file: e.file }));
+
+    if (entries.length === 0) {
+      router.push(`/dashboard/loans/${applicationId}`);
       return;
     }
-    toast.error(result.error || "Couldn't submit your application. Please try again.");
+
+    setUploadProgress({ done: 0, total: entries.length });
+    const { failed } = await uploadLoanDocuments(applicationId, entries, (done, total) =>
+      setUploadProgress({ done, total }),
+    );
+    setUploadProgress(null);
+
+    if (failed.length === 0) {
+      router.push(`/dashboard/loans/${applicationId}`);
+      return;
+    }
+    toast.warning("Application created. Some documents didn't upload.", {
+      description: "You can add them from Documents.",
+    });
+    router.push("/dashboard/documents");
   }
 
   if (status === "loading") {
@@ -289,14 +328,21 @@ export default function ApplyPage() {
           </div>
         </fieldset>
 
-        <Button
-          type="submit"
-          disabled={!canSubmit}
-          className="h-12 bg-brand-cta text-base text-white hover:bg-brand-cta-hover focus-visible:ring-brand-cta"
-        >
-          {submitting && <Loader2 className="h-4 w-4 animate-spin" aria-hidden />}
-          {submitting ? "Submitting..." : "Submit application"}
-        </Button>
+        <div className="grid gap-2">
+          <Button
+            type="submit"
+            disabled={!canSubmit}
+            className="h-12 bg-brand-cta text-base text-white hover:bg-brand-cta-hover focus-visible:ring-brand-cta"
+          >
+            {submitting && <Loader2 className="h-4 w-4 animate-spin" aria-hidden />}
+            {submitting ? "Submitting..." : "Submit application"}
+          </Button>
+          <p aria-live="polite" className="text-center text-sm text-text-secondary">
+            {uploadProgress
+              ? `Uploading ${uploadProgress.done} of ${uploadProgress.total}…`
+              : null}
+          </p>
+        </div>
       </form>
     </div>
   );

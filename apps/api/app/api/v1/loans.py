@@ -25,6 +25,14 @@ from sqlalchemy.orm import joinedload
 from app.core.deps import CurrentUser, get_active_user
 from app.db.session import get_db
 from app.models.loan import Bank, BankLoanTypeAvailability, LoanApplication, LoanType
+from app.models.loan_document import LoanDocument
+from app.schemas.loan_documents import (
+    LoanDocumentCreate,
+    LoanDocumentListResponse,
+    LoanDocumentPresignRequest,
+    LoanDocumentPresignResponse,
+    LoanDocumentRead,
+)
 from app.schemas.loans import (
     BankListResponse,
     BankRead,
@@ -34,9 +42,38 @@ from app.schemas.loans import (
     LoanTypeListResponse,
     LoanTypeRead,
 )
+from app.services import loan_documents, storage
 from app.services.leads import resolve_loans_lead
 
 router = APIRouter()
+
+_LOAN_DOCUMENT_ERROR_STATUS = {
+    loan_documents.ApplicationNotFound: status.HTTP_404_NOT_FOUND,
+    loan_documents.ApplicationNotWritable: status.HTTP_409_CONFLICT,
+    loan_documents.ObjectKeyMismatch: status.HTTP_400_BAD_REQUEST,
+    loan_documents.UploadMissing: status.HTTP_422_UNPROCESSABLE_ENTITY,
+    loan_documents.StorageUnavailable: status.HTTP_502_BAD_GATEWAY,
+    loan_documents.DocumentLimitReached: status.HTTP_409_CONFLICT,
+    loan_documents.DocumentNotFound: status.HTTP_404_NOT_FOUND,
+    loan_documents.DocumentAlreadyVerified: status.HTTP_409_CONFLICT,
+}
+
+
+def _map_loan_document_error(exc: loan_documents.LoanDocumentError) -> HTTPException:
+    code = _LOAN_DOCUMENT_ERROR_STATUS.get(type(exc), status.HTTP_400_BAD_REQUEST)
+    return HTTPException(status_code=code, detail=str(exc))
+
+
+def _to_loan_document_read(document: LoanDocument) -> LoanDocumentRead:
+    return LoanDocumentRead(
+        id=document.id,
+        loan_application_uuid=document.loan_application_uuid,
+        doc_type=document.doc_type,
+        verified=document.verified,
+        review_note=document.review_note,
+        uploaded_at=document.uploaded_at,
+        download_url=storage.presign_download(document.object_key),
+    )
 
 
 def _require_loans_client(current_user: CurrentUser) -> None:
@@ -202,3 +239,117 @@ async def create_loan_application(
     )
     created = result.scalar_one()
     return LoanApplicationRead.model_validate(created, from_attributes=True)
+
+
+@router.post(
+    "/applications/{application_id}/documents/presign",
+    response_model=LoanDocumentPresignResponse,
+)
+async def presign_loan_document(
+    application_id: UUID,
+    req: LoanDocumentPresignRequest,
+    current_user: CurrentUser = Depends(get_active_user),
+    db: AsyncSession = Depends(get_db),
+) -> LoanDocumentPresignResponse:
+    _require_loans_client(current_user)
+    assert current_user.client_profile_uuid is not None
+    try:
+        application = await loan_documents.get_own_application(
+            db, application_id, current_user.client_profile_uuid
+        )
+        object_key, upload_url, fields, max_bytes = loan_documents.presign_document_upload(
+            application, req.doc_type, req.content_type
+        )
+    except loan_documents.LoanDocumentError as exc:
+        raise _map_loan_document_error(exc) from exc
+    return LoanDocumentPresignResponse(
+        object_key=object_key,
+        upload_url=upload_url,
+        fields=fields,
+        max_bytes=max_bytes,
+    )
+
+
+@router.post(
+    "/applications/{application_id}/documents",
+    response_model=LoanDocumentRead,
+    status_code=status.HTTP_201_CREATED,
+)
+async def confirm_loan_document(
+    application_id: UUID,
+    req: LoanDocumentCreate,
+    current_user: CurrentUser = Depends(get_active_user),
+    db: AsyncSession = Depends(get_db),
+) -> LoanDocumentRead:
+    _require_loans_client(current_user)
+    assert current_user.client_profile_uuid is not None
+    try:
+        application = await loan_documents.get_own_application(
+            db, application_id, current_user.client_profile_uuid
+        )
+        document = await loan_documents.create_loan_document(
+            db,
+            application,
+            doc_type=req.doc_type,
+            object_key=req.object_key,
+            content_type=req.content_type,
+            uploaded_by_uuid=current_user.id,
+        )
+    except loan_documents.LoanDocumentError as exc:
+        raise _map_loan_document_error(exc) from exc
+    return _to_loan_document_read(document)
+
+
+@router.get(
+    "/applications/{application_id}/documents",
+    response_model=LoanDocumentListResponse,
+)
+async def list_loan_documents_for_application(
+    application_id: UUID,
+    current_user: CurrentUser = Depends(get_active_user),
+    db: AsyncSession = Depends(get_db),
+) -> LoanDocumentListResponse:
+    _require_loans_client(current_user)
+    assert current_user.client_profile_uuid is not None
+    try:
+        await loan_documents.get_own_application(
+            db, application_id, current_user.client_profile_uuid
+        )
+    except loan_documents.LoanDocumentError as exc:
+        raise _map_loan_document_error(exc) from exc
+    documents = await loan_documents.list_loan_documents(db, application_id)
+    return LoanDocumentListResponse(documents=[_to_loan_document_read(d) for d in documents])
+
+
+@router.get("/documents", response_model=LoanDocumentListResponse)
+async def list_own_loan_documents(
+    current_user: CurrentUser = Depends(get_active_user),
+    db: AsyncSession = Depends(get_db),
+) -> LoanDocumentListResponse:
+    """All of the caller's documents across every application — RLS's
+    client-owner branch on `loan_documents_select` is the only filter that
+    matters."""
+    _require_loans_client(current_user)
+    documents = await loan_documents.list_for_client(db)
+    return LoanDocumentListResponse(documents=[_to_loan_document_read(d) for d in documents])
+
+
+@router.delete(
+    "/applications/{application_id}/documents/{document_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+async def delete_loan_document(
+    application_id: UUID,
+    document_id: UUID,
+    current_user: CurrentUser = Depends(get_active_user),
+    db: AsyncSession = Depends(get_db),
+) -> None:
+    _require_loans_client(current_user)
+    assert current_user.client_profile_uuid is not None
+    try:
+        await loan_documents.get_own_application(
+            db, application_id, current_user.client_profile_uuid
+        )
+        await loan_documents.delete_loan_document(db, application_id, document_id)
+    except loan_documents.LoanDocumentError as exc:
+        raise _map_loan_document_error(exc) from exc

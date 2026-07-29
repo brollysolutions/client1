@@ -141,6 +141,7 @@ def _to_document_read(document: TaskDocument) -> TaskDocumentRead:
         id=document.id,
         doc_type=document.doc_type,
         verified=document.verified,
+        review_note=document.review_note,
         uploaded_at=document.uploaded_at,
         download_url=storage.presign_download(document.object_key),
     )

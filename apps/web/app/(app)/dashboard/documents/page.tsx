@@ -1,6 +1,4 @@
-import { FolderClosed } from "lucide-react";
-
-import { ComingSoon } from "@/features/dashboard/coming-soon";
+import { DocumentsView } from "@/features/dashboard/documents-view";
 
 export default function DocumentsPage() {
   return (
@@ -11,12 +9,7 @@ export default function DocumentsPage() {
           Your KYC and loan documents, all in one place.
         </p>
       </div>
-      <ComingSoon
-        icon={FolderClosed}
-        title="Document uploads are coming soon"
-        description="Soon you'll upload your KYC documents here to speed up approvals and keep everything in one place."
-        accentClassName="bg-loans-soft text-loans-accent"
-      />
+      <DocumentsView />
     </div>
   );
 }

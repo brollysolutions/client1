@@ -2160,7 +2160,7 @@
         "type": "object"
       },
       "AuditAction": {
-        "description": "Every value here has a real writer in `app/services/`. The spec names\n`commission_entered` as a fourth example alongside the three below; agent\ncommission entry (\u00a73 #5 of the feature-status tracker) is not built, so that\nvalue is deliberately absent rather than shipped dead \u2014 adding an enum value\nlater is a one-line migration, and this repo's convention is one such value\nper migration.\n\nThe five LOAN_TYPE_*/BANK_* values (migration 1dd0bc6bed88) are written by\n`services/loan_config.py`. No `*_deleted` siblings exist \u2014 that module never\ndeletes a row, only toggles `active`, which is just another `*_updated`.",
+        "description": "Every value here has a real writer in `app/services/`.\n\nThe five LOAN_TYPE_*/BANK_* values (migration 1dd0bc6bed88) are written by\n`services/loan_config.py`. No `*_deleted` siblings exist \u2014 that module never\ndeletes a row, only toggles `active`, which is just another `*_updated`.\n\nThe two FEE_CASHBACK_* values (migration d3e4f5a6b7c8) are written by\n`services/fee_cashbacks.py` (FR-6.6 processing-fee cashback).",
         "enum": [
           "agent_approved",
           "agent_rejected",
@@ -2178,7 +2178,11 @@
           "bank_updated",
           "bank_availability_updated",
           "commission_entered",
-          "commission_cancelled"
+          "commission_cancelled",
+          "fee_cashback_entered",
+          "fee_cashback_cancelled",
+          "document_verified",
+          "document_unverified"
         ],
         "title": "AuditAction",
         "type": "string"
@@ -3656,6 +3660,124 @@
         "title": "DealsReportRow",
         "type": "object"
       },
+      "DocumentSubjectListResponse": {
+        "properties": {
+          "subjects": {
+            "items": {
+              "$ref": "#/components/schemas/DocumentSubjectRead"
+            },
+            "title": "Subjects",
+            "type": "array"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "subjects",
+          "total"
+        ],
+        "title": "DocumentSubjectListResponse",
+        "type": "object"
+      },
+      "DocumentSubjectRead": {
+        "properties": {
+          "business_line": {
+            "title": "Business Line",
+            "type": "string"
+          },
+          "latest_upload_at": {
+            "format": "date-time",
+            "title": "Latest Upload At",
+            "type": "string"
+          },
+          "lead_mobile_masked": {
+            "title": "Lead Mobile Masked",
+            "type": "string"
+          },
+          "lead_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lead Name"
+          },
+          "lead_uuid": {
+            "format": "uuid",
+            "title": "Lead Uuid",
+            "type": "string"
+          },
+          "source": {
+            "enum": [
+              "task",
+              "loan_application"
+            ],
+            "title": "Source",
+            "type": "string"
+          },
+          "subject_label": {
+            "title": "Subject Label",
+            "type": "string"
+          },
+          "subject_uuid": {
+            "format": "uuid",
+            "title": "Subject Uuid",
+            "type": "string"
+          },
+          "total_count": {
+            "title": "Total Count",
+            "type": "integer"
+          },
+          "verified_count": {
+            "title": "Verified Count",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "source",
+          "subject_uuid",
+          "lead_uuid",
+          "lead_name",
+          "lead_mobile_masked",
+          "business_line",
+          "subject_label",
+          "total_count",
+          "verified_count",
+          "latest_upload_at"
+        ],
+        "title": "DocumentSubjectRead",
+        "type": "object"
+      },
+      "DocumentVerifyRequest": {
+        "properties": {
+          "review_note": {
+            "anyOf": [
+              {
+                "maxLength": 1000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Review Note"
+          },
+          "verified": {
+            "title": "Verified",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "verified"
+        ],
+        "title": "DocumentVerifyRequest",
+        "type": "object"
+      },
       "EligibleDeal": {
         "description": "One row in the Admin entry queue: a disbursed loan or a closed_won\nproperty deal with an origin agent and no live commission yet.",
         "properties": {
@@ -3746,6 +3868,83 @@
           "total"
         ],
         "title": "EligibleDealListResponse",
+        "type": "object"
+      },
+      "EligibleFeeApplication": {
+        "description": "One row in the Admin entry queue: a disbursed loan application with\nfee_outcome='cashback', a positive processing_fee, and no live cashback\nrow yet.",
+        "properties": {
+          "business_line": {
+            "title": "Business Line",
+            "type": "string"
+          },
+          "client_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Client Name"
+          },
+          "client_profile_uuid": {
+            "format": "uuid",
+            "title": "Client Profile Uuid",
+            "type": "string"
+          },
+          "eligible_since": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Eligible Since"
+          },
+          "loan_application_uuid": {
+            "format": "uuid",
+            "title": "Loan Application Uuid",
+            "type": "string"
+          },
+          "processing_fee_paise": {
+            "title": "Processing Fee Paise",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "loan_application_uuid",
+          "business_line",
+          "client_profile_uuid",
+          "client_name",
+          "processing_fee_paise",
+          "eligible_since"
+        ],
+        "title": "EligibleFeeApplication",
+        "type": "object"
+      },
+      "EligibleFeeApplicationListResponse": {
+        "properties": {
+          "applications": {
+            "items": {
+              "$ref": "#/components/schemas/EligibleFeeApplication"
+            },
+            "title": "Applications",
+            "type": "array"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "applications",
+          "total"
+        ],
+        "title": "EligibleFeeApplicationListResponse",
         "type": "object"
       },
       "EmailVerifyConfirmRequest": {
@@ -4163,6 +4362,222 @@
           "closed"
         ],
         "title": "EnquiryStatus",
+        "type": "string"
+      },
+      "FeeCashbackCancelRequest": {
+        "properties": {
+          "reason": {
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "reason"
+        ],
+        "title": "FeeCashbackCancelRequest",
+        "type": "object"
+      },
+      "FeeCashbackCreate": {
+        "properties": {
+          "amount_paise": {
+            "exclusiveMinimum": 0.0,
+            "maximum": 10000000000.0,
+            "title": "Amount Paise",
+            "type": "integer"
+          },
+          "loan_application_uuid": {
+            "format": "uuid",
+            "title": "Loan Application Uuid",
+            "type": "string"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "maxLength": 1000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          }
+        },
+        "required": [
+          "loan_application_uuid",
+          "amount_paise"
+        ],
+        "title": "FeeCashbackCreate",
+        "type": "object"
+      },
+      "FeeCashbackListResponse": {
+        "properties": {
+          "cashbacks": {
+            "items": {
+              "$ref": "#/components/schemas/FeeCashbackRead"
+            },
+            "title": "Cashbacks",
+            "type": "array"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "cashbacks",
+          "total"
+        ],
+        "title": "FeeCashbackListResponse",
+        "type": "object"
+      },
+      "FeeCashbackPayoutRequest": {
+        "description": "No amount, no recipient: both come from the cashback row\n(services/fee_cashbacks.py::attach_payout), never the request body \u2014 same\ninvariant as CommissionPayoutRequest. The idempotency key is derived\nserver-side from the cashback id (`fcb-{uuid.hex}`), not accepted from the\nclient, for the identical reason CommissionPayoutRequest's docstring\nrecords.",
+        "properties": {
+          "destination": {
+            "$ref": "#/components/schemas/PayoutDestinationInput"
+          },
+          "destination_type": {
+            "$ref": "#/components/schemas/PayoutDestination"
+          }
+        },
+        "required": [
+          "destination_type",
+          "destination"
+        ],
+        "title": "FeeCashbackPayoutRequest",
+        "type": "object"
+      },
+      "FeeCashbackPayoutResponse": {
+        "properties": {
+          "payout_id": {
+            "format": "uuid",
+            "title": "Payout Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "payout_id"
+        ],
+        "title": "FeeCashbackPayoutResponse",
+        "type": "object"
+      },
+      "FeeCashbackRead": {
+        "properties": {
+          "amount_paise": {
+            "title": "Amount Paise",
+            "type": "integer"
+          },
+          "business_line": {
+            "title": "Business Line",
+            "type": "string"
+          },
+          "cancelled_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cancelled Reason"
+          },
+          "client_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Client Name"
+          },
+          "client_profile_uuid": {
+            "format": "uuid",
+            "title": "Client Profile Uuid",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "loan_application_uuid": {
+            "format": "uuid",
+            "title": "Loan Application Uuid",
+            "type": "string"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "payout_uuid": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Payout Uuid"
+          },
+          "processing_fee_paise": {
+            "title": "Processing Fee Paise",
+            "type": "integer"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "loan_application_uuid",
+          "client_profile_uuid",
+          "client_name",
+          "business_line",
+          "processing_fee_paise",
+          "amount_paise",
+          "status",
+          "payout_uuid",
+          "notes",
+          "cancelled_reason",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "FeeCashbackRead",
+        "type": "object"
+      },
+      "FeeCashbackStatus": {
+        "enum": [
+          "pending",
+          "paid",
+          "cancelled"
+        ],
+        "title": "FeeCashbackStatus",
         "type": "string"
       },
       "FeeOutcome": {
@@ -4885,6 +5300,180 @@
         "title": "LoanApplicationRead",
         "type": "object"
       },
+      "LoanDocumentCreate": {
+        "properties": {
+          "content_type": {
+            "enum": [
+              "image/jpeg",
+              "image/png",
+              "image/webp",
+              "application/pdf"
+            ],
+            "title": "Content Type",
+            "type": "string"
+          },
+          "doc_type": {
+            "enum": [
+              "aadhaar_front",
+              "aadhaar_back",
+              "pan",
+              "salary_slip",
+              "bank_statement",
+              "sale_deed",
+              "photo",
+              "other"
+            ],
+            "title": "Doc Type",
+            "type": "string"
+          },
+          "object_key": {
+            "maxLength": 300,
+            "title": "Object Key",
+            "type": "string"
+          }
+        },
+        "required": [
+          "doc_type",
+          "object_key",
+          "content_type"
+        ],
+        "title": "LoanDocumentCreate",
+        "type": "object"
+      },
+      "LoanDocumentListResponse": {
+        "properties": {
+          "documents": {
+            "items": {
+              "$ref": "#/components/schemas/LoanDocumentRead"
+            },
+            "title": "Documents",
+            "type": "array"
+          }
+        },
+        "required": [
+          "documents"
+        ],
+        "title": "LoanDocumentListResponse",
+        "type": "object"
+      },
+      "LoanDocumentPresignRequest": {
+        "properties": {
+          "content_type": {
+            "enum": [
+              "image/jpeg",
+              "image/png",
+              "image/webp",
+              "application/pdf"
+            ],
+            "title": "Content Type",
+            "type": "string"
+          },
+          "doc_type": {
+            "enum": [
+              "aadhaar_front",
+              "aadhaar_back",
+              "pan",
+              "salary_slip",
+              "bank_statement",
+              "sale_deed",
+              "photo",
+              "other"
+            ],
+            "title": "Doc Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "doc_type",
+          "content_type"
+        ],
+        "title": "LoanDocumentPresignRequest",
+        "type": "object"
+      },
+      "LoanDocumentPresignResponse": {
+        "properties": {
+          "fields": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Fields",
+            "type": "object"
+          },
+          "max_bytes": {
+            "title": "Max Bytes",
+            "type": "integer"
+          },
+          "object_key": {
+            "title": "Object Key",
+            "type": "string"
+          },
+          "upload_url": {
+            "title": "Upload Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "object_key",
+          "upload_url",
+          "fields",
+          "max_bytes"
+        ],
+        "title": "LoanDocumentPresignResponse",
+        "type": "object"
+      },
+      "LoanDocumentRead": {
+        "properties": {
+          "doc_type": {
+            "title": "Doc Type",
+            "type": "string"
+          },
+          "download_url": {
+            "title": "Download Url",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "loan_application_uuid": {
+            "format": "uuid",
+            "title": "Loan Application Uuid",
+            "type": "string"
+          },
+          "review_note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Review Note"
+          },
+          "uploaded_at": {
+            "format": "date-time",
+            "title": "Uploaded At",
+            "type": "string"
+          },
+          "verified": {
+            "title": "Verified",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "loan_application_uuid",
+          "doc_type",
+          "verified",
+          "review_note",
+          "uploaded_at",
+          "download_url"
+        ],
+        "title": "LoanDocumentRead",
+        "type": "object"
+      },
       "LoanStatus": {
         "enum": [
           "new",
@@ -5436,7 +6025,8 @@
           "loan_status_updated",
           "property_deal_status_updated",
           "referral_converted",
-          "support_ticket_resolved"
+          "support_ticket_resolved",
+          "document_review_updated"
         ],
         "title": "NotificationType",
         "type": "string"
@@ -8778,6 +9368,17 @@
             "title": "Id",
             "type": "string"
           },
+          "review_note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Review Note"
+          },
           "uploaded_at": {
             "format": "date-time",
             "title": "Uploaded At",
@@ -8792,6 +9393,7 @@
           "id",
           "doc_type",
           "verified",
+          "review_note",
           "uploaded_at",
           "download_url"
         ],
@@ -9640,6 +10242,109 @@
           "public_key"
         ],
         "title": "VapidPublicKeyResponse",
+        "type": "object"
+      },
+      "VerifiableDocumentListResponse": {
+        "properties": {
+          "documents": {
+            "items": {
+              "$ref": "#/components/schemas/VerifiableDocumentRead"
+            },
+            "title": "Documents",
+            "type": "array"
+          }
+        },
+        "required": [
+          "documents"
+        ],
+        "title": "VerifiableDocumentListResponse",
+        "type": "object"
+      },
+      "VerifiableDocumentRead": {
+        "properties": {
+          "doc_type": {
+            "title": "Doc Type",
+            "type": "string"
+          },
+          "document_id": {
+            "format": "uuid",
+            "title": "Document Id",
+            "type": "string"
+          },
+          "download_url": {
+            "title": "Download Url",
+            "type": "string"
+          },
+          "review_note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Review Note"
+          },
+          "source": {
+            "enum": [
+              "task",
+              "loan_application"
+            ],
+            "title": "Source",
+            "type": "string"
+          },
+          "subject_uuid": {
+            "format": "uuid",
+            "title": "Subject Uuid",
+            "type": "string"
+          },
+          "uploaded_at": {
+            "format": "date-time",
+            "title": "Uploaded At",
+            "type": "string"
+          },
+          "verified": {
+            "title": "Verified",
+            "type": "boolean"
+          },
+          "verified_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Verified At"
+          },
+          "verified_by_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Verified By Name"
+          }
+        },
+        "required": [
+          "source",
+          "document_id",
+          "subject_uuid",
+          "doc_type",
+          "verified",
+          "review_note",
+          "verified_at",
+          "verified_by_name",
+          "uploaded_at",
+          "download_url"
+        ],
+        "title": "VerifiableDocumentRead",
         "type": "object"
       },
       "WebhookAck": {
@@ -10579,6 +11284,230 @@
         ]
       }
     },
+    "/api/v1/admin/document-verification/documents": {
+      "get": {
+        "operationId": "list_documents_api_v1_admin_document_verification_documents_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "source",
+            "required": true,
+            "schema": {
+              "enum": [
+                "task",
+                "loan_application"
+              ],
+              "title": "Source",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "subject_uuid",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Subject Uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VerifiableDocumentListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "List Documents",
+        "tags": [
+          "document-verification"
+        ]
+      }
+    },
+    "/api/v1/admin/document-verification/documents/{document_id}": {
+      "patch": {
+        "description": "`source` is a required query param: `document_id` alone is ambiguous\nacross two tables, and two route families would mean more URLs for one\noperation.",
+        "operationId": "verify_document_api_v1_admin_document_verification_documents__document_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "document_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Document Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "source",
+            "required": true,
+            "schema": {
+              "enum": [
+                "task",
+                "loan_application"
+              ],
+              "title": "Source",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DocumentVerifyRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VerifiableDocumentRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Verify Document",
+        "tags": [
+          "document-verification"
+        ]
+      }
+    },
+    "/api/v1/admin/document-verification/subjects": {
+      "get": {
+        "operationId": "list_subjects_api_v1_admin_document_verification_subjects_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "only_unverified",
+            "required": false,
+            "schema": {
+              "default": true,
+              "title": "Only Unverified",
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "business_line",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "loans",
+                    "real_estate"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Business Line"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentSubjectListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "List Subjects",
+        "tags": [
+          "document-verification"
+        ]
+      }
+    },
     "/api/v1/admin/employees": {
       "get": {
         "operationId": "list_employees_api_v1_admin_employees_get",
@@ -10654,6 +11583,318 @@
         "summary": "List Employees",
         "tags": [
           "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/fee-cashbacks": {
+      "get": {
+        "operationId": "list_fee_cashbacks_api_v1_admin_fee_cashbacks_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "status_filter",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/FeeCashbackStatus"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status Filter"
+            }
+          },
+          {
+            "in": "query",
+            "name": "business_line",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "loans",
+                    "real_estate"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Business Line"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeeCashbackListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "List Fee Cashbacks",
+        "tags": [
+          "fee-cashbacks"
+        ]
+      },
+      "post": {
+        "operationId": "create_fee_cashback_api_v1_admin_fee_cashbacks_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FeeCashbackCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeeCashbackRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Create Fee Cashback",
+        "tags": [
+          "fee-cashbacks"
+        ]
+      }
+    },
+    "/api/v1/admin/fee-cashbacks/eligible": {
+      "get": {
+        "operationId": "list_eligible_api_v1_admin_fee_cashbacks_eligible_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EligibleFeeApplicationListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "List Eligible",
+        "tags": [
+          "fee-cashbacks"
+        ]
+      }
+    },
+    "/api/v1/admin/fee-cashbacks/{cashback_id}/cancel": {
+      "post": {
+        "operationId": "cancel_fee_cashback_api_v1_admin_fee_cashbacks__cashback_id__cancel_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "cashback_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Cashback Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FeeCashbackCancelRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Cancel Fee Cashback",
+        "tags": [
+          "fee-cashbacks"
+        ]
+      }
+    },
+    "/api/v1/admin/fee-cashbacks/{cashback_id}/payout": {
+      "post": {
+        "description": "Turns one pending cashback into a real payout. Amount and recipient\ncome from the cashback row, never from the request body \u2014 only the\ndestination the client actually receives money at is caller-supplied.\nApproval is a separate step at POST /payouts/{id}/approve: this endpoint\nis the maker, never the checker.",
+        "operationId": "create_fee_cashback_payout_api_v1_admin_fee_cashbacks__cashback_id__payout_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "cashback_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Cashback Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FeeCashbackPayoutRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeeCashbackPayoutResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Create Fee Cashback Payout",
+        "tags": [
+          "fee-cashbacks"
         ]
       }
     },
@@ -15213,6 +16454,219 @@
         ]
       }
     },
+    "/api/v1/loans/applications/{application_id}/documents": {
+      "get": {
+        "operationId": "list_loan_documents_for_application_api_v1_loans_applications__application_id__documents_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "application_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Application Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoanDocumentListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "List Loan Documents For Application",
+        "tags": [
+          "loans"
+        ]
+      },
+      "post": {
+        "operationId": "confirm_loan_document_api_v1_loans_applications__application_id__documents_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "application_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Application Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoanDocumentCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoanDocumentRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Confirm Loan Document",
+        "tags": [
+          "loans"
+        ]
+      }
+    },
+    "/api/v1/loans/applications/{application_id}/documents/presign": {
+      "post": {
+        "operationId": "presign_loan_document_api_v1_loans_applications__application_id__documents_presign_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "application_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Application Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoanDocumentPresignRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoanDocumentPresignResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Presign Loan Document",
+        "tags": [
+          "loans"
+        ]
+      }
+    },
+    "/api/v1/loans/applications/{application_id}/documents/{document_id}": {
+      "delete": {
+        "operationId": "delete_loan_document_api_v1_loans_applications__application_id__documents__document_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "application_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Application Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "document_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Document Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Delete Loan Document",
+        "tags": [
+          "loans"
+        ]
+      }
+    },
     "/api/v1/loans/banks": {
       "get": {
         "operationId": "list_banks_api_v1_loans_banks_get",
@@ -15263,6 +16717,33 @@
           }
         ],
         "summary": "List Banks",
+        "tags": [
+          "loans"
+        ]
+      }
+    },
+    "/api/v1/loans/documents": {
+      "get": {
+        "description": "All of the caller's documents across every application \u2014 RLS's\nclient-owner branch on `loan_documents_select` is the only filter that\nmatters.",
+        "operationId": "list_own_loan_documents_api_v1_loans_documents_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoanDocumentListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "List Own Loan Documents",
         "tags": [
           "loans"
         ]

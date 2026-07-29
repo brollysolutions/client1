@@ -22,11 +22,12 @@ Split of concerns:
     NEVER raises into the caller (a gateway fault sets status=failed and is
     visible in the admin list), the same discipline as OTP delivery.
 
-A REFERRAL_BONUS or COMMISSION payout's source row (services.referrals /
-services.commissions respectively) hears about every terminal transition via
-_payout_paid_hook / _payout_released_hook, called right after each
-status-changing commit — see those call sites in initiate_payout (mock),
-settle_from_webhook (paid/reversed/failed), reject_payout, and _mark_failed.
+A REFERRAL_BONUS, COMMISSION, or CASHBACK payout's source row
+(services.referrals / services.commissions / services.fee_cashbacks
+respectively) hears about every terminal transition via _payout_paid_hook /
+_payout_released_hook, called right after each status-changing commit — see
+those call sites in initiate_payout (mock), settle_from_webhook
+(paid/reversed/failed), reject_payout, and _mark_failed.
 
 Money is integer minor units (amount_paise), never a float.
 """
@@ -48,7 +49,7 @@ from app.models.audit_log import AuditAction
 from app.models.payout import Payout, PayoutDestination, PayoutStatus, PayoutType
 from app.models.profile import AgentProfile, ClientProfile, StaffProfile
 from app.models.transaction import Transaction, TransactionStatus, TransactionType
-from app.services import commissions, referrals
+from app.services import commissions, fee_cashbacks, referrals
 from app.services.audit_log import record as record_audit
 
 logger = logging.getLogger(__name__)
@@ -840,25 +841,36 @@ async def _mark_failed(payout_id: uuid.UUID, reason: str) -> None:
 
 
 async def _payout_paid_hook(payout: Payout, transaction_id: uuid.UUID) -> None:
-    """REFERRAL_BONUS and COMMISSION are the only payout types with a source
-    row that needs to hear about settlement; every other type is a no-op.
-    Both mark_paid_from_payout implementations are best-effort on their own
-    side (never raise), so this is a plain call, no local try/except — same
-    discipline as the record_conversion call sites in
-    services/loan_applications.py and services/property_deals.py."""
+    """REFERRAL_BONUS, COMMISSION, and CASHBACK are the only payout types with
+    a source row that needs to hear about settlement; every other type is a
+    no-op. All three mark_paid_from_payout implementations are best-effort on
+    their own side (never raise), so this is a plain call, no local
+    try/except — same discipline as the record_conversion call sites in
+    services/loan_applications.py and services/property_deals.py.
+
+    A manually-created CASHBACK payout with no linked fee_cashbacks row
+    (payout-form.ts's admin manual-payout picker already offers the type) is
+    safe here: fee_cashbacks.mark_paid_from_payout's CAS updates zero rows."""
     if payout.type == PayoutType.REFERRAL_BONUS:
         await referrals.mark_paid_from_payout(payout_id=payout.id, transaction_id=transaction_id)
     elif payout.type == PayoutType.COMMISSION:
         await commissions.mark_paid_from_payout(payout_id=payout.id, transaction_id=transaction_id)
+    elif payout.type == PayoutType.CASHBACK:
+        await fee_cashbacks.mark_paid_from_payout(
+            payout_id=payout.id, transaction_id=transaction_id
+        )
 
 
 async def _payout_released_hook(payout: Payout) -> None:
-    """Symmetric release for a REFERRAL_BONUS or COMMISSION payout that lands
-    on failed, rejected, or reversed — frees the source row to be paid again."""
+    """Symmetric release for a REFERRAL_BONUS, COMMISSION, or CASHBACK payout
+    that lands on failed, rejected, or reversed — frees the source row to be
+    paid again."""
     if payout.type == PayoutType.REFERRAL_BONUS:
         await referrals.release_payout_link(payout_id=payout.id)
     elif payout.type == PayoutType.COMMISSION:
         await commissions.release_payout_link(payout_id=payout.id)
+    elif payout.type == PayoutType.CASHBACK:
+        await fee_cashbacks.release_payout_link(payout_id=payout.id)
 
 
 def _ledger_description(payout_type: PayoutType) -> str:

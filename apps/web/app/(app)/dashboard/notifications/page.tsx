@@ -8,6 +8,7 @@ import {
   CalendarX,
   CheckCheck,
   ClipboardList,
+  FileCheck2,
   Gift,
   Headset,
   Home,
@@ -40,6 +41,7 @@ const TYPE_ICON: Record<NotificationType, LucideIcon> = {
   loan_status_updated: Landmark,
   property_deal_status_updated: Home,
   referral_converted: Gift,
+  document_review_updated: FileCheck2,
 };
 
 function formatRelativeTime(iso: string): string {
