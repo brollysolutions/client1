@@ -372,3 +372,90 @@ async def test_create_and_patch_carry_subtitle_and_cta_label(client: AsyncClient
     assert patched.status_code == 200, patched.text
     assert patched.json()["cta_label"] == "Get started"
     assert patched.json()["subtitle"] == "Limited period offer"
+
+
+@pytest.mark.asyncio
+async def test_image_upload_url_returns_conforming_key(client: AsyncClient) -> None:
+    _, mobile = await full_registration(client, lines=["loans"])
+    uid = await _auth_user_uuid(mobile)
+    res = await client.post(
+        "/api/v1/banners/image-upload-url",
+        json={"content_type": "image/jpeg", "filename": "diwali-hero.jpg"},
+        headers={"Authorization": f"Bearer {_sub_admin_token(uid)}"},
+    )
+    assert res.status_code == 200, res.text
+    body = res.json()
+    assert body["object_key"].startswith("public/banners/")
+    assert body["object_key"].endswith("diwali-hero.jpg")
+    assert body["upload_url"].startswith("http")
+    assert body["fields"]["key"] == body["object_key"]
+    assert body["max_bytes"] == 2 * 1024 * 1024
+
+
+@pytest.mark.asyncio
+async def test_image_upload_url_rejects_unsupported_content_type(client: AsyncClient) -> None:
+    _, mobile = await full_registration(client, lines=["loans"])
+    uid = await _auth_user_uuid(mobile)
+    res = await client.post(
+        "/api/v1/banners/image-upload-url",
+        # image/svg+xml is deliberately not in the schema's Literal at all --
+        # this is caught by Pydantic (422), not the service's UnsupportedImageType
+        # branch (400). Both paths reject it; this asserts the 422 boundary.
+        json={"content_type": "image/svg+xml", "filename": "logo.svg"},
+        headers={"Authorization": f"Bearer {_sub_admin_token(uid)}"},
+    )
+    assert res.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_image_upload_url_requires_sub_admin(client: AsyncClient) -> None:
+    _, mobile = await full_registration(client, lines=["loans"])
+    uid = await _auth_user_uuid(mobile)
+    token = create_access_token(
+        {"sub": uid, "role": "client", "business_line": "loans", "platform_scope": "false"}
+    )
+    res = await client.post(
+        "/api/v1/banners/image-upload-url",
+        json={"content_type": "image/jpeg", "filename": "hero.jpg"},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert res.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_create_accepts_a_conforming_image_key(client: AsyncClient) -> None:
+    payload = {
+        **_PAYLOAD,
+        "image_key": "public/banners/11111111-1111-1111-1111-111111111111/hero.jpg",
+    }
+    _, mobile = await full_registration(client, lines=["loans"])
+    uid = await _auth_user_uuid(mobile)
+    res = await client.post(
+        "/api/v1/banners",
+        json=payload,
+        headers={"Authorization": f"Bearer {_sub_admin_token(uid)}"},
+    )
+    assert res.status_code == 201, res.text
+    assert res.json()["image_key"] == payload["image_key"]
+
+
+@pytest.mark.asyncio
+async def test_create_rejects_a_non_conforming_image_key(client: AsyncClient) -> None:
+    """The write-side half of the public/ security boundary: a free-text or
+    mistyped image_key (or one pointing at a different, non-public prefix
+    entirely) must never be accepted -- see schemas/banners.py's
+    _IMAGE_KEY_PATTERN and services/storage.py::public_asset_url."""
+    _, mobile = await full_registration(client, lines=["loans"])
+    uid = await _auth_user_uuid(mobile)
+    for bad_key in [
+        "agent-applications/abc-123/deadbeef-photo",  # a real KYC key shape
+        "public/banners/not-a-uuid/hero.jpg",
+        "public/banners/11111111-1111-1111-1111-111111111111/../evil.jpg",
+        "public/banners/11111111-1111-1111-1111-111111111111/sub/hero.jpg",
+    ]:
+        res = await client.post(
+            "/api/v1/banners",
+            json={**_PAYLOAD, "image_key": bad_key},
+            headers={"Authorization": f"Bearer {_sub_admin_token(uid)}"},
+        )
+        assert res.status_code == 422, f"expected 422 for {bad_key!r}, got {res.status_code}"

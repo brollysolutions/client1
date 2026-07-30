@@ -1,13 +1,13 @@
-// Server-only client for public content blocks (GET /api/v1/public/content-blocks).
-// Same division of labor as lib/public-offers.ts / lib/public-banners.ts: this
-// module returns the display PublicContentBlock shape and goes through the
-// server-only serverFetchJson, so it must never be imported by a Client
-// Component.
+// Server-only client for public content blocks (GET /api/v1/public/content-blocks,
+// GET /api/v1/public/content-blocks/{slug}). Same division of labor as
+// lib/public-offers.ts / lib/public-banners.ts: this module returns the
+// display PublicContentBlock shape and goes through the server-only
+// serverFetchJson, so it must never be imported by a Client Component.
 //
 // Callers look a specific block up by its unique slug (see
-// content-block-section.tsx::findContentBlock), not by list position -- there
-// is no per-line strip like offers, so this returns the full published set
-// and lets the caller pick.
+// content-block-section.tsx) -- getPublicContentBlockBySlug is the direct
+// lookup for that case. getPublicContentBlocks (the full published set)
+// stays exported for any future caller that genuinely needs a list.
 
 import type { components } from "@contracts/generated/schema";
 
@@ -45,4 +45,18 @@ export async function getPublicContentBlocks(): Promise<PublicContentBlock[]> {
   );
   if (!res.ok) return [];
   return res.data.content_blocks.map(mapPublicContentBlock);
+}
+
+// Never throws, never rejects -- same contract as getPublicContentBlocks().
+// A 404 (no published block at this slug) and a failed fetch both collapse
+// to null; ContentBlockSection renders nothing either way.
+export async function getPublicContentBlockBySlug(
+  slug: string,
+): Promise<PublicContentBlock | null> {
+  const res = await serverFetchJson<Schemas["PublicContentBlockRead"]>(
+    `/api/v1/public/content-blocks/${encodeURIComponent(slug)}`,
+    { revalidate: 300 },
+  );
+  if (!res.ok) return null;
+  return mapPublicContentBlock(res.data);
 }

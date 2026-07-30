@@ -1,5 +1,28 @@
 import type { NextConfig } from "next";
 
+// Banner images live under a dedicated public/ storage prefix, served
+// directly (never presigned/proxied) -- see services/storage.py::
+// public_asset_url and the bucket policy's public/* allowlist. next/image
+// only optimizes images from an explicitly allowed remote host; this is an
+// SSRF/host-confusion guard on next/image's own fetch, NOT the access-
+// control boundary itself (that's the storage bucket policy, which has no
+// s3:ListBucket and only allows public/*). Dev always includes minio's
+// host-published port; prod adds its real asset host from a build-time env
+// var, since the storage endpoint isn't known until deploy (apps/web/
+// Dockerfile ARGs NEXT_PUBLIC_ASSET_HOST into the browser bundle).
+const remotePatterns: NonNullable<NextConfig["images"]>["remotePatterns"] = [
+  { protocol: "http", hostname: "localhost", port: "9000", pathname: "/**" },
+];
+if (process.env.NEXT_PUBLIC_ASSET_HOST) {
+  const assetUrl = new URL(process.env.NEXT_PUBLIC_ASSET_HOST);
+  remotePatterns.push({
+    protocol: assetUrl.protocol === "https:" ? "https" : "http",
+    hostname: assetUrl.hostname,
+    port: assetUrl.port || undefined,
+    pathname: "/**",
+  });
+}
+
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   // Emit .next/standalone (server.js + only the node_modules the server needs)
@@ -19,6 +42,7 @@ const nextConfig: NextConfig = {
   experimental: {
     optimizePackageImports: ["radix-ui"],
   },
+  images: { remotePatterns },
   async headers() {
     return [
       {

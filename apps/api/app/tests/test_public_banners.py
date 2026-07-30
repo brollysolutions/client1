@@ -60,6 +60,7 @@ async def _seed_banner(
     subtitle: str | None = None,
     cta_label: str | None = None,
     deep_link: str | None = None,
+    image_key: str | None = None,
 ) -> str:
     import app.db.session as _session_mod
     from app.models.banner import Banner
@@ -72,6 +73,7 @@ async def _seed_banner(
             subtitle=subtitle,
             cta_label=cta_label,
             deep_link=deep_link,
+            image_key=image_key,
             status=status,
             priority=priority,
             created_by_uuid=uuid.UUID(author),
@@ -134,6 +136,47 @@ async def test_live_banner_is_returned(client: AsyncClient) -> None:
         assert row["subtitle"] == "A short subtitle"
         assert row["cta_label"] == "Apply now"
         assert row["deep_link"] == "/loans"
+        assert row["image_url"] is None
+    finally:
+        await _delete_banners(banner_id)
+
+
+@pytest.mark.asyncio
+async def test_live_banner_with_public_image_key_gets_a_url(client: AsyncClient) -> None:
+    author = await _author_uuid(client)
+    banner_id = await _seed_banner(
+        author=author,
+        status="live",
+        title="Image Banner",
+        image_key="public/banners/22222222-2222-2222-2222-222222222222/hero.jpg",
+    )
+    try:
+        resp = await client.get("/api/v1/public/banners")
+        row = next(b for b in resp.json()["banners"] if b["id"] == banner_id)
+        assert row["image_url"] is not None
+        assert row["image_url"].endswith(
+            "public/banners/22222222-2222-2222-2222-222222222222/hero.jpg"
+        )
+    finally:
+        await _delete_banners(banner_id)
+
+
+@pytest.mark.asyncio
+async def test_live_banner_with_non_public_image_key_gets_no_url(client: AsyncClient) -> None:
+    """Defence in depth against a pre-validator row (see the backfill
+    migration a5b6c7d8e9f0): even if a non-conforming image_key somehow
+    exists, the public endpoint must never turn it into a URL."""
+    author = await _author_uuid(client)
+    banner_id = await _seed_banner(
+        author=author,
+        status="live",
+        title="Bad Key Banner",
+        image_key="agent-applications/abc-123/deadbeef-photo",
+    )
+    try:
+        resp = await client.get("/api/v1/public/banners")
+        row = next(b for b in resp.json()["banners"] if b["id"] == banner_id)
+        assert row["image_url"] is None
     finally:
         await _delete_banners(banner_id)
 
@@ -182,7 +225,7 @@ async def test_response_omits_internal_fields(client: AsyncClient) -> None:
     try:
         resp = await client.get("/api/v1/public/banners")
         row = next(b for b in resp.json()["banners"] if b["id"] == banner_id)
-        assert set(row.keys()) == {"id", "title", "subtitle", "cta_label", "deep_link"}
+        assert set(row.keys()) == {"id", "title", "subtitle", "cta_label", "deep_link", "image_url"}
         internal_fields = {
             "image_key",
             "audience_rules",

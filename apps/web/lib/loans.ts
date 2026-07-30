@@ -80,6 +80,26 @@ export async function getBanks(loanTypeId?: string): Promise<ApiResponse<Bank[]>
   return { ok: true, status: res.status, data: res.data.banks };
 }
 
+export type LoanOfficerContact = {
+  name: string;
+  staffCode: string;
+};
+
+// Null is the "no officer assigned yet" state, not an error -- a client with
+// no loan application yet, or one whose telecaller hasn't been assigned, has
+// no officer to show. Contact routes through the support-ticket flow
+// (lib/support-tickets.ts); this endpoint never returns phone/email.
+export async function getMyLoanOfficer(): Promise<ApiResponse<LoanOfficerContact | null>> {
+  const res = await apiRequest<Schemas["LoanOfficerContactRead"] | null>("/api/v1/loans/officer");
+  if (!res.ok) return res;
+  if (res.data === null) return { ok: true, status: res.status, data: null };
+  return {
+    ok: true,
+    status: res.status,
+    data: { name: res.data.name, staffCode: res.data.staff_code },
+  };
+}
+
 export async function createLoanApplication(input: {
   loanTypeId: string;
   amountRequested: string;

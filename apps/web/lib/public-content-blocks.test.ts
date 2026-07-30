@@ -2,7 +2,11 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { components } from "@contracts/generated/schema";
 
-import { getPublicContentBlocks, mapPublicContentBlock } from "@/lib/public-content-blocks";
+import {
+  getPublicContentBlockBySlug,
+  getPublicContentBlocks,
+  mapPublicContentBlock,
+} from "@/lib/public-content-blocks";
 
 type Schemas = components["schemas"];
 
@@ -102,5 +106,37 @@ describe("getPublicContentBlocks()", () => {
     );
 
     expect(await getPublicContentBlocks()).toEqual([]);
+  });
+});
+
+describe("getPublicContentBlockBySlug()", () => {
+  it("maps a successful response", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => fakeResponse(200, wireBlock())),
+    );
+
+    const block = await getPublicContentBlockBySlug("homepage-closing");
+    expect(block?.slug).toBe("homepage-closing");
+  });
+
+  it("returns null on a 404 (no published block at that slug)", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => fakeResponse(404, { detail: "Content block not found." })),
+    );
+
+    expect(await getPublicContentBlockBySlug("missing-slug")).toBeNull();
+  });
+
+  it("returns null when fetch throws", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => {
+        throw new Error("network down");
+      }),
+    );
+
+    expect(await getPublicContentBlockBySlug("homepage-closing")).toBeNull();
   });
 });

@@ -39,10 +39,12 @@ from app.schemas.loans import (
     LoanApplicationCreate,
     LoanApplicationListResponse,
     LoanApplicationRead,
+    LoanOfficerContactRead,
     LoanTypeListResponse,
     LoanTypeRead,
 )
 from app.services import loan_documents, storage
+from app.services.contacts import get_my_loan_officer
 from app.services.leads import resolve_loans_lead
 
 router = APIRouter()
@@ -145,6 +147,19 @@ async def list_banks(
     result = await db.execute(stmt.order_by(Bank.name))
     banks = result.scalars().all()
     return BankListResponse(banks=[BankRead.model_validate(b, from_attributes=True) for b in banks])
+
+
+@router.get("/officer", response_model=LoanOfficerContactRead | None)
+async def get_my_loan_officer_contact(
+    current_user: CurrentUser = Depends(get_active_user),
+) -> LoanOfficerContactRead | None:
+    """Null is the "no officer assigned yet" state, not an error -- a client
+    with no loan application yet, or one whose telecaller hasn't been
+    assigned, legitimately has no officer to show."""
+    contact = await get_my_loan_officer(current_user.id)
+    if contact is None:
+        return None
+    return LoanOfficerContactRead(name=contact.name, staff_code=contact.staff_code)
 
 
 @router.get("/applications", response_model=LoanApplicationListResponse)

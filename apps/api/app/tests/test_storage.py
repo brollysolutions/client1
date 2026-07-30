@@ -113,3 +113,37 @@ def test_head_object_reraises_on_transport_failure(monkeypatch: pytest.MonkeyPat
     monkeypatch.setattr(storage, "_client", lambda _endpoint: _FakeS3Client("500"))
     with pytest.raises(ClientError):
         storage.head_object("agent-applications/abc/def-photo")
+
+
+def test_public_asset_url_builds_a_url_for_a_public_key() -> None:
+    url = storage.public_asset_url("public/banners/abc-123/hero.jpg")
+    assert url is not None
+    assert url.startswith("http")
+    assert url.endswith(f"/{storage.settings.SPACES_BUCKET}/public/banners/abc-123/hero.jpg")
+
+
+def test_public_asset_url_returns_none_for_a_kyc_key_shape() -> None:
+    # The boundary this function exists to enforce: a real agent-application
+    # KYC object key (or task-document/loan-document key) must never resolve
+    # to a servable URL, regardless of what a caller passes in.
+    assert storage.public_asset_url("agent-applications/abc-123/deadbeefdeadbeef-photo") is None
+    assert storage.public_asset_url("tasks/abc-123/def-doc") is None
+    assert storage.public_asset_url("agent-applications/abc-123/deadbeef-aadhaar_front") is None
+
+
+def test_public_asset_url_returns_none_for_a_bare_public_prefix() -> None:
+    # "public" without the trailing slash must not match -- it isn't actually
+    # under the public/ prefix, it just shares the string.
+    assert storage.public_asset_url("public") is None
+    assert storage.public_asset_url("publicity/banners/x") is None
+
+
+def test_public_asset_url_uses_public_endpoint_when_set() -> None:
+    original = settings.SPACES_PUBLIC_ENDPOINT_URL
+    settings.SPACES_PUBLIC_ENDPOINT_URL = "http://localhost:9000"
+    try:
+        url = storage.public_asset_url("public/banners/abc-123/hero.jpg")
+        assert url is not None
+        assert url.startswith("http://localhost:9000/")
+    finally:
+        settings.SPACES_PUBLIC_ENDPOINT_URL = original

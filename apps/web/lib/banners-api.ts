@@ -55,3 +55,12 @@ export async function rejectBanner(id: string, note: string): Promise<ApiRespons
     body: { note },
   });
 }
+
+export async function getBannerImageUploadUrl(
+  payload: Schemas["BannerImageUploadRequest"],
+): Promise<ApiResponse<Schemas["BannerImageUploadResponse"]>> {
+  return apiRequest<Schemas["BannerImageUploadResponse"]>(`/api/v1/banners/image-upload-url`, {
+    method: "POST",
+    body: payload,
+  });
+}

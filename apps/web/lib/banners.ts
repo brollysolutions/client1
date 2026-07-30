@@ -10,9 +10,9 @@ export type HeroBanner = {
   id: string;
   title: string;
   subtitle?: string;
-  // Kept even though no banner can supply one yet (public-banner-serving.md's
-  // Out of scope section): hero-carousel.tsx's cream-placeholder branch reads
-  // this field, and images land in a future slice without a component change.
+  // A live URL under the public/ storage prefix (services/storage.py::
+  // public_asset_url), or undefined for a banner with no image --
+  // hero-carousel.tsx's cream-placeholder branch handles that case.
   image?: string;
   cta?: { label: string; href: string };
 };
