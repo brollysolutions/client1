@@ -21,9 +21,9 @@ AgentBusinessLine = Literal["loans", "real_estate"]
 
 AgentDocTypeLiteral = Literal["aadhaar_front", "aadhaar_back", "pan", "photo"]
 
-# Wider than schemas/employee.DocContentTypeLiteral (no webp there): the
-# public apply-form tiles already advertise image/webp
-# (components/apply-as-agent/file-field.tsx). Employee literal is untouched.
+# Same content-type set as schemas/employee.DocContentTypeLiteral and
+# schemas/loan_documents.LoanDocContentTypeLiteral — matches what
+# components/apply-as-agent/file-field.tsx advertises.
 AgentDocContentTypeLiteral = Literal["image/jpeg", "image/png", "image/webp", "application/pdf"]
 
 _MobileField = Annotated[str, Field(pattern=r"^\+[1-9]\d{6,14}$")]

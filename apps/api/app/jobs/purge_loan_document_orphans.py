@@ -4,11 +4,8 @@ The presign endpoint hands out a signed URL before any LoanDocument row
 exists — a client who requests a presign, uploads, then never calls confirm
 (closes the tab, network drop) leaves an object in storage that nothing
 references. This job is the only place that leftover gets cleaned up.
-Mirrors jobs/purge_agent_application_orphans.py exactly.
-
-Known pre-existing gap, NOT introduced or fixed by this job (tracked in
-docs/ai/feature-status.md §2): the `tasks/` storage prefix (employee task
-documents) has no equivalent sweep at all.
+Mirrors jobs/purge_agent_application_orphans.py exactly (and is itself
+mirrored by jobs/purge_task_document_orphans.py for the tasks/ prefix).
 """
 
 from __future__ import annotations
