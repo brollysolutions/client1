@@ -6,15 +6,16 @@ services.auth_service.resolve_role_claims). Needed to exercise staff-only surfac
 in dev (e.g. the property-review queue, the Telecaller Dashboard) — no
 self-registration path creates staff.
 
-sub_admin is PLATFORM-scoped (no business_line). telecaller and employee are
-LINE-scoped and need an explicit business_line — this mirrors the rule
-services.admin.create_staff already enforces for admin-provisioned accounts, and
-matters here specifically because leads_rls's telecaller branch (migration
-e6c7b8f9a0d1) keys off app.business_line: a platform-scoped telecaller would never
-match it.
+admin and sub_admin are PLATFORM-scoped (no business_line). telecaller and
+employee are LINE-scoped and need an explicit business_line — this mirrors the
+rule services.admin.create_staff already enforces for admin-provisioned
+accounts, and matters here specifically because leads_rls's telecaller branch
+(migration e6c7b8f9a0d1) keys off app.business_line: a platform-scoped
+telecaller would never match it.
 
-The account's mobile is a required argument; role defaults to sub_admin;
-business_line is required for telecaller/employee:
+The account's mobile is a required argument; role defaults to sub_admin if
+omitted (pass it explicitly to seed an admin); business_line is required for
+telecaller/employee:
     docker exec mahesh-client-project-api-1 \\
         uv run python -m app.scripts.seed_staff +919812345678 sub_admin
     docker exec mahesh-client-project-api-1 \\

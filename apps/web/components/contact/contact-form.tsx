@@ -16,8 +16,7 @@ import { isValidMobile, normalizeMobile } from "@/lib/phone";
 // Standalone enquiry form for the /contact page. Same field idiom as the
 // agent application form (IconInput, MobileInput, h-12 controls) and the same
 // blended-background convention: no white card, the form sits directly on the
-// cream section. submitLead is a stub until the public POST /api/v1/leads
-// lands. Blue-only, per the public-site palette.
+// cream section. Blue-only, per the public-site palette.
 const TOPICS: { value: LeadTopic; label: string }[] = [
   { value: "loans", label: "Loans" },
   { value: "real_estate", label: "Real Estate" },

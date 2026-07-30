@@ -225,8 +225,7 @@ async def purge_orphaned_uploads(*, min_age: timedelta = _ORPHAN_MIN_AGE) -> dic
     references. The presign happens before the confirm row exists, so an
     abandoned upload (client picked a file, never confirmed) is guaranteed
     to leave an object with nothing pointing at it — this job is the only
-    place that class of leftover gets cleaned up. Required, not optional
-    (unlike the pre-existing gap on tasks/ — see feature-status.md §2)."""
+    place that class of leftover gets cleaned up."""
     cutoff = datetime.now(UTC) - min_age
     objects = storage.list_objects(_KEY_PREFIX)
     candidates = [o for o in objects if o["last_modified"] < cutoff]
