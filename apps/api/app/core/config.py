@@ -179,6 +179,14 @@ class Settings(BaseSettings):
     # — never `created_at`. See services/retention_purge.py.
     FINANCIAL_RECORD_RETENTION_YEARS: int = 7
 
+    # Admin broadcast notifications (feature-status.md §3 #12). A broadcast is
+    # unretractable (no delete endpoint, no grant to add one), so both guards
+    # are hard limits, not soft warnings — see services/admin_notify.py::broadcast.
+    ADMIN_BROADCAST_MAX_RECIPIENTS: int = 50_000
+    # One send per admin per this window: a double-clicked button is 2x the
+    # fanout, and there is no undo.
+    ADMIN_BROADCAST_RATE_LIMIT_MINUTES: int = 5
+
     # Web push (VAPID) — browser push delivery for the existing notifications
     # feed (services/notifications.py::emit_notification). Live-vs-mock is
     # switched by credential presence alone, exactly like Razorpay above:

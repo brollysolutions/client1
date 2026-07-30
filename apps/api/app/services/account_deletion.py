@@ -67,6 +67,7 @@ from app.cache.redis_keys import RedisCache, jwt_blacklist_key
 from app.models.audit_log import AuditAction
 from app.models.auth import AuthEvent, RefreshToken
 from app.models.loan_document import LoanDocument
+from app.models.notification import NotificationType
 from app.models.payout import Payout, PayoutStatus, PayoutType
 from app.models.profile import (
     AgentApplication,
@@ -79,6 +80,7 @@ from app.models.support_ticket import SupportTicket
 from app.models.transaction import Transaction
 from app.models.user import User, UserStatus
 from app.services import payout_links, storage
+from app.services.admin_notify import notify_admins
 from app.services.audit_log import record as record_audit
 
 logger = logging.getLogger(__name__)
@@ -275,6 +277,18 @@ async def delete_account(
         detail={"self_service": self_service, "reason": reason},
     )
     await db.commit()
+
+    # No-op on self-service: the actor IS the target, so excluding actor_uuid
+    # from the fanout excludes the only "admin" who could be notified anyway
+    # if they happened to also be staff — this is intentionally a broad
+    # exclusion, not a self-service special case.
+    await notify_admins(
+        notification_type=NotificationType.ADMIN_ACCOUNT_ACTION,
+        title="Account removed",
+        body="An account was removed" + (" (self-service)." if self_service else "."),
+        href="/dashboard/audit-log",
+        exclude_user_uuid=actor_auth_user_uuid,
+    )
 
     # Blacklist AFTER the commit succeeds, never before: this is a Redis write,
     # not transactional with the Postgres commit above. Doing it first would

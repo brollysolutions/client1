@@ -51,6 +51,11 @@ AGENT_APPLY_RATE_IP = "agent_apply_rate_ip:{ip}"
 AGENT_APPLY_OTP_DAILY = "agent_apply_otp_daily:{mobile}"
 AGENT_APPLY_PRESIGN = "agent_apply_presign:{jti}"
 
+# Admin broadcast (services/admin_notify.py::broadcast) — one send per admin
+# per ADMIN_BROADCAST_RATE_LIMIT_MINUTES window. A broadcast has no undo, so
+# this exists specifically to catch a double-clicked send, not general abuse.
+ADMIN_BROADCAST_RATE = "admin_broadcast_rate:{admin_uuid}"
+
 # TTLs in seconds
 TTL_OTP = 5 * 60  # 5 min
 TTL_OTP_RESEND = 60 * 60  # 1 hour window + lock duration

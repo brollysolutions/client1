@@ -2183,7 +2183,8 @@
           "fee_cashback_cancelled",
           "document_verified",
           "document_unverified",
-          "payout_link_reconciled"
+          "payout_link_reconciled",
+          "notification_broadcast"
         ],
         "title": "AuditAction",
         "type": "string"
@@ -3092,6 +3093,96 @@
           "created_at"
         ],
         "title": "BookmarkRead",
+        "type": "object"
+      },
+      "BroadcastAudience": {
+        "enum": [
+          "admins",
+          "staff",
+          "agents",
+          "clients",
+          "all"
+        ],
+        "title": "BroadcastAudience",
+        "type": "string"
+      },
+      "BroadcastPreviewResponse": {
+        "properties": {
+          "recipients": {
+            "title": "Recipients",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "recipients"
+        ],
+        "title": "BroadcastPreviewResponse",
+        "type": "object"
+      },
+      "BroadcastRequest": {
+        "properties": {
+          "audience": {
+            "$ref": "#/components/schemas/BroadcastAudience"
+          },
+          "body": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Body",
+            "type": "string"
+          },
+          "business_line": {
+            "anyOf": [
+              {
+                "enum": [
+                  "loans",
+                  "real_estate"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Business Line"
+          },
+          "href": {
+            "anyOf": [
+              {
+                "maxLength": 300,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Href"
+          },
+          "title": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "audience",
+          "title",
+          "body"
+        ],
+        "title": "BroadcastRequest",
+        "type": "object"
+      },
+      "BroadcastResponse": {
+        "properties": {
+          "recipients": {
+            "title": "Recipients",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "recipients"
+        ],
+        "title": "BroadcastResponse",
         "type": "object"
       },
       "ChangePasswordRequest": {
@@ -6027,7 +6118,11 @@
           "property_deal_status_updated",
           "referral_converted",
           "support_ticket_resolved",
-          "document_review_updated"
+          "document_review_updated",
+          "admin_payout_reviewed",
+          "admin_account_action",
+          "admin_retention_purged",
+          "admin_broadcast"
         ],
         "title": "NotificationType",
         "type": "string"
@@ -16841,6 +16936,116 @@
           }
         ],
         "summary": "List Notifications",
+        "tags": [
+          "notifications"
+        ]
+      }
+    },
+    "/api/v1/notifications/broadcast": {
+      "post": {
+        "operationId": "send_broadcast_api_v1_notifications_broadcast_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BroadcastRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BroadcastResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Send Broadcast",
+        "tags": [
+          "notifications"
+        ]
+      }
+    },
+    "/api/v1/notifications/broadcast/preview": {
+      "get": {
+        "description": "Dry run: resolves and counts the audience without sending anything.\nA broadcast is unretractable (no delete endpoint exists, and none should\nbe added), so an admin should see \"this reaches N people\" before\ncommitting to a send.",
+        "operationId": "preview_broadcast_api_v1_notifications_broadcast_preview_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "audience",
+            "required": true,
+            "schema": {
+              "title": "Audience",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "business_line",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Business Line"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BroadcastPreviewResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Preview Broadcast",
         "tags": [
           "notifications"
         ]

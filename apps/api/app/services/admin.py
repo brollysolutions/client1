@@ -23,6 +23,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.security import generate_profile_code, generate_temp_password, hash_password
 from app.models.audit_log import AuditAction
+from app.models.notification import NotificationType
 from app.models.profile import (
     AgentApplication,
     AgentProfile,
@@ -34,6 +35,7 @@ from app.models.profile import (
 )
 from app.models.user import User, UserStatus
 from app.schemas.admin import StaffCreateRequest
+from app.services.admin_notify import notify_admins
 from app.services.audit_log import record as record_audit
 
 
@@ -136,6 +138,17 @@ async def create_staff(
         },
     )
     await db.commit()
+
+    await notify_admins(
+        notification_type=NotificationType.ADMIN_ACCOUNT_ACTION,
+        title="Staff account created",
+        body=(
+            f"A new {role.value.replace('_', ' ')} account was provisioned ({profile.staff_code})."
+        ),
+        href="/dashboard/staff",
+        exclude_user_uuid=actor_id,
+    )
+
     return profile, temp_password
 
 
