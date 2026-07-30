@@ -13,6 +13,7 @@ import {
   IndianRupee,
   Landmark,
   Loader2,
+  RefreshCw,
   ScrollText,
   SlidersHorizontal,
   UserMinus,
@@ -131,6 +132,11 @@ const ACTION_META: Record<AuditAction, { label: string; icon: LucideIcon; tone: 
     label: "Document sent back for re-collection",
     icon: FileCheck2,
     tone: "bg-warning/10 text-warning",
+  },
+  payout_link_reconciled: {
+    label: "Payout link auto-repaired",
+    icon: RefreshCw,
+    tone: "bg-muted text-text-secondary",
   },
 };
 
