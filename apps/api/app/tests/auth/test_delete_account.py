@@ -135,17 +135,17 @@ async def _agent_profile_status(uid: str) -> str:
         return row[0]
 
 
-async def _seed_payout(uid: str) -> str:
+async def _seed_payout(uid: str, *, status=None, payout_type=None) -> str:
     import app.db.session as _session_mod
     from app.models.payout import Payout, PayoutDestination, PayoutStatus, PayoutType
 
     async with _session_mod.AsyncSessionLocal() as db:
         payout = Payout(
             recipient_user_uuid=uuid.UUID(uid),
-            type=PayoutType.CASHBACK,
+            type=payout_type or PayoutType.CASHBACK,
             amount_paise=25_000,
             currency="INR",
-            status=PayoutStatus.PAID,
+            status=status or PayoutStatus.PAID,
             destination_type=PayoutDestination.VPA,
             destination_hint="***@okhdfc",
             idempotency_key=uuid.uuid4().hex,
@@ -163,8 +163,8 @@ async def _get_payout(payout_id: str) -> dict:
         row = (
             await db.execute(
                 text(
-                    "SELECT recipient_user_uuid, retained_ref, delinked_at "
-                    "FROM payouts WHERE id = :id"
+                    "SELECT recipient_user_uuid, retained_ref, delinked_at, status, "
+                    "reject_reason FROM payouts WHERE id = :id"
                 ),
                 {"id": payout_id},
             )
@@ -483,6 +483,213 @@ async def test_delete_delinks_payout(client: AsyncClient) -> None:
     assert row["recipient_user_uuid"] is None
     assert row["retained_ref"] == uid
     assert row["delinked_at"] is not None
+
+
+# ---------------------------------------------------------------------------
+# In-flight payout at deletion time (feature-status.md §2 #17)
+# ---------------------------------------------------------------------------
+
+
+async def _payout_rejected_audit_count(payout_id: str) -> int:
+    import app.db.session as _session_mod
+
+    async with _session_mod.AsyncSessionLocal() as db:
+        return await db.scalar(
+            text(
+                "SELECT count(*) FROM audit_log WHERE action = 'payout_rejected' "
+                "AND entity_uuid = :id"
+            ),
+            {"id": payout_id},
+        )
+
+
+async def _seed_commission_linked_to_payout(uid: str, payout_id: str) -> str:
+    """A minimal commission row pointing at payout_id, PENDING (unpaid) —
+    proves apply_release_link actually fires for a payout rejected at
+    deletion time, not just that the payout's own status flips."""
+    import app.db.session as _session_mod
+    from app.models.commission import Commission, CommissionStatus
+    from app.models.lead import Lead, LeadOrigin, LeadStatus
+    from app.models.loan import LoanApplication, LoanStatus, LoanType
+    from app.models.profile import AgentProfile, ClientProfile, ProfileStatus
+
+    async with _session_mod.AsyncSessionLocal() as db:
+        agent = AgentProfile(
+            auth_user_uuid=uuid.UUID(uid),
+            agent_code=f"AG-{uuid.uuid4().hex[:8]}",
+            business_line="loans",
+            status=ProfileStatus.ACTIVE,
+        )
+        lead = Lead(
+            name="Test Lead",
+            mobile=unique_mobile(),
+            business_line="loans",
+            status=LeadStatus.NEW,
+            origin=LeadOrigin.AGENT,
+        )
+        client_user_id = uuid.uuid4()
+        db.add_all([agent, lead])
+        await db.flush()
+        lead.origin_agent_profile_uuid = agent.id
+        from app.models.user import User
+
+        client_user = User(
+            id=client_user_id,
+            first_name="Test",
+            last_name="Client",
+            mobile=unique_mobile(),
+            email=f"cl_{uuid.uuid4().hex[:12]}@example.com",
+            password_hash="x",
+        )
+        db.add(client_user)
+        await db.flush()
+        client_profile = ClientProfile(
+            auth_user_uuid=client_user.id,
+            business_line="loans",
+            customer_code=f"CL{uuid.uuid4().hex[:8]}",
+            status=ProfileStatus.ACTIVE,
+        )
+        loan_type = LoanType(name=f"lt_{uuid.uuid4().hex[:8]}", label="Test Loan Type")
+        db.add_all([client_profile, loan_type])
+        await db.flush()
+        from datetime import UTC, datetime
+
+        loan = LoanApplication(
+            lead_uuid=lead.id,
+            client_profile_uuid=client_profile.id,
+            business_line="loans",
+            loan_type_id=loan_type.id,
+            amount_requested=100000,
+            status=LoanStatus.DISBURSED,
+            opened_at=datetime.now(UTC),
+            closed_at=datetime.now(UTC),
+            disbursed_at=datetime.now(UTC),
+        )
+        db.add(loan)
+        await db.flush()
+        commission = Commission(
+            agent_auth_user_uuid=uuid.UUID(uid),
+            agent_profile_uuid=agent.id,
+            business_line="loans",
+            lead_uuid=lead.id,
+            loan_application_uuid=loan.id,
+            agreed_amount_paise=25_000,
+            status=CommissionStatus.PENDING,
+            entered_by_uuid=uuid.UUID(uid),
+            payout_uuid=uuid.UUID(payout_id),
+        )
+        db.add(commission)
+        await db.commit()
+        return str(commission.id)
+
+
+async def _get_commission_status(commission_id: str) -> dict:
+    import app.db.session as _session_mod
+
+    async with _session_mod.AsyncSessionLocal() as db:
+        row = (
+            await db.execute(
+                text("SELECT status, payout_uuid FROM commissions WHERE id = :id"),
+                {"id": commission_id},
+            )
+        ).fetchone()
+        assert row is not None
+        return dict(row._mapping)
+
+
+@pytest.mark.parametrize("status", ["pending_approval", "approved"])
+async def test_delete_rejects_not_yet_departed_payout(client: AsyncClient, status: str) -> None:
+    """A payout still awaiting approval or approved-but-not-initiated has not
+    left the platform — deletion must reject it outright, not merely
+    de-link it, so the deleted account is never paid."""
+    from app.models.payout import PayoutStatus
+
+    access_token, mobile = await full_registration(client)
+    uid = await _auth_user_uuid(mobile)
+    payout_id = await _seed_payout(uid, status=PayoutStatus(status))
+
+    await _delete_me(client, access_token)
+
+    row = await _get_payout(payout_id)
+    assert row["status"] == "rejected"
+    assert row["reject_reason"] is not None
+    # Also de-linked in the same pass, since the account is gone regardless.
+    assert row["recipient_user_uuid"] is None
+    assert row["delinked_at"] is not None
+    assert await _payout_rejected_audit_count(payout_id) == 1
+
+
+async def test_delete_releases_commission_linked_to_rejected_payout(client: AsyncClient) -> None:
+    """The source row of a payout rejected at deletion time must be released
+    (apply_release_link), not left stranded pointing at a dead payout."""
+    from app.models.payout import PayoutStatus, PayoutType
+
+    access_token, mobile = await full_registration(client)
+    uid = await _auth_user_uuid(mobile)
+    payout_id = await _seed_payout(
+        uid, status=PayoutStatus.PENDING_APPROVAL, payout_type=PayoutType.COMMISSION
+    )
+    commission_id = await _seed_commission_linked_to_payout(uid, payout_id)
+
+    await _delete_me(client, access_token)
+
+    commission = await _get_commission_status(commission_id)
+    assert commission["status"] == "pending"
+    assert commission["payout_uuid"] is None
+
+
+async def test_delete_leaves_initiated_payout_status_untouched(client: AsyncClient) -> None:
+    """An INITIATED payout may already be at the gateway and unrecallable —
+    deletion must not reject it, only de-link it (existing behaviour)."""
+    from app.models.payout import PayoutStatus
+
+    access_token, mobile = await full_registration(client)
+    uid = await _auth_user_uuid(mobile)
+    payout_id = await _seed_payout(uid, status=PayoutStatus.INITIATED)
+
+    await _delete_me(client, access_token)
+
+    row = await _get_payout(payout_id)
+    assert row["status"] == "initiated"
+    assert row["reject_reason"] is None
+    assert row["recipient_user_uuid"] is None
+    assert row["delinked_at"] is not None
+    assert await _payout_rejected_audit_count(payout_id) == 0
+
+
+async def test_delete_regression_live_settle_leaves_transaction_not_delinked(
+    client: AsyncClient,
+) -> None:
+    """Regression for the emitted-Transaction stamping in
+    services/payments.py::_emit_ledger_row — a normal settle for a LIVE
+    (never-deleted) account must leave retained_ref/delinked_at NULL."""
+    import app.db.session as _session_mod
+    from app.models.payout import Payout, PayoutDestination, PayoutStatus, PayoutType
+    from app.services.payments import _emit_ledger_row
+
+    access_token, mobile = await full_registration(client)
+    uid = await _auth_user_uuid(mobile)
+
+    async with _session_mod.AsyncSessionLocal() as db:
+        payout = Payout(
+            recipient_user_uuid=uuid.UUID(uid),
+            type=PayoutType.CASHBACK,
+            amount_paise=25_000,
+            currency="INR",
+            status=PayoutStatus.PAID,
+            destination_type=PayoutDestination.VPA,
+            destination_hint="***@okhdfc",
+            idempotency_key=uuid.uuid4().hex,
+            maker_user_uuid=uuid.UUID(uid),
+        )
+        db.add(payout)
+        await db.flush()
+        txn_id = await _emit_ledger_row(db, payout)
+        await db.commit()
+
+    row = await _get_transaction(str(txn_id))
+    assert row["retained_ref"] is None
+    assert row["delinked_at"] is None
 
 
 # ---------------------------------------------------------------------------

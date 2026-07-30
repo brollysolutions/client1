@@ -775,7 +775,16 @@ async def _backfill_gateway_id(payout_id: uuid.UUID, gateway_payout_id: str) -> 
 async def _emit_ledger_row(db, payout: Payout) -> uuid.UUID:
     """Insert the single positive client-facing ledger row for a settled payout
     and return its id. Insert-only (no payout mutation) so callers can claim the
-    settle with an atomic CAS. Caller commits (or rolls back on a lost CAS)."""
+    settle with an atomic CAS. Caller commits (or rolls back on a lost CAS).
+
+    retained_ref/delinked_at are copied straight from the payout: for a live
+    payout both are NULL (no-op). For a payout that was already de-linked at
+    account-deletion time (feature-status.md §2 #17 — an INITIATED payout
+    settling days after its recipient's account was deleted), the emitted
+    ledger row is born already de-linked instead of pointing at the now-freed
+    user_uuid with no delinked_at at all — otherwise it would be an orphan the
+    retention purge (which scopes strictly to delinked_at IS NOT NULL) could
+    never find."""
     txn = Transaction(
         user_uuid=payout.recipient_user_uuid,
         business_line=payout.business_line,
@@ -785,6 +794,8 @@ async def _emit_ledger_row(db, payout: Payout) -> uuid.UUID:
         currency=payout.currency,
         description=_ledger_description(payout.type),
         reference=payout.gateway_payout_id,
+        retained_ref=payout.retained_ref,
+        delinked_at=payout.delinked_at,
     )
     db.add(txn)
     await db.flush()  # populate txn.id
@@ -811,6 +822,11 @@ async def _emit_clawback_row(db, payout: Payout) -> uuid.UUID:
     the caller links it via reversal_transaction_id under an atomic CAS, which is
     what makes emission idempotent. Caller commits (or rolls back on a lost CAS,
     which also discards this insert).
+
+    retained_ref/delinked_at copied from the payout — same reasoning as
+    _emit_ledger_row above: a reversal against an already de-linked payout
+    (recipient's account deleted between settle and reversal) must not emit
+    an orphan the retention purge can never find.
     """
     txn = Transaction(
         user_uuid=payout.recipient_user_uuid,
@@ -821,6 +837,8 @@ async def _emit_clawback_row(db, payout: Payout) -> uuid.UUID:
         currency=payout.currency,
         description=_clawback_description(payout.type),
         reference=payout.gateway_payout_id,
+        retained_ref=payout.retained_ref,
+        delinked_at=payout.delinked_at,
     )
     db.add(txn)
     await db.flush()  # populate txn.id
