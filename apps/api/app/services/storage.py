@@ -127,6 +127,35 @@ def head_object(object_key: str) -> int | None:
     return int(resp["ContentLength"])
 
 
+_PUBLIC_PREFIX = "public/"
+
+
+def public_asset_url(object_key: str) -> str | None:
+    """Direct, unsigned URL for an object under the `public/` prefix, or None.
+
+    Everything else this module serves (KYC docs, task documents) stays behind
+    presign_download's short-lived, `attachment`-forced signed URL -- never
+    something you can hand to <img src>. `public/` is different: the bucket
+    policy (infra, not this function) grants anonymous s3:GetObject on
+    `{bucket}/public/*` with no s3:ListBucket, so an object under that prefix
+    is already world-readable by construction. This function only builds the
+    URL; the `startswith` check is the important line -- it is what stops a
+    caller from turning a non-public key (e.g. a stray `image_key` typo
+    pointing at an agent-application KYC object) into something that LOOKS
+    like a servable URL. It does not grant access either way -- the bucket
+    policy is the actual boundary -- but a None return means the frontend's
+    <img>/next/image never even attempts the request.
+
+    Same path-style URL shape as presign_upload/presign_download
+    (`{endpoint}/{bucket}/{key}`, verified against this dev stack's minio),
+    built against the public endpoint since this URL is handed to the
+    browser.
+    """
+    if not object_key.startswith(_PUBLIC_PREFIX):
+        return None
+    return f"{_public_endpoint()}/{settings.SPACES_BUCKET}/{object_key}"
+
+
 def presign_download(object_key: str) -> str:
     return _client(_public_endpoint()).generate_presigned_url(
         "get_object",

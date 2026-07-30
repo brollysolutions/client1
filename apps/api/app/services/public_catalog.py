@@ -224,3 +224,22 @@ async def list_public_content_blocks(db: AsyncSession) -> Sequence[ContentBlock]
     )
     result = await db.execute(stmt)
     return result.scalars().all()
+
+
+async def get_public_content_block_by_slug(db: AsyncSession, slug: str) -> ContentBlock | None:
+    """Closes feature-status.md §2-1: `slug` is already `unique=True` on this
+    table, so a direct lookup exists as cheaply as the list query above did
+    all along -- this was simply never wired up. Removes the exact failure
+    mode list_public_content_blocks's own docstring documents: a caller that
+    needs one specific block by slug (the homepage's `homepage-closing`
+    placement) was fetching all 50 newest and filtering client-side, so a
+    block could silently fall out of the response once >50 OTHER blocks were
+    published more recently, with no error, just a blank section.
+
+    Same access-control posture as the list query: status == PUBLISHED is
+    the entire filter, no RLS runs on this path.
+    """
+    stmt = select(ContentBlock).where(
+        ContentBlock.slug == slug, ContentBlock.status == ContentStatus.PUBLISHED
+    )
+    return await db.scalar(stmt)

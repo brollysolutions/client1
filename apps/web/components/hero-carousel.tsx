@@ -155,6 +155,18 @@ export function HeroCarousel({ banners }: { banners: HeroBanner[] }) {
                       priority={i === 0}
                       sizes="(min-width: 1024px) 1200px, (min-width: 640px) 720px, 90vw"
                       className="object-cover"
+                      // next/image's default loader proxies through /_next/image,
+                      // fetched SERVER-SIDE by the web process -- not the same
+                      // reachability as the browser's direct request this URL is
+                      // otherwise built for (see services/storage.py's
+                      // internal-vs-public split; in dev, minio's public host is
+                      // only resolvable from the browser, not the web container,
+                      // and the proxy 500s). Banner images are already capped at
+                      // 2 MiB and pre-compressed on upload, so skipping Next's
+                      // re-optimization for this one image class is a deliberate
+                      // trade, not a workaround: one less network hop, and one
+                      // less way for this specific card to fail.
+                      unoptimized
                     />
                   ) : (
                     <>

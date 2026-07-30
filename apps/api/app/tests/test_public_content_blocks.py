@@ -249,3 +249,52 @@ async def test_response_cap(client: AsyncClient) -> None:
         assert len(resp.json()["content_blocks"]) == PUBLIC_CONTENT_BLOCKS_LIMIT
     finally:
         await _delete_blocks(*ids)
+
+
+@pytest.mark.asyncio
+async def test_get_by_slug_returns_published_block(client: AsyncClient) -> None:
+    """feature-status §2-1: the direct lookup that removes the >50-block
+    starvation cliff list_public_content_blocks's own docstring documents."""
+    author = await _author_uuid(client)
+    slug = f"by-slug-{uuid.uuid4().hex}"
+    block_id = await _seed_block(
+        author=author,
+        status="published",
+        slug=slug,
+        section="homepage-closing",
+        title="By-Slug Block",
+        body="Direct lookup copy.",
+        business_line="loans",
+    )
+    try:
+        resp = await client.get(f"/api/v1/public/content-blocks/{slug}")
+        assert resp.status_code == 200
+        row = resp.json()
+        assert row["slug"] == slug
+        assert row["title"] == "By-Slug Block"
+        assert row["body"] == "Direct lookup copy."
+        assert row["business_line"] == "loans"
+        assert set(row.keys()) == {"slug", "section", "title", "body", "business_line"}
+    finally:
+        await _delete_blocks(block_id)
+
+
+@pytest.mark.asyncio
+async def test_get_by_slug_404s_for_unknown_slug(client: AsyncClient) -> None:
+    resp = await client.get(f"/api/v1/public/content-blocks/no-such-slug-{uuid.uuid4().hex}")
+    assert resp.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_get_by_slug_404s_for_non_published_status(client: AsyncClient) -> None:
+    """Same access-control posture as the list route: status == PUBLISHED is
+    the entire filter, so a draft/archived block at a known slug must not
+    leak through the by-slug lookup either."""
+    author = await _author_uuid(client)
+    slug = f"by-slug-draft-{uuid.uuid4().hex}"
+    block_id = await _seed_block(author=author, status="draft", slug=slug)
+    try:
+        resp = await client.get(f"/api/v1/public/content-blocks/{slug}")
+        assert resp.status_code == 404
+    finally:
+        await _delete_blocks(block_id)

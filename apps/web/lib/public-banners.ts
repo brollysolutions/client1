@@ -21,14 +21,40 @@ function isSameOriginPath(href: string): boolean {
   return /^\/(?![/\\])/.test(href);
 }
 
+// Mirrors next.config.ts's remotePatterns allowlist -- a host outside it
+// makes next/image throw at RENDER time (not a graceful broken-image icon),
+// which would take the whole homepage down. This guard is what stops that:
+// image_url is server-computed and should already be one of these two
+// hosts, but "should" isn't a load-bearing guarantee for an origin crash, so
+// it's re-checked here rather than trusted blindly.
+function isAllowedAssetUrl(raw: string): boolean {
+  let url: URL;
+  try {
+    url = new URL(raw);
+  } catch {
+    return false;
+  }
+  const configuredHost = process.env.NEXT_PUBLIC_ASSET_HOST;
+  if (configuredHost) {
+    try {
+      if (url.origin === new URL(configuredHost).origin) return true;
+    } catch {
+      // Malformed env value -- fall through to the dev fallback below.
+    }
+  }
+  return url.origin === "http://localhost:9000";
+}
+
 export function mapPublicBanner(raw: Schemas["PublicBannerRead"]): HeroBanner {
   return {
     id: raw.id,
     title: raw.title,
     subtitle: raw.subtitle ?? undefined,
-    // No public image field yet (public-banner-serving.md's Out of scope
-    // section) -- the component's cream-placeholder branch handles this.
-    image: undefined,
+    // The component's cream-placeholder branch handles undefined -- kept
+    // for a banner with no image, or one whose image_url somehow isn't on
+    // an allowed host (shouldn't happen post write-validator; see the guard
+    // above and services/storage.py::public_asset_url).
+    image: raw.image_url && isAllowedAssetUrl(raw.image_url) ? raw.image_url : undefined,
     // A CTA needs both a label and a same-origin destination. deep_link is
     // free-text CMS copy that reaches next/link unescaped; an absolute or
     // protocol-relative off-site URL is an open-redirect-shaped surface on a

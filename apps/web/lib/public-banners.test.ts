@@ -21,6 +21,7 @@ function wireBanner(overrides: Partial<Schemas["PublicBannerRead"]> = {}): Schem
     subtitle: "Limited period rates",
     cta_label: "Apply now",
     deep_link: "/loans",
+    image_url: null,
     ...overrides,
   };
 }
@@ -46,8 +47,27 @@ describe("mapPublicBanner()", () => {
     expect(banner.subtitle).toBeUndefined();
   });
 
-  it("never sets an image (public images are deferred)", () => {
+  it("leaves image undefined when image_url is null", () => {
     const banner = mapPublicBanner(wireBanner());
+    expect(banner.image).toBeUndefined();
+  });
+
+  it("keeps image_url when its host is the dev minio allowlist entry", () => {
+    const banner = mapPublicBanner(
+      wireBanner({ image_url: "http://localhost:9000/task-documents/public/banners/x/y.jpg" }),
+    );
+    expect(banner.image).toBe("http://localhost:9000/task-documents/public/banners/x/y.jpg");
+  });
+
+  it("drops image_url from a host outside the allowlist", () => {
+    const banner = mapPublicBanner(
+      wireBanner({ image_url: "https://evil.example.com/public/banners/x/y.jpg" }),
+    );
+    expect(banner.image).toBeUndefined();
+  });
+
+  it("drops a malformed image_url", () => {
+    const banner = mapPublicBanner(wireBanner({ image_url: "not-a-url" }));
     expect(banner.image).toBeUndefined();
   });
 

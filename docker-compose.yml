@@ -81,6 +81,24 @@ services:
   # One-shot: creates the dev bucket, then exits. Not depended on by api/scheduler
   # (presigning doesn't need a reachable endpoint) but must finish before an
   # employee actually uploads a file in dev.
+  #
+  # The `mc anonymous set download .../public/` line (note the TRAILING SLASH
+  # -- without it, `mc` scopes both grants to the bare string prefix "public"
+  # instead of the "public/" directory, which (a) would anonymously expose
+  # any future key merely starting with those 6 characters, not just objects
+  # actually under public/, and (b) still grants ListBucket, just scoped to
+  # the wrong prefix condition -- verified live against this dev minio) is
+  # the dev-stack mirror of the prod bucket policy for banner images (docs
+  # §2-13): anonymous s3:GetObject on the public/ prefix only, everything
+  # else in the bucket (KYC docs, task documents) stays behind a signed URL.
+  # `download` is mc's name for read-only anonymous access. It DOES also
+  # grant s3:ListBucket (scoped to this prefix condition, verified live) --
+  # that's an accepted, intentional part of `download`, not a gap: nothing
+  # under public/ is meant to be secret, only the OTHER prefixes must never
+  # be listable, and this grant's `s3:prefix` condition never covers them.
+  # Prod's real bucket policy (DigitalOcean Spaces, not this file) should be
+  # written with the equivalent explicit `public/*` resource shape, not a
+  # bare-prefix approximation.
   minio-init:
     image: minio/mc:latest
     depends_on:
@@ -90,6 +108,7 @@ services:
       /bin/sh -c "
       mc alias set local http://minio:9000 ${SPACES_ACCESS_KEY:-minioadmin} ${SPACES_SECRET_KEY:-minioadmin};
       mc mb -p local/task-documents;
+      mc anonymous set download local/task-documents/public/;
       exit 0;
       "
 

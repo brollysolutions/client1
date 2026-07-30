@@ -43,6 +43,14 @@ class PropertyDealListResponse(BaseModel):
     deals: list[PropertyDealRead]
 
 
+class AgentContactRead(BaseModel):
+    """Name + agent_code only -- never phone/email. Contact routes through
+    the support-ticket flow (POST /api/v1/support-tickets/tickets)."""
+
+    name: str
+    agent_code: str
+
+
 class PropertyDealProgressUpdate(BaseModel):
     status: PropertyDealStatus | None = None
     status_reason: Annotated[str | None, Field(default=None, max_length=1000)] = None
