@@ -19,15 +19,20 @@ from app.db.session import get_db
 from app.models.banner import Banner, BannerStatus
 from app.schemas.banners import (
     BannerCreate,
+    BannerImageUploadRequest,
+    BannerImageUploadResponse,
     BannerListResponse,
     BannerRead,
     BannerUpdate,
     RejectRequest,
 )
 from app.services.banners import (
+    IMAGE_MAX_BYTES,
     BannerAlreadyReviewed,
     BannerNotOwned,
+    UnsupportedImageType,
     approve_banner,
+    presign_banner_image_upload,
     reject_banner,
     submit_banner,
 )
@@ -46,6 +51,31 @@ async def create_banner(
     await db.commit()
     await db.refresh(banner)
     return BannerRead.model_validate(banner, from_attributes=True)
+
+
+@router.post("/image-upload-url", response_model=BannerImageUploadResponse)
+async def get_banner_image_upload_url(
+    payload: BannerImageUploadRequest,
+    current_user: CurrentUser = Depends(require_sub_admin),
+) -> BannerImageUploadResponse:
+    # No DB row yet -- a banner may not exist until after the image is
+    # picked (create_banner takes image_key as a plain field). The key
+    # itself is the only thing that needs to exist ahead of time.
+    try:
+        url, fields, object_key = presign_banner_image_upload(
+            payload.content_type, payload.filename
+        )
+    except UnsupportedImageType as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Unsupported image type. Use JPEG, PNG, or WEBP.",
+        ) from exc
+    return BannerImageUploadResponse(
+        object_key=object_key,
+        upload_url=url,
+        fields=fields,
+        max_bytes=IMAGE_MAX_BYTES,
+    )
 
 
 @router.get("", response_model=BannerListResponse)

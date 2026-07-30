@@ -24,6 +24,7 @@ from app.jobs.backfill_customer_codes import backfill_customer_codes
 from app.jobs.backfill_referral_codes import backfill_referral_codes
 from app.jobs.cms_activation import cms_activation
 from app.jobs.purge_agent_application_orphans import purge_agent_application_orphans
+from app.jobs.purge_banner_image_orphans import purge_banner_image_orphans
 from app.jobs.purge_loan_document_orphans import purge_loan_document_orphans
 from app.jobs.purge_task_document_orphans import purge_task_document_orphans
 from app.jobs.reconcile_payout_links import reconcile_payout_links
@@ -181,6 +182,15 @@ def build_scheduler() -> AsyncIOScheduler:
         trigger="interval",
         hours=24,  # storage cost cleanup, not time-critical
         id="purge_task_document_orphans",
+        max_instances=1,
+        coalesce=True,
+        replace_existing=True,
+    )
+    scheduler.add_job(
+        purge_banner_image_orphans,
+        trigger="interval",
+        hours=24,  # storage cost cleanup, not time-critical
+        id="purge_banner_image_orphans",
         max_instances=1,
         coalesce=True,
         replace_existing=True,

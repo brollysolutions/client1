@@ -27,6 +27,14 @@ COPY --from=contracts . /packages/contracts
 # would fall back to http://localhost:8000. Supplied via compose build.args.
 ARG NEXT_PUBLIC_API_BASE_URL
 ENV NEXT_PUBLIC_API_BASE_URL=${NEXT_PUBLIC_API_BASE_URL}
+# Origin only (e.g. https://nyc3.digitaloceanspaces.com), no path -- next.config.ts
+# builds a remotePattern from it so next/image will fetch banner images
+# served from the public/ storage prefix. See docker-compose.prod.example.yml
+# for why this is required in a real deploy: left unset, every banner image
+# silently fails to render (lib/public-banners.ts's host guard only allows
+# this value or dev's localhost:9000).
+ARG NEXT_PUBLIC_ASSET_HOST
+ENV NEXT_PUBLIC_ASSET_HOST=${NEXT_PUBLIC_ASSET_HOST}
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN pnpm build
 

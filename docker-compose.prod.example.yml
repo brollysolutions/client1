@@ -133,6 +133,16 @@ services:
         # The ? guard (not :?) errors only when UNSET, so the empty same-origin
         # value is allowed. The env_file below only sets RUNTIME (SSR) values.
         NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL?set NEXT_PUBLIC_API_BASE_URL for the prod web build (empty = same-origin behind nginx)}
+        # Origin only (e.g. https://nyc3.digitaloceanspaces.com), same origin
+        # SPACES_ENDPOINT_URL resolves to on the API side -- next.config.ts
+        # turns this into next/image's remotePatterns entry for banner
+        # images served from the public/ storage prefix. Required (not
+        # optional like the asset host itself being empty would suggest):
+        # leaving it unset means every banner image silently fails to
+        # render in prod, since lib/public-banners.ts's host guard only
+        # allows this value or dev's localhost:9000, and there's no way to
+        # notice the gap short of a blank hero card.
+        NEXT_PUBLIC_ASSET_HOST: ${NEXT_PUBLIC_ASSET_HOST?set NEXT_PUBLIC_ASSET_HOST to the storage endpoint origin banner images are served from}
     # No command override: the standalone prod image's CMD is `node server.js`
     # (pnpm and package.json scripts are not present in that image).
     #

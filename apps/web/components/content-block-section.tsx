@@ -1,20 +1,14 @@
 import type { PublicContentBlock } from "@/lib/public-content-blocks";
 
-// Renders a single Sub-Admin-authored content block, looked up by its unique
-// slug (docs/specs/public-content-block-serving.md). Renders nothing (returns
-// null) when no published block has that slug yet, or its body is empty --
-// same "don't render an empty state" convention as offer-strip.tsx: this is
+// Renders a single Sub-Admin-authored content block, fetched by its unique
+// slug (docs/specs/public-content-block-serving.md) via
+// getPublicContentBlockBySlug. Renders nothing (returns null) when no
+// published block has that slug yet, or its body is empty -- same "don't
+// render an empty state" convention as offer-strip.tsx: this is
 // supplementary editorial copy, not primary page content, so absence should
 // read as silence, not a broken-looking gap. Also absorbs a failed fetch the
 // same way, since lib/public-content-blocks.ts never distinguishes the two.
-export function ContentBlockSection({
-  blocks,
-  slug,
-}: {
-  blocks: PublicContentBlock[];
-  slug: string;
-}) {
-  const block = blocks.find((b) => b.slug === slug);
+export function ContentBlockSection({ block }: { block: PublicContentBlock | null }) {
   if (!block || !block.body) return null;
 
   return (

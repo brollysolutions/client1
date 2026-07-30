@@ -40,8 +40,11 @@ export function OfferForm() {
   const [description, setDescription] = React.useState("");
   const [discountValue, setDiscountValue] = React.useState("");
   const [code, setCode] = React.useState("");
+  const [startsAt, setStartsAt] = React.useState("");
+  const [endsAt, setEndsAt] = React.useState("");
   const [titleError, setTitleError] = React.useState<string | undefined>();
   const [discountError, setDiscountError] = React.useState<string | undefined>();
+  const [scheduleError, setScheduleError] = React.useState<string | undefined>();
   const [submitting, setSubmitting] = React.useState(false);
 
   async function onSubmit(e: React.FormEvent) {
@@ -63,6 +66,12 @@ export function OfferForm() {
     } else {
       setDiscountError(undefined);
     }
+    if (startsAt && endsAt && new Date(endsAt) <= new Date(startsAt)) {
+      setScheduleError("End must be after start.");
+      hasError = true;
+    } else {
+      setScheduleError(undefined);
+    }
     if (hasError) return;
 
     setSubmitting(true);
@@ -73,6 +82,8 @@ export function OfferForm() {
       discount_type: discountType,
       discount_value: String(value),
       code: code.trim() || null,
+      starts_at: startsAt ? new Date(startsAt).toISOString() : null,
+      ends_at: endsAt ? new Date(endsAt).toISOString() : null,
     });
     setSubmitting(false);
     if (res.ok) {
@@ -181,6 +192,28 @@ export function OfferForm() {
             />
           </div>
         </div>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div>
+            <Label htmlFor="starts-at">Goes live at</Label>
+            <Input
+              id="starts-at"
+              type="datetime-local"
+              value={startsAt}
+              onChange={(e) => setStartsAt(e.target.value)}
+            />
+          </div>
+          <div>
+            <Label htmlFor="ends-at">Expires at</Label>
+            <Input
+              id="ends-at"
+              type="datetime-local"
+              value={endsAt}
+              onChange={(e) => setEndsAt(e.target.value)}
+            />
+          </div>
+        </div>
+        {scheduleError ? <p className="-mt-3 text-sm text-destructive">{scheduleError}</p> : null}
 
         <Button type="submit" disabled={submitting} className="w-full sm:w-auto">
           {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

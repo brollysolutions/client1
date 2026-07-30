@@ -23,9 +23,28 @@ from sqlalchemy.orm import joinedload
 from app.core.deps import CurrentUser, get_active_user
 from app.db.session import get_db
 from app.models.property_deal import PropertyDeal
-from app.schemas.property_deals import PropertyDealListResponse, PropertyDealRead
+from app.schemas.property_deals import (
+    AgentContactRead,
+    PropertyDealListResponse,
+    PropertyDealRead,
+)
+from app.services.contacts import get_my_agent
 
 router = APIRouter()
+
+
+@router.get("/agent", response_model=AgentContactRead | None)
+async def get_my_agent_contact(
+    current_user: CurrentUser = Depends(get_active_user),
+) -> AgentContactRead | None:
+    """Null is the "no agent assigned yet" state, not an error -- a client
+    with no property deal yet, or one whose lead has no origin agent, has no
+    agent to show. Name + agent_code only -- contact routes through the
+    support-ticket flow."""
+    contact = await get_my_agent(current_user.id)
+    if contact is None:
+        return None
+    return AgentContactRead(name=contact.name, agent_code=contact.agent_code)
 
 
 @router.get("", response_model=PropertyDealListResponse)

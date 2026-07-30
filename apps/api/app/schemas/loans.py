@@ -64,6 +64,14 @@ class BankListResponse(BaseModel):
     banks: list[BankRead]
 
 
+class LoanOfficerContactRead(BaseModel):
+    """Name + staff_code only -- never phone/email. Contact routes through
+    the support-ticket flow (POST /api/v1/support-tickets/tickets)."""
+
+    name: str
+    staff_code: str
+
+
 class LoanApplicationProgressUpdate(BaseModel):
     """Shared write shape for the Telecaller and Admin progression endpoints.
 

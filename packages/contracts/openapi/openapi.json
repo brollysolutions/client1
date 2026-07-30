@@ -1668,6 +1668,25 @@
         "title": "AgentApproveResponse",
         "type": "object"
       },
+      "AgentContactRead": {
+        "description": "Name + agent_code only -- never phone/email. Contact routes through\nthe support-ticket flow (POST /api/v1/support-tickets/tickets).",
+        "properties": {
+          "agent_code": {
+            "title": "Agent Code",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "agent_code"
+        ],
+        "title": "AgentContactRead",
+        "type": "object"
+      },
       "AgentEarningsResponse": {
         "properties": {
           "rows": {
@@ -2613,6 +2632,7 @@
             "anyOf": [
               {
                 "maxLength": 500,
+                "pattern": "^public/banners/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/[A-Za-z0-9._-]+$",
                 "type": "string"
               },
               {
@@ -2664,6 +2684,62 @@
           "title"
         ],
         "title": "BannerCreate",
+        "type": "object"
+      },
+      "BannerImageUploadRequest": {
+        "properties": {
+          "content_type": {
+            "enum": [
+              "image/jpeg",
+              "image/png",
+              "image/webp"
+            ],
+            "title": "Content Type",
+            "type": "string"
+          },
+          "filename": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Filename",
+            "type": "string"
+          }
+        },
+        "required": [
+          "content_type",
+          "filename"
+        ],
+        "title": "BannerImageUploadRequest",
+        "type": "object"
+      },
+      "BannerImageUploadResponse": {
+        "properties": {
+          "fields": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Fields",
+            "type": "object"
+          },
+          "max_bytes": {
+            "title": "Max Bytes",
+            "type": "integer"
+          },
+          "object_key": {
+            "title": "Object Key",
+            "type": "string"
+          },
+          "upload_url": {
+            "title": "Upload Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "object_key",
+          "upload_url",
+          "fields",
+          "max_bytes"
+        ],
+        "title": "BannerImageUploadResponse",
         "type": "object"
       },
       "BannerListResponse": {
@@ -2917,6 +2993,7 @@
             "anyOf": [
               {
                 "maxLength": 500,
+                "pattern": "^public/banners/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/[A-Za-z0-9._-]+$",
                 "type": "string"
               },
               {
@@ -5577,6 +5654,25 @@
         "title": "LoanDocumentRead",
         "type": "object"
       },
+      "LoanOfficerContactRead": {
+        "description": "Name + staff_code only -- never phone/email. Contact routes through\nthe support-ticket flow (POST /api/v1/support-tickets/tickets).",
+        "properties": {
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "staff_code": {
+            "title": "Staff Code",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "staff_code"
+        ],
+        "title": "LoanOfficerContactRead",
+        "type": "object"
+      },
       "LoanStatus": {
         "enum": [
           "new",
@@ -7371,7 +7467,7 @@
         "type": "object"
       },
       "PublicBannerRead": {
-        "description": "Anonymous-read shape (docs/specs/public-banner-serving.md).\n\nDeliberately NOT a subclass of BannerRead: a separate hand-written schema\nmeans a future sensitive column added to the authenticated read can never\nsilently surface here. Every exclusion below has a reason:\n\n- image_key: deferred this slice, and it's a storage key, not a URL --\n  services/storage.py's presign_download forces\n  ResponseContentDisposition: attachment (unusable as an <img> src) and\n  next.config.ts has no images.remotePatterns configured. Serving banner\n  images needs its own slice and its own security review.\n- audience_rules: targeting internals, meaningless (and a segmentation\n  disclosure) to an anonymous client that can never be targeted.\n- priority: an ordering INPUT, already fully expressed by response order.\n  Exposing it invites a client-side re-sort that would diverge from the\n  server's.\n- status: constant \"live\" by construction on this path. Exposing a\n  constant invites a client-side filter that would quietly become the\n  de-facto access control.\n- created_by_uuid / approved_by_uuid: staff identities, never public.\n- review_note: candid reviewer-to-author feedback.\n- starts_at / ends_at: the endpoint has already applied the window\n  (services/public_catalog.py); republishing it lets a client\n  second-guess the server and discloses unlaunched campaign timing.\n- created_at / updated_at: internal metadata, no display use.\n- business_line: the public hero is cross-line (ADR-0007 makes both lines\n  render identically -- blue-only accent), so nothing in the hero varies\n  by line. Exposing it would also invite a client-side line filter that\n  could become shadow access control.\n- banner_type: the two servable types (default, action) render\n  identically on the hero; exposing it invites a client branch and makes\n  a future enum value a silent frontend break instead of a backend\n  allowlist decision (see services/public_catalog.py's banner_type filter).\n\ndeep_link IS included -- it is the CTA href, author-supplied, and the hero\ncannot function without it. The frontend (lib/public-banners.ts) applies\na same-origin guard before building a CTA from it; this schema stores\nexactly what the author typed.",
+        "description": "Anonymous-read shape (docs/specs/public-banner-serving.md).\n\nDeliberately NOT a subclass of BannerRead: a separate hand-written schema\nmeans a future sensitive column added to the authenticated read can never\nsilently surface here. Every exclusion below has a reason:\n\n- image_key: still excluded -- it's a storage key, not a URL, and its\n  shape (`public/banners/{uuid}/{name}`) leaks bucket layout for no\n  benefit to a public consumer. `image_url` (below) is the servable\n  replacement, computed at the router from image_key via\n  services/storage.py::public_asset_url -- never round-tripped from the\n  column directly, so a non-`public/`-prefixed key (shouldn't exist post\n  write-validator, but see the backfill migration) degrades to None\n  instead of ever reaching a client.\n- audience_rules: targeting internals, meaningless (and a segmentation\n  disclosure) to an anonymous client that can never be targeted.\n- priority: an ordering INPUT, already fully expressed by response order.\n  Exposing it invites a client-side re-sort that would diverge from the\n  server's.\n- status: constant \"live\" by construction on this path. Exposing a\n  constant invites a client-side filter that would quietly become the\n  de-facto access control.\n- created_by_uuid / approved_by_uuid: staff identities, never public.\n- review_note: candid reviewer-to-author feedback.\n- starts_at / ends_at: the endpoint has already applied the window\n  (services/public_catalog.py); republishing it lets a client\n  second-guess the server and discloses unlaunched campaign timing.\n- created_at / updated_at: internal metadata, no display use.\n- business_line: the public hero is cross-line (ADR-0007 makes both lines\n  render identically -- blue-only accent), so nothing in the hero varies\n  by line. Exposing it would also invite a client-side line filter that\n  could become shadow access control.\n- banner_type: the two servable types (default, action) render\n  identically on the hero; exposing it invites a client branch and makes\n  a future enum value a silent frontend break instead of a backend\n  allowlist decision (see services/public_catalog.py's banner_type filter).\n\ndeep_link IS included -- it is the CTA href, author-supplied, and the hero\ncannot function without it. The frontend (lib/public-banners.ts) applies\na same-origin guard before building a CTA from it; this schema stores\nexactly what the author typed.\n\nimage_url IS included -- the direct, unsigned URL for a `public/`-prefixed\nimage_key (None if the banner has no image, or -- should never happen\npost write-validator -- a non-conforming one). The frontend applies an\nallowed-host guard before ever passing this to next/image, mirroring the\ndeep_link same-origin guard above: see lib/public-banners.ts.",
         "properties": {
           "cta_label": {
             "anyOf": [
@@ -7400,6 +7496,17 @@
             "title": "Id",
             "type": "string"
           },
+          "image_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Image Url"
+          },
           "subtitle": {
             "anyOf": [
               {
@@ -7421,7 +7528,8 @@
           "title",
           "subtitle",
           "cta_label",
-          "deep_link"
+          "deep_link",
+          "image_url"
         ],
         "title": "PublicBannerRead",
         "type": "object"
@@ -15277,6 +15385,52 @@
         ]
       }
     },
+    "/api/v1/banners/image-upload-url": {
+      "post": {
+        "operationId": "get_banner_image_upload_url_api_v1_banners_image_upload_url_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BannerImageUploadRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BannerImageUploadResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Get Banner Image Upload Url",
+        "tags": [
+          "banners"
+        ]
+      }
+    },
     "/api/v1/banners/{banner_id}": {
       "get": {
         "operationId": "get_banner_api_v1_banners__banner_id__get",
@@ -16926,6 +17080,41 @@
         ]
       }
     },
+    "/api/v1/loans/officer": {
+      "get": {
+        "description": "Null is the \"no officer assigned yet\" state, not an error -- a client\nwith no loan application yet, or one whose telecaller hasn't been\nassigned, legitimately has no officer to show.",
+        "operationId": "get_my_loan_officer_contact_api_v1_loans_officer_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/LoanOfficerContactRead"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "title": "Response Get My Loan Officer Contact Api V1 Loans Officer Get"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Get My Loan Officer Contact",
+        "tags": [
+          "loans"
+        ]
+      }
+    },
     "/api/v1/notifications": {
       "get": {
         "operationId": "list_notifications_api_v1_notifications_get",
@@ -17939,6 +18128,41 @@
         ]
       }
     },
+    "/api/v1/property-deals/agent": {
+      "get": {
+        "description": "Null is the \"no agent assigned yet\" state, not an error -- a client\nwith no property deal yet, or one whose lead has no origin agent, has no\nagent to show. Name + agent_code only -- contact routes through the\nsupport-ticket flow.",
+        "operationId": "get_my_agent_contact_api_v1_property_deals_agent_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AgentContactRead"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "title": "Response Get My Agent Contact Api V1 Property Deals Agent Get"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Get My Agent Contact",
+        "tags": [
+          "property-deals"
+        ]
+      }
+    },
     "/api/v1/property-deals/{deal_id}": {
       "get": {
         "operationId": "get_property_deal_api_v1_property_deals__deal_id__get",
@@ -18276,6 +18500,49 @@
           }
         },
         "summary": "List Content Blocks Public",
+        "tags": [
+          "public"
+        ]
+      }
+    },
+    "/api/v1/public/content-blocks/{slug}": {
+      "get": {
+        "description": "Closes feature-status.md \u00a72-1 \u2014 a direct lookup for the one caller\nthat needs exactly one block (the homepage's `homepage-closing`\nplacement), removing both the over-fetch and the >50-published-blocks\nstarvation cliff the list endpoint's own docstring documents.",
+        "operationId": "get_content_block_by_slug_public_api_v1_public_content_blocks__slug__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "slug",
+            "required": true,
+            "schema": {
+              "title": "Slug",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicContentBlockRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Content Block By Slug Public",
         "tags": [
           "public"
         ]
