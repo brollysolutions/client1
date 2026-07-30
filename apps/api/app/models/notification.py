@@ -35,6 +35,15 @@ class NotificationType(enum.StrEnum):
     REFERRAL_CONVERTED = "referral_converted"
     SUPPORT_TICKET_RESOLVED = "support_ticket_resolved"
     DOCUMENT_REVIEW_UPDATED = "document_review_updated"
+    # FR-11.3 — a non-acting admin hears about a major action. One value per
+    # *class* an admin reads, not per audit action (see services/admin_notify.py):
+    # ADMIN_PAYOUT_REVIEWED covers both PAYOUT_APPROVED and PAYOUT_REJECTED (the
+    # title differentiates), same shape as DOCUMENT_REVIEW_UPDATED above already
+    # covering verified/unverified in one value.
+    ADMIN_PAYOUT_REVIEWED = "admin_payout_reviewed"
+    ADMIN_ACCOUNT_ACTION = "admin_account_action"
+    ADMIN_RETENTION_PURGED = "admin_retention_purged"
+    ADMIN_BROADCAST = "admin_broadcast"
 
 
 _ev = lambda x: [e.value for e in x]  # noqa: E731
