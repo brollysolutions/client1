@@ -1,7 +1,16 @@
 """Admin router — staff provisioning + agent-application approval queue.
 
-Every write runs on the request session under RLS; require_admin is the access
-gate (see app/services/admin.py module docstring for why RLS alone isn't enough).
+Every write runs on the request session under RLS; require_platform_admin is
+the access gate (see app/services/admin.py module docstring for why RLS
+alone isn't enough). Tightened from the role-only `require_admin` across all
+29 routes in this router (feature-status.md §2-20): every RLS admin-bypass
+predicate in this codebase independently requires
+`role='admin' AND platform_scope='true'` already, so this closes a gap
+where a line-scoped admin got either a silent RLS-empty result or an
+inconsistent 403 further down, rather than a clean 403 at the boundary —
+concretely, `reject_agent_application` applies no line predicate of its
+own, so a line-scoped admin could reject an application on the other
+business line before this change.
 """
 
 from __future__ import annotations
@@ -16,7 +25,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.cache.redis_keys import RedisCache
 from app.core.client_ip import get_client_ip
-from app.core.deps import CurrentUser, get_cache, require_admin
+from app.core.deps import CurrentUser, get_cache, require_platform_admin
 from app.db.session import get_db
 from app.models.audit_log import AuditAction
 from app.models.profile import AgentApplication, StaffRole, SubmissionStatus
@@ -162,7 +171,7 @@ router = APIRouter()
 
 @router.get("/home", response_model=AdminHomeResponse)
 async def home(
-    current_user: CurrentUser = Depends(require_admin),
+    current_user: CurrentUser = Depends(require_platform_admin),
     db: AsyncSession = Depends(get_db),
 ) -> AdminHomeResponse:
     del current_user  # gate only; every query below is platform-wide, not own-scoped
@@ -213,7 +222,7 @@ def _to_admin_property_deal_read(deal) -> AdminPropertyDealRead:  # noqa: ANN001
 )
 async def create_staff_user(
     payload: StaffCreateRequest,
-    current_user: CurrentUser = Depends(require_admin),
+    current_user: CurrentUser = Depends(require_platform_admin),
     db: AsyncSession = Depends(get_db),
 ) -> StaffCreateResponse:
     try:
@@ -241,12 +250,12 @@ async def delete_user(
     auth_user_uuid: UUID,
     payload: AdminAccountDeleteRequest,
     request: Request,
-    current_user: CurrentUser = Depends(require_admin),
+    current_user: CurrentUser = Depends(require_platform_admin),
     db: AsyncSession = Depends(get_db),
     cache: RedisCache = Depends(get_cache),
 ) -> MessageResponse:
     """FR-17.4 — Admin removal of a suspicious account. Admin-only (not Sub
-    Admin): mirrors the require_admin wall on the other irreversible
+    Admin): mirrors the require_platform_admin wall on the other irreversible
     platform-identity actions above (staff provisioning, agent-app review)."""
     if auth_user_uuid == current_user.id:
         # This path never blacklists the caller's own current access token
@@ -284,7 +293,7 @@ async def delete_user(
 
 @router.get("/agents", response_model=AgentApplicationListResponse)
 async def list_pending_agent_applications(
-    current_user: CurrentUser = Depends(require_admin),
+    current_user: CurrentUser = Depends(require_platform_admin),
     db: AsyncSession = Depends(get_db),
 ) -> AgentApplicationListResponse:
     rows = (
@@ -302,7 +311,7 @@ async def list_pending_agent_applications(
 @router.get("/agents/{application_id}", response_model=AgentApplicationDetailRead)
 async def get_agent_application(
     application_id: UUID,
-    current_user: CurrentUser = Depends(require_admin),
+    current_user: CurrentUser = Depends(require_platform_admin),
     db: AsyncSession = Depends(get_db),
 ) -> AgentApplicationDetailRead:
     """Detail view, not fields on the list: presign_download URLs are 5-minute
@@ -328,13 +337,14 @@ async def get_agent_application(
     return AgentApplicationDetailRead(
         **AgentApplicationRead.model_validate(application, from_attributes=True).model_dump(),
         documents=documents,
+        review_note=application.review_note,
     )
 
 
 @router.post("/agents/{application_id}/approve", response_model=AgentApproveResponse)
 async def approve_agent(
     application_id: UUID,
-    current_user: CurrentUser = Depends(require_admin),
+    current_user: CurrentUser = Depends(require_platform_admin),
     db: AsyncSession = Depends(get_db),
 ) -> AgentApproveResponse:
     try:
@@ -372,7 +382,7 @@ async def approve_agent(
 async def reject_agent(
     application_id: UUID,
     payload: AgentRejectRequest,
-    current_user: CurrentUser = Depends(require_admin),
+    current_user: CurrentUser = Depends(require_platform_admin),
     db: AsyncSession = Depends(get_db),
 ) -> AgentApplicationRead:
     try:
@@ -403,7 +413,7 @@ async def reject_agent(
 async def assign_lead(
     lead_id: UUID,
     payload: LeadAssignRequest,
-    current_user: CurrentUser = Depends(require_admin),
+    current_user: CurrentUser = Depends(require_platform_admin),
     db: AsyncSession = Depends(get_db),
 ) -> LeadAssignResponse:
     try:
@@ -440,7 +450,7 @@ async def assign_lead(
 async def release_lead(
     lead_id: UUID,
     payload: LeadReleaseRequest,
-    current_user: CurrentUser = Depends(require_admin),
+    current_user: CurrentUser = Depends(require_platform_admin),
     db: AsyncSession = Depends(get_db),
 ) -> LeadReleaseResponse:
     try:
@@ -476,7 +486,7 @@ async def release_lead(
 async def list_employees(
     business_line: str | None = None,
     role: Literal["employee", "telecaller"] | None = None,
-    current_user: CurrentUser = Depends(require_admin),
+    current_user: CurrentUser = Depends(require_platform_admin),
     db: AsyncSession = Depends(get_db),
 ) -> list[AdminEmployeeRead]:
     rows = await list_active_employees(
@@ -498,7 +508,7 @@ async def list_employees(
 async def list_leads(
     limit: int = Query(default=100, ge=1, le=500),
     offset: int = Query(default=0, ge=0),
-    current_user: CurrentUser = Depends(require_admin),
+    current_user: CurrentUser = Depends(require_platform_admin),
     db: AsyncSession = Depends(get_db),
 ) -> list[AdminLeadRead]:
     leads = await list_unassigned_leads(db, limit, offset)
@@ -509,7 +519,7 @@ async def list_leads(
 async def list_assigned(
     limit: int = Query(default=100, ge=1, le=500),
     offset: int = Query(default=0, ge=0),
-    current_user: CurrentUser = Depends(require_admin),
+    current_user: CurrentUser = Depends(require_platform_admin),
     db: AsyncSession = Depends(get_db),
 ) -> list[AdminAssignedLeadRead]:
     rows = await list_assigned_leads(db, limit, offset)
@@ -536,7 +546,7 @@ async def list_assigned(
 @router.get("/tasks", response_model=list[AdminTaskRead])
 async def list_tasks(
     status_filter: str | None = None,
-    current_user: CurrentUser = Depends(require_admin),
+    current_user: CurrentUser = Depends(require_platform_admin),
     db: AsyncSession = Depends(get_db),
 ) -> list[AdminTaskRead]:
     tasks = await list_unassigned_tasks(db, status_filter)
@@ -547,7 +557,7 @@ async def list_tasks(
 async def assign_task(
     task_id: UUID,
     payload: TaskAssignRequest,
-    current_user: CurrentUser = Depends(require_admin),
+    current_user: CurrentUser = Depends(require_platform_admin),
     db: AsyncSession = Depends(get_db),
 ) -> AdminTaskRead:
     try:
@@ -569,7 +579,7 @@ async def assign_task(
 @router.get("/loans", response_model=AdminLoanApplicationListResponse)
 async def list_loan_applications(
     status_filter: str | None = None,
-    current_user: CurrentUser = Depends(require_admin),  # noqa: ARG001
+    current_user: CurrentUser = Depends(require_platform_admin),  # noqa: ARG001
     db: AsyncSession = Depends(get_db),
 ) -> AdminLoanApplicationListResponse:
     applications = await list_applications_for_admin(db, status_filter)
@@ -582,7 +592,7 @@ async def list_loan_applications(
 async def update_loan_application_progress(
     application_id: UUID,
     payload: LoanApplicationProgressUpdate,
-    current_user: CurrentUser = Depends(require_admin),  # noqa: ARG001
+    current_user: CurrentUser = Depends(require_platform_admin),  # noqa: ARG001
     db: AsyncSession = Depends(get_db),
 ) -> AdminLoanApplicationRead:
     application = await get_application_for_admin(db, application_id)
@@ -626,7 +636,7 @@ async def update_loan_application_progress(
 @router.get("/property-deals", response_model=AdminPropertyDealListResponse)
 async def list_property_deals(
     status_filter: str | None = None,
-    current_user: CurrentUser = Depends(require_admin),  # noqa: ARG001
+    current_user: CurrentUser = Depends(require_platform_admin),  # noqa: ARG001
     db: AsyncSession = Depends(get_db),
 ) -> AdminPropertyDealListResponse:
     deals = await list_deals_for_admin(db, status_filter)
@@ -637,7 +647,7 @@ async def list_property_deals(
 async def update_property_deal_progress(
     deal_id: UUID,
     payload: PropertyDealProgressUpdate,
-    current_user: CurrentUser = Depends(require_admin),  # noqa: ARG001
+    current_user: CurrentUser = Depends(require_platform_admin),  # noqa: ARG001
     db: AsyncSession = Depends(get_db),
 ) -> AdminPropertyDealRead:
     deal = await get_deal_for_admin(db, deal_id)
@@ -691,7 +701,7 @@ def _to_support_ticket_admin_read(view: AdminTicketView) -> SupportTicketAdminRe
 @router.get("/support-tickets", response_model=SupportTicketAdminListResponse)
 async def list_support_tickets(
     status_filter: SupportStatus | None = Query(default=None, alias="status"),
-    current_user: CurrentUser = Depends(require_admin),  # noqa: ARG001
+    current_user: CurrentUser = Depends(require_platform_admin),  # noqa: ARG001
     db: AsyncSession = Depends(get_db),
 ) -> SupportTicketAdminListResponse:
     views = await list_support_tickets_for_admin(db, status_filter=status_filter)
@@ -702,7 +712,7 @@ async def list_support_tickets(
 async def advance_support_ticket(
     ticket_id: UUID,
     payload: SupportTicketAdvanceRequest,
-    current_user: CurrentUser = Depends(require_admin),
+    current_user: CurrentUser = Depends(require_platform_admin),
     db: AsyncSession = Depends(get_db),
 ) -> SupportTicketAdminRead:
     try:
@@ -751,7 +761,7 @@ async def list_audit_entries(
     until: datetime | None = Query(default=None),
     limit: int = Query(default=50, ge=1, le=200),
     offset: int = Query(default=0, ge=0),
-    current_user: CurrentUser = Depends(require_admin),  # noqa: ARG001
+    current_user: CurrentUser = Depends(require_platform_admin),  # noqa: ARG001
     db: AsyncSession = Depends(get_db),
 ) -> AuditLogListResponse:
     """Read-only activity feed (Admin design §5.6). Admin-only twice over: this
@@ -807,7 +817,7 @@ def _to_admin_bank_read(bank, count: int) -> AdminBankRead:  # noqa: ANN001
 
 @router.get("/loan-types", response_model=AdminLoanTypeListResponse)
 async def list_admin_loan_types(
-    current_user: CurrentUser = Depends(require_admin),  # noqa: ARG001
+    current_user: CurrentUser = Depends(require_platform_admin),  # noqa: ARG001
     db: AsyncSession = Depends(get_db),
 ) -> AdminLoanTypeListResponse:
     loan_types = await list_loan_types(db)
@@ -820,7 +830,7 @@ async def list_admin_loan_types(
 @router.post("/loan-types", response_model=AdminLoanTypeRead, status_code=status.HTTP_201_CREATED)
 async def create_admin_loan_type(
     payload: LoanTypeCreate,
-    current_user: CurrentUser = Depends(require_admin),
+    current_user: CurrentUser = Depends(require_platform_admin),
     db: AsyncSession = Depends(get_db),
 ) -> AdminLoanTypeRead:
     try:
@@ -838,7 +848,7 @@ async def create_admin_loan_type(
 async def update_admin_loan_type(
     loan_type_id: UUID,
     payload: LoanTypeUpdate,
-    current_user: CurrentUser = Depends(require_admin),
+    current_user: CurrentUser = Depends(require_platform_admin),
     db: AsyncSession = Depends(get_db),
 ) -> AdminLoanTypeRead:
     try:
@@ -853,7 +863,7 @@ async def update_admin_loan_type(
 
 @router.get("/banks", response_model=AdminBankListResponse)
 async def list_admin_banks(
-    current_user: CurrentUser = Depends(require_admin),  # noqa: ARG001
+    current_user: CurrentUser = Depends(require_platform_admin),  # noqa: ARG001
     db: AsyncSession = Depends(get_db),
 ) -> AdminBankListResponse:
     banks = await list_banks(db)
@@ -864,7 +874,7 @@ async def list_admin_banks(
 @router.post("/banks", response_model=AdminBankRead, status_code=status.HTTP_201_CREATED)
 async def create_admin_bank(
     payload: BankCreate,
-    current_user: CurrentUser = Depends(require_admin),
+    current_user: CurrentUser = Depends(require_platform_admin),
     db: AsyncSession = Depends(get_db),
 ) -> AdminBankRead:
     try:
@@ -882,7 +892,7 @@ async def create_admin_bank(
 async def update_admin_bank(
     bank_id: UUID,
     payload: BankUpdate,
-    current_user: CurrentUser = Depends(require_admin),
+    current_user: CurrentUser = Depends(require_platform_admin),
     db: AsyncSession = Depends(get_db),
 ) -> AdminBankRead:
     try:
@@ -919,7 +929,7 @@ async def _availability_matrix(db: AsyncSession) -> BankAvailabilityMatrixRespon
 
 @router.get("/bank-availability", response_model=BankAvailabilityMatrixResponse)
 async def get_bank_availability_matrix(
-    current_user: CurrentUser = Depends(require_admin),  # noqa: ARG001
+    current_user: CurrentUser = Depends(require_platform_admin),  # noqa: ARG001
     db: AsyncSession = Depends(get_db),
 ) -> BankAvailabilityMatrixResponse:
     return await _availability_matrix(db)
@@ -929,7 +939,7 @@ async def get_bank_availability_matrix(
 async def set_admin_bank_availability(
     bank_id: UUID,
     payload: BankAvailabilitySet,
-    current_user: CurrentUser = Depends(require_admin),
+    current_user: CurrentUser = Depends(require_platform_admin),
     db: AsyncSession = Depends(get_db),
 ) -> BankAvailabilityMatrixResponse:
     try:

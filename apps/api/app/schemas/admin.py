@@ -87,6 +87,9 @@ class AgentApplicationDocument(BaseModel):
 
 class AgentApplicationDetailRead(AgentApplicationRead):
     documents: list[AgentApplicationDocument]
+    # Staff-only reviewer context, only ever set on reject — never surfaced
+    # on the applicant-facing side of this table.
+    review_note: str | None = None
 
 
 class AgentApproveResponse(BaseModel):
@@ -96,9 +99,6 @@ class AgentApproveResponse(BaseModel):
 
 
 class AgentRejectRequest(BaseModel):
-    # Accepted for reviewer context but NOT persisted — agent_applications has
-    # no review_note column. Migration c1d2e3f4a5b6 (agent-application intake)
-    # deliberately left this out of scope; adding one needs a further migration.
     note: Annotated[str, Field(min_length=1, max_length=1000)]
 
 

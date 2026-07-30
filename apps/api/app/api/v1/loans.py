@@ -52,6 +52,7 @@ _LOAN_DOCUMENT_ERROR_STATUS = {
     loan_documents.ApplicationNotWritable: status.HTTP_409_CONFLICT,
     loan_documents.ObjectKeyMismatch: status.HTTP_400_BAD_REQUEST,
     loan_documents.UploadMissing: status.HTTP_422_UNPROCESSABLE_ENTITY,
+    loan_documents.ContentTypeMismatch: status.HTTP_422_UNPROCESSABLE_ENTITY,
     loan_documents.StorageUnavailable: status.HTTP_502_BAD_GATEWAY,
     loan_documents.DocumentLimitReached: status.HTTP_409_CONFLICT,
     loan_documents.DocumentNotFound: status.HTTP_404_NOT_FOUND,

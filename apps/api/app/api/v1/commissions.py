@@ -1,12 +1,12 @@
 """Admin commission endpoints — entry against an eligible-deal queue,
 oversight, and cancellation (FR-8.1/8.2, IDR v1.4 §5.5).
 
-_require_admin checks platform_scope in addition to role, copied verbatim
-from api/v1/referrals.py — every RLS admin-bypass predicate in this codebase
-is `role='admin' AND platform_scope='true'`, and `deps.require_admin` checks
-role only. A line-scoped admin who passed the weaker guard would get either a
-403 further down or a silently-empty result, neither of which is a substitute
-for a real 403 at the boundary.
+Gated by `deps.require_platform_admin` (feature-status.md §2-20), not the
+role-only `deps.require_admin`: every RLS admin-bypass predicate in this
+codebase is `role='admin' AND platform_scope='true'`. A line-scoped admin
+who passed a role-only guard would get either a 403 further down or a
+silently-empty result, neither of which is a substitute for a real 403 at
+the boundary.
 """
 
 from __future__ import annotations
@@ -18,7 +18,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.deps import CurrentUser, get_active_user
+from app.core.deps import CurrentUser, get_active_user, require_platform_admin
 from app.db.session import get_db
 from app.models.commission import Commission, CommissionStatus
 from app.models.payout import PayoutType
@@ -55,14 +55,6 @@ _PAYOUT_ERROR_STATUS = {
 }
 
 
-def _require_admin(current_user: CurrentUser) -> None:
-    if current_user.role != "admin" or current_user.platform_scope != "true":
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Commission entry is restricted to platform admins.",
-        )
-
-
 def _map_error(exc: commissions.CommissionError) -> HTTPException:
     if isinstance(exc, (commissions.DealNotFound, commissions.CommissionNotFound)):
         code = status.HTTP_404_NOT_FOUND
@@ -85,7 +77,7 @@ async def list_eligible(
     current_user: CurrentUser = Depends(get_active_user),
     db: AsyncSession = Depends(get_db),
 ) -> EligibleDealListResponse:
-    _require_admin(current_user)
+    await require_platform_admin(current_user)
     deals, total = await commissions.list_eligible_deals(db, limit=limit, offset=offset)
     return EligibleDealListResponse(deals=deals, total=total)
 
@@ -96,7 +88,7 @@ async def create_commission(
     current_user: CurrentUser = Depends(get_active_user),
     db: AsyncSession = Depends(get_db),
 ) -> CommissionRead:
-    _require_admin(current_user)
+    await require_platform_admin(current_user)
     try:
         commission = await commissions.create_commission(
             db,
@@ -129,7 +121,7 @@ async def list_commissions(
     current_user: CurrentUser = Depends(get_active_user),
     db: AsyncSession = Depends(get_db),
 ) -> CommissionListResponse:
-    _require_admin(current_user)
+    await require_platform_admin(current_user)
     rows, total = await commissions.list_for_admin(
         db,
         status_filter=status_filter,
@@ -148,7 +140,7 @@ async def cancel_commission(
     current_user: CurrentUser = Depends(get_active_user),
     db: AsyncSession = Depends(get_db),
 ) -> None:
-    _require_admin(current_user)
+    await require_platform_admin(current_user)
     try:
         await commissions.cancel_commission(
             db,
@@ -178,7 +170,7 @@ async def create_commission_payout(
     destination the agent actually receives money at is caller-supplied.
     Approval is a separate step at POST /payouts/{id}/approve: this endpoint
     is the maker, never the checker."""
-    _require_admin(current_user)
+    await require_platform_admin(current_user)
 
     commission = await db.get(Commission, commission_id)
     if commission is None:

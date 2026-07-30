@@ -160,6 +160,82 @@ def list_objects(prefix: str) -> list[dict]:
     return results
 
 
+def read_head_bytes(object_key: str, n: int = 16) -> bytes | None:
+    """First `n` bytes of an object via a ranged GET, or None if it does not
+    exist. Server-side only, same posture as head_object — a magic-byte check
+    needs actual content, not just the size head_object already gives.
+    A transport failure re-raises (fail closed), same reasoning as head_object.
+    """
+    try:
+        resp = _client(settings.SPACES_ENDPOINT_URL).get_object(
+            Bucket=settings.SPACES_BUCKET, Key=object_key, Range=f"bytes=0-{n - 1}"
+        )
+    except ClientError as exc:
+        code = exc.response.get("Error", {}).get("Code")
+        if code in ("404", "NoSuchKey"):
+            return None
+        raise
+    return resp["Body"].read()
+
+
+# Magic-byte signatures for the content types this codebase's three upload
+# flows allow (schemas.{employee,agent_applications,loan_documents}
+# *ContentTypeLiteral — all three are the same set). Security-review finding
+# (feature-status.md §2-12): the declared Content-Type is signed into the
+# presigned-POST policy, but nothing previously verified the uploaded BYTES
+# actually match it — an HTML/script polyglot declared as application/pdf
+# would have been accepted and later served (mitigated, not prevented, by
+# forced attachment disposition on download).
+_MAGIC_BYTES: tuple[tuple[bytes, str], ...] = (
+    (b"\xff\xd8\xff", "image/jpeg"),
+    (b"\x89PNG\r\n\x1a\n", "image/png"),
+    (b"%PDF-", "application/pdf"),
+    # WEBP is a RIFF container — "RIFF" then a 4-byte size, then "WEBP" at
+    # offset 8. Checked as one prefix over a 12-byte head rather than two
+    # separate slices, since read_head_bytes already returns a flat head.
+)
+_WEBP_RIFF_PREFIX = b"RIFF"
+_WEBP_MARKER = b"WEBP"
+
+
+def sniff_content_type(head: bytes) -> str | None:
+    """Best-guess content type from a file's opening bytes, or None if it
+    matches none of the four types this codebase accepts anywhere."""
+    for signature, content_type in _MAGIC_BYTES:
+        if head.startswith(signature):
+            return content_type
+    if head[:4] == _WEBP_RIFF_PREFIX and head[8:12] == _WEBP_MARKER:
+        return "image/webp"
+    return None
+
+
+def content_matches_declared_type(object_key: str, declared_content_type: str) -> bool:
+    """True only if the object's actual leading bytes sniff to the SAME type
+    the caller declared at presign time. False on a mismatch, a type this
+    module doesn't recognize, or a missing object — all three are "reject",
+    never "assume it's fine"."""
+    head = read_head_bytes(object_key, 12)
+    if head is None:
+        return False
+    return sniff_content_type(head) == declared_content_type
+
+
+def content_type_is_recognized(object_key: str) -> bool:
+    """Weaker variant of content_matches_declared_type for the two upload
+    flows (agent-application intake, employee task documents) whose confirm
+    request does not carry the originally-declared content_type to compare
+    against — True iff the object's leading bytes sniff to ANY of the four
+    types this module recognizes (which is exactly the accepted set on
+    every upload flow in this codebase — see _MAGIC_BYTES). Still rejects
+    the actual security concern (arbitrary/executable content uploaded
+    under a claimed KYC-document key); it just can't catch "uploaded a real
+    PNG when a PDF was declared" without a schema change."""
+    head = read_head_bytes(object_key, 12)
+    if head is None:
+        return False
+    return sniff_content_type(head) is not None
+
+
 def delete_object(object_key: str) -> None:
     # Best-effort: the task_documents row is the source of truth for what the
     # employee sees. A storage-side failure here must not block the DB delete

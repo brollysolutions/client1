@@ -70,6 +70,15 @@ class StorageUnavailable(LoanDocumentError):
     """Storage was unreachable while verifying an upload. Fail closed."""
 
 
+class ContentTypeMismatch(LoanDocumentError):
+    """The uploaded object's actual leading bytes don't sniff to the
+    content_type the client declared at presign time. Security-review
+    finding (feature-status.md §2-12): the declared type is signed into the
+    presigned-POST policy, but nothing previously verified the uploaded
+    BYTES actually matched it — an HTML/script polyglot declared as
+    application/pdf would have been accepted."""
+
+
 class DocumentLimitReached(LoanDocumentError):
     pass
 
@@ -130,13 +139,19 @@ def _check_claimed_key(key: str, application_id: uuid.UUID, expected_doc_type: s
         raise ObjectKeyMismatch
 
 
-def _verify_upload(key: str) -> int:
+def _verify_upload(key: str, content_type: str) -> int:
     try:
         size = storage.head_object(key)
     except Exception as exc:  # transport failure — fail closed, don't swallow
         raise StorageUnavailable from exc
     if size is None or size <= 0 or size > settings.LOAN_DOCUMENT_MAX_UPLOAD_BYTES:
         raise UploadMissing
+    try:
+        matches = storage.content_matches_declared_type(key, content_type)
+    except Exception as exc:  # transport failure — fail closed, don't swallow
+        raise StorageUnavailable from exc
+    if not matches:
+        raise ContentTypeMismatch
     return size
 
 
@@ -151,7 +166,15 @@ async def create_loan_document(
 ) -> LoanDocument:
     _check_application_writable(application)
     _check_claimed_key(object_key, application.id, doc_type)
-    size_bytes = _verify_upload(object_key)
+    try:
+        size_bytes = _verify_upload(object_key, content_type)
+    except ContentTypeMismatch:
+        # Never leave a polyglot-content object sitting in storage under a
+        # claimed key just because the DB row was rejected — the orphan
+        # sweep would eventually catch it, but a deliberate mismatch
+        # shouldn't get to wait 1 hour.
+        storage.delete_object(object_key)
+        raise
 
     existing_count = len(
         (

@@ -11,11 +11,12 @@ api/v1/transactions.py).
 GET /admin and POST /{id}/payout (PR 2) are Admin-only oversight + execution
 (FR-9.5 — Sub Admin manages bonus RULES only, never referral activity itself,
 so there is deliberately no sub_admin branch here, unlike payments.py's
-_require_platform_admin). _require_admin checks platform_scope in addition to
-role for the same reason api/v1/payments.py's recipient search does: the
-referrals_rls admin bypass predicate itself requires
-`role='admin' AND platform_scope='true'`, so a role-only check would let a
-line-scoped admin through the app layer straight into an always-empty 200.
+_require_platform_admin). Gated by `deps.require_platform_admin`
+(feature-status.md §2-20) for the same reason api/v1/payments.py's recipient
+search uses its own platform-scoped guard: the referrals_rls admin bypass
+predicate itself requires `role='admin' AND platform_scope='true'`, so a
+role-only check would let a line-scoped admin through the app layer straight
+into an always-empty 200.
 """
 
 from __future__ import annotations
@@ -27,7 +28,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.deps import CurrentUser, get_active_user
+from app.core.deps import CurrentUser, get_active_user, require_platform_admin
 from app.core.masking import mask_mobile
 from app.db.session import get_db
 from app.models.payout import PayoutType
@@ -69,14 +70,6 @@ _ERROR_STATUS = {
 def _map_payout_error(exc: payments_service.PayoutError) -> HTTPException:
     code = _ERROR_STATUS.get(type(exc), status.HTTP_400_BAD_REQUEST)
     return HTTPException(status_code=code, detail=str(exc))
-
-
-def _require_admin(current_user: CurrentUser) -> None:
-    if current_user.role != "admin" or current_user.platform_scope != "true":
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Referral oversight is restricted to platform admins.",
-        )
 
 
 @router.get("/me", response_model=MyReferralResponse)
@@ -125,7 +118,7 @@ async def list_referrals_admin(
     """No default status filter here (mirrors GET /payouts) — the actionable
     "accrued" default lives in the frontend hook, same split as
     use-admin-payouts.ts's statusFilter default."""
-    _require_admin(current_user)
+    await require_platform_admin(current_user)
     rows = await referrals.list_for_admin(
         db,
         status_filter=status_filter,
@@ -186,7 +179,7 @@ async def create_referral_payout(
     destination the referrer actually receives money at is caller-supplied.
     Approval is a separate step at POST /payouts/{id}/approve: this endpoint
     is the maker, never the checker."""
-    _require_admin(current_user)
+    await require_platform_admin(current_user)
 
     referral = await db.get(Referral, referral_id)
     if referral is None:
