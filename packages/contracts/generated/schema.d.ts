@@ -1891,6 +1891,31 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/payouts/link-divergences": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Payout Link Divergences
+         * @description Read-only: payouts whose linked referral/commission/fee_cashback row
+         *     hasn't caught up yet (services/payout_links.py's scheduled sweep repairs
+         *     these automatically — this is visibility, not a manual trigger). No
+         *     mutating counterpart exists on purpose: see payout_links.py's docstring
+         *     for why a force-unlink endpoint would convert a display bug into a money
+         *     bug.
+         */
+        get: operations["get_payout_link_divergences_api_v1_payouts_link_divergences_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/payouts/recipients": {
         parameters: {
             query?: never;
@@ -3460,7 +3485,7 @@ export interface components {
          *     `services/fee_cashbacks.py` (FR-6.6 processing-fee cashback).
          * @enum {string}
          */
-        AuditAction: "agent_approved" | "agent_rejected" | "staff_created" | "account_removed" | "payout_approved" | "payout_rejected" | "property_submission_approved" | "property_submission_rejected" | "support_ticket_advanced" | "retention_purged" | "loan_type_created" | "loan_type_updated" | "bank_created" | "bank_updated" | "bank_availability_updated" | "commission_entered" | "commission_cancelled" | "fee_cashback_entered" | "fee_cashback_cancelled" | "document_verified" | "document_unverified";
+        AuditAction: "agent_approved" | "agent_rejected" | "staff_created" | "account_removed" | "payout_approved" | "payout_rejected" | "property_submission_approved" | "property_submission_rejected" | "support_ticket_advanced" | "retention_purged" | "loan_type_created" | "loan_type_updated" | "bank_created" | "bank_updated" | "bank_availability_updated" | "commission_entered" | "commission_cancelled" | "fee_cashback_entered" | "fee_cashback_cancelled" | "document_verified" | "document_unverified" | "payout_link_reconciled";
         /** AuditLogListResponse */
         AuditLogListResponse: {
             /** Entries */
@@ -4985,6 +5010,28 @@ export interface components {
             /** Vpa */
             vpa?: string | null;
         };
+        /** PayoutLinkDivergenceRead */
+        PayoutLinkDivergenceRead: {
+            /**
+             * Payout Id
+             * Format: uuid
+             */
+            payout_id: string;
+            payout_type: components["schemas"]["PayoutType"];
+        };
+        /**
+         * PayoutLinkDivergencesRead
+         * @description Read-only view for services/payout_links.py::list_link_divergences —
+         *     payouts whose linked referral/commission/fee_cashback row hasn't caught
+         *     up yet. No mutating endpoint exists for this on purpose; see that
+         *     module's docstring.
+         */
+        PayoutLinkDivergencesRead: {
+            /** Paid Direction */
+            paid_direction: components["schemas"]["PayoutLinkDivergenceRead"][];
+            /** Release Direction */
+            release_direction: components["schemas"]["PayoutLinkDivergenceRead"][];
+        };
         /** PayoutListResponse */
         PayoutListResponse: {
             /** Payouts */
@@ -6124,7 +6171,7 @@ export interface components {
              * Content Type
              * @enum {string}
              */
-            content_type: "image/jpeg" | "image/png" | "application/pdf";
+            content_type: "image/jpeg" | "image/png" | "image/webp" | "application/pdf";
             /**
              * Doc Type
              * @enum {string}
@@ -10484,6 +10531,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_payout_link_divergences_api_v1_payouts_link_divergences_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PayoutLinkDivergencesRead"];
                 };
             };
         };

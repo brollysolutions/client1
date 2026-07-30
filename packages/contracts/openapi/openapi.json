@@ -2182,7 +2182,8 @@
           "fee_cashback_entered",
           "fee_cashback_cancelled",
           "document_verified",
-          "document_unverified"
+          "document_unverified",
+          "payout_link_reconciled"
         ],
         "title": "AuditAction",
         "type": "string"
@@ -6462,6 +6463,49 @@
         "title": "PayoutDestinationInput",
         "type": "object"
       },
+      "PayoutLinkDivergenceRead": {
+        "properties": {
+          "payout_id": {
+            "format": "uuid",
+            "title": "Payout Id",
+            "type": "string"
+          },
+          "payout_type": {
+            "$ref": "#/components/schemas/PayoutType"
+          }
+        },
+        "required": [
+          "payout_id",
+          "payout_type"
+        ],
+        "title": "PayoutLinkDivergenceRead",
+        "type": "object"
+      },
+      "PayoutLinkDivergencesRead": {
+        "description": "Read-only view for services/payout_links.py::list_link_divergences \u2014\npayouts whose linked referral/commission/fee_cashback row hasn't caught\nup yet. No mutating endpoint exists for this on purpose; see that\nmodule's docstring.",
+        "properties": {
+          "paid_direction": {
+            "items": {
+              "$ref": "#/components/schemas/PayoutLinkDivergenceRead"
+            },
+            "title": "Paid Direction",
+            "type": "array"
+          },
+          "release_direction": {
+            "items": {
+              "$ref": "#/components/schemas/PayoutLinkDivergenceRead"
+            },
+            "title": "Release Direction",
+            "type": "array"
+          }
+        },
+        "required": [
+          "paid_direction",
+          "release_direction"
+        ],
+        "title": "PayoutLinkDivergencesRead",
+        "type": "object"
+      },
       "PayoutListResponse": {
         "properties": {
           "payouts": {
@@ -9308,6 +9352,7 @@
             "enum": [
               "image/jpeg",
               "image/png",
+              "image/webp",
               "application/pdf"
             ],
             "title": "Content Type",
@@ -17356,6 +17401,33 @@
           }
         ],
         "summary": "Create Payout",
+        "tags": [
+          "payouts"
+        ]
+      }
+    },
+    "/api/v1/payouts/link-divergences": {
+      "get": {
+        "description": "Read-only: payouts whose linked referral/commission/fee_cashback row\nhasn't caught up yet (services/payout_links.py's scheduled sweep repairs\nthese automatically \u2014 this is visibility, not a manual trigger). No\nmutating counterpart exists on purpose: see payout_links.py's docstring\nfor why a force-unlink endpoint would convert a display bug into a money\nbug.",
+        "operationId": "get_payout_link_divergences_api_v1_payouts_link_divergences_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PayoutLinkDivergencesRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Get Payout Link Divergences",
         "tags": [
           "payouts"
         ]
