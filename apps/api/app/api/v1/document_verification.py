@@ -1,11 +1,11 @@
 """Unified Admin document verification — task_documents + loan_documents (FR-7.4).
 
-_require_admin checks platform_scope in addition to role, copied verbatim
-from api/v1/commissions.py — `task_documents_update`'s bypass branch needs
-`role='admin' AND platform_scope='true'`, and `deps.require_admin` is
-role-only. Mounted as its own router (not appended to the already-large
-api/v1/admin.py) at /api/v1/admin/document-verification, exactly as
-commissions and reporting were.
+Gated by `deps.require_platform_admin` (feature-status.md §2-20), not the
+role-only `deps.require_admin`: `task_documents_update`'s bypass branch
+needs `role='admin' AND platform_scope='true'`. Mounted as its own router
+(not appended to the already-large api/v1/admin.py) at
+/api/v1/admin/document-verification, exactly as commissions and reporting
+were.
 """
 
 from __future__ import annotations
@@ -16,7 +16,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.deps import CurrentUser, get_active_user
+from app.core.deps import CurrentUser, get_active_user, require_platform_admin
 from app.db.session import get_db
 from app.schemas.document_verification import (
     DocumentSourceLiteral,
@@ -29,14 +29,6 @@ from app.schemas.document_verification import (
 from app.services import document_verification, storage
 
 router = APIRouter()
-
-
-def _require_admin(current_user: CurrentUser) -> None:
-    if current_user.role != "admin" or current_user.platform_scope != "true":
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Document verification is restricted to platform admins.",
-        )
 
 
 def _to_subject_read(s: document_verification.DocumentSubject) -> DocumentSubjectRead:
@@ -78,7 +70,7 @@ async def list_subjects(
     current_user: CurrentUser = Depends(get_active_user),
     db: AsyncSession = Depends(get_db),
 ) -> DocumentSubjectListResponse:
-    _require_admin(current_user)
+    await require_platform_admin(current_user)
     subjects, total = await document_verification.list_subjects(
         db,
         only_unverified=only_unverified,
@@ -98,7 +90,7 @@ async def list_documents(
     current_user: CurrentUser = Depends(get_active_user),
     db: AsyncSession = Depends(get_db),
 ) -> VerifiableDocumentListResponse:
-    _require_admin(current_user)
+    await require_platform_admin(current_user)
     documents = await document_verification.list_documents(
         db, source=source, subject_uuid=subject_uuid
     )
@@ -116,7 +108,7 @@ async def verify_document(
     """`source` is a required query param: `document_id` alone is ambiguous
     across two tables, and two route families would mean more URLs for one
     operation."""
-    _require_admin(current_user)
+    await require_platform_admin(current_user)
     try:
         document = await document_verification.set_verification(
             db,

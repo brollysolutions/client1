@@ -89,6 +89,17 @@ class StorageUnavailable(Exception):
     """Storage was unreachable while verifying an upload. Fail closed."""
 
 
+class ContentTypeUnrecognized(Exception):
+    """The uploaded object's actual leading bytes don't sniff to any of the
+    accepted document content types. Security-review finding (feature-
+    status.md §2-12): the declared content_type is signed into the
+    presigned-POST policy, but nothing previously verified the uploaded
+    BYTES — an HTML/script polyglot declared as application/pdf would have
+    been accepted. This ticket's submit request doesn't carry the originally
+    -declared content_type back, so this checks "is it a real file of an
+    accepted type" rather than "does it match what was declared"."""
+
+
 class PresignQuotaExceeded(Exception):
     """Too many presign calls for this ticket."""
 
@@ -232,6 +243,13 @@ def _verify_upload(key: str) -> None:
         raise StorageUnavailable from exc
     if size is None or size <= 0 or size > settings.AGENT_APPLICATION_MAX_UPLOAD_BYTES:
         raise UploadMissing
+    try:
+        recognized = storage.content_type_is_recognized(key)
+    except Exception as exc:  # transport failure — fail closed, don't swallow
+        raise StorageUnavailable from exc
+    if not recognized:
+        storage.delete_object(key)  # never leave a polyglot object under a claimed key
+        raise ContentTypeUnrecognized
 
 
 async def submit(
@@ -335,6 +353,36 @@ _DOC_REF_COLUMNS = (
     AgentApplication.pan_ref,
     AgentApplication.photo_ref,
 )
+
+
+def scrub_documents(application: AgentApplication) -> list[str]:
+    """Nulls every doc-ref column on an already-loaded, in-session
+    application and returns the storage keys that were referenced, for the
+    caller to delete via storage.delete_object once the row is durable
+    (flush/commit first — a storage failure must never roll back the DB
+    write, same discipline as purge_orphaned_uploads above).
+
+    Single source of truth for "which columns are KYC doc refs" — used by
+    both services.admin.reject_agent_application (feature-status.md §2-11:
+    a rejected application's docs were previously retained forever, since
+    they stay referenced and so never become orphan-purge candidates) and
+    services.account_deletion (which additionally scrubs identity fields
+    itself; that part is deliberately NOT here, since a plain rejection
+    must not erase who was rejected).
+
+    Deliberately excludes address_proof_ref: legacy, unwritten by any path
+    (model docstring — product dropped that document 2026-07-12), so
+    scrubbing it is always a no-op. Not the same 4-vs-5 column list
+    account_deletion.py used to carry separately — that divergence is what
+    this function collapses.
+    """
+    keys: list[str] = []
+    for column in _DOC_REF_COLUMNS:
+        value = getattr(application, column.key)
+        if value:
+            keys.append(value)
+        setattr(application, column.key, None)
+    return keys
 
 
 async def purge_orphaned_uploads(*, min_age: timedelta = _ORPHAN_MIN_AGE) -> dict[str, int]:

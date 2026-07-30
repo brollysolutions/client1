@@ -33,7 +33,9 @@ from app.services.employee import (
     OutcomeNotApplicable,
     OutcomeRequired,
     TaskAlreadyTerminal,
+    TaskDocumentContentTypeUnrecognized,
     TaskDocumentKeyMismatch,
+    TaskDocumentStorageUnavailable,
     TaskNotDocumentCollection,
     create_task_document,
     delete_task_document,
@@ -205,6 +207,16 @@ async def confirm_document(
         raise HTTPException(
             status.HTTP_400_BAD_REQUEST,
             "This object_key wasn't issued for this task.",
+        ) from exc
+    except TaskDocumentContentTypeUnrecognized as exc:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            "This file isn't a supported document type.",
+        ) from exc
+    except TaskDocumentStorageUnavailable as exc:
+        raise HTTPException(
+            status.HTTP_502_BAD_GATEWAY,
+            "Could not verify the upload. Please try again in a moment.",
         ) from exc
     return _to_document_read(document)
 

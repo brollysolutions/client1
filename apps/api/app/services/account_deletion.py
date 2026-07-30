@@ -81,6 +81,7 @@ from app.models.transaction import Transaction
 from app.models.user import User, UserStatus
 from app.services import payout_links, storage
 from app.services.admin_notify import notify_admins
+from app.services.agent_applications import scrub_documents
 from app.services.audit_log import record as record_audit
 
 logger = logging.getLogger(__name__)
@@ -97,14 +98,6 @@ _SCRUBBED_TICKET_TEXT = "[deleted account — content removed]"
 # below instead (see the module docstring addendum on Phase B financials).
 _REJECTABLE_ON_DELETION = (PayoutStatus.PENDING_APPROVAL, PayoutStatus.APPROVED)
 _DELETION_REJECT_REASON = "Recipient account deleted before payout was initiated."
-
-_DOC_REF_FIELDS = (
-    "aadhaar_ref",
-    "aadhaar_back_ref",
-    "pan_ref",
-    "photo_ref",
-    "address_proof_ref",
-)
 
 
 class AccountNotFound(Exception):
@@ -184,11 +177,12 @@ async def delete_account(
     ).all()
     doc_keys: list[str] = []
     for application in applications:
-        for field in _DOC_REF_FIELDS:
-            value = getattr(application, field)
-            if value:
-                doc_keys.append(value)
-            setattr(application, field, None)
+        # Shared with services.admin.reject_agent_application — the single
+        # source of truth for "which columns are KYC doc refs" (see that
+        # function's docstring). Identity fields are scrubbed here too,
+        # deliberately NOT inside the shared helper: a plain rejection must
+        # not erase who was rejected, but a deletion must.
+        doc_keys.extend(scrub_documents(application))
         application.first_name = None
         application.last_name = None
         application.mobile = None

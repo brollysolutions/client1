@@ -5,13 +5,12 @@ before this slice; the repo has 26 per-domain routers, so a new one is the
 convention here, not an exception). Mounted at /api/v1/admin/reports in
 main.py.
 
-_require_admin checks platform_scope in addition to role, copied from
-api/v1/referrals.py verbatim (see that module's docstring): every RLS
-admin-bypass predicate in this codebase is
-`role='admin' AND platform_scope='true'`, and `deps.require_admin` checks
-role only. A line-scoped admin who passed the weaker guard would not get a
-403 -- they would get a *silently partial* result set from these aggregate
-queries, which is worse, because the numbers would still look real.
+Gated by `deps.require_platform_admin` (feature-status.md §2-20), not the
+role-only `deps.require_admin`: every RLS admin-bypass predicate in this
+codebase is `role='admin' AND platform_scope='true'`. A line-scoped admin
+who passed a role-only guard would not get a 403 -- they would get a
+*silently partial* result set from these aggregate queries, which is worse,
+because the numbers would still look real.
 
 The StreamingResponse trap. A generator that lazily awaits db.execute(...)
 while the HTTP body streams can outlive Depends(get_db)'s teardown, and
@@ -40,7 +39,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.deps import CurrentUser, get_active_user
+from app.core.deps import CurrentUser, get_active_user, require_platform_admin
 from app.db.session import get_db
 from app.schemas.reporting import (
     AgentsReportResponse,
@@ -57,14 +56,6 @@ from app.schemas.reporting import (
 from app.services import reporting
 
 router = APIRouter()
-
-
-def _require_admin(current_user: CurrentUser) -> None:
-    if current_user.role != "admin" or current_user.platform_scope != "true":
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Reporting is restricted to platform admins.",
-        )
 
 
 def _validate_range(date_from: date, date_to: date) -> None:
@@ -144,7 +135,7 @@ async def get_leads_report(
     current_user: CurrentUser = Depends(get_active_user),
     db: AsyncSession = Depends(get_db),
 ) -> LeadsReportResponse:
-    _require_admin(current_user)
+    await require_platform_admin(current_user)
     _validate_range(date_from, date_to)
     try:
         rows, total, summary = await reporting.get_leads_report(
@@ -176,7 +167,7 @@ async def export_leads_report(
     current_user: CurrentUser = Depends(get_active_user),
     db: AsyncSession = Depends(get_db),
 ) -> StreamingResponse:
-    _require_admin(current_user)
+    await require_platform_admin(current_user)
     _validate_range(date_from, date_to)
     rows, header, truncated = await reporting.export_report_rows(
         db,
@@ -213,7 +204,7 @@ async def get_loans_report(
     current_user: CurrentUser = Depends(get_active_user),
     db: AsyncSession = Depends(get_db),
 ) -> LoansReportResponse:
-    _require_admin(current_user)
+    await require_platform_admin(current_user)
     _validate_range(date_from, date_to)
     try:
         rows, total, summary = await reporting.get_loans_report(
@@ -245,7 +236,7 @@ async def export_loans_report(
     current_user: CurrentUser = Depends(get_active_user),
     db: AsyncSession = Depends(get_db),
 ) -> StreamingResponse:
-    _require_admin(current_user)
+    await require_platform_admin(current_user)
     _validate_range(date_from, date_to)
     rows, header, truncated = await reporting.export_report_rows(
         db,
@@ -282,7 +273,7 @@ async def get_deals_report(
     current_user: CurrentUser = Depends(get_active_user),
     db: AsyncSession = Depends(get_db),
 ) -> DealsReportResponse:
-    _require_admin(current_user)
+    await require_platform_admin(current_user)
     _validate_range(date_from, date_to)
     try:
         rows, total, summary = await reporting.get_deals_report(
@@ -314,7 +305,7 @@ async def export_deals_report(
     current_user: CurrentUser = Depends(get_active_user),
     db: AsyncSession = Depends(get_db),
 ) -> StreamingResponse:
-    _require_admin(current_user)
+    await require_platform_admin(current_user)
     _validate_range(date_from, date_to)
     rows, header, truncated = await reporting.export_report_rows(
         db,
@@ -350,7 +341,7 @@ async def get_agents_report(
     current_user: CurrentUser = Depends(get_active_user),
     db: AsyncSession = Depends(get_db),
 ) -> AgentsReportResponse:
-    _require_admin(current_user)
+    await require_platform_admin(current_user)
     _validate_range(date_from, date_to)
     try:
         rows, total, summary = await reporting.get_agents_report(
@@ -380,7 +371,7 @@ async def export_agents_report(
     current_user: CurrentUser = Depends(get_active_user),
     db: AsyncSession = Depends(get_db),
 ) -> StreamingResponse:
-    _require_admin(current_user)
+    await require_platform_admin(current_user)
     _validate_range(date_from, date_to)
     rows, header, truncated = await reporting.export_report_rows(
         db,

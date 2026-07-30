@@ -157,6 +157,10 @@ class AgentApplication(Base):
         UUID(as_uuid=True), ForeignKey("staff_profiles.id", ondelete="SET NULL"), nullable=True
     )
     reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    # Written only on reject (feature-status.md §2-11); an approve has no
+    # note to persist. Reviewer context, staff-only — never surfaced on the
+    # public/authenticated applicant-facing side of this table.
+    review_note: Mapped[str | None] = mapped_column(String, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, default=datetime.utcnow
     )

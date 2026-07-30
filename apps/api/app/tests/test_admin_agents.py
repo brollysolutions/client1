@@ -152,6 +152,85 @@ async def test_reject_sets_status(client: AsyncClient) -> None:
 
 
 @pytest.mark.asyncio
+async def test_reject_persists_note_visible_in_detail(client: AsyncClient) -> None:
+    """Closes feature-status.md §2-11: the note used to reach only the audit
+    log detail JSONB, not the application row itself."""
+    _, mobile = await full_registration(client)
+    uid = await _auth_user_uuid(mobile)
+    app_id = await _create_pending_application(mobile=unique_mobile())
+    reject_res = await client.post(
+        f"/api/v1/admin/agents/{app_id}/reject",
+        json={"note": "RERA number could not be verified."},
+        headers={"Authorization": f"Bearer {_admin_token(uid)}"},
+    )
+    assert reject_res.status_code == 200, reject_res.text
+
+    detail_res = await client.get(
+        f"/api/v1/admin/agents/{app_id}",
+        headers={"Authorization": f"Bearer {_admin_token(uid)}"},
+    )
+    assert detail_res.status_code == 200, detail_res.text
+    assert detail_res.json()["review_note"] == "RERA number could not be verified."
+
+
+@pytest.mark.asyncio
+async def test_reject_purges_kyc_documents_from_storage(
+    client: AsyncClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Closes feature-status.md §2-11: a rejected application's KYC objects
+    stayed referenced forever (never orphan-purge candidates) before this —
+    reject must now null the refs and delete the objects outright."""
+    from app.services import storage
+
+    deleted_keys: list[str] = []
+    monkeypatch.setattr(storage, "delete_object", lambda key: deleted_keys.append(key))
+
+    _, mobile = await full_registration(client)
+    uid = await _auth_user_uuid(mobile)
+    app_id = await _create_pending_application(mobile=unique_mobile(), with_documents=True)
+
+    reject_res = await client.post(
+        f"/api/v1/admin/agents/{app_id}/reject",
+        json={"note": "Documents unreadable."},
+        headers={"Authorization": f"Bearer {_admin_token(uid)}"},
+    )
+    assert reject_res.status_code == 200, reject_res.text
+
+    assert set(deleted_keys) == {
+        "agent-applications/abc/def-aadhaar_front",
+        "agent-applications/abc/def-aadhaar_back",
+        "agent-applications/abc/def-pan",
+        "agent-applications/abc/def-photo",
+    }
+
+    detail_res = await client.get(
+        f"/api/v1/admin/agents/{app_id}",
+        headers={"Authorization": f"Bearer {_admin_token(uid)}"},
+    )
+    assert detail_res.status_code == 200, detail_res.text
+    assert detail_res.json()["documents"] == []
+
+
+@pytest.mark.asyncio
+async def test_line_scoped_admin_role_gets_403_not_silent_result(client: AsyncClient) -> None:
+    """Closes feature-status.md §2-20: a JWT carrying role='admin' but
+    platform_scope='false' (should be impossible via the real staff-
+    provisioning path, but was reachable via require_admin's role-only
+    check) must now get a clean 403 from admin.py's list endpoint, not a
+    silent RLS-empty 200."""
+    _, mobile = await full_registration(client)
+    uid = await _auth_user_uuid(mobile)
+    line_scoped_admin_token = create_access_token(
+        {"sub": uid, "role": "admin", "business_line": "loans", "platform_scope": "false"}
+    )
+    res = await client.get(
+        "/api/v1/admin/agents",
+        headers={"Authorization": f"Bearer {line_scoped_admin_token}"},
+    )
+    assert res.status_code == 403
+
+
+@pytest.mark.asyncio
 async def test_line_sub_admin_cannot_approve(client: AsyncClient) -> None:
     """RLS would allow this (agent_applications_rls has no line predicate for
     non-platform staff — only require_admin gates approve/reject), so this proves

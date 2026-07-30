@@ -281,6 +281,45 @@ async def require_admin(
     return current_user
 
 
+async def require_platform_admin(
+    current_user: CurrentUser = Depends(get_active_user),
+) -> CurrentUser:
+    """Only a PLATFORM-SCOPED Admin — role-only `require_admin` above is not
+    enough for these routes. Every RLS admin-bypass predicate in this
+    codebase independently requires `role='admin' AND platform_scope='true'`
+    (see e.g. `f2e4d6c8a0b1_add_rls_policies.py`), so a role-only app-layer
+    gate lets a line-scoped admin through into either a silent RLS-empty
+    result or a 403 further down — neither is a substitute for a real 403
+    at the boundary, and the empty-result case is the worse of the two
+    since the response still looks like real (if incomplete) data.
+
+    Promoted here (feature-status.md §2-20) from five byte-identical local
+    `_require_admin` copies in reporting.py / commissions.py / referrals.py
+    / fee_cashbacks.py / document_verification.py. Consolidating onto
+    `require_admin` above instead would have WEAKENED all five — this is a
+    tightening, not a refactor for its own sake.
+
+    Not the same check as `api/v1/payments.py`'s own `_require_platform_admin`
+    (admin OR sub_admin, for lower-risk payout listing) despite the similar
+    name — that one stays local, out of scope here.
+    """
+    if not is_platform_admin(current_user):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only platform Admin may perform this action.",
+        )
+    return current_user
+
+
+def is_platform_admin(current_user: CurrentUser) -> bool:
+    """The bare predicate behind require_platform_admin, exposed separately
+    for the one caller that needs a custom per-action error message instead
+    of the fixed one above: api/v1/payments.py's own `_require_admin(...,
+    action=...)` — a thin wrapper around this, not a duplicate of the
+    condition itself."""
+    return current_user.role == "admin" and current_user.platform_scope == "true"
+
+
 async def require_re_reviewer(
     current_user: CurrentUser = Depends(get_active_user),
 ) -> CurrentUser:

@@ -137,6 +137,12 @@ def _submit_payload(
 
 def _mock_uploads_ok(monkeypatch: pytest.MonkeyPatch, size: int = 2048) -> None:
     monkeypatch.setattr(storage, "head_object", lambda _key: size)
+    # Orthogonal to the size/existence check these helpers exist for — the
+    # magic-byte sniff (feature-status.md §2-12) does a real ranged GET, and
+    # these tests never upload real object bytes to minio, so it would 404
+    # (content_type_is_recognized -> False) and mask whatever this helper is
+    # actually testing.
+    monkeypatch.setattr(storage, "content_type_is_recognized", lambda _key: True)
 
 
 def _mock_uploads_missing(monkeypatch: pytest.MonkeyPatch, missing_key: str) -> None:
@@ -144,6 +150,7 @@ def _mock_uploads_missing(monkeypatch: pytest.MonkeyPatch, missing_key: str) -> 
         return None if key == missing_key else 2048
 
     monkeypatch.setattr(storage, "head_object", fake)
+    monkeypatch.setattr(storage, "content_type_is_recognized", lambda _key: True)
 
 
 def _mock_uploads_transport_error(monkeypatch: pytest.MonkeyPatch, bad_key: str) -> None:
@@ -153,6 +160,7 @@ def _mock_uploads_transport_error(monkeypatch: pytest.MonkeyPatch, bad_key: str)
         return 2048
 
     monkeypatch.setattr(storage, "head_object", fake)
+    monkeypatch.setattr(storage, "content_type_is_recognized", lambda _key: True)
 
 
 # ---------------------------------------------------------------------------
@@ -473,6 +481,23 @@ async def test_submit_missing_upload_rejected(
     _mock_uploads_missing(monkeypatch, keys["photo"])
     resp = await client.post(_APPLY_URL, json=_submit_payload(ticket, keys))
     assert resp.status_code == 400
+
+
+async def test_submit_polyglot_content_rejected_and_deletes_object(
+    client: AsyncClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Closes feature-status.md §2-12: a real polyglot upload (any type this
+    module doesn't recognize) must be rejected at submit and its object
+    deleted, not silently accepted into a KYC application row."""
+    ticket, keys = await _get_ticket_and_keys(client, unique_mobile())
+    monkeypatch.setattr(storage, "head_object", lambda _key: 2048)
+    monkeypatch.setattr(storage, "content_type_is_recognized", lambda key: key != keys["pan"])
+    deleted_keys: list[str] = []
+    monkeypatch.setattr(storage, "delete_object", lambda key: deleted_keys.append(key))
+
+    resp = await client.post(_APPLY_URL, json=_submit_payload(ticket, keys))
+    assert resp.status_code == 422, resp.text
+    assert deleted_keys == [keys["pan"]]
 
 
 async def test_submit_storage_transport_error_returns_502(

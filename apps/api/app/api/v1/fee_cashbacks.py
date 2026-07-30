@@ -1,12 +1,12 @@
 """Admin fee-cashback endpoints — entry against an eligible-application
 queue, oversight, cancellation, and payout execution (FR-6.6).
 
-_require_admin checks platform_scope in addition to role, copied verbatim
-from api/v1/commissions.py — every RLS admin-bypass predicate in this
-codebase is `role='admin' AND platform_scope='true'`, and
-`deps.require_admin` checks role only. A line-scoped admin who passed the
-weaker guard would get either a 403 further down or a silently-empty result,
-neither of which is a substitute for a real 403 at the boundary.
+Gated by `deps.require_platform_admin` (feature-status.md §2-20), not the
+role-only `deps.require_admin`: every RLS admin-bypass predicate in this
+codebase is `role='admin' AND platform_scope='true'`. A line-scoped admin
+who passed a role-only guard would get either a 403 further down or a
+silently-empty result, neither of which is a substitute for a real 403 at
+the boundary.
 """
 
 from __future__ import annotations
@@ -18,7 +18,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.deps import CurrentUser, get_active_user
+from app.core.deps import CurrentUser, get_active_user, require_platform_admin
 from app.db.session import get_db
 from app.models.fee_cashback import FeeCashback, FeeCashbackStatus
 from app.models.payout import PayoutType
@@ -55,14 +55,6 @@ _PAYOUT_ERROR_STATUS = {
 }
 
 
-def _require_admin(current_user: CurrentUser) -> None:
-    if current_user.role != "admin" or current_user.platform_scope != "true":
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Fee-cashback entry is restricted to platform admins.",
-        )
-
-
 def _map_error(exc: fee_cashbacks.FeeCashbackError) -> HTTPException:
     if isinstance(exc, (fee_cashbacks.ApplicationNotFound, fee_cashbacks.FeeCashbackNotFound)):
         code = status.HTTP_404_NOT_FOUND
@@ -87,7 +79,7 @@ async def list_eligible(
     current_user: CurrentUser = Depends(get_active_user),
     db: AsyncSession = Depends(get_db),
 ) -> EligibleFeeApplicationListResponse:
-    _require_admin(current_user)
+    await require_platform_admin(current_user)
     applications, total = await fee_cashbacks.list_eligible_applications(
         db, limit=limit, offset=offset
     )
@@ -100,7 +92,7 @@ async def create_fee_cashback(
     current_user: CurrentUser = Depends(get_active_user),
     db: AsyncSession = Depends(get_db),
 ) -> FeeCashbackRead:
-    _require_admin(current_user)
+    await require_platform_admin(current_user)
     try:
         cashback = await fee_cashbacks.create_fee_cashback(
             db,
@@ -131,7 +123,7 @@ async def list_fee_cashbacks(
     current_user: CurrentUser = Depends(get_active_user),
     db: AsyncSession = Depends(get_db),
 ) -> FeeCashbackListResponse:
-    _require_admin(current_user)
+    await require_platform_admin(current_user)
     rows, total = await fee_cashbacks.list_for_admin(
         db,
         status_filter=status_filter,
@@ -149,7 +141,7 @@ async def cancel_fee_cashback(
     current_user: CurrentUser = Depends(get_active_user),
     db: AsyncSession = Depends(get_db),
 ) -> None:
-    _require_admin(current_user)
+    await require_platform_admin(current_user)
     try:
         await fee_cashbacks.cancel_fee_cashback(
             db,
@@ -179,7 +171,7 @@ async def create_fee_cashback_payout(
     destination the client actually receives money at is caller-supplied.
     Approval is a separate step at POST /payouts/{id}/approve: this endpoint
     is the maker, never the checker."""
-    _require_admin(current_user)
+    await require_platform_admin(current_user)
 
     cashback = await db.get(FeeCashback, cashback_id)
     if cashback is None:
