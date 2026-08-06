@@ -16,6 +16,7 @@ import {
   Landmark,
   Megaphone,
   ScrollText,
+  ShieldCheck,
   SlidersHorizontal,
   UserPlus,
 } from "lucide-react";
@@ -301,6 +302,18 @@ export function AdminHome() {
                 <CardTitle className="mt-2">Loan configuration</CardTitle>
                 <CardDescription>
                   Add loan types and banks, and set which bank offers which loan type.
+                </CardDescription>
+              </CardHeader>
+            </Card>
+          </Link>
+
+          <Link href="/dashboard/access-control">
+            <Card className="h-full transition-colors hover:border-brand-cta">
+              <CardHeader>
+                <ShieldCheck className="h-6 w-6 text-brand-cta" aria-hidden="true" />
+                <CardTitle className="mt-2">Field visibility</CardTitle>
+                <CardDescription>
+                  Control which supported lead, loan, and deal fields each staff role receives.
                 </CardDescription>
               </CardHeader>
             </Card>

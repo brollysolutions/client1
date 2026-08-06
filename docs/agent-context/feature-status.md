@@ -4,7 +4,7 @@ Status: **Derived living implementation ledger**
 
 As of: **2026-08-06**
 
-Evidence baseline: `ecf6e2a` (`upstream/main`)
+Evidence baseline: `feat/agent-lead-expiry` (field-visibility PR pending)
 
 ## Purpose and authority
 
@@ -31,13 +31,13 @@ live-provider configuration are assessed separately.
 
 | Measure | Result |
 | --- | ---: |
-| Complete requirements | 51 / 80 (63.75%) |
-| Partial requirements | 21 / 80 (26.25%) |
-| Not-started requirements | 8 / 80 (10%) |
-| Weighted implementation coverage | **76.9% (approximately 77%)** |
+| Complete requirements | 54 / 80 (67.5%) |
+| Partial requirements | 19 / 80 (23.75%) |
+| Not-started requirements | 7 / 80 (8.75%) |
+| Weighted implementation coverage | **79.4% (approximately 79%)** |
 
 Weighted coverage gives each Complete item 1 point and each Partial item 0.5
-points: `(51 + 21 x 0.5) / 80 = 76.875%`. The weighting is a planning aid, not
+points: `(54 + 19 x 0.5) / 80 = 79.375%`. The weighting is a planning aid, not
 an estimate of calendar time: a single security-sensitive gap can require more
 work than several completed UI requirements.
 
@@ -46,7 +46,7 @@ work than several completed UI requirements.
 | Feature area | Complete | Partial | Not started | Coverage notes |
 | --- | ---: | ---: | ---: | --- |
 | Platform and segregation (FR-1.x) | 4 | 1 | 0 | Core line tagging, routing, RLS, dashboards, and API exist; the universal wording still includes media paths that do not exist yet. |
-| Roles and access (FR-2.x) | 6 | 2 | 1 | Six role surfaces and server/RLS guards exist; Admin coverage and edit ownership are not exhaustive; configurable field visibility is absent. |
+| Roles and access (FR-2.x) | 7 | 2 | 0 | Six role surfaces, server/RLS guards, and Admin-managed closed-catalogue field visibility exist; Admin coverage and edit ownership are not exhaustive. |
 | Authentication (FR-3.x) | 3 | 0 | 2 | OTP/password/session flows and dual-line client identity exist; optional email and assisted mobile change do not match the baseline. |
 | Leads (FR-4.x) | 4 | 2 | 0 | Capture, assignment, ownership, fixed Agent expiry, and Agent/Telecaller workflows exist; automatic direct/Agent assignment remains incomplete. |
 | Agent registration (FR-5.x) | 4 | 0 | 0 | OTP-verified application, KYC, Admin review, Agent ID, and owned-lead contact access exist. |
@@ -59,19 +59,20 @@ work than several completed UI requirements.
 | Banners/personalization (FR-12.x) | 0 | 3 | 1 | Banner lifecycle, targeting fields, approval, images, and deep links exist; authenticated targeting and context-driven placement do not. |
 | Media/uploads (FR-13.x) | 0 | 3 | 1 | Secure purpose-specific image/PDF flows exist; unified per-line galleries, camera flows, and video are absent. |
 | Support (FR-14.x) | 3 | 1 | 0 | Central tickets, WhatsApp route, Admin triage, and resolution exist; mobile-change fulfilment is absent. |
-| Contact privacy (FR-15.x) | 2 | 2 | 0 | Assigned direct dial and Agent-owned numbers exist; configurable field/contact sharing controls do not. |
+| Contact privacy (FR-15.x) | 4 | 0 | 0 | Agent-owned and Telecaller-assigned mobile access is locked; Employee raw/deny/provider-neutral invitation modes and least-data projection are enforced server-side. |
 | Analytics (FR-16.x) | 0 | 3 | 0 | Weekly/monthly reporting, filters, sorting, summaries, and CSV exist; Excel and group/team slices remain. |
 | Profile/account (FR-17.x) | 3 | 0 | 1 | Profile/settings, transactions/support, deletion, retention, and Admin removal exist; required demographic/income fields do not. |
 | Location (FR-18.x) | 0 | 0 | 2 | No consented login-location personalization or map/GMB integration seam was found. |
-| **Total** | **51** | **21** | **8** | **80 requirements** |
+| **Total** | **54** | **19** | **7** | **80 requirements** |
 
 ## Done
 
 The following requirements are complete on the evidence baseline:
 
 - Platform and access: FR-1.2 through FR-1.5; FR-2.1; FR-2.3 through
-  FR-2.7. Evidence includes `app/core/deps.py`, profile models, RLS migrations,
-  role dashboards, and cross-role/cross-line tests.
+  FR-2.7; and FR-2.9. Evidence includes `app/core/deps.py`, profile models, RLS
+  migrations, role dashboards, Admin field-visibility APIs/UI, server-side
+  response projection, policy audit, and cross-role/cross-line tests.
 - Authentication: FR-3.1, FR-3.2, and FR-3.5 as amended by CS-001. Evidence
   includes the OTP, registration, password, refresh-rotation, and dual-profile
   tests under `apps/api/app/tests/auth`.
@@ -96,10 +97,11 @@ The following requirements are complete on the evidence baseline:
 - Notifications: FR-11.1 and FR-11.3. Evidence includes in-app feeds,
   browser push subscriptions/delivery, Admin major-action notifications, and
   Admin broadcast.
-- Support and communication: FR-14.1, FR-14.2, FR-14.4, FR-15.2, and
-  FR-15.3. Evidence includes central support tickets, Admin triage, WhatsApp
-  links, Agent-owned lead contact access, and Telecaller `tel:`/manual activity
-  flows.
+- Support and communication: FR-14.1, FR-14.2, FR-14.4, and FR-15.1 through
+  FR-15.4. Evidence includes central support tickets, Admin triage, existing
+  browser WhatsApp links, locked Agent/Telecaller mobile rules, Admin-controlled
+  least-data projection, and expiring/revocable provider-neutral Employee
+  invitations. No WhatsApp API integration is present or planned by this slice.
 - Account lifecycle: FR-17.1, FR-17.3, and FR-17.4. Evidence includes
   role-aware settings/navigation, transaction and support surfaces,
   password-confirmed self-deletion, Admin deletion, de-linking, and seven-year
@@ -112,7 +114,6 @@ The following requirements are complete on the evidence baseline:
 | FR-1.1 | Partial | Most domain records are server-stamped with one line. | Cover the not-yet-built media/gallery paths and audit any nullable legacy classification. |
 | FR-2.2 | Partial | Admin dashboards cover users, leads, tasks, agents, loans, deals, payouts, content, audit, and reports. | Complete the requirement's exhaustive view/update coverage and verify every surface in Admin UI. |
 | FR-2.8 | Partial | Agent pre-assignment editing, client profile editing, and Admin operational edits exist. | Define and enforce provenance-based edit ownership consistently across all submitted detail types. |
-| FR-2.9 | Not started | Server-side role/RLS boundaries protect whole records. | Add Admin-managed field-level visibility policy, safe response projection, audit history, and denial tests. |
 | FR-3.3 | Not started | Registration supports name, mobile, and email. | Reconcile the approved optional-email requirement with the current mandatory unique email/security flow before changing code. |
 | FR-3.4 | Not started | A user can open an Admin-routed support ticket. | Add a high-assurance, support-assisted mobile-number change workflow with takeover prevention, session revocation, audit, and uniqueness handling. |
 | FR-4.2 | Partial | Agents create attributed leads; Admin can assign a Telecaller. | Decide and implement automatic assignment behavior and client-account/invite binding where required. |
@@ -130,8 +131,6 @@ The following requirements are complete on the evidence baseline:
 | FR-13.3 | Partial | Current flows accept constrained images and PDFs. | Define and add safe video types, size/duration limits, transcoding/serving policy, and malware/content checks. |
 | FR-13.4 | Partial | Existing upload purposes enforce type/count/size and orphan cleanup selectively. | Apply consistent quotas, rate limits, retention, and orphan cleanup to every future media purpose. |
 | FR-14.3 | Partial | Support tickets can capture the request. | Implement the actual mobile-change fulfilment and client confirmation flow described under FR-3.4. |
-| FR-15.1 | Partial | Telecallers see assigned lead numbers only. | Apply the future FR-2.9 field policy to every other sensitive field. |
-| FR-15.4 | Partial | Fixed role, ownership, and RLS controls limit contact data. | Define configurable allow/deny/share-link semantics and implement least-data response shapes. |
 | FR-16.1 | Partial | Weekly/monthly buckets, date filters, and CSV export exist. | Add Excel export or explicitly amend it out of scope. |
 | FR-16.2 | Partial | Reports filter by one Agent and business line. | Add saved/explicit Agent-group and team filters. |
 | FR-16.3 | Partial | Lead/loan/deal counts and per-Agent performance with sorting exist. | Add agreed per-team summaries and selective group views. |

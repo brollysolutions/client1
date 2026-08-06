@@ -14,8 +14,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.deps import CurrentUser, require_employee
 from app.db.session import get_db
+from app.models.field_visibility import FieldTargetRole, FieldVisibilityMode
 from app.models.lead import Lead
-from app.models.task import Task, TaskDocument
+from app.models.task import Task, TaskDocument, TaskStatus
 from app.schemas.employee import (
     EmployeeHomeResponse,
     EmployeeTaskRead,
@@ -27,6 +28,7 @@ from app.schemas.employee import (
     TaskStatusLiteral,
     TaskTypeLiteral,
 )
+from app.schemas.field_visibility import ContactShareLinkRead
 from app.services import storage
 from app.services.employee import (
     IllegalTransition,
@@ -48,6 +50,16 @@ from app.services.employee import (
     presign_task_document_upload,
     update_task,
 )
+from app.services.field_visibility import (
+    ContactShareNotAllowed,
+    contact_mode,
+    effective_modes,
+    project_values,
+    revoke_contact_share_link,
+)
+from app.services.field_visibility import (
+    create_contact_share_link as create_contact_share_link_record,
+)
 
 router = APIRouter()
 
@@ -59,12 +71,17 @@ def _staff_profile_uuid(current_user: CurrentUser) -> UUID:
     return current_user.staff_profile_uuid
 
 
-def _to_read(task: Task, lead_name: str | None, lead_mobile: str) -> EmployeeTaskRead:
+def _to_read(
+    task: Task,
+    lead_name: str | None,
+    lead_mobile: str,
+    modes: dict[tuple[str, str], FieldVisibilityMode],
+) -> EmployeeTaskRead:
+    mode = contact_mode(modes)
     return EmployeeTaskRead(
         id=task.id,
         lead_uuid=task.lead_uuid,
-        lead_name=lead_name,
-        lead_mobile=lead_mobile,
+        lead_contact_mode=mode,
         business_line=task.business_line,
         task_type=task.task_type,
         status=task.status,
@@ -73,10 +90,18 @@ def _to_read(task: Task, lead_name: str | None, lead_mobile: str) -> EmployeeTas
         due_at=task.due_at,
         created_at=task.created_at,
         updated_at=task.updated_at,
+        **{
+            f"lead_{field_key}": value
+            for field_key, value in project_values(
+                modes,
+                "lead",
+                {"name": lead_name, "mobile": lead_mobile},
+            ).items()
+        },
     )
 
 
-@router.get("/tasks", response_model=list[EmployeeTaskRead])
+@router.get("/tasks", response_model=list[EmployeeTaskRead], response_model_exclude_unset=True)
 async def list_tasks(
     status_filter: TaskStatusLiteral | None = None,
     task_type_filter: TaskTypeLiteral | None = None,
@@ -85,10 +110,11 @@ async def list_tasks(
 ) -> list[EmployeeTaskRead]:
     staff_profile_uuid = _staff_profile_uuid(current_user)
     rows = await list_tasks_for_employee(db, staff_profile_uuid, status_filter, task_type_filter)
-    return [_to_read(task, name, mobile) for task, name, mobile in rows]
+    modes = await effective_modes(db, FieldTargetRole.EMPLOYEE)
+    return [_to_read(task, name, mobile, modes) for task, name, mobile in rows]
 
 
-@router.get("/tasks/{task_id}", response_model=EmployeeTaskRead)
+@router.get("/tasks/{task_id}", response_model=EmployeeTaskRead, response_model_exclude_unset=True)
 async def get_task(
     task_id: UUID,
     current_user: CurrentUser = Depends(require_employee),
@@ -98,10 +124,13 @@ async def get_task(
     row = await get_task_for_employee(db, task_id, staff_profile_uuid)
     if row is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Task not found.")
-    return _to_read(*row)
+    modes = await effective_modes(db, FieldTargetRole.EMPLOYEE)
+    return _to_read(*row, modes)
 
 
-@router.patch("/tasks/{task_id}", response_model=EmployeeTaskRead)
+@router.patch(
+    "/tasks/{task_id}", response_model=EmployeeTaskRead, response_model_exclude_unset=True
+)
 async def patch_task(
     task_id: UUID,
     payload: EmployeeTaskUpdate,
@@ -135,7 +164,8 @@ async def patch_task(
             "This task is already closed; no further changes are allowed.",
         ) from exc
     lead = await db.get(Lead, task.lead_uuid)
-    return _to_read(task, lead.name if lead else None, lead.mobile if lead else "")
+    modes = await effective_modes(db, FieldTargetRole.EMPLOYEE)
+    return _to_read(task, lead.name if lead else None, lead.mobile if lead else "", modes)
 
 
 def _to_document_read(document: TaskDocument) -> TaskDocumentRead:
@@ -154,6 +184,56 @@ async def _get_own_task(db: AsyncSession, task_id: UUID, staff_profile_uuid: UUI
     if row is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Task not found.")
     return row[0]
+
+
+@router.post(
+    "/tasks/{task_id}/contact-share-links",
+    response_model=ContactShareLinkRead,
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_contact_share_link(
+    task_id: UUID,
+    current_user: CurrentUser = Depends(require_employee),
+    db: AsyncSession = Depends(get_db),
+) -> ContactShareLinkRead:
+    """Mint one provider-neutral invitation; the URL contains no lead PII."""
+    staff_profile_uuid = _staff_profile_uuid(current_user)
+    task = await _get_own_task(db, task_id, staff_profile_uuid)
+    if task.status in (TaskStatus.COMPLETED, TaskStatus.CANCELLED):
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            "Contact sharing is not available for a closed task.",
+        )
+    try:
+        link, token = await create_contact_share_link_record(
+            db,
+            task_uuid=task.id,
+            lead_uuid=task.lead_uuid,
+            created_by_uuid=current_user.id,
+        )
+    except ContactShareNotAllowed as exc:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            "Contact sharing is not enabled for Employees.",
+        ) from exc
+    return ContactShareLinkRead(
+        id=link.id,
+        share_path=f"/invite/{token}",
+        expires_at=link.expires_at,
+    )
+
+
+@router.delete("/contact-share-links/{link_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def revoke_own_contact_share_link(
+    link_id: UUID,
+    current_user: CurrentUser = Depends(require_employee),
+    db: AsyncSession = Depends(get_db),
+) -> None:
+    revoked = await revoke_contact_share_link(
+        db, link_uuid=link_id, created_by_uuid=current_user.id
+    )
+    if not revoked:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Contact share link not found.")
 
 
 @router.post("/tasks/{task_id}/documents/presign", response_model=TaskDocumentPresignResponse)
@@ -259,7 +339,7 @@ async def delete_document(
     await delete_task_document(db, document)
 
 
-@router.get("/home", response_model=EmployeeHomeResponse)
+@router.get("/home", response_model=EmployeeHomeResponse, response_model_exclude_unset=True)
 async def home(
     current_user: CurrentUser = Depends(require_employee),
     db: AsyncSession = Depends(get_db),
@@ -268,8 +348,9 @@ async def home(
     tasks_today, overdue_count, counts_by_type, counts_by_status = await get_home_summary(
         db, staff_profile_uuid
     )
+    modes = await effective_modes(db, FieldTargetRole.EMPLOYEE)
     return EmployeeHomeResponse(
-        tasks_today=[_to_read(task, name, mobile) for task, name, mobile in tasks_today],
+        tasks_today=[_to_read(task, name, mobile, modes) for task, name, mobile in tasks_today],
         overdue_count=overdue_count,
         counts_by_type=counts_by_type,
         counts_by_status=counts_by_status,

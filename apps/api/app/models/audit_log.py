@@ -78,6 +78,7 @@ class AuditAction(enum.StrEnum):
     PAYOUT_LINK_RECONCILED = "payout_link_reconciled"
     NOTIFICATION_BROADCAST = "notification_broadcast"
     AGENT_LEAD_EXPIRED = "agent_lead_expired"
+    FIELD_VISIBILITY_UPDATED = "field_visibility_updated"
 
 
 _ev = lambda x: [e.value for e in x]  # noqa: E731

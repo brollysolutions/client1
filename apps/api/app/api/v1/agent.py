@@ -15,6 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.deps import CurrentUser, require_agent
 from app.db.session import get_db
+from app.models.field_visibility import FieldTargetRole, FieldVisibilityMode
 from app.models.lead import Lead
 from app.schemas.agent import (
     AgentHomeResponse,
@@ -37,6 +38,7 @@ from app.services.agent import (
     list_my_leads,
     update_lead_for_agent,
 )
+from app.services.field_visibility import effective_modes, project_values
 
 router = APIRouter()
 
@@ -48,15 +50,15 @@ def _agent_profile_uuid(current_user: CurrentUser) -> UUID:
     return current_user.agent_profile_uuid
 
 
-def _to_agent_lead_read(lead: Lead) -> AgentLeadRead:
+def _to_agent_lead_read(
+    lead: Lead, modes: dict[tuple[str, str], FieldVisibilityMode]
+) -> AgentLeadRead:
     within_window = lead.expires_at is None or lead.expires_at > datetime.now(UTC)
     return AgentLeadRead(
         id=lead.id,
-        name=lead.name,
         mobile=lead.mobile,
         business_line=lead.business_line,
         status="expired" if lead.agent_expired_at is not None else lead.status,
-        requirement=lead.requirement,
         registered=lead.client_profile_uuid is not None,
         editable=(
             lead.assigned_telecaller_profile_uuid is None
@@ -67,6 +69,11 @@ def _to_agent_lead_read(lead: Lead) -> AgentLeadRead:
         expired_at=lead.agent_expired_at,
         created_at=lead.created_at,
         updated_at=lead.updated_at,
+        **project_values(
+            modes,
+            "lead",
+            {"name": lead.name, "requirement": lead.requirement},
+        ),
     )
 
 
@@ -93,7 +100,12 @@ async def home(
     )
 
 
-@router.post("/leads", response_model=AgentLeadRead, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/leads",
+    response_model=AgentLeadRead,
+    response_model_exclude_unset=True,
+    status_code=status.HTTP_201_CREATED,
+)
 async def create_lead(
     payload: AgentLeadCreate,
     current_user: CurrentUser = Depends(require_agent),
@@ -122,10 +134,11 @@ async def create_lead(
             status.HTTP_409_CONFLICT,
             "This mobile number is already linked to an existing enquiry.",
         ) from exc
-    return _to_agent_lead_read(lead)
+    modes = await effective_modes(db, FieldTargetRole.AGENT)
+    return _to_agent_lead_read(lead, modes)
 
 
-@router.get("/leads", response_model=list[AgentLeadRead])
+@router.get("/leads", response_model=list[AgentLeadRead], response_model_exclude_unset=True)
 async def list_leads(
     status_filter: str | None = None,
     current_user: CurrentUser = Depends(require_agent),
@@ -138,10 +151,11 @@ async def list_leads(
         raise HTTPException(
             status.HTTP_422_UNPROCESSABLE_ENTITY, "Unknown status_filter value."
         ) from exc
-    return [_to_agent_lead_read(lead) for lead in leads]
+    modes = await effective_modes(db, FieldTargetRole.AGENT)
+    return [_to_agent_lead_read(lead, modes) for lead in leads]
 
 
-@router.get("/leads/{lead_id}", response_model=AgentLeadRead)
+@router.get("/leads/{lead_id}", response_model=AgentLeadRead, response_model_exclude_unset=True)
 async def get_lead(
     lead_id: UUID,
     current_user: CurrentUser = Depends(require_agent),
@@ -151,10 +165,11 @@ async def get_lead(
     lead = await get_lead_for_agent(db, lead_id, agent_profile_uuid)
     if lead is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Lead not found.")
-    return _to_agent_lead_read(lead)
+    modes = await effective_modes(db, FieldTargetRole.AGENT)
+    return _to_agent_lead_read(lead, modes)
 
 
-@router.patch("/leads/{lead_id}", response_model=AgentLeadRead)
+@router.patch("/leads/{lead_id}", response_model=AgentLeadRead, response_model_exclude_unset=True)
 async def patch_lead(
     lead_id: UUID,
     payload: AgentLeadUpdate,
@@ -172,7 +187,8 @@ async def patch_lead(
             status.HTTP_409_CONFLICT,
             "This lead is assigned or its Agent window has ended and it can no longer be edited.",
         ) from exc
-    return _to_agent_lead_read(lead)
+    modes = await effective_modes(db, FieldTargetRole.AGENT)
+    return _to_agent_lead_read(lead, modes)
 
 
 @router.get("/earnings", response_model=AgentEarningsResponse)
