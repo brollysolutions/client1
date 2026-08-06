@@ -1,0 +1,13 @@
+approval_policy = "on-request"
+sandbox_mode = "workspace-write"
+
+[features]
+hooks = true
+
+[mcp_servers.playwright]
+command = "npx"
+args = ["-y", "@playwright/mcp@0.0.78", "--isolated", "--allowed-origins", "http://localhost:3000;http://127.0.0.1:3000;http://localhost:8000;http://127.0.0.1:8000"]
+startup_timeout_sec = 30
+tool_timeout_sec = 120
+default_tools_approval_mode = "writes"
+disabled_tools = ["browser_evaluate", "browser_run_code_unsafe"]

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Grill Me"
+  short_description: "Pressure-test requirements and assumptions"
+  default_prompt: "Use $grillme to challenge this proposal until its risks and decisions are explicit."

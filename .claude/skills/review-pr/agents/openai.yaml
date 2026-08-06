@@ -1,0 +1,4 @@
+interface:
+  display_name: "Review PR"
+  short_description: "Find actionable defects in a change"
+  default_prompt: "Use $review-pr to review the current change for correctness, security, and missing tests."

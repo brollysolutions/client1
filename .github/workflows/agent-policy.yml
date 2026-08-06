@@ -1,0 +1,58 @@
+name: Agent workflow policy
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, edited]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  policy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require branch, conventional title, and delivery evidence
+        env:
+          PR_BASE: ${{ github.event.pull_request.base.ref }}
+          PR_HEAD: ${{ github.event.pull_request.head.ref }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          python - <<'PY'
+          import os
+          import re
+          import sys
+
+          base = os.environ["PR_BASE"]
+          head = os.environ["PR_HEAD"]
+          title = os.environ["PR_TITLE"]
+          body = os.environ.get("PR_BODY", "")
+          errors = []
+
+          if base != "main":
+              errors.append(f"PR base must be main, found {base!r}")
+          if head in {"main", "master", "prod"}:
+              errors.append(f"PR head must be a task branch, found {head!r}")
+          if not re.fullmatch(
+              r"(?:codex|claude|feat|fix|security|docs|refactor|test|chore|perf|build|ci|dependabot)"
+              r"/[a-z0-9][a-z0-9._/-]*",
+              head,
+          ):
+              errors.append("PR head must use an approved <type>/<kebab-topic> task-branch name")
+          if not re.fullmatch(
+              r"(?:feat|fix|security|docs|refactor|test|chore|perf|build|ci)"
+              r"(?:\([a-z0-9._/-]+\))?!?: .+",
+              title,
+          ):
+              errors.append("PR title must use Conventional Commits format")
+          for heading in ("## Summary", "## Verification", "## Security"):
+              if heading not in body:
+                  errors.append(f"PR body is missing {heading}")
+
+          if errors:
+              for error in errors:
+                  print(f"::error::{error}")
+              sys.exit(1)
+          print("Agent workflow policy passed.")
+          PY

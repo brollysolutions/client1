@@ -1,0 +1,4 @@
+interface:
+  display_name: "Brainstorm"
+  short_description: "Explore options before implementation"
+  default_prompt: "Use $brainstorm to turn this feature idea into a decision-ready design."

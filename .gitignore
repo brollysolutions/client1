@@ -43,31 +43,35 @@ Thumbs.db
 .idea/
 .vscode/
 
-# Docs / tooling (local only)
-docs/
+# Docs / tooling (local unless explicitly shared below)
+docs/*
+!docs/ai-workflow.md
+!docs/agent-context/
+!docs/agent-context/**
 postman/
 .postman/
-.agents/
-.mcp.json
-AGENTS.md
+.agents/*
+!.agents/skills/
+!.agents/skills/**
+.uv-cache/
 
 # pnpm store
 apps/web/.pnpm-store/
 
-# Assistant files (local instructions only)
-.claude/
-.codex/
+# Assistant files (local except the shared workflow)
+.claude/*
+!.claude/settings.json
+!.claude/skills/
+!.claude/skills/**
+.codex/*
+!.codex/config.toml
+!.codex/hooks.json
 .gemini/
-CLAUDE.md
 GEMINI.md
 .claudeignore
 .geminiignore
 .github/workflows/claude-pr-review.yml
 .github/workflows/gemini-pr-review.yml
-apps/api/CLAUDE.md
 apps/api/GEMINI.md
-apps/web/CLAUDE.md
 apps/web/GEMINI.md
-packages/contracts/CLAUDE.md
 packages/contracts/GEMINI.md
-
