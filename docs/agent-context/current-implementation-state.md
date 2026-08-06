@@ -139,16 +139,19 @@ Keep direct indexed queries and defer caching to load-test evidence.
 
 ## 5. Legacy documentation references in code
 
-Some implementation comments refer to local design notes under `docs/specs/`
-or `docs/ai/`, including `docs/ai/feature-status.md`. Those documents are not
-present in the repository and must not be treated as available authority.
+Some implementation comments refer to legacy local design notes under
+`docs/specs/` or `docs/ai/`, including `docs/ai/feature-status.md`. Those
+original documents are not present and must not be treated as available
+authority. A new derived living ledger now exists at
+[`feature-status.md`](feature-status.md); it was independently reconstructed
+from checked-in evidence and is not a transcription of the unseen legacy file.
 
 Use this mapping when encountering those references:
 
 | Legacy reference | Current source of truth |
 | --- | --- |
 | `docs/specs/dual-line-clients.md` | CS-001, current auth code, registration tests, and RLS migrations |
-| `docs/ai/feature-status.md` | Current code/tests plus Sections 3–4 of this register |
+| `docs/ai/feature-status.md` | [`feature-status.md`](feature-status.md), current code/tests, and Sections 3–4 of this register |
 | Feature-specific `docs/specs/*.md` | Relevant SRS/feature-list requirement, current route/service/model/migration/tests, and `SECURITY.md` |
 | `docs/ai/plans/*` | Historical implementation provenance only; never product authority |
 
