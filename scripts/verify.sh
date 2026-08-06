@@ -5,6 +5,11 @@ MODE="${1:-full}"
 
 echo "==> Verify mode: $MODE"
 
+if [[ -f scripts/tests/test_feature_tracking.py ]]; then
+  echo "==> Feature tracking tests"
+  uv run --no-project python scripts/tests/test_feature_tracking.py
+fi
+
 if [[ -x ./scripts/verify-api.sh ]]; then
   ./scripts/verify-api.sh "$MODE"
 fi

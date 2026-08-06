@@ -9,6 +9,8 @@ later explicit user decisions still govern implementation details.
 
 | Document | Source/provenance | As-of date | Authority | Applies to | Known conflicts or superseded sections |
 | --- | --- | --- | --- | --- | --- |
+| [`implementation-plan.md`](implementation-plan.md) | Derived living plan from approved requirements, current implementation evidence, and the 2026-08-06 planning request | 2026-08-06 | operational planning record; not product authority | Prioritized remaining work, model/effort recommendations, delivery and maintenance rules | Must defer to the SRS, feature list, current implementation amendments, security policy, and later explicit decisions. |
+| [`feature-status.md`](feature-status.md) | Derived requirement-by-requirement assessment of current code, migrations, tests, and history | 2026-08-06 | operational status record; not product authority | Completion coverage, done list, remaining gaps, and implementation evidence | Percentage is weighted requirement coverage, not time, release readiness, or production deployment status. |
 | [`current-implementation-state.md`](current-implementation-state.md) | Derived from current code/tests/history, supplied sources, and explicit user approval to preserve completed behavior | 2026-08-06 | authoritative for the listed amendments | Platform-wide implementation decisions, resolved design items, and open gaps | Supersedes only the conflicts explicitly identified as CS-001 through CS-003; it does not replace the source SRS. |
 | [`loans-real-estate-srs-v1.2.md`](loans-real-estate-srs-v1.2.md) | User-provided original: `Loans_RealEstate_SRS_v1_2.md` | 2026-06-25 | authoritative | Platform-wide product and non-functional requirements | Original baseline. CS-001 supersedes registration-time line selection; CS-002 supersedes green/amber UI accents. Security details remain governed by `SECURITY.md`. |
 | [`loans-real-estate-feature-list-v1.2.md`](loans-real-estate-feature-list-v1.2.md) | User-provided original: `Loans_RealEstate_Feature_List_v1_2.md` | 2026-06-25 | authoritative | Platform-wide feature scope | Declares itself aligned with SRS v1.2; SRS wins if wording differs. |
@@ -45,6 +47,12 @@ later explicit user decisions still govern implementation details.
 
 Rules:
 
+- Before implementing a feature, read `implementation-plan.md` and
+  `feature-status.md`, tell the user the recommended model and effort level,
+  and mark the selected plan item in progress.
+- Every product-code PR must update both living files with fresh evidence;
+  repository checks enforce their co-change but cannot validate the product
+  judgment inside them.
 - Preserve the source faithfully; do not silently rewrite a supplied document to match the code.
 - Mark transcriptions or summaries as derived, and retain a link/name for the original.
 - Reconcile claims against current code, tests, migrations, and explicit user instructions before implementation.

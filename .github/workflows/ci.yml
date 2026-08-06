@@ -44,6 +44,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - uses: actions/setup-node@v4
         with:
@@ -58,6 +60,10 @@ jobs:
 
       - name: Install pnpm
         run: corepack enable
+
+      - name: Require living implementation records
+        if: github.event_name == 'pull_request'
+        run: python scripts/check_feature_tracking.py --base-ref "${{ github.event.pull_request.base.sha }}"
 
       # Apply migrations before the test suite so the RLS policies, api_user role,
       # and constraints the integration tests depend on actually exist.
