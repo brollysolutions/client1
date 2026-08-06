@@ -34,6 +34,9 @@ class PublicLeadCreate(BaseModel):
     message: Annotated[str | None, Field(default=None, max_length=1000)] = None
     # Honeypot: hidden on the real form, so any value = automation.
     company: Annotated[str | None, Field(default=None, max_length=200)] = None
+    invitation_token: Annotated[str | None, Field(default=None, min_length=32, max_length=128)] = (
+        None
+    )
 
     @field_validator("name", "product", "message")
     @classmethod

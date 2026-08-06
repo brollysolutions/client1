@@ -16,6 +16,7 @@ import {
   Megaphone,
   RefreshCw,
   ScrollText,
+  ShieldCheck,
   SlidersHorizontal,
   UserMinus,
   UserPlus,
@@ -149,6 +150,11 @@ const ACTION_META: Record<AuditAction, { label: string; icon: LucideIcon; tone: 
     label: "Agent lead expired",
     icon: Undo2,
     tone: "bg-warning/10 text-warning",
+  },
+  field_visibility_updated: {
+    label: "Field visibility updated",
+    icon: ShieldCheck,
+    tone: "bg-loans-soft text-loans-accent",
   },
 };
 

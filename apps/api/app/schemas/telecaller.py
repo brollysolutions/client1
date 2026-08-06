@@ -101,11 +101,11 @@ class TelecallerLeadUpdate(BaseModel):
 
 class TelecallerLeadRead(BaseModel):
     id: UUID
-    name: str | None
+    name: str | None = None
     mobile: str
     business_line: Literal["loans", "real_estate"]
     status: LeadStatusLiteral
-    requirement: dict[str, Any] | None
+    requirement: dict[str, Any] | None = None
     last_disposition: CallDispositionLiteral | None = None
     next_follow_up_at: datetime | None = None
     created_at: datetime
@@ -122,10 +122,10 @@ class LoanTxnCreate(BaseModel):
 class LoanTxnRead(BaseModel):
     id: UUID
     loan_application_uuid: UUID
-    bank_name: str | None
-    amount: Decimal | None
-    interest_rate: Decimal | None
-    txn_date: date | None
+    bank_name: str | None = None
+    amount: Decimal | None = None
+    interest_rate: Decimal | None = None
+    txn_date: date | None = None
     created_at: datetime
 
 
@@ -134,8 +134,8 @@ class TelecallerLoanApplicationRead(BaseModel):
     loan_type_id: UUID
     loan_type_name: str
     bank_id: UUID | None = None
-    bank_name: str | None
-    amount_requested: Decimal | None
+    bank_name: str | None = None
+    amount_requested: Decimal | None = None
     amount_sanctioned: Decimal | None = None
     interest_rate: Decimal | None = None
     processing_fee: Decimal | None = None
@@ -154,10 +154,10 @@ class TelecallerPropertyDealRead(BaseModel):
     id: UUID
     property_title: str
     property_location: str
-    price_quoted: Decimal | None
-    booking_amount: Decimal | None
+    price_quoted: Decimal | None = None
+    booking_amount: Decimal | None = None
     status: PropertyDealStatusLiteral
-    status_reason: str | None
+    status_reason: str | None = None
     site_visit_uuid: UUID | None
     closed_at: datetime | None
 
@@ -187,7 +187,7 @@ class TelecallerLeadDetailRead(TelecallerLeadRead):
 
 class TelecallerFollowUpItem(BaseModel):
     lead_uuid: UUID
-    name: str | None
+    name: str | None = None
     mobile: str
     follow_up_at: datetime
 

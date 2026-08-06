@@ -135,8 +135,15 @@ export function EmployeeTasksView() {
                   className="cursor-pointer border-b border-border transition-colors last:border-0 hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue"
                 >
                   <td className="px-5 py-4">
-                    <p className="font-medium text-text-primary">{task.lead_name ?? "Unnamed lead"}</p>
-                    <p className="text-xs text-text-secondary">{task.lead_mobile}</p>
+                    <p className="font-medium text-text-primary">
+                      {task.lead_name ?? "Assigned lead"}
+                    </p>
+                    <p className="text-xs text-text-secondary">
+                      {task.lead_mobile ??
+                        (task.lead_contact_mode === "share_link"
+                          ? "Contact via secure invitation"
+                          : "Contact details hidden")}
+                    </p>
                   </td>
                   <td className="px-5 py-4 text-text-secondary">
                     {TYPE_LABEL[task.task_type] ?? task.task_type}

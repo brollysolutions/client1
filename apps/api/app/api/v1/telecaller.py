@@ -14,6 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.deps import CurrentUser, require_telecaller
 from app.db.session import get_db
+from app.models.field_visibility import FieldTargetRole, FieldVisibilityMode
 from app.schemas.loans import LoanApplicationProgressUpdate
 from app.schemas.property_deals import PropertyDealProgressUpdate
 from app.schemas.telecaller import (
@@ -32,6 +33,7 @@ from app.schemas.telecaller import (
     TelecallerLoanApplicationRead,
     TelecallerPropertyDealRead,
 )
+from app.services.field_visibility import effective_modes, project_values
 from app.services.loan_applications import (
     BankNotAvailableForLoanType,
     StatusReasonRequired,
@@ -84,17 +86,76 @@ from app.services.telecaller import (
 router = APIRouter()
 
 
-def _to_telecaller_property_deal_read(deal) -> TelecallerPropertyDealRead:  # noqa: ANN001
+def _to_telecaller_property_deal_read(
+    deal,
+    modes: dict[tuple[str, str], FieldVisibilityMode],  # noqa: ANN001
+) -> TelecallerPropertyDealRead:
     return TelecallerPropertyDealRead(
         id=deal.id,
         property_title=deal.property.title,
         property_location=deal.property.location,
-        price_quoted=deal.price_quoted,
-        booking_amount=deal.booking_amount,
         status=deal.status,
-        status_reason=deal.status_reason,
         site_visit_uuid=deal.site_visit_uuid,
         closed_at=deal.closed_at,
+        **project_values(
+            modes,
+            "property_deal",
+            {
+                "price_quoted": deal.price_quoted,
+                "booking_amount": deal.booking_amount,
+                "status_reason": deal.status_reason,
+            },
+        ),
+    )
+
+
+def _to_telecaller_loan_application_read(
+    application,  # noqa: ANN001
+    txns: list[LoanTxnRead],
+    modes: dict[tuple[str, str], FieldVisibilityMode],
+) -> TelecallerLoanApplicationRead:
+    return TelecallerLoanApplicationRead(
+        id=application.id,
+        loan_type_id=application.loan_type_id,
+        loan_type_name=application.loan_type.name,
+        bank_id=application.bank_id,
+        bank_name=application.bank.name if application.bank else None,
+        fee_outcome=application.fee_outcome,
+        status=application.status,
+        closed_at=application.closed_at,
+        txns=txns,
+        **project_values(
+            modes,
+            "loan_application",
+            {
+                "amount_requested": application.amount_requested,
+                "amount_sanctioned": application.amount_sanctioned,
+                "interest_rate": application.interest_rate,
+                "processing_fee": application.processing_fee,
+                "status_reason": application.status_reason,
+            },
+        ),
+    )
+
+
+def _to_loan_txn_read(
+    txn,
+    modes: dict[tuple[str, str], FieldVisibilityMode],  # noqa: ANN001
+) -> LoanTxnRead:
+    return LoanTxnRead(
+        id=txn.id,
+        loan_application_uuid=txn.loan_application_uuid,
+        created_at=txn.created_at,
+        **project_values(
+            modes,
+            "loan_transaction",
+            {
+                "bank_name": txn.bank_name,
+                "amount": txn.amount,
+                "interest_rate": txn.interest_rate,
+                "txn_date": txn.txn_date,
+            },
+        ),
     )
 
 
@@ -105,7 +166,7 @@ def _staff_profile_uuid(current_user: CurrentUser) -> UUID:
     return current_user.staff_profile_uuid
 
 
-@router.get("/leads", response_model=list[TelecallerLeadRead])
+@router.get("/leads", response_model=list[TelecallerLeadRead], response_model_exclude_unset=True)
 async def list_leads(
     status_filter: str | None = None,
     current_user: CurrentUser = Depends(require_telecaller),
@@ -114,27 +175,35 @@ async def list_leads(
     staff_profile_uuid = _staff_profile_uuid(current_user)
     leads = await list_assigned_leads(db, staff_profile_uuid, status_filter)
     last_by_lead = await get_last_activities(db, [lead.id for lead in leads])
+    modes = await effective_modes(db, FieldTargetRole.TELECALLER)
     out: list[TelecallerLeadRead] = []
     for lead in leads:
         activity = last_by_lead.get(lead.id)
         out.append(
             TelecallerLeadRead(
                 id=lead.id,
-                name=lead.name,
                 mobile=lead.mobile,
                 business_line=lead.business_line,
                 status=lead.status,
-                requirement=lead.requirement,
                 last_disposition=activity.disposition if activity else None,
                 next_follow_up_at=activity.follow_up_at if activity else None,
                 created_at=lead.created_at,
                 updated_at=lead.updated_at,
+                **project_values(
+                    modes,
+                    "lead",
+                    {"name": lead.name, "requirement": lead.requirement},
+                ),
             )
         )
     return out
 
 
-@router.get("/leads/{lead_id}", response_model=TelecallerLeadDetailRead)
+@router.get(
+    "/leads/{lead_id}",
+    response_model=TelecallerLeadDetailRead,
+    response_model_exclude_unset=True,
+)
 async def get_lead(
     lead_id: UUID,
     current_user: CurrentUser = Depends(require_telecaller),
@@ -146,6 +215,7 @@ async def get_lead(
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Lead not found.")
     activities = await list_activities_for_lead(db, lead_id)
     last = activities[0] if activities else None
+    modes = await effective_modes(db, FieldTargetRole.TELECALLER)
 
     loan_applications: list[TelecallerLoanApplicationRead] = []
     if lead.business_line == "loans":
@@ -154,24 +224,13 @@ async def get_lead(
             db, [application.id for application in applications]
         )
         loan_applications = [
-            TelecallerLoanApplicationRead(
-                id=application.id,
-                loan_type_id=application.loan_type_id,
-                loan_type_name=application.loan_type.name,
-                bank_id=application.bank_id,
-                bank_name=application.bank.name if application.bank else None,
-                amount_requested=application.amount_requested,
-                amount_sanctioned=application.amount_sanctioned,
-                interest_rate=application.interest_rate,
-                processing_fee=application.processing_fee,
-                fee_outcome=application.fee_outcome,
-                status=application.status,
-                status_reason=application.status_reason,
-                closed_at=application.closed_at,
-                txns=[
-                    LoanTxnRead.model_validate(txn, from_attributes=True)
+            _to_telecaller_loan_application_read(
+                application,
+                [
+                    _to_loan_txn_read(txn, modes)
                     for txn in txns_by_application.get(application.id, [])
                 ],
+                modes,
             )
             for application in applications
         ]
@@ -179,17 +238,15 @@ async def get_lead(
     property_deals: list[TelecallerPropertyDealRead] = []
     if lead.business_line == "real_estate":
         deals = await list_property_deals_for_lead(db, lead_id)
-        property_deals = [_to_telecaller_property_deal_read(d) for d in deals]
+        property_deals = [_to_telecaller_property_deal_read(d, modes) for d in deals]
 
     tasks = await list_tasks_for_lead(db, lead_id)
 
     return TelecallerLeadDetailRead(
         id=lead.id,
-        name=lead.name,
         mobile=lead.mobile,
         business_line=lead.business_line,
         status=lead.status,
-        requirement=lead.requirement,
         last_disposition=last.disposition if last else None,
         next_follow_up_at=last.follow_up_at if last else None,
         created_at=lead.created_at,
@@ -198,10 +255,19 @@ async def get_lead(
         loan_applications=loan_applications,
         property_deals=property_deals,
         tasks=[TaskRead.model_validate(t, from_attributes=True) for t in tasks],
+        **project_values(
+            modes,
+            "lead",
+            {"name": lead.name, "requirement": lead.requirement},
+        ),
     )
 
 
-@router.patch("/leads/{lead_id}", response_model=TelecallerLeadRead)
+@router.patch(
+    "/leads/{lead_id}",
+    response_model=TelecallerLeadRead,
+    response_model_exclude_unset=True,
+)
 async def patch_lead(
     lead_id: UUID,
     payload: TelecallerLeadUpdate,
@@ -214,17 +280,21 @@ async def patch_lead(
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Lead not found.")
     lead = await update_lead(db, lead, payload)
     activity = (await get_last_activities(db, [lead.id])).get(lead.id)
+    modes = await effective_modes(db, FieldTargetRole.TELECALLER)
     return TelecallerLeadRead(
         id=lead.id,
-        name=lead.name,
         mobile=lead.mobile,
         business_line=lead.business_line,
         status=lead.status,
-        requirement=lead.requirement,
         last_disposition=activity.disposition if activity else None,
         next_follow_up_at=activity.follow_up_at if activity else None,
         created_at=lead.created_at,
         updated_at=lead.updated_at,
+        **project_values(
+            modes,
+            "lead",
+            {"name": lead.name, "requirement": lead.requirement},
+        ),
     )
 
 
@@ -250,6 +320,7 @@ async def create_activity(
 @router.post(
     "/loan-applications/{application_id}/txn-history",
     response_model=LoanTxnRead,
+    response_model_exclude_unset=True,
     status_code=status.HTTP_201_CREATED,
 )
 async def create_loan_txn(
@@ -268,12 +339,14 @@ async def create_loan_txn(
             status.HTTP_409_CONFLICT, "Transaction history is loans-line only."
         ) from exc
     txn = await add_txn_history(db, application, staff_profile_uuid, payload)
-    return LoanTxnRead.model_validate(txn, from_attributes=True)
+    modes = await effective_modes(db, FieldTargetRole.TELECALLER)
+    return _to_loan_txn_read(txn, modes)
 
 
 @router.patch(
     "/loan-applications/{application_id}",
     response_model=TelecallerLoanApplicationRead,
+    response_model_exclude_unset=True,
 )
 async def update_loan_application_progress(
     application_id: UUID,
@@ -321,30 +394,18 @@ async def update_loan_application_progress(
         ) from exc
 
     txns_by_application = await list_txns_for_applications(db, [application.id])
-    return TelecallerLoanApplicationRead(
-        id=application.id,
-        loan_type_id=application.loan_type_id,
-        loan_type_name=application.loan_type.name,
-        bank_id=application.bank_id,
-        bank_name=application.bank.name if application.bank else None,
-        amount_requested=application.amount_requested,
-        amount_sanctioned=application.amount_sanctioned,
-        interest_rate=application.interest_rate,
-        processing_fee=application.processing_fee,
-        fee_outcome=application.fee_outcome,
-        status=application.status,
-        status_reason=application.status_reason,
-        closed_at=application.closed_at,
-        txns=[
-            LoanTxnRead.model_validate(txn, from_attributes=True)
-            for txn in txns_by_application.get(application.id, [])
-        ],
+    modes = await effective_modes(db, FieldTargetRole.TELECALLER)
+    return _to_telecaller_loan_application_read(
+        application,
+        [_to_loan_txn_read(txn, modes) for txn in txns_by_application.get(application.id, [])],
+        modes,
     )
 
 
 @router.post(
     "/leads/{lead_id}/property-deals",
     response_model=TelecallerPropertyDealRead,
+    response_model_exclude_unset=True,
     status_code=status.HTTP_201_CREATED,
 )
 async def create_property_deal(
@@ -370,12 +431,14 @@ async def create_property_deal(
             status.HTTP_422_UNPROCESSABLE_ENTITY,
             "This lead isn't linked to a registered client yet.",
         ) from exc
-    return _to_telecaller_property_deal_read(deal)
+    modes = await effective_modes(db, FieldTargetRole.TELECALLER)
+    return _to_telecaller_property_deal_read(deal, modes)
 
 
 @router.patch(
     "/property-deals/{deal_id}",
     response_model=TelecallerPropertyDealRead,
+    response_model_exclude_unset=True,
 )
 async def update_property_deal_progress(
     deal_id: UUID,
@@ -417,7 +480,8 @@ async def update_property_deal_progress(
             status.HTTP_422_UNPROCESSABLE_ENTITY, "Unknown site visit for this client."
         ) from exc
 
-    return _to_telecaller_property_deal_read(deal)
+    modes = await effective_modes(db, FieldTargetRole.TELECALLER)
+    return _to_telecaller_property_deal_read(deal, modes)
 
 
 @router.post(
@@ -439,20 +503,21 @@ async def create_task(
     return TaskRead.model_validate(task, from_attributes=True)
 
 
-@router.get("/home", response_model=TelecallerHomeResponse)
+@router.get("/home", response_model=TelecallerHomeResponse, response_model_exclude_unset=True)
 async def home(
     current_user: CurrentUser = Depends(require_telecaller),
     db: AsyncSession = Depends(get_db),
 ) -> TelecallerHomeResponse:
     staff_profile_uuid = _staff_profile_uuid(current_user)
     due, counts = await get_home_summary(db, staff_profile_uuid)
+    modes = await effective_modes(db, FieldTargetRole.TELECALLER)
     return TelecallerHomeResponse(
         follow_ups_due=[
             TelecallerFollowUpItem(
                 lead_uuid=lead.id,
-                name=lead.name,
                 mobile=lead.mobile,
                 follow_up_at=follow_up_at,
+                **project_values(modes, "lead", {"name": lead.name}),
             )
             for lead, follow_up_at in due
         ],

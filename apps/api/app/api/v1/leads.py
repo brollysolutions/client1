@@ -17,20 +17,45 @@ import logging
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 
 from app.cache.redis_keys import (
+    TTL_CONTACT_INVITATION_RATE,
     TTL_LEAD_RATE,
     RedisCache,
+    contact_invitation_rate_ip_key,
     lead_rate_ip_key,
     lead_rate_mobile_key,
 )
 from app.core.client_ip import get_client_ip
 from app.core.config import settings
 from app.core.deps import get_cache
+from app.schemas.field_visibility import ContactInvitationRead
 from app.schemas.leads import PublicLeadCreate, PublicLeadResponse
+from app.services.field_visibility import consume_invitation, invitation_is_valid
 from app.services.leads import capture_lead
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
+
+@router.get("/invitations/{token}", response_model=ContactInvitationRead)
+async def get_contact_invitation(
+    token: str,
+    request: Request,
+    cache: RedisCache = Depends(get_cache),
+) -> ContactInvitationRead:
+    ip = get_client_ip(request)
+    if ip:
+        count = await cache.incr_with_expire(
+            contact_invitation_rate_ip_key(ip), TTL_CONTACT_INVITATION_RATE
+        )
+        if count > 120:
+            raise HTTPException(
+                status.HTTP_429_TOO_MANY_REQUESTS,
+                "Too many requests. Please try again later.",
+            )
+    # Same response shape for unknown, expired, used, and revoked tokens; no
+    # lead/contact metadata is exposed to a bearer or brute-force caller.
+    return ContactInvitationRead(valid=await invitation_is_valid(token))
 
 
 async def _check_lead_rates(cache: RedisCache, ip: str | None, mobile: str) -> None:
@@ -90,5 +115,7 @@ async def create_lead(
         # Already logged with traceback inside capture_lead; no lead UUID to
         # log and never any PII here.
         logger.error("lead.public_capture_dropped origin=%s", req.origin)
+    elif req.invitation_token:
+        await consume_invitation(req.invitation_token, req.mobile)
 
     return PublicLeadResponse()

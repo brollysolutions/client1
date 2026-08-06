@@ -57,14 +57,15 @@ default, not permission to skip the pre-implementation announcement.
 
 ## Prioritized backlog
 
-No product feature is currently in progress. Agent-lead expiry is implemented
-on `feat/agent-lead-expiry` ([PR #144](https://github.com/brollysolutions/client1/pull/144)); the next priority requires a fresh
-decision/design pass before implementation begins.
+Admin field visibility and contact controls are **Done** in
+[PR #145](https://github.com/brollysolutions/client1/pull/145). Agent-lead expiry was delivered earlier
+from the same branch in [PR #144](https://github.com/brollysolutions/client1/pull/144).
+The next decision-gated priority is support-assisted mobile-number change.
 
 | Priority | Feature / requirements | Status | Recommended model / effort | Decision gate and acceptance summary |
 | ---: | --- | --- | --- | --- |
 | 1 | Agent-lead expiry (FR-4.6, OI-001) | **Done** — [PR #144](https://github.com/brollysolutions/client1/pull/144) | `gpt-5.6-sol` / High | Delivered fixed 30-day first-attribution deadlines, converted/closed exclusions, indexed idempotent release, audit/notifications, RLS/deadline write denial, Agent countdown/history, seven-day legacy grace, and deferred constraint race protection. |
-| 2 | Admin field visibility and contact controls (FR-2.9, FR-15.1, FR-15.4) | Planned | `gpt-5.6-sol` / Extra High | Define field catalogue and precedence; enforce projection server-side; preserve line/ownership RLS; audit changes; add cross-role/PII denial tests. |
+| 2 | Admin field visibility and contact controls (FR-2.9, FR-15.1, FR-15.4) | **Done** — [PR #145](https://github.com/brollysolutions/client1/pull/145) | `gpt-5.6-sol` / Extra High | Delivered a closed server-owned catalogue, server-side least-data projection, locked Agent/Telecaller mobile rules, Employee allow/deny/provider-neutral invitation modes, policy audit, RLS, and lifecycle/race denial tests. |
 | 3 | Support-assisted mobile-number change (FR-3.4, FR-14.3) | Decision needed | `gpt-5.6-sol` / Extra High | Choose proof/approval policy; prevent takeover and enumeration; enforce uniqueness; rotate/revoke sessions; update lead/referral links safely; audit and notify. |
 | 4 | Managed property/media submissions (FR-7.3, FR-13.1 through FR-13.4, OI-002) | Decision needed | `gpt-5.6-sol` / Extra High | Decide asset types/counts/limits/visibility; support Client/Lead submissions if approved; use private/public prefixes correctly; sniff content; clean orphans; test ownership and cross-line denial. |
 | 5 | Registration/profile requirement alignment (FR-3.3, FR-17.2) | Decision needed | `gpt-5.6-sol` / High | Resolve optional-email conflict and when demographic/income/address PII is collected; minimize fields; define edits/retention; update contracts and accessible forms. |
@@ -73,6 +74,71 @@ decision/design pass before implementation begins.
 | 8 | Notification/email redirect completeness (FR-11.2) | Planned | `gpt-5.6-terra` / High | Inventory every producer; add valid role-aware destinations and approved email events; prevent open redirects and PII in messages; add link tests. |
 | 9 | Authenticated banner personalization (FR-12.1 through FR-12.4, FR-18.1) | Decision needed | `gpt-5.6-sol` / Extra High | Define audience grammar, consented signals, location precision/retention, safe server evaluation, fallbacks, and negative targeting tests before serving personalized content. |
 | 10 | Map/GMB integration seam (FR-18.2) | Deferred pending scope | `gpt-5.6-terra` / High | Confirm it remains in v1; define provider-neutral coordinates/address boundary and privacy constraints before adding a dependency. |
+
+### Approved feature brief — Admin field visibility and contact controls
+
+- **Success:** a platform Admin can change supported field visibility for
+  Agent, Telecaller, and Employee responses without a deploy; the API, not the
+  browser, removes denied values; changes take effect on the next request and
+  appear in the append-only audit log.
+- **Behavior:** use a closed server-owned catalogue and role/entity/field
+  overrides. Preserve existing visibility by default. Agent-owned and
+  Telecaller-assigned mobile numbers are locked visible by FR-15.1/FR-15.2;
+  Employee lead contact supports `allow`, `deny`, and `share_link`. A share link
+  is an opaque, expiring, revocable platform invitation with no PII in its URL
+  or public response.
+- **Compatibility:** keep row ownership, business-line RLS, operational status
+  fields, and write permissions unchanged. Optional projected fields remain
+  generated-contract owned. Existing `tel:` and `wa.me` browser links may only
+  render when the raw number is already allowed; no WhatsApp API, messaging
+  provider, dependency, or telemetry is added.
+- **Security and failure invariants:** fail closed for unknown catalogue keys,
+  invalid modes, expired/revoked tokens, and policy-read failures; require a
+  platform-scoped Admin for policy writes; expose only a caller's already
+  authorized rows; store only invitation-token hashes; keep audit detail free
+  of contact values; revoke outstanding links when Employee contact leaves
+  `share_link` mode.
+- **Non-goals:** field-level write authorization, record reassignment, number
+  masking, cloud telephony, WhatsApp API integration, arbitrary Admin-defined
+  JSON paths, and new email/SMS delivery.
+- **Verification matrix:** catalogue validation and locked rows; Admin-only and
+  platform-scope denial; default/allow/deny/share-link projection for each
+  affected role; Agent/Telecaller mobile invariants; Employee ownership and
+  cross-line denial; token hash/expiry/revocation/single-use behavior; no-PII
+  audit detail; generated contract and accessible Admin UI; migration
+  upgrade/downgrade and one head; full API, web, and repository gates.
+
+### Delivered feature evidence — Admin field visibility and contact controls
+
+- **Behavior:** platform Admins manage a closed role/entity/field catalogue from
+  the dashboard. Agent and Telecaller lead-mobile access remains locked to the
+  SRS ownership rules; supported lead and financial fields are projected out of
+  API responses when denied. Employees can receive raw contact, no contact, or
+  a provider-neutral invitation according to the active policy.
+- **Contact privacy:** invitation URLs contain a 256-bit random token and no
+  PII; only SHA-256 token hashes are stored. Links expire after 24 hours, are
+  single-use and revocable, and fail closed when the policy changes, the task
+  closes or is reassigned, or the issuing Employee is no longer active. The
+  public validation response exposes only `valid`.
+- **Security:** Admin writes require platform scope and are audit logged without
+  contact values. PostgreSQL RLS restricts catalogue reads by target role and
+  link rows by current Employee task ownership/business line; link inserts also
+  require an active task and explicit `share_link` policy. A transaction lock
+  serializes policy changes with link creation, and a partial unique index
+  prevents multiple active links for one Employee/task.
+- **Compatibility and non-goals:** existing null response fields remain stable;
+  generated OpenAPI/TypeScript contracts own all optional shapes. There is no
+  WhatsApp API, messaging provider, cloud telephony, arbitrary JSON-path policy,
+  new dependency, or telemetry.
+- **Fresh local evidence:** Ruff check/format and generated-contract refresh
+  pass; the migration downgrade/upgrade and one-head check passed before the
+  final RLS/index hardening; 5 new API integration tests passed, and 105 of 106
+  related regression tests passed before one legacy-null compatibility defect
+  was fixed and its focused 6-test rerun passed. Web lint/typecheck and all 257
+  tests pass; Next compiled and generated all 90 pages, then Windows denied the
+  standalone symlink-copy step (`EPERM`). Final database-backed lifecycle,
+  concurrency, full API, and hardened-migration reruns are delegated to PR CI
+  because the local Docker Redis/PostgreSQL processes stopped responding.
 
 ### Delivered feature evidence — Agent-lead expiry
 
@@ -116,9 +182,11 @@ decision/design pass before implementation begins.
 
 ## Delivery sequence
 
-The default next feature is **Admin field visibility and contact controls**.
-Begin with a decision/design pass for the field catalogue, precedence, response
-projection, and audit model; do not guess a security- or product-sensitive rule.
+The default next feature is **support-assisted mobile-number change**
+(FR-3.4/FR-14.3). Begin with a decision/design pass for identity proof,
+maker-checker approval, uniqueness conflicts, session revocation, linked-record
+behavior, audit evidence, and user notification. This does not require or imply
+a WhatsApp API integration.
 
 For each item:
 
@@ -152,5 +220,6 @@ The backlog builds on these delivered foundations:
 
 | Date | Change | Evidence |
 | --- | --- | --- |
+| 2026-08-06 | Completed FR-2.9, FR-15.1, and FR-15.4 field visibility/contact privacy; promoted support-assisted mobile-number change as the next priority. | [PR #145](https://github.com/brollysolutions/client1/pull/145); migration/RLS/API/web/contract changes; focused and regression tests; security and PR review. |
 | 2026-08-06 | Completed FR-4.6 Agent-lead expiry and promoted Admin field visibility/contact controls as the next priority. | [PR #144](https://github.com/brollysolutions/client1/pull/144); migration/job/API/RLS/web/contract changes; 42 focused API tests; 254 web tests; seeded browser verification; security review. |
 | 2026-08-06 | Created living plan, model/effort policy, prioritized gaps, and co-change enforcement. | Static code/test/history assessment at `ecf6e2a`; `feature-status.md`; tracking checker tests. |

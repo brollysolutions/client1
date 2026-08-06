@@ -413,6 +413,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/field-visibility": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Field Visibility */
+        get: operations["get_field_visibility_api_v1_admin_field_visibility_get"];
+        /** Set Field Visibility */
+        put: operations["set_field_visibility_api_v1_admin_field_visibility_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/home": {
         parameters: {
             query?: never;
@@ -1453,6 +1471,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/employee/contact-share-links/{link_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Revoke Own Contact Share Link */
+        delete: operations["revoke_own_contact_share_link_api_v1_employee_contact_share_links__link_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/employee/home": {
         parameters: {
             query?: never;
@@ -1503,6 +1538,26 @@ export interface paths {
         head?: never;
         /** Patch Task */
         patch: operations["patch_task_api_v1_employee_tasks__task_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/employee/tasks/{task_id}/contact-share-links": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create Contact Share Link
+         * @description Mint one provider-neutral invitation; the URL contains no lead PII.
+         */
+        post: operations["create_contact_share_link_api_v1_employee_tasks__task_id__contact_share_links_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/v1/employee/tasks/{task_id}/documents": {
@@ -1586,6 +1641,23 @@ export interface paths {
         put?: never;
         /** Create Lead */
         post: operations["create_lead_api_v1_leads_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/leads/invitations/{token}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Contact Invitation */
+        get: operations["get_contact_invitation_api_v1_leads_invitations__token__get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -3506,11 +3578,11 @@ export interface components {
             /** Mobile */
             mobile: string;
             /** Name */
-            name: string | null;
+            name?: string | null;
             /** Registered */
             registered: boolean;
             /** Requirement */
-            requirement: {
+            requirement?: {
                 [key: string]: unknown;
             } | null;
             /**
@@ -3627,7 +3699,7 @@ export interface components {
          *     `services/fee_cashbacks.py` (FR-6.6 processing-fee cashback).
          * @enum {string}
          */
-        AuditAction: "agent_approved" | "agent_rejected" | "staff_created" | "account_removed" | "payout_approved" | "payout_rejected" | "property_submission_approved" | "property_submission_rejected" | "support_ticket_advanced" | "retention_purged" | "loan_type_created" | "loan_type_updated" | "bank_created" | "bank_updated" | "bank_availability_updated" | "commission_entered" | "commission_cancelled" | "fee_cashback_entered" | "fee_cashback_cancelled" | "document_verified" | "document_unverified" | "payout_link_reconciled" | "notification_broadcast" | "agent_lead_expired";
+        AuditAction: "agent_approved" | "agent_rejected" | "staff_created" | "account_removed" | "payout_approved" | "payout_rejected" | "property_submission_approved" | "property_submission_rejected" | "support_ticket_advanced" | "retention_purged" | "loan_type_created" | "loan_type_updated" | "bank_created" | "bank_updated" | "bank_availability_updated" | "commission_entered" | "commission_cancelled" | "fee_cashback_entered" | "fee_cashback_cancelled" | "document_verified" | "document_unverified" | "payout_link_reconciled" | "notification_broadcast" | "agent_lead_expired" | "field_visibility_updated";
         /** AuditLogListResponse */
         AuditLogListResponse: {
             /** Entries */
@@ -4128,6 +4200,26 @@ export interface components {
          * @enum {string}
          */
         ConstructionStatus: "ready" | "under_construction";
+        /** ContactInvitationRead */
+        ContactInvitationRead: {
+            /** Valid */
+            valid: boolean;
+        };
+        /** ContactShareLinkRead */
+        ContactShareLinkRead: {
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Share Path */
+            share_path: string;
+        };
         /** ContentBlockCreate */
         ContentBlockCreate: {
             /** Body */
@@ -4403,10 +4495,15 @@ export interface components {
              * Format: uuid
              */
             id: string;
+            /**
+             * Lead Contact Mode
+             * @enum {string}
+             */
+            lead_contact_mode: "allow" | "deny" | "share_link";
             /** Lead Mobile */
-            lead_mobile: string;
+            lead_mobile?: string | null;
             /** Lead Name */
-            lead_name: string | null;
+            lead_name?: string | null;
             /**
              * Lead Uuid
              * Format: uuid
@@ -4600,6 +4697,62 @@ export interface components {
          * @enum {string}
          */
         FeeOutcome: "waived" | "cashback" | "none";
+        /** FieldVisibilityEntryRead */
+        FieldVisibilityEntryRead: {
+            /** Allowed Modes */
+            allowed_modes: ("allow" | "deny" | "share_link")[];
+            /**
+             * Default Mode
+             * @enum {string}
+             */
+            default_mode: "allow" | "deny" | "share_link";
+            /** Entity */
+            entity: string;
+            /** Field Key */
+            field_key: string;
+            /** Id */
+            id?: string | null;
+            /** Label */
+            label: string;
+            /** Lock Reason */
+            lock_reason?: string | null;
+            /** Locked */
+            locked: boolean;
+            /**
+             * Mode
+             * @enum {string}
+             */
+            mode: "allow" | "deny" | "share_link";
+            /**
+             * Target Role
+             * @enum {string}
+             */
+            target_role: "agent" | "telecaller" | "employee";
+            /** Updated At */
+            updated_at?: string | null;
+        };
+        /** FieldVisibilityListResponse */
+        FieldVisibilityListResponse: {
+            /** Entries */
+            entries: components["schemas"]["FieldVisibilityEntryRead"][];
+        };
+        /** FieldVisibilityUpdateRequest */
+        FieldVisibilityUpdateRequest: {
+            /** Entity */
+            entity: string;
+            /** Field Key */
+            field_key: string;
+            /**
+             * Mode
+             * @enum {string}
+             */
+            mode: "allow" | "deny" | "share_link";
+            /**
+             * Target Role
+             * @enum {string}
+             */
+            target_role: "agent" | "telecaller" | "employee";
+        };
         /** ForgotInitiateRequest */
         ForgotInitiateRequest: {
             /** Mobile */
@@ -4933,9 +5086,9 @@ export interface components {
         /** LoanTxnRead */
         LoanTxnRead: {
             /** Amount */
-            amount: string | null;
+            amount?: string | null;
             /** Bank Name */
-            bank_name: string | null;
+            bank_name?: string | null;
             /**
              * Created At
              * Format: date-time
@@ -4947,14 +5100,14 @@ export interface components {
              */
             id: string;
             /** Interest Rate */
-            interest_rate: string | null;
+            interest_rate?: string | null;
             /**
              * Loan Application Uuid
              * Format: uuid
              */
             loan_application_uuid: string;
             /** Txn Date */
-            txn_date: string | null;
+            txn_date?: string | null;
         };
         /** LoanTypeCreate */
         LoanTypeCreate: {
@@ -5592,6 +5745,8 @@ export interface components {
             company?: string | null;
             /** Email */
             email?: string | null;
+            /** Invitation Token */
+            invitation_token?: string | null;
             /** Message */
             message?: string | null;
             /** Mobile */
@@ -6469,7 +6624,7 @@ export interface components {
             /** Mobile */
             mobile: string;
             /** Name */
-            name: string | null;
+            name?: string | null;
         };
         /** TelecallerHomeResponse */
         TelecallerHomeResponse: {
@@ -6509,7 +6664,7 @@ export interface components {
             /** Mobile */
             mobile: string;
             /** Name */
-            name: string | null;
+            name?: string | null;
             /** Next Follow Up At */
             next_follow_up_at?: string | null;
             /**
@@ -6518,7 +6673,7 @@ export interface components {
              */
             property_deals: components["schemas"]["TelecallerPropertyDealRead"][];
             /** Requirement */
-            requirement: {
+            requirement?: {
                 [key: string]: unknown;
             } | null;
             /**
@@ -6559,11 +6714,11 @@ export interface components {
             /** Mobile */
             mobile: string;
             /** Name */
-            name: string | null;
+            name?: string | null;
             /** Next Follow Up At */
             next_follow_up_at?: string | null;
             /** Requirement */
-            requirement: {
+            requirement?: {
                 [key: string]: unknown;
             } | null;
             /**
@@ -6589,13 +6744,13 @@ export interface components {
         /** TelecallerLoanApplicationRead */
         TelecallerLoanApplicationRead: {
             /** Amount Requested */
-            amount_requested: string | null;
+            amount_requested?: string | null;
             /** Amount Sanctioned */
             amount_sanctioned?: string | null;
             /** Bank Id */
             bank_id?: string | null;
             /** Bank Name */
-            bank_name: string | null;
+            bank_name?: string | null;
             /** Closed At */
             closed_at?: string | null;
             /** Fee Outcome */
@@ -6629,7 +6784,7 @@ export interface components {
         /** TelecallerPropertyDealRead */
         TelecallerPropertyDealRead: {
             /** Booking Amount */
-            booking_amount: string | null;
+            booking_amount?: string | null;
             /** Closed At */
             closed_at: string | null;
             /**
@@ -6638,7 +6793,7 @@ export interface components {
              */
             id: string;
             /** Price Quoted */
-            price_quoted: string | null;
+            price_quoted?: string | null;
             /** Property Location */
             property_location: string;
             /** Property Title */
@@ -6651,7 +6806,7 @@ export interface components {
              */
             status: "new" | "contacted" | "site_visit_done" | "negotiation" | "booked" | "agreement_signed" | "closed" | "rejected" | "on_hold";
             /** Status Reason */
-            status_reason: string | null;
+            status_reason?: string | null;
         };
         /** TransactionListResponse */
         TransactionListResponse: {
@@ -7546,6 +7701,59 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["FeeCashbackPayoutResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_field_visibility_api_v1_admin_field_visibility_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FieldVisibilityListResponse"];
+                };
+            };
+        };
+    };
+    set_field_visibility_api_v1_admin_field_visibility_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FieldVisibilityUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FieldVisibilityEntryRead"];
                 };
             };
             /** @description Validation Error */
@@ -9783,6 +9991,35 @@ export interface operations {
             };
         };
     };
+    revoke_own_contact_share_link_api_v1_employee_contact_share_links__link_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                link_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     home_api_v1_employee_home_get: {
         parameters: {
             query?: never;
@@ -9888,6 +10125,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["EmployeeTaskRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_contact_share_link_api_v1_employee_tasks__task_id__contact_share_links_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                task_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContactShareLinkRead"];
                 };
             };
             /** @description Validation Error */
@@ -10105,6 +10373,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PublicLeadResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_contact_invitation_api_v1_leads_invitations__token__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContactInvitationRead"];
                 };
             };
             /** @description Validation Error */
