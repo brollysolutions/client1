@@ -8,6 +8,7 @@ agent_profile_uuid claim, since the agent endpoints/RLS key off it.
 from __future__ import annotations
 
 import uuid
+from datetime import UTC, datetime, timedelta
 
 import pytest
 from httpx import AsyncClient
@@ -149,6 +150,10 @@ async def test_introduce_lead_success(client: AsyncClient) -> None:
     assert body["mobile"] == mobile
     assert body["registered"] is False
     assert body["status"] == "new"
+    assert body["expired_at"] is None
+    deadline = datetime.fromisoformat(body["expires_at"])
+    expected = datetime.now(UTC) + timedelta(days=30)
+    assert abs((deadline - expected).total_seconds()) < 10
 
 
 @pytest.mark.asyncio
@@ -157,7 +162,7 @@ async def test_introduce_lead_idempotent(client: AsyncClient) -> None:
     token = _agent_token(auth_uuid, agent_uuid)
     mobile = unique_mobile()
     headers = {"Authorization": f"Bearer {token}"}
-    await client.post("/api/v1/agent/leads", json={"mobile": mobile}, headers=headers)
+    first = await client.post("/api/v1/agent/leads", json={"mobile": mobile}, headers=headers)
     await client.post(
         "/api/v1/agent/leads", json={"mobile": mobile, "name": "Ravi"}, headers=headers
     )
@@ -167,6 +172,121 @@ async def test_introduce_lead_idempotent(client: AsyncClient) -> None:
     matches = [row for row in res.json() if row["mobile"] == mobile]
     assert len(matches) == 1
     assert matches[0]["name"] == "Ravi"
+    assert matches[0]["expires_at"] == first.json()["expires_at"]
+
+
+@pytest.mark.asyncio
+async def test_due_lead_is_read_only_before_scheduler_marks_it_expired(
+    client: AsyncClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import app.db.session as _session_mod
+    from app.models.lead import Lead, LeadOrigin, LeadStatus
+
+    auth_uuid, agent_uuid = await _seed_agent("loans")
+    headers = {"Authorization": f"Bearer {_agent_token(auth_uuid, agent_uuid)}"}
+    async with _session_mod.AsyncSessionLocal() as db:
+        lead = Lead(
+            mobile=unique_mobile(),
+            business_line="loans",
+            origin=LeadOrigin.AGENT,
+            origin_agent_profile_uuid=uuid.UUID(agent_uuid),
+            status=LeadStatus.NEW,
+            expires_at=datetime.now(UTC) - timedelta(minutes=1),
+        )
+        db.add(lead)
+        await db.commit()
+        lead_id = str(lead.id)
+
+    detail = await client.get(f"/api/v1/agent/leads/{lead_id}", headers=headers)
+    assert detail.status_code == 200, detail.text
+    assert detail.json()["status"] == "new"
+    assert detail.json()["editable"] is False
+
+    update = await client.patch(
+        f"/api/v1/agent/leads/{lead_id}", json={"name": "Too late"}, headers=headers
+    )
+    assert update.status_code == 409
+
+    async def stale_precheck(_mobile: str) -> bool:
+        return False
+
+    # Simulate the deadline being reached after introduce_lead's pre-check.
+    # The upsert predicate and guarded re-select must still reject the write.
+    monkeypatch.setattr("app.services.agent.has_expired_agent_lead", stale_precheck)
+    reintroduce = await client.post(
+        "/api/v1/agent/leads",
+        json={"mobile": detail.json()["mobile"], "name": "Restarted"},
+        headers=headers,
+    )
+    assert reintroduce.status_code == 409
+
+    async with _session_mod.AsyncSessionLocal() as db:
+        refreshed = await db.get(Lead, uuid.UUID(lead_id))
+        assert refreshed.name is None
+
+
+@pytest.mark.asyncio
+async def test_expired_lead_is_history_only_and_cannot_restart_clock(client: AsyncClient) -> None:
+    import app.db.session as _session_mod
+    from app.models.lead import Lead, LeadOrigin, LeadStatus
+
+    auth_uuid, agent_uuid = await _seed_agent("loans")
+    token = _agent_token(auth_uuid, agent_uuid)
+    headers = {"Authorization": f"Bearer {token}"}
+    mobile = unique_mobile()
+    now = datetime.now(UTC)
+    async with _session_mod.AsyncSessionLocal() as db:
+        lead = Lead(
+            mobile=mobile,
+            business_line="loans",
+            origin=LeadOrigin.AGENT,
+            origin_agent_profile_uuid=uuid.UUID(agent_uuid),
+            status=LeadStatus.RELEASED,
+            expires_at=now - timedelta(minutes=1),
+            agent_expired_at=now,
+            released_at=now,
+            release_reason="Agent ownership window expired.",
+        )
+        db.add(lead)
+        await db.commit()
+        lead_id = str(lead.id)
+
+    detail = await client.get(f"/api/v1/agent/leads/{lead_id}", headers=headers)
+    assert detail.status_code == 200, detail.text
+    assert detail.json()["status"] == "expired"
+    assert detail.json()["editable"] is False
+    assert detail.json()["expired_at"] is not None
+
+    update = await client.patch(
+        f"/api/v1/agent/leads/{lead_id}",
+        json={"name": "Restarted"},
+        headers=headers,
+    )
+    assert update.status_code == 409
+
+    reintroduce = await client.post(
+        "/api/v1/agent/leads",
+        json={"mobile": mobile, "name": "Restarted"},
+        headers=headers,
+    )
+    assert reintroduce.status_code == 409
+
+    other_auth_uuid, other_agent_uuid = await _seed_agent("loans")
+    other_attempt = await client.post(
+        "/api/v1/agent/leads",
+        json={"mobile": mobile, "name": "Different Agent"},
+        headers={"Authorization": f"Bearer {_agent_token(other_auth_uuid, other_agent_uuid)}"},
+    )
+    assert other_attempt.status_code == 409
+
+    filtered = await client.get("/api/v1/agent/leads?status_filter=expired", headers=headers)
+    assert filtered.status_code == 200, filtered.text
+    assert [row["id"] for row in filtered.json()] == [lead_id]
+
+    home = await client.get("/api/v1/agent/home", headers=headers)
+    assert home.status_code == 200, home.text
+    assert home.json()["counts_by_status"]["expired"] == 1
 
 
 @pytest.mark.asyncio

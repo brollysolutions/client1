@@ -29,6 +29,7 @@ class NotificationType(enum.StrEnum):
     SUPPORT_TICKET_RECEIVED = "support_ticket_received"
     LEAD_ASSIGNED = "lead_assigned"
     LEAD_RELEASED = "lead_released"
+    AGENT_LEAD_EXPIRED = "agent_lead_expired"
     TASK_ASSIGNED = "task_assigned"
     LOAN_STATUS_UPDATED = "loan_status_updated"
     PROPERTY_DEAL_STATUS_UPDATED = "property_deal_status_updated"

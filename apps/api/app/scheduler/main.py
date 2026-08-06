@@ -23,6 +23,7 @@ from app.jobs.audit_paid_payouts import audit_paid_payouts
 from app.jobs.backfill_customer_codes import backfill_customer_codes
 from app.jobs.backfill_referral_codes import backfill_referral_codes
 from app.jobs.cms_activation import cms_activation
+from app.jobs.expire_agent_leads import expire_agent_leads
 from app.jobs.purge_agent_application_orphans import purge_agent_application_orphans
 from app.jobs.purge_banner_image_orphans import purge_banner_image_orphans
 from app.jobs.purge_loan_document_orphans import purge_loan_document_orphans
@@ -202,6 +203,15 @@ def build_scheduler() -> AsyncIOScheduler:
         # homepage's 60s ISR window puts a banner live within ~6 min of its
         # starts_at. Cost is 4 indexed UPDATEs matching 0 rows most ticks.
         id="cms_activation",
+        max_instances=1,
+        coalesce=True,
+        replace_existing=True,
+    )
+    scheduler.add_job(
+        expire_agent_leads,
+        trigger="interval",
+        minutes=15,
+        id="expire_agent_leads",
         max_instances=1,
         coalesce=True,
         replace_existing=True,

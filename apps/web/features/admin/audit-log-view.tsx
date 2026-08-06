@@ -19,6 +19,7 @@ import {
   SlidersHorizontal,
   UserMinus,
   UserPlus,
+  Undo2,
   Wallet,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
@@ -143,6 +144,11 @@ const ACTION_META: Record<AuditAction, { label: string; icon: LucideIcon; tone: 
     label: "Broadcast sent",
     icon: Megaphone,
     tone: "bg-loans-soft text-loans-accent",
+  },
+  agent_lead_expired: {
+    label: "Agent lead expired",
+    icon: Undo2,
+    tone: "bg-warning/10 text-warning",
   },
 };
 

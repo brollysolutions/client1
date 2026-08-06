@@ -14,7 +14,7 @@ from httpx import AsyncClient
 from sqlalchemy import func, select, text
 
 from app.models.auth import RefreshToken
-from app.scheduler.main import prune_expired_refresh_tokens
+from app.scheduler.main import build_scheduler, prune_expired_refresh_tokens
 from conftest import full_registration, unique_mobile
 
 
@@ -86,3 +86,12 @@ async def test_prune_is_idempotent(client: AsyncClient) -> None:
     await prune_expired_refresh_tokens()  # second run must not error
 
     assert await _count_by_id(live_id) == 1
+
+
+def test_scheduler_registers_agent_lead_expiry_every_fifteen_minutes() -> None:
+    scheduler = build_scheduler()
+    job = scheduler.get_job("expire_agent_leads")
+    assert job is not None
+    assert job.trigger.interval.total_seconds() == 15 * 60
+    assert job.max_instances == 1
+    assert job.coalesce is True

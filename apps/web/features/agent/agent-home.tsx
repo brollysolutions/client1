@@ -18,6 +18,7 @@ const STATUS_LABEL: Record<string, string> = {
   converted: "Converted",
   closed: "Closed",
   released: "Released",
+  expired: "Expired",
 };
 
 const PROFILE_STATUS_LABEL: Record<string, string> = {

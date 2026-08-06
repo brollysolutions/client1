@@ -11,7 +11,7 @@ Evidence baseline: `ecf6e2a` (`upstream/main`)
 Complete the approved Loans and Real Estate scope without weakening
 authorization, business-line segregation, PII/KYC handling, payout controls,
 or auditability. The current evidence-based implementation coverage is
-approximately **76%**; see [`feature-status.md`](feature-status.md) for the
+approximately **77%**; see [`feature-status.md`](feature-status.md) for the
 calculation and requirement-level gaps.
 
 ## Working rules
@@ -57,12 +57,13 @@ default, not permission to skip the pre-implementation announcement.
 
 ## Prioritized backlog
 
-No product feature is currently **In progress**. This documentation and
-workflow task establishes the plan and enforcement only.
+No product feature is currently in progress. Agent-lead expiry is implemented
+on `feat/agent-lead-expiry` ([PR #144](https://github.com/brollysolutions/client1/pull/144)); the next priority requires a fresh
+decision/design pass before implementation begins.
 
 | Priority | Feature / requirements | Status | Recommended model / effort | Decision gate and acceptance summary |
 | ---: | --- | --- | --- | --- |
-| 1 | Agent-lead expiry (FR-4.6, OI-001) | Decision needed | `gpt-5.6-sol` / High | Decide duration and terminal exceptions; add additive migration, indexed expiry, idempotent scheduler release, audit/notifications, RLS review, and race tests. |
+| 1 | Agent-lead expiry (FR-4.6, OI-001) | **Done** — [PR #144](https://github.com/brollysolutions/client1/pull/144) | `gpt-5.6-sol` / High | Delivered fixed 30-day first-attribution deadlines, converted/closed exclusions, indexed idempotent release, audit/notifications, RLS/deadline write denial, Agent countdown/history, seven-day legacy grace, and deferred constraint race protection. |
 | 2 | Admin field visibility and contact controls (FR-2.9, FR-15.1, FR-15.4) | Planned | `gpt-5.6-sol` / Extra High | Define field catalogue and precedence; enforce projection server-side; preserve line/ownership RLS; audit changes; add cross-role/PII denial tests. |
 | 3 | Support-assisted mobile-number change (FR-3.4, FR-14.3) | Decision needed | `gpt-5.6-sol` / Extra High | Choose proof/approval policy; prevent takeover and enumeration; enforce uniqueness; rotate/revoke sessions; update lead/referral links safely; audit and notify. |
 | 4 | Managed property/media submissions (FR-7.3, FR-13.1 through FR-13.4, OI-002) | Decision needed | `gpt-5.6-sol` / Extra High | Decide asset types/counts/limits/visibility; support Client/Lead submissions if approved; use private/public prefixes correctly; sniff content; clean orphans; test ownership and cross-line denial. |
@@ -73,12 +74,51 @@ workflow task establishes the plan and enforcement only.
 | 9 | Authenticated banner personalization (FR-12.1 through FR-12.4, FR-18.1) | Decision needed | `gpt-5.6-sol` / Extra High | Define audience grammar, consented signals, location precision/retention, safe server evaluation, fallbacks, and negative targeting tests before serving personalized content. |
 | 10 | Map/GMB integration seam (FR-18.2) | Deferred pending scope | `gpt-5.6-terra` / High | Confirm it remains in v1; define provider-neutral coordinates/address boundary and privacy constraints before adding a dependency. |
 
+### Delivered feature evidence — Agent-lead expiry
+
+- **Success:** every overdue agent-attributed lead that is not converted or
+  closed returns to the open same-line Telecaller pool once, within one 15-minute
+  scheduler interval; attribution and line remain unchanged.
+- **Behavior:** stamp an immutable 30-day deadline when Agent attribution is
+  first established; do not reset it on edits, calls, assignment, or
+  reassignment. Expiry clears the Telecaller assignment, records the expiry,
+  preserves Agent history, and prevents Agent edits or re-introduction. Existing
+  eligible rows receive at least seven days of deployment grace.
+- **Compatibility:** keep the existing operational lead statuses for Admin and
+  Telecaller flows; project expired Agent ownership on Agent APIs/UI. Preserve
+  current direct-lead behavior and generated-contract ownership.
+- **Security and failure invariants:** enforce post-expiry write denial in both
+  service logic and RLS; preserve business-line isolation; use one conditional,
+  idempotent database transition so concurrent converted/closed updates are not
+  overwritten; keep audit details free of PII; make notifications best-effort
+  only after the business transition commits.
+- **Non-goals:** automatic Telecaller assignment, Agent transfer, deadline
+  extensions/pauses, reminder emails, and Admin-configurable duration UI.
+- **Verification matrix:** creation and no-reset behavior; new/assigned/working/
+  released expiry; converted/closed/direct/future exclusions; legacy grace;
+  idempotency and terminal-race behavior; queue reassignment; API/RLS lockout;
+  duplicate/re-introduction prevention; audit/notification delivery; generated
+  contract; Agent countdown/history rendering; scheduler registration; one
+  Alembic head; full API, web, and repository gates.
+
+- **Fresh evidence:** 42 focused API/system tests pass, including real
+  two-session scheduler/Agent and cross-Agent RLS invariant checks; Ruff,
+  migration downgrade/upgrade, and one
+  Alembic head pass; web lint/typecheck and all 254 unit tests pass; a seeded
+  browser session verified expired counts, countdown/history copy, and
+  read-only detail behavior. Security review found and remediated the
+  attribution/expiry race and due-before-marker write window; no findings
+  remain. The full API regression completed with 1,397 passing tests and three
+  unrelated failures: the import-time payout grace fixture passes fresh, while
+  two pre-existing platform-policy ledgers still expect the superseded
+  `task_documents_rls` name and omit `loan_documents_select`. The isolated
+  production-build limitation is recorded in the PR verification summary.
+
 ## Delivery sequence
 
-The default next feature is **Agent-lead expiry**, but implementation must not
-start until the expiry duration and terminal-status exceptions are approved.
-If that decision is unavailable, select the highest planned item whose decision
-gate is settled; do not guess a security- or product-sensitive rule.
+The default next feature is **Admin field visibility and contact controls**.
+Begin with a decision/design pass for the field catalogue, precedence, response
+projection, and audit model; do not guess a security- or product-sensitive rule.
 
 For each item:
 
@@ -96,8 +136,8 @@ The backlog builds on these delivered foundations:
 
 - six role-aware dashboards with server-side authorization and PostgreSQL RLS;
 - OTP/password/refresh authentication and dual-line client profiles;
-- lead capture, Agent introduction, Admin assignment, Telecaller follow-up, and
-  Employee tasks/documents;
+- lead capture, Agent introduction, Admin assignment, Telecaller follow-up,
+  fixed Agent expiry, and Employee tasks/documents;
 - loan applications, product/bank configuration, transactions, document
   verification, and processing-fee cashback;
 - property catalog, submissions/review, inquiries, visits, bookmarks, and deal
@@ -112,4 +152,5 @@ The backlog builds on these delivered foundations:
 
 | Date | Change | Evidence |
 | --- | --- | --- |
+| 2026-08-06 | Completed FR-4.6 Agent-lead expiry and promoted Admin field visibility/contact controls as the next priority. | [PR #144](https://github.com/brollysolutions/client1/pull/144); migration/job/API/RLS/web/contract changes; 42 focused API tests; 254 web tests; seeded browser verification; security review. |
 | 2026-08-06 | Created living plan, model/effort policy, prioritized gaps, and co-change enforcement. | Static code/test/history assessment at `ecf6e2a`; `feature-status.md`; tracking checker tests. |
