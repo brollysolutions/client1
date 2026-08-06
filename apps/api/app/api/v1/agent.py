@@ -7,6 +7,7 @@ role-gated router in this codebase).
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -48,15 +49,22 @@ def _agent_profile_uuid(current_user: CurrentUser) -> UUID:
 
 
 def _to_agent_lead_read(lead: Lead) -> AgentLeadRead:
+    within_window = lead.expires_at is None or lead.expires_at > datetime.now(UTC)
     return AgentLeadRead(
         id=lead.id,
         name=lead.name,
         mobile=lead.mobile,
         business_line=lead.business_line,
-        status=lead.status,
+        status="expired" if lead.agent_expired_at is not None else lead.status,
         requirement=lead.requirement,
         registered=lead.client_profile_uuid is not None,
-        editable=lead.assigned_telecaller_profile_uuid is None,
+        editable=(
+            lead.assigned_telecaller_profile_uuid is None
+            and lead.agent_expired_at is None
+            and within_window
+        ),
+        expires_at=lead.expires_at,
+        expired_at=lead.agent_expired_at,
         created_at=lead.created_at,
         updated_at=lead.updated_at,
     )
@@ -162,7 +170,7 @@ async def patch_lead(
     except LeadLocked as exc:
         raise HTTPException(
             status.HTTP_409_CONFLICT,
-            "This lead has been assigned to a telecaller and can no longer be edited.",
+            "This lead is assigned or its Agent window has ended and it can no longer be edited.",
         ) from exc
     return _to_agent_lead_read(lead)
 

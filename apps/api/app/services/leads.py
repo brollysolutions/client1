@@ -21,14 +21,15 @@ Design notes:
 from __future__ import annotations
 
 import logging
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import case, func, select, text, update
+from sqlalchemy import and_, case, func, or_, select, text, update
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import settings
 from app.core.masking import mask_mobile
 from app.db.session import AsyncSessionLocal
 from app.models.lead import Lead, LeadStatus
@@ -80,6 +81,31 @@ class InvalidTelecaller(Exception):
     """Raised when the target staff profile isn't an active telecaller on the lead's line."""
 
 
+async def has_expired_agent_lead(mobile: str) -> bool:
+    """Return whether this mobile has ended Agent ownership history.
+
+    Agent RLS exposes only the current Agent's rows, while the no-clock-reset
+    rule applies across Agents and business lines. A reached deadline counts
+    even before the scheduler stamps the transition marker. The database
+    trigger is the race-safe guard; this bypass-session read lets the Agent API
+    surface the normal conflict as 409.
+    """
+    async with AsyncSessionLocal() as session:
+        return (
+            await session.scalar(
+                select(Lead.id)
+                .where(
+                    Lead.mobile == mobile,
+                    or_(
+                        Lead.agent_expired_at.is_not(None),
+                        and_(Lead.expires_at.is_not(None), Lead.expires_at <= func.now()),
+                    ),
+                )
+                .limit(1)
+            )
+        ) is not None
+
+
 async def capture_lead(
     mobile: str,
     *,
@@ -99,6 +125,7 @@ async def capture_lead(
     """
     try:
         async with AsyncSessionLocal() as session:
+            expiry_deadline = func.now() + timedelta(days=settings.AGENT_LEAD_EXPIRY_DAYS)
             stmt = pg_insert(Lead).values(
                 mobile=mobile,
                 name=name,
@@ -107,6 +134,7 @@ async def capture_lead(
                 origin_agent_profile_uuid=origin_agent_profile_uuid,
                 status="new",
                 requirement=requirement,
+                expires_at=expiry_deadline if origin_agent_profile_uuid is not None else None,
             )
             # Agent-sourced captures are the only caller allowed to mutate an
             # EXISTING active lead through this bypass session, and only within
@@ -123,6 +151,8 @@ async def capture_lead(
                 conflict_guard = (
                     (Lead.business_line == business_line)
                     & Lead.assigned_telecaller_profile_uuid.is_(None)
+                    & Lead.agent_expired_at.is_(None)
+                    & (Lead.expires_at.is_(None) | (Lead.expires_at > func.now()))
                     & (
                         Lead.origin_agent_profile_uuid.is_(None)
                         | (Lead.origin_agent_profile_uuid == origin_agent_profile_uuid)
@@ -144,6 +174,17 @@ async def capture_lead(
                     # attribution from whichever origin touched it first.
                     "origin_agent_profile_uuid": func.coalesce(
                         Lead.origin_agent_profile_uuid, stmt.excluded.origin_agent_profile_uuid
+                    ),
+                    # Stamp the immutable window only when Agent attribution is
+                    # first established (or defensively repair a missing legacy
+                    # deadline). Retries and later edits never extend it.
+                    "expires_at": case(
+                        (
+                            Lead.expires_at.is_(None)
+                            & stmt.excluded.origin_agent_profile_uuid.is_not(None),
+                            expiry_deadline,
+                        ),
+                        else_=Lead.expires_at,
                     ),
                     # Merge requirement JSONB, newest value wins per key; an
                     # incoming NULL leaves the stored blob untouched.

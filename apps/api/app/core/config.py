@@ -62,6 +62,9 @@ class Settings(BaseSettings):
     # proxy caveat as the other per-IP limits.
     LEAD_RATE_LIMIT_PER_IP: int = 10
     LEAD_RATE_LIMIT_PER_MOBILE: int = 5
+    # Fixed Agent-attribution window for newly attributed leads. The deadline
+    # is stamped once, so changing this affects future leads only.
+    AGENT_LEAD_EXPIRY_DAYS: int = 30
 
     # Public agent-application intake (POST /api/v1/agent-applications) abuse
     # caps. Per-IP submit cap is a separate hourly window from the shared
@@ -229,6 +232,12 @@ class Settings(BaseSettings):
                 )
             if len(self.SECRET_KEY) < 32:
                 raise ValueError("SECRET_KEY must be at least 32 characters.")
+        return self
+
+    @model_validator(mode="after")
+    def _guard_agent_lead_expiry(self) -> "Settings":
+        if self.AGENT_LEAD_EXPIRY_DAYS <= 0:
+            raise ValueError("AGENT_LEAD_EXPIRY_DAYS must be greater than zero.")
         return self
 
     @model_validator(mode="after")

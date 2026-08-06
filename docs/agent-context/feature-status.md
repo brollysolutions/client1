@@ -31,13 +31,13 @@ live-provider configuration are assessed separately.
 
 | Measure | Result |
 | --- | ---: |
-| Complete requirements | 50 / 80 (62.5%) |
+| Complete requirements | 51 / 80 (63.75%) |
 | Partial requirements | 21 / 80 (26.25%) |
-| Not-started requirements | 9 / 80 (11.25%) |
-| Weighted implementation coverage | **75.6% (approximately 76%)** |
+| Not-started requirements | 8 / 80 (10%) |
+| Weighted implementation coverage | **76.9% (approximately 77%)** |
 
 Weighted coverage gives each Complete item 1 point and each Partial item 0.5
-points: `(50 + 21 x 0.5) / 80 = 75.625%`. The weighting is a planning aid, not
+points: `(51 + 21 x 0.5) / 80 = 76.875%`. The weighting is a planning aid, not
 an estimate of calendar time: a single security-sensitive gap can require more
 work than several completed UI requirements.
 
@@ -48,7 +48,7 @@ work than several completed UI requirements.
 | Platform and segregation (FR-1.x) | 4 | 1 | 0 | Core line tagging, routing, RLS, dashboards, and API exist; the universal wording still includes media paths that do not exist yet. |
 | Roles and access (FR-2.x) | 6 | 2 | 1 | Six role surfaces and server/RLS guards exist; Admin coverage and edit ownership are not exhaustive; configurable field visibility is absent. |
 | Authentication (FR-3.x) | 3 | 0 | 2 | OTP/password/session flows and dual-line client identity exist; optional email and assisted mobile change do not match the baseline. |
-| Leads (FR-4.x) | 3 | 2 | 1 | Capture, assignment, ownership, Agent and Telecaller workflows exist; automatic direct/Agent assignment is incomplete and expiry is absent. |
+| Leads (FR-4.x) | 4 | 2 | 0 | Capture, assignment, ownership, fixed Agent expiry, and Agent/Telecaller workflows exist; automatic direct/Agent assignment remains incomplete. |
 | Agent registration (FR-5.x) | 4 | 0 | 0 | OTP-verified application, KYC, Admin review, Agent ID, and owned-lead contact access exist. |
 | Loans (FR-6.x) | 6 | 0 | 0 | Public pages/calculators, applications, configurable products/banks, progression, transactions, and fee cashback exist. |
 | Real estate (FR-7.x) | 3 | 2 | 0 | Catalog, inquiries, visits, deals, review, and employee work exist; vehicles and submitter/media coverage are incomplete. |
@@ -63,7 +63,7 @@ work than several completed UI requirements.
 | Analytics (FR-16.x) | 0 | 3 | 0 | Weekly/monthly reporting, filters, sorting, summaries, and CSV exist; Excel and group/team slices remain. |
 | Profile/account (FR-17.x) | 3 | 0 | 1 | Profile/settings, transactions/support, deletion, retention, and Admin removal exist; required demographic/income fields do not. |
 | Location (FR-18.x) | 0 | 0 | 2 | No consented login-location personalization or map/GMB integration seam was found. |
-| **Total** | **50** | **21** | **9** | **80 requirements** |
+| **Total** | **51** | **21** | **8** | **80 requirements** |
 
 ## Done
 
@@ -75,9 +75,11 @@ The following requirements are complete on the evidence baseline:
 - Authentication: FR-3.1, FR-3.2, and FR-3.5 as amended by CS-001. Evidence
   includes the OTP, registration, password, refresh-rotation, and dual-profile
   tests under `apps/api/app/tests/auth`.
-- Lead operations: FR-4.1, FR-4.4, and FR-4.5. Evidence includes the lead
+- Lead operations: FR-4.1, FR-4.4 through FR-4.6. Evidence includes the lead
   spine, Admin assignment/release, Agent-owned lead APIs, Telecaller follow-up,
-  and their API/RLS tests.
+  fixed first-attribution deadlines, the idempotent expiry scheduler, audit and
+  notifications, Agent history/countdown UI, and API/RLS/concurrency tests;
+  delivery is recorded in [PR #144](https://github.com/brollysolutions/client1/pull/144).
 - Agent lifecycle: FR-5.1 through FR-5.4. Evidence includes public agent
   application intake, restricted uploads, Admin approval/rejection, Agent
   codes, Agent dashboards, and owned-lead visibility tests.
@@ -115,7 +117,6 @@ The following requirements are complete on the evidence baseline:
 | FR-3.4 | Not started | A user can open an Admin-routed support ticket. | Add a high-assurance, support-assisted mobile-number change workflow with takeover prevention, session revocation, audit, and uniqueness handling. |
 | FR-4.2 | Partial | Agents create attributed leads; Admin can assign a Telecaller. | Decide and implement automatic assignment behavior and client-account/invite binding where required. |
 | FR-4.3 | Partial | Direct registration captures a lead and creates both client profiles. | Capture explicit requirement intent and implement deterministic per-line Telecaller assignment without cross-line leakage. |
-| FR-4.6 | Not started | Manual Admin release exists. | Decide expiry duration and terminal-status exceptions, then add an expiry field, scheduler job, audit/notifications, RLS review, and race tests. |
 | FR-7.1 | Partial | Listing, inquiry, visit, and property-deal workflows exist. | Add the unresolved vehicle-arrangement workflow. |
 | FR-7.3 | Partial | Real-estate Agents and Sub Admins submit properties for review; Admin/Sub Admin review exists. | Add approved Lead/Client submission scope and replace the single free-text image reference with managed media. |
 | FR-10.3 | Partial | RazorpayX VPA/bank payouts and manual cheque records exist. | Decide whether RuPay and multi-gateway routing are still required, then implement provider-neutral method support. |

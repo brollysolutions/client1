@@ -12,6 +12,7 @@ import { FetchError } from "@/features/dashboard/fetch-error";
 import { cn } from "@/lib/utils";
 
 import { useAgentLeadDetail } from "./use-agent-lead-detail";
+import { formatAgentLeadExpiry, isAgentLeadExpiryDue } from "./lead-expiry";
 
 const STATUS_LABEL: Record<string, string> = {
   new: "New",
@@ -20,6 +21,7 @@ const STATUS_LABEL: Record<string, string> = {
   converted: "Converted",
   closed: "Closed",
   released: "Released",
+  expired: "Expired",
 };
 
 export function AgentLeadDetailView({ leadId }: { leadId: string }) {
@@ -64,6 +66,13 @@ export function AgentLeadDetailView({ leadId }: { leadId: string }) {
     );
   }
 
+  const readOnlyReason =
+    lead.status === "expired"
+      ? "This lead returned to the open pool and can no longer be edited here."
+      : isAgentLeadExpiryDue(lead.status, lead.expires_at, lead.expired_at)
+        ? "This lead's conversion window ended and it is awaiting pool release."
+        : "A telecaller is already working this lead, so it can no longer be edited here.";
+
   return (
     <div className="mx-auto w-full max-w-3xl space-y-6 px-4 sm:px-6 lg:px-10">
       <div className="rounded-2xl border border-border bg-card p-5">
@@ -85,6 +94,9 @@ export function AgentLeadDetailView({ leadId }: { leadId: string }) {
           {lead.registered
             ? "This person has created an account."
             : "Not registered on the platform yet."}
+        </p>
+        <p className="mt-2 text-sm font-medium text-text-primary">
+          {formatAgentLeadExpiry(lead.status, lead.expires_at, lead.expired_at)}
         </p>
       </div>
 
@@ -110,9 +122,7 @@ export function AgentLeadDetailView({ leadId }: { leadId: string }) {
         ) : (
           <>
             <p className="mt-3 text-sm text-text-secondary">{notes || "No requirement notes."}</p>
-            <p className="mt-3 text-xs text-text-secondary">
-              A telecaller is already working this lead, so it can no longer be edited here.
-            </p>
+            <p className="mt-3 text-xs text-text-secondary">{readOnlyReason}</p>
           </>
         )}
       </div>

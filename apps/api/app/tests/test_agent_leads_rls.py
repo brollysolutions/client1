@@ -14,10 +14,12 @@ Requires the Docker stack with migrations applied; auto-skips without Redis.
 from __future__ import annotations
 
 import uuid
+from datetime import UTC, datetime, timedelta
 
 import pytest
 from httpx import AsyncClient
 from sqlalchemy import text
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.pool import NullPool
 
@@ -29,6 +31,8 @@ async def _seed_lead(
     business_line: str,
     origin_agent_profile_uuid: str | None = None,
     assigned_telecaller_profile_uuid: str | None = None,
+    agent_expired: bool = False,
+    past_due: bool = False,
 ) -> str:
     """Insert a lead via the app superuser (bypasses RLS). Returns its id."""
     import app.db.session as _session_mod
@@ -50,6 +54,12 @@ async def _seed_lead(
                 if assigned_telecaller_profile_uuid
                 else None
             ),
+            expires_at=(
+                datetime.now(UTC) + timedelta(days=-1 if agent_expired or past_due else 30)
+                if origin_agent_profile_uuid
+                else None
+            ),
+            agent_expired_at=datetime.now(UTC) if agent_expired else None,
         )
         db.add(lead)
         await db.commit()
@@ -219,6 +229,104 @@ async def test_agent_can_still_select_after_telecaller_assigned(client: AsyncCli
         params={"id": lead_id},
     )
     assert rowcount == 1, "agent lost visibility of their own lead after telecaller assignment"
+
+
+@pytest.mark.asyncio
+async def test_agent_can_select_but_cannot_update_expired_lead(client: AsyncClient) -> None:
+    agent_uuid = await _seed_agent_profile("loans")
+    lead_id = await _seed_lead("loans", origin_agent_profile_uuid=agent_uuid, agent_expired=True)
+    selected = await _run_as(
+        role="agent",
+        business_line="loans",
+        agent_profile_uuid=agent_uuid,
+        query="SELECT 1 FROM leads WHERE id = :id",
+        params={"id": lead_id},
+    )
+    assert selected == 1
+
+    with pytest.raises(Exception):  # noqa: B017 — RLS WITH CHECK denies the write
+        await _run_as(
+            role="agent",
+            business_line="loans",
+            agent_profile_uuid=agent_uuid,
+            query="UPDATE leads SET name = 'Updated' WHERE id = :id",
+            params={"id": lead_id},
+        )
+
+
+@pytest.mark.asyncio
+async def test_agent_cannot_update_past_deadline_before_scheduler_marker(
+    client: AsyncClient,
+) -> None:
+    agent_uuid = await _seed_agent_profile("loans")
+    lead_id = await _seed_lead("loans", origin_agent_profile_uuid=agent_uuid, past_due=True)
+    with pytest.raises(Exception):  # noqa: B017 - RLS deadline check denies the write
+        await _run_as(
+            role="agent",
+            business_line="loans",
+            agent_profile_uuid=agent_uuid,
+            query="UPDATE leads SET name = 'Updated' WHERE id = :id",
+            params={"id": lead_id},
+        )
+
+
+@pytest.mark.asyncio
+async def test_agent_cannot_clear_expiry_marker_to_bypass_rls(client: AsyncClient) -> None:
+    agent_uuid = await _seed_agent_profile("loans")
+    lead_id = await _seed_lead("loans", origin_agent_profile_uuid=agent_uuid, agent_expired=True)
+    with pytest.raises(Exception):  # noqa: B017 — immutable trigger rejects reset
+        await _run_as(
+            role="agent",
+            business_line="loans",
+            agent_profile_uuid=agent_uuid,
+            query="UPDATE leads SET agent_expired_at = NULL WHERE id = :id",
+            params={"id": lead_id},
+        )
+
+
+@pytest.mark.asyncio
+async def test_no_reset_trigger_sees_other_agent_history_under_rls(client: AsyncClient) -> None:
+    import app.db.session as _session_mod
+    from app.models.lead import Lead, LeadOrigin, LeadStatus
+
+    prior_agent_uuid = await _seed_agent_profile("loans")
+    next_agent_uuid = await _seed_agent_profile("loans")
+    mobile = unique_mobile()
+    now = datetime.now(UTC)
+    async with _session_mod.AsyncSessionLocal() as db:
+        db.add(
+            Lead(
+                mobile=mobile,
+                business_line="loans",
+                origin=LeadOrigin.AGENT,
+                origin_agent_profile_uuid=uuid.UUID(prior_agent_uuid),
+                status=LeadStatus.RELEASED,
+                expires_at=now - timedelta(minutes=1),
+                agent_expired_at=now,
+            )
+        )
+        await db.commit()
+
+    with pytest.raises(
+        IntegrityError, match="an Agent ownership window already ended for this mobile"
+    ):
+        await _run_as(
+            role="agent",
+            business_line="loans",
+            agent_profile_uuid=next_agent_uuid,
+            query=(
+                "INSERT INTO leads "
+                "(id, mobile, business_line, origin, origin_agent_profile_uuid, status, "
+                "expires_at, created_at, updated_at) "
+                "VALUES (:id, :mobile, 'loans', 'agent', :agent_id, 'new', "
+                "now() + INTERVAL '30 days', now(), now())"
+            ),
+            params={
+                "id": str(uuid.uuid4()),
+                "mobile": mobile,
+                "agent_id": next_agent_uuid,
+            },
+        )
 
 
 @pytest.mark.asyncio
