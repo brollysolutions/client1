@@ -4,7 +4,7 @@ Status: **Derived living implementation ledger**
 
 As of: **2026-08-06**
 
-Evidence baseline: `feat/agent-lead-expiry` (field-visibility PR pending)
+Evidence baseline: `36098c6` ([PR #145](https://github.com/brollysolutions/client1/pull/145))
 
 ## Purpose and authority
 
