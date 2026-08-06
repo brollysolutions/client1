@@ -78,7 +78,8 @@ The following requirements are complete on the evidence baseline:
 - Lead operations: FR-4.1, FR-4.4 through FR-4.6. Evidence includes the lead
   spine, Admin assignment/release, Agent-owned lead APIs, Telecaller follow-up,
   fixed first-attribution deadlines, the idempotent expiry scheduler, audit and
-  notifications, Agent history/countdown UI, and API/RLS/concurrency tests.
+  notifications, Agent history/countdown UI, and API/RLS/concurrency tests;
+  delivery is recorded in [PR #144](https://github.com/brollysolutions/client1/pull/144).
 - Agent lifecycle: FR-5.1 through FR-5.4. Evidence includes public agent
   application intake, restricted uploads, Admin approval/rejection, Agent
   codes, Agent dashboards, and owned-lead visibility tests.

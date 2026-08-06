@@ -58,12 +58,12 @@ default, not permission to skip the pre-implementation announcement.
 ## Prioritized backlog
 
 No product feature is currently in progress. Agent-lead expiry is implemented
-on `feat/agent-lead-expiry` (PR pending); the next priority requires a fresh
+on `feat/agent-lead-expiry` ([PR #144](https://github.com/brollysolutions/client1/pull/144)); the next priority requires a fresh
 decision/design pass before implementation begins.
 
 | Priority | Feature / requirements | Status | Recommended model / effort | Decision gate and acceptance summary |
 | ---: | --- | --- | --- | --- |
-| 1 | Agent-lead expiry (FR-4.6, OI-001) | **Done** — `feat/agent-lead-expiry` (PR pending) | `gpt-5.6-sol` / High | Delivered fixed 30-day first-attribution deadlines, converted/closed exclusions, indexed idempotent release, audit/notifications, RLS/deadline write denial, Agent countdown/history, seven-day legacy grace, and deferred constraint race protection. |
+| 1 | Agent-lead expiry (FR-4.6, OI-001) | **Done** — [PR #144](https://github.com/brollysolutions/client1/pull/144) | `gpt-5.6-sol` / High | Delivered fixed 30-day first-attribution deadlines, converted/closed exclusions, indexed idempotent release, audit/notifications, RLS/deadline write denial, Agent countdown/history, seven-day legacy grace, and deferred constraint race protection. |
 | 2 | Admin field visibility and contact controls (FR-2.9, FR-15.1, FR-15.4) | Planned | `gpt-5.6-sol` / Extra High | Define field catalogue and precedence; enforce projection server-side; preserve line/ownership RLS; audit changes; add cross-role/PII denial tests. |
 | 3 | Support-assisted mobile-number change (FR-3.4, FR-14.3) | Decision needed | `gpt-5.6-sol` / Extra High | Choose proof/approval policy; prevent takeover and enumeration; enforce uniqueness; rotate/revoke sessions; update lead/referral links safely; audit and notify. |
 | 4 | Managed property/media submissions (FR-7.3, FR-13.1 through FR-13.4, OI-002) | Decision needed | `gpt-5.6-sol` / Extra High | Decide asset types/counts/limits/visibility; support Client/Lead submissions if approved; use private/public prefixes correctly; sniff content; clean orphans; test ownership and cross-line denial. |
@@ -152,5 +152,5 @@ The backlog builds on these delivered foundations:
 
 | Date | Change | Evidence |
 | --- | --- | --- |
-| 2026-08-06 | Completed FR-4.6 Agent-lead expiry and promoted Admin field visibility/contact controls as the next priority. | `feat/agent-lead-expiry`; migration/job/API/RLS/web/contract changes; 42 focused API tests; 254 web tests; seeded browser verification; security review. PR pending. |
+| 2026-08-06 | Completed FR-4.6 Agent-lead expiry and promoted Admin field visibility/contact controls as the next priority. | [PR #144](https://github.com/brollysolutions/client1/pull/144); migration/job/API/RLS/web/contract changes; 42 focused API tests; 254 web tests; seeded browser verification; security review. |
 | 2026-08-06 | Created living plan, model/effort policy, prioritized gaps, and co-change enforcement. | Static code/test/history assessment at `ecf6e2a`; `feature-status.md`; tracking checker tests. |
