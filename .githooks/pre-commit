@@ -2,28 +2,6 @@
 # Fast lint + format check only. Full suite runs in CI.
 set -euo pipefail
 
-repo_root="$(git rev-parse --show-toplevel)"
-export UV_CACHE_DIR="$repo_root/.uv-cache"
-
-branch="$(git symbolic-ref --quiet --short HEAD || true)"
-case "$branch" in
-  main|master|prod)
-    echo "ERROR: commits are blocked on protected branch '$branch'. Create a task branch first." >&2
-    exit 1
-    ;;
-esac
-
-while IFS= read -r path; do
-  case "$path" in
-    *.example)
-      ;;
-    .env|*/.env|.env.*|*/.env.*|secrets/*|*/secrets/*|.npmrc|*/.npmrc|.pypirc|*/.pypirc|credentials.json|*/credentials.json|service-account.json|*/service-account.json|id_rsa|*/id_rsa|id_ed25519|*/id_ed25519|*.pem|*.key|*.p12|*.pfx|*.keystore|*.dump|*.backup)
-      echo "ERROR: refusing to commit sensitive file '$path'." >&2
-      exit 1
-      ;;
-  esac
-done < <(git diff --cached --name-only --diff-filter=ACMR)
-
 if [[ -f apps/api/pyproject.toml ]]; then
   echo "==> API lint"
   (cd apps/api && uv run ruff check . && uv run ruff format --check .)

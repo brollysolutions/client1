@@ -1,4 +1,0 @@
-interface:
-  display_name: "Ingest Context"
-  short_description: "Reconcile supplied docs with code"
-  default_prompt: "Use $ingest-context to add these reference documents and reconcile them with the current codebase."

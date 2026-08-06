@@ -1,4 +1,0 @@
-interface:
-  display_name: "Ship"
-  short_description: "Verify, commit, push, and open a PR"
-  default_prompt: "Use $ship to verify the current branch, commit it, push it, and open or update its PR."

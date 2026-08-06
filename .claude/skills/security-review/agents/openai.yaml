@@ -1,4 +1,0 @@
-interface:
-  display_name: "Security Review"
-  short_description: "Threat-model and audit sensitive changes"
-  default_prompt: "Use $security-review to audit this change against the repository threat model."

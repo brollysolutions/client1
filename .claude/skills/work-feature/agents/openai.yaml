@@ -1,4 +1,0 @@
-interface:
-  display_name: "Work Feature"
-  short_description: "Deliver a studied feature through PR"
-  default_prompt: "Use $work-feature to study the repository, implement the feature, verify it, and open a PR."

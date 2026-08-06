@@ -1,4 +1,0 @@
-interface:
-  display_name: "Systematic Debug"
-  short_description: "Reproduce and fix root causes safely"
-  default_prompt: "Use $systematic-debug to reproduce this bug, find its root cause, verify the fix, and open a PR."
