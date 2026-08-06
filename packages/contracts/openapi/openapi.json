@@ -1958,11 +1958,9 @@
         },
         "required": [
           "id",
-          "name",
           "mobile",
           "business_line",
           "status",
-          "requirement",
           "registered",
           "editable",
           "expires_at",
@@ -2242,7 +2240,8 @@
           "document_unverified",
           "payout_link_reconciled",
           "notification_broadcast",
-          "agent_lead_expired"
+          "agent_lead_expired",
+          "field_visibility_updated"
         ],
         "title": "AuditAction",
         "type": "string"
@@ -3592,6 +3591,44 @@
         "title": "ConstructionStatus",
         "type": "string"
       },
+      "ContactInvitationRead": {
+        "properties": {
+          "valid": {
+            "title": "Valid",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "valid"
+        ],
+        "title": "ContactInvitationRead",
+        "type": "object"
+      },
+      "ContactShareLinkRead": {
+        "properties": {
+          "expires_at": {
+            "format": "date-time",
+            "title": "Expires At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "share_path": {
+            "title": "Share Path",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "share_path",
+          "expires_at"
+        ],
+        "title": "ContactShareLinkRead",
+        "type": "object"
+      },
       "ContentBlockCreate": {
         "properties": {
           "body": {
@@ -4272,9 +4309,25 @@
             "title": "Id",
             "type": "string"
           },
-          "lead_mobile": {
-            "title": "Lead Mobile",
+          "lead_contact_mode": {
+            "enum": [
+              "allow",
+              "deny",
+              "share_link"
+            ],
+            "title": "Lead Contact Mode",
             "type": "string"
+          },
+          "lead_mobile": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lead Mobile"
           },
           "lead_name": {
             "anyOf": [
@@ -4348,8 +4401,7 @@
         "required": [
           "id",
           "lead_uuid",
-          "lead_name",
-          "lead_mobile",
+          "lead_contact_mode",
           "business_line",
           "task_type",
           "status",
@@ -4796,6 +4848,170 @@
         ],
         "title": "FeeOutcome",
         "type": "string"
+      },
+      "FieldVisibilityEntryRead": {
+        "properties": {
+          "allowed_modes": {
+            "items": {
+              "enum": [
+                "allow",
+                "deny",
+                "share_link"
+              ],
+              "type": "string"
+            },
+            "title": "Allowed Modes",
+            "type": "array"
+          },
+          "default_mode": {
+            "enum": [
+              "allow",
+              "deny",
+              "share_link"
+            ],
+            "title": "Default Mode",
+            "type": "string"
+          },
+          "entity": {
+            "title": "Entity",
+            "type": "string"
+          },
+          "field_key": {
+            "title": "Field Key",
+            "type": "string"
+          },
+          "id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "lock_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lock Reason"
+          },
+          "locked": {
+            "title": "Locked",
+            "type": "boolean"
+          },
+          "mode": {
+            "enum": [
+              "allow",
+              "deny",
+              "share_link"
+            ],
+            "title": "Mode",
+            "type": "string"
+          },
+          "target_role": {
+            "enum": [
+              "agent",
+              "telecaller",
+              "employee"
+            ],
+            "title": "Target Role",
+            "type": "string"
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated At"
+          }
+        },
+        "required": [
+          "target_role",
+          "entity",
+          "field_key",
+          "label",
+          "mode",
+          "default_mode",
+          "allowed_modes",
+          "locked"
+        ],
+        "title": "FieldVisibilityEntryRead",
+        "type": "object"
+      },
+      "FieldVisibilityListResponse": {
+        "properties": {
+          "entries": {
+            "items": {
+              "$ref": "#/components/schemas/FieldVisibilityEntryRead"
+            },
+            "title": "Entries",
+            "type": "array"
+          }
+        },
+        "required": [
+          "entries"
+        ],
+        "title": "FieldVisibilityListResponse",
+        "type": "object"
+      },
+      "FieldVisibilityUpdateRequest": {
+        "properties": {
+          "entity": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Entity",
+            "type": "string"
+          },
+          "field_key": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Field Key",
+            "type": "string"
+          },
+          "mode": {
+            "enum": [
+              "allow",
+              "deny",
+              "share_link"
+            ],
+            "title": "Mode",
+            "type": "string"
+          },
+          "target_role": {
+            "enum": [
+              "agent",
+              "telecaller",
+              "employee"
+            ],
+            "title": "Target Role",
+            "type": "string"
+          }
+        },
+        "required": [
+          "target_role",
+          "entity",
+          "field_key",
+          "mode"
+        ],
+        "title": "FieldVisibilityUpdateRequest",
+        "type": "object"
       },
       "ForgotInitiateRequest": {
         "properties": {
@@ -5848,10 +6064,6 @@
         "required": [
           "id",
           "loan_application_uuid",
-          "bank_name",
-          "amount",
-          "interest_rate",
-          "txn_date",
           "created_at"
         ],
         "title": "LoanTxnRead",
@@ -7652,6 +7864,19 @@
               }
             ],
             "title": "Email"
+          },
+          "invitation_token": {
+            "anyOf": [
+              {
+                "maxLength": 128,
+                "minLength": 32,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Invitation Token"
           },
           "message": {
             "anyOf": [
@@ -9805,7 +10030,6 @@
         },
         "required": [
           "lead_uuid",
-          "name",
           "mobile",
           "follow_up_at"
         ],
@@ -9966,11 +10190,9 @@
         },
         "required": [
           "id",
-          "name",
           "mobile",
           "business_line",
           "status",
-          "requirement",
           "created_at",
           "updated_at",
           "activities"
@@ -10077,11 +10299,9 @@
         },
         "required": [
           "id",
-          "name",
           "mobile",
           "business_line",
           "status",
-          "requirement",
           "created_at",
           "updated_at"
         ],
@@ -10276,8 +10496,6 @@
           "id",
           "loan_type_id",
           "loan_type_name",
-          "bank_name",
-          "amount_requested",
           "status",
           "txns"
         ],
@@ -10378,10 +10596,7 @@
           "id",
           "property_title",
           "property_location",
-          "price_quoted",
-          "booking_amount",
           "status",
-          "status_reason",
           "site_visit_uuid",
           "closed_at"
         ],
@@ -12183,6 +12398,76 @@
         "summary": "Create Fee Cashback Payout",
         "tags": [
           "fee-cashbacks"
+        ]
+      }
+    },
+    "/api/v1/admin/field-visibility": {
+      "get": {
+        "operationId": "get_field_visibility_api_v1_admin_field_visibility_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FieldVisibilityListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Get Field Visibility",
+        "tags": [
+          "admin"
+        ]
+      },
+      "put": {
+        "operationId": "set_field_visibility_api_v1_admin_field_visibility_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FieldVisibilityUpdateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FieldVisibilityEntryRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Set Field Visibility",
+        "tags": [
+          "admin"
         ]
       }
     },
@@ -16126,6 +16411,47 @@
         ]
       }
     },
+    "/api/v1/employee/contact-share-links/{link_id}": {
+      "delete": {
+        "operationId": "revoke_own_contact_share_link_api_v1_employee_contact_share_links__link_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "link_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Link Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Revoke Own Contact Share Link",
+        "tags": [
+          "employee"
+        ]
+      }
+    },
     "/api/v1/employee/home": {
       "get": {
         "operationId": "home_api_v1_employee_home_get",
@@ -16337,6 +16663,55 @@
           }
         ],
         "summary": "Patch Task",
+        "tags": [
+          "employee"
+        ]
+      }
+    },
+    "/api/v1/employee/tasks/{task_id}/contact-share-links": {
+      "post": {
+        "description": "Mint one provider-neutral invitation; the URL contains no lead PII.",
+        "operationId": "create_contact_share_link_api_v1_employee_tasks__task_id__contact_share_links_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "task_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Task Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContactShareLinkRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Create Contact Share Link",
         "tags": [
           "employee"
         ]
@@ -16665,6 +17040,48 @@
           }
         },
         "summary": "Create Lead",
+        "tags": [
+          "leads"
+        ]
+      }
+    },
+    "/api/v1/leads/invitations/{token}": {
+      "get": {
+        "operationId": "get_contact_invitation_api_v1_leads_invitations__token__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "token",
+            "required": true,
+            "schema": {
+              "title": "Token",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContactInvitationRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Contact Invitation",
         "tags": [
           "leads"
         ]

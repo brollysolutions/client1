@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Loader2 } from "lucide-react";
+import { Copy, Link2, Loader2, Phone, ShieldOff, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
@@ -18,7 +18,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { FetchError } from "@/features/dashboard/fetch-error";
 import type { ApiResponse } from "@/lib/api/client";
-import type { EmployeeTaskUpdate } from "@/lib/employee-api";
+import {
+  createTaskContactShareLink,
+  revokeTaskContactShareLink,
+  type ContactShareLink,
+  type EmployeeTaskUpdate,
+} from "@/lib/employee-api";
 
 import { EmployeeTaskDocumentPanel } from "./employee-task-document-panel";
 import { useEmployeeTaskDetail } from "./use-employee-task-detail";
@@ -67,6 +72,8 @@ export function EmployeeTaskDetailView({ taskId }: { taskId: string }) {
   const [notes, setNotes] = React.useState("");
   const [outcome, setOutcome] = React.useState<string>("");
   const [actingStatus, setActingStatus] = React.useState<string | null>(null);
+  const [shareLink, setShareLink] = React.useState<ContactShareLink | null>(null);
+  const [sharing, setSharing] = React.useState(false);
 
   React.useEffect(() => {
     if (task) {
@@ -98,6 +105,50 @@ export function EmployeeTaskDetailView({ taskId }: { taskId: string }) {
   const isPropertyVisit = task.task_type === "property_visit";
   const isDocumentCollection = task.task_type === "document_collection";
   const wantsCompletion = allowed.includes("completed");
+
+  async function createShareLink() {
+    setSharing(true);
+    const response = await createTaskContactShareLink(taskId);
+    setSharing(false);
+    if (!response.ok) {
+      toast.error("Couldn't create invitation", { description: response.error });
+      return;
+    }
+    setShareLink(response.data);
+    const url = `${window.location.origin}${response.data.share_path}`;
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: "Dhanadhara invitation", url });
+      } catch {
+        // A cancelled native share leaves the revocable link visible below.
+      }
+    }
+  }
+
+  async function copyShareLink() {
+    if (!shareLink) return;
+    try {
+      await navigator.clipboard.writeText(`${window.location.origin}${shareLink.share_path}`);
+      toast.success("Invitation link copied");
+    } catch {
+      toast.error("Couldn't copy invitation", {
+        description: "Copy the link from your browser's share menu instead.",
+      });
+    }
+  }
+
+  async function revokeShareLink() {
+    if (!shareLink) return;
+    setSharing(true);
+    const response = await revokeTaskContactShareLink(shareLink.id);
+    setSharing(false);
+    if (response.ok) {
+      setShareLink(null);
+      toast.success("Invitation revoked");
+    } else {
+      toast.error("Couldn't revoke invitation", { description: response.error });
+    }
+  }
 
   async function act(
     nextStatus: TaskStatusValue | null,
@@ -131,9 +182,71 @@ export function EmployeeTaskDetailView({ taskId }: { taskId: string }) {
     <div className="mx-auto w-full max-w-3xl space-y-6 px-4 sm:px-6 lg:px-10">
       <div>
         <h1 className="text-2xl font-semibold text-text-primary">
-          {task.lead_name ?? task.lead_mobile}
+          {task.lead_name ?? task.lead_mobile ?? "Assigned task"}
         </h1>
-        <p className="mt-1 text-sm text-text-secondary">{task.lead_mobile}</p>
+        {task.lead_mobile ? (
+          <p className="mt-1 text-sm text-text-secondary">{task.lead_mobile}</p>
+        ) : null}
+      </div>
+
+      <div className="rounded-2xl border border-border bg-card p-5">
+        <h2 className="text-sm font-semibold text-text-primary">Lead contact</h2>
+        {task.lead_contact_mode === "allow" && task.lead_mobile ? (
+          <div className="mt-3 flex flex-wrap items-center gap-3">
+            <span className="text-sm text-text-secondary">{task.lead_mobile}</span>
+            <Button asChild size="sm" variant="outline">
+              <a href={`tel:${task.lead_mobile}`}>
+                <Phone className="h-4 w-4" aria-hidden="true" />
+                Call
+              </a>
+            </Button>
+          </div>
+        ) : task.lead_contact_mode === "share_link" ? (
+          <div className="mt-3 space-y-3">
+            <p className="text-sm text-text-secondary">
+              The raw number is hidden. Create an expiring platform invitation to share through
+              your browser or copy manually.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <Button type="button" size="sm" onClick={() => void createShareLink()} disabled={sharing}>
+                {sharing ? (
+                  <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                ) : (
+                  <Link2 className="h-4 w-4" aria-hidden="true" />
+                )}
+                Create invitation
+              </Button>
+              {shareLink ? (
+                <>
+                  <Button type="button" size="sm" variant="outline" onClick={() => void copyShareLink()}>
+                    <Copy className="h-4 w-4" aria-hidden="true" />
+                    Copy link
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    disabled={sharing}
+                    onClick={() => void revokeShareLink()}
+                  >
+                    <Trash2 className="h-4 w-4" aria-hidden="true" />
+                    Revoke
+                  </Button>
+                </>
+              ) : null}
+            </div>
+            {shareLink ? (
+              <p className="text-xs text-text-secondary">
+                Expires {new Date(shareLink.expires_at).toLocaleString("en-IN")}.
+              </p>
+            ) : null}
+          </div>
+        ) : (
+          <p className="mt-3 flex items-center gap-2 text-sm text-text-secondary">
+            <ShieldOff className="h-4 w-4" aria-hidden="true" />
+            Contact details are hidden by Admin policy.
+          </p>
+        )}
       </div>
 
       <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-border bg-card p-5">

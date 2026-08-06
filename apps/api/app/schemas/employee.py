@@ -33,8 +33,9 @@ DocContentTypeLiteral = Literal["image/jpeg", "image/png", "image/webp", "applic
 class EmployeeTaskRead(BaseModel):
     id: UUID
     lead_uuid: UUID
-    lead_name: str | None
-    lead_mobile: str
+    lead_name: str | None = None
+    lead_mobile: str | None = None
+    lead_contact_mode: Literal["allow", "deny", "share_link"]
     business_line: Literal["loans", "real_estate"]
     task_type: TaskTypeLiteral
     status: TaskStatusLiteral

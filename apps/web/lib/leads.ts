@@ -28,6 +28,8 @@ export type LeadInput = {
   // Honeypot: hidden input humans never see. Non-empty = automation; the
   // backend answers 202 but writes nothing.
   company?: string;
+  // Opaque, provider-neutral contact invitation. It never contains PII.
+  invitation_token?: string;
 };
 
 export type LeadResult = { ok: true } | { ok: false; error: string };
@@ -60,6 +62,7 @@ export async function submitLead(input: LeadInput): Promise<LeadResult> {
       ...(input.email ? { email: input.email } : {}),
       ...(input.message ? { message: input.message } : {}),
       ...(input.company ? { company: input.company } : {}),
+      ...(input.invitation_token ? { invitation_token: input.invitation_token } : {}),
     },
   });
 

@@ -28,11 +28,13 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 export function ContactForm({
   initialLine,
   initialProduct,
+  invitationToken,
 }: {
   // Prefilled from the /contact query string when a visitor arrives via an
   // Enquire / callback CTA, so the telecaller sees what they came for.
   initialLine?: LeadTopic;
   initialProduct?: string;
+  invitationToken?: string;
 } = {}) {
   const [topic, setTopic] = useState<LeadTopic>(initialLine ?? "loans");
   // When the visitor arrived via a category-specific CTA (?line=...), lock the
@@ -83,6 +85,7 @@ export function ContactForm({
       ...(email.trim() ? { email: email.trim() } : {}),
       ...(message.trim() ? { message: message.trim() } : {}),
       ...(company ? { company } : {}),
+      ...(invitationToken ? { invitation_token: invitationToken } : {}),
     });
 
     if (result.ok) {

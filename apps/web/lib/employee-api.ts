@@ -15,6 +15,7 @@ export type TaskDocument = Schemas["TaskDocumentRead"];
 export type TaskDocumentPresignRequest = Schemas["TaskDocumentPresignRequest"];
 export type TaskDocumentPresignResponse = Schemas["TaskDocumentPresignResponse"];
 export type TaskDocumentCreate = Schemas["TaskDocumentCreate"];
+export type ContactShareLink = Schemas["ContactShareLinkRead"];
 export type DocType = TaskDocumentCreate["doc_type"];
 
 export async function listEmployeeTasks(
@@ -44,6 +45,22 @@ export async function updateEmployeeTask(
 
 export async function getEmployeeHome(): Promise<ApiResponse<EmployeeHome>> {
   return apiRequest<EmployeeHome>("/api/v1/employee/home");
+}
+
+export async function createTaskContactShareLink(
+  taskId: string,
+): Promise<ApiResponse<ContactShareLink>> {
+  return apiRequest<ContactShareLink>(`/api/v1/employee/tasks/${taskId}/contact-share-links`, {
+    method: "POST",
+  });
+}
+
+export async function revokeTaskContactShareLink(
+  linkId: string,
+): Promise<ApiResponse<undefined>> {
+  return apiRequest<undefined>(`/api/v1/employee/contact-share-links/${linkId}`, {
+    method: "DELETE",
+  });
 }
 
 export async function presignTaskDocument(

@@ -46,3 +46,4 @@ from app.models.referral_bonus_config import ReferralBonusConfig  # noqa
 from app.models.referral import ReferralCode, Referral  # noqa
 from app.models.audit_log import AuditLog  # noqa
 from app.models.commission import Commission  # noqa
+from app.models.field_visibility import ContactShareLink, FieldVisibilityConfig  # noqa

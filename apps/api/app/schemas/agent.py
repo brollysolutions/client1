@@ -47,11 +47,11 @@ class AgentLeadUpdate(BaseModel):
 
 class AgentLeadRead(BaseModel):
     id: UUID
-    name: str | None
+    name: str | None = None
     mobile: str
     business_line: Literal["loans", "real_estate"] | None
     status: LeadStatusLiteral
-    requirement: dict[str, Any] | None
+    requirement: dict[str, Any] | None = None
     registered: bool
     editable: bool
     expires_at: datetime | None
