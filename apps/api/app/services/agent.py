@@ -9,16 +9,17 @@ wall, mirroring services.telecaller's own posture.
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.exc import DBAPIError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.lead import Lead, LeadStatus
 from app.models.profile import AgentProfile
 from app.schemas.agent import AgentLeadCreate, AgentLeadUpdate
-from app.services.leads import capture_lead
+from app.services.leads import capture_lead, has_expired_agent_lead
 
 
 class AgentProfileNotFound(Exception):
@@ -58,7 +59,8 @@ async def get_home_summary(
     leads = await list_my_leads(db, agent_profile_uuid)
     counts: dict[str, int] = {}
     for lead in leads:
-        counts[lead.status.value] = counts.get(lead.status.value, 0) + 1
+        status = "expired" if lead.agent_expired_at is not None else lead.status.value
+        counts[status] = counts.get(status, 0) + 1
     return profile, counts
 
 
@@ -75,6 +77,14 @@ async def introduce_lead(
     duplicating it, and never steals attribution or business_line from
     whichever origin touched it first (both immutable once set).
     """
+    try:
+        if await has_expired_agent_lead(payload.mobile):
+            raise LeadCaptureFailed
+    except LeadCaptureFailed:
+        raise
+    except Exception as exc:
+        raise LeadCaptureUnavailable from exc
+
     committed = await capture_lead(
         payload.mobile,
         name=payload.name,
@@ -84,6 +94,15 @@ async def introduce_lead(
         requirement=payload.requirement,
     )
     if not committed:
+        # The expiry scheduler may have won between the pre-check and INSERT.
+        # Re-check so the safe conflict is a 409, not a transient 503.
+        try:
+            if await has_expired_agent_lead(payload.mobile):
+                raise LeadCaptureFailed
+        except LeadCaptureFailed:
+            raise
+        except Exception as exc:
+            raise LeadCaptureUnavailable from exc
         raise LeadCaptureUnavailable
 
     lead = await db.scalar(
@@ -92,6 +111,9 @@ async def introduce_lead(
             Lead.mobile == payload.mobile,
             Lead.origin_agent_profile_uuid == agent_profile_uuid,
             Lead.business_line == business_line,
+            Lead.agent_expired_at.is_(None),
+            Lead.assigned_telecaller_profile_uuid.is_(None),
+            (Lead.expires_at.is_(None) | (Lead.expires_at > func.now())),
         )
         .order_by(Lead.updated_at.desc())
         .limit(1)
@@ -110,11 +132,14 @@ async def list_my_leads(
 ) -> list[Lead]:
     stmt = select(Lead).where(Lead.origin_agent_profile_uuid == agent_profile_uuid)
     if status_filter is not None:
-        try:
-            status_enum = LeadStatus(status_filter)
-        except ValueError as exc:
-            raise InvalidStatusFilter from exc
-        stmt = stmt.where(Lead.status == status_enum)
+        if status_filter == "expired":
+            stmt = stmt.where(Lead.agent_expired_at.is_not(None))
+        else:
+            try:
+                status_enum = LeadStatus(status_filter)
+            except ValueError as exc:
+                raise InvalidStatusFilter from exc
+            stmt = stmt.where(Lead.agent_expired_at.is_(None), Lead.status == status_enum)
     stmt = stmt.order_by(Lead.updated_at.desc())
     return list((await db.scalars(stmt)).all())
 
@@ -128,6 +153,13 @@ async def get_lead_for_agent(
 
 
 async def update_lead_for_agent(db: AsyncSession, lead: Lead, payload: AgentLeadUpdate) -> Lead:
+    deadline_reached = lead.expires_at is not None and lead.expires_at <= datetime.now(UTC)
+    if (
+        lead.assigned_telecaller_profile_uuid is not None
+        or lead.agent_expired_at is not None
+        or deadline_reached
+    ):
+        raise LeadLocked
     if payload.name is not None:
         lead.name = payload.name
     if payload.requirement is not None:

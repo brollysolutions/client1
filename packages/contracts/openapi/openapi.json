@@ -1877,6 +1877,30 @@
             "title": "Editable",
             "type": "boolean"
           },
+          "expired_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expired At"
+          },
+          "expires_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expires At"
+          },
           "id": {
             "format": "uuid",
             "title": "Id",
@@ -1920,7 +1944,8 @@
               "working",
               "converted",
               "closed",
-              "released"
+              "released",
+              "expired"
             ],
             "title": "Status",
             "type": "string"
@@ -1940,6 +1965,8 @@
           "requirement",
           "registered",
           "editable",
+          "expires_at",
+          "expired_at",
           "created_at",
           "updated_at"
         ],
@@ -2214,7 +2241,8 @@
           "document_verified",
           "document_unverified",
           "payout_link_reconciled",
-          "notification_broadcast"
+          "notification_broadcast",
+          "agent_lead_expired"
         ],
         "title": "AuditAction",
         "type": "string"
@@ -6220,6 +6248,7 @@
           "support_ticket_received",
           "lead_assigned",
           "lead_released",
+          "agent_lead_expired",
           "task_assigned",
           "loan_status_updated",
           "property_deal_status_updated",

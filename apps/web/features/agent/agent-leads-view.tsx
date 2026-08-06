@@ -10,6 +10,7 @@ import { FetchError } from "@/features/dashboard/fetch-error";
 import { cn } from "@/lib/utils";
 
 import { useAgentLeads } from "./use-agent-leads";
+import { formatAgentLeadExpiry } from "./lead-expiry";
 
 const STATUS_STYLE: Record<string, string> = {
   new: "bg-muted text-text-secondary",
@@ -18,6 +19,7 @@ const STATUS_STYLE: Record<string, string> = {
   converted: "bg-success/10 text-success",
   closed: "bg-muted text-text-secondary",
   released: "bg-muted text-text-secondary",
+  expired: "bg-destructive/10 text-destructive",
 };
 
 const STATUS_LABEL: Record<string, string> = {
@@ -27,6 +29,7 @@ const STATUS_LABEL: Record<string, string> = {
   converted: "Converted",
   closed: "Closed",
   released: "Released",
+  expired: "Expired",
 };
 
 // The agent's introduced-lead list. Row click opens the lead detail page,
@@ -73,6 +76,7 @@ export function AgentLeadsView() {
                 <th className="px-5 py-3 font-medium">Lead</th>
                 <th className="px-5 py-3 font-medium">Status</th>
                 <th className="px-5 py-3 font-medium">Registered</th>
+                <th className="px-5 py-3 font-medium">Agent window</th>
               </tr>
             </thead>
             <tbody>
@@ -103,6 +107,9 @@ export function AgentLeadsView() {
                   </td>
                   <td className="px-5 py-4 text-text-secondary">
                     {lead.registered ? "Account created" : "Not registered yet"}
+                  </td>
+                  <td className="px-5 py-4 text-xs text-text-secondary">
+                    {formatAgentLeadExpiry(lead.status, lead.expires_at, lead.expired_at)}
                   </td>
                 </tr>
               ))}

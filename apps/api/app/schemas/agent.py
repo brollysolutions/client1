@@ -8,7 +8,9 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field, model_validator
 
-LeadStatusLiteral = Literal["new", "assigned", "working", "converted", "closed", "released"]
+LeadStatusLiteral = Literal[
+    "new", "assigned", "working", "converted", "closed", "released", "expired"
+]
 AgentProfileStatusLiteral = Literal["active", "inactive", "pending", "suspended"]
 
 
@@ -52,5 +54,7 @@ class AgentLeadRead(BaseModel):
     requirement: dict[str, Any] | None
     registered: bool
     editable: bool
+    expires_at: datetime | None
+    expired_at: datetime | None
     created_at: datetime
     updated_at: datetime

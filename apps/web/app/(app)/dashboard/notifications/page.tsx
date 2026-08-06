@@ -41,6 +41,7 @@ const TYPE_ICON: Record<NotificationType, LucideIcon> = {
   support_ticket_resolved: Headset,
   lead_assigned: PhoneCall,
   lead_released: Undo2,
+  agent_lead_expired: Undo2,
   task_assigned: ClipboardList,
   loan_status_updated: Landmark,
   property_deal_status_updated: Home,

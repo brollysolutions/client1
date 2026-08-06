@@ -73,6 +73,13 @@ class Lead(Base):
     )
     released_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     release_reason: Mapped[str | None] = mapped_column(String, nullable=True)
+    # Agent attribution has a fixed protection window (FR-4.6). Operational
+    # status remains independent so an expired lead can return to the open
+    # Telecaller pool and continue through assigned/working/converted later.
+    expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    agent_expired_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, default=datetime.utcnow
     )
