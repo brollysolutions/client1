@@ -3,7 +3,7 @@ import uuid
 from datetime import datetime
 from typing import Optional
 
-from sqlalchemy import CheckConstraint, DateTime, ForeignKey, Integer, String
+from sqlalchemy import BigInteger, CheckConstraint, DateTime, ForeignKey, Integer, String, Text
 from sqlalchemy.dialects.postgresql import ENUM, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -42,7 +42,37 @@ status_enum = ENUM(UserStatus, name="status_enum", create_type=False, values_cal
 
 class User(Base):
     __tablename__ = "auth_users"
-    __table_args__ = (CheckConstraint("session_version >= 1", name="session_version_positive"),)
+    __table_args__ = (
+        CheckConstraint("session_version >= 1", name="session_version_positive"),
+        CheckConstraint(
+            "gender IS NULL OR gender IN "
+            "('female', 'male', 'non_binary', 'self_described', 'prefer_not_to_say')",
+            name="profile_gender_valid",
+        ),
+        CheckConstraint(
+            "(gender = 'self_described' AND gender_self_description IS NOT NULL) OR "
+            "(gender IS DISTINCT FROM 'self_described' AND gender_self_description IS NULL)",
+            name="profile_gender_description_consistent",
+        ),
+        CheckConstraint(
+            "income_source IS NULL OR income_source IN ('net_salary', 'business_income')",
+            name="profile_income_source_valid",
+        ),
+        CheckConstraint(
+            "income_period IS NULL OR income_period IN ('monthly', 'annual')",
+            name="profile_income_period_valid",
+        ),
+        CheckConstraint(
+            "(income_source IS NULL AND income_amount_minor IS NULL AND income_period IS NULL) OR "
+            "(income_source IS NOT NULL AND income_amount_minor IS NOT NULL "
+            "AND income_period IS NOT NULL)",
+            name="profile_income_group_consistent",
+        ),
+        CheckConstraint(
+            "income_amount_minor IS NULL OR income_amount_minor BETWEEN 1 AND 1000000000000",
+            name="profile_income_amount_valid",
+        ),
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
@@ -64,11 +94,18 @@ class User(Base):
         nullable=False,
         index=True,
     )
-    email: Mapped[str] = mapped_column(
+    email: Mapped[str | None] = mapped_column(
         String,
         unique=True,
-        nullable=False,
+        nullable=True,
     )
+    gender: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    gender_self_description: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    income_source: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    income_amount_minor: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
+    income_period: Mapped[str | None] = mapped_column(String(16), nullable=True)
+    occupation: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    address: Mapped[str | None] = mapped_column(Text, nullable=True)
     password_hash: Mapped[str | None] = mapped_column(
         String,
         nullable=True,

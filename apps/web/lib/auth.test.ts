@@ -1,6 +1,13 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { deleteAccount, login, registerInitiate } from "@/lib/auth";
+import {
+  deleteAccount,
+  getMe,
+  login,
+  registerInitiate,
+  resendOtp,
+  updateProfile,
+} from "@/lib/auth";
 
 // Guards the snake_case <-> camelCase mapping and the FastAPI error extraction.
 // These are the pieces most likely to break silently when the OpenAPI contract
@@ -109,7 +116,6 @@ describe("registerInitiate()", () => {
     firstName: "Test",
     lastName: "User",
     mobile: "+919000000007",
-    email: "t@example.com",
   };
 
   it("maps otp_hint -> otpHint", async () => {
@@ -130,6 +136,101 @@ describe("registerInitiate()", () => {
     const res = await registerInitiate({ ...details });
     expect(res.ok).toBe(true);
     if (res.ok) expect(res.data.otpHint).toBeUndefined();
+  });
+});
+
+describe("profile mapping", () => {
+  it("maps nullable optional profile fields", async () => {
+    vi.stubGlobal(
+      "fetch",
+      mockFetch(200, {
+        first_name: "Test",
+        last_name: "User",
+        mobile: "+919000000007",
+        email: null,
+        email_verified: false,
+        gender: "prefer_not_to_say",
+        gender_self_description: null,
+        income_source: "business_income",
+        income_amount_minor: 12_500_000,
+        income_period: "annual",
+        occupation: "Business owner",
+        address: null,
+        profiles: [],
+      }),
+    );
+
+    const res = await getMe();
+    expect(res.ok).toBe(true);
+    if (res.ok) {
+      expect(res.data.email).toBeNull();
+      expect(res.data.gender).toBe("prefer_not_to_say");
+      expect(res.data.incomeAmountMinor).toBe(12_500_000);
+      expect(res.data.address).toBeNull();
+    }
+  });
+
+  it("sends explicit nulls when optional details are cleared", async () => {
+    const fetchMock = mockFetch(200, {
+      first_name: "Test",
+      last_name: "User",
+      mobile: "+919000000007",
+      email: null,
+      email_verified: false,
+      gender: null,
+      gender_self_description: null,
+      income_source: null,
+      income_amount_minor: null,
+      income_period: null,
+      occupation: null,
+      address: null,
+      profiles: [],
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await updateProfile({
+      firstName: "Test",
+      lastName: "User",
+      email: null,
+      gender: null,
+      genderSelfDescription: null,
+      incomeSource: null,
+      incomeAmountMinor: null,
+      incomePeriod: null,
+      occupation: null,
+      address: null,
+    });
+
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(JSON.parse(init.body as string)).toMatchObject({
+      email: null,
+      gender: null,
+      income_source: null,
+      income_amount_minor: null,
+      income_period: null,
+      occupation: null,
+      address: null,
+    });
+  });
+});
+
+describe("resendOtp()", () => {
+  it("maps an explicit verified-email recovery request", async () => {
+    const fetchMock = mockFetch(200, {
+      message: "Code resent.",
+      delivery_channel: "none",
+      otp_hint: null,
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await resendOtp("+919000000007", "reset", true);
+
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(JSON.parse(init.body as string)).toMatchObject({
+      mobile: "+919000000007",
+      purpose: "reset",
+      via_email: true,
+    });
   });
 });
 

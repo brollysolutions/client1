@@ -14,7 +14,6 @@ from conftest import (
     do_login,
     full_registration,
     initiate_and_get_otp,
-    unique_email,
     unique_mobile,
 )
 
@@ -25,7 +24,6 @@ def _payload(**overrides) -> dict:
         "first_name": "Test",
         "last_name": "User",
         "mobile": unique_mobile(),
-        "email": unique_email(),
         "lines": ["loans"],
     }
     body.update(overrides)
@@ -69,26 +67,51 @@ async def test_register_initiate_first_name_100_chars_valid(client: AsyncClient)
     assert resp.status_code == 200
 
 
-# -- email validation (new: mandatory + unique) --
+# -- email is intentionally absent from mobile-first registration --
 
 
-async def test_register_initiate_missing_email_returns_422(client: AsyncClient) -> None:
-    body = _payload()
-    del body["email"]
-    resp = await client.post("/api/v1/auth/register/initiate", json=body)
-    assert resp.status_code == 422
+async def test_register_initiate_missing_email_succeeds(client: AsyncClient) -> None:
+    resp = await client.post("/api/v1/auth/register/initiate", json=_payload())
+    assert resp.status_code == 200
 
 
-async def test_register_initiate_invalid_email_returns_422(client: AsyncClient) -> None:
-    resp = await client.post("/api/v1/auth/register/initiate", json=_payload(email="not-an-email"))
-    assert resp.status_code == 422
+async def test_register_initiate_legacy_email_is_not_part_of_registration_token(
+    client: AsyncClient,
+) -> None:
+    mobile = unique_mobile()
+    resp = await client.post(
+        "/api/v1/auth/register/initiate",
+        json=_payload(mobile=mobile, email="legacy@example.com"),
+    )
+    otp = resp.json()["otp_hint"]
+    verify = await client.post(
+        "/api/v1/auth/register/verify-otp", json={"mobile": mobile, "otp": otp}
+    )
+    from app.core.security import decode_access_token
+
+    claims = decode_access_token(verify.json()["registration_token"])
+    assert "email" not in claims
 
 
-async def test_register_initiate_duplicate_email_returns_400(client: AsyncClient) -> None:
-    email = unique_email()
-    await full_registration(client, email=email)
-    resp = await client.post("/api/v1/auth/register/initiate", json=_payload(email=email))
-    assert resp.status_code == 400
+async def test_register_initiate_does_not_send_to_self_asserted_email(
+    client: AsyncClient, monkeypatch
+) -> None:
+    from app.services import otp_delivery
+
+    sent: list[str] = []
+
+    async def _capture_email(to: str, subject: str, body: str) -> bool:
+        sent.append(to)
+        return True
+
+    monkeypatch.setattr(otp_delivery, "send_email", _capture_email)
+    resp = await client.post(
+        "/api/v1/auth/register/initiate",
+        json=_payload(email="attacker@example.com"),
+    )
+    assert resp.status_code == 200
+    assert resp.json()["delivery_channel"] == "none"
+    assert sent == []
 
 
 # -- mobile / lines validation --
@@ -159,14 +182,10 @@ async def test_register_initiate_duplicate_mobile_returns_400(client: AsyncClien
 
 async def test_register_initiate_daily_rate_limit_429_on_sixth(client: AsyncClient) -> None:
     mobile = unique_mobile()
-    # Same mobile each call (rate key is per-mobile); unique email each call.
+    # Same mobile each call (rate key is per-mobile).
     for _ in range(5):
-        await client.post(
-            "/api/v1/auth/register/initiate", json=_payload(mobile=mobile, email=unique_email())
-        )
-    resp = await client.post(
-        "/api/v1/auth/register/initiate", json=_payload(mobile=mobile, email=unique_email())
-    )
+        await client.post("/api/v1/auth/register/initiate", json=_payload(mobile=mobile))
+    resp = await client.post("/api/v1/auth/register/initiate", json=_payload(mobile=mobile))
     assert resp.status_code == 429
 
 
@@ -316,12 +335,14 @@ async def test_set_password_valid_token_returns_201(client: AsyncClient) -> None
 
 
 async def test_set_password_stamps_phone_verified_email_unverified(client: AsyncClient) -> None:
-    """After signup: mobile is verified (voice/OTP), email verification is deferred."""
-    _, mobile = await full_registration(client)
+    """After signup: mobile is verified and the optional email is absent."""
+    access, mobile = await full_registration(client)
     resp = await client.post("/api/v1/auth/login", json={"mobile": mobile, "password": PASSWORD})
     body = resp.json()
     assert body["phone_verified"] is True
     assert body["email_verified"] is False
+    me = await client.get("/api/v1/auth/me", headers={"Authorization": f"Bearer {access}"})
+    assert me.json()["email"] is None
 
 
 async def test_set_password_refresh_cookie_set(client: AsyncClient) -> None:

@@ -113,7 +113,11 @@ async def test_approve_creates_new_agent_account(client: AsyncClient) -> None:
 async def test_approve_reuses_existing_account_no_temp_password(client: AsyncClient) -> None:
     _, applicant_mobile = await full_registration(client)
     applicant_uid = await _auth_user_uuid(applicant_mobile)
-    app_id = await _create_pending_application(applicant_auth_user_uuid=applicant_uid)
+    applicant_email = unique_email()
+    app_id = await _create_pending_application(
+        applicant_auth_user_uuid=applicant_uid,
+        email=applicant_email,
+    )
 
     _, admin_mobile = await full_registration(client)
     admin_uid = await _auth_user_uuid(admin_mobile)
@@ -123,6 +127,7 @@ async def test_approve_reuses_existing_account_no_temp_password(client: AsyncCli
     )
     assert res.status_code == 200, res.text
     assert res.json()["temp_password"] is None
+    assert await _user_email(applicant_mobile) == applicant_email
 
 
 @pytest.mark.asyncio
@@ -369,8 +374,8 @@ async def test_approve_email_conflict_returns_409(client: AsyncClient) -> None:
     _, admin_mobile = await full_registration(client)
     uid = await _auth_user_uuid(admin_mobile)
     # existing_email already belongs to a different, already-registered account.
-    _, other_mobile = await full_registration(client)
-    existing_email = await _user_email(other_mobile)
+    existing_email = unique_email()
+    await full_registration(client, email=existing_email)
     app_id = await _create_pending_application(mobile=unique_mobile(), email=existing_email)
     res = await client.post(
         f"/api/v1/admin/agents/{app_id}/approve",
