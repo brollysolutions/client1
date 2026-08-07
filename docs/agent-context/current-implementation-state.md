@@ -4,7 +4,7 @@ Status: **Derived reconciliation and later product amendment**
 
 As of: **2026-08-07**
 
-Code baseline: `feat/registration-profile-alignment` (PR pending)
+Code baseline: `7943d1c` ([PR #148](https://github.com/brollysolutions/client1/pull/148))
 
 ## 1. Purpose and authority
 
@@ -179,7 +179,7 @@ explicitly changes it.
 | Client status reasons | The API exposes `status_reason`, and the client loan UI renders it verbatim when present. | [`schemas/loans.py`](../../apps/api/app/schemas/loans.py), [`apps/web/lib/loans.ts`](../../apps/web/lib/loans.ts), [`loans-applications.tsx`](../../apps/web/features/dashboard/loans-applications.tsx) |
 | Referral payout execution | Sub Admin manages bonus configuration; creating the actual referral payout is restricted to platform Admin. | [`api/v1/referral_bonus.py`](../../apps/api/app/api/v1/referral_bonus.py), [`api/v1/referrals.py`](../../apps/api/app/api/v1/referrals.py) |
 | Agent lead expiry | Agent attribution has a fixed 30-day first-attribution deadline with converted/closed exclusions, idempotent scheduled release, audit, notifications, RLS denial, and Agent history/countdown. | [PR #144](https://github.com/brollysolutions/client1/pull/144), [`services/lead_expiry.py`](../../apps/api/app/services/lead_expiry.py) |
-| Client registration and optional profile | Client registration is mobile-first; email and demographic/income/address details are optional, skippable, editable, clearable, and never gate account use. | CS-005, `feat/registration-profile-alignment` (PR pending) |
+| Client registration and optional profile | Client registration is mobile-first; email and demographic/income/address details are optional, skippable, editable, clearable, and never gate account use. | CS-005, [PR #148](https://github.com/brollysolutions/client1/pull/148) |
 
 ## 4. Genuine open decisions and implementation gaps
 

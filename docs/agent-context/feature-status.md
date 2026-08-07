@@ -4,7 +4,7 @@ Status: **Derived living implementation ledger**
 
 As of: **2026-08-07**
 
-Evidence baseline: `feat/registration-profile-alignment` (PR pending)
+Evidence baseline: `7943d1c` ([PR #148](https://github.com/brollysolutions/client1/pull/148))
 
 ## Purpose and authority
 
@@ -44,7 +44,7 @@ work than several completed UI requirements.
 ## Delivered implementation
 
 - **Registration/profile requirement alignment** (FR-3.3, FR-17.2) is
-  implemented on `feat/registration-profile-alignment` (PR pending). Ordinary
+  implemented in [PR #148](https://github.com/brollysolutions/client1/pull/148). Ordinary
   Clients now register with name and an OTP-verified mobile, then may skip or
   save optional email, gender, income, occupation, and postal address. The same
   fields are editable and clearable in Profile settings, remain owner/Admin RLS
