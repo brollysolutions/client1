@@ -27,6 +27,7 @@ from app.jobs.expire_agent_leads import expire_agent_leads
 from app.jobs.purge_agent_application_orphans import purge_agent_application_orphans
 from app.jobs.purge_banner_image_orphans import purge_banner_image_orphans
 from app.jobs.purge_loan_document_orphans import purge_loan_document_orphans
+from app.jobs.purge_property_media import purge_property_media
 from app.jobs.purge_task_document_orphans import purge_task_document_orphans
 from app.jobs.reconcile_payout_links import reconcile_payout_links
 from app.jobs.reconcile_payouts import reconcile_payouts
@@ -192,6 +193,15 @@ def build_scheduler() -> AsyncIOScheduler:
         trigger="interval",
         hours=24,  # storage cost cleanup, not time-critical
         id="purge_banner_image_orphans",
+        max_instances=1,
+        coalesce=True,
+        replace_existing=True,
+    )
+    scheduler.add_job(
+        purge_property_media,
+        trigger="interval",
+        hours=24,
+        id="purge_property_media",
         max_instances=1,
         coalesce=True,
         replace_existing=True,

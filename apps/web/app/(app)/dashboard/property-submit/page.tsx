@@ -7,10 +7,10 @@ import { Loader2 } from "lucide-react";
 import { useAuth } from "@/components/auth/session-provider";
 import { SubmitPropertyForm } from "@/features/real-estate/submit-property-form";
 
-// Agent + Sub Admin-gated route. AppGuard (the (app) layout) enforces auth;
+// Client + Agent + Sub Admin-gated route. AppGuard (the (app) layout) enforces auth;
 // this adds the role gate. UX gate only: the API's require_re_submitter + RLS
 // are the real wall.
-const SUBMITTER_ROLES = new Set(["agent", "sub_admin"]);
+const SUBMITTER_ROLES = new Set(["client", "agent", "sub_admin"]);
 
 export default function PropertySubmitPage() {
   const router = useRouter();

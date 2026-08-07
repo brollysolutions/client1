@@ -4,7 +4,7 @@ Status: **Derived living implementation ledger**
 
 As of: **2026-08-07**
 
-Evidence baseline: `a00d8ac` ([PR #146](https://github.com/brollysolutions/client1/pull/146))
+Evidence baseline: `ff7dec4` ([PR #146](https://github.com/brollysolutions/client1/pull/146))
 
 ## Purpose and authority
 
@@ -31,39 +31,49 @@ live-provider configuration are assessed separately.
 
 | Measure | Result |
 | --- | ---: |
-| Complete requirements | 56 / 80 (70%) |
+| Complete requirements | 57 / 80 (71.25%) |
 | Partial requirements | 18 / 80 (22.5%) |
-| Not-started requirements | 6 / 80 (7.5%) |
-| Weighted implementation coverage | **81.25% (approximately 81%)** |
+| Not-started requirements | 5 / 80 (6.25%) |
+| Weighted implementation coverage | **82.5% (approximately 83%)** |
 
 Weighted coverage gives each Complete item 1 point and each Partial item 0.5
-points: `(56 + 18 x 0.5) / 80 = 81.25%`. The weighting is a planning aid, not
+points: `(57 + 18 x 0.5) / 80 = 82.5%`. The weighting is a planning aid, not
 an estimate of calendar time: a single security-sensitive gap can require more
 work than several completed UI requirements.
+
+## Delivered implementation
+
+- **Managed property/media submissions** (FR-7.3, FR-13.1 through FR-13.4,
+  OI-002) is implemented on `feat/managed-property-media`, with the upstream PR
+  link pending the shipping step. The approved slice
+  adds Client/Lead submission, Admin-only approval, private managed images and
+  reviewer PDFs, approved public property images, quotas, content verification,
+  owner/business-line RLS, and storage lifecycle cleanup. Videos, general media
+  galleries, and feedback attachments remain explicit non-goals for this PR.
 
 ## Status by feature area
 
 | Feature area | Complete | Partial | Not started | Coverage notes |
 | --- | ---: | ---: | ---: | --- |
-| Platform and segregation (FR-1.x) | 4 | 1 | 0 | Core line tagging, routing, RLS, dashboards, and API exist; the universal wording still includes media paths that do not exist yet. |
+| Platform and segregation (FR-1.x) | 4 | 1 | 0 | Core line tagging, routing, RLS, dashboards, APIs, and real-estate media paths exist; universal coverage still needs review for future media purposes. |
 | Roles and access (FR-2.x) | 7 | 2 | 0 | Six role surfaces, server/RLS guards, and Admin-managed closed-catalogue field visibility exist; Admin coverage and edit ownership are not exhaustive. |
 | Authentication (FR-3.x) | 4 | 0 | 1 | OTP/password/session flows, dual-line client identity, and support-assisted mobile change exist; optional email does not match the baseline. |
 | Leads (FR-4.x) | 4 | 2 | 0 | Capture, assignment, ownership, fixed Agent expiry, and Agent/Telecaller workflows exist; automatic direct/Agent assignment remains incomplete. |
 | Agent registration (FR-5.x) | 4 | 0 | 0 | OTP-verified application, KYC, Admin review, Agent ID, and owned-lead contact access exist. |
 | Loans (FR-6.x) | 6 | 0 | 0 | Public pages/calculators, applications, configurable products/banks, progression, transactions, and fee cashback exist. |
-| Real estate (FR-7.x) | 3 | 2 | 0 | Catalog, inquiries, visits, deals, review, and employee work exist; vehicles and submitter/media coverage are incomplete. |
+| Real estate (FR-7.x) | 4 | 1 | 0 | Catalog, managed property submissions/media, inquiries, visits, deals, review, and employee work exist; vehicles remain incomplete. |
 | Commissions (FR-8.x) | 3 | 0 | 0 | Manual Admin entry, Agent earnings, approval, RazorpayX, and cheque/manual paths exist. |
 | Referrals (FR-9.x) | 5 | 0 | 0 | Client codes, attribution, conversion accrual, Admin payout, ledger, and Sub Admin rules exist. |
 | Payments (FR-10.x) | 3 | 1 | 0 | Money-purpose boundaries and payout controls exist; gateway/method breadth is narrower than specified. |
 | Notifications (FR-11.x) | 2 | 1 | 0 | In-app and web push plus Admin major-action notifications exist; email/event redirect coverage is incomplete. |
 | Banners/personalization (FR-12.x) | 0 | 3 | 1 | Banner lifecycle, targeting fields, approval, images, and deep links exist; authenticated targeting and context-driven placement do not. |
-| Media/uploads (FR-13.x) | 0 | 3 | 1 | Secure purpose-specific image/PDF flows exist; unified per-line galleries, camera flows, and video are absent. |
+| Media/uploads (FR-13.x) | 0 | 4 | 0 | Secure purpose-specific image/PDF flows and property camera capture exist; unified per-line galleries, feedback attachments, video, and broader retention remain incomplete. |
 | Support (FR-14.x) | 4 | 0 | 0 | Central tickets, WhatsApp route, Admin triage/resolution, and structured mobile-change fulfilment exist. |
 | Contact privacy (FR-15.x) | 4 | 0 | 0 | Agent-owned and Telecaller-assigned mobile access is locked; Employee raw/deny/provider-neutral invitation modes and least-data projection are enforced server-side. |
 | Analytics (FR-16.x) | 0 | 3 | 0 | Weekly/monthly reporting, filters, sorting, summaries, and CSV exist; Excel and group/team slices remain. |
 | Profile/account (FR-17.x) | 3 | 0 | 1 | Profile/settings, transactions/support, deletion, retention, and Admin removal exist; required demographic/income fields do not. |
 | Location (FR-18.x) | 0 | 0 | 2 | No consented login-location personalization or map/GMB integration seam was found. |
-| **Total** | **56** | **18** | **6** | **80 requirements** |
+| **Total** | **57** | **18** | **5** | **80 requirements** |
 
 ## Done
 
@@ -88,9 +98,11 @@ The following requirements are complete on the evidence baseline:
 - Loans: FR-6.1 through FR-6.6. Evidence includes public loan/calculator
   routes, application progression, configurable loan types/banks, Telecaller
   transaction entry, documents, and processing-fee cashback.
-- Real-estate core: FR-7.2, FR-7.4, and FR-7.5. Evidence includes property
-  deals, site visits, employee tasks/documents, client progress surfaces, and
-  the absence of any property-payment collection path.
+- Real-estate core: FR-7.2 through FR-7.5. Evidence includes managed
+  Client/Agent/Sub Admin property submission, Admin-only review, private/public
+  media lifecycle, property deals, site visits, employee tasks/documents,
+  client progress surfaces, and the absence of any property-payment collection
+  path.
 - Money programs: FR-8.1 through FR-8.3; FR-9.1 through FR-9.5; FR-10.1,
   FR-10.2, and FR-10.4. Evidence includes manual commission agreements,
   client-only referral attribution, controlled payout creation/approval,
@@ -120,17 +132,16 @@ The following requirements are complete on the evidence baseline:
 | FR-4.2 | Partial | Agents create attributed leads; Admin can assign a Telecaller. | Decide and implement automatic assignment behavior and client-account/invite binding where required. |
 | FR-4.3 | Partial | Direct registration captures a lead and creates both client profiles. | Capture explicit requirement intent and implement deterministic per-line Telecaller assignment without cross-line leakage. |
 | FR-7.1 | Partial | Listing, inquiry, visit, and property-deal workflows exist. | Add the unresolved vehicle-arrangement workflow. |
-| FR-7.3 | Partial | Real-estate Agents and Sub Admins submit properties for review; Admin/Sub Admin review exists. | Add approved Lead/Client submission scope and replace the single free-text image reference with managed media. |
 | FR-10.3 | Partial | RazorpayX VPA/bank payouts and manual cheque records exist. | Decide whether RuPay and multi-gateway routing are still required, then implement provider-neutral method support. |
 | FR-11.2 | Partial | Notifications and banners support `href`/deep links. | Audit every event, add missing links, and decide which non-auth email notifications are required. |
 | FR-12.1 | Partial | Default, personalized, and action banner types and lifecycle fields exist. | Add an authenticated serving path that safely evaluates personalized audiences. |
 | FR-12.2 | Partial | Banners carry line/type/audience metadata and approved public banners render. | Serve correct client-line and Agent incentive banners after authentication. |
 | FR-12.3 | Partial | Sub Admin creates banners; Admin approval gates public serving. | Serve personalized content only to eligible logged-in users and test negative targeting cases. |
 | FR-12.4 | Not started | Offers are line-scoped and schedulable. | Define consented activity/location/business signals and implement auditable placement rules. |
-| FR-13.1 | Not started | Purpose-specific object prefixes exist for current uploads. | Build separate Loans and Real Estate media galleries with ownership and lifecycle rules. |
-| FR-13.2 | Partial | Agent KYC, loan/task documents, and banner images have managed upload flows. | Add approved camera capture and feedback/media attachments to the relevant journeys. |
-| FR-13.3 | Partial | Current flows accept constrained images and PDFs. | Define and add safe video types, size/duration limits, transcoding/serving policy, and malware/content checks. |
-| FR-13.4 | Partial | Existing upload purposes enforce type/count/size and orphan cleanup selectively. | Apply consistent quotas, rate limits, retention, and orphan cleanup to every future media purpose. |
+| FR-13.1 | Partial | Real-estate property submissions now have an owned private review gallery and approved public image gallery. | Add the separate Loans gallery and any other approved per-line gallery surfaces. |
+| FR-13.2 | Partial | Agent KYC, loan/task documents, banners, and property submissions have managed upload flows; property submission supports browser camera capture. | Add approved feedback/media attachments and camera capture to other applicable journeys. |
+| FR-13.3 | Partial | Managed property media constrains images/PDFs and verifies content signatures; other current flows also constrain types. | Define safe video types, size/duration limits, transcoding/serving policy, malware scanning, content checks, and image metadata normalization. |
+| FR-13.4 | Partial | Property media enforces quotas, upload rate limits, canonical snapshots, orphan/rejection/promotion cleanup, inactive-public cleanup, and account-deletion cleanup. | Apply consistent controls to every media purpose and define approved reviewer-document retention. |
 | FR-16.1 | Partial | Weekly/monthly buckets, date filters, and CSV export exist. | Add Excel export or explicitly amend it out of scope. |
 | FR-16.2 | Partial | Reports filter by one Agent and business line. | Add saved/explicit Agent-group and team filters. |
 | FR-16.3 | Partial | Lead/loan/deal counts and per-Agent performance with sorting exist. | Add agreed per-team summaries and selective group views. |

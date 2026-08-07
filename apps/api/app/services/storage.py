@@ -84,8 +84,8 @@ def presign_upload_post(
     has no size bound at all — fine for authenticated staff uploads, not fine
     for an anonymous public endpoint), the POST policy document is part of the
     signature: storage itself rejects an oversize or wrong-typed body, so
-    nothing about the cap depends on the browser behaving. Used exclusively by
-    the public agent-application KYC upload path.
+    nothing about the cap depends on the browser behaving. Used by public KYC
+    intake and authenticated managed-media upload flows.
 
     Returns (url, fields). The caller POSTs both back to `url` as multipart
     form fields alongside the file; the file part must be appended LAST — S3/
@@ -171,6 +171,26 @@ def presign_download(object_key: str) -> str:
     )
 
 
+def presign_preview(object_key: str) -> str:
+    """Short-lived inline GET for an authenticated, authorization-checked image."""
+    return _client(_public_endpoint()).generate_presigned_url(
+        "get_object",
+        Params={"Bucket": settings.SPACES_BUCKET, "Key": object_key},
+        ExpiresIn=_PRESIGN_EXPIRE_SECONDS,
+    )
+
+
+def copy_object(source_key: str, destination_key: str, content_type: str) -> None:
+    """Copy a verified private object into an approved public key."""
+    _client(settings.SPACES_ENDPOINT_URL).copy_object(
+        Bucket=settings.SPACES_BUCKET,
+        Key=destination_key,
+        CopySource={"Bucket": settings.SPACES_BUCKET, "Key": source_key},
+        ContentType=content_type,
+        MetadataDirective="REPLACE",
+    )
+
+
 def list_objects(prefix: str) -> list[dict]:
     """List every object under `prefix` as [{"key", "last_modified"}, ...].
 
@@ -207,9 +227,8 @@ def read_head_bytes(object_key: str, n: int = 16) -> bytes | None:
     return resp["Body"].read()
 
 
-# Magic-byte signatures for the content types this codebase's three upload
-# flows allow (schemas.{employee,agent_applications,loan_documents}
-# *ContentTypeLiteral — all three are the same set). Security-review finding
+# Magic-byte signatures for the content types this codebase's managed upload
+# flows allow (employee, agent application, loan document, and property media).
 # (feature-status.md §2-12): the declared Content-Type is signed into the
 # presigned-POST policy, but nothing previously verified the uploaded BYTES
 # actually match it — an HTML/script polyglot declared as application/pdf

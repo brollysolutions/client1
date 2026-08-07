@@ -1,7 +1,8 @@
 "use client";
 
 import * as React from "react";
-import { Loader2, Plus, X } from "lucide-react";
+import Image from "next/image";
+import { ArrowDown, ArrowUp, FileText, Loader2, Plus, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,10 +30,29 @@ function FieldError({ msg }: { msg?: string }) {
 export function SubmitPropertyForm() {
   const f = useSubmitProperty();
   const [amenityDraft, setAmenityDraft] = React.useState("");
+  const imagePreviews = React.useMemo(
+    () => f.form.images.map((file) => ({ file, url: URL.createObjectURL(file) })),
+    [f.form.images],
+  );
+
+  React.useEffect(
+    () => () => {
+      imagePreviews.forEach((preview) => URL.revokeObjectURL(preview.url));
+    },
+    [imagePreviews],
+  );
 
   const commitAmenity = () => {
     f.addAmenity(amenityDraft);
     setAmenityDraft("");
+  };
+
+  const moveImage = (index: number, direction: -1 | 1) => {
+    const target = index + direction;
+    if (target < 0 || target >= f.form.images.length) return;
+    const next = [...f.form.images];
+    [next[index], next[target]] = [next[target], next[index]];
+    f.setImages(next);
   };
 
   return (
@@ -195,11 +215,82 @@ export function SubmitPropertyForm() {
           </div>
         </section>
 
-        {/* Image + meta */}
+        {/* Managed media + meta */}
         <section className="space-y-4">
           <div>
-            <Label htmlFor="image">Image URL</Label>
-            <Input id="image" placeholder="https://…" value={f.form.image} onChange={(e) => f.setField("image", e.target.value)} maxLength={200} />
+            <Label htmlFor="property-images">Property images</Label>
+            <Input
+              id="property-images"
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              capture="environment"
+              multiple
+              disabled={f.submitting}
+              onChange={(event) => {
+                const selected = Array.from(event.target.files ?? []);
+                f.setImages([...f.form.images, ...selected].slice(0, 10));
+                event.target.value = "";
+              }}
+            />
+            <p className="mt-1 text-xs text-text-secondary">
+              Add 1–10 JPEG, PNG, or WebP images, up to 5 MiB each. The first image is the cover.
+            </p>
+            <FieldError msg={f.errors.images} />
+            {imagePreviews.length > 0 && (
+              <ul className="mt-3 grid gap-3 sm:grid-cols-2">
+                {imagePreviews.map(({ file, url }, index) => (
+                  <li key={`${file.name}-${file.lastModified}-${index}`} className="rounded-lg border p-2">
+                    <div className="relative aspect-video overflow-hidden rounded bg-muted">
+                      <Image src={url} alt={`Selected property image ${index + 1}`} fill unoptimized className="object-cover" />
+                    </div>
+                    <p className="mt-2 truncate text-xs text-text-secondary">{file.name}</p>
+                    <div className="mt-2 flex gap-1">
+                      <Button type="button" variant="outline" size="icon" disabled={index === 0 || f.submitting} aria-label={`Move ${file.name} earlier`} onClick={() => moveImage(index, -1)}>
+                        <ArrowUp className="h-4 w-4" aria-hidden />
+                      </Button>
+                      <Button type="button" variant="outline" size="icon" disabled={index === imagePreviews.length - 1 || f.submitting} aria-label={`Move ${file.name} later`} onClick={() => moveImage(index, 1)}>
+                        <ArrowDown className="h-4 w-4" aria-hidden />
+                      </Button>
+                      <Button type="button" variant="ghost" size="icon" disabled={f.submitting} aria-label={`Remove ${file.name}`} onClick={() => f.setImages(f.form.images.filter((_, itemIndex) => itemIndex !== index))}>
+                        <X className="h-4 w-4" aria-hidden />
+                      </Button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+          <div>
+            <Label htmlFor="property-documents">Reviewer documents (optional)</Label>
+            <Input
+              id="property-documents"
+              type="file"
+              accept="application/pdf"
+              multiple
+              disabled={f.submitting}
+              onChange={(event) => {
+                const selected = Array.from(event.target.files ?? []);
+                f.setDocuments([...f.form.documents, ...selected].slice(0, 2));
+                event.target.value = "";
+              }}
+            />
+            <p className="mt-1 text-xs text-text-secondary">
+              Up to 2 PDFs, 5 MiB each. These remain private and are never shown publicly.
+            </p>
+            <FieldError msg={f.errors.documents} />
+            {f.form.documents.length > 0 && (
+              <ul className="mt-2 space-y-2">
+                {f.form.documents.map((file, index) => (
+                  <li key={`${file.name}-${file.lastModified}`} className="flex items-center gap-2 rounded-lg border p-2 text-sm">
+                    <FileText className="h-4 w-4 text-text-secondary" aria-hidden />
+                    <span className="min-w-0 flex-1 truncate">{file.name}</span>
+                    <Button type="button" variant="ghost" size="icon" disabled={f.submitting} aria-label={`Remove ${file.name}`} onClick={() => f.setDocuments(f.form.documents.filter((_, itemIndex) => itemIndex !== index))}>
+                      <X className="h-4 w-4" aria-hidden />
+                    </Button>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
           <div>
             <Label htmlFor="meta">Short note</Label>
@@ -209,7 +300,7 @@ export function SubmitPropertyForm() {
 
         <Button type="submit" disabled={f.submitting} className="w-full sm:w-auto">
           {f.submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          Submit for review
+          {f.uploadProgress ?? "Submit for review"}
         </Button>
       </form>
     </div>

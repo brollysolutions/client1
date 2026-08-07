@@ -64,11 +64,23 @@ describe("mapPublicListing()", () => {
     expect(listing.image).toBe("/illustrations/properties/plot-1.svg");
   });
 
-  it("drops an absolute image URL to protect next/image (no configured remote hosts)", () => {
+  it("drops an absolute legacy image URL outside the configured asset host", () => {
     const listing = mapPublicListing(
       wireListing({ image: "https://cdn.example.com/listing.jpg" }),
     );
     expect(listing.image).toBeUndefined();
+  });
+
+  it("prefers managed media from the configured storage host", () => {
+    const listing = mapPublicListing(
+      wireListing({
+        image: "/illustrations/properties/plot-1.svg",
+        media_urls: ["http://localhost:9000/task-documents/public/properties/1/image.jpg"],
+      }),
+    );
+    expect(listing.image).toBe(
+      "http://localhost:9000/task-documents/public/properties/1/image.jpg",
+    );
   });
 });
 

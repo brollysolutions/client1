@@ -8,6 +8,7 @@
 import type { components } from "@contracts/generated/schema";
 
 import { serverFetchJson } from "@/lib/api/server";
+import { isAllowedAssetUrl } from "@/lib/public-banners";
 import type { PropertyListing } from "@/lib/properties";
 
 type Schemas = components["schemas"];
@@ -21,11 +22,9 @@ export function mapPublicListing(raw: Schemas["PublicPropertyRead"]): PropertyLi
     type: raw.type,
     category: raw.category,
     meta: raw.meta ?? undefined,
-    // next/image has no configured remote hosts (no images.remotePatterns);
-    // an absolute URL from a future non-local upload origin would crash the
-    // page mid-render. Repo-local paths only; anything else falls back to
-    // the existing "Sample" placeholder band.
-    image: raw.image?.startsWith("/") ? raw.image : undefined,
+    image:
+      raw.media_urls?.find(isAllowedAssetUrl) ??
+      (raw.image?.startsWith("/") ? raw.image : undefined),
     reraNumber: raw.rera_number,
   };
 }

@@ -1,12 +1,10 @@
-"""Property submissions — agent-authored listing drafts awaiting Admin/Sub Admin review.
+"""Property submissions — owner-authored listing drafts awaiting Admin review.
 
 The WRITE path that populates the read-only `properties` catalog (models/property.py).
 Unlike the catalog (a shared, public-equivalent row owned by no one), a submission
-IS owned — by the agent who created it (``submitter_uuid`` -> auth_users.id). RLS is
-hybrid (migration c3d4e5f6a7b8): the owning agent sees only their own drafts;
-platform reviewers (Admin + Sub Admin, ``platform_scope='true'``) and a real-estate
-Sub Admin see the whole RE queue. Other RE staff (telecaller/employee/other agents)
-see nothing — review is a platform concern, unlike enquiries which every RE staffer sees.
+IS owned by the Client, Agent, or Sub Admin who created it (``submitter_uuid`` ->
+auth_users.id). RLS is owner-or-platform-Admin: the submitter sees their own rows,
+only platform Admin sees the shared queue, and other staff see nothing.
 
 Carries the full typed property payload (mirrors ``Property`` 1:1) so approval is a
 clean field copy into a new active ``Property``. Money is integer paise
@@ -65,7 +63,7 @@ class PropertySubmission(Base):
     __tablename__ = "property_submissions"
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    # RLS owner axis: the submitting agent's auth_users.id (keyed on app.auth_user_uuid).
+    # RLS owner axis: the submitter's auth_users.id (keyed on app.auth_user_uuid).
     submitter_uuid: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
     # Stamped "real_estate", immutable (shared trigger). Segregation/analytics.
     business_line: Mapped[str] = mapped_column(business_line_enum, nullable=False)

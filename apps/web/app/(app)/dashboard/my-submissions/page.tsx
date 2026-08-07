@@ -17,7 +17,8 @@ import { MySubmissionsView } from "@/features/real-estate/my-submissions-view";
 export default function MySubmissionsPage() {
   const router = useRouter();
   const { session, isLoading } = useAuth();
-  const allowed = session != null && session.role === "agent";
+  const allowed =
+    session != null && ["client", "agent", "sub_admin"].includes(session.role);
 
   React.useEffect(() => {
     if (!isLoading && !allowed) router.replace("/dashboard");

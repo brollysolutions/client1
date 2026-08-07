@@ -2,9 +2,9 @@
 
 Status: **Derived reconciliation and later product amendment**
 
-As of: **2026-08-06**
+As of: **2026-08-07**
 
-Code baseline: `29a133b1e28fd9fb0f6f009b7b5a4d2a5357f881`
+Code baseline: `ff7dec4` plus `feat/managed-property-media`
 
 ## 1. Purpose and authority
 
@@ -88,6 +88,43 @@ Conceptual unified-user tables in the supplied designs and ERD are advisory;
 they must not drive an identity or RLS migration without a separate approved
 design and security review.
 
+### CS-004 — managed property media uses private review and Admin-only approval
+
+Authenticated Clients/Leads, real-estate Agents, and Sub Admins may submit an
+existing RERA-registered property with one to ten ordered JPEG, PNG, or WebP
+images and up to two reviewer-only PDFs, each no larger than 5 MiB. Only an
+active platform Admin may approve or reject; this supersedes the earlier
+implementation that also allowed Sub Admin review.
+
+Signed uploads use an owner-bound opaque staging namespace. Submission copies
+verified objects into a disjoint server-only canonical private namespace and
+verifies them again so a reusable signed upload cannot replace accepted content
+or replay an older canonical key. Pending media and all
+reviewer PDFs stay private. Approval promotes only verified images to opaque
+public property keys; legacy `Property.image` rows remain compatible.
+
+Unreferenced staging objects expire after one hour, rejected private media after
+30 days, promoted private image sources after successful publication, and
+public media when a listing becomes inactive. Account deletion rejects pending
+submissions and deletes their private objects. Video, general Loans/Real Estate
+galleries, feedback attachments, content moderation/malware providers, listing
+editing, and resubmission remain outside this decision.
+
+Evidence:
+
+- [`apps/api/app/services/property_submissions.py`](../../apps/api/app/services/property_submissions.py)
+- [`apps/api/app/models/property_media.py`](../../apps/api/app/models/property_media.py)
+- [`apps/api/alembic/versions/f4a5b6c7d8e9_add_managed_property_media.py`](../../apps/api/alembic/versions/f4a5b6c7d8e9_add_managed_property_media.py)
+- [`apps/api/app/tests/test_property_submissions_api.py`](../../apps/api/app/tests/test_property_submissions_api.py)
+- [`apps/api/app/tests/test_property_media_rls.py`](../../apps/api/app/tests/test_property_media_rls.py)
+- [`apps/web/features/real-estate/submit-property-form.tsx`](../../apps/web/features/real-estate/submit-property-form.tsx)
+
+Compatibility requirement: the API owns media authorization and public URL
+projection; storage keys never become access-control boundaries. RLS preserves
+owner/platform-Admin private access and active-listing public access. Broader
+FR-13 requirements remain partial, including malware scanning, image metadata
+normalization, and an explicit approved-PDF retention policy.
+
 ## 3. Previously open items settled by current behavior
 
 The following entries may still be labelled “open,” “assumed,” or “pending” in
@@ -106,25 +143,12 @@ explicitly changes it.
 | Banner precedence | Public banners sort by highest `priority`, then oldest `created_at`, then stable ID. | [`services/public_catalog.py`](../../apps/api/app/services/public_catalog.py), [`test_public_banners.py`](../../apps/api/app/tests/test_public_banners.py) |
 | Client status reasons | The API exposes `status_reason`, and the client loan UI renders it verbatim when present. | [`schemas/loans.py`](../../apps/api/app/schemas/loans.py), [`apps/web/lib/loans.ts`](../../apps/web/lib/loans.ts), [`loans-applications.tsx`](../../apps/web/features/dashboard/loans-applications.tsx) |
 | Referral payout execution | Sub Admin manages bonus configuration; creating the actual referral payout is restricted to platform Admin. | [`api/v1/referral_bonus.py`](../../apps/api/app/api/v1/referral_bonus.py), [`api/v1/referrals.py`](../../apps/api/app/api/v1/referrals.py) |
+| Agent lead expiry | Agent attribution has a fixed 30-day first-attribution deadline with converted/closed exclusions, idempotent scheduled release, audit, notifications, RLS denial, and Agent history/countdown. | [PR #144](https://github.com/brollysolutions/client1/pull/144), [`services/lead_expiry.py`](../../apps/api/app/services/lead_expiry.py) |
 
 ## 4. Genuine open decisions and implementation gaps
 
 These items are not resolved merely because related scaffolding exists. They
 need a separate product decision and implementation task.
-
-### OI-001 — agent-lead expiry
-
-FR-4.6 requires an agent-owned lead to return to the open pool after a defined
-window. The duration is still unspecified, and the current `Lead` model has no
-`expiry_at` field or scheduled release job. Decide the duration and the exact
-terminal-status exceptions before implementation.
-
-### OI-002 — property-submission media
-
-The current submission accepts one string `image` reference and has no managed
-gallery/video upload flow. Per-asset size, MIME types, maximum counts, ownership,
-approval behavior, and orphan cleanup remain undefined. This is security-sensitive
-upload work and requires a dedicated design and security review.
 
 ### OI-003 — vehicle arrangements
 

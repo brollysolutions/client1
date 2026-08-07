@@ -20,6 +20,7 @@ from app.core.deps import CurrentUser, get_active_user
 from app.db.session import get_db
 from app.models.property import Property
 from app.schemas.properties import PropertyListResponse, PropertyRead
+from app.services.properties import media_urls_by_property
 
 router = APIRouter()
 
@@ -34,8 +35,14 @@ async def list_properties(
     # client-side "Featured" strip stays stable.
     result = await db.execute(select(Property).order_by(Property.created_at.asc(), Property.id))
     properties = result.scalars().all()
+    media = await media_urls_by_property(db, [property.id for property in properties])
     return PropertyListResponse(
-        properties=[PropertyRead.model_validate(p, from_attributes=True) for p in properties]
+        properties=[
+            PropertyRead.model_validate(p, from_attributes=True).model_copy(
+                update={"media_urls": media[p.id]}
+            )
+            for p in properties
+        ]
     )
 
 
@@ -50,4 +57,7 @@ async def get_property(
         # 404, never 403: an RLS-filtered (inactive, non-admin) row must be
         # indistinguishable from one that does not exist.
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Property not found.")
-    return PropertyRead.model_validate(prop, from_attributes=True)
+    media = await media_urls_by_property(db, [prop.id])
+    return PropertyRead.model_validate(prop, from_attributes=True).model_copy(
+        update={"media_urls": media[prop.id]}
+    )

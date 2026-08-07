@@ -65,6 +65,12 @@ export function MySubmissionsView() {
                   <p className="text-sm text-text-secondary">{s.location}</p>
                   <p className="mt-1 text-sm font-medium text-text-primary">{formatPaiseCompact(s.price_paise)}</p>
                   <p className="mt-1 text-xs text-text-secondary">
+                    {(s.media ?? []).filter((asset) => asset.kind === "image").length} images
+                    {(s.media ?? []).some((asset) => asset.kind === "document")
+                      ? ` · ${(s.media ?? []).filter((asset) => asset.kind === "document").length} private documents`
+                      : ""}
+                  </p>
+                  <p className="mt-1 text-xs text-text-secondary">
                     Submitted{" "}
                     {new Date(s.created_at).toLocaleDateString("en-IN", {
                       day: "numeric",

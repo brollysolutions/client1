@@ -65,6 +65,10 @@ MOBILE_CHANGE_OTP_DAILY = "mobile_change_otp_daily:{mobile}"
 # this exists specifically to catch a double-clicked send, not general abuse.
 ADMIN_BROADCAST_RATE = "admin_broadcast_rate:{admin_uuid}"
 
+# Authenticated managed property-media uploads. The owner UUID binds both the
+# Redis quota and the private object-key prefix; orphan cleanup is storage-side.
+PROPERTY_MEDIA_PRESIGN = "property_media_presign:{owner_uuid}"
+
 # TTLs in seconds
 TTL_OTP = 5 * 60  # 5 min
 TTL_OTP_RESEND = 60 * 60  # 1 hour window + lock duration
@@ -79,6 +83,7 @@ TTL_AGENT_APPLY_PRESIGN = 15 * 60  # matches the ticket's own 15 min exp
 TTL_AGENT_APPLY_OTP_DAILY = 24 * 60 * 60  # 24 h daily cap, purpose-scoped
 TTL_MOBILE_CHANGE_RATE = 60 * 60
 TTL_MOBILE_CHANGE_OTP_DAILY = 24 * 60 * 60
+TTL_PROPERTY_MEDIA_PRESIGN = 60 * 60
 
 
 # ---------------------------------------------------------------------------
@@ -213,6 +218,10 @@ def agent_apply_rate_ip_key(ip: str) -> str:
 
 def agent_apply_presign_key(jti: str) -> str:
     return AGENT_APPLY_PRESIGN.format(jti=jti)
+
+
+def property_media_presign_key(owner_uuid: str) -> str:
+    return PROPERTY_MEDIA_PRESIGN.format(owner_uuid=owner_uuid)
 
 
 def agent_apply_otp_daily_key(mobile: str) -> str:
