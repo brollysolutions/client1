@@ -89,7 +89,12 @@ export function AppSidebar({
     : isTelecaller
       ? NAV_ITEMS.filter((i) => i.key === "home" || i.telecallerOnly)
       : isEmployee
-        ? NAV_ITEMS.filter((i) => i.key === "home" || i.employeeOnly)
+        ? NAV_ITEMS.filter(
+            (i) =>
+              i.key === "home" ||
+              (i.employeeOnly &&
+                (!i.realEstateOnly || session?.businessLine === "real_estate")),
+          )
         : isAgent
           ? NAV_ITEMS.filter(
               (i) =>

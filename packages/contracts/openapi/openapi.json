@@ -2244,7 +2244,8 @@
           "field_visibility_updated",
           "mobile_change_verified",
           "mobile_changed",
-          "mobile_change_rejected"
+          "mobile_change_rejected",
+          "vehicle_arrangement_updated"
         ],
         "title": "AuditAction",
         "type": "string"
@@ -7038,7 +7039,8 @@
           "admin_broadcast",
           "mobile_change_requested",
           "mobile_changed",
-          "mobile_change_rejected"
+          "mobile_change_rejected",
+          "vehicle_arrangement_updated"
         ],
         "title": "NotificationType",
         "type": "string"
@@ -9495,6 +9497,35 @@
             ],
             "title": "Message"
           },
+          "pickup_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pickup At"
+          },
+          "pickup_location": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pickup Location"
+          },
+          "pickup_requested": {
+            "default": false,
+            "title": "Pickup Requested",
+            "type": "boolean"
+          },
           "preferred_date": {
             "format": "date",
             "title": "Preferred Date",
@@ -9619,6 +9650,16 @@
             "format": "date-time",
             "title": "Updated At",
             "type": "string"
+          },
+          "vehicle_arrangement": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/VehicleArrangementClientRead"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
@@ -11494,6 +11535,453 @@
         ],
         "title": "VapidPublicKeyResponse",
         "type": "object"
+      },
+      "VehicleArrangementAdminListResponse": {
+        "properties": {
+          "arrangements": {
+            "items": {
+              "$ref": "#/components/schemas/VehicleArrangementStaffRead"
+            },
+            "title": "Arrangements",
+            "type": "array"
+          }
+        },
+        "required": [
+          "arrangements"
+        ],
+        "title": "VehicleArrangementAdminListResponse",
+        "type": "object"
+      },
+      "VehicleArrangementAdminUpdate": {
+        "properties": {
+          "cancellation_reason": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cancellation Reason"
+          },
+          "driver_mobile": {
+            "anyOf": [
+              {
+                "pattern": "^\\+[1-9]\\d{6,14}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Driver Mobile"
+          },
+          "driver_name": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Driver Name"
+          },
+          "employee_profile_uuid": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Employee Profile Uuid"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/VehicleArrangementStatus"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "vehicle_make_model": {
+            "anyOf": [
+              {
+                "maxLength": 160,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vehicle Make Model"
+          },
+          "vehicle_registration": {
+            "anyOf": [
+              {
+                "maxLength": 40,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vehicle Registration"
+          }
+        },
+        "title": "VehicleArrangementAdminUpdate",
+        "type": "object"
+      },
+      "VehicleArrangementClientRead": {
+        "properties": {
+          "cancellation_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cancellation Reason"
+          },
+          "cancelled_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cancelled At"
+          },
+          "completed_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Completed At"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "driver_mobile": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Driver Mobile"
+          },
+          "driver_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Driver Name"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "pickup_at": {
+            "format": "date-time",
+            "title": "Pickup At",
+            "type": "string"
+          },
+          "pickup_location": {
+            "title": "Pickup Location",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/VehicleArrangementStatus"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          },
+          "vehicle_make_model": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vehicle Make Model"
+          },
+          "vehicle_registration": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vehicle Registration"
+          }
+        },
+        "required": [
+          "id",
+          "pickup_location",
+          "pickup_at",
+          "status",
+          "vehicle_make_model",
+          "vehicle_registration",
+          "driver_name",
+          "driver_mobile",
+          "completed_at",
+          "cancelled_at",
+          "cancellation_reason",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "VehicleArrangementClientRead",
+        "type": "object"
+      },
+      "VehicleArrangementEmployeeUpdate": {
+        "properties": {
+          "cancellation_reason": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cancellation Reason"
+          },
+          "status": {
+            "enum": [
+              "completed",
+              "cancelled"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "title": "VehicleArrangementEmployeeUpdate",
+        "type": "object"
+      },
+      "VehicleArrangementStaffRead": {
+        "properties": {
+          "assigned_employee_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Assigned Employee Name"
+          },
+          "assigned_employee_profile_uuid": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Assigned Employee Profile Uuid"
+          },
+          "cancellation_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cancellation Reason"
+          },
+          "cancelled_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cancelled At"
+          },
+          "completed_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Completed At"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "driver_mobile": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Driver Mobile"
+          },
+          "driver_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Driver Name"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "pickup_at": {
+            "format": "date-time",
+            "title": "Pickup At",
+            "type": "string"
+          },
+          "pickup_location": {
+            "title": "Pickup Location",
+            "type": "string"
+          },
+          "property_city": {
+            "title": "Property City",
+            "type": "string"
+          },
+          "property_locality": {
+            "title": "Property Locality",
+            "type": "string"
+          },
+          "property_title": {
+            "title": "Property Title",
+            "type": "string"
+          },
+          "site_visit_uuid": {
+            "format": "uuid",
+            "title": "Site Visit Uuid",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/VehicleArrangementStatus"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          },
+          "vehicle_make_model": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vehicle Make Model"
+          },
+          "vehicle_registration": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vehicle Registration"
+          }
+        },
+        "required": [
+          "id",
+          "site_visit_uuid",
+          "property_title",
+          "property_locality",
+          "property_city",
+          "pickup_location",
+          "pickup_at",
+          "status",
+          "vehicle_make_model",
+          "vehicle_registration",
+          "driver_name",
+          "driver_mobile",
+          "assigned_employee_profile_uuid",
+          "assigned_employee_name",
+          "completed_at",
+          "cancelled_at",
+          "cancellation_reason",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "VehicleArrangementStaffRead",
+        "type": "object"
+      },
+      "VehicleArrangementStatus": {
+        "enum": [
+          "requested",
+          "arranged",
+          "assigned",
+          "completed",
+          "cancelled"
+        ],
+        "title": "VehicleArrangementStatus",
+        "type": "string"
       },
       "VerifiableDocumentListResponse": {
         "properties": {
@@ -15450,6 +15938,118 @@
         ]
       }
     },
+    "/api/v1/admin/vehicle-arrangements": {
+      "get": {
+        "operationId": "list_vehicle_arrangements_api_v1_admin_vehicle_arrangements_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "status_filter",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/VehicleArrangementStatus"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status Filter"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VehicleArrangementAdminListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "List Vehicle Arrangements",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/vehicle-arrangements/{arrangement_id}": {
+      "patch": {
+        "operationId": "patch_vehicle_arrangement_api_v1_admin_vehicle_arrangements__arrangement_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "arrangement_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Arrangement Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VehicleArrangementAdminUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VehicleArrangementStaffRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Patch Vehicle Arrangement",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
     "/api/v1/agent-applications": {
       "post": {
         "operationId": "submit_application_api_v1_agent_applications_post",
@@ -17877,6 +18477,122 @@
           }
         ],
         "summary": "Delete Document",
+        "tags": [
+          "employee"
+        ]
+      }
+    },
+    "/api/v1/employee/vehicle-arrangements": {
+      "get": {
+        "operationId": "list_vehicle_arrangements_api_v1_employee_vehicle_arrangements_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "status_filter",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/VehicleArrangementStatus"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status Filter"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/VehicleArrangementStaffRead"
+                  },
+                  "title": "Response List Vehicle Arrangements Api V1 Employee Vehicle Arrangements Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "List Vehicle Arrangements",
+        "tags": [
+          "employee"
+        ]
+      }
+    },
+    "/api/v1/employee/vehicle-arrangements/{arrangement_id}": {
+      "patch": {
+        "operationId": "patch_vehicle_arrangement_api_v1_employee_vehicle_arrangements__arrangement_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "arrangement_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Arrangement Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VehicleArrangementEmployeeUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VehicleArrangementStaffRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Patch Vehicle Arrangement",
         "tags": [
           "employee"
         ]

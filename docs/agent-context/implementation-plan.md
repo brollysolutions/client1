@@ -11,7 +11,7 @@ Evidence baseline: `ce3baa3` ([PR #147](https://github.com/brollysolutions/clien
 Complete the approved Loans and Real Estate scope without weakening
 authorization, business-line segregation, PII/KYC handling, payout controls,
 or auditability. The current evidence-based implementation coverage is
-approximately **83%**; see [`feature-status.md`](feature-status.md) for the
+approximately **85.6%**; see [`feature-status.md`](feature-status.md) for the
 calculation and requirement-level gaps.
 
 ## Working rules
@@ -69,11 +69,56 @@ The next decision-gated priority is vehicle arrangements.
 | 3 | Support-assisted mobile-number change (FR-3.4, FR-14.3) | **Done** — [PR #146](https://github.com/brollysolutions/client1/pull/146) | `gpt-5.6-sol` / Extra High | Delivered replacement-number OTP, structured identity-proof attestation, distinct active platform-Admin maker/checker approval, enumeration-safe intake, collision-safe linked-record updates, immediate race-safe session revocation, PII-minimized audit, and user notification. |
 | 4 | Managed property/media submissions (FR-7.3, FR-13.1 through FR-13.4, OI-002) | **Done** — [PR #147](https://github.com/brollysolutions/client1/pull/147) | `gpt-5.6-sol` / Extra High | Delivered Client/Lead, Agent, and Sub Admin submission; Admin-only approval; canonical private review uploads; approved public images; bounded image/PDF quotas; content verification; ownership/RLS; account-deletion cleanup; and scheduled lifecycle cleanup. |
 | 5 | Registration/profile requirement alignment (FR-3.3, FR-17.2) | **Done** — [PR #148](https://github.com/brollysolutions/client1/pull/148) | `gpt-5.6-sol` / Extra High | Delivered mobile-first account creation, a skippable post-account profile step, optional editable/clearable identity details, verified-email-only recovery, owner/Admin RLS, deletion scrub, generated contracts, and accessible forms. |
-| 6 | Vehicle arrangements (FR-7.1, OI-003) | Decision needed | `gpt-5.6-sol` / High | Decide separate entity versus Employee task type; attach to one property deal; define statuses/assignment/audit; preserve real-estate-only access. |
+| 6 | Vehicle arrangements (FR-7.1, OI-003) | **In progress** — `feat/vehicle-arrangements` | `gpt-5.6-sol` / High | Implement the approved dedicated 1:1 site-visit arrangement, direct Admin-to-Employee assignment, client read visibility, state-machine/audit/notifications, and real-estate-only RLS. |
 | 7 | Analytics completion (FR-16.1 through FR-16.3) | Planned | `gpt-5.6-terra` / High | Add Excel or amend it out; add Agent group/team filters and summaries; preserve bounded async queries, CSV formula safety, pagination, and line isolation. |
 | 8 | Notification/email redirect completeness (FR-11.2) | Planned | `gpt-5.6-terra` / High | Inventory every producer; add valid role-aware destinations and approved email events; prevent open redirects and PII in messages; add link tests. |
 | 9 | Authenticated banner personalization (FR-12.1 through FR-12.4, FR-18.1) | Decision needed | `gpt-5.6-sol` / Extra High | Define audience grammar, consented signals, location precision/retention, safe server evaluation, fallbacks, and negative targeting tests before serving personalized content. |
 | 10 | Map/GMB integration seam (FR-18.2) | Deferred pending scope | `gpt-5.6-terra` / High | Confirm it remains in v1; define provider-neutral coordinates/address boundary and privacy constraints before adding a dependency. |
+
+### Approved feature brief — Vehicle arrangements
+
+- **Success:** a Client booking a real-estate site visit can optionally request
+  pickup, a platform Admin can arrange transport and assign one active
+  real-estate Employee, that Employee can complete or cancel their own assigned
+  arrangement, and the owning Client can follow the company-managed status and
+  safe driver/vehicle details from Site Visits.
+- **Architecture:** create a dedicated `vehicle_arrangements` entity with a
+  unique FK to `site_visits`; do not add logistics columns to `site_visits` and
+  do not add a fourth `task_type`. A property deal may already point at the same
+  site visit, so logistics remain attached to that workflow without a second
+  nullable deal FK or duplicate ownership source.
+- **Lifecycle:** the Client request creates `requested`; Admin-supplied vehicle
+  and driver details permit `arranged`; assigning an active real-estate
+  Employee permits `assigned`; `completed` and `cancelled` are terminal.
+  Cancelling the parent visit cancels a non-terminal arrangement in the same
+  transaction. Every transition is row-locked and validated server-side.
+- **Write split:** Clients set pickup location/time only during site-visit
+  creation and thereafter read the arrangement. Platform Admin lists all,
+  enters bounded logistics fields, assigns/reassigns an eligible Employee, and
+  progresses or cancels. Employees list only their own assigned arrangements
+  and may complete or cancel them. Telecaller, Sub Admin, and Agent access is
+  outside this slice.
+- **Security and privacy:** stamp `real_estate` server-side; enforce owner,
+  platform-Admin, and own-assignment access in dependencies, service queries,
+  grants, and PostgreSQL RLS; reject cross-line or inactive assignees; never put
+  pickup location, driver contact, or other PII in audit details,
+  notifications, logs, analytics, or URLs; reveal driver contact only to the
+  owning Client and assigned Employee/Admin after assignment.
+- **Failure behavior:** create the visit and optional arrangement atomically;
+  enforce one arrangement per visit in the database; return non-disclosing 404s
+  for inaccessible rows; reject invalid or concurrent transitions without
+  partial writes; and keep notifications best-effort after the durable action.
+- **Non-goals:** vehicle fleet inventory, third-party transport integrations,
+  payments/fares, live tracking, maps/geocoding, multiple pickups per visit,
+  recurring trips, Telecaller/Sub Admin/Agent fulfilment, or redesigning the
+  existing site-visit/property-deal/task workflows.
+- **Verification:** migration upgrade/downgrade and one head; API schema and
+  transition tests; Client ownership and cross-user denial; Employee
+  own-assignment and cross-line denial; platform-Admin assignment validation;
+  direct RLS denial; cancellation/concurrency/audit/notification checks;
+  regenerated contracts; accessible responsive Client/Admin/Employee web
+  flows; focused web tests; full applicable API/web/repository gates; security
+  review; and PR review.
 
 ### Approved feature brief — Registration/profile requirement alignment
 

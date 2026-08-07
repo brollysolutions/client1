@@ -160,6 +160,38 @@ This supersedes the former mandatory-email registration implementation and
 settles FR-3.3/FR-17.2 without changing CS-001 dual-line enrollment or CS-003
 profile/RLS scope.
 
+### CS-006 — vehicle arrangements are a dedicated site-visit workflow
+
+A Client may optionally request one pickup while creating a real-estate site
+visit. The request creates a dedicated `vehicle_arrangements` row linked 1:1
+to `site_visits`; vehicle logistics are not stored on the visit and are not a
+fourth Employee task type. A platform Admin enters vehicle/driver details and
+directly assigns an active real-estate Employee. The assigned Employee may
+complete or cancel the pickup, while the owning Client follows a read-only
+status and receives driver/vehicle details only after assignment.
+
+The lifecycle is `requested → arranged → assigned → completed`, with
+non-terminal cancellation. Site-visit cancellation atomically cancels its
+active arrangement through a database trigger without granting Clients UPDATE
+access to company-managed logistics. Platform-Admin, owning-Client read, and
+assigned-Employee policies remain distinct under RLS; audit and notification
+payloads exclude pickup locations and contact data.
+
+Evidence:
+
+- [`apps/api/app/models/vehicle_arrangement.py`](../../apps/api/app/models/vehicle_arrangement.py)
+- [`apps/api/app/services/vehicle_arrangements.py`](../../apps/api/app/services/vehicle_arrangements.py)
+- [`apps/api/alembic/versions/b8c9d0e1f2a3_add_vehicle_arrangements.py`](../../apps/api/alembic/versions/b8c9d0e1f2a3_add_vehicle_arrangements.py)
+- [`apps/api/app/tests/test_vehicle_arrangements_api.py`](../../apps/api/app/tests/test_vehicle_arrangements_api.py)
+- [`apps/api/app/tests/test_vehicle_arrangements_rls.py`](../../apps/api/app/tests/test_vehicle_arrangements_rls.py)
+- [`apps/web/features/admin/vehicle-arrangements-view.tsx`](../../apps/web/features/admin/vehicle-arrangements-view.tsx)
+- [`apps/web/features/employee/vehicle-arrangements-view.tsx`](../../apps/web/features/employee/vehicle-arrangements-view.tsx)
+
+This resolves OI-003 and supersedes only advisory passages that proposed
+folding fulfilment into `tasks` or attaching logistics directly to a property
+deal. A property deal may already reference the same site visit, preserving
+workflow history without a duplicate nullable ownership key.
+
 ## 3. Previously open items settled by current behavior
 
 The following entries may still be labelled “open,” “assumed,” or “pending” in
@@ -180,17 +212,12 @@ explicitly changes it.
 | Referral payout execution | Sub Admin manages bonus configuration; creating the actual referral payout is restricted to platform Admin. | [`api/v1/referral_bonus.py`](../../apps/api/app/api/v1/referral_bonus.py), [`api/v1/referrals.py`](../../apps/api/app/api/v1/referrals.py) |
 | Agent lead expiry | Agent attribution has a fixed 30-day first-attribution deadline with converted/closed exclusions, idempotent scheduled release, audit, notifications, RLS denial, and Agent history/countdown. | [PR #144](https://github.com/brollysolutions/client1/pull/144), [`services/lead_expiry.py`](../../apps/api/app/services/lead_expiry.py) |
 | Client registration and optional profile | Client registration is mobile-first; email and demographic/income/address details are optional, skippable, editable, clearable, and never gate account use. | CS-005, [PR #148](https://github.com/brollysolutions/client1/pull/148) |
+| Vehicle arrangements | One dedicated arrangement per site visit; Admin arranges and directly assigns a real-estate Employee, the assignee fulfils it, and the owning Client follows it read-only. | CS-006, migration `b8c9d0e1f2a3`, vehicle-arrangement API/RLS/web tests |
 
 ## 4. Genuine open decisions and implementation gaps
 
 These items are not resolved merely because related scaffolding exists. They
 need a separate product decision and implementation task.
-
-### OI-003 — vehicle arrangements
-
-The advisory client/employee designs describe vehicle-arrangement behavior, but
-there is no corresponding current model or workflow. Decide whether it is its
-own entity or an Employee task type before implementation.
 
 ### OI-004 — analytics caching
 

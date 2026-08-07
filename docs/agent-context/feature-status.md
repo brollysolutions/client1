@@ -4,7 +4,7 @@ Status: **Derived living implementation ledger**
 
 As of: **2026-08-07**
 
-Evidence baseline: `7943d1c` ([PR #148](https://github.com/brollysolutions/client1/pull/148))
+Evidence baseline: `feat/vehicle-arrangements` (PR pending)
 
 ## Purpose and authority
 
@@ -31,18 +31,27 @@ live-provider configuration are assessed separately.
 
 | Measure | Result |
 | --- | ---: |
-| Complete requirements | 59 / 80 (73.75%) |
-| Partial requirements | 18 / 80 (22.5%) |
+| Complete requirements | 60 / 80 (75.0%) |
+| Partial requirements | 17 / 80 (21.25%) |
 | Not-started requirements | 3 / 80 (3.75%) |
-| Weighted implementation coverage | **85.0%** |
+| Weighted implementation coverage | **85.6%** |
 
 Weighted coverage gives each Complete item 1 point and each Partial item 0.5
-points: `(59 + 18 x 0.5) / 80 = 85%`. The weighting is a planning aid, not
+points: `(60 + 17 x 0.5) / 80 = 85.625%`. The weighting is a planning aid, not
 an estimate of calendar time: a single security-sensitive gap can require more
 work than several completed UI requirements.
 
 ## Delivered implementation
 
+- **Vehicle arrangements** (FR-7.1, OI-003) are implemented on
+  `feat/vehicle-arrangements` (PR pending). Clients optionally request one
+  pickup during site-visit creation; platform Admin arranges transport and
+  directly assigns an active real-estate Employee; the assignee completes or
+  cancels it; and the owning Client follows a read-only status and safe
+  post-assignment driver/vehicle projection. A dedicated row-locked state
+  machine, database constraints/trigger, audit, notification, generated
+  contracts, role-specific web surfaces, and API/direct-RLS tests preserve
+  ownership, assignment, and business-line boundaries.
 - **Registration/profile requirement alignment** (FR-3.3, FR-17.2) is
   implemented in [PR #148](https://github.com/brollysolutions/client1/pull/148). Ordinary
   Clients now register with name and an OTP-verified mobile, then may skip or
@@ -69,7 +78,7 @@ work than several completed UI requirements.
 | Leads (FR-4.x) | 4 | 2 | 0 | Capture, assignment, ownership, fixed Agent expiry, and Agent/Telecaller workflows exist; automatic direct/Agent assignment remains incomplete. |
 | Agent registration (FR-5.x) | 4 | 0 | 0 | OTP-verified application, KYC, Admin review, Agent ID, and owned-lead contact access exist. |
 | Loans (FR-6.x) | 6 | 0 | 0 | Public pages/calculators, applications, configurable products/banks, progression, transactions, and fee cashback exist. |
-| Real estate (FR-7.x) | 4 | 1 | 0 | Catalog, managed property submissions/media, inquiries, visits, deals, review, and employee work exist; vehicles remain incomplete. |
+| Real estate (FR-7.x) | 5 | 0 | 0 | Catalog, managed property submissions/media, inquiries, visits, deals, review, Employee work, and dedicated vehicle arrangements are implemented. |
 | Commissions (FR-8.x) | 3 | 0 | 0 | Manual Admin entry, Agent earnings, approval, RazorpayX, and cheque/manual paths exist. |
 | Referrals (FR-9.x) | 5 | 0 | 0 | Client codes, attribution, conversion accrual, Admin payout, ledger, and Sub Admin rules exist. |
 | Payments (FR-10.x) | 3 | 1 | 0 | Money-purpose boundaries and payout controls exist; gateway/method breadth is narrower than specified. |
@@ -81,7 +90,7 @@ work than several completed UI requirements.
 | Analytics (FR-16.x) | 0 | 3 | 0 | Weekly/monthly reporting, filters, sorting, summaries, and CSV exist; Excel and group/team slices remain. |
 | Profile/account (FR-17.x) | 4 | 0 | 0 | Profile/settings, optional demographic/income/address details, transactions/support, deletion, retention, and Admin removal exist. |
 | Location (FR-18.x) | 0 | 0 | 2 | No consented login-location personalization or map/GMB integration seam was found. |
-| **Total** | **59** | **18** | **3** | **80 requirements** |
+| **Total** | **60** | **17** | **3** | **80 requirements** |
 
 ## Done
 
@@ -107,8 +116,11 @@ The following requirements are complete on the evidence baseline:
 - Loans: FR-6.1 through FR-6.6. Evidence includes public loan/calculator
   routes, application progression, configurable loan types/banks, Telecaller
   transaction entry, documents, and processing-fee cashback.
-- Real-estate core: FR-7.2 through FR-7.5. Evidence includes managed
-  Client/Agent/Sub Admin property submission, Admin-only review, private/public
+- Real-estate core: FR-7.1 through FR-7.5. Evidence includes dedicated
+  site-visit vehicle arrangements with Client request/read, Admin fulfilment,
+  direct Employee assignment, audit/notifications, and owner/assignee RLS;
+  managed Client/Agent/Sub Admin property submission, Admin-only review,
+  private/public
   media lifecycle, property deals, site visits, employee tasks/documents,
   client progress surfaces, and the absence of any property-payment collection
   path.
@@ -140,7 +152,6 @@ The following requirements are complete on the evidence baseline:
 | FR-2.8 | Partial | Agent pre-assignment editing, client profile editing, and Admin operational edits exist. | Define and enforce provenance-based edit ownership consistently across all submitted detail types. |
 | FR-4.2 | Partial | Agents create attributed leads; Admin can assign a Telecaller. | Decide and implement automatic assignment behavior and client-account/invite binding where required. |
 | FR-4.3 | Partial | Direct registration captures a lead and creates both client profiles. | Capture explicit requirement intent and implement deterministic per-line Telecaller assignment without cross-line leakage. |
-| FR-7.1 | Partial | Listing, inquiry, visit, and property-deal workflows exist. | Add the unresolved vehicle-arrangement workflow. |
 | FR-10.3 | Partial | RazorpayX VPA/bank payouts and manual cheque records exist. | Decide whether RuPay and multi-gateway routing are still required, then implement provider-neutral method support. |
 | FR-11.2 | Partial | Notifications and banners support `href`/deep links. | Audit every event, add missing links, and decide which non-auth email notifications are required. |
 | FR-12.1 | Partial | Default, personalized, and action banner types and lifecycle fields exist. | Add an authenticated serving path that safely evaluates personalized audiences. |
