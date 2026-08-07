@@ -32,6 +32,9 @@ export type AuditLogEntry = Schemas["AuditLogRead"];
 export type AuditAction = Schemas["AuditAction"];
 export type MobileChangeAdmin = Schemas["MobileChangeAdminRead"];
 export type MobileChangeProof = Schemas["MobileChangeProof"];
+export type VehicleArrangement = Schemas["VehicleArrangementStaffRead"];
+export type VehicleArrangementAdminUpdate = Schemas["VehicleArrangementAdminUpdate"];
+export type VehicleArrangementStatus = Schemas["VehicleArrangementStatus"];
 
 export async function createStaff(
   payload: StaffCreateRequest,
@@ -128,6 +131,27 @@ export async function listAdminEmployees(
   if (role) params.set("role", role);
   const query = params.toString() ? `?${params.toString()}` : "";
   return apiRequest<AdminEmployee[]>(`/api/v1/admin/employees${query}`);
+}
+
+export async function listAdminVehicleArrangements(
+  statusFilter?: VehicleArrangementStatus,
+): Promise<ApiResponse<VehicleArrangement[]>> {
+  const query = statusFilter ? `?status_filter=${encodeURIComponent(statusFilter)}` : "";
+  const res = await apiRequest<Schemas["VehicleArrangementAdminListResponse"]>(
+    `/api/v1/admin/vehicle-arrangements${query}`,
+  );
+  if (!res.ok) return res;
+  return { ok: true, status: res.status, data: res.data.arrangements };
+}
+
+export async function updateAdminVehicleArrangement(
+  arrangementId: string,
+  payload: VehicleArrangementAdminUpdate,
+): Promise<ApiResponse<VehicleArrangement>> {
+  return apiRequest<VehicleArrangement>(
+    `/api/v1/admin/vehicle-arrangements/${arrangementId}`,
+    { method: "PATCH", body: payload },
+  );
 }
 
 export async function listAdminLoans(

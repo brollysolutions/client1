@@ -3,6 +3,7 @@ import {
   Bookmark,
   Building2,
   CalendarCheck,
+  CarFront,
   ClipboardList,
   FilePlus2,
   FolderClosed,
@@ -68,6 +69,14 @@ export const NAV_ITEMS: NavItem[] = [
   { key: "referrals", label: "Referrals", href: "/dashboard/referrals", icon: Gift },
   { key: "leads", label: "Leads", href: "/dashboard/leads", icon: PhoneCall, telecallerOnly: true },
   { key: "tasks", label: "Tasks", href: "/dashboard/tasks", icon: ClipboardList, employeeOnly: true },
+  {
+    key: "employee-vehicle-arrangements",
+    label: "Vehicle arrangements",
+    href: "/dashboard/vehicle-arrangements",
+    icon: CarFront,
+    employeeOnly: true,
+    realEstateOnly: true,
+  },
   { key: "agent-leads", label: "Leads", href: "/dashboard/leads", icon: PhoneCall, agentOnly: true },
   {
     key: "agent-listings",
@@ -90,6 +99,13 @@ export const NAV_ITEMS: NavItem[] = [
     label: "Property deals",
     href: "/dashboard/property-deals",
     icon: Building2,
+    adminOnly: true,
+  },
+  {
+    key: "admin-vehicle-arrangements",
+    label: "Vehicle arrangements",
+    href: "/dashboard/vehicle-arrangements",
+    icon: CarFront,
     adminOnly: true,
   },
 ];
