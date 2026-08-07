@@ -2,9 +2,9 @@
 
 Status: **Derived living implementation ledger**
 
-As of: **2026-08-06**
+As of: **2026-08-07**
 
-Evidence baseline: `36098c6` ([PR #145](https://github.com/brollysolutions/client1/pull/145))
+Evidence baseline: `feat/agent-lead-expiry` (mobile-change delivery PR pending)
 
 ## Purpose and authority
 
@@ -31,13 +31,13 @@ live-provider configuration are assessed separately.
 
 | Measure | Result |
 | --- | ---: |
-| Complete requirements | 54 / 80 (67.5%) |
-| Partial requirements | 19 / 80 (23.75%) |
-| Not-started requirements | 7 / 80 (8.75%) |
-| Weighted implementation coverage | **79.4% (approximately 79%)** |
+| Complete requirements | 56 / 80 (70%) |
+| Partial requirements | 18 / 80 (22.5%) |
+| Not-started requirements | 6 / 80 (7.5%) |
+| Weighted implementation coverage | **81.25% (approximately 81%)** |
 
 Weighted coverage gives each Complete item 1 point and each Partial item 0.5
-points: `(54 + 19 x 0.5) / 80 = 79.375%`. The weighting is a planning aid, not
+points: `(56 + 18 x 0.5) / 80 = 81.25%`. The weighting is a planning aid, not
 an estimate of calendar time: a single security-sensitive gap can require more
 work than several completed UI requirements.
 
@@ -47,7 +47,7 @@ work than several completed UI requirements.
 | --- | ---: | ---: | ---: | --- |
 | Platform and segregation (FR-1.x) | 4 | 1 | 0 | Core line tagging, routing, RLS, dashboards, and API exist; the universal wording still includes media paths that do not exist yet. |
 | Roles and access (FR-2.x) | 7 | 2 | 0 | Six role surfaces, server/RLS guards, and Admin-managed closed-catalogue field visibility exist; Admin coverage and edit ownership are not exhaustive. |
-| Authentication (FR-3.x) | 3 | 0 | 2 | OTP/password/session flows and dual-line client identity exist; optional email and assisted mobile change do not match the baseline. |
+| Authentication (FR-3.x) | 4 | 0 | 1 | OTP/password/session flows, dual-line client identity, and support-assisted mobile change exist; optional email does not match the baseline. |
 | Leads (FR-4.x) | 4 | 2 | 0 | Capture, assignment, ownership, fixed Agent expiry, and Agent/Telecaller workflows exist; automatic direct/Agent assignment remains incomplete. |
 | Agent registration (FR-5.x) | 4 | 0 | 0 | OTP-verified application, KYC, Admin review, Agent ID, and owned-lead contact access exist. |
 | Loans (FR-6.x) | 6 | 0 | 0 | Public pages/calculators, applications, configurable products/banks, progression, transactions, and fee cashback exist. |
@@ -58,12 +58,12 @@ work than several completed UI requirements.
 | Notifications (FR-11.x) | 2 | 1 | 0 | In-app and web push plus Admin major-action notifications exist; email/event redirect coverage is incomplete. |
 | Banners/personalization (FR-12.x) | 0 | 3 | 1 | Banner lifecycle, targeting fields, approval, images, and deep links exist; authenticated targeting and context-driven placement do not. |
 | Media/uploads (FR-13.x) | 0 | 3 | 1 | Secure purpose-specific image/PDF flows exist; unified per-line galleries, camera flows, and video are absent. |
-| Support (FR-14.x) | 3 | 1 | 0 | Central tickets, WhatsApp route, Admin triage, and resolution exist; mobile-change fulfilment is absent. |
+| Support (FR-14.x) | 4 | 0 | 0 | Central tickets, WhatsApp route, Admin triage/resolution, and structured mobile-change fulfilment exist. |
 | Contact privacy (FR-15.x) | 4 | 0 | 0 | Agent-owned and Telecaller-assigned mobile access is locked; Employee raw/deny/provider-neutral invitation modes and least-data projection are enforced server-side. |
 | Analytics (FR-16.x) | 0 | 3 | 0 | Weekly/monthly reporting, filters, sorting, summaries, and CSV exist; Excel and group/team slices remain. |
 | Profile/account (FR-17.x) | 3 | 0 | 1 | Profile/settings, transactions/support, deletion, retention, and Admin removal exist; required demographic/income fields do not. |
 | Location (FR-18.x) | 0 | 0 | 2 | No consented login-location personalization or map/GMB integration seam was found. |
-| **Total** | **54** | **19** | **7** | **80 requirements** |
+| **Total** | **56** | **18** | **6** | **80 requirements** |
 
 ## Done
 
@@ -73,9 +73,10 @@ The following requirements are complete on the evidence baseline:
   FR-2.7; and FR-2.9. Evidence includes `app/core/deps.py`, profile models, RLS
   migrations, role dashboards, Admin field-visibility APIs/UI, server-side
   response projection, policy audit, and cross-role/cross-line tests.
-- Authentication: FR-3.1, FR-3.2, and FR-3.5 as amended by CS-001. Evidence
-  includes the OTP, registration, password, refresh-rotation, and dual-profile
-  tests under `apps/api/app/tests/auth`.
+- Authentication: FR-3.1, FR-3.2, FR-3.4, and FR-3.5 as amended by CS-001.
+  Evidence includes OTP/password/session flows, dual profiles, replacement-number
+  OTP intake, platform-Admin maker/checker review, session-generation revocation,
+  linked-contact updates, collision rollback, and API/RLS/concurrency tests.
 - Lead operations: FR-4.1, FR-4.4 through FR-4.6. Evidence includes the lead
   spine, Admin assignment/release, Agent-owned lead APIs, Telecaller follow-up,
   fixed first-attribution deadlines, the idempotent expiry scheduler, audit and
@@ -97,11 +98,12 @@ The following requirements are complete on the evidence baseline:
 - Notifications: FR-11.1 and FR-11.3. Evidence includes in-app feeds,
   browser push subscriptions/delivery, Admin major-action notifications, and
   Admin broadcast.
-- Support and communication: FR-14.1, FR-14.2, FR-14.4, and FR-15.1 through
-  FR-15.4. Evidence includes central support tickets, Admin triage, existing
-  browser WhatsApp links, locked Agent/Telecaller mobile rules, Admin-controlled
-  least-data projection, and expiring/revocable provider-neutral Employee
-  invitations. No WhatsApp API integration is present or planned by this slice.
+- Support and communication: FR-14.1 through FR-14.4 and FR-15.1 through
+  FR-15.4. Evidence includes central support tickets, structured mobile-change
+  fulfilment, Admin triage, existing browser WhatsApp links, locked
+  Agent/Telecaller mobile rules, Admin-controlled least-data projection, and
+  expiring/revocable provider-neutral Employee invitations. No WhatsApp API
+  integration is present or planned by this slice.
 - Account lifecycle: FR-17.1, FR-17.3, and FR-17.4. Evidence includes
   role-aware settings/navigation, transaction and support surfaces,
   password-confirmed self-deletion, Admin deletion, de-linking, and seven-year
@@ -115,7 +117,6 @@ The following requirements are complete on the evidence baseline:
 | FR-2.2 | Partial | Admin dashboards cover users, leads, tasks, agents, loans, deals, payouts, content, audit, and reports. | Complete the requirement's exhaustive view/update coverage and verify every surface in Admin UI. |
 | FR-2.8 | Partial | Agent pre-assignment editing, client profile editing, and Admin operational edits exist. | Define and enforce provenance-based edit ownership consistently across all submitted detail types. |
 | FR-3.3 | Not started | Registration supports name, mobile, and email. | Reconcile the approved optional-email requirement with the current mandatory unique email/security flow before changing code. |
-| FR-3.4 | Not started | A user can open an Admin-routed support ticket. | Add a high-assurance, support-assisted mobile-number change workflow with takeover prevention, session revocation, audit, and uniqueness handling. |
 | FR-4.2 | Partial | Agents create attributed leads; Admin can assign a Telecaller. | Decide and implement automatic assignment behavior and client-account/invite binding where required. |
 | FR-4.3 | Partial | Direct registration captures a lead and creates both client profiles. | Capture explicit requirement intent and implement deterministic per-line Telecaller assignment without cross-line leakage. |
 | FR-7.1 | Partial | Listing, inquiry, visit, and property-deal workflows exist. | Add the unresolved vehicle-arrangement workflow. |
@@ -130,7 +131,6 @@ The following requirements are complete on the evidence baseline:
 | FR-13.2 | Partial | Agent KYC, loan/task documents, and banner images have managed upload flows. | Add approved camera capture and feedback/media attachments to the relevant journeys. |
 | FR-13.3 | Partial | Current flows accept constrained images and PDFs. | Define and add safe video types, size/duration limits, transcoding/serving policy, and malware/content checks. |
 | FR-13.4 | Partial | Existing upload purposes enforce type/count/size and orphan cleanup selectively. | Apply consistent quotas, rate limits, retention, and orphan cleanup to every future media purpose. |
-| FR-14.3 | Partial | Support tickets can capture the request. | Implement the actual mobile-change fulfilment and client confirmation flow described under FR-3.4. |
 | FR-16.1 | Partial | Weekly/monthly buckets, date filters, and CSV export exist. | Add Excel export or explicitly amend it out of scope. |
 | FR-16.2 | Partial | Reports filter by one Agent and business line. | Add saved/explicit Agent-group and team filters. |
 | FR-16.3 | Partial | Lead/loan/deal counts and per-Agent performance with sorting exist. | Add agreed per-team summaries and selective group views. |

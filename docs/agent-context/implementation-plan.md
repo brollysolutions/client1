@@ -2,16 +2,16 @@
 
 Status: **Derived, actively maintained plan**
 
-As of: **2026-08-06**
+As of: **2026-08-07**
 
-Evidence baseline: `ecf6e2a` (`upstream/main`)
+Evidence baseline: `f083132` (`upstream/main`) plus `feat/agent-lead-expiry`
 
 ## Outcome
 
 Complete the approved Loans and Real Estate scope without weakening
 authorization, business-line segregation, PII/KYC handling, payout controls,
 or auditability. The current evidence-based implementation coverage is
-approximately **77%**; see [`feature-status.md`](feature-status.md) for the
+approximately **81%**; see [`feature-status.md`](feature-status.md) for the
 calculation and requirement-level gaps.
 
 ## Working rules
@@ -66,7 +66,7 @@ The next decision-gated priority is support-assisted mobile-number change.
 | ---: | --- | --- | --- | --- |
 | 1 | Agent-lead expiry (FR-4.6, OI-001) | **Done** — [PR #144](https://github.com/brollysolutions/client1/pull/144) | `gpt-5.6-sol` / High | Delivered fixed 30-day first-attribution deadlines, converted/closed exclusions, indexed idempotent release, audit/notifications, RLS/deadline write denial, Agent countdown/history, seven-day legacy grace, and deferred constraint race protection. |
 | 2 | Admin field visibility and contact controls (FR-2.9, FR-15.1, FR-15.4) | **Done** — [PR #145](https://github.com/brollysolutions/client1/pull/145) | `gpt-5.6-sol` / Extra High | Delivered a closed server-owned catalogue, server-side least-data projection, locked Agent/Telecaller mobile rules, Employee allow/deny/provider-neutral invitation modes, policy audit, RLS, and lifecycle/race denial tests. |
-| 3 | Support-assisted mobile-number change (FR-3.4, FR-14.3) | Decision needed | `gpt-5.6-sol` / Extra High | Choose proof/approval policy; prevent takeover and enumeration; enforce uniqueness; rotate/revoke sessions; update lead/referral links safely; audit and notify. |
+| 3 | Support-assisted mobile-number change (FR-3.4, FR-14.3) | **In review** — `feat/agent-lead-expiry` (PR pending) | `gpt-5.6-sol` / Extra High | Implemented replacement-number OTP, structured identity-proof attestation, distinct active platform-Admin maker/checker approval, enumeration-safe intake, collision-safe linked-record updates, immediate race-safe session revocation, PII-minimized audit, and user notification. Linux CI remains the database-backed delivery gate. |
 | 4 | Managed property/media submissions (FR-7.3, FR-13.1 through FR-13.4, OI-002) | Decision needed | `gpt-5.6-sol` / Extra High | Decide asset types/counts/limits/visibility; support Client/Lead submissions if approved; use private/public prefixes correctly; sniff content; clean orphans; test ownership and cross-line denial. |
 | 5 | Registration/profile requirement alignment (FR-3.3, FR-17.2) | Decision needed | `gpt-5.6-sol` / High | Resolve optional-email conflict and when demographic/income/address PII is collected; minimize fields; define edits/retention; update contracts and accessible forms. |
 | 6 | Vehicle arrangements (FR-7.1, OI-003) | Decision needed | `gpt-5.6-sol` / High | Decide separate entity versus Employee task type; attach to one property deal; define statuses/assignment/audit; preserve real-estate-only access. |
@@ -74,6 +74,87 @@ The next decision-gated priority is support-assisted mobile-number change.
 | 8 | Notification/email redirect completeness (FR-11.2) | Planned | `gpt-5.6-terra` / High | Inventory every producer; add valid role-aware destinations and approved email events; prevent open redirects and PII in messages; add link tests. |
 | 9 | Authenticated banner personalization (FR-12.1 through FR-12.4, FR-18.1) | Decision needed | `gpt-5.6-sol` / Extra High | Define audience grammar, consented signals, location precision/retention, safe server evaluation, fallbacks, and negative targeting tests before serving personalized content. |
 | 10 | Map/GMB integration seam (FR-18.2) | Deferred pending scope | `gpt-5.6-terra` / High | Confirm it remains in v1; define provider-neutral coordinates/address boundary and privacy constraints before adding a dependency. |
+
+### Approved feature brief — Support-assisted mobile-number change
+
+- **Success:** a user who no longer controls their registered number can prove
+  possession of a replacement number, pass Admin-only identity review, and use
+  the replacement for login and password recovery; the old number and every
+  pre-change session stop working immediately after completion.
+- **Behavior:** provide public locked-out and authenticated dashboard intake.
+  Verify the replacement number with the existing hashed, expiring,
+  attempt-limited OTP rails, create a structured request linked to a
+  `lost_mobile` support ticket, require one platform Admin to attest an approved
+  proof method and a different platform Admin to complete the change, then
+  resolve the ticket. Platform-Admin target accounts remain out of scope.
+- **Identity proof:** approved proof methods are verified-email confirmation,
+  review of already-held KYC, staff HR/manager confirmation, or in-person
+  verification. Store only the method and a bounded, PII-free attestation; do
+  not add knowledge-question recovery or a new document-upload path.
+- **Compatibility:** preserve the immutable account UUID, roles, profiles,
+  business-line/RLS claims, lead provenance, Agent-expiry history, referrals,
+  and generated-contract ownership. Update the canonical mobile plus only the
+  linked operational contact copies required for current workflows; never
+  merge accounts or transfer unrelated lead/referral attribution.
+- **Security and failure invariants:** keep public responses enumeration-safe;
+  rate-limit by trustworthy IP and both numbers; bind OTP proof to a signed,
+  purpose-scoped challenge and burn the OTP on successful use; require
+  target, maker, and checker to differ; lock the request and user and revalidate
+  all collision checks at completion; commit the mobile,
+  linked-record, ticket, refresh-token, access-session-generation, push-device,
+  and audit changes atomically; keep phone values, OTPs, proof material, and
+  ticket free text out of logs/audit details; scrub active request PII on
+  terminal state and account deletion.
+- **Non-goals:** self-service completion, platform-Admin account recovery,
+  account merge/swap, reassignment of unrelated leads or referrals, new
+  WhatsApp/SMS/email integrations, new KYC uploads, password/email change in
+  the same workflow, and rewriting historical auth events or terminal contact
+  snapshots.
+- **Verification matrix:** public/authenticated initiation; known/unknown and
+  conflict response parity; OTP expiry/attempt/rate/replay/purpose isolation;
+  Admin/Sub Admin/client/RLS denial; maker-checker and target separation;
+  state-machine and concurrent completion; auth/lead/referral/application
+  collision rollback; linked live-contact updates; old access/refresh/reset
+  denial and new login/reset success; account-deletion scrub; PII-free audit
+  and notifications; generated contract and accessible responsive UI;
+  migration upgrade/downgrade and one head; focused, full API/web/E2E, security,
+  and repository gates.
+
+### Delivered feature evidence — Support-assisted mobile-number change
+
+- **Behavior:** public locked-out and authenticated users verify a replacement
+  number with the purpose-scoped OTP rails. Eligible requests create a
+  structured `lost_mobile` ticket; one active platform Admin records a bounded,
+  PII-free proof attestation and a different active platform Admin completes
+  the canonical identity change after password reauthentication.
+- **Identity safety:** completion preserves the account UUID and updates only
+  linked live contact copies. It locks the request and user, revalidates account,
+  proof, and replacement conflicts, translates uniqueness races into an atomic
+  409 rollback, increments the access-session generation, revokes refresh
+  tokens and push subscriptions, and serializes concurrent refresh rotation on
+  the same user row.
+- **Authorization and privacy:** platform-Admin targets and Sub Admins are
+  excluded; the bypass service re-checks the live Admin profile. PostgreSQL
+  grants only `SELECT` to `api_user`, with owner/platform-Admin RLS. Audit and
+  notification details contain no phone values, free text rejects contact-like
+  PII, and raw old/new numbers are scrubbed on terminal state and account
+  deletion.
+- **Fresh local evidence:** Ruff check/format, Python compilation, 36-test
+  collection, one Alembic head, migration-only offline SQL, deterministic
+  OpenAPI/TypeScript regeneration, web lint/typecheck, and all 261 web tests
+  pass. The web production build previously compiled, type-checked, and
+  generated all 91 pages before Windows denied the final standalone symlink
+  copy (`EPERM`). Database-backed API execution is delegated to Linux PR CI
+  because the local Docker PostgreSQL/Redis control path is unresponsive.
+- **Post-merge CI repair:** the three failures in main run
+  [31129957083](https://github.com/brollysolutions/client1/actions/runs/31129957083)
+  are repaired by freezing the employee-home date fixture and reconciling the
+  platform-policy ledger with the split task-document and loan-document
+  policies. That run otherwise reported 1,404 passing API tests.
+- **Security review:** refresh-rotation and registration collision races plus
+  stale-Admin token reachability were found and remediated. Remaining local
+  uncertainty is limited to database-backed execution and the Windows-only
+  build packaging restriction; PR CI is the authoritative gate.
 
 ### Approved feature brief — Admin field visibility and contact controls
 
@@ -182,11 +263,11 @@ The next decision-gated priority is support-assisted mobile-number change.
 
 ## Delivery sequence
 
-The default next feature is **support-assisted mobile-number change**
-(FR-3.4/FR-14.3). Begin with a decision/design pass for identity proof,
-maker-checker approval, uniqueness conflicts, session revocation, linked-record
-behavior, audit evidence, and user notification. This does not require or imply
-a WhatsApp API integration.
+The next priority is the decision gate for **managed property/media
+submissions** (FR-7.3 and FR-13.1 through FR-13.4). Settle submitter scope,
+asset types, quotas, visibility, storage lifecycle, and safe media processing
+before implementation; do not add a provider or upload path until those
+security and product choices are approved.
 
 For each item:
 

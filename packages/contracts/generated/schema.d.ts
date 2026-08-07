@@ -585,6 +585,74 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/mobile-change-requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Requests */
+        get: operations["list_requests_api_v1_admin_mobile_change_requests_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/mobile-change-requests/{request_id}/complete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Complete */
+        post: operations["complete_api_v1_admin_mobile_change_requests__request_id__complete_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/mobile-change-requests/{request_id}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reject */
+        post: operations["reject_api_v1_admin_mobile_change_requests__request_id__reject_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/mobile-change-requests/{request_id}/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Verify Identity */
+        post: operations["verify_identity_api_v1_admin_mobile_change_requests__request_id__verify_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/property-deals": {
         parameters: {
             query?: never;
@@ -1823,6 +1891,74 @@ export interface paths {
         get: operations["get_my_loan_officer_contact_api_v1_loans_officer_get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/mobile-change/authenticated/initiate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Initiate Authenticated */
+        post: operations["initiate_authenticated_api_v1_mobile_change_authenticated_initiate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/mobile-change/initiate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Initiate Public */
+        post: operations["initiate_public_api_v1_mobile_change_initiate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/mobile-change/resend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Resend */
+        post: operations["resend_api_v1_mobile_change_resend_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/mobile-change/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Verify */
+        post: operations["verify_api_v1_mobile_change_verify_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3699,7 +3835,7 @@ export interface components {
          *     `services/fee_cashbacks.py` (FR-6.6 processing-fee cashback).
          * @enum {string}
          */
-        AuditAction: "agent_approved" | "agent_rejected" | "staff_created" | "account_removed" | "payout_approved" | "payout_rejected" | "property_submission_approved" | "property_submission_rejected" | "support_ticket_advanced" | "retention_purged" | "loan_type_created" | "loan_type_updated" | "bank_created" | "bank_updated" | "bank_availability_updated" | "commission_entered" | "commission_cancelled" | "fee_cashback_entered" | "fee_cashback_cancelled" | "document_verified" | "document_unverified" | "payout_link_reconciled" | "notification_broadcast" | "agent_lead_expired" | "field_visibility_updated";
+        AuditAction: "agent_approved" | "agent_rejected" | "staff_created" | "account_removed" | "payout_approved" | "payout_rejected" | "property_submission_approved" | "property_submission_rejected" | "support_ticket_advanced" | "retention_purged" | "loan_type_created" | "loan_type_updated" | "bank_created" | "bank_updated" | "bank_availability_updated" | "commission_entered" | "commission_cancelled" | "fee_cashback_entered" | "fee_cashback_cancelled" | "document_verified" | "document_unverified" | "payout_link_reconciled" | "notification_broadcast" | "agent_lead_expired" | "field_visibility_updated" | "mobile_change_verified" | "mobile_changed" | "mobile_change_rejected";
         /** AuditLogListResponse */
         AuditLogListResponse: {
             /** Entries */
@@ -5207,6 +5343,141 @@ export interface components {
             /** Message */
             message: string;
         };
+        /** MobileChangeAdminCompleteRequest */
+        MobileChangeAdminCompleteRequest: {
+            /** Current Password */
+            current_password: string;
+        };
+        /** MobileChangeAdminListResponse */
+        MobileChangeAdminListResponse: {
+            /** Requests */
+            requests: components["schemas"]["MobileChangeAdminRead"][];
+        };
+        /** MobileChangeAdminRead */
+        MobileChangeAdminRead: {
+            /**
+             * Auth User Uuid
+             * Format: uuid
+             */
+            auth_user_uuid: string;
+            /** Conflicts */
+            conflicts: string[];
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Current Mobile */
+            current_mobile: string | null;
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Proof Attestation */
+            proof_attestation: string | null;
+            proof_method: components["schemas"]["MobileChangeProof"] | null;
+            /** Requested Mobile */
+            requested_mobile: string | null;
+            /** Requester Name */
+            requester_name: string;
+            /** Requester Role */
+            requester_role: string;
+            source: components["schemas"]["MobileChangeSource"];
+            status: components["schemas"]["MobileChangeStatus"];
+            /**
+             * Support Ticket Uuid
+             * Format: uuid
+             */
+            support_ticket_uuid: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Verified By Name */
+            verified_by_name: string | null;
+        };
+        /** MobileChangeAdminRejectRequest */
+        MobileChangeAdminRejectRequest: {
+            /** Current Password */
+            current_password: string;
+            /** Reason */
+            reason: string;
+        };
+        /** MobileChangeAdminVerifyRequest */
+        MobileChangeAdminVerifyRequest: {
+            /** Current Password */
+            current_password: string;
+            /** Proof Attestation */
+            proof_attestation: string;
+            proof_method: components["schemas"]["MobileChangeProof"];
+        };
+        /** MobileChangeAuthenticatedInitiateRequest */
+        MobileChangeAuthenticatedInitiateRequest: {
+            /** Current Password */
+            current_password: string;
+            /** Requested Mobile */
+            requested_mobile: string;
+        };
+        /** MobileChangeChallengeResponse */
+        MobileChangeChallengeResponse: {
+            /** Challenge Token */
+            challenge_token: string;
+            /**
+             * Delivery Channel
+             * @enum {string}
+             */
+            delivery_channel: "voice" | "email" | "none";
+            /** Message */
+            message: string;
+            /** Otp Hint */
+            otp_hint?: string | null;
+        };
+        /**
+         * MobileChangeProof
+         * @enum {string}
+         */
+        MobileChangeProof: "verified_email" | "existing_kyc" | "staff_confirmation" | "in_person";
+        /** MobileChangePublicInitiateRequest */
+        MobileChangePublicInitiateRequest: {
+            /**
+             * Company
+             * @default
+             */
+            company: string;
+            /** Current Mobile */
+            current_mobile: string;
+            /** Requested Mobile */
+            requested_mobile: string;
+        };
+        /** MobileChangeResendRequest */
+        MobileChangeResendRequest: {
+            /** Challenge Token */
+            challenge_token: string;
+        };
+        /**
+         * MobileChangeSource
+         * @enum {string}
+         */
+        MobileChangeSource: "public" | "authenticated";
+        /**
+         * MobileChangeStatus
+         * @enum {string}
+         */
+        MobileChangeStatus: "pending_review" | "pending_approval" | "completed" | "rejected" | "cancelled" | "expired";
+        /** MobileChangeVerifyOtpRequest */
+        MobileChangeVerifyOtpRequest: {
+            /** Challenge Token */
+            challenge_token: string;
+            /** Otp */
+            otp: string;
+        };
         /** MyReferralResponse */
         MyReferralResponse: {
             /** Code */
@@ -5248,7 +5519,7 @@ export interface components {
          * NotificationType
          * @enum {string}
          */
-        NotificationType: "site_visit_requested" | "site_visit_cancelled" | "support_ticket_received" | "lead_assigned" | "lead_released" | "agent_lead_expired" | "task_assigned" | "loan_status_updated" | "property_deal_status_updated" | "referral_converted" | "support_ticket_resolved" | "document_review_updated" | "admin_payout_reviewed" | "admin_account_action" | "admin_retention_purged" | "admin_broadcast";
+        NotificationType: "site_visit_requested" | "site_visit_cancelled" | "support_ticket_received" | "lead_assigned" | "lead_released" | "agent_lead_expired" | "task_assigned" | "loan_status_updated" | "property_deal_status_updated" | "referral_converted" | "support_ticket_resolved" | "document_review_updated" | "admin_payout_reviewed" | "admin_account_action" | "admin_retention_purged" | "admin_broadcast" | "mobile_change_requested" | "mobile_changed" | "mobile_change_rejected";
         /** OfferCreate */
         OfferCreate: {
             /** Business Line */
@@ -8075,6 +8346,131 @@ export interface operations {
             };
         };
     };
+    list_requests_api_v1_admin_mobile_change_requests_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileChangeAdminListResponse"];
+                };
+            };
+        };
+    };
+    complete_api_v1_admin_mobile_change_requests__request_id__complete_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                request_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MobileChangeAdminCompleteRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MessageResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reject_api_v1_admin_mobile_change_requests__request_id__reject_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                request_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MobileChangeAdminRejectRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MessageResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    verify_identity_api_v1_admin_mobile_change_requests__request_id__verify_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                request_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MobileChangeAdminVerifyRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MessageResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_property_deals_api_v1_admin_property_deals_get: {
         parameters: {
             query?: {
@@ -10719,6 +11115,138 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["LoanOfficerContactRead"] | null;
+                };
+            };
+        };
+    };
+    initiate_authenticated_api_v1_mobile_change_authenticated_initiate_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MobileChangeAuthenticatedInitiateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileChangeChallengeResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    initiate_public_api_v1_mobile_change_initiate_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MobileChangePublicInitiateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileChangeChallengeResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    resend_api_v1_mobile_change_resend_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MobileChangeResendRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileChangeChallengeResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    verify_api_v1_mobile_change_verify_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MobileChangeVerifyOtpRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MessageResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

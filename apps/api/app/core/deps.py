@@ -158,6 +158,19 @@ async def get_current_user(
     # change-password via this same dependency.
     if user.status in (UserStatus.SOFT_DELETED, UserStatus.SUSPENDED):
         raise credentials_error
+    # Tokens issued before this column existed implicitly carry version 1, so
+    # the migration is rollout-safe.  A mobile change increments the stored
+    # version and every old access token then fails on its next request.
+    try:
+        token_session_version = int(claims.get("session_version", 1))
+    except (TypeError, ValueError) as exc:
+        raise credentials_error from exc
+    if token_session_version != user.session_version:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Session is no longer valid. Please log in again.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
 
     return CurrentUser(
         id=user_id,

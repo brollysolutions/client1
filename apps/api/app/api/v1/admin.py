@@ -163,6 +163,7 @@ from app.services.property_deals import (
 from app.services.support_tickets import (
     AdminTicketView,
     TicketIllegalTransition,
+    TicketManagedWorkflow,
     TicketNotFound,
     advance_ticket,
 )
@@ -810,6 +811,11 @@ async def advance_support_ticket(
     except TicketIllegalTransition as exc:
         raise HTTPException(
             status.HTTP_409_CONFLICT, "That status change is not allowed from the current status."
+        ) from exc
+    except TicketManagedWorkflow as exc:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            "Use the mobile-change review workflow for this recovery ticket.",
         ) from exc
 
     view = await view_support_ticket_for_admin(db, ticket)

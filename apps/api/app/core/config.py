@@ -80,6 +80,14 @@ class Settings(BaseSettings):
     # register/forgot for the day. Security review finding, 2026-07-26.
     AGENT_APPLY_OTP_DAILY_LIMIT: int = 3
 
+    # Support-assisted mobile-number recovery.  Initiation is public and sends
+    # a voice OTP to the replacement number, so it has its own abuse budgets in
+    # addition to the shared OTP per-IP/per-number caps.
+    MOBILE_CHANGE_RATE_LIMIT_PER_IP: int = 10
+    MOBILE_CHANGE_RATE_LIMIT_PER_ACCOUNT: int = 3
+    MOBILE_CHANGE_OTP_DAILY_LIMIT: int = 3
+    MOBILE_CHANGE_REQUEST_EXPIRE_DAYS: int = 7
+
     # Max KYC upload size for agent-application intake, signed into the
     # presigned-POST policy (storage rejects oversize bodies itself — never
     # trust the browser's own check). Mirrors DEFAULT_MAX_BYTES in

@@ -153,7 +153,7 @@ async def _build_access_claims(db: AsyncSession, user: User) -> dict:
     Precedence: staff > agent > client. A normal account is exactly one kind;
     if multiple ever coexist, the most privileged wins.
     """
-    claims: dict = {"sub": str(user.id)}
+    claims: dict = {"sub": str(user.id), "session_version": user.session_version}
 
     staff = await db.scalar(
         select(StaffProfile).where(
@@ -628,7 +628,12 @@ async def login(
     # additionally rejects non-ACTIVE users as defence in depth.
     if user.status == UserStatus.PENDING_PASSWORD_RESET:
         access_token = create_access_token(
-            {"sub": str(user.id), "role": "client", "force_reset": True}
+            {
+                "sub": str(user.id),
+                "role": "client",
+                "force_reset": True,
+                "session_version": user.session_version,
+            }
         )
         return _build_tokens_response(access_token, user), ""
 
@@ -669,7 +674,13 @@ async def refresh_token(
             detail="Refresh token expired.",
         )
 
-    user = await db.get(User, row.auth_user_uuid)
+    # Serialize refresh rotation with identity/session-generation changes.
+    # Mobile-number completion locks this same row before incrementing
+    # session_version and revoking refresh tokens.  Without the row lock, a
+    # concurrent rotation could insert a child after the revocation UPDATE's
+    # statement snapshot and leave that child able to mint a post-change
+    # access token.
+    user = await db.scalar(select(User).where(User.id == row.auth_user_uuid).with_for_update())
     if not user:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found.")
 

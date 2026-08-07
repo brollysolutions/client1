@@ -2241,7 +2241,10 @@
           "payout_link_reconciled",
           "notification_broadcast",
           "agent_lead_expired",
-          "field_visibility_updated"
+          "field_visibility_updated",
+          "mobile_change_verified",
+          "mobile_changed",
+          "mobile_change_rejected"
         ],
         "title": "AuditAction",
         "type": "string"
@@ -6332,6 +6335,362 @@
         "title": "MessageResponse",
         "type": "object"
       },
+      "MobileChangeAdminCompleteRequest": {
+        "properties": {
+          "current_password": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Current Password",
+            "type": "string"
+          }
+        },
+        "required": [
+          "current_password"
+        ],
+        "title": "MobileChangeAdminCompleteRequest",
+        "type": "object"
+      },
+      "MobileChangeAdminListResponse": {
+        "properties": {
+          "requests": {
+            "items": {
+              "$ref": "#/components/schemas/MobileChangeAdminRead"
+            },
+            "title": "Requests",
+            "type": "array"
+          }
+        },
+        "required": [
+          "requests"
+        ],
+        "title": "MobileChangeAdminListResponse",
+        "type": "object"
+      },
+      "MobileChangeAdminRead": {
+        "properties": {
+          "auth_user_uuid": {
+            "format": "uuid",
+            "title": "Auth User Uuid",
+            "type": "string"
+          },
+          "conflicts": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Conflicts",
+            "type": "array"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "current_mobile": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Current Mobile"
+          },
+          "expires_at": {
+            "format": "date-time",
+            "title": "Expires At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "proof_attestation": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Proof Attestation"
+          },
+          "proof_method": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MobileChangeProof"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "requested_mobile": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Requested Mobile"
+          },
+          "requester_name": {
+            "title": "Requester Name",
+            "type": "string"
+          },
+          "requester_role": {
+            "title": "Requester Role",
+            "type": "string"
+          },
+          "source": {
+            "$ref": "#/components/schemas/MobileChangeSource"
+          },
+          "status": {
+            "$ref": "#/components/schemas/MobileChangeStatus"
+          },
+          "support_ticket_uuid": {
+            "format": "uuid",
+            "title": "Support Ticket Uuid",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          },
+          "verified_by_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Verified By Name"
+          }
+        },
+        "required": [
+          "id",
+          "auth_user_uuid",
+          "support_ticket_uuid",
+          "source",
+          "status",
+          "current_mobile",
+          "requested_mobile",
+          "requester_name",
+          "requester_role",
+          "proof_method",
+          "proof_attestation",
+          "verified_by_name",
+          "conflicts",
+          "expires_at",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "MobileChangeAdminRead",
+        "type": "object"
+      },
+      "MobileChangeAdminRejectRequest": {
+        "properties": {
+          "current_password": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Current Password",
+            "type": "string"
+          },
+          "reason": {
+            "maxLength": 500,
+            "minLength": 3,
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "reason",
+          "current_password"
+        ],
+        "title": "MobileChangeAdminRejectRequest",
+        "type": "object"
+      },
+      "MobileChangeAdminVerifyRequest": {
+        "properties": {
+          "current_password": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Current Password",
+            "type": "string"
+          },
+          "proof_attestation": {
+            "maxLength": 300,
+            "minLength": 3,
+            "title": "Proof Attestation",
+            "type": "string"
+          },
+          "proof_method": {
+            "$ref": "#/components/schemas/MobileChangeProof"
+          }
+        },
+        "required": [
+          "proof_method",
+          "proof_attestation",
+          "current_password"
+        ],
+        "title": "MobileChangeAdminVerifyRequest",
+        "type": "object"
+      },
+      "MobileChangeAuthenticatedInitiateRequest": {
+        "properties": {
+          "current_password": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Current Password",
+            "type": "string"
+          },
+          "requested_mobile": {
+            "pattern": "^\\+[1-9]\\d{6,14}$",
+            "title": "Requested Mobile",
+            "type": "string"
+          }
+        },
+        "required": [
+          "requested_mobile",
+          "current_password"
+        ],
+        "title": "MobileChangeAuthenticatedInitiateRequest",
+        "type": "object"
+      },
+      "MobileChangeChallengeResponse": {
+        "properties": {
+          "challenge_token": {
+            "title": "Challenge Token",
+            "type": "string"
+          },
+          "delivery_channel": {
+            "enum": [
+              "voice",
+              "email",
+              "none"
+            ],
+            "title": "Delivery Channel",
+            "type": "string"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "otp_hint": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Otp Hint"
+          }
+        },
+        "required": [
+          "message",
+          "challenge_token",
+          "delivery_channel"
+        ],
+        "title": "MobileChangeChallengeResponse",
+        "type": "object"
+      },
+      "MobileChangeProof": {
+        "enum": [
+          "verified_email",
+          "existing_kyc",
+          "staff_confirmation",
+          "in_person"
+        ],
+        "title": "MobileChangeProof",
+        "type": "string"
+      },
+      "MobileChangePublicInitiateRequest": {
+        "properties": {
+          "company": {
+            "default": "",
+            "maxLength": 200,
+            "title": "Company",
+            "type": "string"
+          },
+          "current_mobile": {
+            "pattern": "^\\+[1-9]\\d{6,14}$",
+            "title": "Current Mobile",
+            "type": "string"
+          },
+          "requested_mobile": {
+            "pattern": "^\\+[1-9]\\d{6,14}$",
+            "title": "Requested Mobile",
+            "type": "string"
+          }
+        },
+        "required": [
+          "current_mobile",
+          "requested_mobile"
+        ],
+        "title": "MobileChangePublicInitiateRequest",
+        "type": "object"
+      },
+      "MobileChangeResendRequest": {
+        "properties": {
+          "challenge_token": {
+            "title": "Challenge Token",
+            "type": "string"
+          }
+        },
+        "required": [
+          "challenge_token"
+        ],
+        "title": "MobileChangeResendRequest",
+        "type": "object"
+      },
+      "MobileChangeSource": {
+        "enum": [
+          "public",
+          "authenticated"
+        ],
+        "title": "MobileChangeSource",
+        "type": "string"
+      },
+      "MobileChangeStatus": {
+        "enum": [
+          "pending_review",
+          "pending_approval",
+          "completed",
+          "rejected",
+          "cancelled",
+          "expired"
+        ],
+        "title": "MobileChangeStatus",
+        "type": "string"
+      },
+      "MobileChangeVerifyOtpRequest": {
+        "properties": {
+          "challenge_token": {
+            "title": "Challenge Token",
+            "type": "string"
+          },
+          "otp": {
+            "pattern": "^\\d{6}$",
+            "title": "Otp",
+            "type": "string"
+          }
+        },
+        "required": [
+          "challenge_token",
+          "otp"
+        ],
+        "title": "MobileChangeVerifyOtpRequest",
+        "type": "object"
+      },
       "MyReferralResponse": {
         "properties": {
           "code": {
@@ -6470,7 +6829,10 @@
           "admin_payout_reviewed",
           "admin_account_action",
           "admin_retention_purged",
-          "admin_broadcast"
+          "admin_broadcast",
+          "mobile_change_requested",
+          "mobile_changed",
+          "mobile_change_rejected"
         ],
         "title": "NotificationType",
         "type": "string"
@@ -12983,6 +13345,206 @@
         ]
       }
     },
+    "/api/v1/admin/mobile-change-requests": {
+      "get": {
+        "operationId": "list_requests_api_v1_admin_mobile_change_requests_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileChangeAdminListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "List Requests",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/mobile-change-requests/{request_id}/complete": {
+      "post": {
+        "operationId": "complete_api_v1_admin_mobile_change_requests__request_id__complete_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "request_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Request Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MobileChangeAdminCompleteRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Complete",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/mobile-change-requests/{request_id}/reject": {
+      "post": {
+        "operationId": "reject_api_v1_admin_mobile_change_requests__request_id__reject_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "request_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Request Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MobileChangeAdminRejectRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Reject",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/mobile-change-requests/{request_id}/verify": {
+      "post": {
+        "operationId": "verify_identity_api_v1_admin_mobile_change_requests__request_id__verify_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "request_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Request Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MobileChangeAdminVerifyRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Verify Identity",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
     "/api/v1/admin/property-deals": {
       "get": {
         "operationId": "list_property_deals_api_v1_admin_property_deals_get",
@@ -17558,6 +18120,175 @@
         "summary": "Get My Loan Officer Contact",
         "tags": [
           "loans"
+        ]
+      }
+    },
+    "/api/v1/mobile-change/authenticated/initiate": {
+      "post": {
+        "operationId": "initiate_authenticated_api_v1_mobile_change_authenticated_initiate_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MobileChangeAuthenticatedInitiateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileChangeChallengeResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Initiate Authenticated",
+        "tags": [
+          "mobile-change"
+        ]
+      }
+    },
+    "/api/v1/mobile-change/initiate": {
+      "post": {
+        "operationId": "initiate_public_api_v1_mobile_change_initiate_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MobileChangePublicInitiateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileChangeChallengeResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Initiate Public",
+        "tags": [
+          "mobile-change"
+        ]
+      }
+    },
+    "/api/v1/mobile-change/resend": {
+      "post": {
+        "operationId": "resend_api_v1_mobile_change_resend_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MobileChangeResendRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileChangeChallengeResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Resend",
+        "tags": [
+          "mobile-change"
+        ]
+      }
+    },
+    "/api/v1/mobile-change/verify": {
+      "post": {
+        "operationId": "verify_api_v1_mobile_change_verify_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MobileChangeVerifyOtpRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Verify",
+        "tags": [
+          "mobile-change"
         ]
       }
     },
