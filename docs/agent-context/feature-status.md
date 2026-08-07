@@ -4,7 +4,7 @@ Status: **Derived living implementation ledger**
 
 As of: **2026-08-07**
 
-Evidence baseline: `ff7dec4` ([PR #146](https://github.com/brollysolutions/client1/pull/146))
+Evidence baseline: `ce3baa3` ([PR #147](https://github.com/brollysolutions/client1/pull/147))
 
 ## Purpose and authority
 
@@ -44,8 +44,8 @@ work than several completed UI requirements.
 ## Delivered implementation
 
 - **Managed property/media submissions** (FR-7.3, FR-13.1 through FR-13.4,
-  OI-002) is implemented on `feat/managed-property-media`, with the upstream PR
-  link pending the shipping step. The approved slice
+  OI-002) is delivered in [PR #147](https://github.com/brollysolutions/client1/pull/147).
+  The approved slice
   adds Client/Lead submission, Admin-only approval, private managed images and
   reviewer PDFs, approved public property images, quotas, content verification,
   owner/business-line RLS, and storage lifecycle cleanup. Videos, general media

@@ -4,7 +4,7 @@ Status: **Derived, actively maintained plan**
 
 As of: **2026-08-07**
 
-Evidence baseline: `ff7dec4` ([PR #146](https://github.com/brollysolutions/client1/pull/146))
+Evidence baseline: `ce3baa3` ([PR #147](https://github.com/brollysolutions/client1/pull/147))
 
 ## Outcome
 
@@ -67,7 +67,7 @@ The next decision-gated priority is registration/profile requirement alignment.
 | 1 | Agent-lead expiry (FR-4.6, OI-001) | **Done** — [PR #144](https://github.com/brollysolutions/client1/pull/144) | `gpt-5.6-sol` / High | Delivered fixed 30-day first-attribution deadlines, converted/closed exclusions, indexed idempotent release, audit/notifications, RLS/deadline write denial, Agent countdown/history, seven-day legacy grace, and deferred constraint race protection. |
 | 2 | Admin field visibility and contact controls (FR-2.9, FR-15.1, FR-15.4) | **Done** — [PR #145](https://github.com/brollysolutions/client1/pull/145) | `gpt-5.6-sol` / Extra High | Delivered a closed server-owned catalogue, server-side least-data projection, locked Agent/Telecaller mobile rules, Employee allow/deny/provider-neutral invitation modes, policy audit, RLS, and lifecycle/race denial tests. |
 | 3 | Support-assisted mobile-number change (FR-3.4, FR-14.3) | **Done** — [PR #146](https://github.com/brollysolutions/client1/pull/146) | `gpt-5.6-sol` / Extra High | Delivered replacement-number OTP, structured identity-proof attestation, distinct active platform-Admin maker/checker approval, enumeration-safe intake, collision-safe linked-record updates, immediate race-safe session revocation, PII-minimized audit, and user notification. |
-| 4 | Managed property/media submissions (FR-7.3, FR-13.1 through FR-13.4, OI-002) | **Done** — PR pending from `feat/managed-property-media` | `gpt-5.6-sol` / Extra High | Delivered Client/Lead, Agent, and Sub Admin submission; Admin-only approval; canonical private review uploads; approved public images; bounded image/PDF quotas; content verification; ownership/RLS; account-deletion cleanup; and scheduled lifecycle cleanup. |
+| 4 | Managed property/media submissions (FR-7.3, FR-13.1 through FR-13.4, OI-002) | **Done** — [PR #147](https://github.com/brollysolutions/client1/pull/147) | `gpt-5.6-sol` / Extra High | Delivered Client/Lead, Agent, and Sub Admin submission; Admin-only approval; canonical private review uploads; approved public images; bounded image/PDF quotas; content verification; ownership/RLS; account-deletion cleanup; and scheduled lifecycle cleanup. |
 | 5 | Registration/profile requirement alignment (FR-3.3, FR-17.2) | Decision needed | `gpt-5.6-sol` / High | Resolve optional-email conflict and when demographic/income/address PII is collected; minimize fields; define edits/retention; update contracts and accessible forms. |
 | 6 | Vehicle arrangements (FR-7.1, OI-003) | Decision needed | `gpt-5.6-sol` / High | Decide separate entity versus Employee task type; attach to one property deal; define statuses/assignment/audit; preserve real-estate-only access. |
 | 7 | Analytics completion (FR-16.1 through FR-16.3) | Planned | `gpt-5.6-terra` / High | Add Excel or amend it out; add Agent group/team filters and summaries; preserve bounded async queries, CSV formula safety, pagination, and line isolation. |
@@ -117,8 +117,7 @@ The next decision-gated priority is registration/profile requirement alignment.
 
 ### Delivered feature evidence — Managed property/media submissions
 
-- **Delivery:** implemented on `feat/managed-property-media`; the upstream PR
-  link will replace this placeholder during shipping.
+- **Delivery:** [PR #147](https://github.com/brollysolutions/client1/pull/147).
 - **Behavior:** Clients/Leads, real-estate Agents, and Sub Admins submit one to
   ten ordered images and up to two reviewer-only PDFs through signed uploads.
   Owners can inspect their private media and review state; only a platform

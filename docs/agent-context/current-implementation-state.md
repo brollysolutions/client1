@@ -4,7 +4,7 @@ Status: **Derived reconciliation and later product amendment**
 
 As of: **2026-08-07**
 
-Code baseline: `ff7dec4` plus `feat/managed-property-media`
+Code baseline: `ce3baa3` ([PR #147](https://github.com/brollysolutions/client1/pull/147))
 
 ## 1. Purpose and authority
 
