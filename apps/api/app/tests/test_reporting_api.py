@@ -9,7 +9,9 @@ unrelated seed data accumulated in the shared dev/test Postgres across runs).
 
 from __future__ import annotations
 
+import io
 import uuid
+import zipfile
 from datetime import UTC, date, datetime
 
 import pytest
@@ -109,6 +111,25 @@ _ROUTES = [
 ]
 
 _QS = "?date_from=2032-01-01&date_to=2032-01-07"
+
+
+def test_xlsx_writer_keeps_formula_like_text_literal() -> None:
+    """A unit-level guard that runs without Postgres as well as the route test.
+
+    XlsxWriter treats a string written through `write()` as a formula by
+    default. The export writer must use literal-string cells so a user name
+    cannot become an executable workbook formula.
+    """
+    from app.api.v1.reporting import _xlsx_response
+
+    response = _xlsx_response(
+        [{"agent_name": "=1+1", "total": 2}], ["agent_name", "total"], False, "report.xlsx"
+    )
+    with zipfile.ZipFile(io.BytesIO(response.body)) as workbook:
+        contents = b"".join(workbook.read(name) for name in workbook.namelist())
+
+    assert b"<f>" not in contents
+    assert b"'=1+1" in contents
 
 
 @pytest.mark.asyncio
@@ -244,6 +265,27 @@ async def test_export_leads_csv_shape(client: AsyncClient) -> None:
     assert len(lines) >= 2
 
 
+@pytest.mark.asyncio
+async def test_export_leads_xlsx_shape(client: AsyncClient) -> None:
+    headers = await _admin_headers(client)
+    d = date(2032, 4, 21)
+    await _seed_lead(business_line="loans", created_at=datetime(2032, 4, 21, 8, 0, tzinfo=UTC))
+
+    res = await client.get(
+        f"/api/v1/admin/reports/leads/export.xlsx?date_from={d}&date_to={d}&business_line=loans",
+        headers=headers,
+    )
+
+    assert res.status_code == 200, res.text
+    assert res.headers["content-type"].startswith(
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+    assert f"leads-loans-{d}_{d}.xlsx" in res.headers["content-disposition"]
+    with zipfile.ZipFile(io.BytesIO(res.content)) as workbook:
+        assert "xl/workbook.xml" in workbook.namelist()
+        assert b"bucket_start" in b"".join(workbook.read(name) for name in workbook.namelist())
+
+
 async def _seed_agent_with_name(first_name: str, business_line: str = "loans") -> str:
     import app.db.session as _session_mod
     from app.models.profile import AgentProfile, ProfileStatus
@@ -288,6 +330,24 @@ async def test_export_agents_csv_escapes_formula_leading_name(client: AsyncClien
     text_body = res.content.decode("utf-8-sig")
     assert '="1+1' not in text_body  # never an unescaped raw formula
     assert "'=1+1" in text_body  # leading single-quote neutralizes it
+
+
+@pytest.mark.asyncio
+async def test_export_agents_xlsx_neutralizes_formula_leading_name(client: AsyncClient) -> None:
+    headers = await _admin_headers(client)
+    d = date(2032, 5, 11)
+    await _seed_agent_with_name('=1+1")+cmd|"/c calc"!A1', business_line="loans")
+
+    res = await client.get(
+        f"/api/v1/admin/reports/agents/export.xlsx?date_from={d}&date_to={d}&business_line=loans",
+        headers=headers,
+    )
+
+    assert res.status_code == 200, res.text
+    with zipfile.ZipFile(io.BytesIO(res.content)) as workbook:
+        contents = b"".join(workbook.read(name) for name in workbook.namelist())
+    assert b"<f>" not in contents
+    assert b"'=1+1" in contents
 
 
 @pytest.mark.asyncio

@@ -46,6 +46,9 @@ dependencies = [
     # Utilities
     "python-dateutil>=2.9.0",
     "pytz>=2024.2",
+    # Excel export for bounded Admin reports. XlsxWriter writes explicit string
+    # cells, so untrusted values never become workbook formulas.
+    "XlsxWriter>=3.2.0",
 ]
 
 [dependency-groups]
@@ -86,4 +89,3 @@ testpaths = ["app/tests"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["app"]
-

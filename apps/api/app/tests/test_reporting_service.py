@@ -358,7 +358,7 @@ async def test_agents_report_does_not_double_count_across_joins() -> None:
     await _seed_property_deal(lead_id=lead_2, opened_at=ts, status=PropertyDealStatus.NEW)
 
     async with _session_mod.AsyncSessionLocal() as db:
-        rows, _total, _summary = await reporting.get_agents_report(
+        rows, _total, _summary, team_summaries = await reporting.get_agents_report(
             db, date_from=d_from, date_to=d_to, business_line="real_estate", limit=500
         )
 
@@ -371,6 +371,11 @@ async def test_agents_report_does_not_double_count_across_joins() -> None:
     # The fan-out bug this guards against: a naive 4-table join would multiply
     # deals rows by however many OTHER leads/loans the same agent has, so
     # deals_total would come out as 2 leads x 2 deals = 4, not 2.
+    team = next(team for team in team_summaries if team["business_line"] == "real_estate")
+    assert team["agent_count"] >= 1
+    assert team["leads_total"] >= 2
+    assert team["deals_total"] >= 2
+    assert team["deals_converted"] >= 1
 
 
 # ---------------------------------------------------------------------------

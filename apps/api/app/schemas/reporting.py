@@ -108,7 +108,26 @@ class AgentsSummary(BaseModel):
     deals_converted: int
 
 
+class TeamPerformanceSummary(BaseModel):
+    """Per-business-line performance summary.
+
+    The established data model has no mutable team-membership entity. Agents
+    are permanently line-scoped, so the Loans and Real Estate business lines
+    are the authoritative team dimension for FR-16.3.
+    """
+
+    business_line: str
+    agent_count: int
+    leads_total: int
+    leads_converted: int
+    loans_total: int
+    loans_converted: int
+    deals_total: int
+    deals_converted: int
+
+
 class AgentsReportResponse(BaseModel):
     rows: list[AgentsReportRow]
     total: int
     summary: AgentsSummary
+    team_summaries: list[TeamPerformanceSummary]
