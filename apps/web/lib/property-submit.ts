@@ -8,6 +8,7 @@ type SubmissionCreate = Schemas["SubmissionCreate"];
 type PropertyCategory = Schemas["PropertyCategory"];
 type Furnishing = Schemas["Furnishing"];
 type ConstructionStatus = Schemas["ConstructionStatus"];
+type SubmissionMediaInput = Schemas["SubmissionMediaInput"];
 
 // Option values are pinned to the contract enums via `satisfies`: if the backend
 // enum changes, the regenerated type makes this fail to compile.
@@ -37,7 +38,8 @@ export type SubmitFormState = {
   type: string;
   location: string;
   meta: string;
-  image: string;
+  images: File[];
+  documents: File[];
   category: PropertyCategory | "";
   city: string;
   locality: string;
@@ -58,7 +60,8 @@ export const EMPTY_FORM: SubmitFormState = {
   type: "",
   location: "",
   meta: "",
-  image: "",
+  images: [],
+  documents: [],
   category: "",
   city: "",
   locality: "",
@@ -84,7 +87,10 @@ function orNull(value: string): string | null {
   return t === "" ? null : t;
 }
 
-export function buildSubmissionPayload(form: SubmitFormState): SubmissionCreate {
+export function buildSubmissionPayload(
+  form: SubmitFormState,
+  media: SubmissionMediaInput[],
+): SubmissionCreate {
   const details: Record<string, unknown> = {};
   for (const row of form.details) {
     const key = row.key.trim();
@@ -95,7 +101,6 @@ export function buildSubmissionPayload(form: SubmitFormState): SubmissionCreate 
     type: form.type.trim(),
     location: form.location.trim(),
     meta: orNull(form.meta),
-    image: orNull(form.image),
     category: form.category as PropertyCategory,
     city: form.city.trim(),
     locality: form.locality.trim(),
@@ -109,6 +114,7 @@ export function buildSubmissionPayload(form: SubmitFormState): SubmissionCreate 
     age_years: toInt(form.age_years),
     rera_number: form.rera_number.trim(),
     details,
+    media,
   };
 }
 
@@ -131,5 +137,21 @@ export function validateForm(form: SubmitFormState): Record<string, string> {
   if (!/^\d{6}$/.test(form.pincode.trim())) errs.pincode = "Pincode must be 6 digits.";
   const price = Number.parseFloat(form.priceRupees.trim());
   if (!Number.isFinite(price) || price <= 0) errs.priceRupees = "Enter a price greater than 0.";
+  if (form.images.length < 1 || form.images.length > 10) {
+    errs.images = "Choose between 1 and 10 property images.";
+  }
+  if (form.documents.length > 2) errs.documents = "Choose at most 2 PDF documents.";
+  const maxBytes = 5 * 1024 * 1024;
+  const imageTypes = new Set(["image/jpeg", "image/png", "image/webp"]);
+  if (form.images.some((file) => !imageTypes.has(file.type))) {
+    errs.images = "Images must be JPEG, PNG, or WebP.";
+  } else if (form.images.some((file) => file.size > maxBytes)) {
+    errs.images = "Each image must be 5 MiB or smaller.";
+  }
+  if (form.documents.some((file) => file.type !== "application/pdf")) {
+    errs.documents = "Reviewer documents must be PDFs.";
+  } else if (form.documents.some((file) => file.size > maxBytes)) {
+    errs.documents = "Each PDF must be 5 MiB or smaller.";
+  }
   return errs;
 }

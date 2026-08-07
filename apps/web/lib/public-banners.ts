@@ -27,7 +27,7 @@ function isSameOriginPath(href: string): boolean {
 // image_url is server-computed and should already be one of these two
 // hosts, but "should" isn't a load-bearing guarantee for an origin crash, so
 // it's re-checked here rather than trusted blindly.
-function isAllowedAssetUrl(raw: string): boolean {
+export function isAllowedAssetUrl(raw: string): boolean {
   let url: URL;
   try {
     url = new URL(raw);

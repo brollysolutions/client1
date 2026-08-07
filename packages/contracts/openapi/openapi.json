@@ -7924,6 +7924,72 @@
         "title": "PropertyListResponse",
         "type": "object"
       },
+      "PropertyMediaUploadRequest": {
+        "properties": {
+          "content_type": {
+            "anyOf": [
+              {
+                "enum": [
+                  "image/jpeg",
+                  "image/png",
+                  "image/webp"
+                ],
+                "type": "string"
+              },
+              {
+                "const": "application/pdf",
+                "type": "string"
+              }
+            ],
+            "title": "Content Type"
+          },
+          "kind": {
+            "enum": [
+              "image",
+              "document"
+            ],
+            "title": "Kind",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "content_type"
+        ],
+        "title": "PropertyMediaUploadRequest",
+        "type": "object"
+      },
+      "PropertyMediaUploadResponse": {
+        "properties": {
+          "fields": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Fields",
+            "type": "object"
+          },
+          "max_bytes": {
+            "title": "Max Bytes",
+            "type": "integer"
+          },
+          "object_key": {
+            "title": "Object Key",
+            "type": "string"
+          },
+          "upload_url": {
+            "title": "Upload Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "object_key",
+          "upload_url",
+          "fields",
+          "max_bytes"
+        ],
+        "title": "PropertyMediaUploadResponse",
+        "type": "object"
+      },
       "PropertyRead": {
         "properties": {
           "active": {
@@ -7990,6 +8056,13 @@
           "location": {
             "title": "Location",
             "type": "string"
+          },
+          "media_urls": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Media Urls",
+            "type": "array"
           },
           "meta": {
             "anyOf": [
@@ -8427,6 +8500,13 @@
           "location": {
             "title": "Location",
             "type": "string"
+          },
+          "media_urls": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Media Urls",
+            "type": "array"
           },
           "meta": {
             "anyOf": [
@@ -9590,18 +9670,6 @@
           "furnishing": {
             "$ref": "#/components/schemas/Furnishing"
           },
-          "image": {
-            "anyOf": [
-              {
-                "maxLength": 200,
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Image"
-          },
           "locality": {
             "maxLength": 120,
             "minLength": 1,
@@ -9613,6 +9681,15 @@
             "minLength": 1,
             "title": "Location",
             "type": "string"
+          },
+          "media": {
+            "items": {
+              "$ref": "#/components/schemas/SubmissionMediaInput"
+            },
+            "maxItems": 12,
+            "minItems": 1,
+            "title": "Media",
+            "type": "array"
           },
           "meta": {
             "anyOf": [
@@ -9667,7 +9744,8 @@
           "price_paise",
           "furnishing",
           "construction_status",
-          "rera_number"
+          "rera_number",
+          "media"
         ],
         "title": "SubmissionCreate",
         "type": "object"
@@ -9686,6 +9764,107 @@
           "submissions"
         ],
         "title": "SubmissionListResponse",
+        "type": "object"
+      },
+      "SubmissionMediaAccessResponse": {
+        "properties": {
+          "url": {
+            "title": "Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "url"
+        ],
+        "title": "SubmissionMediaAccessResponse",
+        "type": "object"
+      },
+      "SubmissionMediaInput": {
+        "properties": {
+          "content_type": {
+            "anyOf": [
+              {
+                "enum": [
+                  "image/jpeg",
+                  "image/png",
+                  "image/webp"
+                ],
+                "type": "string"
+              },
+              {
+                "const": "application/pdf",
+                "type": "string"
+              }
+            ],
+            "title": "Content Type"
+          },
+          "kind": {
+            "enum": [
+              "image",
+              "document"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "object_key": {
+            "maxLength": 600,
+            "minLength": 1,
+            "pattern": "^private/property-submissions/staging/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/asset\\.(jpg|png|webp|pdf)$",
+            "title": "Object Key",
+            "type": "string"
+          },
+          "position": {
+            "maximum": 11.0,
+            "minimum": 0.0,
+            "title": "Position",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "kind",
+          "content_type",
+          "object_key",
+          "position"
+        ],
+        "title": "SubmissionMediaInput",
+        "type": "object"
+      },
+      "SubmissionMediaRead": {
+        "properties": {
+          "content_type": {
+            "title": "Content Type",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "image",
+              "document"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "position": {
+            "title": "Position",
+            "type": "integer"
+          },
+          "size_bytes": {
+            "title": "Size Bytes",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "content_type",
+          "size_bytes",
+          "position"
+        ],
+        "title": "SubmissionMediaRead",
         "type": "object"
       },
       "SubmissionRead": {
@@ -9762,6 +9941,13 @@
           "location": {
             "title": "Location",
             "type": "string"
+          },
+          "media": {
+            "items": {
+              "$ref": "#/components/schemas/SubmissionMediaRead"
+            },
+            "title": "Media",
+            "type": "array"
           },
           "meta": {
             "anyOf": [
@@ -19486,6 +19672,52 @@
         ]
       }
     },
+    "/api/v1/property-submissions/media-upload-url": {
+      "post": {
+        "operationId": "get_property_media_upload_url_api_v1_property_submissions_media_upload_url_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PropertyMediaUploadRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PropertyMediaUploadResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Get Property Media Upload Url",
+        "tags": [
+          "property-submissions"
+        ]
+      }
+    },
     "/api/v1/property-submissions/{submission_id}": {
       "get": {
         "operationId": "get_submission_api_v1_property_submissions__submission_id__get",
@@ -19577,6 +19809,64 @@
           }
         ],
         "summary": "Approve",
+        "tags": [
+          "property-submissions"
+        ]
+      }
+    },
+    "/api/v1/property-submissions/{submission_id}/media/{media_id}/access": {
+      "get": {
+        "operationId": "access_submission_media_api_v1_property_submissions__submission_id__media__media_id__access_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "submission_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Submission Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "media_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Media Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubmissionMediaAccessResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Access Submission Media",
         "tags": [
           "property-submissions"
         ]

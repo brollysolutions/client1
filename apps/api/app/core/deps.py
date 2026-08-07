@@ -207,20 +207,20 @@ async def get_active_user(
 async def require_re_submitter(
     current_user: CurrentUser = Depends(get_active_user),
 ) -> CurrentUser:
-    """A real-estate agent OR a Sub Admin may submit a property. App-layer
-    defense atop the RLS INSERT policy (which also checks submitter ownership +
-    line). The business_line check only applies to agent — a platform-scoped Sub
-    Admin has business_line=None, and submissions are hardcoded to real_estate
-    server-side regardless of submitter scope."""
+    """A Client/Lead, real-estate Agent, or Sub Admin may submit a property."""
     is_re_agent = current_user.role == "agent" and current_user.business_line in (
         "real_estate",
         "both",
     )
+    is_client = current_user.role == "client" and current_user.business_line in (
+        "real_estate",
+        "both",
+    )
     is_sub_admin = current_user.role == "sub_admin"
-    if not (is_re_agent or is_sub_admin):
+    if not (is_client or is_re_agent or is_sub_admin):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only real-estate agents or Sub Admin may submit properties.",
+            detail="Only Clients, real-estate Agents, or Sub Admins may submit properties.",
         )
     return current_user
 
@@ -336,23 +336,11 @@ def is_platform_admin(current_user: CurrentUser) -> bool:
 async def require_re_reviewer(
     current_user: CurrentUser = Depends(get_active_user),
 ) -> CurrentUser:
-    """Only Admin or Sub Admin may approve/reject a submission. App-layer defense;
-    the mutation itself runs on a bypass session, so this guard is the access check."""
-    if current_user.role not in ("admin", "sub_admin"):
+    """Compatibility helper for the Admin-only property-review boundary."""
+    if current_user.role != "admin" or current_user.platform_scope != "true":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only Admin or Sub Admin may review submissions.",
-        )
-    # Platform-scoped reviewers (Admin, platform Sub Admin) act across lines; a
-    # line-scoped Sub Admin must be on the real-estate line. The mutation runs on
-    # a bypass session that skips RLS, so this guard is the segregation wall.
-    if current_user.platform_scope != "true" and current_user.business_line not in (
-        "real_estate",
-        "both",
-    ):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only real-estate reviewers may review these submissions.",
+            detail="Only platform Admin may review submissions.",
         )
     return current_user
 

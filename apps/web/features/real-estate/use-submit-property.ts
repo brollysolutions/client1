@@ -4,7 +4,7 @@ import * as React from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
-import { submitProperty } from "@/lib/property-submissions-api";
+import { submitProperty, uploadPropertyMedia } from "@/lib/property-submissions-api";
 import {
   buildSubmissionPayload,
   validateForm,
@@ -18,6 +18,7 @@ export function useSubmitProperty() {
   const [form, setForm] = React.useState<SubmitFormState>(EMPTY_FORM);
   const [errors, setErrors] = React.useState<Record<string, string>>({});
   const [submitting, setSubmitting] = React.useState(false);
+  const [uploadProgress, setUploadProgress] = React.useState<string | null>(null);
 
   const setField = React.useCallback(
     <K extends keyof SubmitFormState>(field: K, value: SubmitFormState[K]) => {
@@ -47,6 +48,13 @@ export function useSubmitProperty() {
     setForm((prev) => ({ ...prev, amenities: prev.amenities.filter((a) => a !== value) }));
   }, []);
 
+  const setImages = React.useCallback((images: File[]) => {
+    setForm((prev) => ({ ...prev, images }));
+  }, []);
+  const setDocuments = React.useCallback((documents: File[]) => {
+    setForm((prev) => ({ ...prev, documents }));
+  }, []);
+
   const submit = React.useCallback(async () => {
     const found = validateForm(form);
     setErrors(found);
@@ -55,8 +63,22 @@ export function useSubmitProperty() {
       return;
     }
     setSubmitting(true);
-    const res = await submitProperty(buildSubmissionPayload(form));
+    setUploadProgress(`Uploading 0 of ${form.images.length + form.documents.length}`);
+    const uploaded = await uploadPropertyMedia(
+      form.images,
+      form.documents,
+      (done, total) => setUploadProgress(`Uploading ${done} of ${total}`),
+    );
+    if (!uploaded.ok) {
+      setSubmitting(false);
+      setUploadProgress(null);
+      toast.error(uploaded.error);
+      return;
+    }
+    setUploadProgress("Saving submission");
+    const res = await submitProperty(buildSubmissionPayload(form, uploaded.media));
     setSubmitting(false);
+    setUploadProgress(null);
     if (res.ok) {
       toast.success("Listing submitted for review.");
       router.push("/dashboard/my-submissions");
@@ -73,8 +95,11 @@ export function useSubmitProperty() {
     removeDetailRow,
     addAmenity,
     removeAmenity,
+    setImages,
+    setDocuments,
     errors,
     submitting,
+    uploadProgress,
     submit,
   };
 }

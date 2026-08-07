@@ -4,14 +4,14 @@ Status: **Derived, actively maintained plan**
 
 As of: **2026-08-07**
 
-Evidence baseline: `a00d8ac` ([PR #146](https://github.com/brollysolutions/client1/pull/146))
+Evidence baseline: `ce3baa3` ([PR #147](https://github.com/brollysolutions/client1/pull/147))
 
 ## Outcome
 
 Complete the approved Loans and Real Estate scope without weakening
 authorization, business-line segregation, PII/KYC handling, payout controls,
 or auditability. The current evidence-based implementation coverage is
-approximately **81%**; see [`feature-status.md`](feature-status.md) for the
+approximately **83%**; see [`feature-status.md`](feature-status.md) for the
 calculation and requirement-level gaps.
 
 ## Working rules
@@ -60,20 +60,98 @@ default, not permission to skip the pre-implementation announcement.
 Admin field visibility and contact controls are **Done** in
 [PR #145](https://github.com/brollysolutions/client1/pull/145). Agent-lead expiry was delivered earlier
 from the same branch in [PR #144](https://github.com/brollysolutions/client1/pull/144).
-The next decision-gated priority is support-assisted mobile-number change.
+The next decision-gated priority is registration/profile requirement alignment.
 
 | Priority | Feature / requirements | Status | Recommended model / effort | Decision gate and acceptance summary |
 | ---: | --- | --- | --- | --- |
 | 1 | Agent-lead expiry (FR-4.6, OI-001) | **Done** — [PR #144](https://github.com/brollysolutions/client1/pull/144) | `gpt-5.6-sol` / High | Delivered fixed 30-day first-attribution deadlines, converted/closed exclusions, indexed idempotent release, audit/notifications, RLS/deadline write denial, Agent countdown/history, seven-day legacy grace, and deferred constraint race protection. |
 | 2 | Admin field visibility and contact controls (FR-2.9, FR-15.1, FR-15.4) | **Done** — [PR #145](https://github.com/brollysolutions/client1/pull/145) | `gpt-5.6-sol` / Extra High | Delivered a closed server-owned catalogue, server-side least-data projection, locked Agent/Telecaller mobile rules, Employee allow/deny/provider-neutral invitation modes, policy audit, RLS, and lifecycle/race denial tests. |
 | 3 | Support-assisted mobile-number change (FR-3.4, FR-14.3) | **Done** — [PR #146](https://github.com/brollysolutions/client1/pull/146) | `gpt-5.6-sol` / Extra High | Delivered replacement-number OTP, structured identity-proof attestation, distinct active platform-Admin maker/checker approval, enumeration-safe intake, collision-safe linked-record updates, immediate race-safe session revocation, PII-minimized audit, and user notification. |
-| 4 | Managed property/media submissions (FR-7.3, FR-13.1 through FR-13.4, OI-002) | Decision needed | `gpt-5.6-sol` / Extra High | Decide asset types/counts/limits/visibility; support Client/Lead submissions if approved; use private/public prefixes correctly; sniff content; clean orphans; test ownership and cross-line denial. |
+| 4 | Managed property/media submissions (FR-7.3, FR-13.1 through FR-13.4, OI-002) | **Done** — [PR #147](https://github.com/brollysolutions/client1/pull/147) | `gpt-5.6-sol` / Extra High | Delivered Client/Lead, Agent, and Sub Admin submission; Admin-only approval; canonical private review uploads; approved public images; bounded image/PDF quotas; content verification; ownership/RLS; account-deletion cleanup; and scheduled lifecycle cleanup. |
 | 5 | Registration/profile requirement alignment (FR-3.3, FR-17.2) | Decision needed | `gpt-5.6-sol` / High | Resolve optional-email conflict and when demographic/income/address PII is collected; minimize fields; define edits/retention; update contracts and accessible forms. |
 | 6 | Vehicle arrangements (FR-7.1, OI-003) | Decision needed | `gpt-5.6-sol` / High | Decide separate entity versus Employee task type; attach to one property deal; define statuses/assignment/audit; preserve real-estate-only access. |
 | 7 | Analytics completion (FR-16.1 through FR-16.3) | Planned | `gpt-5.6-terra` / High | Add Excel or amend it out; add Agent group/team filters and summaries; preserve bounded async queries, CSV formula safety, pagination, and line isolation. |
 | 8 | Notification/email redirect completeness (FR-11.2) | Planned | `gpt-5.6-terra` / High | Inventory every producer; add valid role-aware destinations and approved email events; prevent open redirects and PII in messages; add link tests. |
 | 9 | Authenticated banner personalization (FR-12.1 through FR-12.4, FR-18.1) | Decision needed | `gpt-5.6-sol` / Extra High | Define audience grammar, consented signals, location precision/retention, safe server evaluation, fallbacks, and negative targeting tests before serving personalized content. |
 | 10 | Map/GMB integration seam (FR-18.2) | Deferred pending scope | `gpt-5.6-terra` / High | Confirm it remains in v1; define provider-neutral coordinates/address boundary and privacy constraints before adding a dependency. |
+
+### Approved feature brief — Managed property/media submissions
+
+- **Success:** authenticated Clients/Leads, real-estate Agents, and Sub Admins
+  can submit an existing RERA-registered property with managed media; only a
+  platform Admin can approve it; pending assets remain private and approved
+  listing images become public without exposing reviewer-only documents.
+- **Behavior:** require one to ten JPEG, PNG, or WebP images of at most 5 MiB
+  each; allow up to two reviewer-only PDFs of at most 5 MiB each; support
+  browser camera capture; preserve image order; show upload and review state to
+  the owner; and keep existing catalogue image behavior for legacy rows.
+- **Architecture:** store private submission assets separately from approved
+  public property media, bind staging storage keys to the authenticated owner,
+  copy verified uploads into opaque server-only canonical private snapshots,
+  copy approved images to a public property prefix, and project public URLs
+  server-side. Keep generated contracts owned by FastAPI.
+- **Compatibility:** preserve existing property submissions, properties, and
+  legacy catalogue images; retain immutable real-estate classification; do not
+  change property inquiries, visits, deals, payments, or Agent attribution.
+- **Security and failure invariants:** enforce signed storage-side size caps,
+  server-side object existence/size and magic-byte checks, count and rate
+  limits, owner/reviewer RLS, Admin-only approval, non-public pending keys,
+  immutable canonical snapshots, retryable row-locked approval, PII-free audit
+  details, account-deletion cleanup, and scheduled orphan, rejected-media, and
+  promoted-source cleanup. Storage failure must fail closed without publishing
+  the submission.
+- **Retention:** purge unreferenced uploads after one hour, rejected private
+  media after 30 days, and private originals after successful public
+  promotion; retain public images only while their listing remains active.
+- **Non-goals:** video upload/transcoding, platform-wide Loans/Real Estate media
+  galleries, feedback attachments, content moderation providers, listing edit
+  or resubmission, and changes to payment or vehicle-arrangement workflows.
+- **Verification matrix:** Client/Agent/Sub Admin positive submission; role,
+  owner, cross-user, and cross-line denial; Admin-only review; quota, MIME,
+  magic-byte, missing-object, duplicate-key, and rate-limit failures; private
+  before approval and public after approval; copy failure and concurrent review;
+  rejection and cleanup; audit safety; migration upgrade/downgrade and one
+  Alembic head; generated contracts; accessible responsive web flows; focused
+  API/RLS/storage/scheduler/web/browser tests; full applicable gates; security
+  review; PR review; and repository verification.
+
+### Delivered feature evidence — Managed property/media submissions
+
+- **Delivery:** [PR #147](https://github.com/brollysolutions/client1/pull/147).
+- **Behavior:** Clients/Leads, real-estate Agents, and Sub Admins submit one to
+  ten ordered images and up to two reviewer-only PDFs through signed uploads.
+  Owners can inspect their private media and review state; only a platform
+  Admin can approve or reject. Approval publishes managed image URLs while
+  preserving legacy property images and keeping PDFs private.
+- **Storage and privacy:** opaque staging names are owner-bound, rate-limited,
+  size-constrained, and checked by MIME and magic bytes. Submission copies each
+  asset into a newly generated server-only canonical key and revalidates it,
+  closing signed-upload replacement races. Promotion revalidates source and
+  destination; failures remain pending and remove partial public copies.
+- **Authorization and lifecycle:** private rows use owner/platform-Admin RLS;
+  public media requires an active listing; Sub Admin review is denied. Scheduled
+  cleanup removes old unreferenced staging objects, rejected private media,
+  promoted image sources, and inactive public images. Account deletion rejects
+  pending submissions and removes their private media while preserving approved
+  public listing records.
+- **Fresh local evidence:** Ruff check/format over 382 files, Python compilation,
+  and all 24 database-independent schema/storage tests pass. Alembic reports one
+  head, the feature revision's upgrade/downgrade offline SQL passes, generated
+  OpenAPI/TypeScript hashes are deterministic, and the feature-tracking guard
+  passes. Web lint/typecheck and all 265 tests pass; after the final hardening,
+  typecheck and the 24 focused property tests pass again. The production build
+  compiled, type-checked, and generated all 91 pages before Windows denied
+  Next's final standalone symlink copy (`EPERM`). The database-backed property
+  suite timed out after 60 seconds and `./scripts/verify.sh --ci` after 120
+  seconds because the local Docker PostgreSQL/Redis control path is unresponsive;
+  Linux PR CI remains authoritative for those gates.
+- **Security review:** upload-replacement, canonical-key replay, filename
+  disclosure, public-copy failure, audit free-text, and account-deletion gaps
+  were found and remediated. Repeat review found no remaining actionable high-
+  or medium-severity defect.
+  Residual product risks are malware scanning/content moderation for PDFs,
+  public-image metadata normalization, and an explicit retention period for
+  approved reviewer-only PDFs; these remain part of the broader FR-13 work.
 
 ### Approved feature brief — Support-assisted mobile-number change
 

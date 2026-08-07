@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import base64
 import json
+from unittest.mock import MagicMock
 
 import pytest
 from botocore.exceptions import ClientError
@@ -24,6 +25,30 @@ def test_presign_download_returns_url_for_key() -> None:
     url = storage.presign_download("tasks/abc/def-pan")
     assert url.startswith("http")
     assert "tasks/abc/def-pan" in url
+
+
+def test_presign_preview_returns_inline_get_without_attachment_override() -> None:
+    url = storage.presign_preview("private/property-submissions/abc/image.jpg")
+    assert url.startswith("http")
+    assert "private/property-submissions/abc/image.jpg" in url
+    assert "response-content-disposition" not in url.lower()
+
+
+def test_copy_object_replaces_metadata_with_verified_content_type(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    client = MagicMock()
+    monkeypatch.setattr(storage, "_client", lambda _endpoint: client)
+
+    storage.copy_object("private/source.jpg", "public/properties/target.jpg", "image/jpeg")
+
+    client.copy_object.assert_called_once_with(
+        Bucket=settings.SPACES_BUCKET,
+        Key="public/properties/target.jpg",
+        CopySource={"Bucket": settings.SPACES_BUCKET, "Key": "private/source.jpg"},
+        ContentType="image/jpeg",
+        MetadataDirective="REPLACE",
+    )
 
 
 def test_delete_object_swallows_unreachable_endpoint() -> None:

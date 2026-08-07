@@ -1,10 +1,9 @@
-"""property_submissions RLS — agent-owner isolation + platform reviewer branch.
+"""property_submissions RLS — submitter-owner isolation + Admin reviewer branch.
 
-Verifies migration c3d4e5f6a7b8: the owning agent sees only their own submission,
-another agent sees none, a platform reviewer (platform_scope='true' = Admin/Sub
-Admin) sees it, a real-estate Sub Admin sees it via the role+line branch, and RE
-telecaller/employee + a plain client see NOTHING (review is platform-only). Also
-checks the INSERT WITH CHECK: an agent can insert a row it owns, not one it doesn't.
+Verifies migration f4a5b6c7d8e9: an owning submitter sees only their own submission,
+platform Admin sees the review queue, and Sub Admin cannot review another owner's
+submission. Also checks that the owner branch supports real-estate Clients, Agents,
+and Sub Admins without broadening approval authority.
 
 Requires the Docker stack with migrations applied; auto-skips without Redis.
 Mirrors test_enquiries_rls.py's harness.
@@ -122,6 +121,16 @@ async def test_owner_agent_sees_own(client: AsyncClient) -> None:
 
 
 @pytest.mark.asyncio
+async def test_owner_client_sees_own(client: AsyncClient) -> None:
+    _, mobile = await full_registration(client, lines=["real_estate"])
+    uid = await _auth_user_uuid(mobile)
+    sub_id = await _seed_submission(uid)
+
+    rows = await _select_as(auth_user_uuid=uid, role="client", business_line="both")
+    assert [r["id"] for r in rows] == [uuid.UUID(sub_id)]
+
+
+@pytest.mark.asyncio
 async def test_other_agent_cannot_see_it(client: AsyncClient) -> None:
     _, owner_mobile = await full_registration(client, lines=["real_estate"])
     owner_uid = await _auth_user_uuid(owner_mobile)
@@ -145,28 +154,24 @@ async def test_platform_reviewer_sees_it(client: AsyncClient) -> None:
 
 
 @pytest.mark.asyncio
-async def test_platform_sub_admin_sees_queue(client: AsyncClient) -> None:
-    """a0b1c2d3e4f5: a platform sub_admin's business_line claim is always ""
-    (services/admin.py sets business_line=None for PLATFORM scope), so the
-    pre-existing role+line branch never matches — the new platform_scope
-    branch is what actually keeps the review queue working for a real
-    platform sub_admin session."""
+async def test_platform_sub_admin_cannot_see_shared_queue(client: AsyncClient) -> None:
+    """Platform scope does not turn Sub Admin into an approval reviewer."""
     _, mobile = await full_registration(client, lines=["real_estate"])
     uid = await _auth_user_uuid(mobile)
     sub_id = await _seed_submission(uid)
 
     rows = await _select_as(role="sub_admin", business_line="", platform_scope="true")
-    assert uuid.UUID(sub_id) in [r["id"] for r in rows]
+    assert uuid.UUID(sub_id) not in [r["id"] for r in rows]
 
 
 @pytest.mark.asyncio
-async def test_re_sub_admin_sees_it_via_line_branch(client: AsyncClient) -> None:
+async def test_re_sub_admin_cannot_see_another_submitters_row(client: AsyncClient) -> None:
     _, mobile = await full_registration(client, lines=["real_estate"])
     uid = await _auth_user_uuid(mobile)
     sub_id = await _seed_submission(uid)
 
     rows = await _select_as(role="sub_admin", business_line="real_estate", platform_scope="false")
-    assert uuid.UUID(sub_id) in [r["id"] for r in rows]
+    assert uuid.UUID(sub_id) not in [r["id"] for r in rows]
 
 
 @pytest.mark.asyncio
