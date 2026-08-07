@@ -54,7 +54,6 @@ export type RegisterDetails = {
   firstName: string;
   lastName: string;
   mobile: string; // E.164, e.g. +919876543210
-  email: string;
   // Format-checked client-side only; the backend never fails registration on
   // an unmatched code (docs/specs/referral-program.md D4).
   referralCode?: string;
@@ -70,10 +69,26 @@ export type Me = {
   firstName: string;
   lastName: string;
   mobile: string;
-  email: string;
+  email: string | null;
   emailVerified: boolean;
+  gender: Gender | null;
+  genderSelfDescription: string | null;
+  incomeSource: IncomeSource | null;
+  incomeAmountMinor: number | null;
+  incomePeriod: IncomePeriod | null;
+  occupation: string | null;
+  address: string | null;
   profiles: ClientLineProfile[];
 };
+
+export type Gender =
+  | "female"
+  | "male"
+  | "non_binary"
+  | "self_described"
+  | "prefer_not_to_say";
+export type IncomeSource = "net_salary" | "business_income";
+export type IncomePeriod = "monthly" | "annual";
 
 export type UserRole =
   | "admin"
@@ -184,7 +199,6 @@ export async function registerInitiate(
         first_name: input.firstName,
         last_name: input.lastName,
         mobile: input.mobile,
-        email: input.email,
         referral_code: input.referralCode || undefined,
       } satisfies Schemas["RegisterInitiateRequest"],
     },
@@ -253,6 +267,13 @@ function mapMe(d: Schemas["MeResponse"]): Me {
     mobile: d.mobile,
     email: d.email,
     emailVerified: d.email_verified,
+    gender: d.gender ?? null,
+    genderSelfDescription: d.gender_self_description ?? null,
+    incomeSource: d.income_source ?? null,
+    incomeAmountMinor: d.income_amount_minor ?? null,
+    incomePeriod: d.income_period ?? null,
+    occupation: d.occupation ?? null,
+    address: d.address ?? null,
     profiles: d.profiles.map((p) => ({
       businessLine: p.business_line,
       customerCode: p.customer_code,
@@ -275,14 +296,32 @@ export async function getMe(): Promise<AuthResult<Me>> {
 export async function updateProfile(input: {
   firstName: string;
   lastName: string;
-  email?: string;
+  email?: string | null;
+  gender?: Gender | null;
+  genderSelfDescription?: string | null;
+  incomeSource?: IncomeSource | null;
+  incomeAmountMinor?: number | null;
+  incomePeriod?: IncomePeriod | null;
+  occupation?: string | null;
+  address?: string | null;
 }): Promise<AuthResult<Me>> {
   const res = await apiRequest<Schemas["MeResponse"]>("/api/v1/auth/me", {
     method: "PATCH",
     body: {
       first_name: input.firstName,
       last_name: input.lastName,
-      ...(input.email ? { email: input.email } : {}),
+      ...(input.email !== undefined ? { email: input.email } : {}),
+      ...(input.gender !== undefined ? { gender: input.gender } : {}),
+      ...(input.genderSelfDescription !== undefined
+        ? { gender_self_description: input.genderSelfDescription }
+        : {}),
+      ...(input.incomeSource !== undefined ? { income_source: input.incomeSource } : {}),
+      ...(input.incomeAmountMinor !== undefined
+        ? { income_amount_minor: input.incomeAmountMinor }
+        : {}),
+      ...(input.incomePeriod !== undefined ? { income_period: input.incomePeriod } : {}),
+      ...(input.occupation !== undefined ? { occupation: input.occupation } : {}),
+      ...(input.address !== undefined ? { address: input.address } : {}),
     } satisfies Schemas["MeUpdateRequest"],
   });
   return toResult(res, mapMe);

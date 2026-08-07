@@ -210,7 +210,6 @@ async def initiate_and_get_otp(
         "first_name": "Test",
         "last_name": "User",
         "mobile": mobile,
-        "email": email or unique_email(),
         "lines": lines or ["loans"],
     }
     if referral_code is not None:
@@ -254,7 +253,15 @@ async def full_registration(
         },
     )
     assert set_pw_resp.status_code == 201, set_pw_resp.text
-    return set_pw_resp.json()["access_token"], mobile
+    access_token = set_pw_resp.json()["access_token"]
+    if email is not None:
+        profile_resp = await client.patch(
+            "/api/v1/auth/me",
+            headers={"Authorization": f"Bearer {access_token}"},
+            json={"first_name": "Test", "last_name": "User", "email": email},
+        )
+        assert profile_resp.status_code == 200, profile_resp.text
+    return access_token, mobile
 
 
 async def do_login(

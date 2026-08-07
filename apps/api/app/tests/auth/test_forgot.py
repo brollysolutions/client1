@@ -53,6 +53,25 @@ async def test_forgot_initiate_known_and_unknown_same_message(client: AsyncClien
     known = await client.post("/api/v1/auth/forgot/initiate", json={"mobile": mobile})
     unknown = await client.post("/api/v1/auth/forgot/initiate", json={"mobile": unique_mobile()})
     assert known.json()["message"] == unknown.json()["message"]
+    assert known.json()["delivery_channel"] == unknown.json()["delivery_channel"] == "none"
+
+
+async def test_forgot_verify_known_and_unknown_fail_with_same_detail(client: AsyncClient) -> None:
+    _, known_mobile = await full_registration(client)
+    await client.post("/api/v1/auth/forgot/initiate", json={"mobile": known_mobile})
+    unknown_mobile = unique_mobile()
+
+    known = await client.post(
+        "/api/v1/auth/forgot/verify",
+        json={"mobile": known_mobile, "otp": "000000"},
+    )
+    unknown = await client.post(
+        "/api/v1/auth/forgot/verify",
+        json={"mobile": unknown_mobile, "otp": "000000"},
+    )
+
+    assert known.status_code == unknown.status_code == 400
+    assert known.json()["detail"] == unknown.json()["detail"]
 
 
 async def test_forgot_initiate_otp_hint_is_6_numeric_digits(client: AsyncClient) -> None:

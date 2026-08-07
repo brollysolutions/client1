@@ -4,7 +4,7 @@ Status: **Derived reconciliation and later product amendment**
 
 As of: **2026-08-07**
 
-Code baseline: `ce3baa3` ([PR #147](https://github.com/brollysolutions/client1/pull/147))
+Code baseline: `7943d1c` ([PR #148](https://github.com/brollysolutions/client1/pull/148))
 
 ## 1. Purpose and authority
 
@@ -125,6 +125,41 @@ owner/platform-Admin private access and active-listing public access. Broader
 FR-13 requirements remain partial, including malware scanning, image metadata
 normalization, and an explicit approved-PDF retention policy.
 
+### CS-005 — Client registration is mobile-first; identity profile details are optional
+
+Ordinary Client account creation requires first and last name, an OTP-verified
+mobile, password, and only an optional referral code. Email, gender, income,
+occupation, and postal address are collected after account creation on a
+skippable step and remain editable and clearable from Profile settings. No
+Client capability or business line is gated on completion.
+
+Optional identity-wide values live on `auth_users`; email remains unique when
+supplied, and income is represented as a bounded integer-minor-unit source/
+amount/period group. Staff provisioning and Agent applications continue to
+require email and attach it when a role is added to a mobile-only Client
+identity without replacing an address already on file. Registration and initial
+reset never use a self-asserted email as proof of mobile control; only an
+explicitly selected, previously verified email may receive a reset resend.
+Public reset initiation, resend, and verification responses remain neutral for
+unknown accounts and absent/unverified email. Email-verification OTPs are bound
+to a keyed target fingerprint and a row-locked live address check. The new
+fields remain under existing owner/platform-Admin RLS and are cleared during
+immediate account deletion.
+
+Evidence:
+
+- [`apps/api/app/services/auth_service.py`](../../apps/api/app/services/auth_service.py)
+- [`apps/api/app/models/user.py`](../../apps/api/app/models/user.py)
+- [`apps/api/alembic/versions/a6b7c8d9e0f1_align_registration_profile.py`](../../apps/api/alembic/versions/a6b7c8d9e0f1_align_registration_profile.py)
+- [`apps/api/app/tests/auth/test_register.py`](../../apps/api/app/tests/auth/test_register.py)
+- [`apps/api/app/tests/auth/test_update_me.py`](../../apps/api/app/tests/auth/test_update_me.py)
+- [`apps/web/app/(auth)/register/page.tsx`](../../apps/web/app/(auth)/register/page.tsx)
+- [`apps/web/app/(app)/dashboard/settings/page.tsx`](../../apps/web/app/(app)/dashboard/settings/page.tsx)
+
+This supersedes the former mandatory-email registration implementation and
+settles FR-3.3/FR-17.2 without changing CS-001 dual-line enrollment or CS-003
+profile/RLS scope.
+
 ## 3. Previously open items settled by current behavior
 
 The following entries may still be labelled “open,” “assumed,” or “pending” in
@@ -144,6 +179,7 @@ explicitly changes it.
 | Client status reasons | The API exposes `status_reason`, and the client loan UI renders it verbatim when present. | [`schemas/loans.py`](../../apps/api/app/schemas/loans.py), [`apps/web/lib/loans.ts`](../../apps/web/lib/loans.ts), [`loans-applications.tsx`](../../apps/web/features/dashboard/loans-applications.tsx) |
 | Referral payout execution | Sub Admin manages bonus configuration; creating the actual referral payout is restricted to platform Admin. | [`api/v1/referral_bonus.py`](../../apps/api/app/api/v1/referral_bonus.py), [`api/v1/referrals.py`](../../apps/api/app/api/v1/referrals.py) |
 | Agent lead expiry | Agent attribution has a fixed 30-day first-attribution deadline with converted/closed exclusions, idempotent scheduled release, audit, notifications, RLS denial, and Agent history/countdown. | [PR #144](https://github.com/brollysolutions/client1/pull/144), [`services/lead_expiry.py`](../../apps/api/app/services/lead_expiry.py) |
+| Client registration and optional profile | Client registration is mobile-first; email and demographic/income/address details are optional, skippable, editable, clearable, and never gate account use. | CS-005, [PR #148](https://github.com/brollysolutions/client1/pull/148) |
 
 ## 4. Genuine open decisions and implementation gaps
 

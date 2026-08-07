@@ -176,6 +176,22 @@ export default function ForgotPasswordPage() {
               }
               return result;
             }}
+            onAlternateResend={async () => {
+              const result = await resendOtp(e164, "reset", true);
+              if (result.ok) {
+                toast.info("Email recovery requested", {
+                  description:
+                    "If this account has a verified email, the new code was sent there.",
+                });
+                if (result.data.otpHint && OTP_HINT_ALLOWED) {
+                  toast.info("Dev verification code", {
+                    description: result.data.otpHint,
+                  });
+                }
+              }
+              return result;
+            }}
+            alternateResendLabel="Send to verified email"
           />
         </>
       )}

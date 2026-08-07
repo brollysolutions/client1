@@ -6248,9 +6248,27 @@
       },
       "MeResponse": {
         "properties": {
+          "address": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Address"
+          },
           "email": {
-            "title": "Email",
-            "type": "string"
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
           },
           "email_verified": {
             "title": "Email Verified",
@@ -6260,6 +6278,76 @@
             "title": "First Name",
             "type": "string"
           },
+          "gender": {
+            "anyOf": [
+              {
+                "enum": [
+                  "female",
+                  "male",
+                  "non_binary",
+                  "self_described",
+                  "prefer_not_to_say"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gender"
+          },
+          "gender_self_description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gender Self Description"
+          },
+          "income_amount_minor": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Income Amount Minor"
+          },
+          "income_period": {
+            "anyOf": [
+              {
+                "enum": [
+                  "monthly",
+                  "annual"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Income Period"
+          },
+          "income_source": {
+            "anyOf": [
+              {
+                "enum": [
+                  "net_salary",
+                  "business_income"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Income Source"
+          },
           "last_name": {
             "title": "Last Name",
             "type": "string"
@@ -6267,6 +6355,17 @@
           "mobile": {
             "title": "Mobile",
             "type": "string"
+          },
+          "occupation": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Occupation"
           },
           "profiles": {
             "items": {
@@ -6282,6 +6381,13 @@
           "mobile",
           "email",
           "email_verified",
+          "gender",
+          "gender_self_description",
+          "income_source",
+          "income_amount_minor",
+          "income_period",
+          "occupation",
+          "address",
           "profiles"
         ],
         "title": "MeResponse",
@@ -6290,6 +6396,19 @@
       "MeUpdateRequest": {
         "description": "Client edit of their own profile. mobile is immutable (account identity).",
         "properties": {
+          "address": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Address"
+          },
           "email": {
             "anyOf": [
               {
@@ -6308,11 +6427,98 @@
             "title": "First Name",
             "type": "string"
           },
+          "gender": {
+            "anyOf": [
+              {
+                "enum": [
+                  "female",
+                  "male",
+                  "non_binary",
+                  "self_described",
+                  "prefer_not_to_say"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gender"
+          },
+          "gender_self_description": {
+            "anyOf": [
+              {
+                "maxLength": 100,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gender Self Description"
+          },
+          "income_amount_minor": {
+            "anyOf": [
+              {
+                "maximum": 1000000000000.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Income Amount Minor"
+          },
+          "income_period": {
+            "anyOf": [
+              {
+                "enum": [
+                  "monthly",
+                  "annual"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Income Period"
+          },
+          "income_source": {
+            "anyOf": [
+              {
+                "enum": [
+                  "net_salary",
+                  "business_income"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Income Source"
+          },
           "last_name": {
             "maxLength": 100,
             "minLength": 1,
             "title": "Last Name",
             "type": "string"
+          },
+          "occupation": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Occupation"
           }
         },
         "required": [
@@ -8989,11 +9195,6 @@
       },
       "RegisterInitiateRequest": {
         "properties": {
-          "email": {
-            "format": "email",
-            "title": "Email",
-            "type": "string"
-          },
           "first_name": {
             "maxLength": 100,
             "minLength": 1,
@@ -9026,8 +9227,7 @@
         "required": [
           "first_name",
           "last_name",
-          "mobile",
-          "email"
+          "mobile"
         ],
         "title": "RegisterInitiateRequest",
         "type": "object"

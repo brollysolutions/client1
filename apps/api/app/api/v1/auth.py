@@ -359,6 +359,7 @@ async def forgot_reset(
 async def resend_otp(
     req: ResendOtpRequest,
     request: Request,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
     cache: RedisCache = Depends(get_cache),
 ) -> ResendOtpResponse:
@@ -367,6 +368,7 @@ async def resend_otp(
         cache,
         req.mobile,
         req.purpose,
+        background_tasks,
         ip=_get_client_ip(request),
         via_email=req.via_email,
     )

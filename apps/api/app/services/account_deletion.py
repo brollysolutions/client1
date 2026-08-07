@@ -63,7 +63,12 @@ from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 import app.db.session as db_session
-from app.cache.redis_keys import RedisCache, jwt_blacklist_key
+from app.cache.redis_keys import (
+    RedisCache,
+    jwt_blacklist_key,
+    otp_email_verify_key,
+    otp_email_verify_target_key,
+)
 from app.models.audit_log import AuditAction
 from app.models.auth import AuthEvent, RefreshToken
 from app.models.loan_document import LoanDocument
@@ -162,10 +167,18 @@ async def delete_account(
     if user.status == UserStatus.SOFT_DELETED:
         raise AccountAlreadyDeleted
 
+    original_mobile = user.mobile
     user.first_name = "Deleted"
     user.last_name = "User"
     user.mobile = _tombstone_mobile(user.id)
     user.email = _tombstone_email(user.id)
+    user.gender = None
+    user.gender_self_description = None
+    user.income_source = None
+    user.income_amount_minor = None
+    user.income_period = None
+    user.occupation = None
+    user.address = None
     user.password_hash = None
     user.phone_verified_at = None
     user.email_verified_at = None
@@ -274,6 +287,19 @@ async def delete_account(
         detail={"self_service": self_service, "reason": reason},
     )
     await db.commit()
+
+    # Email-verification state is short-lived and contains no raw address, but
+    # its Redis keys still carry the former mobile. Purge it immediately after
+    # the authoritative identity scrub commits; a cache outage cannot undo an
+    # otherwise successful deletion.
+    try:
+        await cache.delete(
+            otp_email_verify_key(original_mobile),
+            f"{otp_email_verify_key(original_mobile)}:attempts",
+            otp_email_verify_target_key(original_mobile),
+        )
+    except Exception:
+        logger.warning("account_deletion.email_verification_cache_cleanup_failed", exc_info=True)
 
     # No-op on self-service: the actor IS the target, so excluding actor_uuid
     # from the fanout excludes the only "admin" who could be notified anyway

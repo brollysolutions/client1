@@ -60,7 +60,7 @@ default, not permission to skip the pre-implementation announcement.
 Admin field visibility and contact controls are **Done** in
 [PR #145](https://github.com/brollysolutions/client1/pull/145). Agent-lead expiry was delivered earlier
 from the same branch in [PR #144](https://github.com/brollysolutions/client1/pull/144).
-The next decision-gated priority is registration/profile requirement alignment.
+The next decision-gated priority is vehicle arrangements.
 
 | Priority | Feature / requirements | Status | Recommended model / effort | Decision gate and acceptance summary |
 | ---: | --- | --- | --- | --- |
@@ -68,12 +68,101 @@ The next decision-gated priority is registration/profile requirement alignment.
 | 2 | Admin field visibility and contact controls (FR-2.9, FR-15.1, FR-15.4) | **Done** — [PR #145](https://github.com/brollysolutions/client1/pull/145) | `gpt-5.6-sol` / Extra High | Delivered a closed server-owned catalogue, server-side least-data projection, locked Agent/Telecaller mobile rules, Employee allow/deny/provider-neutral invitation modes, policy audit, RLS, and lifecycle/race denial tests. |
 | 3 | Support-assisted mobile-number change (FR-3.4, FR-14.3) | **Done** — [PR #146](https://github.com/brollysolutions/client1/pull/146) | `gpt-5.6-sol` / Extra High | Delivered replacement-number OTP, structured identity-proof attestation, distinct active platform-Admin maker/checker approval, enumeration-safe intake, collision-safe linked-record updates, immediate race-safe session revocation, PII-minimized audit, and user notification. |
 | 4 | Managed property/media submissions (FR-7.3, FR-13.1 through FR-13.4, OI-002) | **Done** — [PR #147](https://github.com/brollysolutions/client1/pull/147) | `gpt-5.6-sol` / Extra High | Delivered Client/Lead, Agent, and Sub Admin submission; Admin-only approval; canonical private review uploads; approved public images; bounded image/PDF quotas; content verification; ownership/RLS; account-deletion cleanup; and scheduled lifecycle cleanup. |
-| 5 | Registration/profile requirement alignment (FR-3.3, FR-17.2) | Decision needed | `gpt-5.6-sol` / High | Resolve optional-email conflict and when demographic/income/address PII is collected; minimize fields; define edits/retention; update contracts and accessible forms. |
+| 5 | Registration/profile requirement alignment (FR-3.3, FR-17.2) | **Done** — [PR #148](https://github.com/brollysolutions/client1/pull/148) | `gpt-5.6-sol` / Extra High | Delivered mobile-first account creation, a skippable post-account profile step, optional editable/clearable identity details, verified-email-only recovery, owner/Admin RLS, deletion scrub, generated contracts, and accessible forms. |
 | 6 | Vehicle arrangements (FR-7.1, OI-003) | Decision needed | `gpt-5.6-sol` / High | Decide separate entity versus Employee task type; attach to one property deal; define statuses/assignment/audit; preserve real-estate-only access. |
 | 7 | Analytics completion (FR-16.1 through FR-16.3) | Planned | `gpt-5.6-terra` / High | Add Excel or amend it out; add Agent group/team filters and summaries; preserve bounded async queries, CSV formula safety, pagination, and line isolation. |
 | 8 | Notification/email redirect completeness (FR-11.2) | Planned | `gpt-5.6-terra` / High | Inventory every producer; add valid role-aware destinations and approved email events; prevent open redirects and PII in messages; add link tests. |
 | 9 | Authenticated banner personalization (FR-12.1 through FR-12.4, FR-18.1) | Decision needed | `gpt-5.6-sol` / Extra High | Define audience grammar, consented signals, location precision/retention, safe server evaluation, fallbacks, and negative targeting tests before serving personalized content. |
 | 10 | Map/GMB integration seam (FR-18.2) | Deferred pending scope | `gpt-5.6-terra` / High | Confirm it remains in v1; define provider-neutral coordinates/address boundary and privacy constraints before adding a dependency. |
+
+### Approved feature brief — Registration/profile requirement alignment
+
+- **Success:** an ordinary Client can create an account with name and an
+  OTP-verified mobile without supplying email or additional PII; after password
+  creation, registration offers a skippable profile step for optional email,
+  gender, income, occupation, and postal address, and the same details remain
+  editable and clearable from Profile settings.
+- **Behavior:** keep first and last name, mobile OTP, password, and the existing
+  optional referral code in the core registration flow. Create and authenticate
+  the account before attempting optional profile persistence so a failed or
+  skipped profile save never strands registration. Do not gate dashboards,
+  applications, inquiries, support, or either Client business line on profile
+  completion.
+- **Data and API:** relax `auth_users.email` to nullable while preserving
+  uniqueness for supplied values; keep new identity-wide fields on
+  `auth_users`, not duplicated across line profiles; model optional income as a
+  consistent source/amount/period group using integer minor units; use bounded
+  occupation and postal-address text; expose nullable values only through the
+  owner-scoped `GET/PATCH /auth/me` contract with explicit clearing semantics.
+- **Compatibility:** preserve CS-001 dual-line Client creation, CS-003 profile
+  and RLS scope, existing users and supplied emails, mandatory email in Admin
+  staff provisioning and Agent applications, password login, referral
+  attribution, generated-contract ownership, and current mobile-change proof
+  rules.
+- **Security and failure invariants:** prove mobile possession without sending
+  a registration OTP to a self-asserted email; permit email recovery only for a
+  verified account email; never place new PII in Redis registration state,
+  registration JWTs, access/refresh tokens, leads, audit detail, notifications,
+  logs, or analytics; preserve owner/platform-Admin RLS; reject inconsistent or
+  unbounded values; scrub every new field immediately during account deletion;
+  and keep optional profile-save failures retryable without undoing the account.
+- **Retention:** existing rows require no demographic backfill. Supplied values
+  remain until the user clears them or the account is deleted; deletion removes
+  them during the immediate identity-scrub phase while already de-linked legal
+  financial records retain their existing seven-year lifecycle.
+- **Non-goals:** business-line selection, mandatory profile-completion gates,
+  KYC/address proof, geolocation or map personalization, income underwriting or
+  analytics, staff/Agent onboarding redesign, Admin profile-edit expansion,
+  field-visibility catalogue expansion, and changes to loan/property
+  application-specific data.
+- **Verification matrix:** registration with omitted and supplied optional
+  email; mobile-only OTP delivery; verified-email-only recovery; absent-email
+  verification denial; duplicate and concurrent email updates; optional
+  profile submit, skip, retry, edit, and clear; income-group and field-bound
+  validation; owner, cross-user, staff, and platform-Admin RLS behavior;
+  immediate deletion scrub and re-registration; migration upgrade/downgrade and
+  one Alembic head; regenerated contracts; accessible responsive registration
+  and settings flows; focused API/web/browser tests; full applicable gates;
+  security review; PR review; and repository verification.
+
+### Delivered feature evidence — Registration/profile requirement alignment
+
+- **Delivery:** [PR #148](https://github.com/brollysolutions/client1/pull/148).
+- **Behavior:** ordinary Clients register with first and last name, an
+  OTP-verified mobile, password, and optional referral code. After account
+  creation they may skip or save optional email, gender, income source/amount/
+  period, occupation, and postal address; Profile settings supports later edit
+  and explicit clearing without any completion gate.
+- **Data and compatibility:** nullable identity-wide fields live on
+  `auth_users`; supplied emails remain unique; income uses bounded integer minor
+  units and a consistent group constraint. Staff provisioning and Agent
+  applications retain mandatory email, including when either role is attached
+  to a mobile-only Client identity; dual-line Client creation is unchanged, and
+  FastAPI remains the generated-contract source.
+- **Security and privacy:** registration and initial reset prove mobile control
+  without falling back to self-asserted email. Email reset is explicit and
+  verified-only; verification codes are bound to a keyed, non-reversible target
+  fingerprint and a locked identity row. Public reset initiation, resend, and
+  verification responses do not disclose account or verified-email existence.
+  New profile PII is absent from Redis registration state, JWTs, audit detail,
+  logs, leads, and analytics; existing owner/platform-Admin RLS applies;
+  deletion immediately scrubs the fields and verification cache.
+- **Fresh local evidence:** full API Ruff check/format, one Alembic head, 10
+  database-independent profile-schema tests, and collection of all 1,478 API
+  tests pass. Offline SQL generation passes for this revision's upgrade and
+  downgrade. OpenAPI and TypeScript contracts were freshly regenerated from
+  FastAPI and the pinned generator. Web lint/typecheck and all 272 tests pass.
+  A fresh production-build attempt timed out after five minutes without a
+  diagnostic on this Windows host. Database-backed API tests, live migration
+  upgrade/downgrade, browser E2E, the production build, and the repository-wide
+  CI gate remain delegated to Linux PR CI because the local Docker engine is
+  unresponsive and the host has no working Bash runtime.
+- **Security review:** automatic email fallback, verification-target swap,
+  public recovery enumeration, absent-email resend invalidation/status parity,
+  deletion-cache gaps, mobile-only staff/Agent email attachment, and malformed
+  partial profile updates were remediated with regression coverage. Repeat
+  static review found no remaining reachable high- or medium-severity defect;
+  datastore-backed execution remains the residual verification risk.
 
 ### Approved feature brief — Managed property/media submissions
 

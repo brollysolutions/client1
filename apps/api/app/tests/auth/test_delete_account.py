@@ -14,9 +14,12 @@ import asyncio
 import uuid
 
 import pytest
+import redis.asyncio as aioredis
 from httpx import AsyncClient
 from sqlalchemy import text
 
+from app.cache.redis_keys import otp_email_verify_target_key
+from app.core.config import settings
 from conftest import PASSWORD, full_registration, unique_email, unique_mobile
 
 
@@ -37,7 +40,9 @@ async def _get_user_row(uid: str) -> dict:
             await db.execute(
                 text(
                     "SELECT id, mobile, email, status, password_hash, "
-                    "phone_verified_at, email_verified_at FROM auth_users WHERE id = :id"
+                    "phone_verified_at, email_verified_at, gender, gender_self_description, "
+                    "income_source, income_amount_minor, income_period, occupation, address "
+                    "FROM auth_users WHERE id = :id"
                 ),
                 {"id": uid},
             )
@@ -302,8 +307,32 @@ async def test_delete_wrong_password_returns_401_and_nothing_mutated(
 
 
 async def test_delete_correct_password_returns_200_and_tombstones(client: AsyncClient) -> None:
-    access_token, mobile = await full_registration(client)
+    access_token, mobile = await full_registration(client, email=unique_email())
     uid = await _auth_user_uuid(mobile)
+    headers = {"Authorization": f"Bearer {access_token}"}
+    verification = await client.post("/api/v1/auth/email/verify/initiate", headers=headers)
+    assert verification.status_code == 200, verification.text
+    redis_client = aioredis.from_url(settings.REDIS_URL, decode_responses=True)
+    target_key = otp_email_verify_target_key(mobile)
+    target_exists_before = await redis_client.exists(target_key)
+    await redis_client.aclose()
+    assert target_exists_before
+    profile = await client.patch(
+        "/api/v1/auth/me",
+        headers=headers,
+        json={
+            "first_name": "Test",
+            "last_name": "User",
+            "gender": "self_described",
+            "gender_self_description": "Agender",
+            "income_source": "net_salary",
+            "income_amount_minor": 500_000,
+            "income_period": "monthly",
+            "occupation": "Engineer",
+            "address": "Sensitive address",
+        },
+    )
+    assert profile.status_code == 200, profile.text
 
     resp = await _delete_me(client, access_token)
     assert resp.status_code == 200, resp.text
@@ -316,6 +345,20 @@ async def test_delete_correct_password_returns_200_and_tombstones(client: AsyncC
     assert row["password_hash"] is None
     assert row["phone_verified_at"] is None
     assert row["email_verified_at"] is None
+    for field in (
+        "gender",
+        "gender_self_description",
+        "income_source",
+        "income_amount_minor",
+        "income_period",
+        "occupation",
+        "address",
+    ):
+        assert row[field] is None
+    redis_client = aioredis.from_url(settings.REDIS_URL, decode_responses=True)
+    target_exists_after = await redis_client.exists(target_key)
+    await redis_client.aclose()
+    assert not target_exists_after
 
 
 async def test_delete_clears_refresh_cookie(client: AsyncClient) -> None:

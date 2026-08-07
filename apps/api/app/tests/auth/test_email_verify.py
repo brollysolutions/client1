@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from httpx import AsyncClient
 
-from conftest import PASSWORD, full_registration
+from conftest import PASSWORD, full_registration, unique_email
 
 
 def _auth(token: str) -> dict:
@@ -16,7 +16,7 @@ def _auth(token: str) -> dict:
 
 
 async def test_email_verify_full_flow_sets_email_verified(client: AsyncClient) -> None:
-    access, mobile = await full_registration(client)
+    access, mobile = await full_registration(client, email=unique_email())
     init = await client.post("/api/v1/auth/email/verify/initiate", headers=_auth(access))
     assert init.status_code == 200, init.text
     body = init.json()
@@ -35,7 +35,7 @@ async def test_email_verify_full_flow_sets_email_verified(client: AsyncClient) -
 
 
 async def test_email_verify_wrong_otp_returns_400(client: AsyncClient) -> None:
-    access, _ = await full_registration(client)
+    access, _ = await full_registration(client, email=unique_email())
     await client.post("/api/v1/auth/email/verify/initiate", headers=_auth(access))
     resp = await client.post(
         "/api/v1/auth/email/verify/confirm", headers=_auth(access), json={"otp": "000000"}
@@ -44,7 +44,7 @@ async def test_email_verify_wrong_otp_returns_400(client: AsyncClient) -> None:
 
 
 async def test_email_verify_confirm_without_initiate_returns_400(client: AsyncClient) -> None:
-    access, _ = await full_registration(client)
+    access, _ = await full_registration(client, email=unique_email())
     resp = await client.post(
         "/api/v1/auth/email/verify/confirm", headers=_auth(access), json={"otp": "123456"}
     )
@@ -52,7 +52,7 @@ async def test_email_verify_confirm_without_initiate_returns_400(client: AsyncCl
 
 
 async def test_email_verify_already_verified_returns_400(client: AsyncClient) -> None:
-    access, _ = await full_registration(client)
+    access, _ = await full_registration(client, email=unique_email())
     init = await client.post("/api/v1/auth/email/verify/initiate", headers=_auth(access))
     otp = init.json()["otp_hint"]
     await client.post("/api/v1/auth/email/verify/confirm", headers=_auth(access), json={"otp": otp})
@@ -64,6 +64,38 @@ async def test_email_verify_already_verified_returns_400(client: AsyncClient) ->
 async def test_email_verify_initiate_unauthenticated_returns_401(client: AsyncClient) -> None:
     resp = await client.post("/api/v1/auth/email/verify/initiate")
     assert resp.status_code == 401
+
+
+async def test_email_verify_without_email_returns_400(client: AsyncClient) -> None:
+    access, _ = await full_registration(client)
+    resp = await client.post("/api/v1/auth/email/verify/initiate", headers=_auth(access))
+    assert resp.status_code == 400
+    assert resp.json()["detail"] == "Add an email address before requesting verification."
+
+
+async def test_email_verify_code_is_bound_to_the_address_it_was_sent_to(
+    client: AsyncClient,
+) -> None:
+    access, _ = await full_registration(client, email=unique_email())
+    headers = _auth(access)
+    initiated = await client.post("/api/v1/auth/email/verify/initiate", headers=headers)
+    assert initiated.status_code == 200, initiated.text
+    changed = await client.patch(
+        "/api/v1/auth/me",
+        headers=headers,
+        json={"first_name": "Test", "last_name": "User", "email": unique_email()},
+    )
+    assert changed.status_code == 200, changed.text
+
+    confirmed = await client.post(
+        "/api/v1/auth/email/verify/confirm",
+        headers=headers,
+        json={"otp": initiated.json()["otp_hint"]},
+    )
+    assert confirmed.status_code == 400
+    assert confirmed.json()["detail"] == "Email changed. Request a new verification code."
+    me = await client.get("/api/v1/auth/me", headers=headers)
+    assert me.json()["email_verified"] is False
 
 
 async def test_email_verify_confirm_unauthenticated_returns_401(client: AsyncClient) -> None:

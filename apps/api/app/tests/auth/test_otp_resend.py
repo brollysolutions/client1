@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from httpx import AsyncClient
 
-from conftest import full_registration, initiate_and_get_otp, unique_mobile
+from conftest import full_registration, initiate_and_get_otp, unique_email, unique_mobile
 
 
 async def test_resend_register_purpose_returns_new_otp_hint(client: AsyncClient) -> None:
@@ -40,18 +40,108 @@ async def test_resend_channel_none_mock_mode(client: AsyncClient) -> None:
     assert resp.json()["delivery_channel"] == "none"
 
 
-async def test_resend_via_email_recovery_returns_otp(client: AsyncClient) -> None:
-    """via_email forces the email channel (mock → 'none' + hint in dev)."""
-    mobile = unique_mobile()
-    await initiate_and_get_otp(client, mobile)
+async def test_resend_via_email_requires_verified_account_email(
+    client: AsyncClient, monkeypatch
+) -> None:
+    email = unique_email()
+    access, mobile = await full_registration(client, email=email)
+    headers = {"Authorization": f"Bearer {access}"}
+    verify = await client.post("/api/v1/auth/email/verify/initiate", headers=headers)
+    assert verify.status_code == 200, verify.text
+    confirmed = await client.post(
+        "/api/v1/auth/email/verify/confirm",
+        headers=headers,
+        json={"otp": verify.json()["otp_hint"]},
+    )
+    assert confirmed.status_code == 200, confirmed.text
+    initiated = await client.post("/api/v1/auth/forgot/initiate", json={"mobile": mobile})
+    assert initiated.status_code == 200, initiated.text
+
+    from app.services import otp_delivery
+
+    sent: list[str] = []
+
+    async def _capture_email(to: str, subject: str, body: str) -> bool:
+        sent.append(to)
+        return True
+
+    monkeypatch.setattr(otp_delivery, "send_email", _capture_email)
     resp = await client.post(
         "/api/v1/auth/otp/resend",
-        json={"mobile": mobile, "purpose": "register", "via_email": True},
+        json={"mobile": mobile, "purpose": "reset", "via_email": True},
     )
     assert resp.status_code == 200
-    body = resp.json()
-    assert body["delivery_channel"] == "none"
-    assert body["otp_hint"] and len(body["otp_hint"]) == 6
+    assert resp.json() == {
+        "message": "Code resent.",
+        "delivery_channel": "none",
+        "otp_hint": None,
+    }
+    assert sent == [email]
+
+
+async def test_voice_resend_never_falls_back_to_verified_email(
+    client: AsyncClient, monkeypatch
+) -> None:
+    email = unique_email()
+    access, mobile = await full_registration(client, email=email)
+    headers = {"Authorization": f"Bearer {access}"}
+    verify = await client.post("/api/v1/auth/email/verify/initiate", headers=headers)
+    assert verify.status_code == 200, verify.text
+    confirmed = await client.post(
+        "/api/v1/auth/email/verify/confirm",
+        headers=headers,
+        json={"otp": verify.json()["otp_hint"]},
+    )
+    assert confirmed.status_code == 200, confirmed.text
+    initiated = await client.post("/api/v1/auth/forgot/initiate", json={"mobile": mobile})
+    assert initiated.status_code == 200, initiated.text
+
+    from app.services import otp_delivery
+
+    sent: list[str] = []
+
+    async def _capture_email(to: str, subject: str, body: str) -> bool:
+        sent.append(to)
+        return True
+
+    monkeypatch.setattr(otp_delivery, "send_email", _capture_email)
+    response = await client.post(
+        "/api/v1/auth/otp/resend",
+        json={"mobile": mobile, "purpose": "reset", "via_email": False},
+    )
+    assert response.status_code == 200
+    assert response.json()["delivery_channel"] == "none"
+    assert sent == []
+
+
+async def test_unverified_email_is_not_used_for_reset_resend(
+    client: AsyncClient, monkeypatch
+) -> None:
+    _, mobile = await full_registration(client, email=unique_email())
+    initiated = await client.post("/api/v1/auth/forgot/initiate", json={"mobile": mobile})
+    assert initiated.status_code == 200, initiated.text
+
+    from app.services import otp_delivery
+
+    sent: list[str] = []
+
+    async def _capture_email(to: str, subject: str, body: str) -> bool:
+        sent.append(to)
+        return True
+
+    monkeypatch.setattr(otp_delivery, "send_email", _capture_email)
+    resp = await client.post(
+        "/api/v1/auth/otp/resend",
+        json={"mobile": mobile, "purpose": "reset", "via_email": True},
+    )
+    assert resp.status_code == 200
+    assert resp.json()["delivery_channel"] == "none"
+    assert sent == []
+    still_valid = await client.post(
+        "/api/v1/auth/forgot/verify",
+        json={"mobile": mobile, "otp": initiated.json()["otp_hint"]},
+    )
+    assert still_valid.status_code == 200, still_valid.text
 
 
 async def test_resend_invalidates_old_otp(client: AsyncClient) -> None:
@@ -119,6 +209,19 @@ async def test_resend_no_prior_otp_returns_400(client: AsyncClient) -> None:
         json={"mobile": unique_mobile(), "purpose": "register"},
     )
     assert resp.status_code == 400
+
+
+async def test_reset_resend_without_session_is_enumeration_safe(client: AsyncClient) -> None:
+    resp = await client.post(
+        "/api/v1/auth/otp/resend",
+        json={"mobile": unique_mobile(), "purpose": "reset", "via_email": True},
+    )
+    assert resp.status_code == 200
+    assert resp.json() == {
+        "message": "Code resent.",
+        "delivery_channel": "none",
+        "otp_hint": None,
+    }
 
 
 async def test_resend_invalid_mobile_format_returns_422(client: AsyncClient) -> None:
