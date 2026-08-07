@@ -11,7 +11,7 @@ from __future__ import annotations
 from datetime import datetime
 from uuid import UUID
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app.models.property import ConstructionStatus, Furnishing, PropertyCategory
 
@@ -25,6 +25,7 @@ class PropertyRead(BaseModel):
     price_paise: int
     meta: str | None
     image: str | None
+    media_urls: list[str] = Field(default_factory=list)
     category: PropertyCategory
     city: str
     locality: str
@@ -64,6 +65,7 @@ class PublicPropertyRead(BaseModel):
     price_display: str
     meta: str | None
     image: str | None
+    media_urls: list[str] = Field(default_factory=list)
     category: PropertyCategory
     rera_number: str
 

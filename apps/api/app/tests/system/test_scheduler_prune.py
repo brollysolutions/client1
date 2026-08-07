@@ -95,3 +95,12 @@ def test_scheduler_registers_agent_lead_expiry_every_fifteen_minutes() -> None:
     assert job.trigger.interval.total_seconds() == 15 * 60
     assert job.max_instances == 1
     assert job.coalesce is True
+
+
+def test_scheduler_registers_property_media_purge_daily() -> None:
+    scheduler = build_scheduler()
+    job = scheduler.get_job("purge_property_media")
+    assert job is not None
+    assert job.trigger.interval.total_seconds() == 24 * 60 * 60
+    assert job.max_instances == 1
+    assert job.coalesce is True

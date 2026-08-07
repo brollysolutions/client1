@@ -2393,6 +2393,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/property-submissions/media-upload-url": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Get Property Media Upload Url */
+        post: operations["get_property_media_upload_url_api_v1_property_submissions_media_upload_url_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/property-submissions/{submission_id}": {
         parameters: {
             query?: never;
@@ -2421,6 +2438,23 @@ export interface paths {
         put?: never;
         /** Approve */
         post: operations["approve_api_v1_property_submissions__submission_id__approve_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/property-submissions/{submission_id}/media/{media_id}/access": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Access Submission Media */
+        get: operations["access_submission_media_api_v1_property_submissions__submission_id__media__media_id__access_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -5855,6 +5889,29 @@ export interface components {
             /** Properties */
             properties: components["schemas"]["PropertyRead"][];
         };
+        /** PropertyMediaUploadRequest */
+        PropertyMediaUploadRequest: {
+            /** Content Type */
+            content_type: ("image/jpeg" | "image/png" | "image/webp") | "application/pdf";
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "image" | "document";
+        };
+        /** PropertyMediaUploadResponse */
+        PropertyMediaUploadResponse: {
+            /** Fields */
+            fields: {
+                [key: string]: string;
+            };
+            /** Max Bytes */
+            max_bytes: number;
+            /** Object Key */
+            object_key: string;
+            /** Upload Url */
+            upload_url: string;
+        };
         /** PropertyRead */
         PropertyRead: {
             /** Active */
@@ -5888,6 +5945,8 @@ export interface components {
             locality: string;
             /** Location */
             location: string;
+            /** Media Urls */
+            media_urls?: string[];
             /** Meta */
             meta: string | null;
             /** Pincode */
@@ -6116,6 +6175,8 @@ export interface components {
             image: string | null;
             /** Location */
             location: string;
+            /** Media Urls */
+            media_urls?: string[];
             /** Meta */
             meta: string | null;
             /** Price Display */
@@ -6591,12 +6652,12 @@ export interface components {
                 [key: string]: unknown;
             };
             furnishing: components["schemas"]["Furnishing"];
-            /** Image */
-            image?: string | null;
             /** Locality */
             locality: string;
             /** Location */
             location: string;
+            /** Media */
+            media: components["schemas"]["SubmissionMediaInput"][];
             /** Meta */
             meta?: string | null;
             /** Pincode */
@@ -6614,6 +6675,44 @@ export interface components {
         SubmissionListResponse: {
             /** Submissions */
             submissions: components["schemas"]["SubmissionRead"][];
+        };
+        /** SubmissionMediaAccessResponse */
+        SubmissionMediaAccessResponse: {
+            /** Url */
+            url: string;
+        };
+        /** SubmissionMediaInput */
+        SubmissionMediaInput: {
+            /** Content Type */
+            content_type: ("image/jpeg" | "image/png" | "image/webp") | "application/pdf";
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "image" | "document";
+            /** Object Key */
+            object_key: string;
+            /** Position */
+            position: number;
+        };
+        /** SubmissionMediaRead */
+        SubmissionMediaRead: {
+            /** Content Type */
+            content_type: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "image" | "document";
+            /** Position */
+            position: number;
+            /** Size Bytes */
+            size_bytes: number;
         };
         /** SubmissionRead */
         SubmissionRead: {
@@ -6648,6 +6747,8 @@ export interface components {
             locality: string;
             /** Location */
             location: string;
+            /** Media */
+            media?: components["schemas"]["SubmissionMediaRead"][];
             /** Meta */
             meta: string | null;
             /** Pincode */
@@ -12018,6 +12119,39 @@ export interface operations {
             };
         };
     };
+    get_property_media_upload_url_api_v1_property_submissions_media_upload_url_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PropertyMediaUploadRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PropertyMediaUploadResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_submission_api_v1_property_submissions__submission_id__get: {
         parameters: {
             query?: never;
@@ -12067,6 +12201,38 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SubmissionRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    access_submission_media_api_v1_property_submissions__submission_id__media__media_id__access_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                submission_id: string;
+                media_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SubmissionMediaAccessResponse"];
                 };
             };
             /** @description Validation Error */

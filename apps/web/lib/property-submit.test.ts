@@ -28,23 +28,34 @@ const VALID: SubmitFormState = {
   age_years: "3",
   amenities: ["parking", "lift"],
   details: [{ key: "facing", value: "East" }, { key: "floor", value: "7" }],
-  image: "https://example.com/a.jpg",
+  images: [new File(["image"], "a.jpg", { type: "image/jpeg" })],
+  documents: [],
   meta: "Ready to move",
 };
 
+const MEDIA = [
+  {
+    kind: "image" as const,
+    content_type: "image/jpeg" as const,
+    object_key:
+      "private/property-submissions/staging/00000000-0000-0000-0000-000000000001/00000000-0000-0000-0000-000000000002/asset.jpg",
+    position: 0,
+  },
+];
+
 describe("buildSubmissionPayload()", () => {
   it("converts rupees to integer paise (x100)", () => {
-    const p = buildSubmissionPayload(VALID);
+    const p = buildSubmissionPayload(VALID, MEDIA);
     expect(p.price_paise).toBe(500_000_000);
     expect(Number.isInteger(p.price_paise)).toBe(true);
   });
 
   it("rounds fractional rupees to whole paise", () => {
-    expect(buildSubmissionPayload({ ...VALID, priceRupees: "1234.55" }).price_paise).toBe(123455);
+    expect(buildSubmissionPayload({ ...VALID, priceRupees: "1234.55" }, MEDIA).price_paise).toBe(123455);
   });
 
   it("trims strings and coerces numeric fields", () => {
-    const p = buildSubmissionPayload(VALID);
+    const p = buildSubmissionPayload(VALID, MEDIA);
     expect(p.title).toBe("Sunny 2BHK");
     expect(p.bhk).toBe(2);
     expect(p.area_sqft).toBe(1150);
@@ -55,15 +66,15 @@ describe("buildSubmissionPayload()", () => {
     const p = buildSubmissionPayload({
       ...VALID,
       details: [{ key: "facing", value: "East" }, { key: "", value: "ignored" }],
-    });
+    }, MEDIA);
     expect(p.details).toEqual({ facing: "East" });
   });
 
   it("passes amenities through and omits empty optional strings as null", () => {
-    const p = buildSubmissionPayload({ ...VALID, image: "", meta: "" });
+    const p = buildSubmissionPayload({ ...VALID, meta: "" }, MEDIA);
     expect(p.amenities).toEqual(["parking", "lift"]);
-    expect(p.image).toBeNull();
     expect(p.meta).toBeNull();
+    expect(p.media).toEqual(MEDIA);
   });
 });
 
@@ -85,6 +96,22 @@ describe("validateForm()", () => {
     const errs = validateForm({ ...VALID, title: "  ", rera_number: "" });
     expect(errs.title).toBeTruthy();
     expect(errs.rera_number).toBeTruthy();
+  });
+
+  it("requires managed images and rejects unsupported media", () => {
+    expect(validateForm({ ...VALID, images: [] }).images).toBeTruthy();
+    expect(
+      validateForm({
+        ...VALID,
+        images: [new File(["gif"], "bad.gif", { type: "image/gif" })],
+      }).images,
+    ).toBeTruthy();
+    expect(
+      validateForm({
+        ...VALID,
+        documents: [new File(["text"], "note.txt", { type: "text/plain" })],
+      }).documents,
+    ).toBeTruthy();
   });
 });
 

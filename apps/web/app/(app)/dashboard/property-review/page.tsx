@@ -7,10 +7,10 @@ import { Loader2 } from "lucide-react";
 import { useAuth } from "@/components/auth/session-provider";
 import { ReviewQueueView } from "@/features/real-estate/review-queue-view";
 
-// First staff-gated route. AppGuard (the (app) layout) already enforces auth;
-// this adds the role gate. UX gate only, the API's require_re_reviewer + RLS are
+// Platform Admin-only route. AppGuard (the (app) layout) already enforces auth;
+// this adds the role gate. UX gate only, the API's require_platform_admin + RLS are
 // the real wall, so a non-reviewer who forces the route still gets no data.
-const REVIEWER_ROLES = new Set(["admin", "sub_admin"]);
+const REVIEWER_ROLES = new Set(["admin"]);
 
 export default function PropertyReviewPage() {
   const router = useRouter();

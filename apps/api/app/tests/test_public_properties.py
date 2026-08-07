@@ -170,6 +170,7 @@ async def test_response_omits_internal_fields(client: AsyncClient) -> None:
             "price_display",
             "meta",
             "image",
+            "media_urls",
             "category",
             "rera_number",
         }

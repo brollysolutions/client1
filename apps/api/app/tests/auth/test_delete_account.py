@@ -454,6 +454,70 @@ async def test_delete_scrubs_agent_application_and_deletes_storage(
     assert row[3] is None and row[4] is None
 
 
+async def test_delete_rejects_pending_property_submission_and_purges_private_media(
+    client: AsyncClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import app.db.session as session_module
+    from app.models.property_media import PropertySubmissionMedia
+    from app.models.property_submission import PropertySubmission
+    from app.services import storage
+
+    deleted_keys: list[str] = []
+    monkeypatch.setattr(storage, "delete_object", deleted_keys.append)
+    access_token, mobile = await full_registration(client)
+    uid = await _auth_user_uuid(mobile)
+    object_key = f"private/property-submissions/canonical/{uid}/{uuid.uuid4()}/asset.pdf"
+    async with session_module.AsyncSessionLocal() as session:
+        submission = PropertySubmission(
+            submitter_uuid=uuid.UUID(uid),
+            business_line="real_estate",
+            title="Deletion cleanup property",
+            type="Apartment",
+            location="Pune",
+            category="apartments",
+            city="Pune",
+            locality="Baner",
+            pincode="411045",
+            price_paise=5_000_000,
+            furnishing="semi",
+            construction_status="ready",
+            rera_number="RERA/DELETE/1",
+        )
+        session.add(submission)
+        await session.flush()
+        submission_id = submission.id
+        session.add(
+            PropertySubmissionMedia(
+                submission_uuid=submission_id,
+                business_line="real_estate",
+                kind="document",
+                content_type="application/pdf",
+                object_key=object_key,
+                size_bytes=1024,
+                position=0,
+            )
+        )
+        await session.commit()
+
+    response = await _delete_me(client, access_token)
+
+    assert response.status_code == 204, response.text
+    assert object_key in deleted_keys
+    async with session_module.AsyncSessionLocal() as session:
+        row = await session.execute(
+            text("SELECT status, review_note FROM property_submissions WHERE id = :id"),
+            {"id": submission_id},
+        )
+        status_value, review_note = row.one()
+        media_count = await session.scalar(
+            text("SELECT count(*) FROM property_submission_media WHERE submission_uuid = :id"),
+            {"id": submission_id},
+        )
+    assert status_value == "rejected"
+    assert review_note == "Submission closed because the owner account was deleted."
+    assert media_count == 0
+
+
 # ---------------------------------------------------------------------------
 # Financial de-link (transactions/payouts)
 # ---------------------------------------------------------------------------

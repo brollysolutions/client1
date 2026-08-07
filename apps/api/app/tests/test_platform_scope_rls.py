@@ -2,7 +2,7 @@
 
 Migration a0b1c2d3e4f5 closed the audit e8f9a0b1c2d3 deferred: every policy
 that treats `platform_scope='true'` as a bypass must also check `app.role`,
-except for the four documented Sub Admin exceptions. This introspects
+except for the documented Sub Admin exceptions. This introspects
 pg_policies directly (no seeding, no api_user context) so it fails the moment
 any future migration reintroduces the bare copy-paste bypass on a new table.
 
@@ -26,7 +26,6 @@ _DOCUMENTED_SUB_ADMIN_EXCEPTIONS = {
     ("transactions", "transactions_rls"),
     ("payouts", "payouts_rls"),
     ("properties", "properties_rls"),
-    ("property_submissions", "property_submissions_select"),
     # Dead-but-retained (a0b1c2d3e4f5 §Risks): pre-existing line-scoped
     # `role IN (..., 'sub_admin')` branches that never match a platform
     # sub_admin (business_line claim is always ""), kept because a
@@ -73,6 +72,8 @@ _ALL_PLATFORM_SCOPE_POLICIES = {
     ("leads", "leads_rls"),
     ("properties", "properties_rls"),
     ("property_submissions", "property_submissions_select"),
+    ("property_submission_media", "property_submission_media_select"),
+    ("property_media", "property_media_select"),
     ("payouts", "payouts_rls"),
     ("transactions", "transactions_rls"),
     # 9f8e7d6c5b4a — admin-only bypass, no sub_admin branch (FR-9.5), so these
@@ -128,7 +129,7 @@ async def test_no_policy_grants_bare_platform_scope_bypass() -> None:
 
 async def test_sub_admin_platform_exceptions_are_the_documented_allowlist() -> None:
     """The set of policies granting sub_admin a platform_scope branch must be
-    exactly the four documented exceptions — any new one is a deliberate,
+    exactly the documented exceptions — any new one is a deliberate,
     reviewed widening, not an accident."""
     policies = await _fetch_policies()
     actual = {

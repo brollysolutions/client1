@@ -77,6 +77,8 @@ from app.models.profile import (
     ProfileStatus,
     StaffProfile,
 )
+from app.models.property_media import PropertySubmissionMedia
+from app.models.property_submission import PropertySubmission, SubmissionStatus
 from app.models.support_ticket import SupportTicket
 from app.models.transaction import Transaction
 from app.models.user import User, UserStatus
@@ -411,4 +413,50 @@ async def delete_account(
     except Exception:
         logger.exception(
             "account_deletion.phase_b_failed target_auth_user_uuid=%s", target_auth_user_uuid
+        )
+
+    # Property-submission media is private user content, including optional
+    # reviewer documents. It has no request-session DELETE grant, so clean it
+    # through its own isolated bypass transaction after the identity is already
+    # tombstoned. Public PropertyMedia is intentionally unaffected: an approved
+    # catalogue listing is platform content and no longer references these
+    # private source rows.
+    property_media_keys: list[str] = []
+    try:
+        async with db_session.AsyncSessionLocal() as session:
+            property_media = list(
+                (
+                    await session.scalars(
+                        select(PropertySubmissionMedia)
+                        .join(
+                            PropertySubmission,
+                            PropertySubmission.id == PropertySubmissionMedia.submission_uuid,
+                        )
+                        .where(PropertySubmission.submitter_uuid == target_auth_user_uuid)
+                    )
+                ).all()
+            )
+            property_media_keys = [asset.object_key for asset in property_media]
+            for asset in property_media:
+                await session.delete(asset)
+            await session.execute(
+                update(PropertySubmission)
+                .where(
+                    PropertySubmission.submitter_uuid == target_auth_user_uuid,
+                    PropertySubmission.status == SubmissionStatus.PENDING,
+                )
+                .values(
+                    status=SubmissionStatus.REJECTED,
+                    review_note="Submission closed because the owner account was deleted.",
+                    reviewed_by_uuid=None,
+                    reviewed_at=datetime.now(UTC),
+                )
+            )
+            await session.commit()
+        for object_key in property_media_keys:
+            storage.delete_object(object_key)
+    except Exception:
+        logger.exception(
+            "account_deletion.property_media_cleanup_failed target_auth_user_uuid=%s",
+            target_auth_user_uuid,
         )
