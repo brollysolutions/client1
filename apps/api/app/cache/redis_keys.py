@@ -52,6 +52,14 @@ AGENT_APPLY_RATE_IP = "agent_apply_rate_ip:{ip}"
 AGENT_APPLY_OTP_DAILY = "agent_apply_otp_daily:{mobile}"
 AGENT_APPLY_PRESIGN = "agent_apply_presign:{jti}"
 
+# Support-assisted mobile-number recovery.  OTP is keyed to the replacement
+# number; the initiation counter also includes the claimed current number so a
+# caller cannot flood the support queue for one account from many networks.
+OTP_MOBILE_CHANGE = "otp:mobile_change:{mobile}"
+MOBILE_CHANGE_RATE_IP = "mobile_change_rate_ip:{ip}"
+MOBILE_CHANGE_RATE_ACCOUNT = "mobile_change_rate_account:{mobile}"
+MOBILE_CHANGE_OTP_DAILY = "mobile_change_otp_daily:{mobile}"
+
 # Admin broadcast (services/admin_notify.py::broadcast) — one send per admin
 # per ADMIN_BROADCAST_RATE_LIMIT_MINUTES window. A broadcast has no undo, so
 # this exists specifically to catch a double-clicked send, not general abuse.
@@ -69,6 +77,8 @@ TTL_CONTACT_INVITATION_RATE = 60 * 60  # 1 h public token-validation window
 TTL_AGENT_APPLY_RATE = 60 * 60  # 1 h rolling window, submit per-IP cap
 TTL_AGENT_APPLY_PRESIGN = 15 * 60  # matches the ticket's own 15 min exp
 TTL_AGENT_APPLY_OTP_DAILY = 24 * 60 * 60  # 24 h daily cap, purpose-scoped
+TTL_MOBILE_CHANGE_RATE = 60 * 60
+TTL_MOBILE_CHANGE_OTP_DAILY = 24 * 60 * 60
 
 
 # ---------------------------------------------------------------------------
@@ -193,6 +203,10 @@ def otp_agent_apply_key(mobile: str) -> str:
     return OTP_AGENT_APPLY.format(mobile=mobile)
 
 
+def otp_mobile_change_key(mobile: str) -> str:
+    return OTP_MOBILE_CHANGE.format(mobile=mobile)
+
+
 def agent_apply_rate_ip_key(ip: str) -> str:
     return AGENT_APPLY_RATE_IP.format(ip=ip)
 
@@ -203,3 +217,15 @@ def agent_apply_presign_key(jti: str) -> str:
 
 def agent_apply_otp_daily_key(mobile: str) -> str:
     return AGENT_APPLY_OTP_DAILY.format(mobile=mobile)
+
+
+def mobile_change_rate_ip_key(ip: str) -> str:
+    return MOBILE_CHANGE_RATE_IP.format(ip=ip)
+
+
+def mobile_change_rate_account_key(mobile: str) -> str:
+    return MOBILE_CHANGE_RATE_ACCOUNT.format(mobile=mobile)
+
+
+def mobile_change_otp_daily_key(mobile: str) -> str:
+    return MOBILE_CHANGE_OTP_DAILY.format(mobile=mobile)

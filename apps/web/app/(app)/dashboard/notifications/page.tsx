@@ -17,6 +17,7 @@ import {
   Megaphone,
   PhoneCall,
   ShieldAlert,
+  Smartphone,
   Undo2,
   Wallet,
 } from "lucide-react";
@@ -51,6 +52,9 @@ const TYPE_ICON: Record<NotificationType, LucideIcon> = {
   admin_account_action: ShieldAlert,
   admin_retention_purged: Eraser,
   admin_broadcast: Megaphone,
+  mobile_change_requested: Smartphone,
+  mobile_changed: Smartphone,
+  mobile_change_rejected: ShieldAlert,
 };
 
 function formatRelativeTime(iso: string): string {

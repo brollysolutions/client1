@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { Loader2, Headset } from "lucide-react";
 import { toast } from "sonner";
 
@@ -80,6 +81,21 @@ export default function SupportPage() {
       </div>
 
       <NewTicketForm onCreated={(t) => setTickets((prev) => [t, ...prev])} />
+
+      <section className="flex flex-col gap-4 rounded-2xl border border-brand-cta/25 bg-brand-cta-tint/40 p-6 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h2 className="font-medium text-text-primary">Need a new login number?</h2>
+          <p className="mt-1 text-sm text-text-secondary">
+            Verify the replacement number, then support will complete a two-person identity review.
+          </p>
+        </div>
+        <Link
+          href="/change-mobile"
+          className="inline-flex shrink-0 items-center justify-center rounded-lg bg-brand-cta px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-brand-cta/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cta"
+        >
+          Start number change
+        </Link>
+      </section>
 
       <section className="space-y-3">
         <h2 className="text-sm font-medium text-text-secondary">Your tickets</h2>

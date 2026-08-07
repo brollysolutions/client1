@@ -333,12 +333,21 @@ async def test_assigned_to_blocked_direct_transition(client: AsyncClient) -> Non
 
 
 @pytest.mark.asyncio
-async def test_home_summary_shape(client: AsyncClient) -> None:
+async def test_home_summary_shape(client: AsyncClient, monkeypatch: pytest.MonkeyPatch) -> None:
+    import app.services.employee as employee_service
+
+    frozen_now = datetime(2026, 8, 6, 12, 0, tzinfo=UTC)
+
+    class FrozenDateTime(datetime):
+        @classmethod
+        def now(cls, tz=None):  # noqa: ANN001
+            return frozen_now if tz is not None else frozen_now.replace(tzinfo=None)
+
+    monkeypatch.setattr(employee_service, "datetime", FrozenDateTime)
     auth_uuid, staff_uuid = await _seed_employee("loans")
-    now = datetime.now(UTC)
-    await _seed_task("loans", staff_uuid, status="assigned", due_at=now - timedelta(hours=2))
-    await _seed_task("loans", staff_uuid, status="assigned", due_at=now + timedelta(hours=2))
-    await _seed_task("loans", staff_uuid, status="assigned", due_at=now + timedelta(days=5))
+    await _seed_task("loans", staff_uuid, status="assigned", due_at=frozen_now - timedelta(hours=2))
+    await _seed_task("loans", staff_uuid, status="assigned", due_at=frozen_now + timedelta(hours=2))
+    await _seed_task("loans", staff_uuid, status="assigned", due_at=frozen_now + timedelta(days=5))
 
     res = await client.get(
         "/api/v1/employee/home",

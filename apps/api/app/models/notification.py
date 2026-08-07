@@ -45,6 +45,9 @@ class NotificationType(enum.StrEnum):
     ADMIN_ACCOUNT_ACTION = "admin_account_action"
     ADMIN_RETENTION_PURGED = "admin_retention_purged"
     ADMIN_BROADCAST = "admin_broadcast"
+    MOBILE_CHANGE_REQUESTED = "mobile_change_requested"
+    MOBILE_CHANGED = "mobile_changed"
+    MOBILE_CHANGE_REJECTED = "mobile_change_rejected"
 
 
 _ev = lambda x: [e.value for e in x]  # noqa: E731

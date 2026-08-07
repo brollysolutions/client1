@@ -3,7 +3,7 @@ import uuid
 from datetime import datetime
 from typing import Optional
 
-from sqlalchemy import DateTime, ForeignKey, String
+from sqlalchemy import CheckConstraint, DateTime, ForeignKey, Integer, String
 from sqlalchemy.dialects.postgresql import ENUM, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -42,6 +42,7 @@ status_enum = ENUM(UserStatus, name="status_enum", create_type=False, values_cal
 
 class User(Base):
     __tablename__ = "auth_users"
+    __table_args__ = (CheckConstraint("session_version >= 1", name="session_version_positive"),)
 
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
@@ -71,6 +72,15 @@ class User(Base):
     password_hash: Mapped[str | None] = mapped_column(
         String,
         nullable=True,
+    )
+    # Embedded in every access token and checked on every authenticated
+    # request.  Incrementing it invalidates every already-issued access token
+    # for this account without maintaining a per-token Redis denylist.
+    session_version: Mapped[int] = mapped_column(
+        Integer,
+        nullable=False,
+        default=1,
+        server_default="1",
     )
 
     status: Mapped[UserStatus] = mapped_column(
