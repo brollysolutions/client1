@@ -4,7 +4,7 @@ Status: **Derived living implementation ledger**
 
 As of: **2026-08-07**
 
-Evidence baseline: `feat/vehicle-arrangements` (PR pending)
+Evidence baseline: `9907941` ([PR #149](https://github.com/brollysolutions/client1/pull/149))
 
 ## Purpose and authority
 
@@ -43,8 +43,8 @@ work than several completed UI requirements.
 
 ## Delivered implementation
 
-- **Vehicle arrangements** (FR-7.1, OI-003) are implemented on
-  `feat/vehicle-arrangements` (PR pending). Clients optionally request one
+- **Vehicle arrangements** (FR-7.1, OI-003) are implemented in
+  [PR #149](https://github.com/brollysolutions/client1/pull/149). Clients optionally request one
   pickup during site-visit creation; platform Admin arranges transport and
   directly assigns an active real-estate Employee; the assignee completes or
   cancels it; and the owning Client follows a read-only status and safe
