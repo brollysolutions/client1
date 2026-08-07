@@ -2098,6 +2098,13 @@
           "summary": {
             "$ref": "#/components/schemas/AgentsSummary"
           },
+          "team_summaries": {
+            "items": {
+              "$ref": "#/components/schemas/TeamPerformanceSummary"
+            },
+            "title": "Team Summaries",
+            "type": "array"
+          },
           "total": {
             "title": "Total",
             "type": "integer"
@@ -2106,7 +2113,8 @@
         "required": [
           "rows",
           "total",
-          "summary"
+          "summary",
+          "team_summaries"
         ],
         "title": "AgentsReportResponse",
         "type": "object"
@@ -10789,6 +10797,55 @@
         "title": "TaskRead",
         "type": "object"
       },
+      "TeamPerformanceSummary": {
+        "description": "Per-business-line performance summary.\n\nThe established data model has no mutable team-membership entity. Agents\nare permanently line-scoped, so the Loans and Real Estate business lines\nare the authoritative team dimension for FR-16.3.",
+        "properties": {
+          "agent_count": {
+            "title": "Agent Count",
+            "type": "integer"
+          },
+          "business_line": {
+            "title": "Business Line",
+            "type": "string"
+          },
+          "deals_converted": {
+            "title": "Deals Converted",
+            "type": "integer"
+          },
+          "deals_total": {
+            "title": "Deals Total",
+            "type": "integer"
+          },
+          "leads_converted": {
+            "title": "Leads Converted",
+            "type": "integer"
+          },
+          "leads_total": {
+            "title": "Leads Total",
+            "type": "integer"
+          },
+          "loans_converted": {
+            "title": "Loans Converted",
+            "type": "integer"
+          },
+          "loans_total": {
+            "title": "Loans Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "business_line",
+          "agent_count",
+          "leads_total",
+          "leads_converted",
+          "loans_total",
+          "loans_converted",
+          "deals_total",
+          "deals_converted"
+        ],
+        "title": "TeamPerformanceSummary",
+        "type": "object"
+      },
       "TelecallerFollowUpItem": {
         "properties": {
           "follow_up_at": {
@@ -14778,6 +14835,102 @@
         ]
       }
     },
+    "/api/v1/admin/reports/agents/export.xlsx": {
+      "get": {
+        "operationId": "export_agents_report_xlsx_api_v1_admin_reports_agents_export_xlsx_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "date_from",
+            "required": true,
+            "schema": {
+              "format": "date",
+              "title": "Date From",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "date_to",
+            "required": true,
+            "schema": {
+              "format": "date",
+              "title": "Date To",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "business_line",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "loans",
+                    "real_estate"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Business Line"
+            }
+          },
+          {
+            "in": "query",
+            "name": "agent_profile_uuid",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "items": {
+                    "format": "uuid",
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Agent Profile Uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Export Agents Report Xlsx",
+        "tags": [
+          "reports"
+        ]
+      }
+    },
     "/api/v1/admin/reports/deals": {
       "get": {
         "operationId": "get_deals_report_api_v1_admin_reports_deals_get",
@@ -15048,6 +15201,116 @@
           }
         ],
         "summary": "Export Deals Report",
+        "tags": [
+          "reports"
+        ]
+      }
+    },
+    "/api/v1/admin/reports/deals/export.xlsx": {
+      "get": {
+        "operationId": "export_deals_report_xlsx_api_v1_admin_reports_deals_export_xlsx_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "date_from",
+            "required": true,
+            "schema": {
+              "format": "date",
+              "title": "Date From",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "date_to",
+            "required": true,
+            "schema": {
+              "format": "date",
+              "title": "Date To",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "bucket",
+            "required": false,
+            "schema": {
+              "default": "week",
+              "enum": [
+                "week",
+                "month"
+              ],
+              "title": "Bucket",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "business_line",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "loans",
+                    "real_estate"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Business Line"
+            }
+          },
+          {
+            "in": "query",
+            "name": "agent_profile_uuid",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "items": {
+                    "format": "uuid",
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Agent Profile Uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Export Deals Report Xlsx",
         "tags": [
           "reports"
         ]
@@ -15330,6 +15593,117 @@
         ]
       }
     },
+    "/api/v1/admin/reports/leads/export.xlsx": {
+      "get": {
+        "operationId": "export_leads_report_xlsx_api_v1_admin_reports_leads_export_xlsx_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "date_from",
+            "required": true,
+            "schema": {
+              "format": "date",
+              "title": "Date From",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "date_to",
+            "required": true,
+            "schema": {
+              "format": "date",
+              "title": "Date To",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "bucket",
+            "required": false,
+            "schema": {
+              "default": "week",
+              "enum": [
+                "week",
+                "month"
+              ],
+              "title": "Bucket",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "business_line",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "loans",
+                    "real_estate",
+                    "unassigned"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Business Line"
+            }
+          },
+          {
+            "in": "query",
+            "name": "agent_profile_uuid",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "items": {
+                    "format": "uuid",
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Agent Profile Uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Export Leads Report Xlsx",
+        "tags": [
+          "reports"
+        ]
+      }
+    },
     "/api/v1/admin/reports/loans": {
       "get": {
         "operationId": "get_loans_report_api_v1_admin_reports_loans_get",
@@ -15600,6 +15974,116 @@
           }
         ],
         "summary": "Export Loans Report",
+        "tags": [
+          "reports"
+        ]
+      }
+    },
+    "/api/v1/admin/reports/loans/export.xlsx": {
+      "get": {
+        "operationId": "export_loans_report_xlsx_api_v1_admin_reports_loans_export_xlsx_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "date_from",
+            "required": true,
+            "schema": {
+              "format": "date",
+              "title": "Date From",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "date_to",
+            "required": true,
+            "schema": {
+              "format": "date",
+              "title": "Date To",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "bucket",
+            "required": false,
+            "schema": {
+              "default": "week",
+              "enum": [
+                "week",
+                "month"
+              ],
+              "title": "Bucket",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "business_line",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "loans",
+                    "real_estate"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Business Line"
+            }
+          },
+          {
+            "in": "query",
+            "name": "agent_profile_uuid",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "items": {
+                    "format": "uuid",
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Agent Profile Uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Export Loans Report Xlsx",
         "tags": [
           "reports"
         ]

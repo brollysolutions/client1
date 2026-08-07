@@ -161,10 +161,14 @@ export async function apiRequest<TResponse = undefined>(
 // feature code, then triggers the download via the same
 // createObjectURL + synthetic <a download> + revokeObjectURL pattern as
 // components/calculators/export-share-bar.tsx.
+export type ApiDownloadResponse =
+  | { ok: true; truncated: boolean }
+  | { ok: false; error: string; status: number };
+
 export async function apiDownload(
   path: string,
   filename: string,
-): Promise<{ ok: true } | { ok: false; error: string; status: number }> {
+): Promise<ApiDownloadResponse> {
   const attempt = async (token: string | null): Promise<Response | null> => {
     const headers: Record<string, string> = {};
     if (token) headers.Authorization = `Bearer ${token}`;
@@ -206,5 +210,5 @@ export async function apiDownload(
   link.click();
   link.remove();
   URL.revokeObjectURL(url);
-  return { ok: true };
+  return { ok: true, truncated: res.headers.get("X-Report-Truncated") === "true" };
 }
