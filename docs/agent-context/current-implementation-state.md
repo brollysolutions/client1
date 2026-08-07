@@ -208,6 +208,7 @@ Evidence:
 - [`apps/api/app/services/reporting.py`](../../apps/api/app/services/reporting.py)
 - [`apps/web/features/admin/analytics/report-filter-bar.tsx`](../../apps/web/features/admin/analytics/report-filter-bar.tsx)
 - [`apps/web/features/admin/analytics/analytics-view.tsx`](../../apps/web/features/admin/analytics/analytics-view.tsx)
+- [PR #150](https://github.com/brollysolutions/client1/pull/150)
 
 Compatibility requirement: report access remains limited to active
 platform-Admin sessions, and all selected-Agent and team aggregates keep the
