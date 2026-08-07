@@ -10,11 +10,13 @@ from __future__ import annotations
 
 import logging
 from email.message import EmailMessage
+from urllib.parse import urljoin
 
 import aiosmtplib
 
 from app.core.config import settings
 from app.core.masking import mask_email
+from app.core.navigation import notification_path_or_none
 
 logger = logging.getLogger(__name__)
 
@@ -51,3 +53,17 @@ async def send_email(to: str, subject: str, body: str) -> bool:
     except Exception as exc:  # delivery failure must not break the auth flow
         logger.warning("email.failed to=%s error=%s", mask_email(to), exc)
         return False
+
+
+def notification_email_body(body: str, href: str | None) -> str:
+    """Render a plaintext transactional notification with a safe action URL."""
+    destination = notification_path_or_none(href) or "/dashboard/notifications"
+    action_url = urljoin(f"{settings.PUBLIC_WEB_ORIGIN.rstrip('/')}/", destination.lstrip("/"))
+    return f"{body}\n\nOpen Dhanadhara: {action_url}"
+
+
+async def send_notification_email(to: str, subject: str, body: str, href: str | None) -> bool:
+    """Best-effort transactional copy of an in-app notification."""
+    if not settings.NOTIFICATION_EMAIL_ENABLED:
+        return False
+    return await send_email(to, subject, notification_email_body(body, href))

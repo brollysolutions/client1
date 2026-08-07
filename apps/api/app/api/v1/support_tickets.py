@@ -58,7 +58,7 @@ async def create_ticket(
         user_uuid=current_user.id,
         notification_type=NotificationType.SUPPORT_TICKET_RECEIVED,
         title="Support ticket received",
-        body=f"We've received your ticket: {ticket.subject}. Our team will get back to you soon.",
+        body="We've received your ticket. Our team will get back to you soon.",
         href="/dashboard/support",
     )
     return SupportTicketRead.model_validate(ticket, from_attributes=True)

@@ -138,6 +138,13 @@ class Settings(BaseSettings):
     SMTP_PASSWORD: str = ""  # secret
     SMTP_FROM: str = ""  # e.g. "Loans & Real Estate <no-reply@yourdomain.com>"
     SMTP_USE_TLS: bool = True  # STARTTLS on port 587
+    # Canonical public web origin used only to turn safe internal notification
+    # paths into email action links. Keep this separate from API/CORS routing.
+    PUBLIC_WEB_ORIGIN: str = "http://localhost:3000"
+    # Transactional copies of in-app notifications go only to verified account
+    # email addresses. Disabled by default until SMTP and the public origin are
+    # deliberately configured for an environment.
+    NOTIFICATION_EMAIL_ENABLED: bool = False
 
     # Payments — RazorpayX payouts (cashback / referral / commission only, never
     # loan principal or property purchase — the product's money invariant).
@@ -327,6 +334,24 @@ class Settings(BaseSettings):
                 "VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, and VAPID_SUBJECT must be set "
                 "together (all for live push, or none for mock). Only some are set."
             )
+        return self
+
+    @model_validator(mode="after")
+    def _guard_public_web_origin(self) -> "Settings":
+        from urllib.parse import urlsplit
+
+        parsed = urlsplit(self.PUBLIC_WEB_ORIGIN)
+        invalid_origin = (
+            parsed.scheme not in {"http", "https"}
+            or not parsed.netloc
+            or parsed.path not in {"", "/"}
+        )
+        if invalid_origin:
+            raise ValueError(
+                "PUBLIC_WEB_ORIGIN must be an origin without a path, query, or fragment."
+            )
+        if self.ENV != "development" and parsed.scheme != "https":
+            raise ValueError("PUBLIC_WEB_ORIGIN must use https outside development.")
         return self
 
 

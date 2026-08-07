@@ -327,7 +327,7 @@ async def set_verification(
             user_uuid=notify_target,
             notification_type=NotificationType.DOCUMENT_REVIEW_UPDATED,
             title="A document needs another look",
-            body=(review_note or "").strip() or "One of your documents needs to be re-uploaded.",
+            body="One of your documents needs to be re-uploaded. Open your documents for details.",
             href=notify_href,
         )
 

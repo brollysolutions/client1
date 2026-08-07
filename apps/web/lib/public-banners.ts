@@ -8,6 +8,7 @@ import type { components } from "@contracts/generated/schema";
 
 import { serverFetchJson } from "@/lib/api/server";
 import type { HeroBanner } from "@/lib/banners";
+import { isSafeLocalHref } from "@/lib/safe-local-href";
 
 type Schemas = components["schemas"];
 
@@ -17,10 +18,6 @@ type Schemas = components["schemas"];
 // renders a plain anchor) resolve it as protocol-relative to an off-site
 // origin, and "/\evil.com" normalizes the same way under WHATWG URL parsing.
 // Both would otherwise sail through a naive same-origin check.
-function isSameOriginPath(href: string): boolean {
-  return /^\/(?![/\\])/.test(href);
-}
-
 // Mirrors next.config.ts's remotePatterns allowlist -- a host outside it
 // makes next/image throw at RENDER time (not a graceful broken-image icon),
 // which would take the whole homepage down. This guard is what stops that:
@@ -65,7 +62,7 @@ export function mapPublicBanner(raw: Schemas["PublicBannerRead"]): HeroBanner {
     // separately). Without both fields the title/subtitle still render, just
     // without a button.
     cta:
-      raw.cta_label && raw.deep_link && isSameOriginPath(raw.deep_link)
+      raw.cta_label && raw.deep_link && isSafeLocalHref(raw.deep_link)
         ? { label: raw.cta_label, href: raw.deep_link }
         : undefined,
   };
