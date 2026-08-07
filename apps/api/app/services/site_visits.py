@@ -122,7 +122,7 @@ async def cancel_site_visit(
         user_uuid=visit.user_uuid,
         notification_type=NotificationType.SITE_VISIT_CANCELLED,
         title="Site visit cancelled",
-        body=f"Your visit to {visit.title} has been cancelled.",
+        body="Your site visit has been cancelled.",
         href="/dashboard/site-visits",
     )
     return visit

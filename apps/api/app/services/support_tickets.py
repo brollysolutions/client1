@@ -118,8 +118,8 @@ async def list_for_admin(
 
 
 _STATUS_NOTIFICATION_BODY = {
-    SupportStatus.RESOLVED: "Your support ticket '{subject}' has been resolved.",
-    SupportStatus.CLOSED: "Your support ticket '{subject}' has been closed.",
+    SupportStatus.RESOLVED: "Your support ticket has been resolved.",
+    SupportStatus.CLOSED: "Your support ticket has been closed.",
 }
 
 
@@ -183,7 +183,7 @@ async def advance_ticket(
             user_uuid=ticket.auth_user_uuid,
             notification_type=NotificationType.SUPPORT_TICKET_RESOLVED,
             title="Support ticket update",
-            body=_STATUS_NOTIFICATION_BODY[target_status].format(subject=ticket.subject),
+            body=_STATUS_NOTIFICATION_BODY[target_status],
             href="/dashboard/support",
         )
     return ticket

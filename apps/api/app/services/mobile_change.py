@@ -71,6 +71,7 @@ from app.models.support_ticket import SupportCategory, SupportStatus, SupportTic
 from app.models.user import User, UserStatus
 from app.schemas.mobile_change import MobileChangeAdminRead, MobileChangeChallengeResponse
 from app.services.audit_log import record as record_audit
+from app.services.email import send_notification_email
 from app.services.notifications import emit_notification
 from app.services.otp import check_otp_rate_ip, generate_and_store_otp, resend_otp, verify_otp
 from app.services.otp_delivery import deliver_otp
@@ -653,6 +654,7 @@ async def _complete_transaction(
     old_mobile: str | None = None
     new_mobile: str | None = None
     target_uuid: UUID | None = None
+    notification_email: str | None = None
     async with AsyncSessionLocal() as db:
         await _reauth_admin(db, actor_uuid, current_password)
         request = await db.scalar(
@@ -783,10 +785,19 @@ async def _complete_transaction(
                 "to_status": MobileChangeStatus.COMPLETED.value,
             },
         )
+        if user.status == UserStatus.ACTIVE and user.email and user.email_verified_at:
+            notification_email = user.email
         await db.commit()
 
     if old_mobile and new_mobile and target_uuid:
         await _clear_identity_caches(cache, old_mobile, new_mobile)
+    if notification_email:
+        await send_notification_email(
+            notification_email,
+            "Mobile number changed",
+            "Your login number was changed. Please sign in again on your devices.",
+            "/login",
+        )
 
 
 async def _clear_identity_caches(cache: RedisCache, old_mobile: str, new_mobile: str) -> None:
@@ -828,6 +839,7 @@ async def reject(
     current_password: str,
 ) -> None:
     target_uuid: UUID | None = None
+    notification_email: str | None = None
     async with AsyncSessionLocal() as db:
         await _reauth_admin(db, actor_uuid, current_password)
         request = await db.scalar(
@@ -877,7 +889,17 @@ async def reject(
                 "to_status": MobileChangeStatus.REJECTED.value,
             },
         )
+        user = await db.get(User, request.auth_user_uuid)
+        if user and user.status == UserStatus.ACTIVE and user.email and user.email_verified_at:
+            notification_email = user.email
         await db.commit()
+    if notification_email:
+        await send_notification_email(
+            notification_email,
+            "Mobile number change not completed",
+            "Support could not complete your request. Contact support for next steps.",
+            "/dashboard/support",
+        )
     if target_uuid is not None:
         # A terminal in-app row was inserted transactionally.  No separate push
         # is emitted here because the rejection reason is intentionally staff-only.

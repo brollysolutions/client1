@@ -31,13 +31,13 @@ live-provider configuration are assessed separately.
 
 | Measure | Result |
 | --- | ---: |
-| Complete requirements | 60 / 80 (75.0%) |
-| Partial requirements | 17 / 80 (21.25%) |
+| Complete requirements | 61 / 80 (76.25%) |
+| Partial requirements | 16 / 80 (20.0%) |
 | Not-started requirements | 3 / 80 (3.75%) |
-| Weighted implementation coverage | **85.6%** |
+| Weighted implementation coverage | **86.3%** |
 
 Weighted coverage gives each Complete item 1 point and each Partial item 0.5
-points: `(60 + 17 x 0.5) / 80 = 85.625%`. The weighting is a planning aid, not
+points: `(61 + 16 x 0.5) / 80 = 86.25%`. The weighting is a planning aid, not
 an estimate of calendar time: a single security-sensitive gap can require more
 work than several completed UI requirements.
 
@@ -82,7 +82,7 @@ work than several completed UI requirements.
 | Commissions (FR-8.x) | 3 | 0 | 0 | Manual Admin entry, Agent earnings, approval, RazorpayX, and cheque/manual paths exist. |
 | Referrals (FR-9.x) | 5 | 0 | 0 | Client codes, attribution, conversion accrual, Admin payout, ledger, and Sub Admin rules exist. |
 | Payments (FR-10.x) | 3 | 1 | 0 | Money-purpose boundaries and payout controls exist; gateway/method breadth is narrower than specified. |
-| Notifications (FR-11.x) | 2 | 1 | 0 | In-app and web push plus Admin major-action notifications exist; email/event redirect coverage is incomplete. |
+| Notifications (FR-11.x) | 3 | 0 | 0 | In-app, web push, Admin major-action, and verified-email transactional notifications now use audited same-origin workflow destinations. |
 | Banners/personalization (FR-12.x) | 0 | 3 | 1 | Banner lifecycle, targeting fields, approval, images, and deep links exist; authenticated targeting and context-driven placement do not. |
 | Media/uploads (FR-13.x) | 0 | 4 | 0 | Secure purpose-specific image/PDF flows and property camera capture exist; unified per-line galleries, feedback attachments, video, and broader retention remain incomplete. |
 | Support (FR-14.x) | 4 | 0 | 0 | Central tickets, WhatsApp route, Admin triage/resolution, and structured mobile-change fulfilment exist. |
@@ -90,7 +90,7 @@ work than several completed UI requirements.
 | Analytics (FR-16.x) | 0 | 3 | 0 | **In review** in [PR #150](https://github.com/brollysolutions/client1/pull/150): weekly/monthly reporting, filters, sorting, CSV/XLSX, selected-Agent groups, and business-line team summaries are implemented. Database-backed reporting tests remain blocked locally by a `_greenlet` DLL failure. |
 | Profile/account (FR-17.x) | 4 | 0 | 0 | Profile/settings, optional demographic/income/address details, transactions/support, deletion, retention, and Admin removal exist. |
 | Location (FR-18.x) | 0 | 0 | 2 | No consented login-location personalization or map/GMB integration seam was found. |
-| **Total** | **60** | **17** | **3** | **80 requirements** |
+| **Total** | **61** | **16** | **3** | **80 requirements** |
 
 ## Done
 
@@ -128,9 +128,11 @@ The following requirements are complete on the evidence baseline:
   FR-10.2, and FR-10.4. Evidence includes manual commission agreements,
   client-only referral attribution, controlled payout creation/approval,
   idempotent settlement, ledger linking, and audit/reconciliation tests.
-- Notifications: FR-11.1 and FR-11.3. Evidence includes in-app feeds,
-  browser push subscriptions/delivery, Admin major-action notifications, and
-  Admin broadcast.
+- Notifications: FR-11.1 through FR-11.3. Evidence includes in-app feeds,
+  browser push subscriptions/delivery, Admin major-action notifications and
+  broadcasts, same-origin validation at the API, email, web-rendering, and
+  service-worker boundaries, plus transactional email copies only to verified
+  active addresses when explicitly enabled.
 - Support and communication: FR-14.1 through FR-14.4 and FR-15.1 through
   FR-15.4. Evidence includes central support tickets, structured mobile-change
   fulfilment, Admin triage, existing browser WhatsApp links, locked
@@ -153,7 +155,7 @@ The following requirements are complete on the evidence baseline:
 | FR-4.2 | Partial | Agents create attributed leads; Admin can assign a Telecaller. | Decide and implement automatic assignment behavior and client-account/invite binding where required. |
 | FR-4.3 | Partial | Direct registration captures a lead and creates both client profiles. | Capture explicit requirement intent and implement deterministic per-line Telecaller assignment without cross-line leakage. |
 | FR-10.3 | Partial | RazorpayX VPA/bank payouts and manual cheque records exist. | Decide whether RuPay and multi-gateway routing are still required, then implement provider-neutral method support. |
-| FR-11.2 | Partial | Notifications and banners support `href`/deep links. | Audit every event, add missing links, and decide which non-auth email notifications are required. |
+| FR-11.2 | Complete | Every notification producer, Admin broadcast, web push, public banner CTA, and transactional email action uses a same-origin relevant route; verified active email addresses can receive best-effort transactional copies when enabled. | Maintain the producer inventory as future events are added; no marketing or unverified-email delivery is implied. |
 | FR-12.1 | Partial | Default, personalized, and action banner types and lifecycle fields exist. | Add an authenticated serving path that safely evaluates personalized audiences. |
 | FR-12.2 | Partial | Banners carry line/type/audience metadata and approved public banners render. | Serve correct client-line and Agent incentive banners after authentication. |
 | FR-12.3 | Partial | Sub Admin creates banners; Admin approval gates public serving. | Serve personalized content only to eligible logged-in users and test negative targeting cases. |

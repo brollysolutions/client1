@@ -12,8 +12,9 @@ from datetime import datetime
 from typing import Literal
 from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
+from app.core.navigation import is_safe_internal_path
 from app.models.notification import NotificationType
 from app.services.admin_notify import BroadcastAudience
 
@@ -42,6 +43,13 @@ class BroadcastRequest(BaseModel):
     title: str = Field(min_length=1, max_length=200)
     body: str = Field(min_length=1, max_length=2000)
     href: str | None = Field(default=None, max_length=300)
+
+    @field_validator("href")
+    @classmethod
+    def href_must_be_safe_internal_path(cls, value: str | None) -> str | None:
+        if value is not None and not is_safe_internal_path(value):
+            raise ValueError("href must be a same-origin path beginning with '/'.")
+        return value
 
 
 class BroadcastResponse(BaseModel):

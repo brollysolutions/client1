@@ -35,6 +35,7 @@ import {
   type NotificationType,
 } from "@/lib/notifications";
 import { cn } from "@/lib/utils";
+import { isSafeLocalHref } from "@/lib/safe-local-href";
 
 const TYPE_ICON: Record<NotificationType, LucideIcon> = {
   site_visit_requested: CalendarCheck,
@@ -197,7 +198,7 @@ export default function NotificationsPage() {
                   <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-loans-soft text-loans-accent">
                     <Icon className="h-4 w-4" />
                   </span>
-                  {n.href ? (
+                  {n.href && isSafeLocalHref(n.href) ? (
                     <Link href={n.href} className="min-w-0 flex-1 hover:opacity-80">
                       {body}
                     </Link>

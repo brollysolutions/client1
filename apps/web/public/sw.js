@@ -5,6 +5,16 @@
 // { title, body, href }. `href` may be null (falls back to the notifications
 // feed).
 
+function isSafeLocalHref(href) {
+  return (
+    typeof href === "string" &&
+    /^\/(?![/\\])/.test(href) &&
+    !href.includes("\\") &&
+    !/[\u0000-\u001f]/.test(href) &&
+    !/^\/%(?:2f|5c)/i.test(href)
+  );
+}
+
 self.addEventListener("push", (event) => {
   if (!event.data) return;
 
@@ -22,7 +32,7 @@ self.addEventListener("push", (event) => {
       body,
       icon: "/icons/push-icon-192.png",
       badge: "/icons/push-badge-96.png",
-      data: { href: href || "/dashboard/notifications" },
+      data: { href: isSafeLocalHref(href) ? href : "/dashboard/notifications" },
     }),
   );
 });
@@ -30,7 +40,7 @@ self.addEventListener("push", (event) => {
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
   const targetUrl = event.notification.data && event.notification.data.href;
-  if (!targetUrl) return;
+  if (!isSafeLocalHref(targetUrl)) return;
 
   event.waitUntil(
     self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clientList) => {
