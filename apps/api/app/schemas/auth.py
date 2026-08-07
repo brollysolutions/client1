@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, EmailStr, Field, field_validator
+from pydantic import BaseModel, EmailStr, Field, field_validator, model_validator
 
 from app.core.security import REFERRAL_CODE_RE, normalize_referral_code
 
@@ -21,7 +21,6 @@ class RegisterInitiateRequest(BaseModel):
     first_name: Annotated[str, Field(min_length=1, max_length=100)]
     last_name: Annotated[str, Field(min_length=1, max_length=100)]
     mobile: Annotated[str, Field(pattern=r"^\+[1-9]\d{6,14}$")]
-    email: EmailStr  # mandatory + unique; OTP fallback channel + post-login 2FA target
     # No line picker: every client is enrolled in both loans and real_estate at
     # signup (one User, two ClientProfiles). See docs/specs/dual-line-clients.md.
     # Format-validated only — whether it matches a real referral code is never
@@ -29,11 +28,6 @@ class RegisterInitiateRequest(BaseModel):
     # public endpoint into a code-existence oracle. An unmatched code is
     # silently ignored later in register_set_password.
     referral_code: str | None = None
-
-    @field_validator("email")
-    @classmethod
-    def email_normalize(cls, v: str) -> str:
-        return v.strip().lower()
 
     @field_validator("referral_code")
     @classmethod
@@ -153,7 +147,7 @@ class ChangePasswordRequest(BaseModel):
 class ResendOtpRequest(BaseModel):
     mobile: Annotated[str, Field(pattern=r"^\+[1-9]\d{6,14}$")]
     purpose: Literal["register", "reset"]
-    via_email: bool = False  # recovery: "didn't get the call? email my code"
+    via_email: bool = False  # reset only: explicitly use the verified account email
 
 
 class ResendOtpResponse(BaseModel):
@@ -208,8 +202,15 @@ class MeResponse(BaseModel):
     first_name: str
     last_name: str
     mobile: str
-    email: str
+    email: str | None
     email_verified: bool
+    gender: Literal["female", "male", "non_binary", "self_described", "prefer_not_to_say"] | None
+    gender_self_description: str | None
+    income_source: Literal["net_salary", "business_income"] | None
+    income_amount_minor: int | None
+    income_period: Literal["monthly", "annual"] | None
+    occupation: str | None
+    address: str | None
     # One summary per business line the client holds (both, for self-registered
     # clients). The dashboard switches between these.
     profiles: list[ClientProfileSummary]
@@ -220,9 +221,17 @@ class MeUpdateRequest(BaseModel):
 
     first_name: Annotated[str, Field(min_length=1, max_length=100)]
     last_name: Annotated[str, Field(min_length=1, max_length=100)]
-    # Optional: omit to leave the email unchanged. A change resets email
-    # verification so the post-login verify flow runs again.
+    # Omit to leave unchanged; send null to clear. A change resets verification.
     email: EmailStr | None = None
+    gender: (
+        Literal["female", "male", "non_binary", "self_described", "prefer_not_to_say"] | None
+    ) = None
+    gender_self_description: Annotated[str | None, Field(min_length=1, max_length=100)] = None
+    income_source: Literal["net_salary", "business_income"] | None = None
+    income_amount_minor: Annotated[int | None, Field(ge=1, le=1_000_000_000_000)] = None
+    income_period: Literal["monthly", "annual"] | None = None
+    occupation: Annotated[str | None, Field(min_length=1, max_length=120)] = None
+    address: Annotated[str | None, Field(min_length=1, max_length=500)] = None
 
     @field_validator("first_name", "last_name")
     @classmethod
@@ -236,3 +245,37 @@ class MeUpdateRequest(BaseModel):
     @classmethod
     def email_normalize(cls, v: str | None) -> str | None:
         return v.strip().lower() if v else v
+
+    @field_validator("gender_self_description", "occupation", "address")
+    @classmethod
+    def optional_text_not_blank(cls, v: str | None) -> str | None:
+        if v is None:
+            return None
+        value = v.strip()
+        if not value:
+            raise ValueError("This field cannot be blank.")
+        return value
+
+    @model_validator(mode="after")
+    def optional_groups_consistent(self) -> MeUpdateRequest:
+        fields = self.model_fields_set
+        gender_fields = {"gender", "gender_self_description"}
+        if fields & gender_fields:
+            if "gender_self_description" in fields and "gender" not in fields:
+                raise ValueError("Gender must be supplied with its description.")
+            if self.gender == "self_described" and not self.gender_self_description:
+                raise ValueError("Describe your gender when self-described is selected.")
+            if self.gender != "self_described" and self.gender_self_description is not None:
+                raise ValueError("A gender description is only valid for self-described gender.")
+
+        income_fields = {"income_source", "income_amount_minor", "income_period"}
+        if fields & income_fields:
+            if not income_fields.issubset(fields):
+                raise ValueError("Income source, amount, and period must be supplied together.")
+            values = (self.income_source, self.income_amount_minor, self.income_period)
+            partially_supplied = any(value is not None for value in values) and any(
+                value is None for value in values
+            )
+            if partially_supplied:
+                raise ValueError("Income source, amount, and period must be supplied together.")
+        return self

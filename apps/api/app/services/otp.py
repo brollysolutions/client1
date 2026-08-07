@@ -123,14 +123,19 @@ async def verify_otp(cache: RedisCache, mobile: str, purpose: str, code: str) ->
     logger.debug("otp.verified mobile=%s purpose=%s", mask_mobile(mobile), purpose)
 
 
-async def resend_otp(cache: RedisCache, mobile: str, purpose: str) -> str:
-    """Resend OTP. Max 3 resends per window, then 1-hour lock (Auth Design §8)."""
+async def ensure_active_otp_session(cache: RedisCache, mobile: str, purpose: str) -> None:
+    """Require an initiated OTP without rotating or consuming it."""
     otp_key = _otp_key(mobile, purpose)
     if not await cache.exists(otp_key):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="No active OTP session. Please initiate first.",
         )
+
+
+async def resend_otp(cache: RedisCache, mobile: str, purpose: str) -> str:
+    """Resend OTP. Max 3 resends per window, then 1-hour lock (Auth Design §8)."""
+    await ensure_active_otp_session(cache, mobile, purpose)
 
     lock_key = otp_lock_key(mobile)
     if await cache.exists(lock_key):

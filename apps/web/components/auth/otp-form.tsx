@@ -22,10 +22,14 @@ export function OtpForm({
   submitLabel = "Continue",
   onSubmit,
   onResend,
+  onAlternateResend,
+  alternateResendLabel = "Use another delivery method",
 }: {
   submitLabel?: string;
   onSubmit: (otp: string) => Promise<AuthResult<unknown>>;
   onResend: () => Promise<AuthResult<unknown>>;
+  onAlternateResend?: () => Promise<AuthResult<unknown>>;
+  alternateResendLabel?: string;
 }) {
   const [otp, setOtp] = React.useState("");
   const [submitting, setSubmitting] = React.useState(false);
@@ -54,13 +58,13 @@ export function OtpForm({
     // On success the parent advances the step; keep the button disabled.
   }
 
-  async function handleResend() {
+  async function handleResend(resend: () => Promise<AuthResult<unknown>>) {
     // Guard re-entrancy: without it, rapid clicks each fire POST /otp/resend and
     // trip the backend's 3-per-window cap -> a 1-hour lock mid-flow (audit M2).
     if (resending) return;
     setResending(true);
     try {
-      const result = await onResend();
+      const result = await resend();
       if (result.ok) {
         setSeconds(RESEND_SECONDS);
         setError(null);
@@ -119,26 +123,41 @@ export function OtpForm({
         {submitting ? "Verifying…" : submitLabel}
       </Button>
 
-      <p className="text-center text-sm text-text-secondary">
+      <div className="text-center text-sm text-text-secondary">
         {seconds > 0 ? (
           `Resend code in ${seconds}s`
         ) : (
-          <>
-            Didn&apos;t get a code?{" "}
-            <button
-              type="button"
-              onClick={handleResend}
-              disabled={resending}
-              className={cn(
-                AUTH_LINK_CLASS,
-                "cursor-pointer font-medium underline-offset-4 hover:underline focus-visible:outline-none focus-visible:underline disabled:pointer-events-none disabled:opacity-50"
-              )}
-            >
-              {resending ? "Resending…" : "Resend"}
-            </button>
-          </>
+          <div className="space-y-2">
+            <p>
+              Didn&apos;t get a code?{" "}
+              <button
+                type="button"
+                onClick={() => void handleResend(onResend)}
+                disabled={resending}
+                className={cn(
+                  AUTH_LINK_CLASS,
+                  "cursor-pointer font-medium underline-offset-4 hover:underline focus-visible:outline-none focus-visible:underline disabled:pointer-events-none disabled:opacity-50"
+                )}
+              >
+                {resending ? "Resending…" : "Resend"}
+              </button>
+            </p>
+            {onAlternateResend ? (
+              <button
+                type="button"
+                onClick={() => void handleResend(onAlternateResend)}
+                disabled={resending}
+                className={cn(
+                  AUTH_LINK_CLASS,
+                  "cursor-pointer font-medium underline-offset-4 hover:underline focus-visible:outline-none focus-visible:underline disabled:pointer-events-none disabled:opacity-50"
+                )}
+              >
+                {alternateResendLabel}
+              </button>
+            ) : null}
+          </div>
         )}
-      </p>
+      </div>
     </form>
   );
 }

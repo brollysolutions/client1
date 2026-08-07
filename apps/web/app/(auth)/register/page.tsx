@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowLeft, Loader2, Lock, Smartphone } from "lucide-react";
+import { ArrowLeft, Loader2, Lock, Smartphone, UserRound } from "lucide-react";
 import { toast } from "sonner";
 
 import {
@@ -16,16 +16,23 @@ import { MobileInput } from "@/components/auth/mobile-input";
 import { OtpForm } from "@/components/auth/otp-form";
 import { SetPasswordForm } from "@/components/auth/set-password-form";
 import { useAuth } from "@/components/auth/session-provider";
+import {
+  EMPTY_OPTIONAL_PROFILE,
+  OptionalProfileFields,
+  optionalProfilePayload,
+} from "@/components/profile/optional-profile-fields";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import {
   describeAuthError,
+  getMe,
   registerInitiate,
   registerSetPassword,
   registerVerifyOtp,
   resendOtp,
+  updateProfile,
 } from "@/lib/auth";
 import { formatMobile, isValidMobile, toE164 } from "@/lib/phone";
 import { isValidReferralCodeFormat, normalizeReferralCode } from "@/lib/referral-share";
@@ -33,6 +40,7 @@ import { isValidReferralCodeFormat, normalizeReferralCode } from "@/lib/referral
 // Defense-in-depth: never render a dev OTP hint in a production build, even if
 // the backend (which is the real gate) were ever misconfigured to send one (L3).
 const OTP_HINT_ALLOWED = process.env.NEXT_PUBLIC_ENV !== "production";
+const OPTIONAL_EMAIL_RE = /^[^\s@]+@[^\s@]+\.[A-Za-z]{2,}$/;
 
 // Steps 1-2 (OTP verify, set password) rest on server-side sessions (OTP +
 // reg_data, both TTL_OTP = 5 min) that a refresh doesn't touch — only this
@@ -88,7 +96,7 @@ function clearWizard() {
   }
 }
 
-const STEPS = ["Your details", "Verify phone", "Set password"];
+const STEPS = ["Your details", "Verify phone", "Set password", "Complete profile"];
 
 const PANEL = [
   {
@@ -106,11 +114,13 @@ const PANEL = [
     subtitle:
       "Choose a strong password — it's the key to everything you'll build here.",
   },
+  {
+    title: "Make your profile more useful.",
+    subtitle:
+      "These details are optional. Add what is helpful now, or finish later in Profile.",
+  },
 ];
 
-// Require a proper domain + a 2+ letter TLD so half-typed addresses ("a@b",
-// "a@b.") are rejected.
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[A-Za-z]{2,}$/;
 // Letters only, with spaces / hyphens / apostrophes allowed between them so real
 // names ("Anne-Marie", "O'Brien", "Van Der Berg") still pass. No digits/symbols.
 const NAME_RE = /^[A-Za-z]+(?:[ '-][A-Za-z]+)*$/;
@@ -118,7 +128,6 @@ const NAME_RE = /^[A-Za-z]+(?:[ '-][A-Za-z]+)*$/;
 type Details = {
   firstName: string;
   lastName: string;
-  email: string;
   mobile: string;
   referralCode: string;
 };
@@ -142,16 +151,18 @@ export default function RegisterPage() {
 function RegisterPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { setSession } = useAuth();
+  const { setSession, isAuthenticated, isLoading } = useAuth();
   const [step, setStep] = React.useState(0);
 
   const [details, setDetails] = React.useState<Details>({
     firstName: "",
     lastName: "",
-    email: "",
     mobile: "",
     referralCode: "",
   });
+  const [profileEmail, setProfileEmail] = React.useState("");
+  const [optionalProfile, setOptionalProfile] = React.useState(EMPTY_OPTIONAL_PROFILE);
+  const [profileSaving, setProfileSaving] = React.useState(false);
   const [errors, setErrors] = React.useState<Partial<Record<keyof Details, string>>>({});
   const [submitting, setSubmitting] = React.useState(false);
   const [e164, setE164] = React.useState("");
@@ -185,6 +196,10 @@ function RegisterPageContent() {
     }
   }, [searchParams]);
 
+  React.useEffect(() => {
+    if (!isLoading && isAuthenticated && step !== 3) router.replace("/dashboard");
+  }, [isAuthenticated, isLoading, router, step]);
+
   // Single source of truth for a field's error, shared by the live (on-change)
   // check and the full pre-submit check so the two never disagree.
   function fieldError(key: keyof Details, value: string): string | undefined {
@@ -194,9 +209,6 @@ function RegisterPageContent() {
       if (!v) return `Enter your ${label} name.`;
       if (!NAME_RE.test(v)) return "Use letters only.";
       return undefined;
-    }
-    if (key === "email") {
-      return EMAIL_RE.test(value.trim()) ? undefined : "Enter a valid email address.";
     }
     if (key === "referralCode") {
       // Optional — an unmatched or absent code never blocks registration
@@ -235,7 +247,6 @@ function RegisterPageContent() {
     setTouched({
       firstName: true,
       lastName: true,
-      email: true,
       mobile: true,
       referralCode: true,
     });
@@ -252,7 +263,6 @@ function RegisterPageContent() {
     const result = await registerInitiate({
       firstName: details.firstName.trim(),
       lastName: details.lastName.trim(),
-      email: details.email.trim().toLowerCase(),
       mobile: mobileE164,
       referralCode: details.referralCode || undefined,
     });
@@ -261,7 +271,12 @@ function RegisterPageContent() {
     if (result.ok) {
       setE164(mobileE164);
       setStep(1);
-      saveWizard({ step: 1, mobile: details.mobile, e164: mobileE164, registrationToken: "" });
+      saveWizard({
+        step: 1,
+        mobile: details.mobile,
+        e164: mobileE164,
+        registrationToken: "",
+      });
       if (result.data.otpHint && OTP_HINT_ALLOWED) {
         toast.info("Dev verification code", {
           description: result.data.otpHint,
@@ -274,6 +289,59 @@ function RegisterPageContent() {
           "Please check your details and try again.",
       });
     }
+  }
+
+  function finishRegistration() {
+    clearWizard();
+    router.replace("/dashboard");
+  }
+
+  async function submitOptionalProfile(event: React.FormEvent) {
+    event.preventDefault();
+    if (profileSaving) return;
+
+    const email = profileEmail.trim().toLowerCase();
+    if (email && !OPTIONAL_EMAIL_RE.test(email)) {
+      toast.error("Enter a valid email address or leave it blank.");
+      return;
+    }
+    const parsed = optionalProfilePayload(optionalProfile);
+    if (!parsed.ok) {
+      toast.error(parsed.error);
+      return;
+    }
+
+    setProfileSaving(true);
+    let firstName = details.firstName.trim();
+    let lastName = details.lastName.trim();
+    if (!firstName || !lastName) {
+      const me = await getMe();
+      if (!me.ok) {
+        setProfileSaving(false);
+        toast.error("Couldn't load your account details.", {
+          description: "Your account is ready. You can retry or skip and update Profile later.",
+        });
+        return;
+      }
+      firstName = me.data.firstName;
+      lastName = me.data.lastName;
+    }
+    const result = await updateProfile({
+      firstName,
+      lastName,
+      email: email || null,
+      ...parsed.data,
+    });
+    setProfileSaving(false);
+    if (!result.ok) {
+      toast.error(result.error || "Couldn't save your profile.", {
+        description: "Your account is ready. You can retry or skip and update Profile later.",
+      });
+      return;
+    }
+
+    toast.success("Profile saved.");
+    finishRegistration();
   }
 
   return (
@@ -352,30 +420,6 @@ function RegisterPageContent() {
                   </p>
                 )}
               </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="email" className="text-[15px]">
-                Email
-              </Label>
-              <Input
-                id="email"
-                type="email"
-                value={details.email}
-                onChange={(e) => set("email", e.target.value)}
-                onBlur={() => touchField("email")}
-                autoComplete="email"
-                placeholder="jane@company.com"
-                aria-invalid={!!errors.email}
-                aria-describedby={errors.email ? "email-error" : undefined}
-                disabled={submitting}
-                className="h-12 rounded-lg text-base"
-              />
-              {errors.email && (
-                <p id="email-error" className="text-sm text-destructive">
-                  {errors.email}
-                </p>
-              )}
             </div>
 
             <div className="space-y-2">
@@ -547,16 +591,74 @@ function RegisterPageContent() {
               if (result.ok) {
                 // set-password returns tokens (and sets the refresh cookie), so
                 // the account is signed in straight away.
-                clearWizard();
                 setSession(result.data);
                 toast.success("Account created!", {
-                  description: "Welcome aboard. Taking you in now.",
+                  description: "Add optional profile details, or skip for now.",
                 });
-                router.replace("/dashboard");
+                setStep(3);
               }
               return result;
             }}
           />
+        </>
+      )}
+
+      {step === 3 && (
+        <>
+          <span className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-brand-cta-tint text-brand-cta">
+            <UserRound className="h-6 w-6" aria-hidden="true" />
+          </span>
+
+          <div className="mb-5 space-y-2">
+            <h1 className="font-heading text-3xl font-bold text-text-primary">
+              Complete your profile
+            </h1>
+            <p className="text-base text-text-secondary">
+              Everything on this step is optional and can be changed or removed later.
+            </p>
+          </div>
+
+          <form onSubmit={submitOptionalProfile} noValidate className="space-y-5">
+            <div className="space-y-2">
+              <Label htmlFor="profile-email">
+                Email <span className="font-normal text-text-secondary">(optional)</span>
+              </Label>
+              <Input
+                id="profile-email"
+                type="email"
+                value={profileEmail}
+                onChange={(event) => setProfileEmail(event.target.value)}
+                autoComplete="email"
+                maxLength={254}
+                disabled={profileSaving}
+                placeholder="jane@example.com"
+              />
+              <p className="text-xs text-text-secondary">
+                If added, you can verify it later for recovery and important updates.
+              </p>
+            </div>
+
+            <OptionalProfileFields
+              idPrefix="registration-profile"
+              value={optionalProfile}
+              onChange={setOptionalProfile}
+              disabled={profileSaving}
+            />
+
+            <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={finishRegistration}
+                disabled={profileSaving}
+              >
+                Skip for now
+              </Button>
+              <Button type="submit" disabled={profileSaving}>
+                {profileSaving ? "Saving…" : "Save and continue"}
+              </Button>
+            </div>
+          </form>
         </>
       )}
     </AuthShell>

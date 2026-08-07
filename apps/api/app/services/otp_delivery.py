@@ -5,9 +5,11 @@ operators block non-DLT A2P SMS. The OTP itself is still generated/hashed/stored
 in Redis by services.otp; this module only transports the plaintext code.
 
 Channel selection:
-  - register / forgot: voice first; on hard failure (API error or disabled), the
-    SAME code is emailed as a fallback.
-  - resend recovery: via_email=True forces email ("didn't get the call? email it").
+  - registration, initial password reset, agent application, and mobile change
+    prove mobile control through voice only; self-asserted email is never a
+    fallback for that proof.
+  - password-reset resend may explicitly use a previously verified account
+    email; authenticated email verification always targets the live address.
 
 Returns the channel that actually accepted the message:
   "voice" | "email" | "none"  ("none" = all channels mocked/failed — dev only;
@@ -122,13 +124,10 @@ async def deliver_otp(
 ) -> DeliveryChannel:
     """Deliver the OTP. Voice first, email fallback; via_email forces email only.
 
-    allow_email_fallback=False (public agent-application intake only): the
-    applicant's email is self-asserted, unverified input. If voice fails or is
-    disabled, falling back to that email would let anyone who knows a victim's
-    mobile number — but cannot answer it — still receive the code by typing
-    their own email address, defeating the entire point of proving control of
-    the mobile. Every other caller (register/forgot, both authenticated-adjacent
-    flows collecting the user's own verified-later email) keeps the default.
+    allow_email_fallback=False is required whenever the supplied email is not
+    already verified for the identity. Falling back to a self-asserted address
+    would let anyone who knows a victim's mobile number but cannot answer it
+    receive the code at an attacker-controlled address.
     """
     if via_email:
         if await send_email(email, _OTP_EMAIL_SUBJECT, _otp_email_body(otp)):

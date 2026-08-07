@@ -5347,16 +5347,30 @@ export interface components {
         };
         /** MeResponse */
         MeResponse: {
+            /** Address */
+            address: string | null;
             /** Email */
-            email: string;
+            email: string | null;
             /** Email Verified */
             email_verified: boolean;
             /** First Name */
             first_name: string;
+            /** Gender */
+            gender: ("female" | "male" | "non_binary" | "self_described" | "prefer_not_to_say") | null;
+            /** Gender Self Description */
+            gender_self_description: string | null;
+            /** Income Amount Minor */
+            income_amount_minor: number | null;
+            /** Income Period */
+            income_period: ("monthly" | "annual") | null;
+            /** Income Source */
+            income_source: ("net_salary" | "business_income") | null;
             /** Last Name */
             last_name: string;
             /** Mobile */
             mobile: string;
+            /** Occupation */
+            occupation: string | null;
             /** Profiles */
             profiles: components["schemas"]["ClientProfileSummary"][];
         };
@@ -5365,12 +5379,26 @@ export interface components {
          * @description Client edit of their own profile. mobile is immutable (account identity).
          */
         MeUpdateRequest: {
+            /** Address */
+            address?: string | null;
             /** Email */
             email?: string | null;
             /** First Name */
             first_name: string;
+            /** Gender */
+            gender?: ("female" | "male" | "non_binary" | "self_described" | "prefer_not_to_say") | null;
+            /** Gender Self Description */
+            gender_self_description?: string | null;
+            /** Income Amount Minor */
+            income_amount_minor?: number | null;
+            /** Income Period */
+            income_period?: ("monthly" | "annual") | null;
+            /** Income Source */
+            income_source?: ("net_salary" | "business_income") | null;
             /** Last Name */
             last_name: string;
+            /** Occupation */
+            occupation?: string | null;
         };
         /** MessageResponse */
         MessageResponse: {
@@ -6386,11 +6414,6 @@ export interface components {
         ReferralStatus: "pending" | "converted" | "accrued" | "paid" | "void";
         /** RegisterInitiateRequest */
         RegisterInitiateRequest: {
-            /**
-             * Email
-             * Format: email
-             */
-            email: string;
             /** First Name */
             first_name: string;
             /** Last Name */

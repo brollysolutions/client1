@@ -13,7 +13,7 @@ from httpx import AsyncClient
 from sqlalchemy import text
 
 from app.core.security import create_access_token
-from conftest import full_registration, unique_mobile
+from conftest import full_registration, unique_email, unique_mobile
 
 
 async def _auth_user_uuid(mobile: str) -> str:
@@ -24,6 +24,16 @@ async def _auth_user_uuid(mobile: str) -> str:
             await db.execute(text("SELECT id FROM auth_users WHERE mobile = :m"), {"m": mobile})
         ).fetchone()
         return str(row[0])
+
+
+async def _user_email(mobile: str) -> str | None:
+    import app.db.session as _session_mod
+
+    async with _session_mod.AsyncSessionLocal() as db:
+        return await db.scalar(
+            text("SELECT email FROM auth_users WHERE mobile = :m"),
+            {"m": mobile},
+        )
 
 
 def _admin_token(uid: str) -> str:
@@ -161,6 +171,30 @@ async def test_duplicate_mobile_conflicts(client: AsyncClient) -> None:
         headers={"Authorization": f"Bearer {_admin_token(uid)}"},
     )
     assert second.status_code == 409
+
+
+@pytest.mark.asyncio
+async def test_existing_mobile_only_client_gets_staff_email(client: AsyncClient) -> None:
+    _, admin_mobile = await full_registration(client)
+    admin_uid = await _auth_user_uuid(admin_mobile)
+    _, target_mobile = await full_registration(client)
+    staff_email = unique_email()
+
+    response = await client.post(
+        "/api/v1/admin/users/create",
+        json={
+            "first_name": "Dev",
+            "last_name": "Singh",
+            "mobile": target_mobile,
+            "email": staff_email,
+            "role": "sub_admin",
+        },
+        headers={"Authorization": f"Bearer {_admin_token(admin_uid)}"},
+    )
+
+    assert response.status_code == 201, response.text
+    assert response.json()["temp_password"] is None
+    assert await _user_email(target_mobile) == staff_email
 
 
 @pytest.mark.asyncio

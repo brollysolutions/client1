@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import hashlib
+import hmac
 import json
 import logging
 from datetime import UTC, datetime, timedelta
@@ -13,7 +15,14 @@ from sqlalchemy import select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.cache.redis_keys import TTL_OTP, RedisCache, jwt_blacklist_key, reg_data_key
+from app.cache.redis_keys import (
+    TTL_OTP,
+    RedisCache,
+    jwt_blacklist_key,
+    otp_email_verify_key,
+    otp_email_verify_target_key,
+    reg_data_key,
+)
 from app.core.config import settings
 from app.core.security import (
     create_access_token,
@@ -61,6 +70,7 @@ from app.services.otp import (
     check_login_rate_ip,
     check_otp_rate_ip,
     clear_login_failures,
+    ensure_active_otp_session,
     generate_and_store_otp,
     record_login_failure,
     record_login_failure_ip,
@@ -81,6 +91,15 @@ def _is_mock_env() -> bool:
     # SECRET_KEY guard already forbids in real deploys — or an explicit opt-in flag
     # for a controlled non-dev test box. Anything else never returns the code.
     return settings.OTP_EXPOSE_HINT or settings.ENV == "development"
+
+
+def _email_verification_fingerprint(email: str) -> str:
+    """Bind an OTP to an address without storing raw email in Redis."""
+    return hmac.new(
+        settings.SECRET_KEY.encode("utf-8"),
+        email.encode("utf-8"),
+        hashlib.sha256,
+    ).hexdigest()
 
 
 def _build_tokens_response(access_token: str, user: User | None = None) -> AuthTokensResponse:
@@ -246,10 +265,10 @@ async def register_initiate(
 ) -> RegisterInitiateResponse:
     # Per-IP cap first — stop one host iterating numbers before any DB / OTP work.
     await check_otp_rate_ip(cache, ip)
-    # Capture the number first, IN-LINE (not deferred): the duplicate-email / duplicate-
-    # mobile (400) and rate-limit (429) branches below raise HTTPException, and FastAPI
+    # Capture the number first, IN-LINE (not deferred): the duplicate-mobile
+    # (400) and rate-limit (429) branches below raise HTTPException, and FastAPI
     # never runs a BackgroundTask on a raised response — a deferred capture would be
-    # dropped there, losing a genuinely new number that merely reused an existing email.
+    # dropped there, losing a genuinely new number that is already registered.
     # Self-registered clients enroll in both lines; the lead is anchored to loans.
     await capture_lead(
         req.mobile,
@@ -257,17 +276,11 @@ async def register_initiate(
         business_line="loans",
     )
 
-    # Enumeration-safe: one neutral message for either a duplicate mobile OR a
-    # duplicate email. Distinct "mobile already registered" vs "email already
-    # registered" strings turned the public sign-up form into an account-existence
-    # oracle that also leaked which field was taken (audit M1). Signup inherently
-    # signals that *some* detail exists; we no longer reveal which one.
     existing = await db.scalar(select(User).where(User.mobile == req.mobile))
-    email_taken = None if existing else await db.scalar(select(User).where(User.email == req.email))
-    if existing or email_taken:
+    if existing:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Mobile number or email already registered.",
+            detail="Mobile number already registered.",
         )
 
     otp = await generate_and_store_otp(cache, req.mobile, "register")
@@ -277,14 +290,14 @@ async def register_initiate(
             {
                 "first_name": req.first_name,
                 "last_name": req.last_name,
-                "email": req.email,
                 "referral_code": req.referral_code,
             }
         ),
         TTL_OTP,
     )
-    # Voice call first; email is the same-OTP fallback if the call API hard-errors.
-    channel = await deliver_otp(req.mobile, req.email, otp)
+    # Registration must prove control of the mobile. An unverified,
+    # self-asserted email can never be a fallback for that proof.
+    channel = await deliver_otp(req.mobile, "", otp, allow_email_fallback=False)
 
     await _log_event(
         db,
@@ -321,7 +334,6 @@ async def register_verify_otp(
             "mobile": req.mobile,
             "first_name": reg_data.get("first_name", ""),
             "last_name": reg_data.get("last_name", ""),
-            "email": reg_data.get("email", ""),
             # A referral code is a public shareable token, not a secret — fine
             # to carry in a signed, short-lived registration token.
             "referral_code": reg_data.get("referral_code"),
@@ -360,26 +372,12 @@ async def register_set_password(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)
         ) from exc
 
-    email: str = claims.get("email", "")
-    if not email:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid registration token.",
-        )
-
     existing = await db.scalar(select(User).where(User.mobile == mobile))
     if existing:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Mobile number already registered.",
         )
-    email_taken = await db.scalar(select(User).where(User.email == email))
-    if email_taken:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Email already registered.",
-        )
-
     # Every self-registered client is enrolled in both business lines: one User,
     # two ClientProfiles (each with its own customer_code). See
     # docs/specs/dual-line-clients.md.
@@ -389,7 +387,7 @@ async def register_set_password(
         first_name=claims.get("first_name", ""),
         last_name=claims.get("last_name", ""),
         mobile=mobile,
-        email=email,
+        email=None,
         password_hash=await hash_password(req.password),
         status=UserStatus.ACTIVE,
         phone_verified_at=datetime.now(UTC),  # mobile proven by the registration OTP
@@ -398,10 +396,10 @@ async def register_set_password(
     db.add(user)
     try:
         await db.flush()  # get user.id before creating profiles
-    except IntegrityError as exc:  # mobile/email UNIQUE race between check and insert
+    except IntegrityError as exc:  # mobile UNIQUE race between check and insert
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Mobile number or email already registered.",
+            detail="Mobile number already registered.",
         ) from exc
 
     for line in lines:
@@ -492,6 +490,13 @@ async def get_me(db: AsyncSession, current_user_id: UUID) -> MeResponse:
         mobile=user.mobile,
         email=user.email,
         email_verified=user.email_verified_at is not None,
+        gender=user.gender,
+        gender_self_description=user.gender_self_description,
+        income_source=user.income_source,
+        income_amount_minor=user.income_amount_minor,
+        income_period=user.income_period,
+        occupation=user.occupation,
+        address=user.address,
         profiles=profiles,
     )
 
@@ -503,24 +508,44 @@ async def update_me(
     ip: str | None = None,
     user_agent: str | None = None,
 ) -> MeResponse:
-    """Update the logged-in user's own name (and optionally email).
+    """Update the logged-in user's own identity-wide profile fields.
 
     Reachable by any authenticated, non-force-reset account; RLS confines every
     caller to their own auth_users row. mobile is immutable (account identity).
-    Changing the email resets email_verified_at so the post-login verify flow runs
-    again. Same get->mutate->commit pattern as change_password.
+    Changing or clearing email resets email_verified_at. Same
+    get->mutate->commit pattern as change_password.
     """
     user = await db.get(User, current_user_id)
     if user is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized.")
 
-    email_changed = req.email is not None and req.email != user.email
+    supplied_fields = req.model_fields_set
+    email_changed = "email" in supplied_fields and req.email != user.email
 
     user.first_name = req.first_name
     user.last_name = req.last_name
-    if email_changed:
+    if "email" in supplied_fields:
         user.email = req.email
-        user.email_verified_at = None  # re-verify the new address
+        if email_changed:
+            user.email_verified_at = None  # a new or cleared address is unverified
+
+    for field in (
+        "gender",
+        "gender_self_description",
+        "income_source",
+        "income_amount_minor",
+        "income_period",
+        "occupation",
+        "address",
+    ):
+        if field in supplied_fields:
+            setattr(user, field, getattr(req, field))
+    if (
+        "gender" in supplied_fields
+        and req.gender != "self_described"
+        and "gender_self_description" not in supplied_fields
+    ):
+        user.gender_self_description = None
 
     # No pre-check for an email collision: under this caller's RLS context
     # (auth_users_rls restricts a client to their own row) a "SELECT another user
@@ -765,6 +790,31 @@ async def logout(
 # ---------------------------------------------------------------------------
 
 
+async def _deliver_reset_otp_and_log(
+    *,
+    mobile: str,
+    otp: str,
+    auth_user_uuid: UUID,
+    ip: str | None,
+    user_agent: str | None,
+) -> None:
+    """Deliver after the neutral response so provider latency cannot enumerate accounts."""
+    from app.db.session import AsyncSessionLocal
+
+    channel = await deliver_otp(mobile, "", otp, allow_email_fallback=False)
+    async with AsyncSessionLocal() as event_db:
+        await _log_event(
+            event_db,
+            auth_user_uuid=auth_user_uuid,
+            event_type="otp_sent",
+            mobile=mobile,
+            ip=ip,
+            user_agent=user_agent,
+            success=True,
+            detail={"purpose": "reset", "channel": channel},
+        )
+
+
 async def forgot_initiate(
     db: AsyncSession,
     cache: RedisCache,
@@ -781,29 +831,34 @@ async def forgot_initiate(
     background_tasks.add_task(capture_lead, mobile)
 
     user = await db.scalar(select(User).where(User.mobile == mobile))
+    # Create the same short-lived, rate-limited challenge for known and unknown
+    # mobiles. This keeps rate-limit and verification behavior uniform; an
+    # unknown-mobile challenge can never reach password mutation because the
+    # reset step resolves the account again.
+    otp = await generate_and_store_otp(cache, mobile, "reset")
     if not user:
         # Don't reveal whether mobile exists
         return ForgotInitiateResponse(
             message="If this number is registered, an OTP has been sent.",
             delivery_channel="none",
+            otp_hint=otp if _is_mock_env() else None,
         )
 
-    otp = await generate_and_store_otp(cache, mobile, "reset")
-    channel = await deliver_otp(mobile, user.email, otp)
-    await _log_event(
-        db,
-        auth_user_uuid=user.id,
-        event_type="otp_sent",
+    # Password reset still proves control of the registered mobile. Deliver
+    # after returning the neutral response so provider latency does not reveal
+    # whether the account exists.
+    background_tasks.add_task(
+        _deliver_reset_otp_and_log,
         mobile=mobile,
+        otp=otp,
+        auth_user_uuid=user.id,
         ip=ip,
         user_agent=user_agent,
-        success=True,
-        detail={"purpose": "reset", "channel": channel},
     )
     return ForgotInitiateResponse(
         message="If this number is registered, an OTP has been sent.",
-        delivery_channel=channel,
-        otp_hint=otp if (channel == "none" and _is_mock_env()) else None,
+        delivery_channel="none",
+        otp_hint=otp if _is_mock_env() else None,
     )
 
 
@@ -812,7 +867,17 @@ async def forgot_verify(
     cache: RedisCache,
     req: ForgotVerifyRequest,
 ) -> ResetTokenResponse:
-    await verify_otp(cache, req.mobile, "reset", req.otp)
+    try:
+        await verify_otp(cache, req.mobile, "reset", req.otp)
+    except HTTPException as exc:
+        if exc.status_code != status.HTTP_400_BAD_REQUEST:
+            raise
+        # Do not disclose whether a reset session exists, has expired, or has
+        # remaining attempts for the supplied mobile number.
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid or expired verification code.",
+        ) from exc
     reset_token = create_access_token({"purpose": "reset", "mobile": req.mobile})
     return ResetTokenResponse(reset_token=reset_token)
 
@@ -979,18 +1044,16 @@ async def delete_own_account(
 
 async def _resolve_resend_email(
     db: AsyncSession,
-    cache: RedisCache,
     mobile: str,
     purpose: str,
 ) -> str | None:
-    """Find the email to use for an email-fallback resend (register=reg_data, reset=user)."""
+    """Return the verified reset email allowed for an explicit email resend."""
     if purpose == "register":
-        raw = await cache.get(reg_data_key(mobile))
-        if raw:
-            return json.loads(raw).get("email") or None
         return None
     user = await db.scalar(select(User).where(User.mobile == mobile))
-    return user.email if user else None
+    if user is None or user.email_verified_at is None:
+        return None
+    return user.email
 
 
 async def resend_otp_service(
@@ -998,14 +1061,54 @@ async def resend_otp_service(
     cache: RedisCache,
     mobile: str,
     purpose: str,
+    background_tasks: BackgroundTasks,
     ip: str | None = None,
     via_email: bool = False,
 ) -> ResendOtpResponse:
     # Per-IP cap — resend is an initiate path (places a call / sends email).
     await check_otp_rate_ip(cache, ip)
-    otp = await resend_otp(cache, mobile, purpose)
-    email = await _resolve_resend_email(db, cache, mobile, purpose)
-    channel = await deliver_otp(mobile, email or "", otp, via_email=via_email and bool(email))
+    try:
+        await ensure_active_otp_session(cache, mobile, purpose)
+    except HTTPException:
+        if purpose == "reset":
+            # A reset session only exists for a registered mobile. Keep the
+            # result indistinguishable while doing no delivery work.
+            return ResendOtpResponse(message="Code resent.", delivery_channel="none")
+        raise
+    if purpose == "reset":
+        reset_user = await db.scalar(select(User.id).where(User.mobile == mobile))
+        if reset_user is None:
+            return ResendOtpResponse(message="Code resent.", delivery_channel="none")
+    if via_email:
+        email = await _resolve_resend_email(db, mobile, purpose)
+        if email is None:
+            # Keep the current voice OTP valid. A neutral response avoids
+            # revealing whether the account has a verified email and avoids
+            # replacing a usable code with one delivered nowhere.
+            return ResendOtpResponse(message="Code resent.", delivery_channel="none")
+        otp = await resend_otp(cache, mobile, purpose)
+        background_tasks.add_task(deliver_otp, mobile, email, otp, via_email=True)
+        # This endpoint is public. Returning the actual channel would disclose
+        # that the supplied mobile belongs to an account with a verified email.
+        # The UI already presents a neutral acknowledgement, so keep the wire
+        # response neutral as well and never expose an email-resend OTP hint.
+        return ResendOtpResponse(message="Code resent.", delivery_channel="none")
+    else:
+        otp = await resend_otp(cache, mobile, purpose)
+        if purpose == "reset":
+            background_tasks.add_task(
+                deliver_otp,
+                mobile,
+                "",
+                otp,
+                allow_email_fallback=False,
+            )
+            return ResendOtpResponse(
+                message="Code resent.",
+                delivery_channel="none",
+                otp_hint=otp if _is_mock_env() else None,
+            )
+        channel = await deliver_otp(mobile, "", otp, allow_email_fallback=False)
     return ResendOtpResponse(
         message="Code resent.",
         delivery_channel=channel,
@@ -1026,12 +1129,22 @@ async def email_verify_initiate(
     user_agent: str | None = None,
 ) -> EmailVerifyInitiateResponse:
     """Send an OTP to the logged-in user's email to verify it (deferred 2FA)."""
+    if not user.email:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Add an email address before requesting verification.",
+        )
     if user.email_verified_at is not None:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Email is already verified.",
         )
     otp = await generate_and_store_otp(cache, user.mobile, "email_verify")
+    await cache.set(
+        otp_email_verify_target_key(user.mobile),
+        _email_verification_fingerprint(user.email),
+        TTL_OTP,
+    )
     channel = await deliver_otp(user.mobile, user.email, otp, via_email=True)
     await _log_event(
         db,
@@ -1059,10 +1172,38 @@ async def email_verify_confirm(
     user_agent: str | None = None,
 ) -> None:
     """Confirm the email OTP and stamp email_verified_at."""
-    await verify_otp(cache, user.mobile, "email_verify", otp)
-    db_user = await db.get(User, user.id)
+    # Lock and refresh the identity row so a concurrent profile edit cannot
+    # swap the address between the fingerprint check and verification stamp.
+    db_user = await db.scalar(
+        select(User)
+        .where(User.id == user.id)
+        .with_for_update()
+        .execution_options(populate_existing=True)
+    )
     if db_user is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized.")
+    target_key = otp_email_verify_target_key(user.mobile)
+    expected_target = await cache.get(target_key)
+    current_target = (
+        _email_verification_fingerprint(db_user.email) if db_user.email is not None else None
+    )
+    if (
+        expected_target is None
+        or current_target is None
+        or not hmac.compare_digest(expected_target, current_target)
+    ):
+        await cache.delete(
+            otp_email_verify_key(user.mobile),
+            f"{otp_email_verify_key(user.mobile)}:attempts",
+            target_key,
+        )
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Email changed. Request a new verification code.",
+        )
+
+    await verify_otp(cache, user.mobile, "email_verify", otp)
+    await cache.delete(target_key)
     db_user.email_verified_at = datetime.now(UTC)
     await db.commit()
     await _log_event(

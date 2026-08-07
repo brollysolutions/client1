@@ -6,6 +6,11 @@ import { toast } from "sonner";
 
 import { EmailVerifyBanner } from "@/components/auth/email-verify-banner";
 import { useAuth } from "@/components/auth/session-provider";
+import {
+  OptionalProfileFields,
+  optionalProfilePayload,
+  type OptionalProfileDraft,
+} from "@/components/profile/optional-profile-fields";
 import { DeleteAccountDialog } from "@/components/settings/delete-account-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -21,7 +26,7 @@ export default function SettingsPage() {
   const { me, status, error, errorStatus, retry, setMe } = useMe();
   const [emailJustVerified, setEmailJustVerified] = React.useState(false);
   const emailVerified = me?.emailVerified ?? session?.emailVerified ?? false;
-  const showEmailBanner = !emailVerified && !emailJustVerified;
+  const showEmailBanner = Boolean(me?.email) && !emailVerified && !emailJustVerified;
 
   return (
     <div className="mx-auto w-full max-w-5xl space-y-6 px-4 sm:px-6 lg:px-10">
@@ -38,12 +43,19 @@ export default function SettingsPage() {
         <FetchError status={errorStatus} message={error} onRetry={retry} />
       ) : me ? (
         <ProfileForm
-          key={`${me.firstName}|${me.lastName}|${me.email}`}
+          key={`${me.firstName}|${me.lastName}|${me.email}|${me.gender}|${me.incomeAmountMinor}|${me.occupation}|${me.address}`}
           firstName={me.firstName}
           lastName={me.lastName}
           email={me.email}
           mobile={me.mobile}
           emailVerified={emailVerified}
+          gender={me.gender}
+          genderSelfDescription={me.genderSelfDescription}
+          incomeSource={me.incomeSource}
+          incomeAmountMinor={me.incomeAmountMinor}
+          incomePeriod={me.incomePeriod}
+          occupation={me.occupation}
+          address={me.address}
           onSaved={(next) => {
             setMe(next);
             if (next.email !== me.email) setEmailJustVerified(false);
@@ -72,40 +84,84 @@ function ProfileForm({
   email: initialEmail,
   mobile,
   emailVerified,
+  gender: initialGender,
+  genderSelfDescription: initialGenderSelfDescription,
+  incomeSource: initialIncomeSource,
+  incomeAmountMinor: initialIncomeAmountMinor,
+  incomePeriod: initialIncomePeriod,
+  occupation: initialOccupation,
+  address: initialAddress,
   onSaved,
 }: {
   firstName: string;
   lastName: string;
-  email: string;
+  email: string | null;
   mobile: string;
   emailVerified: boolean;
+  gender: Me["gender"];
+  genderSelfDescription: Me["genderSelfDescription"];
+  incomeSource: Me["incomeSource"];
+  incomeAmountMinor: Me["incomeAmountMinor"];
+  incomePeriod: Me["incomePeriod"];
+  occupation: Me["occupation"];
+  address: Me["address"];
   onSaved: (next: Me) => void;
 }) {
   const [firstName, setFirstName] = React.useState(initialFirst);
   const [lastName, setLastName] = React.useState(initialLast);
-  const [email, setEmail] = React.useState(initialEmail);
+  const [email, setEmail] = React.useState(initialEmail ?? "");
+  const [optionalProfile, setOptionalProfile] = React.useState<OptionalProfileDraft>({
+    gender: initialGender ?? "",
+    genderSelfDescription: initialGenderSelfDescription ?? "",
+    incomeSource: initialIncomeSource ?? "",
+    incomeAmountRupees:
+      initialIncomeAmountMinor === null ? "" : String(initialIncomeAmountMinor / 100),
+    incomePeriod: initialIncomePeriod ?? "",
+    occupation: initialOccupation ?? "",
+    address: initialAddress ?? "",
+  });
   const [saving, setSaving] = React.useState(false);
 
-  const emailChanged = email.trim().toLowerCase() !== initialEmail.toLowerCase();
+  const emailChanged = email.trim().toLowerCase() !== (initialEmail ?? "").toLowerCase();
+  const optionalChanged =
+    optionalProfile.gender !== (initialGender ?? "") ||
+    optionalProfile.genderSelfDescription.trim() !== (initialGenderSelfDescription ?? "") ||
+    optionalProfile.incomeSource !== (initialIncomeSource ?? "") ||
+    optionalProfile.incomeAmountRupees !==
+      (initialIncomeAmountMinor === null ? "" : String(initialIncomeAmountMinor / 100)) ||
+    optionalProfile.incomePeriod !== (initialIncomePeriod ?? "") ||
+    optionalProfile.occupation.trim() !== (initialOccupation ?? "") ||
+    optionalProfile.address.trim() !== (initialAddress ?? "");
   const dirty =
-    firstName.trim() !== initialFirst || lastName.trim() !== initialLast || emailChanged;
+    firstName.trim() !== initialFirst ||
+    lastName.trim() !== initialLast ||
+    emailChanged ||
+    optionalChanged;
   const canSave = dirty && firstName.trim() !== "" && lastName.trim() !== "" && !saving;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!canSave) return;
+    const parsed = optionalProfilePayload(optionalProfile);
+    if (!parsed.ok) {
+      toast.error(parsed.error);
+      return;
+    }
     setSaving(true);
     const res = await updateProfile({
       firstName: firstName.trim(),
       lastName: lastName.trim(),
-      email: emailChanged ? email.trim() : undefined,
+      email: emailChanged ? email.trim().toLowerCase() || null : undefined,
+      ...parsed.data,
     });
     setSaving(false);
     if (res.ok) {
       onSaved(res.data);
       toast.success("Profile updated.", {
         description: emailChanged
-          ? "We saved your details. Please verify your new email address."
+          ? email.trim()
+            ? "We saved your details. Please verify your new email address."
+            : "We saved your details and removed your email address."
           : "Your details have been saved.",
       });
     } else {
@@ -154,11 +210,16 @@ function ProfileForm({
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             autoComplete="email"
+            maxLength={254}
           />
           <p className="text-xs text-text-secondary">
             {emailChanged
-              ? "You will need to verify this new address after saving."
-              : "We use this for account notifications and recovery."}
+              ? email.trim()
+                ? "You will need to verify this new address after saving."
+                : "Saving will remove your optional email address."
+              : initialEmail
+                ? "We use this for account notifications and recovery."
+                : "Optional. Add an address if you want email recovery and updates."}
           </p>
         </div>
         <div className="space-y-2 sm:col-span-2">
@@ -167,6 +228,21 @@ function ProfileForm({
           <p className="text-xs text-text-secondary">
             Your mobile number is your account ID and cannot be changed here.
           </p>
+        </div>
+
+        <div className="border-t border-border pt-5 sm:col-span-2">
+          <div className="mb-4">
+            <h2 className="text-sm font-semibold text-text-primary">Additional details</h2>
+            <p className="text-xs text-text-secondary">
+              These details are optional and can be removed at any time.
+            </p>
+          </div>
+          <OptionalProfileFields
+            idPrefix="settings-profile"
+            value={optionalProfile}
+            onChange={setOptionalProfile}
+            disabled={saving}
+          />
         </div>
       </div>
 

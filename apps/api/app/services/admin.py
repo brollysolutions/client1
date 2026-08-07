@@ -84,6 +84,16 @@ async def create_staff(
         )
         if existing is not None:
             raise StaffAlreadyExists
+        if user.email is None:
+            # Mobile-first Clients may not yet have an email. Staff
+            # provisioning still requires one, so attach the Admin-supplied
+            # address without replacing an identity address already on file.
+            user.email = payload.email
+            user.email_verified_at = None
+            try:
+                await db.flush()
+            except IntegrityError as exc:
+                raise StaffAlreadyExists from exc
     else:
         temp_password = generate_temp_password(payload.mobile)
         user = User(
@@ -205,6 +215,16 @@ async def approve_agent_application(
         try:
             await db.flush()
         except IntegrityError as exc:  # UNIQUE race between the check above and this insert
+            raise AgentApplicationEmailConflict from exc
+    elif user.email is None and application.email:
+        # An existing mobile-first Client can reach Agent approval without an
+        # identity email. Preserve mandatory Agent onboarding by attaching the
+        # application's address, while never overwriting an existing address.
+        user.email = application.email
+        user.email_verified_at = None
+        try:
+            await db.flush()
+        except IntegrityError as exc:
             raise AgentApplicationEmailConflict from exc
 
     profile = AgentProfile(

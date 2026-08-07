@@ -4,7 +4,7 @@ Status: **Derived living implementation ledger**
 
 As of: **2026-08-07**
 
-Evidence baseline: `ce3baa3` ([PR #147](https://github.com/brollysolutions/client1/pull/147))
+Evidence baseline: `7943d1c` ([PR #148](https://github.com/brollysolutions/client1/pull/148))
 
 ## Purpose and authority
 
@@ -31,18 +31,26 @@ live-provider configuration are assessed separately.
 
 | Measure | Result |
 | --- | ---: |
-| Complete requirements | 57 / 80 (71.25%) |
+| Complete requirements | 59 / 80 (73.75%) |
 | Partial requirements | 18 / 80 (22.5%) |
-| Not-started requirements | 5 / 80 (6.25%) |
-| Weighted implementation coverage | **82.5% (approximately 83%)** |
+| Not-started requirements | 3 / 80 (3.75%) |
+| Weighted implementation coverage | **85.0%** |
 
 Weighted coverage gives each Complete item 1 point and each Partial item 0.5
-points: `(57 + 18 x 0.5) / 80 = 82.5%`. The weighting is a planning aid, not
+points: `(59 + 18 x 0.5) / 80 = 85%`. The weighting is a planning aid, not
 an estimate of calendar time: a single security-sensitive gap can require more
 work than several completed UI requirements.
 
 ## Delivered implementation
 
+- **Registration/profile requirement alignment** (FR-3.3, FR-17.2) is
+  implemented in [PR #148](https://github.com/brollysolutions/client1/pull/148). Ordinary
+  Clients now register with name and an OTP-verified mobile, then may skip or
+  save optional email, gender, income, occupation, and postal address. The same
+  fields are editable and clearable in Profile settings, remain owner/Admin RLS
+  protected, and are scrubbed during account deletion. Verified-email recovery
+  remains explicit and enumeration-safe, while staff/Agent onboarding still
+  attaches its mandatory email to a mobile-only identity.
 - **Managed property/media submissions** (FR-7.3, FR-13.1 through FR-13.4,
   OI-002) is delivered in [PR #147](https://github.com/brollysolutions/client1/pull/147).
   The approved slice
@@ -57,7 +65,7 @@ work than several completed UI requirements.
 | --- | ---: | ---: | ---: | --- |
 | Platform and segregation (FR-1.x) | 4 | 1 | 0 | Core line tagging, routing, RLS, dashboards, APIs, and real-estate media paths exist; universal coverage still needs review for future media purposes. |
 | Roles and access (FR-2.x) | 7 | 2 | 0 | Six role surfaces, server/RLS guards, and Admin-managed closed-catalogue field visibility exist; Admin coverage and edit ownership are not exhaustive. |
-| Authentication (FR-3.x) | 4 | 0 | 1 | OTP/password/session flows, dual-line client identity, and support-assisted mobile change exist; optional email does not match the baseline. |
+| Authentication (FR-3.x) | 5 | 0 | 0 | OTP/password/session flows, dual-line client identity, support-assisted mobile change, and mobile-first registration with optional verified email recovery exist. |
 | Leads (FR-4.x) | 4 | 2 | 0 | Capture, assignment, ownership, fixed Agent expiry, and Agent/Telecaller workflows exist; automatic direct/Agent assignment remains incomplete. |
 | Agent registration (FR-5.x) | 4 | 0 | 0 | OTP-verified application, KYC, Admin review, Agent ID, and owned-lead contact access exist. |
 | Loans (FR-6.x) | 6 | 0 | 0 | Public pages/calculators, applications, configurable products/banks, progression, transactions, and fee cashback exist. |
@@ -71,9 +79,9 @@ work than several completed UI requirements.
 | Support (FR-14.x) | 4 | 0 | 0 | Central tickets, WhatsApp route, Admin triage/resolution, and structured mobile-change fulfilment exist. |
 | Contact privacy (FR-15.x) | 4 | 0 | 0 | Agent-owned and Telecaller-assigned mobile access is locked; Employee raw/deny/provider-neutral invitation modes and least-data projection are enforced server-side. |
 | Analytics (FR-16.x) | 0 | 3 | 0 | Weekly/monthly reporting, filters, sorting, summaries, and CSV exist; Excel and group/team slices remain. |
-| Profile/account (FR-17.x) | 3 | 0 | 1 | Profile/settings, transactions/support, deletion, retention, and Admin removal exist; required demographic/income fields do not. |
+| Profile/account (FR-17.x) | 4 | 0 | 0 | Profile/settings, optional demographic/income/address details, transactions/support, deletion, retention, and Admin removal exist. |
 | Location (FR-18.x) | 0 | 0 | 2 | No consented login-location personalization or map/GMB integration seam was found. |
-| **Total** | **57** | **18** | **5** | **80 requirements** |
+| **Total** | **59** | **18** | **3** | **80 requirements** |
 
 ## Done
 
@@ -83,8 +91,9 @@ The following requirements are complete on the evidence baseline:
   FR-2.7; and FR-2.9. Evidence includes `app/core/deps.py`, profile models, RLS
   migrations, role dashboards, Admin field-visibility APIs/UI, server-side
   response projection, policy audit, and cross-role/cross-line tests.
-- Authentication: FR-3.1, FR-3.2, FR-3.4, and FR-3.5 as amended by CS-001.
-  Evidence includes OTP/password/session flows, dual profiles, replacement-number
+- Authentication: FR-3.1 through FR-3.5 as amended by CS-001 and CS-005.
+  Evidence includes mobile-first OTP/password/session flows, skippable optional
+  email capture, verified-email-only recovery, dual profiles, replacement-number
   OTP intake, platform-Admin maker/checker review, session-generation revocation,
   linked-contact updates, collision rollback, and API/RLS/concurrency tests.
 - Lead operations: FR-4.1, FR-4.4 through FR-4.6. Evidence includes the lead
@@ -116,10 +125,11 @@ The following requirements are complete on the evidence baseline:
   Agent/Telecaller mobile rules, Admin-controlled least-data projection, and
   expiring/revocable provider-neutral Employee invitations. No WhatsApp API
   integration is present or planned by this slice.
-- Account lifecycle: FR-17.1, FR-17.3, and FR-17.4. Evidence includes
-  role-aware settings/navigation, transaction and support surfaces,
-  password-confirmed self-deletion, Admin deletion, de-linking, and seven-year
-  retention purge behavior.
+- Account lifecycle: FR-17.1 through FR-17.4. Evidence includes role-aware
+  settings/navigation; optional, editable, and clearable gender/income/
+  occupation/address details; transaction and support surfaces;
+  password-confirmed self-deletion; Admin deletion; immediate profile-PII scrub;
+  de-linking; and seven-year retention purge behavior.
 
 ## Remaining
 
@@ -128,7 +138,6 @@ The following requirements are complete on the evidence baseline:
 | FR-1.1 | Partial | Most domain records are server-stamped with one line. | Cover the not-yet-built media/gallery paths and audit any nullable legacy classification. |
 | FR-2.2 | Partial | Admin dashboards cover users, leads, tasks, agents, loans, deals, payouts, content, audit, and reports. | Complete the requirement's exhaustive view/update coverage and verify every surface in Admin UI. |
 | FR-2.8 | Partial | Agent pre-assignment editing, client profile editing, and Admin operational edits exist. | Define and enforce provenance-based edit ownership consistently across all submitted detail types. |
-| FR-3.3 | Not started | Registration supports name, mobile, and email. | Reconcile the approved optional-email requirement with the current mandatory unique email/security flow before changing code. |
 | FR-4.2 | Partial | Agents create attributed leads; Admin can assign a Telecaller. | Decide and implement automatic assignment behavior and client-account/invite binding where required. |
 | FR-4.3 | Partial | Direct registration captures a lead and creates both client profiles. | Capture explicit requirement intent and implement deterministic per-line Telecaller assignment without cross-line leakage. |
 | FR-7.1 | Partial | Listing, inquiry, visit, and property-deal workflows exist. | Add the unresolved vehicle-arrangement workflow. |
@@ -145,7 +154,6 @@ The following requirements are complete on the evidence baseline:
 | FR-16.1 | Partial | Weekly/monthly buckets, date filters, and CSV export exist. | Add Excel export or explicitly amend it out of scope. |
 | FR-16.2 | Partial | Reports filter by one Agent and business line. | Add saved/explicit Agent-group and team filters. |
 | FR-16.3 | Partial | Lead/loan/deal counts and per-Agent performance with sorting exist. | Add agreed per-team summaries and selective group views. |
-| FR-17.2 | Not started | Registration captures name, mobile, and mandatory email. | Decide when and how to capture gender, income, occupation, and address with PII minimization and edit rules. |
 | FR-18.1 | Not started | No login-location capture is present. | Define opt-in, purpose, precision, retention, fallback, and deletion behavior before implementation. |
 | FR-18.2 | Not started | Address-based properties and visits exist, but no map seam is defined. | Decide whether maps/GMB remain in v1 and design a provider boundary without exposing unnecessary location data. |
 

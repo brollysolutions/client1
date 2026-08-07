@@ -49,8 +49,9 @@ export default function PrivacyPage() {
           <SectionHeading>Information we collect</SectionHeading>
           <BulletList
             items={[
-              "Contact details you give us: your name, mobile number, and email address, whether through a callback request, the contact form, or a partner application.",
-              "Verification details: your mobile number is verified with a one-time code before we create an account. Your email is verified after your first sign-in.",
+              "Contact details you give us: your name and mobile number. Ordinary account registration lets you add an optional email; contact and partner application forms may request the additional details shown on those forms.",
+              "Optional profile details: you may add gender, income information, occupation, and a postal address during registration or later in Profile settings. These details are not required to use your account.",
+              "Verification details: your mobile number is verified with a one-time code before we create an account. If you add an email, you may verify it after signing in.",
               "Enquiry details: the loan type, property interest, or other details you share so we can connect you with the right bank, lender, or real estate partner.",
               "Partner application documents: if you apply to become a partner agent, we collect identity documents (such as Aadhaar and PAN) to verify you before approval.",
               "Account activity: your enquiry history, application status, and any referral, cashback, or commission activity on your account.",
@@ -86,9 +87,10 @@ export default function PrivacyPage() {
           <p className="mt-4">
             We keep your account and enquiry information for as long as your account is active.
             If you delete your account, we permanently erase your personal information (name,
-            mobile number, email, and any identity documents) immediately. Financial transaction
-            and payout records are kept for 7 years, disconnected from your identity, as required
-            for financial record-keeping, and are permanently purged after that period.
+            mobile number, optional email and profile details, and any identity documents)
+            immediately. Financial transaction and payout records are kept for 7 years,
+            disconnected from your identity, as required for financial record-keeping, and are
+            permanently purged after that period.
           </p>
 
           <SectionHeading>Your rights and choices</SectionHeading>
