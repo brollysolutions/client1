@@ -48,6 +48,7 @@ from app.models.profile import (
 from app.models.user import User, UserStatus
 from app.services import push
 from app.services.audit_log import record as record_audit
+from app.services.email import send_notification_email
 
 logger = logging.getLogger(__name__)
 
@@ -55,6 +56,34 @@ logger = logging.getLogger(__name__)
 # admin roster is ever misconfigured. 25 is far above any realistic admin
 # headcount on this platform today.
 _MAX_ADMIN_FANOUT = 25
+
+
+async def _send_verified_notification_emails(
+    session: AsyncSession,
+    *,
+    recipient_uuids: set[uuid.UUID],
+    title: str,
+    body: str,
+    href: str | None,
+) -> None:
+    """Deliver best-effort email copies without expanding recipient scope."""
+    if not settings.NOTIFICATION_EMAIL_ENABLED or not recipient_uuids:
+        return
+    users = (
+        await session.scalars(
+            select(User).where(
+                User.id.in_(recipient_uuids),
+                User.status == UserStatus.ACTIVE,
+                User.email.is_not(None),
+                User.email_verified_at.is_not(None),
+            )
+        )
+    ).all()
+    for user in users:
+        # The predicate guarantees a non-null address; retain the guard so a
+        # future model/query change cannot turn this into a transport error.
+        if user.email:
+            await send_notification_email(user.email, title, body, href)
 
 
 async def _active_admin_uuids(session: AsyncSession) -> set[uuid.UUID]:
@@ -128,6 +157,13 @@ async def notify_admins(
                     await push.send_to_user(
                         session, user_uuid=admin_uuid, title=title, body=body, href=href
                     )
+            await _send_verified_notification_emails(
+                session,
+                recipient_uuids=admin_uuids,
+                title=title,
+                body=body,
+                href=href,
+            )
     except Exception:
         logger.warning(
             "admin_notify.notify_admins_failed type=%s", notification_type, exc_info=True
@@ -289,6 +325,13 @@ async def broadcast(
                     await push.send_to_user(
                         session, user_uuid=recipient_uuid, title=title, body=body, href=href
                     )
+            await _send_verified_notification_emails(
+                session,
+                recipient_uuids=recipients,
+                title=title,
+                body=body,
+                href=href,
+            )
     except Exception:
         # The audit row above already committed and survives this failure —
         # that is the point of writing it first.

@@ -86,10 +86,7 @@ async def create_site_visit(
         user_uuid=current_user.id,
         notification_type=NotificationType.SITE_VISIT_REQUESTED,
         title="Site visit requested",
-        body=(
-            f"We've received your request to visit {visit.title}. "
-            "We'll confirm a time with you soon."
-        ),
+        body="We've received your site-visit request. We'll confirm a time with you soon.",
         href="/dashboard/site-visits",
     )
     return _to_read(visit)

@@ -11,7 +11,7 @@ Evidence baseline: `9907941` ([PR #149](https://github.com/brollysolutions/clien
 Complete the approved Loans and Real Estate scope without weakening
 authorization, business-line segregation, PII/KYC handling, payout controls,
 or auditability. The current evidence-based implementation coverage is
-approximately **85.6%**; see [`feature-status.md`](feature-status.md) for the
+approximately **86.3%**; see [`feature-status.md`](feature-status.md) for the
 calculation and requirement-level gaps.
 
 ## Working rules
@@ -61,8 +61,8 @@ Admin field visibility and contact controls are **Done** in
 [PR #145](https://github.com/brollysolutions/client1/pull/145). Agent-lead expiry was delivered earlier
 from the same branch in [PR #144](https://github.com/brollysolutions/client1/pull/144).
 Vehicle arrangements are **Done** in
-[PR #149](https://github.com/brollysolutions/client1/pull/149). The next
-priority is analytics completion.
+[PR #149](https://github.com/brollysolutions/client1/pull/149). Analytics is
+in review; notification/email redirect completion is the active priority.
 
 | Priority | Feature / requirements | Status | Recommended model / effort | Decision gate and acceptance summary |
 | ---: | --- | --- | --- | --- |
@@ -73,7 +73,7 @@ priority is analytics completion.
 | 5 | Registration/profile requirement alignment (FR-3.3, FR-17.2) | **Done** — [PR #148](https://github.com/brollysolutions/client1/pull/148) | `gpt-5.6-sol` / Extra High | Delivered mobile-first account creation, a skippable post-account profile step, optional editable/clearable identity details, verified-email-only recovery, owner/Admin RLS, deletion scrub, generated contracts, and accessible forms. |
 | 6 | Vehicle arrangements (FR-7.1, OI-003) | **Done** — [PR #149](https://github.com/brollysolutions/client1/pull/149) | `gpt-5.6-sol` / High | Delivered the dedicated 1:1 site-visit arrangement, direct Admin-to-Employee assignment, safe Client read visibility, row-locked state machine, atomic parent cancellation, PII-safe audit/notifications, and real-estate-only RLS. |
 | 7 | Analytics completion (FR-16.1 through FR-16.3) | **In review** — [PR #150](https://github.com/brollysolutions/client1/pull/150) | `gpt-5.6-terra` / High | Adds formula-safe Excel export and explicit business-line team summaries. The existing multi-Agent selection is the approved ad hoc group filter; no unapproved team-membership model was added. API Ruff, XLSX safety, web typecheck/lint, and focused web tests pass; database-backed reporting tests are blocked locally by a `_greenlet` DLL failure and the web build exceeded the local timeout. |
-| 8 | Notification/email redirect completeness (FR-11.2) | Planned | `gpt-5.6-terra` / High | Inventory every producer; add valid role-aware destinations and approved email events; prevent open redirects and PII in messages; add link tests. |
+| 8 | Notification/email redirect completeness (FR-11.2) | **In review** — `feat/notification-email-redirects` | `gpt-5.6-terra` / High | All producer, broadcast, push, and banner paths accept only same-origin destinations; verified-email transactional copies use the same safe page; PII-prone notification copy is removed; focused API/web safety checks pass. |
 | 9 | Authenticated banner personalization (FR-12.1 through FR-12.4, FR-18.1) | Decision needed | `gpt-5.6-sol` / Extra High | Define audience grammar, consented signals, location precision/retention, safe server evaluation, fallbacks, and negative targeting tests before serving personalized content. |
 | 10 | Map/GMB integration seam (FR-18.2) | Deferred pending scope | `gpt-5.6-terra` / High | Confirm it remains in v1; define provider-neutral coordinates/address boundary and privacy constraints before adding a dependency. |
 
@@ -504,10 +504,10 @@ priority is analytics completion.
 
 ## Delivery sequence
 
-The next priority is **analytics completion** (FR-16.1 through FR-16.3): decide
-whether Excel export remains required, then add the missing Agent group/team
-filters and summaries while preserving bounded async queries, CSV formula
-safety, pagination, and business-line isolation.
+The next priority after analytics review is **notification/email redirect
+completion** (FR-11.2): preserve each role's reachable workflow destination,
+use only a server-configured public origin for transactional email actions,
+and reject external or ambiguous redirects at every producer and renderer.
 
 For each item:
 
@@ -541,6 +541,7 @@ The backlog builds on these delivered foundations:
 
 | Date | Change | Evidence |
 | --- | --- | --- |
+| 2026-08-07 | Completed FR-11.2 implementation pending PR review: same-origin notification/broadcast/push/banner destinations, verified-email transactional copies, PII-minimized notification copy, and API/web safety tests. | `feat/notification-email-redirects`; focused Ruff/pytest and Vitest evidence; PR link pending. |
 | 2026-08-07 | Completed FR-7.1 vehicle arrangements, resolved OI-003, and promoted analytics completion as the next priority. | [PR #149](https://github.com/brollysolutions/client1/pull/149); migration/RLS/API/web/contract changes; focused and regression tests; security review. |
 | 2026-08-06 | Completed FR-2.9, FR-15.1, and FR-15.4 field visibility/contact privacy; promoted support-assisted mobile-number change as the next priority. | [PR #145](https://github.com/brollysolutions/client1/pull/145); migration/RLS/API/web/contract changes; focused and regression tests; security and PR review. |
 | 2026-08-06 | Completed FR-4.6 Agent-lead expiry and promoted Admin field visibility/contact controls as the next priority. | [PR #144](https://github.com/brollysolutions/client1/pull/144); migration/job/API/RLS/web/contract changes; 42 focused API tests; 254 web tests; seeded browser verification; security review. |
