@@ -35,13 +35,16 @@ _DOCUMENTED_SUB_ADMIN_EXCEPTIONS = {
     ("agent_profiles", "agent_profiles_rls"),
     ("leads", "leads_rls"),
     ("loan_applications", "loan_applications_rls"),
+    ("loan_documents", "loan_documents_select"),
     ("property_deals", "property_deals_rls"),
     ("site_visits", "site_visits_rls"),
     ("enquiries", "enquiries_rls"),
 }
 
-# All 23 policies that ever carried (or still carry) a platform_scope branch —
-# the 22 narrowed by a0b1c2d3e4f5 plus transactions_rls (narrowed by e8f9a0b1c2d3).
+# Every current policy carrying a platform_scope branch. The original
+# task_documents_rls was split per command by c8d9e0f1a2b3, and
+# f5a6b7c8d9e0 added the loan-document policies later; keep this ledger aligned
+# with those additive migrations rather than the earlier policy names.
 _ALL_PLATFORM_SCOPE_POLICIES = {
     ("auth_users", "auth_users_rls"),
     ("agent_applications", "agent_applications_rls"),
@@ -50,11 +53,17 @@ _ALL_PLATFORM_SCOPE_POLICIES = {
     ("bookmarks", "bookmarks_rls"),
     ("notifications", "notifications_rls"),
     ("support_tickets", "support_tickets_rls"),
+    ("mobile_change_requests", "mobile_change_requests_select"),
     ("enquiries", "enquiries_rls"),
     ("site_visits", "site_visits_rls"),
     ("lead_activities", "lead_activities_rls"),
     ("tasks", "tasks_rls"),
-    ("task_documents", "task_documents_rls"),
+    ("task_documents", "task_documents_select"),
+    ("task_documents", "task_documents_insert"),
+    ("task_documents", "task_documents_delete"),
+    ("task_documents", "task_documents_update"),
+    ("loan_documents", "loan_documents_select"),
+    ("loan_documents", "loan_documents_update"),
     ("loan_applications", "loan_applications_rls"),
     ("loan_txn_history", "loan_txn_history_rls"),
     ("property_deals", "property_deals_rls"),

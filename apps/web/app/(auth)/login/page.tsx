@@ -280,6 +280,18 @@ export default function LoginPage() {
           Sign up
         </Link>
       </p>
+      <p className="mt-3 text-center text-sm text-text-secondary">
+        No longer have access to this number?{" "}
+        <Link
+          href="/change-mobile"
+          className={cn(
+            AUTH_LINK_CLASS,
+            "font-medium underline-offset-4 hover:underline focus-visible:underline focus-visible:outline-none",
+          )}
+        >
+          Ask support to change it
+        </Link>
+      </p>
     </AuthShell>
   );
 }

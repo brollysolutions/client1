@@ -24,6 +24,7 @@ from app.cache.redis_keys import (
     otp_agent_apply_key,
     otp_email_verify_key,
     otp_lock_key,
+    otp_mobile_change_key,
     otp_rate_ip_key,
     otp_rate_key,
     otp_register_key,
@@ -52,6 +53,8 @@ def _otp_key(mobile: str, purpose: str) -> str:
         return otp_email_verify_key(mobile)
     if purpose == "agent_apply":
         return otp_agent_apply_key(mobile)
+    if purpose == "mobile_change":
+        return otp_mobile_change_key(mobile)
     raise ValueError(f"Unknown OTP purpose: {purpose}")
 
 

@@ -30,6 +30,8 @@ export type SupportTicketAdmin = Schemas["SupportTicketAdminRead"];
 export type SupportTicketAdvanceRequest = Schemas["SupportTicketAdvanceRequest"];
 export type AuditLogEntry = Schemas["AuditLogRead"];
 export type AuditAction = Schemas["AuditAction"];
+export type MobileChangeAdmin = Schemas["MobileChangeAdminRead"];
+export type MobileChangeProof = Schemas["MobileChangeProof"];
 
 export async function createStaff(
   payload: StaffCreateRequest,
@@ -193,6 +195,51 @@ export async function advanceSupportTicket(
     method: "PATCH",
     body: payload,
   });
+}
+
+export async function listMobileChangeRequests(): Promise<
+  ApiResponse<MobileChangeAdmin[]>
+> {
+  const res = await apiRequest<Schemas["MobileChangeAdminListResponse"]>(
+    "/api/v1/admin/mobile-change-requests",
+  );
+  if (!res.ok) return res;
+  return { ok: true, status: res.status, data: res.data.requests };
+}
+
+export async function verifyMobileChangeIdentity(
+  requestId: string,
+  payload: {
+    proof_method: MobileChangeProof;
+    proof_attestation: string;
+    current_password: string;
+  },
+): Promise<ApiResponse<Schemas["MessageResponse"]>> {
+  return apiRequest<Schemas["MessageResponse"]>(
+    `/api/v1/admin/mobile-change-requests/${requestId}/verify`,
+    { method: "POST", body: payload },
+  );
+}
+
+export async function completeMobileChange(
+  requestId: string,
+  currentPassword: string,
+): Promise<ApiResponse<Schemas["MessageResponse"]>> {
+  return apiRequest<Schemas["MessageResponse"]>(
+    `/api/v1/admin/mobile-change-requests/${requestId}/complete`,
+    { method: "POST", body: { current_password: currentPassword } },
+  );
+}
+
+export async function rejectMobileChange(
+  requestId: string,
+  reason: string,
+  currentPassword: string,
+): Promise<ApiResponse<Schemas["MessageResponse"]>> {
+  return apiRequest<Schemas["MessageResponse"]>(
+    `/api/v1/admin/mobile-change-requests/${requestId}/reject`,
+    { method: "POST", body: { reason, current_password: currentPassword } },
+  );
 }
 
 export type AuditLogFilters = {

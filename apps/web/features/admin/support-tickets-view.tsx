@@ -26,6 +26,7 @@ import { advanceSupportTicket, type SupportTicketAdmin } from "@/lib/admin-api";
 import { CATEGORY_LABEL, STATUS_STYLES, type SupportStatus } from "@/lib/support-tickets";
 import { cn } from "@/lib/utils";
 import { useSupportTicketsAdmin } from "./use-support-tickets-admin";
+import { MobileChangeQueue } from "./mobile-change-queue";
 
 // Mirrors services/support_tickets.py::_TRANSITIONS exactly. Kept in sync by
 // hand (small, stable enum) rather than derived from the wire response --
@@ -102,6 +103,8 @@ export function SupportTicketsView() {
           </SelectContent>
         </Select>
       </div>
+
+      <MobileChangeQueue />
 
       {loading ? (
         <div className="flex items-center justify-center rounded-2xl border border-border bg-card py-16">

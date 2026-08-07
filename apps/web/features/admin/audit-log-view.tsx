@@ -156,6 +156,21 @@ const ACTION_META: Record<AuditAction, { label: string; icon: LucideIcon; tone: 
     icon: ShieldCheck,
     tone: "bg-loans-soft text-loans-accent",
   },
+  mobile_change_verified: {
+    label: "Mobile change identity verified",
+    icon: BadgeCheck,
+    tone: "bg-warning/10 text-warning",
+  },
+  mobile_changed: {
+    label: "Login number changed",
+    icon: ShieldCheck,
+    tone: "bg-success/10 text-success",
+  },
+  mobile_change_rejected: {
+    label: "Mobile change rejected",
+    icon: Ban,
+    tone: "bg-error/10 text-error",
+  },
 };
 
 const FILTER_OPTIONS: { value: AuditAction | "all"; label: string }[] = [

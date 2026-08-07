@@ -67,6 +67,7 @@ from app.cache.redis_keys import RedisCache, jwt_blacklist_key
 from app.models.audit_log import AuditAction
 from app.models.auth import AuthEvent, RefreshToken
 from app.models.loan_document import LoanDocument
+from app.models.mobile_change import MobileChangeRequest, MobileChangeStatus
 from app.models.notification import NotificationType
 from app.models.payout import Payout, PayoutStatus, PayoutType
 from app.models.profile import (
@@ -311,6 +312,33 @@ async def delete_account(
                     RefreshToken.revoked.is_(False),
                 )
                 .values(revoked=True)
+            )
+            # Recovery requests retain old/new numbers only while active.  A
+            # soft-deleted auth_users row remains in place, so ON DELETE cannot
+            # scrub these child rows for us; clear all request-side free text
+            # and terminalize active work explicitly on the bypass session.
+            await session.execute(
+                update(MobileChangeRequest)
+                .where(
+                    MobileChangeRequest.auth_user_uuid == target_auth_user_uuid,
+                    MobileChangeRequest.status.in_(
+                        (
+                            MobileChangeStatus.PENDING_REVIEW,
+                            MobileChangeStatus.PENDING_APPROVAL,
+                        )
+                    ),
+                )
+                .values(status=MobileChangeStatus.CANCELLED)
+            )
+            await session.execute(
+                update(MobileChangeRequest)
+                .where(MobileChangeRequest.auth_user_uuid == target_auth_user_uuid)
+                .values(
+                    current_mobile=None,
+                    requested_mobile=None,
+                    proof_attestation=None,
+                    rejection_reason=None,
+                )
             )
 
             # Reject any payout that has not yet left the platform — see

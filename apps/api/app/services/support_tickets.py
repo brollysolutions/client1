@@ -20,6 +20,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.audit_log import AuditAction
+from app.models.mobile_change import MobileChangeRequest, MobileChangeStatus
 from app.models.notification import NotificationType
 from app.models.support_ticket import SupportStatus, SupportTicket
 from app.models.user import User, UserStatus
@@ -46,6 +47,10 @@ class TicketNotFound(Exception):
 
 class TicketIllegalTransition(Exception):
     """Raised when an advance targets a status not reachable from the current one."""
+
+
+class TicketManagedWorkflow(Exception):
+    """Raised when a structured recovery workflow owns this ticket's state."""
 
 
 @dataclass(frozen=True)
@@ -132,6 +137,19 @@ async def advance_ticket(
     )
     if ticket is None:
         raise TicketNotFound
+    linked_recovery = await db.scalar(
+        select(MobileChangeRequest.id).where(
+            MobileChangeRequest.support_ticket_uuid == ticket.id,
+            MobileChangeRequest.status.in_(
+                (
+                    MobileChangeStatus.PENDING_REVIEW,
+                    MobileChangeStatus.PENDING_APPROVAL,
+                )
+            ),
+        )
+    )
+    if linked_recovery is not None:
+        raise TicketManagedWorkflow
     if target_status not in _TRANSITIONS.get(ticket.status, set()):
         raise TicketIllegalTransition
 

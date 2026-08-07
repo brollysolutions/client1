@@ -31,6 +31,8 @@ from app.api.v1.enquiries import router as enquiries_router
 from app.api.v1.fee_cashbacks import router as fee_cashbacks_router
 from app.api.v1.leads import router as leads_router
 from app.api.v1.loans import router as loans_router
+from app.api.v1.mobile_change import admin_router as mobile_change_admin_router
+from app.api.v1.mobile_change import router as mobile_change_router
 from app.api.v1.notifications import router as notifications_router
 from app.api.v1.offers import router as offers_router
 from app.api.v1.payments import router as payments_router
@@ -91,6 +93,12 @@ app.add_middleware(
 )
 
 app.include_router(auth_router, prefix="/api/v1/auth", tags=["auth"])
+app.include_router(mobile_change_router, prefix="/api/v1/mobile-change", tags=["mobile-change"])
+app.include_router(
+    mobile_change_admin_router,
+    prefix="/api/v1/admin/mobile-change-requests",
+    tags=["admin"],
+)
 app.include_router(admin_router, prefix="/api/v1/admin", tags=["admin"])
 app.include_router(leads_router, prefix="/api/v1/leads", tags=["leads"])
 app.include_router(
