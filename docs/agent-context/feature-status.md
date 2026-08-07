@@ -4,7 +4,7 @@ Status: **Derived living implementation ledger**
 
 As of: **2026-08-07**
 
-Evidence baseline: `feat/agent-lead-expiry` (mobile-change delivery PR pending)
+Evidence baseline: `a00d8ac` ([PR #146](https://github.com/brollysolutions/client1/pull/146))
 
 ## Purpose and authority
 

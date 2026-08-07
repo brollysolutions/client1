@@ -4,7 +4,7 @@ Status: **Derived, actively maintained plan**
 
 As of: **2026-08-07**
 
-Evidence baseline: `f083132` (`upstream/main`) plus `feat/agent-lead-expiry`
+Evidence baseline: `a00d8ac` ([PR #146](https://github.com/brollysolutions/client1/pull/146))
 
 ## Outcome
 
@@ -66,7 +66,7 @@ The next decision-gated priority is support-assisted mobile-number change.
 | ---: | --- | --- | --- | --- |
 | 1 | Agent-lead expiry (FR-4.6, OI-001) | **Done** — [PR #144](https://github.com/brollysolutions/client1/pull/144) | `gpt-5.6-sol` / High | Delivered fixed 30-day first-attribution deadlines, converted/closed exclusions, indexed idempotent release, audit/notifications, RLS/deadline write denial, Agent countdown/history, seven-day legacy grace, and deferred constraint race protection. |
 | 2 | Admin field visibility and contact controls (FR-2.9, FR-15.1, FR-15.4) | **Done** — [PR #145](https://github.com/brollysolutions/client1/pull/145) | `gpt-5.6-sol` / Extra High | Delivered a closed server-owned catalogue, server-side least-data projection, locked Agent/Telecaller mobile rules, Employee allow/deny/provider-neutral invitation modes, policy audit, RLS, and lifecycle/race denial tests. |
-| 3 | Support-assisted mobile-number change (FR-3.4, FR-14.3) | **In review** — `feat/agent-lead-expiry` (PR pending) | `gpt-5.6-sol` / Extra High | Implemented replacement-number OTP, structured identity-proof attestation, distinct active platform-Admin maker/checker approval, enumeration-safe intake, collision-safe linked-record updates, immediate race-safe session revocation, PII-minimized audit, and user notification. Linux CI remains the database-backed delivery gate. |
+| 3 | Support-assisted mobile-number change (FR-3.4, FR-14.3) | **Done** — [PR #146](https://github.com/brollysolutions/client1/pull/146) | `gpt-5.6-sol` / Extra High | Delivered replacement-number OTP, structured identity-proof attestation, distinct active platform-Admin maker/checker approval, enumeration-safe intake, collision-safe linked-record updates, immediate race-safe session revocation, PII-minimized audit, and user notification. |
 | 4 | Managed property/media submissions (FR-7.3, FR-13.1 through FR-13.4, OI-002) | Decision needed | `gpt-5.6-sol` / Extra High | Decide asset types/counts/limits/visibility; support Client/Lead submissions if approved; use private/public prefixes correctly; sniff content; clean orphans; test ownership and cross-line denial. |
 | 5 | Registration/profile requirement alignment (FR-3.3, FR-17.2) | Decision needed | `gpt-5.6-sol` / High | Resolve optional-email conflict and when demographic/income/address PII is collected; minimize fields; define edits/retention; update contracts and accessible forms. |
 | 6 | Vehicle arrangements (FR-7.1, OI-003) | Decision needed | `gpt-5.6-sol` / High | Decide separate entity versus Employee task type; attach to one property deal; define statuses/assignment/audit; preserve real-estate-only access. |
@@ -122,6 +122,7 @@ The next decision-gated priority is support-assisted mobile-number change.
 
 ### Delivered feature evidence — Support-assisted mobile-number change
 
+- **Delivery:** [PR #146](https://github.com/brollysolutions/client1/pull/146).
 - **Behavior:** public locked-out and authenticated users verify a replacement
   number with the purpose-scoped OTP rails. Eligible requests create a
   structured `lost_mobile` ticket; one active platform Admin records a bounded,
