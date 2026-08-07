@@ -4,14 +4,14 @@ Status: **Derived, actively maintained plan**
 
 As of: **2026-08-07**
 
-Evidence baseline: `ce3baa3` ([PR #147](https://github.com/brollysolutions/client1/pull/147))
+Evidence baseline: `9907941` ([PR #149](https://github.com/brollysolutions/client1/pull/149))
 
 ## Outcome
 
 Complete the approved Loans and Real Estate scope without weakening
 authorization, business-line segregation, PII/KYC handling, payout controls,
 or auditability. The current evidence-based implementation coverage is
-approximately **83%**; see [`feature-status.md`](feature-status.md) for the
+approximately **85.6%**; see [`feature-status.md`](feature-status.md) for the
 calculation and requirement-level gaps.
 
 ## Working rules
@@ -60,7 +60,9 @@ default, not permission to skip the pre-implementation announcement.
 Admin field visibility and contact controls are **Done** in
 [PR #145](https://github.com/brollysolutions/client1/pull/145). Agent-lead expiry was delivered earlier
 from the same branch in [PR #144](https://github.com/brollysolutions/client1/pull/144).
-The next decision-gated priority is vehicle arrangements.
+Vehicle arrangements are **Done** in
+[PR #149](https://github.com/brollysolutions/client1/pull/149). The next
+priority is analytics completion.
 
 | Priority | Feature / requirements | Status | Recommended model / effort | Decision gate and acceptance summary |
 | ---: | --- | --- | --- | --- |
@@ -69,11 +71,82 @@ The next decision-gated priority is vehicle arrangements.
 | 3 | Support-assisted mobile-number change (FR-3.4, FR-14.3) | **Done** — [PR #146](https://github.com/brollysolutions/client1/pull/146) | `gpt-5.6-sol` / Extra High | Delivered replacement-number OTP, structured identity-proof attestation, distinct active platform-Admin maker/checker approval, enumeration-safe intake, collision-safe linked-record updates, immediate race-safe session revocation, PII-minimized audit, and user notification. |
 | 4 | Managed property/media submissions (FR-7.3, FR-13.1 through FR-13.4, OI-002) | **Done** — [PR #147](https://github.com/brollysolutions/client1/pull/147) | `gpt-5.6-sol` / Extra High | Delivered Client/Lead, Agent, and Sub Admin submission; Admin-only approval; canonical private review uploads; approved public images; bounded image/PDF quotas; content verification; ownership/RLS; account-deletion cleanup; and scheduled lifecycle cleanup. |
 | 5 | Registration/profile requirement alignment (FR-3.3, FR-17.2) | **Done** — [PR #148](https://github.com/brollysolutions/client1/pull/148) | `gpt-5.6-sol` / Extra High | Delivered mobile-first account creation, a skippable post-account profile step, optional editable/clearable identity details, verified-email-only recovery, owner/Admin RLS, deletion scrub, generated contracts, and accessible forms. |
-| 6 | Vehicle arrangements (FR-7.1, OI-003) | Decision needed | `gpt-5.6-sol` / High | Decide separate entity versus Employee task type; attach to one property deal; define statuses/assignment/audit; preserve real-estate-only access. |
+| 6 | Vehicle arrangements (FR-7.1, OI-003) | **Done** — [PR #149](https://github.com/brollysolutions/client1/pull/149) | `gpt-5.6-sol` / High | Delivered the dedicated 1:1 site-visit arrangement, direct Admin-to-Employee assignment, safe Client read visibility, row-locked state machine, atomic parent cancellation, PII-safe audit/notifications, and real-estate-only RLS. |
 | 7 | Analytics completion (FR-16.1 through FR-16.3) | Planned | `gpt-5.6-terra` / High | Add Excel or amend it out; add Agent group/team filters and summaries; preserve bounded async queries, CSV formula safety, pagination, and line isolation. |
 | 8 | Notification/email redirect completeness (FR-11.2) | Planned | `gpt-5.6-terra` / High | Inventory every producer; add valid role-aware destinations and approved email events; prevent open redirects and PII in messages; add link tests. |
 | 9 | Authenticated banner personalization (FR-12.1 through FR-12.4, FR-18.1) | Decision needed | `gpt-5.6-sol` / Extra High | Define audience grammar, consented signals, location precision/retention, safe server evaluation, fallbacks, and negative targeting tests before serving personalized content. |
 | 10 | Map/GMB integration seam (FR-18.2) | Deferred pending scope | `gpt-5.6-terra` / High | Confirm it remains in v1; define provider-neutral coordinates/address boundary and privacy constraints before adding a dependency. |
+
+### Approved feature brief — Vehicle arrangements
+
+- **Success:** a Client booking a real-estate site visit can optionally request
+  pickup, a platform Admin can arrange transport and assign one active
+  real-estate Employee, that Employee can complete or cancel their own assigned
+  arrangement, and the owning Client can follow the company-managed status and
+  safe driver/vehicle details from Site Visits.
+- **Architecture:** create a dedicated `vehicle_arrangements` entity with a
+  unique FK to `site_visits`; do not add logistics columns to `site_visits` and
+  do not add a fourth `task_type`. A property deal may already point at the same
+  site visit, so logistics remain attached to that workflow without a second
+  nullable deal FK or duplicate ownership source.
+- **Lifecycle:** the Client request creates `requested`; Admin-supplied vehicle
+  and driver details permit `arranged`; assigning an active real-estate
+  Employee permits `assigned`; `completed` and `cancelled` are terminal.
+  Cancelling the parent visit cancels a non-terminal arrangement in the same
+  transaction. Every transition is row-locked and validated server-side.
+- **Write split:** Clients set pickup location/time only during site-visit
+  creation and thereafter read the arrangement. Platform Admin lists all,
+  enters bounded logistics fields, assigns/reassigns an eligible Employee, and
+  progresses or cancels. Employees list only their own assigned arrangements
+  and may complete or cancel them. Telecaller, Sub Admin, and Agent access is
+  outside this slice.
+- **Security and privacy:** stamp `real_estate` server-side; enforce owner,
+  platform-Admin, and own-assignment access in dependencies, service queries,
+  grants, and PostgreSQL RLS; reject cross-line or inactive assignees; never put
+  pickup location, driver contact, or other PII in audit details,
+  notifications, logs, analytics, or URLs; reveal driver contact only to the
+  owning Client and assigned Employee/Admin after assignment.
+- **Failure behavior:** create the visit and optional arrangement atomically;
+  enforce one arrangement per visit in the database; return non-disclosing 404s
+  for inaccessible rows; reject invalid or concurrent transitions without
+  partial writes; and keep notifications best-effort after the durable action.
+- **Non-goals:** vehicle fleet inventory, third-party transport integrations,
+  payments/fares, live tracking, maps/geocoding, multiple pickups per visit,
+  recurring trips, Telecaller/Sub Admin/Agent fulfilment, or redesigning the
+  existing site-visit/property-deal/task workflows.
+- **Verification:** migration upgrade/downgrade and one head; API schema and
+  transition tests; Client ownership and cross-user denial; Employee
+  own-assignment and cross-line denial; platform-Admin assignment validation;
+  direct RLS denial; cancellation/concurrency/audit/notification checks;
+  regenerated contracts; accessible responsive Client/Admin/Employee web
+  flows; focused web tests; full applicable API/web/repository gates; security
+  review; and PR review.
+
+### Delivered feature evidence — Vehicle arrangements
+
+- **Delivery:** [PR #149](https://github.com/brollysolutions/client1/pull/149).
+- **Behavior:** Clients optionally request pickup while booking a site visit;
+  platform Admin enters bounded vehicle/driver details and assigns or reassigns
+  an active real-estate Employee; the assignee completes or cancels their own
+  pickup; and the owning Client follows a read-only status with driver details
+  withheld until assignment. Cancelling a visit atomically closes active
+  logistics without granting the Client arrangement UPDATE rights.
+- **Boundaries:** the dedicated 1:1 entity remains real-estate-only and outside
+  Employee tasks. PostgreSQL RLS separates owner, own-assignment, and platform-
+  Admin access; the service row-locks transitions and validates assignees;
+  notifications and audit details exclude pickup/contact PII.
+- **Verification:** Ruff lint/format, web lint/typecheck, the 274-test web suite,
+  four schema tests, feature tracking, diff checks, and the one-head Alembic
+  check pass. Four PostgreSQL/Redis-backed API/RLS tests are explicitly skipped
+  locally because those services are unavailable. The production web build
+  compiled, type-checked, and generated all 92 pages before failing when the
+  configured `api` hostname could not resolve; migration execution, database-
+  backed tests, and the service-connected build remain PR-CI gates.
+- **Security review:** async relationship reload, cross-line Employee
+  navigation, transition invariants, security-definer cancellation, assignment
+  ownership, and pre-assignment driver-data exposure were reviewed. The first
+  two were hardened before delivery; no actionable high- or medium-severity
+  issue remains in the reviewed diff.
 
 ### Approved feature brief — Registration/profile requirement alignment
 
@@ -431,11 +504,10 @@ The next decision-gated priority is vehicle arrangements.
 
 ## Delivery sequence
 
-The next priority is the decision gate for **managed property/media
-submissions** (FR-7.3 and FR-13.1 through FR-13.4). Settle submitter scope,
-asset types, quotas, visibility, storage lifecycle, and safe media processing
-before implementation; do not add a provider or upload path until those
-security and product choices are approved.
+The next priority is **analytics completion** (FR-16.1 through FR-16.3): decide
+whether Excel export remains required, then add the missing Agent group/team
+filters and summaries while preserving bounded async queries, CSV formula
+safety, pagination, and business-line isolation.
 
 For each item:
 
@@ -469,6 +541,7 @@ The backlog builds on these delivered foundations:
 
 | Date | Change | Evidence |
 | --- | --- | --- |
+| 2026-08-07 | Completed FR-7.1 vehicle arrangements, resolved OI-003, and promoted analytics completion as the next priority. | [PR #149](https://github.com/brollysolutions/client1/pull/149); migration/RLS/API/web/contract changes; focused and regression tests; security review. |
 | 2026-08-06 | Completed FR-2.9, FR-15.1, and FR-15.4 field visibility/contact privacy; promoted support-assisted mobile-number change as the next priority. | [PR #145](https://github.com/brollysolutions/client1/pull/145); migration/RLS/API/web/contract changes; focused and regression tests; security and PR review. |
 | 2026-08-06 | Completed FR-4.6 Agent-lead expiry and promoted Admin field visibility/contact controls as the next priority. | [PR #144](https://github.com/brollysolutions/client1/pull/144); migration/job/API/RLS/web/contract changes; 42 focused API tests; 254 web tests; seeded browser verification; security review. |
 | 2026-08-06 | Created living plan, model/effort policy, prioritized gaps, and co-change enforcement. | Static code/test/history assessment at `ecf6e2a`; `feature-status.md`; tracking checker tests. |

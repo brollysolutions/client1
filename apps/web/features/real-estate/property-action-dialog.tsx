@@ -4,6 +4,7 @@ import * as React from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -38,6 +39,8 @@ type Errors = {
   phone?: string;
   preferredDate?: string;
   preferredSlot?: string;
+  pickupLocation?: string;
+  pickupAt?: string;
 };
 
 // Floating confirmation dialog behind the "Enquire" and "Book a site visit"
@@ -63,6 +66,9 @@ export function PropertyActionDialog({
   const [message, setMessage] = React.useState("");
   const [preferredDate, setPreferredDate] = React.useState("");
   const [preferredSlot, setPreferredSlot] = React.useState<SiteVisitTimeSlot | "">("");
+  const [pickupRequested, setPickupRequested] = React.useState(false);
+  const [pickupLocation, setPickupLocation] = React.useState("");
+  const [pickupAt, setPickupAt] = React.useState("");
   const [submitting, setSubmitting] = React.useState(false);
   const [errors, setErrors] = React.useState<Errors>({});
 
@@ -70,6 +76,9 @@ export function PropertyActionDialog({
     setMessage("");
     setPreferredDate("");
     setPreferredSlot("");
+    setPickupRequested(false);
+    setPickupLocation("");
+    setPickupAt("");
     setErrors({});
     setSubmitting(false);
   }
@@ -94,6 +103,13 @@ export function PropertyActionDialog({
       if (!preferredDate) next.preferredDate = "Please pick a preferred date.";
       else if (preferredDate < todayIso()) next.preferredDate = "Date can't be in the past.";
       if (!preferredSlot) next.preferredSlot = "Please pick a time slot.";
+      if (pickupRequested) {
+        if (!pickupLocation.trim()) next.pickupLocation = "Please enter the pickup location.";
+        if (!pickupAt) next.pickupAt = "Please choose the pickup time.";
+        else if (new Date(pickupAt).getTime() <= Date.now()) {
+          next.pickupAt = "Pickup time must be in the future.";
+        }
+      }
     }
     setErrors(next);
     return Object.keys(next).length === 0;
@@ -117,6 +133,13 @@ export function PropertyActionDialog({
         preferredDate,
         preferredTimeSlot: preferredSlot as SiteVisitTimeSlot,
         ...(message.trim() ? { message: message.trim() } : {}),
+        ...(pickupRequested
+          ? {
+              pickupRequested: true,
+              pickupLocation: pickupLocation.trim(),
+              pickupAt: new Date(pickupAt).toISOString(),
+            }
+          : {}),
       });
       if (result.ok) {
         setOpen(false);
@@ -244,6 +267,55 @@ export function PropertyActionDialog({
                 {errors.preferredSlot && (
                   <p className="text-sm text-destructive">{errors.preferredSlot}</p>
                 )}
+              </div>
+
+              <div className="rounded-xl border border-border p-4">
+                <div className="flex items-start gap-3">
+                  <Checkbox
+                    id="pad-pickup"
+                    checked={pickupRequested}
+                    onCheckedChange={(checked) => setPickupRequested(checked === true)}
+                    disabled={submitting}
+                  />
+                  <div>
+                    <Label htmlFor="pad-pickup">I need pickup for this visit</Label>
+                    <p className="text-xs text-text-secondary">
+                      Our team will arrange a vehicle and share the driver details.
+                    </p>
+                  </div>
+                </div>
+                {pickupRequested ? (
+                  <div className="mt-4 grid gap-4">
+                    <div className="grid gap-2">
+                      <Label htmlFor="pad-pickup-location">Pickup location</Label>
+                      <Textarea
+                        id="pad-pickup-location"
+                        value={pickupLocation}
+                        onChange={(event) => setPickupLocation(event.target.value)}
+                        aria-invalid={!!errors.pickupLocation}
+                        disabled={submitting}
+                        rows={2}
+                      />
+                      {errors.pickupLocation ? (
+                        <p className="text-sm text-destructive">{errors.pickupLocation}</p>
+                      ) : null}
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="pad-pickup-at">Preferred pickup time</Label>
+                      <Input
+                        id="pad-pickup-at"
+                        type="datetime-local"
+                        value={pickupAt}
+                        onChange={(event) => setPickupAt(event.target.value)}
+                        aria-invalid={!!errors.pickupAt}
+                        disabled={submitting}
+                      />
+                      {errors.pickupAt ? (
+                        <p className="text-sm text-destructive">{errors.pickupAt}</p>
+                      ) : null}
+                    </div>
+                  </div>
+                ) : null}
               </div>
             </>
           ) : null}

@@ -30,11 +30,32 @@ const SLOT_LABEL: Record<SiteVisit["preferredTimeSlot"], string> = {
   evening: "Evening",
 };
 
+const VEHICLE_STATUS_LABEL = {
+  requested: "Pickup requested",
+  arranged: "Vehicle arranged",
+  assigned: "Driver assigned",
+  completed: "Pickup completed",
+  cancelled: "Pickup cancelled",
+} as const;
+
 function formatDate(iso: string): string {
   const d = new Date(iso);
   return Number.isNaN(d.getTime())
     ? "-"
     : d.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+}
+
+function formatDateTime(iso: string): string {
+  const date = new Date(iso);
+  return Number.isNaN(date.getTime())
+    ? "-"
+    : date.toLocaleString("en-IN", {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+        hour: "numeric",
+        minute: "2-digit",
+      });
 }
 
 type Status = "loading" | "ready" | "error";
@@ -119,6 +140,7 @@ export function SiteVisitsView() {
                 <th className="px-5 py-3 font-medium">Property</th>
                 <th className="px-5 py-3 font-medium">Preferred date</th>
                 <th className="px-5 py-3 font-medium">Status</th>
+                <th className="px-5 py-3 font-medium">Pickup</th>
                 <th className="px-5 py-3 font-medium">
                   <span className="sr-only">Actions</span>
                 </th>
@@ -148,6 +170,36 @@ export function SiteVisitsView() {
                       >
                         {STATUS_LABEL[v.status]}
                       </span>
+                    </td>
+                    <td className="px-5 py-4 text-text-secondary">
+                      {v.vehicleArrangement ? (
+                        <div className="max-w-xs space-y-1">
+                          <p className="font-medium text-text-primary">
+                            {VEHICLE_STATUS_LABEL[v.vehicleArrangement.status]}
+                          </p>
+                          <p className="text-xs">
+                            {formatDateTime(v.vehicleArrangement.pickupAt)}
+                          </p>
+                          {v.vehicleArrangement.driverName ? (
+                            <p className="text-xs">
+                              {v.vehicleArrangement.driverName}
+                              {v.vehicleArrangement.driverMobile
+                                ? ` · ${v.vehicleArrangement.driverMobile}`
+                                : ""}
+                            </p>
+                          ) : null}
+                          {v.vehicleArrangement.vehicleMakeModel ? (
+                            <p className="text-xs">
+                              {v.vehicleArrangement.vehicleMakeModel}
+                              {v.vehicleArrangement.vehicleRegistration
+                                ? ` · ${v.vehicleArrangement.vehicleRegistration}`
+                                : ""}
+                            </p>
+                          ) : null}
+                        </div>
+                      ) : (
+                        "Not requested"
+                      )}
                     </td>
                     <td className="px-5 py-4 text-right">
                       <Button

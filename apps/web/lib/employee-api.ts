@@ -17,6 +17,9 @@ export type TaskDocumentPresignResponse = Schemas["TaskDocumentPresignResponse"]
 export type TaskDocumentCreate = Schemas["TaskDocumentCreate"];
 export type ContactShareLink = Schemas["ContactShareLinkRead"];
 export type DocType = TaskDocumentCreate["doc_type"];
+export type VehicleArrangement = Schemas["VehicleArrangementStaffRead"];
+export type VehicleArrangementEmployeeUpdate = Schemas["VehicleArrangementEmployeeUpdate"];
+export type VehicleArrangementStatus = Schemas["VehicleArrangementStatus"];
 
 export async function listEmployeeTasks(
   statusFilter?: string,
@@ -45,6 +48,23 @@ export async function updateEmployeeTask(
 
 export async function getEmployeeHome(): Promise<ApiResponse<EmployeeHome>> {
   return apiRequest<EmployeeHome>("/api/v1/employee/home");
+}
+
+export async function listEmployeeVehicleArrangements(
+  statusFilter?: VehicleArrangementStatus,
+): Promise<ApiResponse<VehicleArrangement[]>> {
+  const query = statusFilter ? `?status_filter=${encodeURIComponent(statusFilter)}` : "";
+  return apiRequest<VehicleArrangement[]>(`/api/v1/employee/vehicle-arrangements${query}`);
+}
+
+export async function updateEmployeeVehicleArrangement(
+  arrangementId: string,
+  payload: VehicleArrangementEmployeeUpdate,
+): Promise<ApiResponse<VehicleArrangement>> {
+  return apiRequest<VehicleArrangement>(
+    `/api/v1/employee/vehicle-arrangements/${arrangementId}`,
+    { method: "PATCH", body: payload },
+  );
 }
 
 export async function createTaskContactShareLink(

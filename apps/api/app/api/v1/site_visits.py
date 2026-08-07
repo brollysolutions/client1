@@ -13,18 +13,44 @@ from __future__ import annotations
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.deps import CurrentUser, get_active_user
 from app.db.session import get_db
 from app.models.notification import NotificationType
 from app.models.site_visit import SiteVisit
+from app.models.vehicle_arrangement import VehicleArrangementStatus
 from app.schemas.site_visits import SiteVisitCreate, SiteVisitListResponse, SiteVisitRead
 from app.services.notifications import emit_notification
-from app.services.site_visits import cancel_site_visit
+from app.services.site_visits import (
+    cancel_site_visit,
+)
+from app.services.site_visits import (
+    create_site_visit as create_site_visit_record,
+)
+from app.services.site_visits import (
+    list_site_visits as list_site_visit_records,
+)
 
 router = APIRouter()
+
+
+def _to_read(visit: SiteVisit) -> SiteVisitRead:
+    result = SiteVisitRead.model_validate(visit, from_attributes=True)
+    arrangement = result.vehicle_arrangement
+    if arrangement is not None and arrangement.status not in {
+        VehicleArrangementStatus.ASSIGNED,
+        VehicleArrangementStatus.COMPLETED,
+    }:
+        result.vehicle_arrangement = arrangement.model_copy(
+            update={
+                "vehicle_make_model": None,
+                "vehicle_registration": None,
+                "driver_name": None,
+                "driver_mobile": None,
+            }
+        )
+    return result
 
 
 def _require_client(current_user: CurrentUser) -> None:
@@ -44,11 +70,8 @@ async def list_site_visits(
     current_user: CurrentUser = Depends(get_active_user),
     db: AsyncSession = Depends(get_db),
 ) -> SiteVisitListResponse:
-    result = await db.execute(select(SiteVisit).order_by(SiteVisit.created_at.desc()))
-    visits = result.scalars().all()
-    return SiteVisitListResponse(
-        visits=[SiteVisitRead.model_validate(v, from_attributes=True) for v in visits]
-    )
+    visits = await list_site_visit_records(db)
+    return SiteVisitListResponse(visits=[_to_read(visit) for visit in visits])
 
 
 @router.post("", response_model=SiteVisitRead, status_code=status.HTTP_201_CREATED)
@@ -58,22 +81,7 @@ async def create_site_visit(
     db: AsyncSession = Depends(get_db),
 ) -> SiteVisitRead:
     _require_client(current_user)
-    visit = SiteVisit(
-        user_uuid=current_user.id,
-        business_line="real_estate",
-        property_ref=req.property_ref,
-        title=req.title,
-        locality=req.locality,
-        city=req.city,
-        contact_name=req.contact_name,
-        contact_mobile=req.contact_mobile,
-        preferred_date=req.preferred_date,
-        preferred_time_slot=req.preferred_time_slot,
-        message=req.message,
-    )
-    db.add(visit)
-    await db.commit()
-    await db.refresh(visit)
+    visit = await create_site_visit_record(db, req, current_user)
     await emit_notification(
         user_uuid=current_user.id,
         notification_type=NotificationType.SITE_VISIT_REQUESTED,
@@ -84,7 +92,7 @@ async def create_site_visit(
         ),
         href="/dashboard/site-visits",
     )
-    return SiteVisitRead.model_validate(visit, from_attributes=True)
+    return _to_read(visit)
 
 
 @router.patch("/{visit_id}/cancel", response_model=SiteVisitRead)
@@ -95,4 +103,4 @@ async def cancel_site_visit_endpoint(
 ) -> SiteVisitRead:
     _require_client(current_user)
     visit = await cancel_site_visit(db, visit_id, current_user)
-    return SiteVisitRead.model_validate(visit, from_attributes=True)
+    return _to_read(visit)

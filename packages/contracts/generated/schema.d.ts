@@ -930,6 +930,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/vehicle-arrangements": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Vehicle Arrangements */
+        get: operations["list_vehicle_arrangements_api_v1_admin_vehicle_arrangements_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/vehicle-arrangements/{arrangement_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Patch Vehicle Arrangement */
+        patch: operations["patch_vehicle_arrangement_api_v1_admin_vehicle_arrangements__arrangement_id__patch"];
+        trace?: never;
+    };
     "/api/v1/agent-applications": {
         parameters: {
             query?: never;
@@ -1678,6 +1712,40 @@ export interface paths {
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/api/v1/employee/vehicle-arrangements": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Vehicle Arrangements */
+        get: operations["list_vehicle_arrangements_api_v1_employee_vehicle_arrangements_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/employee/vehicle-arrangements/{arrangement_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Patch Vehicle Arrangement */
+        patch: operations["patch_vehicle_arrangement_api_v1_employee_vehicle_arrangements__arrangement_id__patch"];
         trace?: never;
     };
     "/api/v1/enquiries": {
@@ -3869,7 +3937,7 @@ export interface components {
          *     `services/fee_cashbacks.py` (FR-6.6 processing-fee cashback).
          * @enum {string}
          */
-        AuditAction: "agent_approved" | "agent_rejected" | "staff_created" | "account_removed" | "payout_approved" | "payout_rejected" | "property_submission_approved" | "property_submission_rejected" | "support_ticket_advanced" | "retention_purged" | "loan_type_created" | "loan_type_updated" | "bank_created" | "bank_updated" | "bank_availability_updated" | "commission_entered" | "commission_cancelled" | "fee_cashback_entered" | "fee_cashback_cancelled" | "document_verified" | "document_unverified" | "payout_link_reconciled" | "notification_broadcast" | "agent_lead_expired" | "field_visibility_updated" | "mobile_change_verified" | "mobile_changed" | "mobile_change_rejected";
+        AuditAction: "agent_approved" | "agent_rejected" | "staff_created" | "account_removed" | "payout_approved" | "payout_rejected" | "property_submission_approved" | "property_submission_rejected" | "support_ticket_advanced" | "retention_purged" | "loan_type_created" | "loan_type_updated" | "bank_created" | "bank_updated" | "bank_availability_updated" | "commission_entered" | "commission_cancelled" | "fee_cashback_entered" | "fee_cashback_cancelled" | "document_verified" | "document_unverified" | "payout_link_reconciled" | "notification_broadcast" | "agent_lead_expired" | "field_visibility_updated" | "mobile_change_verified" | "mobile_changed" | "mobile_change_rejected" | "vehicle_arrangement_updated";
         /** AuditLogListResponse */
         AuditLogListResponse: {
             /** Entries */
@@ -5581,7 +5649,7 @@ export interface components {
          * NotificationType
          * @enum {string}
          */
-        NotificationType: "site_visit_requested" | "site_visit_cancelled" | "support_ticket_received" | "lead_assigned" | "lead_released" | "agent_lead_expired" | "task_assigned" | "loan_status_updated" | "property_deal_status_updated" | "referral_converted" | "support_ticket_resolved" | "document_review_updated" | "admin_payout_reviewed" | "admin_account_action" | "admin_retention_purged" | "admin_broadcast" | "mobile_change_requested" | "mobile_changed" | "mobile_change_rejected";
+        NotificationType: "site_visit_requested" | "site_visit_cancelled" | "support_ticket_received" | "lead_assigned" | "lead_released" | "agent_lead_expired" | "task_assigned" | "loan_status_updated" | "property_deal_status_updated" | "referral_converted" | "support_ticket_resolved" | "document_review_updated" | "admin_payout_reviewed" | "admin_account_action" | "admin_retention_purged" | "admin_broadcast" | "mobile_change_requested" | "mobile_changed" | "mobile_change_rejected" | "vehicle_arrangement_updated";
         /** OfferCreate */
         OfferCreate: {
             /** Business Line */
@@ -6526,6 +6594,15 @@ export interface components {
             locality: string;
             /** Message */
             message?: string | null;
+            /** Pickup At */
+            pickup_at?: string | null;
+            /** Pickup Location */
+            pickup_location?: string | null;
+            /**
+             * Pickup Requested
+             * @default false
+             */
+            pickup_requested: boolean;
             /**
              * Preferred Date
              * Format: date
@@ -6582,6 +6659,7 @@ export interface components {
              * Format: date-time
              */
             updated_at: string;
+            vehicle_arrangement?: components["schemas"]["VehicleArrangementClientRead"] | null;
         };
         /**
          * SiteVisitStatus
@@ -7262,6 +7340,137 @@ export interface components {
             /** Public Key */
             public_key: string;
         };
+        /** VehicleArrangementAdminListResponse */
+        VehicleArrangementAdminListResponse: {
+            /** Arrangements */
+            arrangements: components["schemas"]["VehicleArrangementStaffRead"][];
+        };
+        /** VehicleArrangementAdminUpdate */
+        VehicleArrangementAdminUpdate: {
+            /** Cancellation Reason */
+            cancellation_reason?: string | null;
+            /** Driver Mobile */
+            driver_mobile?: string | null;
+            /** Driver Name */
+            driver_name?: string | null;
+            /** Employee Profile Uuid */
+            employee_profile_uuid?: string | null;
+            status?: components["schemas"]["VehicleArrangementStatus"] | null;
+            /** Vehicle Make Model */
+            vehicle_make_model?: string | null;
+            /** Vehicle Registration */
+            vehicle_registration?: string | null;
+        };
+        /** VehicleArrangementClientRead */
+        VehicleArrangementClientRead: {
+            /** Cancellation Reason */
+            cancellation_reason: string | null;
+            /** Cancelled At */
+            cancelled_at: string | null;
+            /** Completed At */
+            completed_at: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Driver Mobile */
+            driver_mobile: string | null;
+            /** Driver Name */
+            driver_name: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Pickup At
+             * Format: date-time
+             */
+            pickup_at: string;
+            /** Pickup Location */
+            pickup_location: string;
+            status: components["schemas"]["VehicleArrangementStatus"];
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Vehicle Make Model */
+            vehicle_make_model: string | null;
+            /** Vehicle Registration */
+            vehicle_registration: string | null;
+        };
+        /** VehicleArrangementEmployeeUpdate */
+        VehicleArrangementEmployeeUpdate: {
+            /** Cancellation Reason */
+            cancellation_reason?: string | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "completed" | "cancelled";
+        };
+        /** VehicleArrangementStaffRead */
+        VehicleArrangementStaffRead: {
+            /** Assigned Employee Name */
+            assigned_employee_name: string | null;
+            /** Assigned Employee Profile Uuid */
+            assigned_employee_profile_uuid: string | null;
+            /** Cancellation Reason */
+            cancellation_reason: string | null;
+            /** Cancelled At */
+            cancelled_at: string | null;
+            /** Completed At */
+            completed_at: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Driver Mobile */
+            driver_mobile: string | null;
+            /** Driver Name */
+            driver_name: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Pickup At
+             * Format: date-time
+             */
+            pickup_at: string;
+            /** Pickup Location */
+            pickup_location: string;
+            /** Property City */
+            property_city: string;
+            /** Property Locality */
+            property_locality: string;
+            /** Property Title */
+            property_title: string;
+            /**
+             * Site Visit Uuid
+             * Format: uuid
+             */
+            site_visit_uuid: string;
+            status: components["schemas"]["VehicleArrangementStatus"];
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Vehicle Make Model */
+            vehicle_make_model: string | null;
+            /** Vehicle Registration */
+            vehicle_registration: string | null;
+        };
+        /**
+         * VehicleArrangementStatus
+         * @enum {string}
+         */
+        VehicleArrangementStatus: "requested" | "arranged" | "assigned" | "completed" | "cancelled";
         /** VerifiableDocumentListResponse */
         VerifiableDocumentListResponse: {
             /** Documents */
@@ -9155,6 +9364,72 @@ export interface operations {
             };
         };
     };
+    list_vehicle_arrangements_api_v1_admin_vehicle_arrangements_get: {
+        parameters: {
+            query?: {
+                status_filter?: components["schemas"]["VehicleArrangementStatus"] | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VehicleArrangementAdminListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    patch_vehicle_arrangement_api_v1_admin_vehicle_arrangements__arrangement_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                arrangement_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VehicleArrangementAdminUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VehicleArrangementStaffRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     submit_application_api_v1_agent_applications_post: {
         parameters: {
             query?: never;
@@ -10808,6 +11083,72 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_vehicle_arrangements_api_v1_employee_vehicle_arrangements_get: {
+        parameters: {
+            query?: {
+                status_filter?: components["schemas"]["VehicleArrangementStatus"] | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VehicleArrangementStaffRead"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    patch_vehicle_arrangement_api_v1_employee_vehicle_arrangements__arrangement_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                arrangement_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VehicleArrangementEmployeeUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VehicleArrangementStaffRead"];
+                };
             };
             /** @description Validation Error */
             422: {

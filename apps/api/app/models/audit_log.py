@@ -82,6 +82,7 @@ class AuditAction(enum.StrEnum):
     MOBILE_CHANGE_VERIFIED = "mobile_change_verified"
     MOBILE_CHANGED = "mobile_changed"
     MOBILE_CHANGE_REJECTED = "mobile_change_rejected"
+    VEHICLE_ARRANGEMENT_UPDATED = "vehicle_arrangement_updated"
 
 
 _ev = lambda x: [e.value for e in x]  # noqa: E731

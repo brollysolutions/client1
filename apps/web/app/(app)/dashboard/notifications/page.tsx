@@ -6,6 +6,7 @@ import {
   Bell,
   CalendarCheck,
   CalendarX,
+  CarFront,
   CheckCheck,
   ClipboardList,
   Eraser,
@@ -55,6 +56,7 @@ const TYPE_ICON: Record<NotificationType, LucideIcon> = {
   mobile_change_requested: Smartphone,
   mobile_changed: Smartphone,
   mobile_change_rejected: ShieldAlert,
+  vehicle_arrangement_updated: CarFront,
 };
 
 function formatRelativeTime(iso: string): string {

@@ -18,6 +18,7 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.v1.admin import router as admin_router
+from app.api.v1.admin_vehicle_arrangements import router as admin_vehicle_arrangements_router
 from app.api.v1.agent import router as agent_router
 from app.api.v1.agent_applications import router as agent_applications_router
 from app.api.v1.auth import router as auth_router
@@ -27,6 +28,7 @@ from app.api.v1.commissions import router as commissions_router
 from app.api.v1.content import router as content_router
 from app.api.v1.document_verification import router as document_verification_router
 from app.api.v1.employee import router as employee_router
+from app.api.v1.employee_vehicle_arrangements import router as employee_vehicle_arrangements_router
 from app.api.v1.enquiries import router as enquiries_router
 from app.api.v1.fee_cashbacks import router as fee_cashbacks_router
 from app.api.v1.leads import router as leads_router
@@ -100,6 +102,11 @@ app.include_router(
     tags=["admin"],
 )
 app.include_router(admin_router, prefix="/api/v1/admin", tags=["admin"])
+app.include_router(
+    admin_vehicle_arrangements_router,
+    prefix="/api/v1/admin/vehicle-arrangements",
+    tags=["admin"],
+)
 app.include_router(leads_router, prefix="/api/v1/leads", tags=["leads"])
 app.include_router(
     agent_applications_router, prefix="/api/v1/agent-applications", tags=["agent-applications"]
@@ -128,6 +135,11 @@ app.include_router(payments_router, prefix="/api/v1/payouts", tags=["payouts"])
 app.include_router(telecaller_router, prefix="/api/v1/telecaller", tags=["telecaller"])
 app.include_router(agent_router, prefix="/api/v1/agent", tags=["agent"])
 app.include_router(employee_router, prefix="/api/v1/employee", tags=["employee"])
+app.include_router(
+    employee_vehicle_arrangements_router,
+    prefix="/api/v1/employee/vehicle-arrangements",
+    tags=["employee"],
+)
 app.include_router(banners_router, prefix="/api/v1/banners", tags=["banners"])
 app.include_router(offers_router, prefix="/api/v1/offers", tags=["offers"])
 app.include_router(content_router, prefix="/api/v1/content-blocks", tags=["content-blocks"])

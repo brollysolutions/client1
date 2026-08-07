@@ -26,13 +26,17 @@ from __future__ import annotations
 import enum
 import uuid
 from datetime import date, datetime
+from typing import TYPE_CHECKING
 
 from sqlalchemy import Date, DateTime, ForeignKey, String, Text
 from sqlalchemy.dialects.postgresql import ENUM, UUID
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
 from app.models.user import business_line_enum
+
+if TYPE_CHECKING:
+    from app.models.vehicle_arrangement import VehicleArrangement
 
 
 class SiteVisitTimeSlot(enum.StrEnum):
@@ -88,4 +92,10 @@ class SiteVisit(Base):
     )
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow
+    )
+    vehicle_arrangement: Mapped[VehicleArrangement | None] = relationship(
+        "VehicleArrangement",
+        back_populates="site_visit",
+        uselist=False,
+        cascade="all, delete-orphan",
     )

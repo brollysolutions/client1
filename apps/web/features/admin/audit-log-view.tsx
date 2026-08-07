@@ -5,6 +5,7 @@ import {
   Ban,
   BadgeCheck,
   Banknote,
+  CarFront,
   CircleSlash,
   Eraser,
   FileCheck2,
@@ -170,6 +171,11 @@ const ACTION_META: Record<AuditAction, { label: string; icon: LucideIcon; tone: 
     label: "Mobile change rejected",
     icon: Ban,
     tone: "bg-error/10 text-error",
+  },
+  vehicle_arrangement_updated: {
+    label: "Vehicle arrangement updated",
+    icon: CarFront,
+    tone: "bg-realestate-soft text-realestate-accent",
   },
 };
 
