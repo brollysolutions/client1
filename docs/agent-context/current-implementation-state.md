@@ -192,6 +192,27 @@ folding fulfilment into `tasks` or attaching logistics directly to a property
 deal. A property deal may already reference the same site visit, preserving
 workflow history without a duplicate nullable ownership key.
 
+### CS-007 — analytics teams are the existing business lines
+
+For FR-16 reporting, a selected list of Agent profile IDs is the ad hoc Agent
+group filter. The Loans and Real Estate business lines are the authoritative
+team dimension because Agents are already permanently line-scoped; there is no
+separate mutable team-membership entity. Team performance summaries aggregate
+the selected Agents by their business line. This resolves the ambiguous
+“team” terminology without adding organization management, historical
+membership, or a new cross-line access path.
+
+Evidence:
+
+- [`apps/api/app/models/profile.py`](../../apps/api/app/models/profile.py)
+- [`apps/api/app/services/reporting.py`](../../apps/api/app/services/reporting.py)
+- [`apps/web/features/admin/analytics/report-filter-bar.tsx`](../../apps/web/features/admin/analytics/report-filter-bar.tsx)
+- [`apps/web/features/admin/analytics/analytics-view.tsx`](../../apps/web/features/admin/analytics/analytics-view.tsx)
+
+Compatibility requirement: report access remains limited to active
+platform-Admin sessions, and all selected-Agent and team aggregates keep the
+existing business-line predicates and PostgreSQL RLS context.
+
 ## 3. Previously open items settled by current behavior
 
 The following entries may still be labelled “open,” “assumed,” or “pending” in

@@ -721,6 +721,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/reports/agents/export.xlsx": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Export Agents Report Xlsx */
+        get: operations["export_agents_report_xlsx_api_v1_admin_reports_agents_export_xlsx_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/reports/deals": {
         parameters: {
             query?: never;
@@ -747,6 +764,23 @@ export interface paths {
         };
         /** Export Deals Report */
         get: operations["export_deals_report_api_v1_admin_reports_deals_export_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/reports/deals/export.xlsx": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Export Deals Report Xlsx */
+        get: operations["export_deals_report_xlsx_api_v1_admin_reports_deals_export_xlsx_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -789,6 +823,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/reports/leads/export.xlsx": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Export Leads Report Xlsx */
+        get: operations["export_leads_report_xlsx_api_v1_admin_reports_leads_export_xlsx_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/reports/loans": {
         parameters: {
             query?: never;
@@ -815,6 +866,23 @@ export interface paths {
         };
         /** Export Loans Report */
         get: operations["export_loans_report_api_v1_admin_reports_loans_export_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/reports/loans/export.xlsx": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Export Loans Report Xlsx */
+        get: operations["export_loans_report_xlsx_api_v1_admin_reports_loans_export_xlsx_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3874,6 +3942,8 @@ export interface components {
             /** Rows */
             rows: components["schemas"]["AgentsReportRow"][];
             summary: components["schemas"]["AgentsSummary"];
+            /** Team Summaries */
+            team_summaries: components["schemas"]["TeamPerformanceSummary"][];
             /** Total */
             total: number;
         };
@@ -7082,6 +7152,32 @@ export interface components {
              */
             task_type: "document_collection" | "property_visit" | "background_check";
         };
+        /**
+         * TeamPerformanceSummary
+         * @description Per-business-line performance summary.
+         *
+         *     The established data model has no mutable team-membership entity. Agents
+         *     are permanently line-scoped, so the Loans and Real Estate business lines
+         *     are the authoritative team dimension for FR-16.3.
+         */
+        TeamPerformanceSummary: {
+            /** Agent Count */
+            agent_count: number;
+            /** Business Line */
+            business_line: string;
+            /** Deals Converted */
+            deals_converted: number;
+            /** Deals Total */
+            deals_total: number;
+            /** Leads Converted */
+            leads_converted: number;
+            /** Leads Total */
+            leads_total: number;
+            /** Loans Converted */
+            loans_converted: number;
+            /** Loans Total */
+            loans_total: number;
+        };
         /** TelecallerFollowUpItem */
         TelecallerFollowUpItem: {
             /**
@@ -8942,6 +9038,40 @@ export interface operations {
             };
         };
     };
+    export_agents_report_xlsx_api_v1_admin_reports_agents_export_xlsx_get: {
+        parameters: {
+            query: {
+                date_from: string;
+                date_to: string;
+                business_line?: ("loans" | "real_estate") | null;
+                agent_profile_uuid?: string[] | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_deals_report_api_v1_admin_reports_deals_get: {
         parameters: {
             query: {
@@ -8982,6 +9112,41 @@ export interface operations {
         };
     };
     export_deals_report_api_v1_admin_reports_deals_export_get: {
+        parameters: {
+            query: {
+                date_from: string;
+                date_to: string;
+                bucket?: "week" | "month";
+                business_line?: ("loans" | "real_estate") | null;
+                agent_profile_uuid?: string[] | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    export_deals_report_xlsx_api_v1_admin_reports_deals_export_xlsx_get: {
         parameters: {
             query: {
                 date_from: string;
@@ -9090,6 +9255,41 @@ export interface operations {
             };
         };
     };
+    export_leads_report_xlsx_api_v1_admin_reports_leads_export_xlsx_get: {
+        parameters: {
+            query: {
+                date_from: string;
+                date_to: string;
+                bucket?: "week" | "month";
+                business_line?: ("loans" | "real_estate" | "unassigned") | null;
+                agent_profile_uuid?: string[] | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_loans_report_api_v1_admin_reports_loans_get: {
         parameters: {
             query: {
@@ -9130,6 +9330,41 @@ export interface operations {
         };
     };
     export_loans_report_api_v1_admin_reports_loans_export_get: {
+        parameters: {
+            query: {
+                date_from: string;
+                date_to: string;
+                bucket?: "week" | "month";
+                business_line?: ("loans" | "real_estate") | null;
+                agent_profile_uuid?: string[] | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    export_loans_report_xlsx_api_v1_admin_reports_loans_export_xlsx_get: {
         parameters: {
             query: {
                 date_from: string;

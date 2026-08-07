@@ -4,7 +4,7 @@
 
 import type { components } from "@contracts/generated/schema";
 
-import { apiDownload, apiRequest, type ApiResponse } from "@/lib/api/client";
+import { apiDownload, apiRequest, type ApiDownloadResponse, type ApiResponse } from "@/lib/api/client";
 import { buildReportParams } from "@/lib/reports";
 
 type Schemas = components["schemas"];
@@ -21,6 +21,7 @@ export type DealsReportRow = Schemas["DealsReportRow"];
 export type AgentsReportRow = Schemas["AgentsReportRow"];
 export type ReportSummary = Schemas["ReportSummary"];
 export type AgentsSummary = Schemas["AgentsSummary"];
+export type TeamPerformanceSummary = Schemas["TeamPerformanceSummary"];
 
 export type LeadsReportResponse = Schemas["LeadsReportResponse"];
 export type LoansReportResponse = Schemas["LoansReportResponse"];
@@ -82,9 +83,19 @@ export async function getReport(
 export async function downloadReportCsv(
   kind: ReportKind,
   filters: ReportFilters,
-): Promise<{ ok: true } | { ok: false; error: string; status: number }> {
+): Promise<ApiDownloadResponse> {
   const params = buildReportParams(filters);
   const line = filters.businessLine ?? "all";
   const filename = `${kind}-${line}-${filters.dateFrom}_${filters.dateTo}.csv`;
   return apiDownload(`/api/v1/admin/reports/${kind}/export?${params}`, filename);
+}
+
+export async function downloadReportExcel(
+  kind: ReportKind,
+  filters: ReportFilters,
+): Promise<ApiDownloadResponse> {
+  const params = buildReportParams(filters);
+  const line = filters.businessLine ?? "all";
+  const filename = `${kind}-${line}-${filters.dateFrom}_${filters.dateTo}.xlsx`;
+  return apiDownload(`/api/v1/admin/reports/${kind}/export.xlsx?${params}`, filename);
 }

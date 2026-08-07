@@ -87,7 +87,7 @@ work than several completed UI requirements.
 | Media/uploads (FR-13.x) | 0 | 4 | 0 | Secure purpose-specific image/PDF flows and property camera capture exist; unified per-line galleries, feedback attachments, video, and broader retention remain incomplete. |
 | Support (FR-14.x) | 4 | 0 | 0 | Central tickets, WhatsApp route, Admin triage/resolution, and structured mobile-change fulfilment exist. |
 | Contact privacy (FR-15.x) | 4 | 0 | 0 | Agent-owned and Telecaller-assigned mobile access is locked; Employee raw/deny/provider-neutral invitation modes and least-data projection are enforced server-side. |
-| Analytics (FR-16.x) | 0 | 3 | 0 | Weekly/monthly reporting, filters, sorting, summaries, and CSV exist; Excel and group/team slices remain. |
+| Analytics (FR-16.x) | 0 | 3 | 0 | **In progress** on `feat/analytics-completion`: weekly/monthly reporting, filters, sorting, summaries, and CSV exist; Excel and explicit business-line team summaries remain. Multi-Agent selection already provides the ad hoc group filter. |
 | Profile/account (FR-17.x) | 4 | 0 | 0 | Profile/settings, optional demographic/income/address details, transactions/support, deletion, retention, and Admin removal exist. |
 | Location (FR-18.x) | 0 | 0 | 2 | No consented login-location personalization or map/GMB integration seam was found. |
 | **Total** | **60** | **17** | **3** | **80 requirements** |
@@ -162,9 +162,9 @@ The following requirements are complete on the evidence baseline:
 | FR-13.2 | Partial | Agent KYC, loan/task documents, banners, and property submissions have managed upload flows; property submission supports browser camera capture. | Add approved feedback/media attachments and camera capture to other applicable journeys. |
 | FR-13.3 | Partial | Managed property media constrains images/PDFs and verifies content signatures; other current flows also constrain types. | Define safe video types, size/duration limits, transcoding/serving policy, malware scanning, content checks, and image metadata normalization. |
 | FR-13.4 | Partial | Property media enforces quotas, upload rate limits, canonical snapshots, orphan/rejection/promotion cleanup, inactive-public cleanup, and account-deletion cleanup. | Apply consistent controls to every media purpose and define approved reviewer-document retention. |
-| FR-16.1 | Partial | Weekly/monthly buckets, date filters, and CSV export exist. | Add Excel export or explicitly amend it out of scope. |
-| FR-16.2 | Partial | Reports filter by one Agent and business line. | Add saved/explicit Agent-group and team filters. |
-| FR-16.3 | Partial | Lead/loan/deal counts and per-Agent performance with sorting exist. | Add agreed per-team summaries and selective group views. |
+| FR-16.1 | In progress | Weekly/monthly buckets, date filters, and CSV export exist. | Add formula-safe Excel export. |
+| FR-16.2 | In progress | Reports filter by business line and a selected multi-Agent list. | Retain the selected list as the ad hoc group filter; no unapproved persistent group/team model will be introduced. |
+| FR-16.3 | In progress | Lead/loan/deal counts and per-Agent performance with sorting exist. | Add business-line team summaries (Loans and Real Estate) while retaining selective Agent views. |
 | FR-18.1 | Not started | No login-location capture is present. | Define opt-in, purpose, precision, retention, fallback, and deletion behavior before implementation. |
 | FR-18.2 | Not started | Address-based properties and visits exist, but no map seam is defined. | Decide whether maps/GMB remain in v1 and design a provider boundary without exposing unnecessary location data. |
 

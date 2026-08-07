@@ -35,8 +35,9 @@ from datetime import date
 from typing import Literal
 from uuid import UUID
 
+import xlsxwriter
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from fastapi.responses import StreamingResponse
+from fastapi.responses import Response, StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.deps import CurrentUser, get_active_user, require_platform_admin
@@ -52,6 +53,7 @@ from app.schemas.reporting import (
     LoansReportResponse,
     LoansReportRow,
     ReportSummary,
+    TeamPerformanceSummary,
 )
 from app.services import reporting
 
@@ -103,9 +105,11 @@ def _csv_chunks(rows: list[dict], header: list[str]) -> Generator[bytes, None, N
         yield buf.getvalue().encode("utf-8")
 
 
-def _export_filename(kind: str, business_line: str | None, date_from: date, date_to: date) -> str:
+def _export_filename(
+    kind: str, business_line: str | None, date_from: date, date_to: date, extension: str = "csv"
+) -> str:
     line = business_line or "all"
-    return f"{kind}-{line}-{date_from.isoformat()}_{date_to.isoformat()}.csv"
+    return f"{kind}-{line}-{date_from.isoformat()}_{date_to.isoformat()}.{extension}"
 
 
 def _export_response(rows: list[dict], header: list[str], truncated: bool, filename: str):
@@ -114,6 +118,42 @@ def _export_response(rows: list[dict], header: list[str], truncated: bool, filen
     if truncated:
         resp.headers["X-Report-Truncated"] = "true"
     return resp
+
+
+def _xlsx_response(rows: list[dict], header: list[str], truncated: bool, filename: str) -> Response:
+    """Build a bounded XLSX file only after the request-scoped DB work ends.
+
+    `write_string` is intentional: a string beginning with '=' or another
+    spreadsheet formula prefix stays a literal string even if a future export
+    column becomes user-controlled. `_csv_cell` also gives CSV/XLSX the same
+    visible value for such inputs.
+    """
+    output = io.BytesIO()
+    workbook = xlsxwriter.Workbook(output, {"in_memory": True, "strings_to_formulas": False})
+    worksheet = workbook.add_worksheet("Report")
+    header_format = workbook.add_format({"bold": True})
+    for col, value in enumerate(header):
+        worksheet.write_string(0, col, value, header_format)
+    for row_index, row in enumerate(rows, start=1):
+        for col, key in enumerate(header):
+            value = row.get(key, "")
+            if isinstance(value, bool):
+                worksheet.write_boolean(row_index, col, value)
+            elif isinstance(value, (int, float)):
+                worksheet.write_number(row_index, col, value)
+            else:
+                worksheet.write_string(row_index, col, _csv_cell(value))
+    worksheet.freeze_panes(1, 0)
+    workbook.close()
+
+    response = Response(
+        content=output.getvalue(),
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
+    response.headers["Content-Disposition"] = f'attachment; filename="{filename}"'
+    if truncated:
+        response.headers["X-Report-Truncated"] = "true"
+    return response
 
 
 # ---------------------------------------------------------------------------
@@ -182,6 +222,37 @@ async def export_leads_report(
     )
     return _export_response(
         rows, header, truncated, _export_filename("leads", business_line, date_from, date_to)
+    )
+
+
+@router.get("/leads/export.xlsx")
+async def export_leads_report_xlsx(
+    date_from: date,
+    date_to: date,
+    bucket: Literal["week", "month"] = "week",
+    business_line: Literal["loans", "real_estate", "unassigned"] | None = None,
+    agent_profile_uuid: list[UUID] | None = Query(default=None),
+    current_user: CurrentUser = Depends(get_active_user),
+    db: AsyncSession = Depends(get_db),
+) -> Response:
+    await require_platform_admin(current_user)
+    _validate_range(date_from, date_to)
+    rows, header, truncated = await reporting.export_report_rows(
+        db,
+        "leads",
+        reporting.ExportParams(
+            date_from=date_from,
+            date_to=date_to,
+            bucket=bucket,
+            business_line=business_line,
+            agent_profile_uuids=agent_profile_uuid,
+        ),
+    )
+    return _xlsx_response(
+        rows,
+        header,
+        truncated,
+        _export_filename("leads", business_line, date_from, date_to, "xlsx"),
     )
 
 
@@ -254,6 +325,37 @@ async def export_loans_report(
     )
 
 
+@router.get("/loans/export.xlsx")
+async def export_loans_report_xlsx(
+    date_from: date,
+    date_to: date,
+    bucket: Literal["week", "month"] = "week",
+    business_line: Literal["loans", "real_estate"] | None = None,
+    agent_profile_uuid: list[UUID] | None = Query(default=None),
+    current_user: CurrentUser = Depends(get_active_user),
+    db: AsyncSession = Depends(get_db),
+) -> Response:
+    await require_platform_admin(current_user)
+    _validate_range(date_from, date_to)
+    rows, header, truncated = await reporting.export_report_rows(
+        db,
+        "loans",
+        reporting.ExportParams(
+            date_from=date_from,
+            date_to=date_to,
+            bucket=bucket,
+            business_line=business_line,
+            agent_profile_uuids=agent_profile_uuid,
+        ),
+    )
+    return _xlsx_response(
+        rows,
+        header,
+        truncated,
+        _export_filename("loans", business_line, date_from, date_to, "xlsx"),
+    )
+
+
 # ---------------------------------------------------------------------------
 # Deals
 # ---------------------------------------------------------------------------
@@ -323,6 +425,37 @@ async def export_deals_report(
     )
 
 
+@router.get("/deals/export.xlsx")
+async def export_deals_report_xlsx(
+    date_from: date,
+    date_to: date,
+    bucket: Literal["week", "month"] = "week",
+    business_line: Literal["loans", "real_estate"] | None = None,
+    agent_profile_uuid: list[UUID] | None = Query(default=None),
+    current_user: CurrentUser = Depends(get_active_user),
+    db: AsyncSession = Depends(get_db),
+) -> Response:
+    await require_platform_admin(current_user)
+    _validate_range(date_from, date_to)
+    rows, header, truncated = await reporting.export_report_rows(
+        db,
+        "deals",
+        reporting.ExportParams(
+            date_from=date_from,
+            date_to=date_to,
+            bucket=bucket,
+            business_line=business_line,
+            agent_profile_uuids=agent_profile_uuid,
+        ),
+    )
+    return _xlsx_response(
+        rows,
+        header,
+        truncated,
+        _export_filename("deals", business_line, date_from, date_to, "xlsx"),
+    )
+
+
 # ---------------------------------------------------------------------------
 # Agents
 # ---------------------------------------------------------------------------
@@ -344,7 +477,7 @@ async def get_agents_report(
     await require_platform_admin(current_user)
     _validate_range(date_from, date_to)
     try:
-        rows, total, summary = await reporting.get_agents_report(
+        rows, total, summary, team_summaries = await reporting.get_agents_report(
             db,
             date_from=date_from,
             date_to=date_to,
@@ -358,7 +491,10 @@ async def get_agents_report(
     except reporting.InvalidSortField as exc:
         raise _map_sort_error(exc) from None
     return AgentsReportResponse(
-        rows=[AgentsReportRow(**r) for r in rows], total=total, summary=AgentsSummary(**summary)
+        rows=[AgentsReportRow(**r) for r in rows],
+        total=total,
+        summary=AgentsSummary(**summary),
+        team_summaries=[TeamPerformanceSummary(**r) for r in team_summaries],
     )
 
 
@@ -386,4 +522,34 @@ async def export_agents_report(
     )
     return _export_response(
         rows, header, truncated, _export_filename("agents", business_line, date_from, date_to)
+    )
+
+
+@router.get("/agents/export.xlsx")
+async def export_agents_report_xlsx(
+    date_from: date,
+    date_to: date,
+    business_line: Literal["loans", "real_estate"] | None = None,
+    agent_profile_uuid: list[UUID] | None = Query(default=None),
+    current_user: CurrentUser = Depends(get_active_user),
+    db: AsyncSession = Depends(get_db),
+) -> Response:
+    await require_platform_admin(current_user)
+    _validate_range(date_from, date_to)
+    rows, header, truncated = await reporting.export_report_rows(
+        db,
+        "agents",
+        reporting.ExportParams(
+            date_from=date_from,
+            date_to=date_to,
+            bucket="week",  # unused by the agents export; retained for uniform params
+            business_line=business_line,
+            agent_profile_uuids=agent_profile_uuid,
+        ),
+    )
+    return _xlsx_response(
+        rows,
+        header,
+        truncated,
+        _export_filename("agents", business_line, date_from, date_to, "xlsx"),
     )

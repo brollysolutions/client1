@@ -389,7 +389,7 @@ async def get_agents_report(
     sort_dir: Literal["asc", "desc"] = "desc",
     limit: int = 50,
     offset: int = 0,
-) -> tuple[list[dict[str, Any]], int, dict[str, int]]:
+) -> tuple[list[dict[str, Any]], int, dict[str, int], list[dict[str, Any]]]:
     start, end = _utc_bounds(date_from, date_to)
 
     leads_sub = _agent_activity_subquery(
@@ -507,7 +507,27 @@ async def get_agents_report(
 
     summary = {"agent_count": total_agents, **dict(summary_row._mapping)}
 
-    return result_rows, total_agents, summary
+    # Agents are line-scoped in the canonical profile model. The two business
+    # lines are therefore the only approved team dimension; do not infer a
+    # mutable team or membership model that does not exist in the database.
+    team_rows = (
+        await db.execute(
+            select(
+                base_subq.c.business_line,
+                func.count().label("agent_count"),
+                func.coalesce(func.sum(base_subq.c.leads_total), 0).label("leads_total"),
+                func.coalesce(func.sum(base_subq.c.leads_converted), 0).label("leads_converted"),
+                func.coalesce(func.sum(base_subq.c.loans_total), 0).label("loans_total"),
+                func.coalesce(func.sum(base_subq.c.loans_converted), 0).label("loans_converted"),
+                func.coalesce(func.sum(base_subq.c.deals_total), 0).label("deals_total"),
+                func.coalesce(func.sum(base_subq.c.deals_converted), 0).label("deals_converted"),
+            )
+            .group_by(base_subq.c.business_line)
+            .order_by(base_subq.c.business_line.asc())
+        )
+    ).all()
+
+    return result_rows, total_agents, summary, [dict(r._mapping) for r in team_rows]
 
 
 # ---------------------------------------------------------------------------
@@ -591,7 +611,7 @@ async def export_report_rows(
         )
         header = _JOURNEY_HEADER
     else:
-        rows, _total, _summary = await get_agents_report(
+        rows, _total, _summary, _team_summaries = await get_agents_report(
             db,
             date_from=params.date_from,
             date_to=params.date_to,
