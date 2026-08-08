@@ -38,6 +38,17 @@ def mask_vpa(vpa: str | None) -> str:
     return f"***@{handle}"
 
 
+def mask_cheque_reference(reference: str | None) -> str:
+    """Show only the final four characters of an offline cheque reference."""
+    if not reference:
+        return "Cheque"
+    compact = reference.strip()
+    if len(compact) <= 4:
+        return "Cheque ••••"
+    suffix = compact[-4:]
+    return f"Cheque ••••{suffix}"
+
+
 def mask_bank_account(ifsc: str | None, account_number: str | None) -> str:
     """Mask a bank account to IFSC bank-prefix + last 4, e.g.
     (HDFC0001234, 50100123456789) → HDFC ****6789.

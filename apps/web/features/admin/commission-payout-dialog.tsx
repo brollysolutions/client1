@@ -107,7 +107,7 @@ export function CommissionPayoutDialog({
                   onValueChange={(v) =>
                     set("destinationType", v as CommissionPayoutFormState["destinationType"])
                   }
-                  className="grid-flow-col"
+                  className="grid-cols-1 sm:grid-cols-3"
                 >
                   {DESTINATION_OPTIONS.map((o) => (
                     <div key={o.value} className="flex items-center gap-2">
@@ -157,6 +157,10 @@ export function CommissionPayoutDialog({
                     ) : null}
                   </div>
                 </div>
+              ) : form.destinationType === "cheque" ? (
+                <p className="rounded-lg bg-muted p-3 text-xs text-text-secondary">
+                  The cheque reference is recorded only after approval and issuance.
+                </p>
               ) : null}
             </div>
 

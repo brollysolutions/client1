@@ -2333,6 +2333,10 @@
           "account_removed",
           "payout_approved",
           "payout_rejected",
+          "payout_manual_issued",
+          "payout_manual_cleared",
+          "payout_manual_failed",
+          "payout_manual_reversed",
           "property_submission_approved",
           "property_submission_rejected",
           "support_ticket_advanced",
@@ -6523,6 +6527,22 @@
         "title": "LoginRequest",
         "type": "object"
       },
+      "ManualChequeIssue": {
+        "properties": {
+          "reference": {
+            "maxLength": 64,
+            "minLength": 4,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9./_-]{2,62}[A-Za-z0-9]$",
+            "title": "Reference",
+            "type": "string"
+          }
+        },
+        "required": [
+          "reference"
+        ],
+        "title": "ManualChequeIssue",
+        "type": "object"
+      },
       "MeResponse": {
         "properties": {
           "address": {
@@ -7731,7 +7751,8 @@
       "PayoutDestination": {
         "enum": [
           "vpa",
-          "bank_account"
+          "bank_account",
+          "cheque"
         ],
         "title": "PayoutDestination",
         "type": "string"
@@ -7851,6 +7872,15 @@
         "title": "PayoutListResponse",
         "type": "object"
       },
+      "PayoutProvider": {
+        "description": "Execution boundary, deliberately separate from the destination rail.",
+        "enum": [
+          "razorpayx",
+          "manual"
+        ],
+        "title": "PayoutProvider",
+        "type": "string"
+      },
       "PayoutRead": {
         "properties": {
           "amount_paise": {
@@ -7961,6 +7991,33 @@
             "title": "Maker User Uuid",
             "type": "string"
           },
+          "manual_cleared_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Manual Cleared At"
+          },
+          "manual_issued_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Manual Issued At"
+          },
+          "provider": {
+            "$ref": "#/components/schemas/PayoutProvider"
+          },
           "recipient_code": {
             "anyOf": [
               {
@@ -8062,6 +8119,7 @@
           "currency",
           "status",
           "destination_type",
+          "provider",
           "destination_hint",
           "maker_user_uuid",
           "checker_user_uuid",
@@ -8070,6 +8128,8 @@
           "gateway_payout_id",
           "gateway_status",
           "failure_reason",
+          "manual_issued_at",
+          "manual_cleared_at",
           "reversal_transaction_id",
           "created_at",
           "updated_at"
@@ -21093,6 +21153,228 @@
           }
         ],
         "summary": "Approve Payout",
+        "tags": [
+          "payouts"
+        ]
+      }
+    },
+    "/api/v1/payouts/{payout_id}/manual/clear": {
+      "post": {
+        "operationId": "clear_manual_cheque_api_v1_payouts__payout_id__manual_clear_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "payout_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Payout Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PayoutRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Clear Manual Cheque",
+        "tags": [
+          "payouts"
+        ]
+      }
+    },
+    "/api/v1/payouts/{payout_id}/manual/fail": {
+      "post": {
+        "operationId": "fail_manual_cheque_api_v1_payouts__payout_id__manual_fail_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "payout_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Payout Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PayoutReject"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PayoutRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Fail Manual Cheque",
+        "tags": [
+          "payouts"
+        ]
+      }
+    },
+    "/api/v1/payouts/{payout_id}/manual/issue": {
+      "post": {
+        "operationId": "issue_manual_cheque_api_v1_payouts__payout_id__manual_issue_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "payout_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Payout Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManualChequeIssue"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PayoutRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Issue Manual Cheque",
+        "tags": [
+          "payouts"
+        ]
+      }
+    },
+    "/api/v1/payouts/{payout_id}/manual/reverse": {
+      "post": {
+        "operationId": "reverse_manual_cheque_api_v1_payouts__payout_id__manual_reverse_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "payout_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Payout Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PayoutReject"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PayoutRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Reverse Manual Cheque",
         "tags": [
           "payouts"
         ]

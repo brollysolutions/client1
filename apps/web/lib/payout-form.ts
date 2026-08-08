@@ -18,6 +18,7 @@ export const TYPE_OPTIONS = [
 export const DESTINATION_OPTIONS = [
   { value: "vpa", label: "UPI VPA" },
   { value: "bank_account", label: "Bank account" },
+  { value: "cheque", label: "Cheque" },
 ] as const satisfies readonly { value: PayoutDestination; label: string }[];
 
 export const BUSINESS_LINE_OPTIONS = [
@@ -92,7 +93,9 @@ export function buildPayoutPayload(form: PayoutFormState, idempotencyKey: string
           account_number: form.accountNumber.trim(),
           name: form.accountName.trim() || null,
         }
-      : { vpa: form.vpa.trim() };
+      : form.destinationType === "vpa"
+        ? { vpa: form.vpa.trim() }
+        : {};
 
   return {
     recipient_user_uuid: form.recipient?.authUserUuid ?? "",
@@ -121,7 +124,7 @@ export function validatePayoutForm(form: PayoutFormState): Record<string, string
     if (!form.vpa.trim() || !form.vpa.includes("@")) {
       errs.vpa = "Enter a valid UPI VPA (name@bank).";
     }
-  } else {
+  } else if (form.destinationType === "bank_account") {
     if (!form.ifsc.trim()) errs.ifsc = "IFSC is required.";
     if (form.accountNumber.trim().length < 6) {
       errs.accountNumber = "Account number must be at least 6 digits.";

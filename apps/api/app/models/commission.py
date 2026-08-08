@@ -21,9 +21,8 @@ maker-checker is the second pair of eyes — a separate "approve commission"
 step would put two humans on the same rupees twice. See
 docs/specs/agent-commission.md D1.
 
-No `method` column: cheque (the second FR-8.3 rail) is deferred, and while it
-is, the payout row already records how a commission was paid — an unused
-column on this table would just be decoration.
+The linked payout row, rather than this commission source row, owns the selected
+UPI/bank/cheque method and provider lifecycle.
 
 RLS keys on `agent_auth_user_uuid` (identity), not `agent_profile_uuid`: an
 agent's JWT carries `app.auth_user_uuid` directly, so this is a plain equality

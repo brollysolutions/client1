@@ -32,9 +32,8 @@ with NO business_line predicate — see the migration docstring
 client's `app.business_line` JWT claim is literally "both" for every
 self-registered account.
 
-No `method` column: cheque (the second FR-6.6/FR-8.3/FR-9.4 rail) is
-deferred jointly with agent commissions and referrals — see
-docs/ai/feature-status.md §2 #16.
+The linked payout row, rather than this cashback source row, owns the selected
+UPI/bank/cheque method and provider lifecycle.
 """
 
 from __future__ import annotations

@@ -177,7 +177,7 @@ export function PayoutCreateDialog({
             <RadioGroup
               value={form.destinationType}
               onValueChange={(v) => set("destinationType", v as PayoutFormState["destinationType"])}
-              className="grid-flow-col"
+              className="grid-cols-1 sm:grid-cols-3"
             >
               {DESTINATION_OPTIONS.map((o) => (
                 <div key={o.value} className="flex items-center gap-2">
@@ -227,6 +227,11 @@ export function PayoutCreateDialog({
                 ) : null}
               </div>
             </div>
+          ) : form.destinationType === "cheque" ? (
+            <p className="rounded-lg bg-muted p-3 text-xs text-text-secondary">
+              No bank details are stored. Record the cheque reference after a different Admin
+              approves this payout and the cheque is issued.
+            </p>
           ) : null}
         </div>
 

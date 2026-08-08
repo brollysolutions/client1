@@ -44,6 +44,40 @@ export async function rejectPayout(id: string, reason: string): Promise<ApiRespo
   });
 }
 
+export async function issueManualCheque(
+  id: string,
+  reference: string,
+): Promise<ApiResponse<Payout>> {
+  return apiRequest<Payout>(`/api/v1/payouts/${id}/manual/issue`, {
+    method: "POST",
+    body: { reference },
+  });
+}
+
+export async function clearManualCheque(id: string): Promise<ApiResponse<Payout>> {
+  return apiRequest<Payout>(`/api/v1/payouts/${id}/manual/clear`, { method: "POST" });
+}
+
+export async function failManualCheque(
+  id: string,
+  reason: string,
+): Promise<ApiResponse<Payout>> {
+  return apiRequest<Payout>(`/api/v1/payouts/${id}/manual/fail`, {
+    method: "POST",
+    body: { reason },
+  });
+}
+
+export async function reverseManualCheque(
+  id: string,
+  reason: string,
+): Promise<ApiResponse<Payout>> {
+  return apiRequest<Payout>(`/api/v1/payouts/${id}/manual/reverse`, {
+    method: "POST",
+    body: { reason },
+  });
+}
+
 export async function searchPayoutRecipients(
   q: string,
 ): Promise<ApiResponse<PayoutRecipient[]>> {
