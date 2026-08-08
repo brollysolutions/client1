@@ -61,6 +61,7 @@ async def _seed_banner(
     cta_label: str | None = None,
     deep_link: str | None = None,
     image_key: str | None = None,
+    audience_rules: dict | None = None,
 ) -> str:
     import app.db.session as _session_mod
     from app.models.banner import Banner
@@ -74,6 +75,7 @@ async def _seed_banner(
             cta_label=cta_label,
             deep_link=deep_link,
             image_key=image_key,
+            audience_rules=audience_rules or {},
             status=status,
             priority=priority,
             created_by_uuid=uuid.UUID(author),
@@ -267,6 +269,36 @@ async def test_personalized_banner_is_excluded(client: AsyncClient) -> None:
         assert action_id in returned_ids
     finally:
         await _delete_banners(personalized_id, action_id)
+
+
+@pytest.mark.asyncio
+async def test_targeted_rules_never_leak_from_a_legacy_generic_banner(
+    client: AsyncClient,
+) -> None:
+    """A malformed pre-validator row stays private even if its type is on the
+    anonymous allowlist. Type and canonical empty targeting are both required.
+    """
+    author = await _author_uuid(client)
+    targeted_default_id = await _seed_banner(
+        author=author,
+        status="live",
+        banner_type="default",
+        title="Legacy targeted default",
+        audience_rules={"version": 1, "user_types": ["client"]},
+    )
+    generic_action_id = await _seed_banner(
+        author=author,
+        status="live",
+        banner_type="action",
+        title="Generic action",
+    )
+    try:
+        response = await client.get("/api/v1/public/banners")
+        returned_ids = {banner["id"] for banner in response.json()["banners"]}
+        assert targeted_default_id not in returned_ids
+        assert generic_action_id in returned_ids
+    finally:
+        await _delete_banners(targeted_default_id, generic_action_id)
 
 
 @pytest.mark.asyncio

@@ -14,6 +14,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.offer import Offer, OfferStatus
+from app.schemas.personalization import AudienceRules, audience_rules_valid_for_offer
 
 # Forward-only edges for what a sub_admin HTTP request may do. `expired` has
 # no manual writer here by design -- it is scheduler-owned
@@ -42,6 +43,10 @@ class OfferNotOwned(Exception):
     already see this row in their queue, so a 404 here would be confusing."""
 
 
+class OfferInvalidAudience(Exception):
+    """Raised when a legacy or malformed rule set reaches activation."""
+
+
 async def advance_offer(
     offer_id: UUID, owner_uuid: UUID, target_status: OfferStatus, db: AsyncSession
 ) -> Offer | None:
@@ -61,6 +66,13 @@ async def advance_offer(
     offer = await db.scalar(select(Offer).where(Offer.id == offer_id).with_for_update())
     if target_status not in _TRANSITIONS.get(offer.status, set()):
         raise OfferIllegalTransition
+    if target_status in (OfferStatus.SCHEDULED, OfferStatus.ACTIVE):
+        try:
+            rules = AudienceRules.model_validate(offer.audience_rules)
+        except ValueError as exc:
+            raise OfferInvalidAudience from exc
+        if not audience_rules_valid_for_offer(rules):
+            raise OfferInvalidAudience
     offer.status = target_status
     await db.commit()
     await db.refresh(offer)

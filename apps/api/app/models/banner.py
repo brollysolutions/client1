@@ -64,11 +64,10 @@ class Banner(Base):
     cta_label: Mapped[str | None] = mapped_column(Text, nullable=True)
     image_key: Mapped[str | None] = mapped_column(Text, nullable=True)
     deep_link: Mapped[str | None] = mapped_column(Text, nullable=True)
-    # user_type / location / business_status matchers — write-only in slice 1, no
-    # consumer endpoint yet (customer-facing serving is out of scope, spec Open C).
+    # Versioned, closed user/workflow/location grammar validated by
+    # schemas.personalization and consumed only by the authenticated dashboard.
     audience_rules: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
-    # Tie-break when multiple banners' audience_rules match — unused until a
-    # future serving endpoint exists.
+    # First ordering key when multiple live banners match the same placement.
     priority: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     status: Mapped[BannerStatus] = mapped_column(
         banner_status_enum, nullable=False, default=BannerStatus.DRAFT

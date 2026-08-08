@@ -16,6 +16,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { createOffer } from "@/lib/offers-api";
+import { AudienceRuleFields, emptyAudienceRules } from "./audience-rule-fields";
 
 const LINE_OPTIONS = [
   { value: "loans", label: "Loans" },
@@ -42,6 +43,8 @@ export function OfferForm() {
   const [code, setCode] = React.useState("");
   const [startsAt, setStartsAt] = React.useState("");
   const [endsAt, setEndsAt] = React.useState("");
+  const [priority, setPriority] = React.useState("0");
+  const [audienceRules, setAudienceRules] = React.useState(emptyAudienceRules);
   const [titleError, setTitleError] = React.useState<string | undefined>();
   const [discountError, setDiscountError] = React.useState<string | undefined>();
   const [scheduleError, setScheduleError] = React.useState<string | undefined>();
@@ -82,6 +85,8 @@ export function OfferForm() {
       discount_type: discountType,
       discount_value: String(value),
       code: code.trim() || null,
+      audience_rules: audienceRules,
+      priority: Number(priority) || 0,
       starts_at: startsAt ? new Date(startsAt).toISOString() : null,
       ends_at: endsAt ? new Date(endsAt).toISOString() : null,
     });
@@ -126,6 +131,24 @@ export function OfferForm() {
             maxLength={2000}
           />
         </div>
+
+        <div>
+          <Label htmlFor="priority">Priority</Label>
+          <Input
+            id="priority"
+            inputMode="numeric"
+            value={priority}
+            onChange={(event) => setPriority(event.target.value.replace(/\D/g, ""))}
+          />
+          <p className="mt-1 text-xs text-text-secondary">Higher-priority offers appear first.</p>
+        </div>
+
+        <AudienceRuleFields
+          value={audienceRules}
+          onChange={setAudienceRules}
+          disabled={submitting}
+          allowedUserTypes={["client"]}
+        />
 
         <div className="grid gap-4 sm:grid-cols-2">
           <div>

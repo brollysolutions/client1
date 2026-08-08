@@ -26,9 +26,15 @@ from app.schemas.banners import (
     BannerUpdate,
     RejectRequest,
 )
+from app.schemas.personalization import (
+    AudienceRules,
+    audience_rules_to_storage,
+    audience_rules_valid_for_banner,
+)
 from app.services.banners import (
     IMAGE_MAX_BYTES,
     BannerAlreadyReviewed,
+    BannerInvalidAudience,
     BannerNotOwned,
     UnsupportedImageType,
     approve_banner,
@@ -46,7 +52,9 @@ async def create_banner(
     current_user: CurrentUser = Depends(require_sub_admin),
     db: AsyncSession = Depends(get_db),
 ) -> BannerRead:
-    banner = Banner(created_by_uuid=current_user.id, **payload.model_dump())
+    values = payload.model_dump(exclude={"audience_rules"})
+    values["audience_rules"] = audience_rules_to_storage(payload.audience_rules)
+    banner = Banner(created_by_uuid=current_user.id, **values)
     db.add(banner)
     await db.commit()
     await db.refresh(banner)
@@ -135,8 +143,27 @@ async def update_banner(
             status_code=status.HTTP_409_CONFLICT,
             detail="This banner cannot be edited from its current status.",
         )
-    for field, value in payload.model_dump(exclude_unset=True).items():
+    values = payload.model_dump(exclude_unset=True, exclude={"audience_rules"})
+    if "audience_rules" in payload.model_fields_set and payload.audience_rules is not None:
+        values["audience_rules"] = audience_rules_to_storage(payload.audience_rules)
+    for field, value in values.items():
         setattr(banner, field, value)
+    try:
+        rules = AudienceRules.model_validate(banner.audience_rules)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="This banner has invalid audience rules.",
+        ) from exc
+    if not audience_rules_valid_for_banner(banner.banner_type, rules):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=(
+                "Personalized banners require at least one user type."
+                if banner.banner_type == "personalized"
+                else "Default and action banners cannot carry audience rules."
+            ),
+        )
     await db.commit()
     await db.refresh(banner)
     return BannerRead.model_validate(banner, from_attributes=True)
@@ -160,6 +187,11 @@ async def submit(
             status_code=status.HTTP_409_CONFLICT,
             detail="This banner cannot be submitted from its current status.",
         ) from exc
+    except BannerInvalidAudience as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="This banner has invalid audience rules.",
+        ) from exc
     if banner is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Banner not found.")
     return BannerRead.model_validate(banner, from_attributes=True)
@@ -177,6 +209,11 @@ async def approve(
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="This banner has already been reviewed.",
+        ) from exc
+    except BannerInvalidAudience as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="This banner has invalid audience rules.",
         ) from exc
     if banner is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Banner not found.")

@@ -14,6 +14,11 @@ self-deleting user and an Admin acting on someone else's account can write
 these rows under their own RLS context — see
 `f2e4d6c8a0b1_add_rls_policies.py`'s WITH CHECK clauses.
 
+`personalization_preferences` is also erased in Phase A through a single-row,
+authorization-checking SECURITY DEFINER function. PostgreSQL requires a row to
+pass SELECT policy before ordinary DELETE can target it; the function preserves
+atomic deletion without granting Admin a location/consent read policy.
+
 Phase B runs on a bypass (app-superuser) session, `import app.db.session as
 db_session` resolved at call time — never a module-level `from
 app.db.session import AsyncSessionLocal` (see conftest's NullPool rebind list;
@@ -59,7 +64,7 @@ import logging
 from datetime import UTC, datetime
 from uuid import UUID
 
-from sqlalchemy import select, update
+from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 import app.db.session as db_session
@@ -257,6 +262,12 @@ async def delete_account(
         .where(SupportTicket.auth_user_uuid == target_auth_user_uuid)
         .values(subject=_SCRUBBED_TICKET_TEXT, body=_SCRUBBED_TICKET_TEXT)
     )
+
+    # SECURITY DEFINER is intentionally confined to this one-row erase. The
+    # function independently accepts only the owner or a platform Admin, while
+    # avoiding a staff SELECT policy over consent/location data. Keeping it in
+    # Phase A makes erasure atomic with the identity scrub.
+    await db.scalar(func.erase_personalization_preference(target_auth_user_uuid))
 
     db.add(
         AuthEvent(

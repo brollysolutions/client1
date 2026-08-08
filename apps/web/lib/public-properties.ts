@@ -7,8 +7,8 @@
 
 import type { components } from "@contracts/generated/schema";
 
+import { isAllowedAssetUrl } from "@/lib/allowed-asset-url";
 import { serverFetchJson } from "@/lib/api/server";
-import { isAllowedAssetUrl } from "@/lib/public-banners";
 import type { PropertyListing } from "@/lib/properties";
 
 type Schemas = components["schemas"];

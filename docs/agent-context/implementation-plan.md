@@ -2,16 +2,16 @@
 
 Status: **Derived, actively maintained plan**
 
-As of: **2026-08-07**
+As of: **2026-08-08**
 
-Evidence baseline: `9907941` ([PR #149](https://github.com/brollysolutions/client1/pull/149))
+Evidence baseline: `14773ae` ([PR #151](https://github.com/brollysolutions/client1/pull/151))
 
 ## Outcome
 
 Complete the approved Loans and Real Estate scope without weakening
 authorization, business-line segregation, PII/KYC handling, payout controls,
 or auditability. The current evidence-based implementation coverage is
-approximately **86.3%**; see [`feature-status.md`](feature-status.md) for the
+approximately **90.6%**; see [`feature-status.md`](feature-status.md) for the
 calculation and requirement-level gaps.
 
 ## Working rules
@@ -62,7 +62,8 @@ Admin field visibility and contact controls are **Done** in
 from the same branch in [PR #144](https://github.com/brollysolutions/client1/pull/144).
 Vehicle arrangements are **Done** in
 [PR #149](https://github.com/brollysolutions/client1/pull/149). Analytics is
-in review; notification/email redirect completion is the active priority.
+in review; notification/email redirect completion is merged, and the
+Map/GMB integration seam decision is the next product priority.
 
 | Priority | Feature / requirements | Status | Recommended model / effort | Decision gate and acceptance summary |
 | ---: | --- | --- | --- | --- |
@@ -74,8 +75,67 @@ in review; notification/email redirect completion is the active priority.
 | 6 | Vehicle arrangements (FR-7.1, OI-003) | **Done** — [PR #149](https://github.com/brollysolutions/client1/pull/149) | `gpt-5.6-sol` / High | Delivered the dedicated 1:1 site-visit arrangement, direct Admin-to-Employee assignment, safe Client read visibility, row-locked state machine, atomic parent cancellation, PII-safe audit/notifications, and real-estate-only RLS. |
 | 7 | Analytics completion (FR-16.1 through FR-16.3) | **In review** — [PR #150](https://github.com/brollysolutions/client1/pull/150) | `gpt-5.6-terra` / High | Adds formula-safe Excel export and explicit business-line team summaries. The existing multi-Agent selection is the approved ad hoc group filter; no unapproved team-membership model was added. API Ruff, XLSX safety, web typecheck/lint, and focused web tests pass; database-backed reporting tests are blocked locally by a `_greenlet` DLL failure and the web build exceeded the local timeout. |
 | 8 | Notification/email redirect completeness (FR-11.2) | **In review** — [PR #151](https://github.com/brollysolutions/client1/pull/151) | `gpt-5.6-terra` / High | All producer, broadcast, push, and banner paths accept only same-origin destinations; verified-email transactional copies use the same safe page; PII-prone notification copy is removed; focused API/web safety checks pass. |
-| 9 | Authenticated banner personalization (FR-12.1 through FR-12.4, FR-18.1) | Decision needed | `gpt-5.6-sol` / Extra High | Define audience grammar, consented signals, location precision/retention, safe server evaluation, fallbacks, and negative targeting tests before serving personalized content. |
+| 9 | Authenticated banner personalization (FR-12.1 through FR-12.4, FR-18.1) | **Done** — PR pending on `feat/authenticated-banner-personalization` | `gpt-5.6-sol` / Extra High | Delivered the closed audience grammar, server-proven Client/Agent line context, separate activity/coarse-location consent, private authenticated banner/offer placements, public non-leakage, safe fallbacks, 30-day retention/deletion, and negative targeting/RLS tests. Focused API (122), full web (287), seeded Client/Agent Playwright (2), production build, generated contracts, and migration upgrade/downgrade/head checks pass; the full API suite exceeded the local execution window. |
 | 10 | Map/GMB integration seam (FR-18.2) | Deferred pending scope | `gpt-5.6-terra` / High | Confirm it remains in v1; define provider-neutral coordinates/address boundary and privacy constraints before adding a dependency. |
+
+### Approved feature brief — Authenticated banner personalization
+
+- **Success:** authenticated Clients see a default, personalized, and action
+  banner stack for their active dashboard line; authenticated Agents see their
+  own line's default/action content plus incentive-targeted personalized
+  banners; matching offers can use the same consented context. Anonymous
+  catalog responses never contain personalized banners or targeted offers.
+- **Audience contract:** retain JSONB storage but replace free-form dictionaries
+  with a versioned, closed Pydantic grammar. Supported dimensions are user type,
+  normalized Client journey stage, bounded Agent activity signals, and bounded
+  geographic circles. Populated dimensions are ANDed and values within a
+  dimension are ORed. Unknown keys, invalid role/signal combinations, and
+  malformed legacy rules fail closed. Default/action banners have no audience
+  rules; personalized banners require at least one supported user type.
+- **Line and precedence:** the browser supplies only placement context. The API
+  proves a Client owns the requested line and forces an Agent to the active
+  profile/JWT line. Eligible rows are line-specific or `both`; one banner per
+  layer is selected by highest priority, exact-line before `both`, then the
+  existing oldest-first stable order from the settled banner-precedence decision.
+- **Consented signals:** activity personalization and location personalization
+  are separate opt-ins. Matching uses only existing first-party workflow facts
+  (loan applications, property enquiries/deals, Agent-owned leads, and
+  commissions); no clickstream, browsing history, inferred demographics, or
+  new activity ledger is introduced. Without activity consent, only
+  default/action banners and generic offers are eligible.
+- **Location privacy:** request browser geolocation only after an explicit user
+  action. Round coordinates server-side to two decimal places before storage,
+  never log or audit coordinates, expire the latest coarse point after 30 days,
+  clear it immediately on revocation/account deletion, and silently omit
+  location-dependent matches when permission is denied, unavailable, or stale.
+  No reverse geocoder, map provider, IP-location inference, or location history
+  is part of this feature.
+- **Serving boundary:** add a private, no-store authenticated placement response
+  with display-only banner/offer projections. Keep the current positive
+  anonymous banner allowlist and make public offers exclude non-empty targeting
+  rules. Offers remain Client-facing; Agents receive their own benefits and
+  incentives through the personalized banner layer, not customer discounts.
+  Because banner RLS intentionally excludes Clients/Agents, candidate
+  content is read through a narrowly-contained bypass service only after the
+  request-session dependency proves the caller and line; user-owned context is
+  read under normal RLS.
+- **Failure behavior:** invalid rules and unavailable signals never broaden an
+  audience; stale/no location cannot satisfy a location rule; a failed
+  personalization request must not block the operational dashboard; safe
+  role/line fallbacks preserve the default/action layers; CTA destinations and
+  image hosts keep their existing same-origin/allowlist validation.
+- **Non-goals:** public-homepage session hydration, anonymous personalization,
+  raw or historical location retention, IP geolocation, maps/GMB/geocoding,
+  marketing analytics or impression/click tracking, machine-learned segments,
+  arbitrary JSON/SQL rule expressions, staff dashboard targeting, or changes to
+  operational authorization and business-line RLS.
+- **Verification:** schema and approval fail-closed tests; Client/Agent positive,
+  cross-role, cross-user, and cross-line API tests; public endpoint non-leakage;
+  preference owner-only/direct-RLS tests; consent/revocation/staleness/deletion
+  and coarse-location tests; deterministic layer/offer ranking; regenerated
+  contracts; CMS and dashboard Vitest coverage; seeded Client/Agent Playwright
+  journeys; migration upgrade/downgrade and one head; full API/web gates;
+  security review; PR review; and repository verification.
 
 ### Approved feature brief — Vehicle arrangements
 

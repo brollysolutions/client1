@@ -2,9 +2,9 @@
 
 Status: **Derived reconciliation and later product amendment**
 
-As of: **2026-08-07**
+As of: **2026-08-08**
 
-Code baseline: `9907941` ([PR #149](https://github.com/brollysolutions/client1/pull/149))
+Code baseline: `14773ae` ([PR #151](https://github.com/brollysolutions/client1/pull/151))
 
 ## 1. Purpose and authority
 
@@ -214,6 +214,42 @@ Compatibility requirement: report access remains limited to active
 platform-Admin sessions, and all selected-Agent and team aggregates keep the
 existing business-line predicates and PostgreSQL RLS context.
 
+### CS-008 â€” authenticated personalization is consented and purpose-limited
+
+Client and Agent dashboards may render one live banner per default,
+personalized, and action layer. A closed, versioned rule grammar supports user
+type, Client journey stage, Agent activity, and bounded geographic circles;
+populated dimensions are ANDed and values within one dimension are ORed.
+Customer offers remain Client-facing, while Agent benefits and incentives use
+the personalized banner layer. Anonymous responses never include personalized
+banners or offers with non-empty audience rules.
+
+Activity-based personalization is off until the account owner enables it.
+Location is a separate nested opt-in: exact browser coordinates are rounded
+server-side to hundredths of a degree, only the latest point is stored, it
+expires after 30 days, and coordinates never enter audit details. Revocation,
+disabling personalization, and account deletion erase the coarse point. The
+preference table is owner-only under RLS; an authorization-checking one-row
+database function permits atomic deletion without giving Admin a read policy.
+Placements use a private, no-store authenticated response and validate the
+caller's active profile and requested business line before reading content.
+
+Evidence:
+
+- [`apps/api/app/schemas/personalization.py`](../../apps/api/app/schemas/personalization.py)
+- [`apps/api/app/services/personalization.py`](../../apps/api/app/services/personalization.py)
+- [`apps/api/alembic/versions/c9d0e1f2a3b4_add_authenticated_personalization.py`](../../apps/api/alembic/versions/c9d0e1f2a3b4_add_authenticated_personalization.py)
+- [`apps/api/app/tests/test_personalization_api.py`](../../apps/api/app/tests/test_personalization_api.py)
+- [`apps/api/app/tests/test_personalization_rls.py`](../../apps/api/app/tests/test_personalization_rls.py)
+- [`apps/web/features/dashboard/personalized-placements.tsx`](../../apps/web/features/dashboard/personalized-placements.tsx)
+- [`apps/web/features/settings/personalization-settings-card.tsx`](../../apps/web/features/settings/personalization-settings-card.tsx)
+- [`apps/web/e2e/personalization.spec.ts`](../../apps/web/e2e/personalization.spec.ts)
+
+Compatibility requirement: no clickstream, impression log, raw or historical
+location, IP geolocation, inferred demographic, arbitrary JSON/SQL expression,
+or staff targeting is introduced without a separately approved design and
+privacy/security review.
+
 ## 3. Previously open items settled by current behavior
 
 The following entries may still be labelled “open,” “assumed,” or “pending” in
@@ -235,6 +271,7 @@ explicitly changes it.
 | Agent lead expiry | Agent attribution has a fixed 30-day first-attribution deadline with converted/closed exclusions, idempotent scheduled release, audit, notifications, RLS denial, and Agent history/countdown. | [PR #144](https://github.com/brollysolutions/client1/pull/144), [`services/lead_expiry.py`](../../apps/api/app/services/lead_expiry.py) |
 | Client registration and optional profile | Client registration is mobile-first; email and demographic/income/address details are optional, skippable, editable, clearable, and never gate account use. | CS-005, [PR #148](https://github.com/brollysolutions/client1/pull/148) |
 | Vehicle arrangements | One dedicated arrangement per site visit; Admin arranges and directly assigns a real-estate Employee, the assignee fulfils it, and the owning Client follows it read-only. | CS-006, [PR #149](https://github.com/brollysolutions/client1/pull/149), migration `b8c9d0e1f2a3`, vehicle-arrangement API/RLS/web tests |
+| Authenticated personalization | Client/Agent dashboard banner layers and Client offers use a closed consented rule grammar; coarse optional location is retained for at most 30 days; public responses exclude targeted content. | CS-008, migration `c9d0e1f2a3b4`, personalization API/RLS/web tests |
 
 ## 4. Genuine open decisions and implementation gaps
 
