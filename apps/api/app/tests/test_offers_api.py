@@ -104,6 +104,51 @@ async def test_create_negative_discount_is_validation_error(client: AsyncClient)
 
 
 @pytest.mark.asyncio
+async def test_create_targeted_offer_persists_closed_rules_and_priority(
+    client: AsyncClient,
+) -> None:
+    _, mobile = await full_registration(client, lines=["loans"])
+    uid = await _auth_user_uuid(mobile)
+    response = await client.post(
+        "/api/v1/offers",
+        json={
+            **_PAYLOAD,
+            "priority": 12,
+            "audience_rules": {
+                "version": 1,
+                "user_types": ["client"],
+                "client_journey_stages": ["not_started"],
+            },
+        },
+        headers={"Authorization": f"Bearer {_sub_admin_token(uid)}"},
+    )
+
+    assert response.status_code == 201, response.text
+    assert response.json()["priority"] == 12
+    assert response.json()["audience_rules"]["client_journey_stages"] == ["not_started"]
+
+
+@pytest.mark.asyncio
+async def test_offer_rejects_agent_targeting(client: AsyncClient) -> None:
+    _, mobile = await full_registration(client, lines=["loans"])
+    uid = await _auth_user_uuid(mobile)
+    response = await client.post(
+        "/api/v1/offers",
+        json={
+            **_PAYLOAD,
+            "audience_rules": {
+                "version": 1,
+                "user_types": ["agent"],
+                "agent_signals": ["no_leads"],
+            },
+        },
+        headers={"Authorization": f"Bearer {_sub_admin_token(uid)}"},
+    )
+
+    assert response.status_code == 422
+
+
+@pytest.mark.asyncio
 async def test_schedule_then_activate_then_archive(client: AsyncClient) -> None:
     _, mobile = await full_registration(client, lines=["loans"])
     uid = await _auth_user_uuid(mobile)

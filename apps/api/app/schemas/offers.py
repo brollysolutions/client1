@@ -13,6 +13,7 @@ from uuid import UUID
 from pydantic import BaseModel, Field, model_validator
 
 from app.models.offer import OfferStatus
+from app.schemas.personalization import AudienceRules, audience_rules_valid_for_offer
 
 _DISCOUNT_TYPES = ("percentage", "flat", "cashback-tie")
 
@@ -24,6 +25,8 @@ class OfferCreate(BaseModel):
     discount_type: str = Field(pattern="^(percentage|flat|cashback-tie)$")
     discount_value: Decimal = Field(ge=0)
     code: str | None = Field(default=None, max_length=100)
+    audience_rules: AudienceRules = Field(default_factory=AudienceRules)
+    priority: int = Field(default=0, ge=0)
     starts_at: datetime | None = None
     ends_at: datetime | None = None
 
@@ -31,6 +34,8 @@ class OfferCreate(BaseModel):
     def _check_percentage_bounds(self) -> OfferCreate:
         if self.discount_type == "percentage" and self.discount_value > 100:
             raise ValueError("discount_value cannot exceed 100 for a percentage offer.")
+        if not audience_rules_valid_for_offer(self.audience_rules):
+            raise ValueError("Targeted offers are available to Clients only.")
         return self
 
 
@@ -40,6 +45,8 @@ class OfferUpdate(BaseModel):
     discount_type: str | None = Field(default=None, pattern="^(percentage|flat|cashback-tie)$")
     discount_value: Decimal | None = Field(default=None, ge=0)
     code: str | None = Field(default=None, max_length=100)
+    audience_rules: AudienceRules | None = None
+    priority: int | None = Field(default=None, ge=0)
     starts_at: datetime | None = None
     ends_at: datetime | None = None
 
@@ -62,6 +69,8 @@ class OfferRead(BaseModel):
     discount_type: str
     discount_value: Decimal
     code: str | None
+    audience_rules: AudienceRules
+    priority: int
     status: OfferStatus
     created_by_uuid: UUID
     starts_at: datetime | None
@@ -88,6 +97,9 @@ class PublicOfferRead(BaseModel):
       republishing it lets a client second-guess the server and discloses
       unlaunched-campaign timing (same reasoning as PublicBannerRead).
     - created_at: internal metadata, no display use.
+    - audience_rules: authenticated segmentation input; never disclose it to
+      anonymous catalogue consumers.
+    - priority: authenticated placement ordering input, not display data.
 
     business_line IS included, unlike PublicBannerRead: offers are line-scoped
     by design (an offer applies to loans, real_estate, or both) and the

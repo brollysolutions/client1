@@ -62,6 +62,21 @@ async def _auth_user_uuid(mobile: str) -> str:
         return str(row[0])
 
 
+async def _personalization_preference_exists(uid: str) -> bool:
+    import app.db.session as _session_mod
+
+    async with _session_mod.AsyncSessionLocal() as db:
+        return bool(
+            await db.scalar(
+                text(
+                    "SELECT EXISTS (SELECT 1 FROM personalization_preferences "
+                    "WHERE auth_user_uuid = :uid)"
+                ),
+                {"uid": uid},
+            )
+        )
+
+
 async def _client_profile_statuses(uid: str) -> list[str]:
     import app.db.session as _session_mod
 
@@ -361,6 +376,25 @@ async def test_delete_correct_password_returns_200_and_tombstones(client: AsyncC
     assert not target_exists_after
 
 
+async def test_self_delete_erases_private_personalization_preference(
+    client: AsyncClient,
+) -> None:
+    access_token, mobile = await full_registration(client)
+    uid = await _auth_user_uuid(mobile)
+    created = await client.patch(
+        "/api/v1/personalization/preferences",
+        json={"personalization_enabled": True},
+        headers={"Authorization": f"Bearer {access_token}"},
+    )
+    assert created.status_code == 200, created.text
+    assert await _personalization_preference_exists(uid)
+
+    response = await _delete_me(client, access_token)
+
+    assert response.status_code == 200, response.text
+    assert not await _personalization_preference_exists(uid)
+
+
 async def test_delete_clears_refresh_cookie(client: AsyncClient) -> None:
     access_token, _ = await full_registration(client)
     resp = await _delete_me(client, access_token)
@@ -544,7 +578,7 @@ async def test_delete_rejects_pending_property_submission_and_purges_private_med
 
     response = await _delete_me(client, access_token)
 
-    assert response.status_code == 204, response.text
+    assert response.status_code == 200, response.text
     assert object_key in deleted_keys
     async with session_module.AsyncSessionLocal() as session:
         row = await session.execute(

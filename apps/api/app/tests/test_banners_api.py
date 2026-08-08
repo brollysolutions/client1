@@ -93,6 +93,49 @@ async def test_create_validation_error(client: AsyncClient) -> None:
 
 
 @pytest.mark.asyncio
+async def test_personalized_banner_requires_typed_audience(client: AsyncClient) -> None:
+    _, mobile = await full_registration(client, lines=["loans"])
+    uid = await _auth_user_uuid(mobile)
+    headers = {"Authorization": f"Bearer {_sub_admin_token(uid)}"}
+
+    missing = await client.post(
+        "/api/v1/banners",
+        json={**_PAYLOAD, "banner_type": "personalized", "audience_rules": {}},
+        headers=headers,
+    )
+    assert missing.status_code == 422
+
+    targeted = await client.post(
+        "/api/v1/banners",
+        json={
+            **_PAYLOAD,
+            "banner_type": "personalized",
+            "audience_rules": {
+                "version": 1,
+                "user_types": ["client"],
+                "client_journey_stages": ["not_started"],
+            },
+        },
+        headers=headers,
+    )
+    assert targeted.status_code == 201, targeted.text
+    assert targeted.json()["audience_rules"]["user_types"] == ["client"]
+
+
+@pytest.mark.asyncio
+async def test_default_banner_rejects_targeting_rules(client: AsyncClient) -> None:
+    _, mobile = await full_registration(client, lines=["loans"])
+    uid = await _auth_user_uuid(mobile)
+    response = await client.post(
+        "/api/v1/banners",
+        json={**_PAYLOAD, "audience_rules": {"version": 1, "user_types": ["client"]}},
+        headers={"Authorization": f"Bearer {_sub_admin_token(uid)}"},
+    )
+
+    assert response.status_code == 422
+
+
+@pytest.mark.asyncio
 async def test_submit_moves_to_pending_approval(client: AsyncClient) -> None:
     _, mobile = await full_registration(client, lines=["loans"])
     uid = await _auth_user_uuid(mobile)

@@ -2222,6 +2222,108 @@
         "title": "AgentsSummary",
         "type": "object"
       },
+      "AudienceLocationCircle": {
+        "additionalProperties": false,
+        "properties": {
+          "label": {
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Label",
+            "type": "string"
+          },
+          "latitude": {
+            "maximum": 90.0,
+            "minimum": -90.0,
+            "title": "Latitude",
+            "type": "number"
+          },
+          "longitude": {
+            "maximum": 180.0,
+            "minimum": -180.0,
+            "title": "Longitude",
+            "type": "number"
+          },
+          "radius_km": {
+            "maximum": 500.0,
+            "minimum": 5.0,
+            "title": "Radius Km",
+            "type": "number"
+          }
+        },
+        "required": [
+          "label",
+          "latitude",
+          "longitude",
+          "radius_km"
+        ],
+        "title": "AudienceLocationCircle",
+        "type": "object"
+      },
+      "AudienceRules": {
+        "additionalProperties": false,
+        "description": "Version-one rule grammar.\n\nPopulated dimensions are ANDed. Values within one dimension are ORed.\nAn empty object is the canonical generic-content representation.",
+        "properties": {
+          "agent_signals": {
+            "items": {
+              "enum": [
+                "no_leads",
+                "has_active_leads",
+                "has_converted_leads",
+                "has_pending_commission",
+                "has_paid_commission"
+              ],
+              "type": "string"
+            },
+            "maxItems": 5,
+            "title": "Agent Signals",
+            "type": "array"
+          },
+          "client_journey_stages": {
+            "items": {
+              "enum": [
+                "not_started",
+                "in_progress",
+                "on_hold",
+                "completed",
+                "rejected",
+                "closed"
+              ],
+              "type": "string"
+            },
+            "maxItems": 6,
+            "title": "Client Journey Stages",
+            "type": "array"
+          },
+          "locations": {
+            "items": {
+              "$ref": "#/components/schemas/AudienceLocationCircle"
+            },
+            "maxItems": 10,
+            "title": "Locations",
+            "type": "array"
+          },
+          "user_types": {
+            "items": {
+              "enum": [
+                "client",
+                "agent"
+              ],
+              "type": "string"
+            },
+            "maxItems": 2,
+            "title": "User Types",
+            "type": "array"
+          },
+          "version": {
+            "const": 1,
+            "default": 1,
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "title": "AudienceRules",
+        "type": "object"
+      },
       "AuditAction": {
         "description": "Every value here has a real writer in `app/services/`.\n\nThe five LOAN_TYPE_*/BANK_* values (migration 1dd0bc6bed88) are written by\n`services/loan_config.py`. No `*_deleted` siblings exist \u2014 that module never\ndeletes a row, only toggles `active`, which is just another `*_updated`.\n\nThe two FEE_CASHBACK_* values (migration d3e4f5a6b7c8) are written by\n`services/fee_cashbacks.py` (FR-6.6 processing-fee cashback).",
         "enum": [
@@ -2415,6 +2517,155 @@
           "expires_in"
         ],
         "title": "AuthTokensResponse",
+        "type": "object"
+      },
+      "AuthenticatedBannerRead": {
+        "properties": {
+          "banner_type": {
+            "$ref": "#/components/schemas/BannerType"
+          },
+          "cta_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cta Label"
+          },
+          "deep_link": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Deep Link"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "image_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Image Url"
+          },
+          "subtitle": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Subtitle"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "banner_type",
+          "title",
+          "subtitle",
+          "cta_label",
+          "deep_link",
+          "image_url"
+        ],
+        "title": "AuthenticatedBannerRead",
+        "type": "object"
+      },
+      "AuthenticatedOfferRead": {
+        "properties": {
+          "code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Code"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "discount_type": {
+            "title": "Discount Type",
+            "type": "string"
+          },
+          "discount_value": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Discount Value",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "description",
+          "discount_type",
+          "discount_value",
+          "code"
+        ],
+        "title": "AuthenticatedOfferRead",
+        "type": "object"
+      },
+      "AuthenticatedPlacementResponse": {
+        "properties": {
+          "banners": {
+            "items": {
+              "$ref": "#/components/schemas/AuthenticatedBannerRead"
+            },
+            "title": "Banners",
+            "type": "array"
+          },
+          "offers": {
+            "items": {
+              "$ref": "#/components/schemas/AuthenticatedOfferRead"
+            },
+            "title": "Offers",
+            "type": "array"
+          }
+        },
+        "required": [
+          "banners",
+          "offers"
+        ],
+        "title": "AuthenticatedPlacementResponse",
         "type": "object"
       },
       "BankAvailabilityEntry": {
@@ -2619,9 +2870,7 @@
       "BannerCreate": {
         "properties": {
           "audience_rules": {
-            "additionalProperties": true,
-            "title": "Audience Rules",
-            "type": "object"
+            "$ref": "#/components/schemas/AudienceRules"
           },
           "banner_type": {
             "$ref": "#/components/schemas/BannerType"
@@ -2812,9 +3061,7 @@
             "title": "Approved By Uuid"
           },
           "audience_rules": {
-            "additionalProperties": true,
-            "title": "Audience Rules",
-            "type": "object"
+            "$ref": "#/components/schemas/AudienceRules"
           },
           "banner_type": {
             "$ref": "#/components/schemas/BannerType"
@@ -2983,14 +3230,12 @@
           "audience_rules": {
             "anyOf": [
               {
-                "additionalProperties": true,
-                "type": "object"
+                "$ref": "#/components/schemas/AudienceRules"
               },
               {
                 "type": "null"
               }
-            ],
-            "title": "Audience Rules"
+            ]
           },
           "cta_label": {
             "anyOf": [
@@ -6234,6 +6479,28 @@
         "title": "LoansReportRow",
         "type": "object"
       },
+      "LocationCaptureRequest": {
+        "properties": {
+          "latitude": {
+            "maximum": 90.0,
+            "minimum": -90.0,
+            "title": "Latitude",
+            "type": "number"
+          },
+          "longitude": {
+            "maximum": 180.0,
+            "minimum": -180.0,
+            "title": "Longitude",
+            "type": "number"
+          }
+        },
+        "required": [
+          "latitude",
+          "longitude"
+        ],
+        "title": "LocationCaptureRequest",
+        "type": "object"
+      },
       "LoginRequest": {
         "properties": {
           "mobile": {
@@ -7055,6 +7322,9 @@
       },
       "OfferCreate": {
         "properties": {
+          "audience_rules": {
+            "$ref": "#/components/schemas/AudienceRules"
+          },
           "business_line": {
             "pattern": "^(loans|real_estate|both)$",
             "title": "Business Line",
@@ -7114,6 +7384,12 @@
             ],
             "title": "Ends At"
           },
+          "priority": {
+            "default": 0,
+            "minimum": 0.0,
+            "title": "Priority",
+            "type": "integer"
+          },
           "starts_at": {
             "anyOf": [
               {
@@ -7160,6 +7436,9 @@
       },
       "OfferRead": {
         "properties": {
+          "audience_rules": {
+            "$ref": "#/components/schemas/AudienceRules"
+          },
           "business_line": {
             "title": "Business Line",
             "type": "string"
@@ -7222,6 +7501,10 @@
             "title": "Id",
             "type": "string"
           },
+          "priority": {
+            "title": "Priority",
+            "type": "integer"
+          },
           "starts_at": {
             "anyOf": [
               {
@@ -7250,6 +7533,8 @@
           "discount_type",
           "discount_value",
           "code",
+          "audience_rules",
+          "priority",
           "status",
           "created_by_uuid",
           "starts_at",
@@ -7272,6 +7557,16 @@
       },
       "OfferUpdate": {
         "properties": {
+          "audience_rules": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AudienceRules"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "code": {
             "anyOf": [
               {
@@ -7335,6 +7630,18 @@
               }
             ],
             "title": "Ends At"
+          },
+          "priority": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Priority"
           },
           "starts_at": {
             "anyOf": [
@@ -7900,6 +8207,50 @@
           "submitted_at"
         ],
         "title": "PendingApprovalItem",
+        "type": "object"
+      },
+      "PersonalizationPreferenceRead": {
+        "properties": {
+          "location_captured_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Location Captured At"
+          },
+          "location_enabled": {
+            "title": "Location Enabled",
+            "type": "boolean"
+          },
+          "personalization_enabled": {
+            "title": "Personalization Enabled",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "personalization_enabled",
+          "location_enabled",
+          "location_captured_at"
+        ],
+        "title": "PersonalizationPreferenceRead",
+        "type": "object"
+      },
+      "PersonalizationPreferenceUpdate": {
+        "properties": {
+          "personalization_enabled": {
+            "title": "Personalization Enabled",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "personalization_enabled"
+        ],
+        "title": "PersonalizationPreferenceUpdate",
         "type": "object"
       },
       "PropertyCategory": {
@@ -8616,7 +8967,7 @@
         "type": "object"
       },
       "PublicOfferRead": {
-        "description": "Anonymous-read shape (docs/specs/public-offer-serving.md).\n\nDeliberately NOT a subclass of OfferRead -- a future sensitive column\nadded to the authenticated read can never silently surface here.\n\n- status: constant \"active\" by construction on this path (see\n  services/public_catalog.py::list_public_offers). Exposing a constant\n  invites a client-side filter that would quietly become the de-facto\n  access control.\n- created_by_uuid: staff identity, never public.\n- starts_at / ends_at: the endpoint has already applied the window;\n  republishing it lets a client second-guess the server and discloses\n  unlaunched-campaign timing (same reasoning as PublicBannerRead).\n- created_at: internal metadata, no display use.\n\nbusiness_line IS included, unlike PublicBannerRead: offers are line-scoped\nby design (an offer applies to loans, real_estate, or both) and the\nfrontend needs it to decide which strip(s) an offer renders in.",
+        "description": "Anonymous-read shape (docs/specs/public-offer-serving.md).\n\nDeliberately NOT a subclass of OfferRead -- a future sensitive column\nadded to the authenticated read can never silently surface here.\n\n- status: constant \"active\" by construction on this path (see\n  services/public_catalog.py::list_public_offers). Exposing a constant\n  invites a client-side filter that would quietly become the de-facto\n  access control.\n- created_by_uuid: staff identity, never public.\n- starts_at / ends_at: the endpoint has already applied the window;\n  republishing it lets a client second-guess the server and discloses\n  unlaunched-campaign timing (same reasoning as PublicBannerRead).\n- created_at: internal metadata, no display use.\n- audience_rules: authenticated segmentation input; never disclose it to\n  anonymous catalogue consumers.\n- priority: authenticated placement ordering input, not display data.\n\nbusiness_line IS included, unlike PublicBannerRead: offers are line-scoped\nby design (an offer applies to loans, real_estate, or both) and the\nfrontend needs it to decide which strip(s) an offer renders in.",
         "properties": {
           "business_line": {
             "title": "Business Line",
@@ -20788,6 +21139,197 @@
         "summary": "Reject Payout",
         "tags": [
           "payouts"
+        ]
+      }
+    },
+    "/api/v1/personalization/location": {
+      "delete": {
+        "operationId": "delete_location_api_v1_personalization_location_delete",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PersonalizationPreferenceRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Delete Location",
+        "tags": [
+          "personalization"
+        ]
+      },
+      "put": {
+        "operationId": "put_location_api_v1_personalization_location_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LocationCaptureRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PersonalizationPreferenceRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Put Location",
+        "tags": [
+          "personalization"
+        ]
+      }
+    },
+    "/api/v1/personalization/placements": {
+      "get": {
+        "operationId": "get_placements_api_v1_personalization_placements_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "business_line",
+            "required": true,
+            "schema": {
+              "enum": [
+                "loans",
+                "real_estate"
+              ],
+              "title": "Business Line",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthenticatedPlacementResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Get Placements",
+        "tags": [
+          "personalization"
+        ]
+      }
+    },
+    "/api/v1/personalization/preferences": {
+      "get": {
+        "operationId": "get_preferences_api_v1_personalization_preferences_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PersonalizationPreferenceRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Get Preferences",
+        "tags": [
+          "personalization"
+        ]
+      },
+      "patch": {
+        "operationId": "update_preferences_api_v1_personalization_preferences_patch",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PersonalizationPreferenceUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PersonalizationPreferenceRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Update Preferences",
+        "tags": [
+          "personalization"
         ]
       }
     },

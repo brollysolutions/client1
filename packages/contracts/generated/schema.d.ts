@@ -2420,6 +2420,59 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/personalization/location": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Put Location */
+        put: operations["put_location_api_v1_personalization_location_put"];
+        post?: never;
+        /** Delete Location */
+        delete: operations["delete_location_api_v1_personalization_location_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/personalization/placements": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Placements */
+        get: operations["get_placements_api_v1_personalization_placements_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/personalization/preferences": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Preferences */
+        get: operations["get_preferences_api_v1_personalization_preferences_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Preferences */
+        patch: operations["update_preferences_api_v1_personalization_preferences_patch"];
+        trace?: never;
+    };
     "/api/v1/properties": {
         parameters: {
             query?: never;
@@ -3995,6 +4048,40 @@ export interface components {
             /** Loans Total */
             loans_total: number;
         };
+        /** AudienceLocationCircle */
+        AudienceLocationCircle: {
+            /** Label */
+            label: string;
+            /** Latitude */
+            latitude: number;
+            /** Longitude */
+            longitude: number;
+            /** Radius Km */
+            radius_km: number;
+        };
+        /**
+         * AudienceRules
+         * @description Version-one rule grammar.
+         *
+         *     Populated dimensions are ANDed. Values within one dimension are ORed.
+         *     An empty object is the canonical generic-content representation.
+         */
+        AudienceRules: {
+            /** Agent Signals */
+            agent_signals?: ("no_leads" | "has_active_leads" | "has_converted_leads" | "has_pending_commission" | "has_paid_commission")[];
+            /** Client Journey Stages */
+            client_journey_stages?: ("not_started" | "in_progress" | "on_hold" | "completed" | "rejected" | "closed")[];
+            /** Locations */
+            locations?: components["schemas"]["AudienceLocationCircle"][];
+            /** User Types */
+            user_types?: ("client" | "agent")[];
+            /**
+             * Version
+             * @default 1
+             * @constant
+             */
+            version: 1;
+        };
         /**
          * AuditAction
          * @description Every value here has a real writer in `app/services/`.
@@ -4086,6 +4173,50 @@ export interface components {
              */
             token_type: string;
         };
+        /** AuthenticatedBannerRead */
+        AuthenticatedBannerRead: {
+            banner_type: components["schemas"]["BannerType"];
+            /** Cta Label */
+            cta_label: string | null;
+            /** Deep Link */
+            deep_link: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Image Url */
+            image_url: string | null;
+            /** Subtitle */
+            subtitle: string | null;
+            /** Title */
+            title: string;
+        };
+        /** AuthenticatedOfferRead */
+        AuthenticatedOfferRead: {
+            /** Code */
+            code: string | null;
+            /** Description */
+            description: string | null;
+            /** Discount Type */
+            discount_type: string;
+            /** Discount Value */
+            discount_value: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Title */
+            title: string;
+        };
+        /** AuthenticatedPlacementResponse */
+        AuthenticatedPlacementResponse: {
+            /** Banners */
+            banners: components["schemas"]["AuthenticatedBannerRead"][];
+            /** Offers */
+            offers: components["schemas"]["AuthenticatedOfferRead"][];
+        };
         /** BankAvailabilityEntry */
         BankAvailabilityEntry: {
             /** Available */
@@ -4176,10 +4307,7 @@ export interface components {
         };
         /** BannerCreate */
         BannerCreate: {
-            /** Audience Rules */
-            audience_rules?: {
-                [key: string]: unknown;
-            };
+            audience_rules?: components["schemas"]["AudienceRules"];
             banner_type: components["schemas"]["BannerType"];
             /** Business Line */
             business_line: string;
@@ -4235,10 +4363,7 @@ export interface components {
         BannerRead: {
             /** Approved By Uuid */
             approved_by_uuid: string | null;
-            /** Audience Rules */
-            audience_rules: {
-                [key: string]: unknown;
-            };
+            audience_rules: components["schemas"]["AudienceRules"];
             banner_type: components["schemas"]["BannerType"];
             /** Business Line */
             business_line: string;
@@ -4294,10 +4419,7 @@ export interface components {
         BannerType: "default" | "personalized" | "action";
         /** BannerUpdate */
         BannerUpdate: {
-            /** Audience Rules */
-            audience_rules?: {
-                [key: string]: unknown;
-            } | null;
+            audience_rules?: components["schemas"]["AudienceRules"] | null;
             /** Cta Label */
             cta_label?: string | null;
             /** Deep Link */
@@ -5476,6 +5598,13 @@ export interface components {
             /** Total */
             total: number;
         };
+        /** LocationCaptureRequest */
+        LocationCaptureRequest: {
+            /** Latitude */
+            latitude: number;
+            /** Longitude */
+            longitude: number;
+        };
         /** LoginRequest */
         LoginRequest: {
             /** Mobile */
@@ -5722,6 +5851,7 @@ export interface components {
         NotificationType: "site_visit_requested" | "site_visit_cancelled" | "support_ticket_received" | "lead_assigned" | "lead_released" | "agent_lead_expired" | "task_assigned" | "loan_status_updated" | "property_deal_status_updated" | "referral_converted" | "support_ticket_resolved" | "document_review_updated" | "admin_payout_reviewed" | "admin_account_action" | "admin_retention_purged" | "admin_broadcast" | "mobile_change_requested" | "mobile_changed" | "mobile_change_rejected" | "vehicle_arrangement_updated";
         /** OfferCreate */
         OfferCreate: {
+            audience_rules?: components["schemas"]["AudienceRules"];
             /** Business Line */
             business_line: string;
             /** Code */
@@ -5734,6 +5864,11 @@ export interface components {
             discount_value: number | string;
             /** Ends At */
             ends_at?: string | null;
+            /**
+             * Priority
+             * @default 0
+             */
+            priority: number;
             /** Starts At */
             starts_at?: string | null;
             /** Title */
@@ -5746,6 +5881,7 @@ export interface components {
         };
         /** OfferRead */
         OfferRead: {
+            audience_rules: components["schemas"]["AudienceRules"];
             /** Business Line */
             business_line: string;
             /** Code */
@@ -5773,6 +5909,8 @@ export interface components {
              * Format: uuid
              */
             id: string;
+            /** Priority */
+            priority: number;
             /** Starts At */
             starts_at: string | null;
             status: components["schemas"]["OfferStatus"];
@@ -5786,6 +5924,7 @@ export interface components {
         OfferStatus: "draft" | "scheduled" | "active" | "expired" | "archived";
         /** OfferUpdate */
         OfferUpdate: {
+            audience_rules?: components["schemas"]["AudienceRules"] | null;
             /** Code */
             code?: string | null;
             /** Description */
@@ -5796,6 +5935,8 @@ export interface components {
             discount_value?: number | string | null;
             /** Ends At */
             ends_at?: string | null;
+            /** Priority */
+            priority?: number | null;
             /** Starts At */
             starts_at?: string | null;
             /** Title */
@@ -5989,6 +6130,20 @@ export interface components {
             submitted_at: string;
             /** Title */
             title: string;
+        };
+        /** PersonalizationPreferenceRead */
+        PersonalizationPreferenceRead: {
+            /** Location Captured At */
+            location_captured_at: string | null;
+            /** Location Enabled */
+            location_enabled: boolean;
+            /** Personalization Enabled */
+            personalization_enabled: boolean;
+        };
+        /** PersonalizationPreferenceUpdate */
+        PersonalizationPreferenceUpdate: {
+            /** Personalization Enabled */
+            personalization_enabled: boolean;
         };
         /**
          * PropertyCategory
@@ -6288,6 +6443,9 @@ export interface components {
          *       republishing it lets a client second-guess the server and discloses
          *       unlaunched-campaign timing (same reasoning as PublicBannerRead).
          *     - created_at: internal metadata, no display use.
+         *     - audience_rules: authenticated segmentation input; never disclose it to
+         *       anonymous catalogue consumers.
+         *     - priority: authenticated placement ordering input, not display data.
          *
          *     business_line IS included, unlike PublicBannerRead: offers are line-scoped
          *     by design (an offer applies to loans, real_estate, or both) and the
@@ -12519,6 +12677,143 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PayoutRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    put_location_api_v1_personalization_location_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LocationCaptureRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PersonalizationPreferenceRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_location_api_v1_personalization_location_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PersonalizationPreferenceRead"];
+                };
+            };
+        };
+    };
+    get_placements_api_v1_personalization_placements_get: {
+        parameters: {
+            query: {
+                business_line: "loans" | "real_estate";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthenticatedPlacementResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_preferences_api_v1_personalization_preferences_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PersonalizationPreferenceRead"];
+                };
+            };
+        };
+    };
+    update_preferences_api_v1_personalization_preferences_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PersonalizationPreferenceUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PersonalizationPreferenceRead"];
                 };
             };
             /** @description Validation Error */

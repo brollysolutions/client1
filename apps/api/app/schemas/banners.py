@@ -10,9 +10,10 @@ from datetime import datetime
 from typing import Literal
 from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 from app.models.banner import BannerStatus, BannerType
+from app.schemas.personalization import AudienceRules, audience_rules_valid_for_banner
 
 # Matches services/banners.py::build_image_key's `public/banners/{uuid4}/{name}`
 # shape exactly -- this is the write-side half of the public/ security
@@ -41,10 +42,18 @@ class BannerCreate(BaseModel):
     cta_label: str | None = Field(default=None, max_length=40)
     image_key: str | None = Field(default=None, max_length=500, pattern=_IMAGE_KEY_PATTERN)
     deep_link: str | None = Field(default=None, max_length=1000)
-    audience_rules: dict = Field(default_factory=dict)
+    audience_rules: AudienceRules = Field(default_factory=AudienceRules)
     priority: int = Field(default=0, ge=0)
     starts_at: datetime | None = None
     ends_at: datetime | None = None
+
+    @model_validator(mode="after")
+    def audience_matches_banner_type(self) -> BannerCreate:
+        if not audience_rules_valid_for_banner(self.banner_type, self.audience_rules):
+            if self.banner_type == BannerType.PERSONALIZED:
+                raise ValueError("Personalized banners require at least one user type.")
+            raise ValueError("Default and action banners cannot carry audience rules.")
+        return self
 
 
 class BannerUpdate(BaseModel):
@@ -53,7 +62,7 @@ class BannerUpdate(BaseModel):
     cta_label: str | None = Field(default=None, max_length=40)
     image_key: str | None = Field(default=None, max_length=500, pattern=_IMAGE_KEY_PATTERN)
     deep_link: str | None = Field(default=None, max_length=1000)
-    audience_rules: dict | None = None
+    audience_rules: AudienceRules | None = None
     priority: int | None = Field(default=None, ge=0)
     starts_at: datetime | None = None
     ends_at: datetime | None = None
@@ -83,7 +92,7 @@ class BannerRead(BaseModel):
     cta_label: str | None
     image_key: str | None
     deep_link: str | None
-    audience_rules: dict
+    audience_rules: AudienceRules
     priority: int
     status: BannerStatus
     created_by_uuid: UUID

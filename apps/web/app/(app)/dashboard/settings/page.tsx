@@ -19,6 +19,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { FetchError } from "@/features/dashboard/fetch-error";
 import { useMe } from "@/features/dashboard/me-provider";
 import { PushSubscriptionCard } from "@/features/push-notifications/push-subscription-card";
+import { PersonalizationSettingsCard } from "@/features/settings/personalization-settings-card";
 import { updateProfile, type Me } from "@/lib/auth";
 
 export default function SettingsPage() {
@@ -64,6 +65,10 @@ export default function SettingsPage() {
       ) : null}
 
       <PushSubscriptionCard />
+
+      {session?.role === "client" || session?.role === "agent" ? (
+        <PersonalizationSettingsCard />
+      ) : null}
 
       <div className="space-y-3 rounded-xl border border-destructive/30 bg-destructive/5 p-6">
         <div>

@@ -2,9 +2,10 @@
 
 Status: **Derived living implementation ledger**
 
-As of: **2026-08-07**
+As of: **2026-08-08**
 
-Evidence baseline: `9907941` ([PR #149](https://github.com/brollysolutions/client1/pull/149))
+Evidence baseline: `14773ae` ([PR #151](https://github.com/brollysolutions/client1/pull/151)) plus
+[PR #152](https://github.com/brollysolutions/client1/pull/152)
 
 ## Purpose and authority
 
@@ -31,18 +32,29 @@ live-provider configuration are assessed separately.
 
 | Measure | Result |
 | --- | ---: |
-| Complete requirements | 61 / 80 (76.25%) |
-| Partial requirements | 16 / 80 (20.0%) |
-| Not-started requirements | 3 / 80 (3.75%) |
-| Weighted implementation coverage | **86.3%** |
+| Complete requirements | 66 / 80 (82.5%) |
+| Partial requirements | 13 / 80 (16.25%) |
+| Not-started requirements | 1 / 80 (1.25%) |
+| Weighted implementation coverage | **90.6%** |
 
 Weighted coverage gives each Complete item 1 point and each Partial item 0.5
-points: `(61 + 16 x 0.5) / 80 = 86.25%`. The weighting is a planning aid, not
+points: `(66 + 13 x 0.5) / 80 = 90.625%`. The weighting is a planning aid, not
 an estimate of calendar time: a single security-sensitive gap can require more
 work than several completed UI requirements.
 
 ## Delivered implementation
 
+- **Authenticated banner personalization** (FR-12.1 through FR-12.4 and
+  FR-18.1) is implemented in
+  [PR #152](https://github.com/brollysolutions/client1/pull/152). A closed
+  versioned grammar evaluates consented Client journey,
+  Agent activity, and optional coarse-location signals only after server-side
+  identity/line validation. Private no-store dashboard placements expose
+  display-only banners and Client offers; anonymous responses exclude all
+  targeted content. Owner-only RLS, two-decimal latest-location storage,
+  30-day purge, immediate revocation/deletion, fail-closed legacy handling,
+  deterministic ranking, safe fallbacks, generated contracts, CMS controls,
+  and Client/Agent browser journeys are covered by automated evidence.
 - **Vehicle arrangements** (FR-7.1, OI-003) are implemented in
   [PR #149](https://github.com/brollysolutions/client1/pull/149). Clients optionally request one
   pickup during site-visit creation; platform Admin arranges transport and
@@ -83,14 +95,14 @@ work than several completed UI requirements.
 | Referrals (FR-9.x) | 5 | 0 | 0 | Client codes, attribution, conversion accrual, Admin payout, ledger, and Sub Admin rules exist. |
 | Payments (FR-10.x) | 3 | 1 | 0 | Money-purpose boundaries and payout controls exist; gateway/method breadth is narrower than specified. |
 | Notifications (FR-11.x) | 3 | 0 | 0 | In-app, web push, Admin major-action, and verified-email transactional notifications now use audited same-origin workflow destinations. |
-| Banners/personalization (FR-12.x) | 0 | 3 | 1 | Banner lifecycle, targeting fields, approval, images, and deep links exist; authenticated targeting and context-driven placement do not. |
+| Banners/personalization (FR-12.x) | 4 | 0 | 0 | Approved content lifecycle now feeds authenticated, consented, line-validated Client/Agent placements through a closed fail-closed audience grammar; anonymous responses exclude targeted rows. |
 | Media/uploads (FR-13.x) | 0 | 4 | 0 | Secure purpose-specific image/PDF flows and property camera capture exist; unified per-line galleries, feedback attachments, video, and broader retention remain incomplete. |
 | Support (FR-14.x) | 4 | 0 | 0 | Central tickets, WhatsApp route, Admin triage/resolution, and structured mobile-change fulfilment exist. |
 | Contact privacy (FR-15.x) | 4 | 0 | 0 | Agent-owned and Telecaller-assigned mobile access is locked; Employee raw/deny/provider-neutral invitation modes and least-data projection are enforced server-side. |
 | Analytics (FR-16.x) | 0 | 3 | 0 | **In review** in [PR #150](https://github.com/brollysolutions/client1/pull/150): weekly/monthly reporting, filters, sorting, CSV/XLSX, selected-Agent groups, and business-line team summaries are implemented. Database-backed reporting tests remain blocked locally by a `_greenlet` DLL failure. |
 | Profile/account (FR-17.x) | 4 | 0 | 0 | Profile/settings, optional demographic/income/address details, transactions/support, deletion, retention, and Admin removal exist. |
-| Location (FR-18.x) | 0 | 0 | 2 | No consented login-location personalization or map/GMB integration seam was found. |
-| **Total** | **61** | **16** | **3** | **80 requirements** |
+| Location (FR-18.x) | 1 | 0 | 1 | Explicit nested opt-in stores only the latest two-decimal point for 30 days and erases it on revocation, personalization disable, or account deletion; the map/GMB seam remains undecided. |
+| **Total** | **66** | **13** | **1** | **80 requirements** |
 
 ## Done
 
@@ -144,6 +156,12 @@ The following requirements are complete on the evidence baseline:
   occupation/address details; transaction and support surfaces;
   password-confirmed self-deletion; Admin deletion; immediate profile-PII scrub;
   de-linking; and seven-year retention purge behavior.
+- Personalization: FR-12.1 through FR-12.4 and FR-18.1. Evidence includes the
+  versioned audience schema, server-side Client/Agent line proof, consented
+  workflow/location matching, private display-only placements, public
+  non-leakage, deterministic ranking, owner-only preference RLS, immediate
+  revocation/deletion, scheduled retention, API/contract/web tests, and seeded
+  Client/Agent Playwright journeys.
 
 ## Remaining
 
@@ -156,18 +174,18 @@ The following requirements are complete on the evidence baseline:
 | FR-4.3 | Partial | Direct registration captures a lead and creates both client profiles. | Capture explicit requirement intent and implement deterministic per-line Telecaller assignment without cross-line leakage. |
 | FR-10.3 | Partial | RazorpayX VPA/bank payouts and manual cheque records exist. | Decide whether RuPay and multi-gateway routing are still required, then implement provider-neutral method support. |
 | FR-11.2 | Complete | Every notification producer, Admin broadcast, web push, public banner CTA, and transactional email action uses a same-origin relevant route; verified active email addresses can receive best-effort transactional copies when enabled. | Maintain the producer inventory as future events are added; no marketing or unverified-email delivery is implied. |
-| FR-12.1 | Partial | Default, personalized, and action banner types and lifecycle fields exist. | Add an authenticated serving path that safely evaluates personalized audiences. |
-| FR-12.2 | Partial | Banners carry line/type/audience metadata and approved public banners render. | Serve correct client-line and Agent incentive banners after authentication. |
-| FR-12.3 | Partial | Sub Admin creates banners; Admin approval gates public serving. | Serve personalized content only to eligible logged-in users and test negative targeting cases. |
-| FR-12.4 | Not started | Offers are line-scoped and schedulable. | Define consented activity/location/business signals and implement auditable placement rules. |
+| FR-12.1 | Complete | Authenticated Client/Agent dashboards receive one eligible banner per default, personalized, and action layer through a closed, versioned, fail-closed audience grammar. | Maintain schema/version and negative-rule tests when new dimensions are proposed. |
+| FR-12.2 | Complete | The server proves Client line ownership, forces Agents to their active profile line, ranks exact-line/`both` content deterministically, and keeps Agents off customer offers. | Preserve server-side line proof and role separation for future placements. |
+| FR-12.3 | Complete | Sub Admin authoring and Admin banner approval validate the closed grammar; only eligible consented users receive personalized rows, with public and cross-role negatives. | Keep approval and anonymous allowlist tests alongside future CMS changes. |
+| FR-12.4 | Complete | Existing workflow facts and optional coarse location drive auditable, consented banner/offer placement without clickstream or inferred demographics. | Treat any new signal source as a separately approved privacy/security change. |
 | FR-13.1 | Partial | Real-estate property submissions now have an owned private review gallery and approved public image gallery. | Add the separate Loans gallery and any other approved per-line gallery surfaces. |
 | FR-13.2 | Partial | Agent KYC, loan/task documents, banners, and property submissions have managed upload flows; property submission supports browser camera capture. | Add approved feedback/media attachments and camera capture to other applicable journeys. |
 | FR-13.3 | Partial | Managed property media constrains images/PDFs and verifies content signatures; other current flows also constrain types. | Define safe video types, size/duration limits, transcoding/serving policy, malware scanning, content checks, and image metadata normalization. |
 | FR-13.4 | Partial | Property media enforces quotas, upload rate limits, canonical snapshots, orphan/rejection/promotion cleanup, inactive-public cleanup, and account-deletion cleanup. | Apply consistent controls to every media purpose and define approved reviewer-document retention. |
-| FR-16.1 | In review | [PR #150](https://github.com/brollysolutions/client1/pull/150) adds formula-safe Excel export alongside the existing CSV export, with the same capped result set and truncation signal. | Run database-backed export tests and production build in a healthy environment. |
-| FR-16.2 | In review | Reports filter by business line and a selected multi-Agent list; the list is the ad hoc group filter, with no persistent group/team model added. | Verify the filter path against a PostgreSQL-backed environment. |
-| FR-16.3 | In review | The Agents report now returns and renders Loans/Real Estate business-line team performance summaries, retaining per-Agent sorting and selective views. | Verify team aggregate totals against a PostgreSQL-backed environment. |
-| FR-18.1 | Not started | No login-location capture is present. | Define opt-in, purpose, precision, retention, fallback, and deletion behavior before implementation. |
+| FR-16.1 | Partial | [PR #150](https://github.com/brollysolutions/client1/pull/150) adds formula-safe Excel export alongside the existing CSV export, with the same capped result set and truncation signal. | Run database-backed export tests and production build in a healthy environment. |
+| FR-16.2 | Partial | Reports filter by business line and a selected multi-Agent list; the list is the ad hoc group filter, with no persistent group/team model added. | Verify the filter path against a PostgreSQL-backed environment. |
+| FR-16.3 | Partial | The Agents report now returns and renders Loans/Real Estate business-line team performance summaries, retaining per-Agent sorting and selective views. | Verify team aggregate totals against a PostgreSQL-backed environment. |
+| FR-18.1 | Complete | An explicit nested opt-in stores only the latest server-rounded two-decimal point, omits stale/unavailable matches, purges after 30 days, and erases on revoke/disable/deletion without logging coordinates. | Maintain the retention job and location-free audit contract. |
 | FR-18.2 | Not started | Address-based properties and visits exist, but no map seam is defined. | Decide whether maps/GMB remain in v1 and design a provider boundary without exposing unnecessary location data. |
 
 ## Evidence map

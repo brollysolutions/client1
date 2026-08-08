@@ -38,6 +38,20 @@ async def _get_status(uid: str) -> str:
         return row[0]
 
 
+async def _personalization_preference_exists(uid: str) -> bool:
+    import app.db.session as _session_mod
+
+    async with _session_mod.AsyncSessionLocal() as db:
+        value = await db.scalar(
+            text(
+                "SELECT EXISTS (SELECT 1 FROM personalization_preferences "
+                "WHERE auth_user_uuid = :id)"
+            ),
+            {"id": uid},
+        )
+        return bool(value)
+
+
 async def _get_auth_event_reason(uid: str) -> tuple[str | None, str | None]:
     """Returns (actor_auth_user_uuid, reason) from the most recent account_deleted event."""
     import app.db.session as _session_mod
@@ -132,6 +146,31 @@ async def test_admin_deletes_account_and_persists_reason(client: AsyncClient) ->
     actor, reason = await _get_auth_event_reason(target_uid)
     assert actor == admin_uid
     assert reason == "duplicate account, flagged by support"
+
+
+async def test_admin_delete_erases_private_personalization_preference(
+    client: AsyncClient,
+) -> None:
+    _, admin_mobile = await full_registration(client)
+    admin_uid = await _auth_user_uuid(admin_mobile)
+    target_access, target_mobile = await full_registration(client)
+    target_uid = await _auth_user_uuid(target_mobile)
+    created = await client.patch(
+        "/api/v1/personalization/preferences",
+        json={"personalization_enabled": True},
+        headers={"Authorization": f"Bearer {target_access}"},
+    )
+    assert created.status_code == 200, created.text
+    assert await _personalization_preference_exists(target_uid)
+
+    response = await client.post(
+        f"/api/v1/admin/users/{target_uid}/delete",
+        json={"reason": "duplicate account"},
+        headers={"Authorization": f"Bearer {_admin_token(admin_uid)}"},
+    )
+
+    assert response.status_code == 200, response.text
+    assert not await _personalization_preference_exists(target_uid)
 
 
 async def test_admin_delete_already_deleted_returns_409(client: AsyncClient) -> None:

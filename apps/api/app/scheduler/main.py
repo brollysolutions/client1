@@ -27,6 +27,7 @@ from app.jobs.expire_agent_leads import expire_agent_leads
 from app.jobs.purge_agent_application_orphans import purge_agent_application_orphans
 from app.jobs.purge_banner_image_orphans import purge_banner_image_orphans
 from app.jobs.purge_loan_document_orphans import purge_loan_document_orphans
+from app.jobs.purge_personalization_locations import purge_personalization_locations
 from app.jobs.purge_property_media import purge_property_media
 from app.jobs.purge_task_document_orphans import purge_task_document_orphans
 from app.jobs.reconcile_payout_links import reconcile_payout_links
@@ -202,6 +203,15 @@ def build_scheduler() -> AsyncIOScheduler:
         trigger="interval",
         hours=24,
         id="purge_property_media",
+        max_instances=1,
+        coalesce=True,
+        replace_existing=True,
+    )
+    scheduler.add_job(
+        purge_personalization_locations,
+        trigger="interval",
+        hours=24,
+        id="purge_personalization_locations",
         max_instances=1,
         coalesce=True,
         replace_existing=True,

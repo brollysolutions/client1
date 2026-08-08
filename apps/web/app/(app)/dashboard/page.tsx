@@ -9,6 +9,7 @@ import { AgentHome } from "@/features/agent/agent-home";
 import { FetchError } from "@/features/dashboard/fetch-error";
 import { useLine } from "@/features/dashboard/line-provider";
 import { LoansApplications } from "@/features/dashboard/loans-applications";
+import { PersonalizedPlacements } from "@/features/dashboard/personalized-placements";
 import { useMe } from "@/features/dashboard/me-provider";
 import { EmployeeHome } from "@/features/employee/employee-home";
 import { RealEstateHome } from "@/features/real-estate/real-estate-home";
@@ -38,7 +39,12 @@ export default function DashboardPage() {
   }
 
   if (session?.role === "agent") {
-    return <AgentHome />;
+    return (
+      <>
+        <PersonalizedPlacements businessLine={session.businessLine ?? "loans"} />
+        <AgentHome />
+      </>
+    );
   }
 
   if (!isClient) {
@@ -73,14 +79,22 @@ export default function DashboardPage() {
 
   if (activeLine === "real_estate") {
     return (
-      <Suspense fallback={<Skeleton className="h-64 rounded-2xl" />}>
-        <RealEstateHome />
-      </Suspense>
+      <>
+        <PersonalizedPlacements businessLine={activeLine} />
+        <Suspense fallback={<Skeleton className="h-64 rounded-2xl" />}>
+          <RealEstateHome />
+        </Suspense>
+      </>
     );
   }
 
   // profiles may be empty briefly right after signup (backfilled by the scheduler);
   // the applications view still renders its own empty state, so nothing to gate on me here.
   void me;
-  return <LoansApplications />;
+  return (
+    <>
+      <PersonalizedPlacements businessLine={activeLine} />
+      <LoansApplications />
+    </>
+  );
 }

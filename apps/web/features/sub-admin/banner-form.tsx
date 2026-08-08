@@ -20,6 +20,10 @@ import {
 } from "@/components/ui/select";
 import { uploadFileToPresignedPost } from "@/lib/agent-application";
 import { createBanner, getBannerImageUploadUrl } from "@/lib/banners-api";
+import {
+  AudienceRuleFields,
+  emptyAudienceRules,
+} from "./audience-rule-fields";
 
 type Schemas = components["schemas"];
 
@@ -54,6 +58,7 @@ export function BannerForm() {
   const [imageError, setImageError] = React.useState<string | undefined>();
   const [deepLink, setDeepLink] = React.useState("");
   const [priority, setPriority] = React.useState("0");
+  const [audienceRules, setAudienceRules] = React.useState(emptyAudienceRules);
   const [startsAt, setStartsAt] = React.useState("");
   const [endsAt, setEndsAt] = React.useState("");
   const [titleError, setTitleError] = React.useState<string | undefined>();
@@ -104,6 +109,10 @@ export function BannerForm() {
       return;
     }
     setScheduleError(undefined);
+    if (bannerType === "personalized" && !audienceRules.user_types?.length) {
+      toast.error("Choose who should see this personalized banner.");
+      return;
+    }
     setSubmitting(true);
     const res = await createBanner({
       business_line: businessLine,
@@ -113,7 +122,7 @@ export function BannerForm() {
       cta_label: ctaLabel.trim() || null,
       image_key: imageKey,
       deep_link: deepLink.trim() || null,
-      audience_rules: {},
+      audience_rules: bannerType === "personalized" ? audienceRules : emptyAudienceRules(),
       priority: Number(priority) || 0,
       starts_at: startsAt ? new Date(startsAt).toISOString() : null,
       ends_at: endsAt ? new Date(endsAt).toISOString() : null,
@@ -225,6 +234,20 @@ export function BannerForm() {
           path starting with a single / to link within the site. An external link (including one
           starting with //) will not show a button on the public homepage.
         </p>
+
+        {bannerType === "personalized" ? (
+          <AudienceRuleFields
+            value={audienceRules}
+            onChange={setAudienceRules}
+            required
+            disabled={submitting}
+          />
+        ) : (
+          <p className="rounded-lg bg-muted/40 p-3 text-xs text-text-secondary">
+            Default and action banners are generic. Choose Personalized to target user, workflow,
+            or location signals.
+          </p>
+        )}
 
         <div className="grid gap-4 sm:grid-cols-[10rem_1fr]">
           <FileField

@@ -30,6 +30,8 @@ pnpm-debug.log*
 
 # Playwright MCP artifacts
 .playwright-mcp/
+apps/web/playwright-report/
+apps/web/test-results/
 
 # Data / dumps
 *.sqlite
@@ -70,4 +72,3 @@ apps/web/CLAUDE.md
 apps/web/GEMINI.md
 packages/contracts/CLAUDE.md
 packages/contracts/GEMINI.md
-
