@@ -6,6 +6,7 @@
 
 import type { components } from "@contracts/generated/schema";
 
+import { isAllowedAssetUrl } from "@/lib/allowed-asset-url";
 import { serverFetchJson } from "@/lib/api/server";
 import type { HeroBanner } from "@/lib/banners";
 import { isSafeLocalHref } from "@/lib/safe-local-href";
@@ -24,23 +25,7 @@ type Schemas = components["schemas"];
 // image_url is server-computed and should already be one of these two
 // hosts, but "should" isn't a load-bearing guarantee for an origin crash, so
 // it's re-checked here rather than trusted blindly.
-export function isAllowedAssetUrl(raw: string): boolean {
-  let url: URL;
-  try {
-    url = new URL(raw);
-  } catch {
-    return false;
-  }
-  const configuredHost = process.env.NEXT_PUBLIC_ASSET_HOST;
-  if (configuredHost) {
-    try {
-      if (url.origin === new URL(configuredHost).origin) return true;
-    } catch {
-      // Malformed env value -- fall through to the dev fallback below.
-    }
-  }
-  return url.origin === "http://localhost:9000";
-}
+export { isAllowedAssetUrl } from "@/lib/allowed-asset-url";
 
 export function mapPublicBanner(raw: Schemas["PublicBannerRead"]): HeroBanner {
   return {

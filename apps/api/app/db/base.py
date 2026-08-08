@@ -50,3 +50,4 @@ from app.models.audit_log import AuditLog  # noqa
 from app.models.commission import Commission  # noqa
 from app.models.field_visibility import ContactShareLink, FieldVisibilityConfig  # noqa
 from app.models.mobile_change import MobileChangeRequest  # noqa
+from app.models.personalization import PersonalizationPreference  # noqa

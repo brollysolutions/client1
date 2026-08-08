@@ -27,6 +27,7 @@ import {
   type Banner,
 } from "@/lib/banners-api";
 import { useBannerQueue } from "./use-banner-queue";
+import { audienceSummary } from "./audience-rule-fields";
 
 const STATUS_LABEL: Record<Banner["status"], string> = {
   draft: "Draft",
@@ -186,7 +187,8 @@ export function BannersView() {
                 <div className="min-w-0">
                   <p className="truncate font-medium text-text-primary">{banner.title}</p>
                   <p className="mt-0.5 truncate text-xs text-text-secondary">
-                    {banner.business_line === "both" ? "Both lines" : banner.business_line}
+                    {banner.business_line === "both" ? "Both lines" : banner.business_line} ·{" "}
+                    {audienceSummary(banner.audience_rules)}
                   </p>
                 </div>
                 <Badge variant={STATUS_VARIANT[banner.status]} className="shrink-0">
@@ -256,6 +258,12 @@ export function BannersView() {
                     <div>
                       <dt className="text-text-secondary">Type</dt>
                       <dd className="font-medium text-text-primary">{active.banner_type}</dd>
+                    </div>
+                    <div className="col-span-2">
+                      <dt className="text-text-secondary">Audience</dt>
+                      <dd className="font-medium text-text-primary">
+                        {audienceSummary(active.audience_rules)}
+                      </dd>
                     </div>
                     {active.review_note ? (
                       <div className="col-span-2">

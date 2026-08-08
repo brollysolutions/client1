@@ -20,8 +20,8 @@ import uuid
 from datetime import datetime
 from decimal import Decimal
 
-from sqlalchemy import DateTime, Numeric, Text
-from sqlalchemy.dialects.postgresql import ENUM, UUID
+from sqlalchemy import CheckConstraint, DateTime, Integer, Numeric, Text
+from sqlalchemy.dialects.postgresql import ENUM, JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
@@ -42,6 +42,7 @@ offer_status_enum = ENUM(OfferStatus, name="offer_status", create_type=False, va
 
 class Offer(Base):
     __tablename__ = "offers"
+    __table_args__ = (CheckConstraint("priority >= 0", name="priority_nonnegative"),)
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     # Line-tag for the customer-facing surface; immutable (shared trigger).
@@ -52,6 +53,10 @@ class Offer(Base):
     discount_type: Mapped[str] = mapped_column(Text, nullable=False)
     discount_value: Mapped[Decimal] = mapped_column(Numeric, nullable=False)
     code: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # Empty object = generic/public. Non-empty rules are authenticated-only
+    # and evaluated by services/personalization.py.
+    audience_rules: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
+    priority: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     status: Mapped[OfferStatus] = mapped_column(
         offer_status_enum, nullable=False, default=OfferStatus.DRAFT
     )

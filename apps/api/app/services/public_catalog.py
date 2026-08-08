@@ -81,7 +81,9 @@ async def list_public_banners(db: AsyncSession) -> Sequence[Banner]:
        anonymous visitor with no identity, so serving a personalized banner
        to everyone is exactly the mis-targeting the type exists to prevent.
        Written as an allowlist so a future BannerType value is invisible on
-       this path by default, not public by default.
+       this path by default, not public by default. The canonical empty-rules
+       predicate separately keeps a malformed legacy default/action row with
+       targeting data private.
     2. The starts_at/ends_at re-check is DEFENCE IN DEPTH ONLY, not the
        access control -- status == LIVE is. It exists because
        app/jobs/cms_activation.py runs in a separate scheduler container that
@@ -108,6 +110,7 @@ async def list_public_banners(db: AsyncSession) -> Sequence[Banner]:
             # This predicate IS the access control on this route. No RLS runs here.
             Banner.status == BannerStatus.LIVE,
             Banner.banner_type.in_((BannerType.DEFAULT, BannerType.ACTION)),
+            Banner.audience_rules == {},
             or_(Banner.starts_at.is_(None), Banner.starts_at <= func.now()),
             or_(Banner.ends_at.is_(None), Banner.ends_at > func.now()),
         )
@@ -123,12 +126,8 @@ async def list_public_banners(db: AsyncSession) -> Sequence[Banner]:
 # PUBLIC_BANNERS_LIMIT. The partition axis exists precisely BECAUSE the web
 # layer splits offers into a per-line strip (/loans, /real-estate): a flat
 # cap ordered newest-first lets one line's publishing volume starve the
-# other's out of the response entirely (offers have no priority column to
-# force a starved line's offer back in, unlike banners), and since every
-# real offer is evergreen in practice (offer-form.tsx has no starts_at/
-# ends_at inputs, so nothing but a manual archive ever removes one), active
-# rows accumulate monotonically -- this is a ceiling every line crosses
-# permanently, not one approached slowly. Ceiling is 3 * 8 = 24 rows.
+# other's out of the response entirely. The per-line ceiling prevents that
+# crowd-out even as active rows accumulate. Ceiling is 3 * 8 = 24 rows.
 PUBLIC_OFFERS_PER_LINE = 8
 
 
@@ -136,8 +135,8 @@ async def list_public_offers(db: AsyncSession) -> Sequence[Offer]:
     """The offer analogue of list_public_banners -- same no-RLS reasoning
     (module docstring above). Differences from the banner query:
 
-    - No banner_type-style allowlist: offers have no audience_rules /
-      personalization concept, so status + the window is the entire filter.
+    - Generic offers only: a canonical empty audience_rules object is public;
+      every non-empty rule set is reserved for authenticated matching.
     - business_line IS exposed on PublicOfferRead (unlike PublicBannerRead):
       offers are genuinely line-scoped and the frontend renders a separate
       strip per line, reading business_line to decide which one(s) an offer
@@ -148,12 +147,8 @@ async def list_public_offers(db: AsyncSession) -> Sequence[Offer]:
       down. Same exact-complement boundary convention as banners: inclusive
       start (starts_at <= now()), exclusive end (ends_at > now()). Changing
       either operator alone silently creates a gap or an overlap.
-    - Ordered newest-first (created_at DESC) within each line's partition,
-      unlike properties/banners' oldest-first order: offers have no priority
-      column to guarantee a freshly-published promotion survives the cap
-      ahead of older ones in the same line, so newest-first is what keeps a
-      just-activated offer visible instead of silently sitting past
-      PUBLIC_OFFERS_PER_LINE.
+    - Ordered newest-first (created_at DESC) within each line's partition so a
+      newly activated generic offer does not silently sit past the public cap.
     """
     ranked = (
         select(
@@ -168,6 +163,9 @@ async def list_public_offers(db: AsyncSession) -> Sequence[Offer]:
         .where(
             # This predicate IS the access control on this route. No RLS runs here.
             Offer.status == OfferStatus.ACTIVE,
+            # Non-empty audience rules are authenticated-only. Existing rows
+            # are backfilled to {}, preserving the current public catalogue.
+            Offer.audience_rules == {},
             or_(Offer.starts_at.is_(None), Offer.starts_at <= func.now()),
             or_(Offer.ends_at.is_(None), Offer.ends_at > func.now()),
         )

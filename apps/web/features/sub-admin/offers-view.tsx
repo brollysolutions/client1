@@ -26,6 +26,7 @@ import {
   type Offer,
 } from "@/lib/offers-api";
 import { useOfferQueue } from "./use-offer-queue";
+import { audienceSummary } from "./audience-rule-fields";
 
 const STATUS_LABEL: Record<Offer["status"], string> = {
   draft: "Draft",
@@ -164,7 +165,8 @@ export function OffersView() {
                   <p className="truncate font-medium text-text-primary">{offer.title}</p>
                   <p className="mt-0.5 truncate text-xs text-text-secondary">
                     {discountText(offer)} ·{" "}
-                    {offer.business_line === "both" ? "Both lines" : offer.business_line}
+                    {offer.business_line === "both" ? "Both lines" : offer.business_line} ·{" "}
+                    {audienceSummary(offer.audience_rules)}
                   </p>
                 </div>
                 <Badge variant={STATUS_VARIANT[offer.status]} className="shrink-0">
@@ -237,6 +239,12 @@ export function OffersView() {
                         <dd className="font-medium text-text-primary">{active.description}</dd>
                       </div>
                     ) : null}
+                    <div className="col-span-2">
+                      <dt className="text-text-secondary">Audience</dt>
+                      <dd className="font-medium text-text-primary">
+                        {audienceSummary(active.audience_rules)}
+                      </dd>
+                    </div>
                   </dl>
                 )}
               </div>

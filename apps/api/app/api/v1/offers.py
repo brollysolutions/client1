@@ -17,7 +17,17 @@ from app.core.deps import CurrentUser, get_active_user, require_sub_admin
 from app.db.session import get_db
 from app.models.offer import Offer, OfferStatus
 from app.schemas.offers import OfferCreate, OfferListResponse, OfferRead, OfferUpdate
-from app.services.offers import OfferIllegalTransition, OfferNotOwned, advance_offer
+from app.schemas.personalization import (
+    AudienceRules,
+    audience_rules_to_storage,
+    audience_rules_valid_for_offer,
+)
+from app.services.offers import (
+    OfferIllegalTransition,
+    OfferInvalidAudience,
+    OfferNotOwned,
+    advance_offer,
+)
 
 router = APIRouter()
 
@@ -30,7 +40,9 @@ async def create_offer(
     current_user: CurrentUser = Depends(require_sub_admin),
     db: AsyncSession = Depends(get_db),
 ) -> OfferRead:
-    offer = Offer(created_by_uuid=current_user.id, **payload.model_dump())
+    values = payload.model_dump(exclude={"audience_rules"})
+    values["audience_rules"] = audience_rules_to_storage(payload.audience_rules)
+    offer = Offer(created_by_uuid=current_user.id, **values)
     db.add(offer)
     await db.commit()
     await db.refresh(offer)
@@ -90,7 +102,10 @@ async def update_offer(
             status_code=status.HTTP_409_CONFLICT,
             detail="This offer cannot be edited from its current status.",
         )
-    for field, value in payload.model_dump(exclude_unset=True).items():
+    values = payload.model_dump(exclude_unset=True, exclude={"audience_rules"})
+    if "audience_rules" in payload.model_fields_set and payload.audience_rules is not None:
+        values["audience_rules"] = audience_rules_to_storage(payload.audience_rules)
+    for field, value in values.items():
         setattr(offer, field, value)
     # OfferUpdate's own validator only sees fields present in THIS request, so a
     # partial PATCH (e.g. discount_value alone) can't check itself against an
@@ -99,6 +114,18 @@ async def update_offer(
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail="discount_value cannot exceed 100 for a percentage offer.",
+        )
+    try:
+        rules = AudienceRules.model_validate(offer.audience_rules)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="This offer has invalid audience rules.",
+        ) from exc
+    if not audience_rules_valid_for_offer(rules):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Targeted offers are available to Clients only.",
         )
     await db.commit()
     await db.refresh(offer)
@@ -119,6 +146,11 @@ async def _advance(
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="This offer cannot move to that status from its current status.",
+        ) from exc
+    except OfferInvalidAudience as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="This offer has invalid audience rules.",
         ) from exc
     if offer is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Offer not found.")

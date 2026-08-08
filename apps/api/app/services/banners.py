@@ -26,6 +26,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.session import AsyncSessionLocal
 from app.models.banner import Banner, BannerStatus
+from app.schemas.personalization import AudienceRules, audience_rules_valid_for_banner
 from app.services import storage
 
 
@@ -41,6 +42,10 @@ class BannerNotOwned(Exception):
     this row in their queue — a 404 here would be confusing)."""
 
 
+class BannerInvalidAudience(Exception):
+    """Raised when a legacy or malformed rule set reaches review."""
+
+
 async def submit_banner(banner_id: UUID, submitter_uuid: UUID, db: AsyncSession) -> Banner | None:
     """draft/rejected -> pending_approval, own-row only (RLS-covered)."""
     banner = await db.scalar(select(Banner).where(Banner.id == banner_id))
@@ -50,6 +55,12 @@ async def submit_banner(banner_id: UUID, submitter_uuid: UUID, db: AsyncSession)
         raise BannerNotOwned
     if banner.status not in (BannerStatus.DRAFT, BannerStatus.REJECTED):
         raise BannerAlreadyReviewed
+    try:
+        rules = AudienceRules.model_validate(banner.audience_rules)
+    except ValueError as exc:
+        raise BannerInvalidAudience from exc
+    if not audience_rules_valid_for_banner(banner.banner_type, rules):
+        raise BannerInvalidAudience
     banner.status = BannerStatus.PENDING_APPROVAL
     banner.review_note = None
     await db.commit()
@@ -66,6 +77,12 @@ async def approve_banner(banner_id: UUID, reviewer_uuid: UUID) -> Banner | None:
             return None
         if banner.status != BannerStatus.PENDING_APPROVAL:
             raise BannerAlreadyReviewed
+        try:
+            rules = AudienceRules.model_validate(banner.audience_rules)
+        except ValueError as exc:
+            raise BannerInvalidAudience from exc
+        if not audience_rules_valid_for_banner(banner.banner_type, rules):
+            raise BannerInvalidAudience
         banner.status = BannerStatus.APPROVED
         banner.approved_by_uuid = reviewer_uuid
         banner.review_note = None
