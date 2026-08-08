@@ -211,7 +211,7 @@ The following requirements are complete on the evidence baseline:
 | FR-16.2 | Partial | Reports filter by business line and a selected multi-Agent list; the list is the ad hoc group filter, with no persistent group/team model added. | Verify the filter path against a PostgreSQL-backed environment. |
 | FR-16.3 | Partial | The Agents report now returns and renders Loans/Real Estate business-line team performance summaries, retaining per-Agent sorting and selective views. | Verify team aggregate totals against a PostgreSQL-backed environment. |
 | FR-18.1 | Complete | An explicit nested opt-in stores only the latest server-rounded two-decimal point, omits stale/unavailable matches, purges after 30 days, and erases on revoke/disable/deletion without logging coordinates. | Maintain the retention job and location-free audit contract. |
-| FR-18.2 | Not started | Address-based properties and visits exist, but no map seam is defined. | Decide whether maps/GMB remain in v1 and design a provider boundary without exposing unnecessary location data. |
+| FR-18.2 | Not started — excluded from active roadmap | Address-based properties and visits exist, but no map seam is defined. | Explicitly removed from the active implementation plan on 2026-08-08. Keep this approved-SRS requirement uncounted as delivered; reconsider only through a new product decision and a privacy/provider design review. |
 
 ## Evidence map
 
