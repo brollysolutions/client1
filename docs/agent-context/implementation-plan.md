@@ -4,7 +4,8 @@ Status: **Derived, actively maintained plan**
 
 As of: **2026-08-08**
 
-Evidence baseline: `14773ae` ([PR #151](https://github.com/brollysolutions/client1/pull/151))
+Evidence baseline: `7a68044` ([PR #153](https://github.com/brollysolutions/client1/pull/153)),
+plus [PR #154](https://github.com/brollysolutions/client1/pull/154)
 
 ## Outcome
 
@@ -64,8 +65,9 @@ Vehicle arrangements are **Done** in
 [PR #149](https://github.com/brollysolutions/client1/pull/149). Analytics,
 notification/email redirect completion, and Lead assignment completion are
 merged. Payment-method completion is implemented from the approved FR-10.3
-scope decision and is awaiting PR delivery; the deferred Map/GMB seam remains
-the next unresolved decision gate.
+scope decision and is in review in
+[PR #154](https://github.com/brollysolutions/client1/pull/154); the deferred
+Map/GMB seam remains the next unresolved decision gate.
 
 | Priority | Feature / requirements | Status | Recommended model / effort | Decision gate and acceptance summary |
 | ---: | --- | --- | --- | --- |
@@ -80,7 +82,7 @@ the next unresolved decision gate.
 | 9 | Authenticated banner personalization (FR-12.1 through FR-12.4, FR-18.1) | **Done** — [PR #152](https://github.com/brollysolutions/client1/pull/152) | `gpt-5.6-sol` / Extra High | Delivered the closed audience grammar, server-proven Client/Agent line context, separate activity/coarse-location consent, private authenticated banner/offer placements, public non-leakage, safe fallbacks, 30-day retention/deletion, and negative targeting/RLS tests. Focused API (122), full web (287), seeded Client/Agent Playwright (2), production build, generated contracts, and migration upgrade/downgrade/head checks pass; the full API suite exceeded the local execution window. |
 | 10 | Map/GMB integration seam (FR-18.2) | Deferred pending scope | `gpt-5.6-terra` / High | Confirm it remains in v1; define provider-neutral coordinates/address boundary and privacy constraints before adding a dependency. |
 | 11 | Lead assignment completion (FR-4.2, FR-4.3) | **In review** — [PR #153](https://github.com/brollysolutions/client1/pull/153) | `gpt-5.6-sol` / Extra High | Delivered explicit per-line intent, deterministic least-loaded same-line assignment, bounded retry, OTP-proven Agent-lead binding, generic registration links, Admin fallback, audit/notifications, account-deletion closure, and database/RLS isolation. |
-| 12 | Payment-method completion (FR-10.3) | **Done** — PR pending from `feat/payment-method-scope` | `gpt-5.6-sol` / Extra High | Delivered UPI, bank-transfer, and audited manual-cheque disbursement; retained RazorpayX as the sole automated provider behind an explicit provider seam; excluded RuPay/card data, principal-payment collection, a second live provider, and automatic failover. |
+| 12 | Payment-method completion (FR-10.3) | **In review** — [PR #154](https://github.com/brollysolutions/client1/pull/154) | `gpt-5.6-sol` / Extra High | Delivered UPI, bank-transfer, and audited manual-cheque disbursement; retained RazorpayX as the sole automated provider behind an explicit provider seam; excluded RuPay/card data, principal-payment collection, a second live provider, and automatic failover. |
 
 ### Approved feature brief — Payment-method completion
 
@@ -140,7 +142,7 @@ the next unresolved decision gate.
 - **Fresh verification:** the migrated Docker database passes 55 payout API
   tests, 30 provider/live/webhook/RLS tests, and 47 linked referral,
   commission, and fee-cashback tests. Two focused masking regressions pass.
-  Ruff check/format pass across all 408 API files, and Alembic upgrade,
+  Ruff check/format pass across all 409 API files, and Alembic upgrade,
   downgrade, re-upgrade, current, and one-head checks pass in a fresh temporary
   database. Web lint/typecheck and all 294 unit tests pass. The canonical Linux
   production builder compiled, typechecked against the generated contract,

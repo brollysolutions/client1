@@ -4,10 +4,9 @@ Status: **Derived living implementation ledger**
 
 As of: **2026-08-08**
 
-Evidence baseline: `14773ae` ([PR #151](https://github.com/brollysolutions/client1/pull/151)) plus
-[PR #152](https://github.com/brollysolutions/client1/pull/152) and
-[PR #153](https://github.com/brollysolutions/client1/pull/153), plus payment-method
-completion awaiting PR delivery from `feat/payment-method-scope`
+Evidence baseline: `7a68044` ([PR #153](https://github.com/brollysolutions/client1/pull/153)),
+plus payment-method completion in
+[PR #154](https://github.com/brollysolutions/client1/pull/154)
 
 ## Purpose and authority
 
@@ -46,8 +45,8 @@ work than several completed UI requirements.
 
 ## Delivered implementation
 
-- **Payment-method completion** (FR-10.3) is implemented on
-  `feat/payment-method-scope` with PR delivery pending. UPI VPA and bank
+- **Payment-method completion** (FR-10.3) is implemented in
+  [PR #154](https://github.com/brollysolutions/client1/pull/154). UPI VPA and bank
   transfer remain on the provider-scoped RazorpayX path, while cashback,
   referral bonuses, and commissions can use an audited manual-cheque lifecycle.
   Approval, issuance, clearance-only ledger credit, pre-clearance failure, and

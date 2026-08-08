@@ -272,8 +272,9 @@ provider, UPI is a payment rail, RuPay is a card network, and cheque is an
 offline instrument. It does not change FR-10.1/FR-10.2's prohibition on
 collecting property payments or loan principal.
 
-**Implementation status:** Complete on `feat/payment-method-scope`, with PR
-delivery pending. Payout rows persist an explicit provider; existing VPA and
+**Implementation status:** Complete in
+[PR #154](https://github.com/brollysolutions/client1/pull/154). Payout rows
+persist an explicit provider; existing VPA and
 bank-account rows backfill to RazorpayX, while manual cheques remain approved
 until issuance and processing until clearance. Raw cheque references are
 reduced to a masked display hint plus a keyed deduplication fingerprint, and
