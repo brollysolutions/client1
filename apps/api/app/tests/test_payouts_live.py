@@ -23,7 +23,13 @@ import pytest
 from sqlalchemy import text
 
 from app.core.config import settings
-from app.models.payout import Payout, PayoutDestination, PayoutStatus, PayoutType
+from app.models.payout import (
+    Payout,
+    PayoutDestination,
+    PayoutProvider,
+    PayoutStatus,
+    PayoutType,
+)
 from app.models.transaction import Transaction, TransactionStatus, TransactionType
 from app.services import payments
 from conftest import full_registration
@@ -425,10 +431,15 @@ async def test_reconcile_one_poison_payout_does_not_block_batch(client, monkeypa
     # Make the settle raise only for the poison payout.
     orig_settle = payments.settle_from_webhook
 
-    async def flaky_settle(*, event: str, gateway_payout_id: str) -> None:
+    async def flaky_settle(*, event: str, gateway_payout_id: str, provider: PayoutProvider) -> None:
+        assert provider == PayoutProvider.RAZORPAYX
         if gateway_payout_id == gw_poison:
             raise RuntimeError("simulated settle fault")
-        await orig_settle(event=event, gateway_payout_id=gateway_payout_id)
+        await orig_settle(
+            event=event,
+            gateway_payout_id=gateway_payout_id,
+            provider=provider,
+        )
 
     monkeypatch.setattr(payments, "settle_from_webhook", flaky_settle)
 

@@ -41,6 +41,13 @@ describe("buildReferralPayoutPayload()", () => {
     });
   });
 
+  it("builds a cheque destination without stale credentials", () => {
+    const payload = buildReferralPayoutPayload(
+      form({ destinationType: "cheque", vpa: "stale@bank", accountNumber: "123456" }),
+    );
+    expect(payload).toEqual({ destination_type: "cheque", destination: {} });
+  });
+
   it("trims destination fields", () => {
     const payload = buildReferralPayoutPayload(
       form({ destinationType: "vpa", vpa: "  payee@okhdfc  " }),
@@ -80,5 +87,9 @@ describe("validateReferralPayoutForm()", () => {
       form({ destinationType: "bank_account", ifsc: "HDFC0000123", accountNumber: "1234567890" }),
     );
     expect(errs).toEqual({});
+  });
+
+  it("passes for cheque without destination credentials", () => {
+    expect(validateReferralPayoutForm(form({ destinationType: "cheque" }))).toEqual({});
   });
 });

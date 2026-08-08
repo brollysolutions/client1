@@ -11,9 +11,9 @@ from datetime import datetime
 from typing import Literal
 from uuid import UUID
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
-from app.models.payout import PayoutDestination, PayoutStatus, PayoutType
+from app.models.payout import PayoutDestination, PayoutProvider, PayoutStatus, PayoutType
 
 
 class PayoutDestinationInput(BaseModel):
@@ -24,6 +24,30 @@ class PayoutDestinationInput(BaseModel):
     # min 6 so mask_bank_account never returns a fully-visible short number.
     account_number: str | None = Field(default=None, min_length=6, max_length=40)
     name: str | None = Field(default=None, max_length=120)
+
+
+def validate_destination(
+    destination_type: PayoutDestination, destination: PayoutDestinationInput
+) -> None:
+    """Validate the rail-specific input without ever retaining raw details."""
+    if destination_type == PayoutDestination.VPA:
+        if not destination.vpa or "@" not in destination.vpa:
+            raise ValueError("A valid UPI VPA (name@bank) is required for a vpa payout.")
+        return
+    if destination_type == PayoutDestination.BANK_ACCOUNT:
+        if not destination.ifsc or not destination.account_number:
+            raise ValueError("ifsc and account_number are required for a bank_account payout.")
+        return
+    if any(
+        value is not None
+        for value in (
+            destination.vpa,
+            destination.ifsc,
+            destination.account_number,
+            destination.name,
+        )
+    ):
+        raise ValueError("A cheque payout must not include bank or VPA destination details.")
 
 
 class PayoutCreate(BaseModel):
@@ -40,12 +64,7 @@ class PayoutCreate(BaseModel):
 
     @model_validator(mode="after")
     def _require_matching_destination(self) -> PayoutCreate:
-        if self.destination_type == PayoutDestination.VPA:
-            if not self.destination.vpa or "@" not in self.destination.vpa:
-                raise ValueError("A valid UPI VPA (name@bank) is required for a vpa payout.")
-        else:  # bank_account
-            if not self.destination.ifsc or not self.destination.account_number:
-                raise ValueError("ifsc and account_number are required for a bank_account payout.")
+        validate_destination(self.destination_type, self.destination)
         return self
 
 
@@ -61,6 +80,7 @@ class PayoutRead(BaseModel):
     currency: str
     status: PayoutStatus
     destination_type: PayoutDestination
+    provider: PayoutProvider
     destination_hint: str
     maker_user_uuid: UUID
     checker_user_uuid: UUID | None
@@ -69,6 +89,8 @@ class PayoutRead(BaseModel):
     gateway_payout_id: str | None
     gateway_status: str | None
     failure_reason: str | None
+    manual_issued_at: datetime | None
+    manual_cleared_at: datetime | None
     reversal_transaction_id: UUID | None
     created_at: datetime
     updated_at: datetime
@@ -106,6 +128,22 @@ class PayoutLinkDivergencesRead(BaseModel):
 
 class PayoutReject(BaseModel):
     reason: str = Field(min_length=1, max_length=200)
+
+    @field_validator("reason")
+    @classmethod
+    def reason_not_blank(cls, value: str) -> str:
+        normalized = value.strip()
+        if not normalized:
+            raise ValueError("Reason must not be blank.")
+        return normalized
+
+
+class ManualChequeIssue(BaseModel):
+    reference: str = Field(
+        min_length=4,
+        max_length=64,
+        pattern=r"^[A-Za-z0-9][A-Za-z0-9./_-]{2,62}[A-Za-z0-9]$",
+    )
 
 
 class WebhookAck(BaseModel):

@@ -250,6 +250,45 @@ location, IP geolocation, inferred demographic, arbitrary JSON/SQL expression,
 or staff targeting is introduced without a separately approved design and
 privacy/security review.
 
+### CS-009 — v1 payouts use UPI, bank transfer, or manual cheque
+
+**Decision (2026-08-08):** FR-10.3 is interpreted as an outbound disbursement
+requirement for cashback, referral bonuses, and commissions. V1 supports UPI
+VPA and bank-transfer payouts through RazorpayX plus an audited manual-cheque
+workflow. RazorpayX remains the sole automated provider, represented behind an
+explicit provider boundary so a later provider does not require redesigning the
+payout domain. RuPay/card-number handling, customer checkout, loan-principal or
+property-payment collection, a second live provider, configurable routing, and
+automatic cross-provider failover are not in v1.
+
+Cheque issuance does not make a payout paid. The payout remains processing
+until an authorized Admin records clearance, which emits the recipient-ledger
+credit. Voids or bounces fail before settlement; a reversal after clearance
+uses the existing compensating-ledger pattern. Only masked cheque references
+and a deduplication fingerprint may be retained.
+
+This decision resolves the mixed vocabulary in SRS FR-10.3, where Razorpay is a
+provider, UPI is a payment rail, RuPay is a card network, and cheque is an
+offline instrument. It does not change FR-10.1/FR-10.2's prohibition on
+collecting property payments or loan principal.
+
+**Implementation status:** Complete on `feat/payment-method-scope`, with PR
+delivery pending. Payout rows persist an explicit provider; existing VPA and
+bank-account rows backfill to RazorpayX, while manual cheques remain approved
+until issuance and processing until clearance. Raw cheque references are
+reduced to a masked display hint plus a keyed deduplication fingerprint, and
+only clearance creates the paid recipient ledger row. Failure and reversal
+preserve source-link reconciliation and compensating-ledger behavior.
+
+Evidence:
+
+- [`apps/api/app/services/payments.py`](../../apps/api/app/services/payments.py)
+- [`apps/api/alembic/versions/e0f1a2b3c4d6_add_payment_methods.py`](../../apps/api/alembic/versions/e0f1a2b3c4d6_add_payment_methods.py)
+- [`apps/api/app/tests/test_payouts_api.py`](../../apps/api/app/tests/test_payouts_api.py)
+- [`apps/api/app/tests/test_payouts_live.py`](../../apps/api/app/tests/test_payouts_live.py)
+- [`apps/web/features/admin/payouts-view.tsx`](../../apps/web/features/admin/payouts-view.tsx)
+- [`packages/contracts/openapi/openapi.json`](../../packages/contracts/openapi/openapi.json)
+
 ## 3. Previously open items settled by current behavior
 
 The following entries may still be labelled “open,” “assumed,” or “pending” in

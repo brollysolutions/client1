@@ -2403,6 +2403,74 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/payouts/{payout_id}/manual/clear": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Clear Manual Cheque */
+        post: operations["clear_manual_cheque_api_v1_payouts__payout_id__manual_clear_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/payouts/{payout_id}/manual/fail": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Fail Manual Cheque */
+        post: operations["fail_manual_cheque_api_v1_payouts__payout_id__manual_fail_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/payouts/{payout_id}/manual/issue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Issue Manual Cheque */
+        post: operations["issue_manual_cheque_api_v1_payouts__payout_id__manual_issue_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/payouts/{payout_id}/manual/reverse": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reverse Manual Cheque */
+        post: operations["reverse_manual_cheque_api_v1_payouts__payout_id__manual_reverse_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/payouts/{payout_id}/reject": {
         parameters: {
             query?: never;
@@ -4094,7 +4162,7 @@ export interface components {
          *     `services/fee_cashbacks.py` (FR-6.6 processing-fee cashback).
          * @enum {string}
          */
-        AuditAction: "agent_approved" | "agent_rejected" | "staff_created" | "account_removed" | "payout_approved" | "payout_rejected" | "property_submission_approved" | "property_submission_rejected" | "support_ticket_advanced" | "retention_purged" | "loan_type_created" | "loan_type_updated" | "bank_created" | "bank_updated" | "bank_availability_updated" | "commission_entered" | "commission_cancelled" | "fee_cashback_entered" | "fee_cashback_cancelled" | "document_verified" | "document_unverified" | "payout_link_reconciled" | "notification_broadcast" | "agent_lead_expired" | "lead_assigned" | "field_visibility_updated" | "mobile_change_verified" | "mobile_changed" | "mobile_change_rejected" | "vehicle_arrangement_updated";
+        AuditAction: "agent_approved" | "agent_rejected" | "staff_created" | "account_removed" | "payout_approved" | "payout_rejected" | "payout_manual_issued" | "payout_manual_cleared" | "payout_manual_failed" | "payout_manual_reversed" | "property_submission_approved" | "property_submission_rejected" | "support_ticket_advanced" | "retention_purged" | "loan_type_created" | "loan_type_updated" | "bank_created" | "bank_updated" | "bank_availability_updated" | "commission_entered" | "commission_cancelled" | "fee_cashback_entered" | "fee_cashback_cancelled" | "document_verified" | "document_unverified" | "payout_link_reconciled" | "notification_broadcast" | "agent_lead_expired" | "lead_assigned" | "field_visibility_updated" | "mobile_change_verified" | "mobile_changed" | "mobile_change_rejected" | "vehicle_arrangement_updated";
         /** AuditLogListResponse */
         AuditLogListResponse: {
             /** Entries */
@@ -5612,6 +5680,11 @@ export interface components {
             /** Password */
             password: string;
         };
+        /** ManualChequeIssue */
+        ManualChequeIssue: {
+            /** Reference */
+            reference: string;
+        };
         /** MeResponse */
         MeResponse: {
             /** Address */
@@ -5963,7 +6036,7 @@ export interface components {
          * PayoutDestination
          * @enum {string}
          */
-        PayoutDestination: "vpa" | "bank_account";
+        PayoutDestination: "vpa" | "bank_account" | "cheque";
         /**
          * PayoutDestinationInput
          * @description Raw destination — validated to match destination_type, never stored raw.
@@ -6005,6 +6078,12 @@ export interface components {
             /** Payouts */
             payouts: components["schemas"]["PayoutRead"][];
         };
+        /**
+         * PayoutProvider
+         * @description Execution boundary, deliberately separate from the destination rail.
+         * @enum {string}
+         */
+        PayoutProvider: "razorpayx" | "manual";
         /** PayoutRead */
         PayoutRead: {
             /** Amount Paise */
@@ -6043,6 +6122,11 @@ export interface components {
              * Format: uuid
              */
             maker_user_uuid: string;
+            /** Manual Cleared At */
+            manual_cleared_at: string | null;
+            /** Manual Issued At */
+            manual_issued_at: string | null;
+            provider: components["schemas"]["PayoutProvider"];
             /** Recipient Code */
             recipient_code?: string | null;
             /** Recipient Name */
@@ -12636,6 +12720,142 @@ export interface operations {
             cookie?: never;
         };
         requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PayoutRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    clear_manual_cheque_api_v1_payouts__payout_id__manual_clear_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                payout_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PayoutRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    fail_manual_cheque_api_v1_payouts__payout_id__manual_fail_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                payout_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PayoutReject"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PayoutRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    issue_manual_cheque_api_v1_payouts__payout_id__manual_issue_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                payout_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ManualChequeIssue"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PayoutRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reverse_manual_cheque_api_v1_payouts__payout_id__manual_reverse_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                payout_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PayoutReject"];
+            };
+        };
         responses: {
             /** @description Successful Response */
             200: {

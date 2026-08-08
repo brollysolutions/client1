@@ -62,6 +62,26 @@ const ACTION_META: Record<AuditAction, { label: string; icon: LucideIcon; tone: 
   account_removed: { label: "Account removed", icon: UserMinus, tone: "bg-error/10 text-error" },
   payout_approved: { label: "Payout approved", icon: Wallet, tone: "bg-success/10 text-success" },
   payout_rejected: { label: "Payout rejected", icon: CircleSlash, tone: "bg-error/10 text-error" },
+  payout_manual_issued: {
+    label: "Cheque payout issued",
+    icon: Banknote,
+    tone: "bg-warning/10 text-warning",
+  },
+  payout_manual_cleared: {
+    label: "Cheque payout cleared",
+    icon: BadgeCheck,
+    tone: "bg-success/10 text-success",
+  },
+  payout_manual_failed: {
+    label: "Cheque payout failed",
+    icon: CircleSlash,
+    tone: "bg-error/10 text-error",
+  },
+  payout_manual_reversed: {
+    label: "Cheque payout reversed",
+    icon: Undo2,
+    tone: "bg-error/10 text-error",
+  },
   property_submission_approved: {
     label: "Listing approved",
     icon: Home,
