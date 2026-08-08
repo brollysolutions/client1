@@ -4,8 +4,7 @@ Status: **Derived, actively maintained plan**
 
 As of: **2026-08-08**
 
-Evidence baseline: `7a68044` ([PR #153](https://github.com/brollysolutions/client1/pull/153)),
-plus [PR #154](https://github.com/brollysolutions/client1/pull/154)
+Evidence baseline: `49c67e1` ([PR #154](https://github.com/brollysolutions/client1/pull/154))
 
 ## Outcome
 
@@ -56,7 +55,22 @@ splits into genuinely independent streams.
 The recommendation must be reassessed at feature start. The table below is a
 default, not permission to skip the pre-implementation announcement.
 
-## Prioritized backlog
+## Prioritized active backlog
+
+Map/GMB integration (FR-18.2) is excluded from the active roadmap by the
+2026-08-08 product decision. It remains an unbuilt approved-SRS requirement in
+the status ledger, rather than being treated as delivered or silently removed
+from the baseline.
+
+| Priority | Feature / requirements | Why now | Planning model / effort | Implementation model / effort | Exit criteria |
+| ---: | --- | --- | --- | --- | --- |
+| 1 | Analytics verification (FR-16.1–FR-16.3) | Merged functionality still lacks PostgreSQL-backed proof because of the local `_greenlet` DLL failure. | `gpt-5.6-terra` / High | `gpt-5.6-terra` / High | Run database-backed reporting/export tests and production build in a healthy environment; correct only proven defects. |
+| 2 | Media controls completion (FR-13.1–FR-13.4) | The largest remaining product gap: Loans galleries, approved feedback attachments, consistent retention, and a decision on video. | `gpt-5.6-sol` / Extra High | `gpt-5.6-sol` / Extra High | Approve a bounded media-purpose slice; preserve private storage, content checks, quotas, RLS, deletion, and retention. Video requires a separate explicit policy decision. |
+| 3 | Provenance-based edit ownership (FR-2.8) | Current edit paths work, but ownership rules are not uniform across submitted detail types. | `gpt-5.6-sol` / High | `gpt-5.6-sol` / Extra High | Define per-field creator/reviewer/Admin authority; enforce it in service and RLS paths with cross-role/cross-line denial tests. |
+| 4 | Admin operational coverage audit (FR-2.2) | Admin has broad coverage, but the approved requirement calls for exhaustive view/update coverage. | `gpt-5.6-terra` / High | `gpt-5.6-terra` / High | Inventory every required Admin surface, close confirmed gaps, and add authorization plus accessible UI coverage. |
+| 5 | Business-line classification hardening (FR-1.1) | Legacy nullable classification and future media paths can undermine the line-isolation invariant. | `gpt-5.6-sol` / High | `gpt-5.6-sol` / Extra High | Audit all records and new media purposes; backfill or constrain only with a reviewed migration and RLS denial coverage. |
+
+## Delivered and historical backlog
 
 Admin field visibility and contact controls are **Done** in
 [PR #145](https://github.com/brollysolutions/client1/pull/145). Agent-lead expiry was delivered earlier
@@ -64,10 +78,8 @@ from the same branch in [PR #144](https://github.com/brollysolutions/client1/pul
 Vehicle arrangements are **Done** in
 [PR #149](https://github.com/brollysolutions/client1/pull/149). Analytics,
 notification/email redirect completion, and Lead assignment completion are
-merged. Payment-method completion is implemented from the approved FR-10.3
-scope decision and is in review in
-[PR #154](https://github.com/brollysolutions/client1/pull/154); the deferred
-Map/GMB seam remains the next unresolved decision gate.
+merged. Payment-method completion is merged in
+[PR #154](https://github.com/brollysolutions/client1/pull/154).
 
 | Priority | Feature / requirements | Status | Recommended model / effort | Decision gate and acceptance summary |
 | ---: | --- | --- | --- | --- |
@@ -77,12 +89,11 @@ Map/GMB seam remains the next unresolved decision gate.
 | 4 | Managed property/media submissions (FR-7.3, FR-13.1 through FR-13.4, OI-002) | **Done** — [PR #147](https://github.com/brollysolutions/client1/pull/147) | `gpt-5.6-sol` / Extra High | Delivered Client/Lead, Agent, and Sub Admin submission; Admin-only approval; canonical private review uploads; approved public images; bounded image/PDF quotas; content verification; ownership/RLS; account-deletion cleanup; and scheduled lifecycle cleanup. |
 | 5 | Registration/profile requirement alignment (FR-3.3, FR-17.2) | **Done** — [PR #148](https://github.com/brollysolutions/client1/pull/148) | `gpt-5.6-sol` / Extra High | Delivered mobile-first account creation, a skippable post-account profile step, optional editable/clearable identity details, verified-email-only recovery, owner/Admin RLS, deletion scrub, generated contracts, and accessible forms. |
 | 6 | Vehicle arrangements (FR-7.1, OI-003) | **Done** — [PR #149](https://github.com/brollysolutions/client1/pull/149) | `gpt-5.6-sol` / High | Delivered the dedicated 1:1 site-visit arrangement, direct Admin-to-Employee assignment, safe Client read visibility, row-locked state machine, atomic parent cancellation, PII-safe audit/notifications, and real-estate-only RLS. |
-| 7 | Analytics completion (FR-16.1 through FR-16.3) | **In review** — [PR #150](https://github.com/brollysolutions/client1/pull/150) | `gpt-5.6-terra` / High | Adds formula-safe Excel export and explicit business-line team summaries. The existing multi-Agent selection is the approved ad hoc group filter; no unapproved team-membership model was added. API Ruff, XLSX safety, web typecheck/lint, and focused web tests pass; database-backed reporting tests are blocked locally by a `_greenlet` DLL failure and the web build exceeded the local timeout. |
-| 8 | Notification/email redirect completeness (FR-11.2) | **In review** — [PR #151](https://github.com/brollysolutions/client1/pull/151) | `gpt-5.6-terra` / High | All producer, broadcast, push, and banner paths accept only same-origin destinations; verified-email transactional copies use the same safe page; PII-prone notification copy is removed; focused API/web safety checks pass. |
+| 7 | Analytics completion (FR-16.1 through FR-16.3) | **Merged** — [PR #150](https://github.com/brollysolutions/client1/pull/150) | `gpt-5.6-terra` / High | Adds formula-safe Excel export and explicit business-line team summaries. The existing multi-Agent selection is the approved ad hoc group filter; no unapproved team-membership model was added. API Ruff, XLSX safety, web typecheck/lint, and focused web tests pass; database-backed reporting tests are blocked locally by a `_greenlet` DLL failure and the web build exceeded the local timeout. |
+| 8 | Notification/email redirect completeness (FR-11.2) | **Merged** — [PR #151](https://github.com/brollysolutions/client1/pull/151) | `gpt-5.6-terra` / High | All producer, broadcast, push, and banner paths accept only same-origin destinations; verified-email transactional copies use the same safe page; PII-prone notification copy is removed; focused API/web safety checks pass. |
 | 9 | Authenticated banner personalization (FR-12.1 through FR-12.4, FR-18.1) | **Done** — [PR #152](https://github.com/brollysolutions/client1/pull/152) | `gpt-5.6-sol` / Extra High | Delivered the closed audience grammar, server-proven Client/Agent line context, separate activity/coarse-location consent, private authenticated banner/offer placements, public non-leakage, safe fallbacks, 30-day retention/deletion, and negative targeting/RLS tests. Focused API (122), full web (287), seeded Client/Agent Playwright (2), production build, generated contracts, and migration upgrade/downgrade/head checks pass; the full API suite exceeded the local execution window. |
-| 10 | Map/GMB integration seam (FR-18.2) | Deferred pending scope | `gpt-5.6-terra` / High | Confirm it remains in v1; define provider-neutral coordinates/address boundary and privacy constraints before adding a dependency. |
-| 11 | Lead assignment completion (FR-4.2, FR-4.3) | **In review** — [PR #153](https://github.com/brollysolutions/client1/pull/153) | `gpt-5.6-sol` / Extra High | Delivered explicit per-line intent, deterministic least-loaded same-line assignment, bounded retry, OTP-proven Agent-lead binding, generic registration links, Admin fallback, audit/notifications, account-deletion closure, and database/RLS isolation. |
-| 12 | Payment-method completion (FR-10.3) | **In review** — [PR #154](https://github.com/brollysolutions/client1/pull/154) | `gpt-5.6-sol` / Extra High | Delivered UPI, bank-transfer, and audited manual-cheque disbursement; retained RazorpayX as the sole automated provider behind an explicit provider seam; excluded RuPay/card data, principal-payment collection, a second live provider, and automatic failover. |
+| 11 | Lead assignment completion (FR-4.2, FR-4.3) | **Merged** — [PR #153](https://github.com/brollysolutions/client1/pull/153) | `gpt-5.6-sol` / Extra High | Delivered explicit per-line intent, deterministic least-loaded same-line assignment, bounded retry, OTP-proven Agent-lead binding, generic registration links, Admin fallback, audit/notifications, account-deletion closure, and database/RLS isolation. |
+| 12 | Payment-method completion (FR-10.3) | **Merged** — [PR #154](https://github.com/brollysolutions/client1/pull/154) | `gpt-5.6-sol` / Extra High | Delivered UPI, bank-transfer, and audited manual-cheque disbursement; retained RazorpayX as the sole automated provider behind an explicit provider seam; excluded RuPay/card data, principal-payment collection, a second live provider, and automatic failover. |
 
 ### Approved feature brief — Payment-method completion
 
@@ -724,10 +735,10 @@ Map/GMB seam remains the next unresolved decision gate.
 
 ## Delivery sequence
 
-The next priority after analytics review is **notification/email redirect
-completion** (FR-11.2): preserve each role's reachable workflow destination,
-use only a server-configured public origin for transactional email actions,
-and reject external or ambiguous redirects at every producer and renderer.
+The next active item is **analytics verification** (FR-16.1–FR-16.3). It is a
+verification and defect-correction task, not new reporting scope. On completion,
+select the approved, bounded media-controls slice before beginning work on the
+remaining cross-cutting authorization or classification items.
 
 For each item:
 
@@ -761,6 +772,7 @@ The backlog builds on these delivered foundations:
 
 | Date | Change | Evidence |
 | --- | --- | --- |
+| 2026-08-08 | Removed Map/GMB integration (FR-18.2) from the active roadmap by explicit product decision; added a priority-ordered plan with separate planning and implementation model recommendations. | User direction; FR-18.2 remains not started in `feature-status.md` to preserve the approved-SRS baseline. |
 | 2026-08-07 | Completed FR-11.2 implementation pending review: same-origin notification/broadcast/push/banner destinations, verified-email transactional copies, PII-minimized notification copy, and API/web safety tests. | [PR #151](https://github.com/brollysolutions/client1/pull/151); focused Ruff/pytest and Vitest evidence. |
 | 2026-08-07 | Completed FR-7.1 vehicle arrangements, resolved OI-003, and promoted analytics completion as the next priority. | [PR #149](https://github.com/brollysolutions/client1/pull/149); migration/RLS/API/web/contract changes; focused and regression tests; security review. |
 | 2026-08-06 | Completed FR-2.9, FR-15.1, and FR-15.4 field visibility/contact privacy; promoted support-assisted mobile-number change as the next priority. | [PR #145](https://github.com/brollysolutions/client1/pull/145); migration/RLS/API/web/contract changes; focused and regression tests; security and PR review. |
