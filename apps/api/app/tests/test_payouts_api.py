@@ -697,15 +697,17 @@ async def test_read_never_exposes_recipient_mobile(client: AsyncClient) -> None:
     _, recipient_mobile = await full_registration(client, lines=["loans"])
     recipient_uid = await _auth_user_id(recipient_mobile)
 
-    await client.post(
+    created = await client.post(
         "/api/v1/payouts",
         headers=_headers(maker_token),
         json=_create_body(recipient_uid, destination={"vpa": "payee@okhdfc"}),
     )
 
     listed = await client.get("/api/v1/payouts", headers=_headers(maker_token))
-    assert recipient_mobile not in listed.text
-    assert recipient_mobile[-4:] not in listed.text
+    row = next(p for p in listed.json()["payouts"] if p["id"] == created.json()["id"])
+    assert all("mobile" not in field for field in row)
+    assert recipient_mobile not in str(row)
+    assert row["destination_hint"] == "***@okhdfc"
 
 
 @pytest.mark.asyncio

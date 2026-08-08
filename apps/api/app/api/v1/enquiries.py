@@ -18,6 +18,7 @@ from app.core.deps import CurrentUser, get_active_user
 from app.db.session import get_db
 from app.models.enquiry import Enquiry
 from app.schemas.enquiries import EnquiryCreate, EnquiryListResponse, EnquiryRead
+from app.services.leads import ensure_client_line_lead_for_user
 
 router = APIRouter()
 
@@ -52,6 +53,17 @@ async def create_enquiry(
     db: AsyncSession = Depends(get_db),
 ) -> EnquiryRead:
     _require_client(current_user)
+    try:
+        await ensure_client_line_lead_for_user(
+            auth_user_uuid=current_user.id,
+            mobile=current_user.mobile,
+            business_line="real_estate",
+        )
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Your Real Estate Client profile is not available.",
+        ) from exc
     enquiry = Enquiry(
         user_uuid=current_user.id,
         business_line="real_estate",

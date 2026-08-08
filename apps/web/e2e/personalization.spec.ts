@@ -125,7 +125,7 @@ test.describe("authenticated personalization", () => {
       promoteToAgent(account.mobile);
       await logInThroughBrowser(page, account);
 
-      await expect(page.getByRole("region", { name: "Dashboard highlights" })).toBeVisible();
+      await expect(page.getByRole("heading", { name: "Registration status" })).toBeVisible();
       await expect(page.getByText("Agent code", { exact: true })).toBeVisible();
       await page.goto("/dashboard/settings");
       await expect(page.getByRole("heading", { name: "Personalized dashboard" })).toBeVisible();

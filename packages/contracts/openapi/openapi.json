@@ -2351,6 +2351,7 @@
           "payout_link_reconciled",
           "notification_broadcast",
           "agent_lead_expired",
+          "lead_assigned",
           "field_visibility_updated",
           "mobile_change_verified",
           "mobile_changed",
@@ -9583,6 +9584,19 @@
               }
             ],
             "title": "Referral Code"
+          },
+          "service_lines": {
+            "items": {
+              "enum": [
+                "loans",
+                "real_estate"
+              ],
+              "type": "string"
+            },
+            "maxItems": 2,
+            "minItems": 1,
+            "title": "Service Lines",
+            "type": "array"
           }
         },
         "required": [

@@ -50,10 +50,13 @@ export type OtpDelivery = {
   otpHint?: string;
 };
 
+export type ServiceLine = "loans" | "real_estate";
+
 export type RegisterDetails = {
   firstName: string;
   lastName: string;
   mobile: string; // E.164, e.g. +919876543210
+  serviceLines: ServiceLine[];
   // Format-checked client-side only; the backend never fails registration on
   // an unmatched code (docs/specs/referral-program.md D4).
   referralCode?: string;
@@ -199,6 +202,7 @@ export async function registerInitiate(
         first_name: input.firstName,
         last_name: input.lastName,
         mobile: input.mobile,
+        service_lines: input.serviceLines,
         referral_code: input.referralCode || undefined,
       } satisfies Schemas["RegisterInitiateRequest"],
     },

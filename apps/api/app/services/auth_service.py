@@ -64,7 +64,12 @@ from app.schemas.auth import (
     SetPasswordRequest,
 )
 from app.services import account_deletion, referrals
-from app.services.leads import capture_lead
+from app.services.leads import (
+    bind_registered_client_leads,
+    capture_lead,
+    lock_lead_mobile,
+    notify_lead_assignments,
+)
 from app.services.otp import (
     check_login_lock,
     check_login_rate_ip,
@@ -269,12 +274,14 @@ async def register_initiate(
     # (400) and rate-limit (429) branches below raise HTTPException, and FastAPI
     # never runs a BackgroundTask on a raised response — a deferred capture would be
     # dropped there, losing a genuinely new number that is already registered.
-    # Self-registered clients enroll in both lines; the lead is anchored to loans.
-    await capture_lead(
-        req.mobile,
-        name=f"{req.first_name} {req.last_name}".strip(),
-        business_line="loans",
-    )
+    # Profiles remain dual-line under CS-001; only explicitly requested service
+    # journeys are captured for follow-up.
+    for business_line in req.service_lines:
+        await capture_lead(
+            req.mobile,
+            name=f"{req.first_name} {req.last_name}".strip(),
+            business_line=business_line,
+        )
 
     existing = await db.scalar(select(User).where(User.mobile == req.mobile))
     if existing:
@@ -291,6 +298,7 @@ async def register_initiate(
                 "first_name": req.first_name,
                 "last_name": req.last_name,
                 "referral_code": req.referral_code,
+                "service_lines": req.service_lines,
             }
         ),
         TTL_OTP,
@@ -337,6 +345,7 @@ async def register_verify_otp(
             # A referral code is a public shareable token, not a secret — fine
             # to carry in a signed, short-lived registration token.
             "referral_code": reg_data.get("referral_code"),
+            "service_lines": reg_data.get("service_lines", ["loans"]),
         }
     )
     return RegistrationTokenResponse(registration_token=reg_token)
@@ -372,6 +381,7 @@ async def register_set_password(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)
         ) from exc
 
+    await lock_lead_mobile(db, mobile)
     existing = await db.scalar(select(User).where(User.mobile == mobile))
     if existing:
         raise HTTPException(
@@ -402,6 +412,7 @@ async def register_set_password(
             detail="Mobile number already registered.",
         ) from exc
 
+    profiles_by_line: dict[str, UUID] = {}
     for line in lines:
         for attempt in range(5):
             code = generate_profile_code("client", user.first_name, line)
@@ -421,6 +432,7 @@ async def register_set_password(
                         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                         detail="Could not generate unique profile code. Please try again.",
                     ) from None
+        profiles_by_line[line] = profile.id
 
     # Issue this new client's own referral code inside the same transaction as
     # the profile rows, same savepoint + retry shape. skip_eligibility=True:
@@ -432,7 +444,21 @@ async def register_set_password(
     # it can write the SELECT-only-for-api_user referral_codes table directly.
     await referrals.issue_code_on_session(db, user.id, skip_eligibility=True)
 
+    requested_lines = {
+        line for line in claims.get("service_lines", ["loans"]) if line in ("loans", "real_estate")
+    }
+    if not requested_lines:
+        requested_lines = {"loans"}
+    assignment_notices = await bind_registered_client_leads(
+        db,
+        mobile=mobile,
+        profiles_by_line=profiles_by_line,
+        requested_lines=requested_lines,
+        name=f"{user.first_name} {user.last_name}".strip(),
+    )
+
     await db.commit()
+    await notify_lead_assignments(assignment_notices)
 
     # Best-effort attribution against the code the registering person entered
     # (if any). Never blocks or fails registration — see

@@ -238,8 +238,9 @@ async def test_create_against_loans_lead_is_404_via_rls(client: AsyncClient) -> 
     LeadNotRealEstateLine guard would ever run — this exercises RLS doing that
     job, not the app-layer defense-in-depth check."""
     tc_uid, tc_staff_uuid = await _seed_telecaller()
+    _, loans_staff_uuid = await _seed_telecaller("loans")
     headers = {"Authorization": f"Bearer {_telecaller_token(tc_uid, tc_staff_uuid)}"}
-    lead_id = await _seed_unclaimed_lead("loans", tc_staff_uuid)
+    lead_id = await _seed_unclaimed_lead("loans", loans_staff_uuid)
     property_id = await _seed_property()
 
     res = await client.post(

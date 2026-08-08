@@ -29,7 +29,7 @@ async def _initiate(client: AsyncClient) -> int:
             "last_name": "User",
             "mobile": unique_mobile(),
             "email": unique_email(),
-            "lines": ["loans"],
+            "service_lines": ["loans"],
         },
     )
     return resp.status_code

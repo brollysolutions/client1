@@ -71,19 +71,26 @@ async def test_create_lead_persists_row(client: AsyncClient) -> None:
     assert lead.requirement["message"] == "Need 5 lakh"
 
 
-async def test_create_lead_enriches_existing(client: AsyncClient) -> None:
+async def test_create_lead_enriches_open_existing(client: AsyncClient) -> None:
     mobile = unique_mobile()
-    assert (await client.post("/api/v1/leads", json=_payload(mobile))).status_code == 202
+    assert (
+        await client.post("/api/v1/leads", json=_payload(mobile, topic="agent"))
+    ).status_code == 202
     # Second submit adds email + message; name/line survive, keys merge.
     resp = await client.post(
         "/api/v1/leads",
-        json=_payload(mobile, email="visitor@example.com", message="Call after 6pm"),
+        json=_payload(
+            mobile,
+            topic="agent",
+            email="visitor@example.com",
+            message="Call after 6pm",
+        ),
     )
     assert resp.status_code == 202
 
     lead = await _get_lead(mobile)
     assert lead is not None
-    assert lead.business_line == "loans"
+    assert lead.business_line is None
     assert lead.requirement["email"] == "visitor@example.com"
     assert lead.requirement["message"] == "Call after 6pm"
 

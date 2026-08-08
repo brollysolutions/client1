@@ -275,8 +275,15 @@ _SUBMISSION_PAYLOAD = {
 
 @pytest.mark.asyncio
 async def test_pending_property_submission_from_another_submitter_appears(
-    client: AsyncClient,
+    client: AsyncClient, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    from app.services import storage
+
+    monkeypatch.setattr(storage, "head_object", lambda _key: 2048)
+    monkeypatch.setattr(storage, "content_matches_declared_type", lambda _key, _ct: True)
+    monkeypatch.setattr(storage, "copy_object", lambda _source, _destination, _ct: None)
+    monkeypatch.setattr(storage, "delete_object", lambda _key: None)
+
     _, owner_mobile = await full_registration(client, lines=["real_estate"])
     owner_uid = await _auth_user_uuid(owner_mobile)
     owner_headers = {
@@ -292,8 +299,21 @@ async def test_pending_property_submission_from_another_submitter_appears(
             )
         )
     }
+    submission_payload = {
+        **_SUBMISSION_PAYLOAD,
+        "media": [
+            {
+                "kind": "image",
+                "content_type": "image/jpeg",
+                "object_key": (
+                    f"private/property-submissions/staging/{owner_uid}/{uuid.uuid4()}/asset.jpg"
+                ),
+                "position": 0,
+            }
+        ],
+    }
     create_res = await client.post(
-        "/api/v1/property-submissions", json=_SUBMISSION_PAYLOAD, headers=owner_headers
+        "/api/v1/property-submissions", json=submission_payload, headers=owner_headers
     )
     assert create_res.status_code == 201, create_res.text
     submission_id = create_res.json()["id"]

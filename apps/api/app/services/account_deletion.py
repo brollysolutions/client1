@@ -9,7 +9,10 @@ this function serves: `auth_users` (own-row-or-platform-scope),
 `client_profiles`/`agent_profiles` (own-uuid-or-platform-scope), and
 `support_tickets` (own-uuid-or-platform-scope, same shape — see
 `875b08101bea_grant_update_on_support_tickets.py`, which had to grant `UPDATE`
-first since the table previously only had `SELECT, INSERT`). Both a
+first since the table previously only had `SELECT, INSERT`). A narrow,
+authorization-checking SECURITY DEFINER function closes the target's live
+Client leads atomically so deleted journeys cannot be assigned or rebound.
+Both a
 self-deleting user and an Admin acting on someone else's account can write
 these rows under their own RLS context — see
 `f2e4d6c8a0b1_add_rls_policies.py`'s WITH CHECK clauses.
@@ -173,6 +176,10 @@ async def delete_account(
         raise AccountAlreadyDeleted
 
     original_mobile = user.mobile
+    # Run before mutating or flushing the auth row so the independently
+    # authorized database helper can close both profile-bound journeys and any
+    # unresolved lead still keyed only by the account's verified mobile.
+    await db.scalar(func.close_account_leads(target_auth_user_uuid))
     user.first_name = "Deleted"
     user.last_name = "User"
     user.mobile = _tombstone_mobile(user.id)
