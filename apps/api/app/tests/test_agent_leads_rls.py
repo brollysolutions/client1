@@ -290,7 +290,7 @@ async def test_no_reset_trigger_sees_other_agent_history_under_rls(client: Async
     from app.models.lead import Lead, LeadOrigin, LeadStatus
 
     prior_agent_uuid = await _seed_agent_profile("loans")
-    next_agent_uuid = await _seed_agent_profile("loans")
+    next_agent_uuid = await _seed_agent_profile("real_estate")
     mobile = unique_mobile()
     now = datetime.now(UTC)
     async with _session_mod.AsyncSessionLocal() as db:
@@ -312,13 +312,13 @@ async def test_no_reset_trigger_sees_other_agent_history_under_rls(client: Async
     ):
         await _run_as(
             role="agent",
-            business_line="loans",
+            business_line="real_estate",
             agent_profile_uuid=next_agent_uuid,
             query=(
                 "INSERT INTO leads "
                 "(id, mobile, business_line, origin, origin_agent_profile_uuid, status, "
                 "expires_at, created_at, updated_at) "
-                "VALUES (:id, :mobile, 'loans', 'agent', :agent_id, 'new', "
+                "VALUES (:id, :mobile, 'real_estate', 'agent', :agent_id, 'new', "
                 "now() + INTERVAL '30 days', now(), now())"
             ),
             params={

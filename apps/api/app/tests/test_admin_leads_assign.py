@@ -72,6 +72,21 @@ async def _seed_telecaller_staff_profile(business_line: str = "loans", active: b
         return str(profile.id)
 
 
+async def _assignment_audit(lead_id: str):
+    from sqlalchemy import select
+
+    import app.db.session as _session_mod
+    from app.models.audit_log import AuditAction, AuditLog
+
+    async with _session_mod.AsyncSessionLocal() as db:
+        return await db.scalar(
+            select(AuditLog).where(
+                AuditLog.entity_uuid == uuid.UUID(lead_id),
+                AuditLog.action == AuditAction.LEAD_ASSIGNED,
+            )
+        )
+
+
 def _admin_token(uid: str) -> str:
     return create_access_token(
         {"sub": uid, "role": "admin", "business_line": "", "platform_scope": "true"}
@@ -101,6 +116,14 @@ async def test_admin_assigns_lead_to_telecaller(client: AsyncClient) -> None:
     assert body["lead_id"] == lead_id
     assert body["telecaller_staff_profile_uuid"] == telecaller_uuid
     assert body["status"] == "assigned"
+    audit = await _assignment_audit(lead_id)
+    assert audit is not None
+    assert str(audit.actor_uuid) == uid
+    assert audit.actor_role == "admin"
+    assert audit.detail == {
+        "mode": "manual",
+        "telecaller_staff_profile_uuid": telecaller_uuid,
+    }
 
 
 @pytest.mark.asyncio

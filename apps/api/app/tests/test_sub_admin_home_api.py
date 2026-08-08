@@ -120,14 +120,42 @@ _SUBMISSION_PAYLOAD = {
 }
 
 
+def _submission_payload(uid: str) -> dict:
+    return {
+        **_SUBMISSION_PAYLOAD,
+        "media": [
+            {
+                "kind": "image",
+                "content_type": "image/jpeg",
+                "object_key": (
+                    f"private/property-submissions/staging/{uid}/{uuid.uuid4()}/asset.jpg"
+                ),
+                "position": 0,
+            }
+        ],
+    }
+
+
+@pytest.fixture
+def storage_ok(monkeypatch: pytest.MonkeyPatch) -> None:
+    from app.services import storage
+
+    monkeypatch.setattr(storage, "head_object", lambda _key: 2048)
+    monkeypatch.setattr(storage, "content_matches_declared_type", lambda _key, _ct: True)
+    monkeypatch.setattr(storage, "copy_object", lambda _source, _destination, _ct: None)
+    monkeypatch.setattr(storage, "delete_object", lambda _key: None)
+
+
 @pytest.mark.asyncio
-async def test_own_pending_property_submission_appears_in_queue(client: AsyncClient) -> None:
+async def test_own_pending_property_submission_appears_in_queue(
+    client: AsyncClient, storage_ok: None
+) -> None:
     _, mobile = await full_registration(client, lines=["real_estate"])
     uid = await _auth_user_uuid(mobile)
     headers = {"Authorization": f"Bearer {_sub_admin_token(uid)}"}
 
     create_res = await client.post(
-        "/api/v1/property-submissions", json=_SUBMISSION_PAYLOAD, headers=headers
+        "/api/v1/property-submissions", json=_submission_payload(uid), headers=headers
     )
     assert create_res.status_code == 201, create_res.text
     submission_id = create_res.json()["id"]
@@ -139,7 +167,9 @@ async def test_own_pending_property_submission_appears_in_queue(client: AsyncCli
 
 
 @pytest.mark.asyncio
-async def test_other_sub_admins_pending_submission_not_in_my_queue(client: AsyncClient) -> None:
+async def test_other_sub_admins_pending_submission_not_in_my_queue(
+    client: AsyncClient, storage_ok: None
+) -> None:
     """Same own-authored scoping as banners, applied to property_submissions
     (submitter_uuid, not created_by_uuid) — the other field name this
     aggregator has to get right."""
@@ -148,8 +178,9 @@ async def test_other_sub_admins_pending_submission_not_in_my_queue(client: Async
     owner_headers = {"Authorization": f"Bearer {_sub_admin_token(owner_uid)}"}
 
     create_res = await client.post(
-        "/api/v1/property-submissions", json=_SUBMISSION_PAYLOAD, headers=owner_headers
+        "/api/v1/property-submissions", json=_submission_payload(owner_uid), headers=owner_headers
     )
+    assert create_res.status_code == 201, create_res.text
     submission_id = create_res.json()["id"]
 
     _, other_mobile = await full_registration(client, lines=["real_estate"])

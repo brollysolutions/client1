@@ -11,9 +11,9 @@ Design notes:
   * That session connects as the 'app' superuser (DATABASE_URL), which bypasses RLS,
     so the unauthenticated INSERT always succeeds — same mechanism as the existing
     unauthenticated AuthEvent insert.
-  * Idempotent via the partial-unique index on (mobile) WHERE status NOT IN
-    ('closed','released'): ON CONFLICT enriches name/business_line (COALESCE keeps
-    known values) and touches updated_at as a last-seen marker.
+  * Idempotent through a mobile advisory lock plus per-line live indexes. One
+    mobile can have independent Loans and Real Estate journeys, while unknown
+    login/forgot captures stay unresolved until a line is explicitly known.
   * Best-effort: all errors are swallowed so capture can never break or slow-fail
     the auth response (which would also leak timing — see enumeration-safety).
 """
@@ -21,26 +21,42 @@ Design notes:
 from __future__ import annotations
 
 import logging
+from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import and_, case, func, or_, select, text, update
-from sqlalchemy.dialects.postgresql import insert as pg_insert
+from sqlalchemy import and_, case, func, or_, select, update
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.core.masking import mask_mobile
 from app.db.session import AsyncSessionLocal
-from app.models.lead import Lead, LeadStatus
+from app.models.audit_log import AuditAction
+from app.models.lead import Lead, LeadOrigin, LeadStatus
 from app.models.notification import NotificationType
 from app.models.profile import ClientProfile, ProfileStatus, StaffProfile, StaffRole
 from app.models.user import User
+from app.services.audit_log import record as record_audit
 from app.services.notifications import emit_notification
 
 logger = logging.getLogger(__name__)
 
-_ACTIVE_PREDICATE = "status NOT IN ('closed', 'released')"
+_ASSIGNABLE_STATUSES = (LeadStatus.NEW, LeadStatus.RELEASED)
+_WORKLOAD_STATUSES = (LeadStatus.ASSIGNED, LeadStatus.WORKING)
+_VALID_LINES = frozenset({"loans", "real_estate"})
+
+
+@dataclass(frozen=True)
+class LeadAssignmentNotice:
+    lead_id: UUID
+    telecaller_user_uuid: UUID
+    business_line: str
+
+
+class AgentLeadConflict(Exception):
+    """The mobile is registered, cross-line, expired, assigned, or owned elsewhere."""
 
 
 class LeadNotFound(Exception):
@@ -81,6 +97,111 @@ class InvalidTelecaller(Exception):
     """Raised when the target staff profile isn't an active telecaller on the lead's line."""
 
 
+async def lock_lead_mobile(db: AsyncSession, mobile: str) -> None:
+    """Serialize identity/lead decisions for one mobile across registration and Agents."""
+    await db.scalar(select(func.pg_advisory_xact_lock(func.hashtextextended(mobile, 0))))
+
+
+async def _lock_assignment_line(db: AsyncSession, business_line: str) -> None:
+    await db.scalar(
+        select(
+            func.pg_advisory_xact_lock(func.hashtextextended(f"lead-assignment:{business_line}", 0))
+        )
+    )
+
+
+async def lock_assignment_lines(db: AsyncSession, business_lines: set[str]) -> None:
+    """Acquire automatic-assignment locks in one canonical order."""
+    for business_line in sorted(business_lines & _VALID_LINES):
+        await _lock_assignment_line(db, business_line)
+
+
+def _merge_requirement(
+    existing: dict[str, Any] | None, incoming: dict[str, Any] | None
+) -> dict[str, Any] | None:
+    if incoming is None:
+        return existing
+    merged = dict(existing) if isinstance(existing, dict) else {}
+    merged.update(incoming)
+    return merged
+
+
+async def _select_automatic_telecaller(db: AsyncSession, business_line: str) -> StaffProfile | None:
+    workload = (
+        select(
+            Lead.assigned_telecaller_profile_uuid.label("staff_profile_uuid"),
+            func.count(Lead.id).label("active_count"),
+        )
+        .where(
+            Lead.business_line == business_line,
+            Lead.assigned_telecaller_profile_uuid.is_not(None),
+            Lead.status.in_(_WORKLOAD_STATUSES),
+        )
+        .group_by(Lead.assigned_telecaller_profile_uuid)
+        .subquery()
+    )
+    return await db.scalar(
+        select(StaffProfile)
+        .outerjoin(workload, workload.c.staff_profile_uuid == StaffProfile.id)
+        .where(
+            StaffProfile.role == StaffRole.TELECALLER,
+            StaffProfile.status == ProfileStatus.ACTIVE,
+            StaffProfile.business_line == business_line,
+        )
+        .order_by(func.coalesce(workload.c.active_count, 0), StaffProfile.id)
+        .limit(1)
+    )
+
+
+async def auto_assign_locked_lead(db: AsyncSession, lead: Lead) -> LeadAssignmentNotice | None:
+    """Assign one caller-owned locked lead without committing or notifying."""
+    if (
+        lead.assigned_telecaller_profile_uuid is not None
+        or lead.business_line not in _VALID_LINES
+        or lead.status not in _ASSIGNABLE_STATUSES
+    ):
+        return None
+
+    await _lock_assignment_line(db, lead.business_line)
+    telecaller = await _select_automatic_telecaller(db, lead.business_line)
+    if telecaller is None:
+        return None
+
+    lead.assigned_telecaller_profile_uuid = telecaller.id
+    lead.status = LeadStatus.ASSIGNED
+    lead.updated_at = datetime.now(UTC)
+    await record_audit(
+        db,
+        action=AuditAction.LEAD_ASSIGNED,
+        entity_type="lead",
+        entity_uuid=lead.id,
+        actor_uuid=None,
+        actor_role=None,
+        business_line=lead.business_line,
+        detail={
+            "mode": "automatic",
+            "telecaller_staff_profile_uuid": str(telecaller.id),
+        },
+    )
+    await db.flush()
+    return LeadAssignmentNotice(
+        lead_id=lead.id,
+        telecaller_user_uuid=telecaller.auth_user_uuid,
+        business_line=lead.business_line,
+    )
+
+
+async def notify_lead_assignments(notices: list[LeadAssignmentNotice]) -> None:
+    for notice in notices:
+        await emit_notification(
+            user_uuid=notice.telecaller_user_uuid,
+            notification_type=NotificationType.LEAD_ASSIGNED,
+            title="New lead assigned",
+            body=f"A new {notice.business_line} lead has been assigned to you.",
+            href="/dashboard/leads",
+        )
+
+
 async def has_expired_agent_lead(mobile: str) -> bool:
     """Return whether this mobile has ended Agent ownership history.
 
@@ -115,7 +236,7 @@ async def capture_lead(
     origin_agent_profile_uuid: str | None = None,
     requirement: dict[str, Any] | None = None,
 ) -> bool:
-    """Insert-or-enrich a lead for this mobile. Never raises.
+    """Insert-or-enrich a direct lead for this mobile. Never raises.
 
     Returns True when the write committed, False when it was swallowed — auth
     callers ignore this (capture must never break the auth flow); the public
@@ -123,131 +244,342 @@ async def capture_lead(
     nothing useful with a storage error, and the failure is already logged
     with a traceback here for ops).
     """
+    notice: LeadAssignmentNotice | None = None
     try:
         async with AsyncSessionLocal() as session:
-            expiry_deadline = func.now() + timedelta(days=settings.AGENT_LEAD_EXPIRY_DAYS)
-            stmt = pg_insert(Lead).values(
-                mobile=mobile,
-                name=name,
-                business_line=business_line,
-                origin=origin,
-                origin_agent_profile_uuid=origin_agent_profile_uuid,
-                status="new",
-                requirement=requirement,
-                expires_at=expiry_deadline if origin_agent_profile_uuid is not None else None,
-            )
-            # Agent-sourced captures are the only caller allowed to mutate an
-            # EXISTING active lead through this bypass session, and only within
-            # strict bounds: same business_line, not yet locked by a telecaller,
-            # and not already attributed to a DIFFERENT agent. This session has
-            # no RLS (it's the 'app' superuser), so the guard must be a SQL
-            # predicate on the conflicting row itself — a pre-check-then-update
-            # would race. When this predicate is false, Postgres leaves the
-            # conflicting row completely untouched (0 rows affected, no error);
-            # introduce_lead's re-select then finds nothing and raises
-            # LeadCaptureFailed (409), exactly like a genuine cross-line conflict.
-            conflict_guard = None
-            if origin_agent_profile_uuid is not None:
-                conflict_guard = (
-                    (Lead.business_line == business_line)
-                    & Lead.assigned_telecaller_profile_uuid.is_(None)
-                    & Lead.agent_expired_at.is_(None)
-                    & (Lead.expires_at.is_(None) | (Lead.expires_at > func.now()))
-                    & (
-                        Lead.origin_agent_profile_uuid.is_(None)
-                        | (Lead.origin_agent_profile_uuid == origin_agent_profile_uuid)
+            if business_line is not None and business_line not in _VALID_LINES:
+                raise ValueError("Operational leads require a supported business line.")
+            if origin_agent_profile_uuid is not None or origin != LeadOrigin.DIRECT.value:
+                raise ValueError("Agent lead capture must use capture_agent_lead().")
+
+            await lock_lead_mobile(session, mobile)
+            if business_line is not None:
+                await _lock_assignment_line(session, business_line)
+            live = Lead.status != LeadStatus.CLOSED
+            if business_line is None:
+                candidate = await session.scalar(
+                    select(Lead)
+                    .where(Lead.mobile == mobile, live)
+                    .order_by(
+                        case((Lead.business_line.is_(None), 0), else_=1),
+                        Lead.updated_at.desc(),
+                        Lead.id,
                     )
+                    .limit(1)
+                    .with_for_update()
                 )
-            stmt = stmt.on_conflict_do_update(
-                index_elements=[Lead.mobile],
-                index_where=text(_ACTIVE_PREDICATE),
-                set_={
-                    "name": func.coalesce(stmt.excluded.name, Lead.name),
-                    # Keep the FIRST-set line: only fill business_line when the
-                    # existing lead has none. business_line is immutable once set
-                    # (a DB trigger enforces this), so preferring the incoming value
-                    # would raise on a cross-line re-enquiry and — since capture is
-                    # best-effort/swallowed — silently drop the lead.
-                    "business_line": func.coalesce(Lead.business_line, stmt.excluded.business_line),
-                    # Same first-write-wins discipline: an agent introducing an
-                    # already-known mobile enriches the lead but never steals
-                    # attribution from whichever origin touched it first.
-                    "origin_agent_profile_uuid": func.coalesce(
-                        Lead.origin_agent_profile_uuid, stmt.excluded.origin_agent_profile_uuid
-                    ),
-                    # Stamp the immutable window only when Agent attribution is
-                    # first established (or defensively repair a missing legacy
-                    # deadline). Retries and later edits never extend it.
-                    "expires_at": case(
-                        (
-                            Lead.expires_at.is_(None)
-                            & stmt.excluded.origin_agent_profile_uuid.is_not(None),
-                            expiry_deadline,
-                        ),
-                        else_=Lead.expires_at,
-                    ),
-                    # Merge requirement JSONB, newest value wins per key; an
-                    # incoming NULL leaves the stored blob untouched.
-                    "requirement": case(
-                        (stmt.excluded.requirement.is_(None), Lead.requirement),
-                        else_=func.coalesce(Lead.requirement, text("'{}'::jsonb")).op("||")(
-                            stmt.excluded.requirement
-                        ),
-                    ),
-                    "updated_at": func.now(),
-                },
-                where=conflict_guard,
-            )
-            await session.execute(stmt)
+            else:
+                candidate = await session.scalar(
+                    select(Lead)
+                    .where(
+                        Lead.mobile == mobile,
+                        live,
+                        or_(Lead.business_line == business_line, Lead.business_line.is_(None)),
+                    )
+                    .order_by(
+                        case((Lead.business_line == business_line, 0), else_=1),
+                        Lead.updated_at.desc(),
+                        Lead.id,
+                    )
+                    .limit(1)
+                    .with_for_update()
+                )
+
+            if candidate is None:
+                candidate = Lead(
+                    mobile=mobile,
+                    name=name,
+                    business_line=business_line,
+                    origin=LeadOrigin.DIRECT,
+                    status=LeadStatus.NEW,
+                    requirement=requirement,
+                )
+                session.add(candidate)
+            else:
+                # Public/auth capture must never rewrite an assigned workflow.
+                # It may enrich only an open, unassigned enquiry.
+                if (
+                    candidate.assigned_telecaller_profile_uuid is None
+                    and candidate.status in _ASSIGNABLE_STATUSES
+                ):
+                    if name is not None:
+                        candidate.name = name
+                    if candidate.business_line is None and business_line is not None:
+                        candidate.business_line = business_line
+                    candidate.requirement = _merge_requirement(candidate.requirement, requirement)
+                candidate.updated_at = datetime.now(UTC)
+            await session.flush()
+            if business_line is not None:
+                notice = await auto_assign_locked_lead(session, candidate)
             await session.commit()
-            return True
+        if notice is not None:
+            await notify_lead_assignments([notice])
+        return True
     except Exception:  # capture is best-effort; never break the auth flow
         logger.warning("lead.capture_failed mobile=%s", mask_mobile(mobile), exc_info=True)
         return False
 
 
-async def resolve_loans_lead(mobile: str, client_profile_uuid: UUID) -> UUID:
-    """Find-or-create the client's loans lead and return its id.
+async def capture_agent_lead(
+    *,
+    mobile: str,
+    name: str | None,
+    business_line: str,
+    agent_profile_uuid: UUID,
+    requirement: dict[str, Any] | None,
+) -> Lead:
+    """Create/claim and automatically assign an Agent lead in one transaction."""
+    if business_line not in _VALID_LINES:
+        raise AgentLeadConflict
 
-    Every loan_application must hang off a lead (the lead spine — see
-    models/lead.py); this is the FK anchor a real "Apply" write needs. Unlike
-    capture_lead (auth-flow, best-effort, swallows errors), this RAISES: the
-    lead id is a hard requirement for creating a loan application, not a
-    best-effort side write.
+    notice: LeadAssignmentNotice | None = None
+    try:
+        async with AsyncSessionLocal() as session:
+            await lock_lead_mobile(session, mobile)
+            await _lock_assignment_line(session, business_line)
+            if await session.scalar(select(User.id).where(User.mobile == mobile).limit(1)):
+                raise AgentLeadConflict
+            if await session.scalar(
+                select(Lead.id)
+                .where(
+                    Lead.mobile == mobile,
+                    or_(
+                        Lead.agent_expired_at.is_not(None),
+                        and_(Lead.expires_at.is_not(None), Lead.expires_at <= func.now()),
+                    ),
+                )
+                .limit(1)
+            ):
+                raise AgentLeadConflict
 
-    Runs on the bypass superuser session, like capture_lead, because a
-    not-yet-claimed lead (client_profile_uuid IS NULL — the shape every
-    register/login capture leaves it in) is invisible to the client's own
-    RLS-scoped session: leads_rls (d4a1b2c3e5f6) has no branch for an
-    unclaimed lead under role='client'. Idempotent via the same partial-unique
-    index capture_lead relies on (mobile WHERE status NOT IN ('closed',
-    'released')); COALESCE only fills business_line/client_profile_uuid when
-    unset, respecting the business_line-immutability trigger and never
-    reassigning a lead someone else already claimed.
-    """
-    async with AsyncSessionLocal() as session:
-        stmt = pg_insert(Lead).values(
-            mobile=mobile,
-            business_line="loans",
-            client_profile_uuid=client_profile_uuid,
-            origin="direct",
-            status="new",
+            existing = list(
+                (
+                    await session.scalars(
+                        select(Lead)
+                        .where(Lead.mobile == mobile, Lead.status != LeadStatus.CLOSED)
+                        .order_by(Lead.updated_at.desc(), Lead.id)
+                        .with_for_update()
+                    )
+                ).all()
+            )
+            if any(
+                row.business_line not in (None, business_line)
+                or (
+                    row.origin_agent_profile_uuid is not None
+                    and row.origin_agent_profile_uuid != agent_profile_uuid
+                )
+                for row in existing
+            ):
+                raise AgentLeadConflict
+
+            lead = next(
+                (row for row in existing if row.business_line == business_line),
+                next((row for row in existing if row.business_line is None), None),
+            )
+            if lead is None:
+                lead = Lead(
+                    mobile=mobile,
+                    business_line=business_line,
+                    origin=LeadOrigin.AGENT,
+                    origin_agent_profile_uuid=agent_profile_uuid,
+                    name=name,
+                    requirement=requirement,
+                    status=LeadStatus.NEW,
+                    expires_at=datetime.now(UTC) + timedelta(days=settings.AGENT_LEAD_EXPIRY_DAYS),
+                )
+                session.add(lead)
+                await session.flush()
+            elif lead.origin_agent_profile_uuid == agent_profile_uuid:
+                # An Agent retry is idempotent. Once assignment locks the lead,
+                # do not allow the retry body to rewrite it.
+                if (
+                    lead.assigned_telecaller_profile_uuid is None
+                    and lead.status in _ASSIGNABLE_STATUSES
+                ):
+                    if name is not None:
+                        lead.name = name
+                    lead.requirement = _merge_requirement(lead.requirement, requirement)
+            else:
+                if (
+                    lead.assigned_telecaller_profile_uuid is not None
+                    or lead.status not in _ASSIGNABLE_STATUSES
+                ):
+                    raise AgentLeadConflict
+                lead.business_line = business_line
+                lead.origin = LeadOrigin.AGENT
+                lead.origin_agent_profile_uuid = agent_profile_uuid
+                lead.expires_at = datetime.now(UTC) + timedelta(
+                    days=settings.AGENT_LEAD_EXPIRY_DAYS
+                )
+                if name is not None:
+                    lead.name = name
+                lead.requirement = _merge_requirement(lead.requirement, requirement)
+
+            notice = await auto_assign_locked_lead(session, lead)
+            await session.commit()
+    except AgentLeadConflict:
+        raise
+    except IntegrityError as exc:
+        raise AgentLeadConflict from exc
+
+    if notice is not None:
+        await notify_lead_assignments([notice])
+    return lead
+
+
+async def _ensure_client_line_lead(
+    db: AsyncSession,
+    *,
+    mobile: str,
+    business_line: str,
+    client_profile_uuid: UUID,
+    name: str | None = None,
+) -> tuple[Lead, LeadAssignmentNotice | None]:
+    if business_line not in _VALID_LINES:
+        raise ValueError("Unsupported Client journey line.")
+
+    await _lock_assignment_line(db, business_line)
+    lead = await db.scalar(
+        select(Lead)
+        .where(
+            Lead.mobile == mobile,
+            Lead.business_line == business_line,
+            Lead.status != LeadStatus.CLOSED,
         )
-        stmt = stmt.on_conflict_do_update(
-            index_elements=[Lead.mobile],
-            index_where=text(_ACTIVE_PREDICATE),
-            set_={
-                "business_line": func.coalesce(Lead.business_line, stmt.excluded.business_line),
-                "client_profile_uuid": func.coalesce(
-                    Lead.client_profile_uuid, stmt.excluded.client_profile_uuid
-                ),
-                "updated_at": func.now(),
-            },
-        ).returning(Lead.id)
-        result = await session.execute(stmt)
-        lead_id = result.scalar_one()
+        .order_by(Lead.updated_at.desc(), Lead.id)
+        .limit(1)
+        .with_for_update()
+    )
+    if lead is None:
+        lead = await db.scalar(
+            select(Lead)
+            .where(
+                Lead.mobile == mobile,
+                Lead.business_line.is_(None),
+                Lead.status != LeadStatus.CLOSED,
+            )
+            .order_by(Lead.updated_at.desc(), Lead.id)
+            .limit(1)
+            .with_for_update()
+        )
+    if lead is None:
+        lead = Lead(
+            mobile=mobile,
+            business_line=business_line,
+            client_profile_uuid=client_profile_uuid,
+            origin=LeadOrigin.DIRECT,
+            status=LeadStatus.NEW,
+            name=name,
+        )
+        db.add(lead)
+        await db.flush()
+    else:
+        if lead.client_profile_uuid not in (None, client_profile_uuid):
+            raise ValueError("Lead is already claimed by a different Client profile.")
+        if lead.business_line is None:
+            lead.business_line = business_line
+        lead.client_profile_uuid = client_profile_uuid
+        if lead.name is None and name is not None:
+            lead.name = name
+        lead.updated_at = datetime.now(UTC)
+
+    return lead, await auto_assign_locked_lead(db, lead)
+
+
+async def bind_registered_client_leads(
+    db: AsyncSession,
+    *,
+    mobile: str,
+    profiles_by_line: dict[str, UUID],
+    requested_lines: set[str],
+    name: str,
+) -> list[LeadAssignmentNotice]:
+    """Bind OTP-proven ownership and assign requested plus Agent-attributed lines."""
+    await lock_lead_mobile(db, mobile)
+    agent_lines = set(
+        (
+            await db.scalars(
+                select(Lead.business_line).where(
+                    Lead.mobile == mobile,
+                    Lead.origin_agent_profile_uuid.is_not(None),
+                    Lead.agent_expired_at.is_(None),
+                    Lead.status != LeadStatus.CLOSED,
+                    Lead.business_line.in_(_VALID_LINES),
+                )
+            )
+        ).all()
+    )
+    lines = (requested_lines & _VALID_LINES) | agent_lines
+    notices: list[LeadAssignmentNotice] = []
+    for line in sorted(lines):
+        profile_uuid = profiles_by_line.get(line)
+        if profile_uuid is None:
+            raise ValueError("The verified account has no profile for the requested line.")
+        _lead, notice = await _ensure_client_line_lead(
+            db,
+            mobile=mobile,
+            business_line=line,
+            client_profile_uuid=profile_uuid,
+            name=name,
+        )
+        if notice is not None:
+            notices.append(notice)
+    return notices
+
+
+async def ensure_client_line_lead(
+    *, mobile: str, client_profile_uuid: UUID, business_line: str
+) -> UUID:
+    """Hard-require one claimed Client journey and retry automatic assignment."""
+    notice: LeadAssignmentNotice | None
+    async with AsyncSessionLocal() as session:
+        await lock_lead_mobile(session, mobile)
+        profile = await session.get(ClientProfile, client_profile_uuid)
+        if (
+            profile is None
+            or profile.business_line != business_line
+            or profile.status != ProfileStatus.ACTIVE
+        ):
+            raise ValueError("Client profile does not match the requested journey line.")
+        lead, notice = await _ensure_client_line_lead(
+            session,
+            mobile=mobile,
+            business_line=business_line,
+            client_profile_uuid=client_profile_uuid,
+        )
         await session.commit()
-        return lead_id
+    if notice is not None:
+        await notify_lead_assignments([notice])
+    return lead.id
+
+
+async def ensure_client_line_lead_for_user(
+    *, auth_user_uuid: UUID, mobile: str, business_line: str
+) -> UUID:
+    """Resolve the user's same-line profile, then create/assign that journey."""
+    async with AsyncSessionLocal() as session:
+        profile_uuid = await session.scalar(
+            select(ClientProfile.id).where(
+                ClientProfile.auth_user_uuid == auth_user_uuid,
+                ClientProfile.business_line == business_line,
+                ClientProfile.status == ProfileStatus.ACTIVE,
+            )
+        )
+    if profile_uuid is None:
+        raise ValueError("Client profile does not match the requested journey line.")
+    return await ensure_client_line_lead(
+        mobile=mobile,
+        client_profile_uuid=profile_uuid,
+        business_line=business_line,
+    )
+
+
+async def resolve_loans_lead(mobile: str, client_profile_uuid: UUID) -> UUID:
+    return await ensure_client_line_lead(
+        mobile=mobile,
+        client_profile_uuid=client_profile_uuid,
+        business_line="loans",
+    )
 
 
 async def resolve_realestate_client_profile(mobile: str) -> UUID | None:
@@ -282,7 +614,11 @@ async def resolve_realestate_client_profile(mobile: str) -> UUID | None:
             return None
         await session.execute(
             update(Lead)
-            .where(Lead.mobile == mobile, Lead.client_profile_uuid.is_(None))
+            .where(
+                Lead.mobile == mobile,
+                Lead.business_line == "real_estate",
+                Lead.client_profile_uuid.is_(None),
+            )
             .values(client_profile_uuid=client_profile_id)
         )
         await session.commit()
@@ -290,7 +626,12 @@ async def resolve_realestate_client_profile(mobile: str) -> UUID | None:
 
 
 async def assign_lead_to_telecaller(
-    db: AsyncSession, lead_id: UUID, telecaller_staff_profile_uuid: UUID
+    db: AsyncSession,
+    lead_id: UUID,
+    telecaller_staff_profile_uuid: UUID,
+    *,
+    actor_uuid: UUID,
+    actor_role: str,
 ) -> Lead:
     """Assign an unassigned lead to a telecaller. Admin-only (core.deps.require_admin).
 
@@ -321,6 +662,19 @@ async def assign_lead_to_telecaller(
 
     lead.assigned_telecaller_profile_uuid = telecaller.id
     lead.status = LeadStatus.ASSIGNED
+    await record_audit(
+        db,
+        action=AuditAction.LEAD_ASSIGNED,
+        entity_type="lead",
+        entity_uuid=lead.id,
+        actor_uuid=actor_uuid,
+        actor_role=actor_role,
+        business_line=lead.business_line,
+        detail={
+            "mode": "manual",
+            "telecaller_staff_profile_uuid": str(telecaller.id),
+        },
+    )
     await db.commit()
     await db.refresh(lead)
 
@@ -340,6 +694,8 @@ async def release_lead_from_telecaller(
     *,
     telecaller_staff_profile_uuid: UUID | None,
     release_reason: str | None,
+    actor_uuid: UUID,
+    actor_role: str,
 ) -> tuple[Lead, UUID | None]:
     """Release an assigned/working lead, optionally reassigning it to a new
     telecaller in the SAME transaction (no intermediate unassigned window).
@@ -385,6 +741,22 @@ async def release_lead_from_telecaller(
     if new_telecaller is not None:
         lead.assigned_telecaller_profile_uuid = new_telecaller.id
         lead.status = LeadStatus.ASSIGNED
+        await record_audit(
+            db,
+            action=AuditAction.LEAD_ASSIGNED,
+            entity_type="lead",
+            entity_uuid=lead.id,
+            actor_uuid=actor_uuid,
+            actor_role=actor_role,
+            business_line=lead.business_line,
+            detail={
+                "mode": "manual_reassignment",
+                "telecaller_staff_profile_uuid": str(new_telecaller.id),
+                "previous_telecaller_staff_profile_uuid": (
+                    str(previous_telecaller_uuid) if previous_telecaller_uuid else None
+                ),
+            },
+        )
     else:
         lead.assigned_telecaller_profile_uuid = None
         lead.status = LeadStatus.RELEASED

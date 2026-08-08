@@ -16,6 +16,7 @@ _REAL_SPACES = {
     "SPACES_ENDPOINT_URL": "https://nyc3.digitaloceanspaces.com",
     "SPACES_ACCESS_KEY": "real-access-key",
     "SPACES_SECRET_KEY": "real-secret-key",
+    "PUBLIC_WEB_ORIGIN": "https://app.example.com",
 }
 
 

@@ -116,6 +116,7 @@ describe("registerInitiate()", () => {
     firstName: "Test",
     lastName: "User",
     mobile: "+919000000007",
+    serviceLines: ["loans"] as const,
   };
 
   it("maps otp_hint -> otpHint", async () => {
@@ -123,7 +124,7 @@ describe("registerInitiate()", () => {
       "fetch",
       mockFetch(200, { message: "sent", delivery_channel: "none", otp_hint: "123456" }),
     );
-    const res = await registerInitiate({ ...details });
+    const res = await registerInitiate({ ...details, serviceLines: [...details.serviceLines] });
     expect(res.ok && res.data.otpHint).toBe("123456");
     expect(res.ok && res.data.deliveryChannel).toBe("none");
   });
@@ -133,9 +134,28 @@ describe("registerInitiate()", () => {
       "fetch",
       mockFetch(200, { message: "sent", delivery_channel: "voice", otp_hint: null }),
     );
-    const res = await registerInitiate({ ...details });
+    const res = await registerInitiate({ ...details, serviceLines: [...details.serviceLines] });
     expect(res.ok).toBe(true);
     if (res.ok) expect(res.data.otpHint).toBeUndefined();
+  });
+
+  it("sends explicit per-line follow-up intent", async () => {
+    const fetchMock = mockFetch(200, {
+      message: "sent",
+      delivery_channel: "none",
+      otp_hint: "123456",
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await registerInitiate({
+      ...details,
+      serviceLines: ["loans", "real_estate"],
+    });
+
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(JSON.parse(init.body as string)).toMatchObject({
+      service_lines: ["loans", "real_estate"],
+    });
   });
 });
 

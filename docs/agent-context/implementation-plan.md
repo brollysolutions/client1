@@ -11,7 +11,7 @@ Evidence baseline: `14773ae` ([PR #151](https://github.com/brollysolutions/clien
 Complete the approved Loans and Real Estate scope without weakening
 authorization, business-line segregation, PII/KYC handling, payout controls,
 or auditability. The current evidence-based implementation coverage is
-approximately **90.6%**; see [`feature-status.md`](feature-status.md) for the
+approximately **91.9%**; see [`feature-status.md`](feature-status.md) for the
 calculation and requirement-level gaps.
 
 ## Working rules
@@ -62,8 +62,9 @@ Admin field visibility and contact controls are **Done** in
 from the same branch in [PR #144](https://github.com/brollysolutions/client1/pull/144).
 Vehicle arrangements are **Done** in
 [PR #149](https://github.com/brollysolutions/client1/pull/149). Analytics is
-in review; notification/email redirect completion is merged, and the
-Map/GMB integration seam decision is the next product priority.
+merged, notification/email redirect completion is merged, and Lead assignment
+completion is ready for review; the deferred Map/GMB seam is the next decision
+gate.
 
 | Priority | Feature / requirements | Status | Recommended model / effort | Decision gate and acceptance summary |
 | ---: | --- | --- | --- | --- |
@@ -77,6 +78,87 @@ Map/GMB integration seam decision is the next product priority.
 | 8 | Notification/email redirect completeness (FR-11.2) | **In review** — [PR #151](https://github.com/brollysolutions/client1/pull/151) | `gpt-5.6-terra` / High | All producer, broadcast, push, and banner paths accept only same-origin destinations; verified-email transactional copies use the same safe page; PII-prone notification copy is removed; focused API/web safety checks pass. |
 | 9 | Authenticated banner personalization (FR-12.1 through FR-12.4, FR-18.1) | **Done** — [PR #152](https://github.com/brollysolutions/client1/pull/152) | `gpt-5.6-sol` / Extra High | Delivered the closed audience grammar, server-proven Client/Agent line context, separate activity/coarse-location consent, private authenticated banner/offer placements, public non-leakage, safe fallbacks, 30-day retention/deletion, and negative targeting/RLS tests. Focused API (122), full web (287), seeded Client/Agent Playwright (2), production build, generated contracts, and migration upgrade/downgrade/head checks pass; the full API suite exceeded the local execution window. |
 | 10 | Map/GMB integration seam (FR-18.2) | Deferred pending scope | `gpt-5.6-terra` / High | Confirm it remains in v1; define provider-neutral coordinates/address boundary and privacy constraints before adding a dependency. |
+| 11 | Lead assignment completion (FR-4.2, FR-4.3) | **In review** — [PR #153](https://github.com/brollysolutions/client1/pull/153) | `gpt-5.6-sol` / Extra High | Delivered explicit per-line intent, deterministic least-loaded same-line assignment, bounded retry, OTP-proven Agent-lead binding, generic registration links, Admin fallback, audit/notifications, account-deletion closure, and database/RLS isolation. |
+
+### Approved feature brief — Lead assignment completion
+
+- **Success:** every Agent-introduced lead and every explicitly requested
+  direct Client journey is assigned to one active same-line Telecaller without
+  Admin intervention when capacity exists. A missing eligible Telecaller leaves
+  the lead in the existing Admin queue for bounded idempotent retry.
+- **Client behavior:** preserve CS-001 account creation with both Client
+  profiles and no enrollment picker. Capture service intent separately so a
+  Loans, Real Estate, or both selection creates only the requested operational
+  journeys and never treats profile existence alone as consent to outreach.
+- **Agent onboarding:** the Agent shares a generic same-origin registration
+  link containing no lead identifier or mobile. Successful OTP registration
+  binds a matching active Agent lead to the verified account's same-line Client
+  profile; the link itself grants no authority and normal registration with the
+  same mobile performs the identical binding.
+- **Assignment:** choose only active same-line Telecaller profiles, ordered by
+  the smallest assigned/working workload and a stable profile-ID tie-breaker.
+  Lock assignment candidates and the lead so concurrent capture/retry paths do
+  not double-assign or skew one visible transition into multiple notifications.
+- **Data compatibility:** support one live journey per mobile and business line,
+  one unresolved capture per mobile, and no `both`-line operational lead.
+  Preserve existing lead IDs, downstream FKs, Agent origin/deadline history,
+  terminal states, manual Admin release/reassign, and line-scoped RLS.
+- **Failure and security:** serialize same-mobile registration/Agent-introduction
+  races; prevent registered or already Agent-attributed mobiles from being
+  claimed by another Agent; keep PII out of audit/notification/log payloads;
+  notify only after commit; and fail closed on inactive, wrong-role, or
+  cross-line assignees.
+- **Non-goals:** cloud telephony, persistent team membership, quotas or shifts,
+  Agent transfer, changing the 30-day Agent expiry, or automatically assigning
+  both teams merely because both Client profiles exist.
+- **Verification:** additive migration upgrade/downgrade and one head; direct
+  RLS tests; per-line uniqueness and legacy-row checks; assignment fairness,
+  concurrency, no-capacity, retry, terminal, inactive, and cross-line tests;
+  OTP binding and duplicate-ownership tests; generated contracts; accessible
+  registration/Agent UI tests and seeded browser flow; full API/web/repository
+  gates; security review; and PR review.
+
+### Delivered feature evidence — Lead assignment completion
+
+- **Behavior:** registration keeps both Client profiles but requires explicit
+  Loans/Real Estate follow-up intent. Direct and Agent-introduced journeys are
+  assigned to the active same-line Telecaller with the smallest
+  assigned/working workload and stable UUID tie-breaking; a bounded scheduler
+  retries the oldest queued rows every 15 minutes. OTP verification is the sole
+  authority for Client binding, and the Agent shares only the generic
+  same-origin `/register` route.
+- **Compatibility and lifecycle:** the additive migration replaces the former
+  mobile-only live uniqueness with per-line, unresolved, and global active-Agent
+  invariants; normalizes legacy `both` leads without deleting history; backfills
+  exact-line registered Clients; and preserves Agent attribution/deadlines,
+  terminal states, Admin release/reassignment, and downstream lead IDs. Account
+  deletion atomically closes profile-bound and same-mobile unresolved journeys
+  before identity tombstoning.
+- **Security review:** automatic paths serialize mobile ownership and acquire
+  line locks before row locks; retry acquires both line locks canonically. A
+  fixed-search-path database trigger rejects inactive, wrong-role, and
+  cross-line Telecaller links and mismatched Client profiles. The account-close
+  helper independently authorizes only the owner or platform Admin. Public
+  capture cannot rewrite an assigned workflow; audit and notification payloads
+  contain line and UUID metadata but no name, mobile, requirement, or OTP data;
+  notifications occur only after commit. Review found no remaining actionable
+  high- or medium-severity issue.
+- **Fresh verification:** Ruff check/format pass. The final lead, public-capture,
+  Admin assignment/reassignment, and direct-RLS regression set passes 53 tests;
+  together with the immediately preceding unchanged neighboring groups, all 187
+  changed-path API tests pass. A full split API run passed 1,542 tests before
+  the final lock-order refinement, and the affected concurrency/security paths
+  were rerun afterward. A final monolithic `uv run pytest -q` produced no
+  failure trace but exceeded the explicit 30-minute local limit, so it is not
+  counted as passing. Migration downgrade/upgrade, `current`, and the single
+  Alembic head pass. Web lint, typecheck, and all 288 unit tests pass; three
+  seeded Playwright journeys and the production Docker builder pass. The host
+  standalone build reaches successful compile/typecheck/static generation (92
+  pages) before Windows rejects Next.js standalone symlink creation with
+  `EPERM`; the Linux production builder completes. The live OpenAPI document
+  and pinned generated TypeScript schema reproduce the committed contracts
+  exactly. The Bash-only `./scripts/verify.sh --ci` wrapper is unavailable on
+  this Windows host; its applicable constituent gates above were run directly.
 
 ### Approved feature brief — Authenticated banner personalization
 

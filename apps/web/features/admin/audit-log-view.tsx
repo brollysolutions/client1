@@ -152,6 +152,11 @@ const ACTION_META: Record<AuditAction, { label: string; icon: LucideIcon; tone: 
     icon: Undo2,
     tone: "bg-warning/10 text-warning",
   },
+  lead_assigned: {
+    label: "Lead assigned",
+    icon: Headset,
+    tone: "bg-loans-soft text-loans-accent",
+  },
   field_visibility_updated: {
     label: "Field visibility updated",
     icon: ShieldCheck,
@@ -207,11 +212,11 @@ function formatWhen(iso: string): string {
   });
 }
 
-// A NULL actor means a scheduler job acted. A present actor_uuid that resolved to
+// A NULL actor means platform automation acted. A present actor_uuid that resolved to
 // no name means the account was deleted since. Two different facts, two different
 // words, so the feed never implies a person did something the platform did.
 function actorLabel(entry: AuditLogEntry): string {
-  if (entry.actor_uuid === null) return "Automated job";
+  if (entry.actor_uuid === null) return "Platform automation";
   if (entry.actor_name) return entry.actor_name;
   return "Deleted account";
 }

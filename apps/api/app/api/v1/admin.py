@@ -499,7 +499,13 @@ async def assign_lead(
     db: AsyncSession = Depends(get_db),
 ) -> LeadAssignResponse:
     try:
-        lead = await assign_lead_to_telecaller(db, lead_id, payload.telecaller_staff_profile_uuid)
+        lead = await assign_lead_to_telecaller(
+            db,
+            lead_id,
+            payload.telecaller_staff_profile_uuid,
+            actor_uuid=current_user.id,
+            actor_role=current_user.role,
+        )
     except LeadNotFound as exc:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Lead not found.") from exc
     except LeadAlreadyAssigned as exc:
@@ -541,6 +547,8 @@ async def release_lead(
             lead_id,
             telecaller_staff_profile_uuid=payload.telecaller_staff_profile_uuid,
             release_reason=payload.release_reason,
+            actor_uuid=current_user.id,
+            actor_role=current_user.role,
         )
     except LeadNotFound as exc:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Lead not found.") from exc

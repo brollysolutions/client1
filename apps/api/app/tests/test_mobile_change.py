@@ -211,7 +211,10 @@ async def test_unlinked_lead_collision_is_not_hidden_by_linked_rows(
 
     async with session_mod.AsyncSessionLocal() as db:
         profile_id = await db.scalar(
-            text("SELECT id FROM client_profiles WHERE auth_user_uuid = :uid LIMIT 1"),
+            text(
+                "SELECT id FROM client_profiles "
+                "WHERE auth_user_uuid = :uid AND business_line = 'loans'"
+            ),
             {"uid": target_id},
         )
         assert profile_id is not None
@@ -219,8 +222,9 @@ async def test_unlinked_lead_collision_is_not_hidden_by_linked_rows(
             await db.execute(
                 text(
                     "INSERT INTO leads "
-                    "(id, client_profile_uuid, origin, mobile, status, created_at, updated_at) "
-                    "VALUES (:id, :profile, 'direct', :number, 'new', now(), now())"
+                    "(id, client_profile_uuid, business_line, origin, mobile, status, "
+                    "created_at, updated_at) VALUES "
+                    "(:id, :profile, 'loans', 'direct', :number, 'closed', now(), now())"
                 ),
                 {"id": uuid.uuid4(), "profile": profile_id, "number": replacement},
             )
@@ -341,18 +345,13 @@ async def test_maker_checker_completion_updates_identity_and_revokes_sessions(
 
     async with session_mod.AsyncSessionLocal() as db:
         profile_id = await db.scalar(
-            text("SELECT id FROM client_profiles WHERE auth_user_uuid = :uid LIMIT 1"),
+            text(
+                "SELECT id FROM client_profiles "
+                "WHERE auth_user_uuid = :uid AND business_line = 'loans'"
+            ),
             {"uid": target_id},
         )
         assert profile_id is not None
-        await db.execute(
-            text(
-                "INSERT INTO leads "
-                "(id, client_profile_uuid, origin, mobile, status, created_at, updated_at) "
-                "VALUES (:id, :profile, 'direct', :number, 'new', now(), now())"
-            ),
-            {"id": uuid.uuid4(), "profile": profile_id, "number": current},
-        )
         await db.execute(
             text(
                 "INSERT INTO leads "
@@ -364,8 +363,9 @@ async def test_maker_checker_completion_updates_identity_and_revokes_sessions(
         await db.execute(
             text(
                 "INSERT INTO leads "
-                "(id, client_profile_uuid, origin, mobile, status, created_at, updated_at) "
-                "VALUES (:id, :profile, 'direct', :number, 'closed', now(), now())"
+                "(id, client_profile_uuid, business_line, origin, mobile, status, "
+                "created_at, updated_at) VALUES "
+                "(:id, :profile, 'loans', 'direct', :number, 'closed', now(), now())"
             ),
             {"id": uuid.uuid4(), "profile": profile_id, "number": current},
         )
@@ -539,10 +539,11 @@ async def test_maker_checker_completion_updates_identity_and_revokes_sessions(
                 {"uid": target_id},
             )
         ).all()
-        assert {row.status: row.mobile for row in lead_numbers} == {
-            "closed": current,
-            "new": replacement,
-        }
+        assert any(row.status == "closed" and row.mobile == current for row in lead_numbers)
+        live_leads = [row for row in lead_numbers if row.status != "closed"]
+        assert len(live_leads) == 1
+        assert live_leads[0].status in {"new", "assigned"}
+        assert live_leads[0].mobile == replacement
         unlinked_old_count = await db.scalar(
             text(
                 "SELECT count(*) FROM leads WHERE client_profile_uuid IS NULL AND mobile = :number"

@@ -8,13 +8,57 @@ agent_profile_uuid claim, since the agent endpoints/RLS key off it.
 from __future__ import annotations
 
 import uuid
+from collections.abc import AsyncIterator
 from datetime import UTC, datetime, timedelta
 
 import pytest
+import pytest_asyncio
 from httpx import AsyncClient
+from sqlalchemy import select, update
 
 from app.core.security import create_access_token
+from app.models.profile import ProfileStatus, StaffProfile, StaffRole
 from conftest import full_registration, unique_mobile
+
+
+@pytest_asyncio.fixture(autouse=True)
+async def _isolate_eligible_telecallers() -> AsyncIterator[None]:
+    """Keep pre-existing integration data from changing Agent API outcomes."""
+    import app.db.session as _session_mod
+
+    async with _session_mod.AsyncSessionLocal() as db:
+        previously_active = set(
+            (
+                await db.scalars(
+                    select(StaffProfile.id).where(
+                        StaffProfile.role == StaffRole.TELECALLER,
+                        StaffProfile.status == ProfileStatus.ACTIVE,
+                    )
+                )
+            ).all()
+        )
+        await db.execute(
+            update(StaffProfile)
+            .where(StaffProfile.role == StaffRole.TELECALLER)
+            .values(status=ProfileStatus.INACTIVE)
+        )
+        await db.commit()
+    try:
+        yield
+    finally:
+        async with _session_mod.AsyncSessionLocal() as db:
+            await db.execute(
+                update(StaffProfile)
+                .where(StaffProfile.role == StaffRole.TELECALLER)
+                .values(status=ProfileStatus.INACTIVE)
+            )
+            if previously_active:
+                await db.execute(
+                    update(StaffProfile)
+                    .where(StaffProfile.id.in_(previously_active))
+                    .values(status=ProfileStatus.ACTIVE)
+                )
+            await db.commit()
 
 
 async def _auth_user_uuid(mobile: str) -> str:
@@ -178,7 +222,6 @@ async def test_introduce_lead_idempotent(client: AsyncClient) -> None:
 @pytest.mark.asyncio
 async def test_due_lead_is_read_only_before_scheduler_marks_it_expired(
     client: AsyncClient,
-    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     import app.db.session as _session_mod
     from app.models.lead import Lead, LeadOrigin, LeadStatus
@@ -208,12 +251,8 @@ async def test_due_lead_is_read_only_before_scheduler_marks_it_expired(
     )
     assert update.status_code == 409
 
-    async def stale_precheck(_mobile: str) -> bool:
-        return False
-
-    # Simulate the deadline being reached after introduce_lead's pre-check.
-    # The upsert predicate and guarded re-select must still reject the write.
-    monkeypatch.setattr("app.services.agent.has_expired_agent_lead", stale_precheck)
+    # The capture transaction rechecks the reached deadline while holding the
+    # mobile advisory lock, so a retry cannot restart the Agent window.
     reintroduce = await client.post(
         "/api/v1/agent/leads",
         json={"mobile": detail.json()["mobile"], "name": "Restarted"},

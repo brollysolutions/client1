@@ -11,6 +11,7 @@ from app.core.security import REFERRAL_CODE_RE, normalize_referral_code
 # Channel an OTP was actually delivered through. "none" = all channels mocked/failed
 # (dev only — the response then carries otp_hint in non-production).
 DeliveryChannel = Literal["voice", "email", "none"]
+ServiceLine = Literal["loans", "real_estate"]
 
 # ---------------------------------------------------------------------------
 # Registration
@@ -21,13 +22,24 @@ class RegisterInitiateRequest(BaseModel):
     first_name: Annotated[str, Field(min_length=1, max_length=100)]
     last_name: Annotated[str, Field(min_length=1, max_length=100)]
     mobile: Annotated[str, Field(pattern=r"^\+[1-9]\d{6,14}$")]
-    # No line picker: every client is enrolled in both loans and real_estate at
-    # signup (one User, two ClientProfiles). See docs/specs/dual-line-clients.md.
+    # This is follow-up intent, not profile enrollment: every Client still gets
+    # both line profiles under CS-001. The default preserves older callers that
+    # predate the explicit intent field.
+    service_lines: list[ServiceLine] = Field(
+        default_factory=lambda: ["loans"], min_length=1, max_length=2
+    )
     # Format-validated only — whether it matches a real referral code is never
     # checked here (docs/specs/referral-program.md D4): that would turn this
     # public endpoint into a code-existence oracle. An unmatched code is
     # silently ignored later in register_set_password.
     referral_code: str | None = None
+
+    @field_validator("service_lines")
+    @classmethod
+    def service_lines_are_unique(cls, v: list[ServiceLine]) -> list[ServiceLine]:
+        if len(set(v)) != len(v):
+            raise ValueError("Choose each service line at most once.")
+        return sorted(v)
 
     @field_validator("referral_code")
     @classmethod

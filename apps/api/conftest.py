@@ -210,7 +210,7 @@ async def initiate_and_get_otp(
         "first_name": "Test",
         "last_name": "User",
         "mobile": mobile,
-        "lines": lines or ["loans"],
+        "service_lines": lines or ["loans"],
     }
     if referral_code is not None:
         body["referral_code"] = referral_code

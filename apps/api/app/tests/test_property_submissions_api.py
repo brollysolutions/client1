@@ -397,12 +397,13 @@ async def test_presign_returns_owner_bound_private_key(client: AsyncClient) -> N
 async def test_presign_rate_limit_fails_closed(
     client: AsyncClient, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    _, mobile = await full_registration(client, lines=["real_estate"])
+    uid = await _auth_user_uuid(mobile)
+
     async def over_limit(_cache: RedisCache, _key: str, _ttl: int) -> int:
         return 37
 
     monkeypatch.setattr(RedisCache, "incr_with_expire", over_limit)
-    _, mobile = await full_registration(client, lines=["real_estate"])
-    uid = await _auth_user_uuid(mobile)
     res = await client.post(
         "/api/v1/property-submissions/media-upload-url",
         json={"kind": "image", "content_type": "image/jpeg"},

@@ -34,6 +34,7 @@ import {
   resendOtp,
   updateProfile,
 } from "@/lib/auth";
+import type { ServiceLine } from "@/lib/auth";
 import { formatMobile, isValidMobile, toE164 } from "@/lib/phone";
 import { isValidReferralCodeFormat, normalizeReferralCode } from "@/lib/referral-share";
 
@@ -161,6 +162,8 @@ function RegisterPageContent() {
     referralCode: "",
   });
   const [profileEmail, setProfileEmail] = React.useState("");
+  const [serviceLines, setServiceLines] = React.useState<ServiceLine[]>([]);
+  const [serviceLineError, setServiceLineError] = React.useState("");
   const [optionalProfile, setOptionalProfile] = React.useState(EMPTY_OPTIONAL_PROFILE);
   const [profileSaving, setProfileSaving] = React.useState(false);
   const [errors, setErrors] = React.useState<Partial<Record<keyof Details, string>>>({});
@@ -242,6 +245,7 @@ function RegisterPageContent() {
       if (msg) next[key] = msg;
     });
     setErrors(next);
+    setServiceLineError(serviceLines.length ? "" : "Choose at least one service.");
     // A submit attempt makes every field "touched" so edits from here on
     // live-clear immediately, even for a field the user never blurred.
     setTouched({
@@ -250,7 +254,17 @@ function RegisterPageContent() {
       mobile: true,
       referralCode: true,
     });
-    return Object.keys(next).length === 0;
+    return Object.keys(next).length === 0 && serviceLines.length > 0;
+  }
+
+  function toggleServiceLine(line: ServiceLine) {
+    setServiceLines((current) => {
+      const next = current.includes(line)
+        ? current.filter((value) => value !== line)
+        : [...current, line];
+      if (next.length) setServiceLineError("");
+      return next;
+    });
   }
 
   async function submitDetails(event: React.FormEvent) {
@@ -264,6 +278,7 @@ function RegisterPageContent() {
       firstName: details.firstName.trim(),
       lastName: details.lastName.trim(),
       mobile: mobileE164,
+      serviceLines,
       referralCode: details.referralCode || undefined,
     });
     setSubmitting(false);
@@ -443,6 +458,53 @@ function RegisterPageContent() {
                 </p>
               )}
             </div>
+
+            <fieldset
+              className="space-y-2"
+              aria-describedby={
+                serviceLineError
+                  ? "service-lines-help service-lines-error"
+                  : "service-lines-help"
+              }
+              aria-invalid={Boolean(serviceLineError)}
+            >
+              <legend className="text-[15px] font-medium text-text-primary">
+                What can we help with?
+              </legend>
+              <p id="service-lines-help" className="text-sm text-text-secondary">
+                Choose one or both. Your account can use both services later.
+              </p>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                {([
+                  ["loans", "Loans"],
+                  ["real_estate", "Real Estate"],
+                ] as const).map(([line, label]) => {
+                  const selected = serviceLines.includes(line);
+                  return (
+                    <button
+                      key={line}
+                      type="button"
+                      aria-pressed={selected}
+                      disabled={submitting}
+                      onClick={() => toggleServiceLine(line)}
+                      className={cn(
+                        "h-12 rounded-lg border px-4 text-left text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+                        selected
+                          ? "border-brand-blue bg-brand-blue/10 text-brand-navy"
+                          : "border-border bg-background text-text-primary hover:bg-muted",
+                      )}
+                    >
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
+              {serviceLineError ? (
+                <p id="service-lines-error" className="text-sm text-destructive">
+                  {serviceLineError}
+                </p>
+              ) : null}
+            </fieldset>
 
             <div className="space-y-2">
               <Label htmlFor="referralCode" className="text-[15px]">

@@ -19,6 +19,7 @@ from sqlalchemy import delete, func
 
 import app.db.session as db_session
 from app.core.config import settings
+from app.jobs.assign_unassigned_leads import assign_unassigned_leads
 from app.jobs.audit_paid_payouts import audit_paid_payouts
 from app.jobs.backfill_customer_codes import backfill_customer_codes
 from app.jobs.backfill_referral_codes import backfill_referral_codes
@@ -223,6 +224,15 @@ def build_scheduler() -> AsyncIOScheduler:
         # homepage's 60s ISR window puts a banner live within ~6 min of its
         # starts_at. Cost is 4 indexed UPDATEs matching 0 rows most ticks.
         id="cms_activation",
+        max_instances=1,
+        coalesce=True,
+        replace_existing=True,
+    )
+    scheduler.add_job(
+        assign_unassigned_leads,
+        trigger="interval",
+        minutes=15,
+        id="assign_unassigned_leads",
         max_instances=1,
         coalesce=True,
         replace_existing=True,
