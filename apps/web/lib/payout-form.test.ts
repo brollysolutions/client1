@@ -87,6 +87,23 @@ describe("buildPayoutPayload()", () => {
     });
   });
 
+  it("builds a cheque payout without bank or VPA details", () => {
+    const payload = buildPayoutPayload(
+      form({
+        recipient: { authUserUuid: "u3", name: "Test User", code: null },
+        type: "cashback",
+        amountRupees: "25",
+        destinationType: "cheque",
+        vpa: "stale@bank",
+        ifsc: "STALE000001",
+        accountNumber: "1234567890",
+      }),
+      "idem-key-cheque",
+    );
+    expect(payload.destination_type).toBe("cheque");
+    expect(payload.destination).toEqual({});
+  });
+
   it("throws rather than silently building a 0-paise payload when the amount is invalid", () => {
     expect(() =>
       buildPayoutPayload(
@@ -148,6 +165,18 @@ describe("validatePayoutForm()", () => {
         amountRupees: "10",
         destinationType: "vpa",
         vpa: "payee@okhdfc",
+      }),
+    );
+    expect(errs).toEqual({});
+  });
+
+  it("accepts cheque without destination credentials", () => {
+    const errs = validatePayoutForm(
+      form({
+        recipient: { authUserUuid: "u1", name: "Test User", code: null },
+        type: "cashback",
+        amountRupees: "10",
+        destinationType: "cheque",
       }),
     );
     expect(errs).toEqual({});

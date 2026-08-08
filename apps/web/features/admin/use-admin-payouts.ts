@@ -5,10 +5,14 @@ import * as React from "react";
 import type { ApiResponse } from "@/lib/api/client";
 import {
   approvePayout,
+  clearManualCheque,
   createPayout,
+  failManualCheque,
+  issueManualCheque,
   listPayouts,
   PAYOUT_PAGE_LIMIT,
   rejectPayout,
+  reverseManualCheque,
   type Payout,
   type PayoutCreate,
 } from "@/lib/payouts-api";
@@ -72,6 +76,30 @@ export function useAdminPayouts() {
     return res;
   }
 
+  async function issueCheque(id: string, reference: string): Promise<ApiResponse<Payout>> {
+    const res = await issueManualCheque(id, reference);
+    if (res.ok) reload();
+    return res;
+  }
+
+  async function clearCheque(id: string): Promise<ApiResponse<Payout>> {
+    const res = await clearManualCheque(id);
+    if (res.ok) reload();
+    return res;
+  }
+
+  async function failCheque(id: string, reason: string): Promise<ApiResponse<Payout>> {
+    const res = await failManualCheque(id, reason);
+    if (res.ok) reload();
+    return res;
+  }
+
+  async function reverseCheque(id: string, reason: string): Promise<ApiResponse<Payout>> {
+    const res = await reverseManualCheque(id, reason);
+    if (res.ok) reload();
+    return res;
+  }
+
   return {
     payouts,
     status,
@@ -83,6 +111,10 @@ export function useAdminPayouts() {
     approve,
     reject,
     create,
+    issueCheque,
+    clearCheque,
+    failCheque,
+    reverseCheque,
     truncated: payouts.length === PAYOUT_PAGE_LIMIT,
   };
 }

@@ -37,7 +37,7 @@ export function validateFeeCashbackPayoutForm(
     if (!form.vpa.trim() || !form.vpa.includes("@")) {
       errs.vpa = "Enter a valid UPI VPA (name@bank).";
     }
-  } else {
+  } else if (form.destinationType === "bank_account") {
     if (!form.ifsc.trim()) errs.ifsc = "IFSC is required.";
     if (form.accountNumber.trim().length < 6) {
       errs.accountNumber = "Account number must be at least 6 digits.";
@@ -57,7 +57,9 @@ export function buildFeeCashbackPayoutPayload(
           account_number: form.accountNumber.trim(),
           name: form.accountName.trim() || null,
         }
-      : { vpa: form.vpa.trim() };
+      : form.destinationType === "vpa"
+        ? { vpa: form.vpa.trim() }
+        : {};
 
   return {
     destination_type: form.destinationType as PayoutDestination,

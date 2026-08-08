@@ -14,6 +14,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -93,6 +94,10 @@ export function PayoutsView() {
     approve,
     reject,
     create,
+    issueCheque,
+    clearCheque,
+    failCheque,
+    reverseCheque,
     truncated,
   } = useAdminPayouts();
 
@@ -101,11 +106,26 @@ export function PayoutsView() {
   const [reason, setReason] = React.useState("");
   const [busy, setBusy] = React.useState(false);
   const [createOpen, setCreateOpen] = React.useState(false);
+  const [manualActive, setManualActive] = React.useState<Payout | null>(null);
+  const [manualFailure, setManualFailure] = React.useState(false);
+  const [manualValue, setManualValue] = React.useState("");
 
   function openDecision(payout: Payout) {
     setActive(payout);
     setRejecting(false);
     setReason("");
+  }
+
+  function openManualAction(payout: Payout) {
+    setManualActive(payout);
+    setManualFailure(false);
+    setManualValue("");
+  }
+
+  function closeManualAction() {
+    setManualActive(null);
+    setManualFailure(false);
+    setManualValue("");
   }
 
   async function onApprove(payout: Payout) {
@@ -136,6 +156,43 @@ export function PayoutsView() {
     } else {
       toast.error("Could not reject payout", { description: res.error });
     }
+  }
+
+  async function onManualAction(payout: Payout) {
+    const value = manualValue.trim();
+    if (payout.status === "approved" && value.length < 4) {
+      toast.error("Enter the cheque reference");
+      return;
+    }
+    if ((manualFailure || payout.status === "paid") && value.length === 0) {
+      toast.error("Add a reason for this action");
+      return;
+    }
+
+    setBusy(true);
+    const res =
+      payout.status === "approved"
+        ? await issueCheque(payout.id, value)
+        : payout.status === "processing" && manualFailure
+          ? await failCheque(payout.id, value)
+          : payout.status === "processing"
+            ? await clearCheque(payout.id)
+            : await reverseCheque(payout.id, value);
+    setBusy(false);
+    if (!res.ok) {
+      toast.error("Could not update cheque payout", { description: res.error });
+      return;
+    }
+    toast.success(
+      payout.status === "approved"
+        ? "Cheque marked issued"
+        : payout.status === "processing" && manualFailure
+          ? "Cheque payout marked failed"
+          : payout.status === "processing"
+            ? "Cheque marked cleared"
+            : "Cheque payout reversed",
+    );
+    closeManualAction();
   }
 
   return (
@@ -185,7 +242,11 @@ export function PayoutsView() {
         <>
           <ul className="space-y-3">
             {payouts.map((p) => {
-              const clickable = p.status === "pending_approval";
+              const approvalAction = p.status === "pending_approval";
+              const manualAction =
+                p.provider === "manual" &&
+                (p.status === "approved" || p.status === "processing" || p.status === "paid");
+              const clickable = approvalAction || manualAction;
               const card = (
                 <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border bg-card p-4">
                   <div className="min-w-0 space-y-1">
@@ -210,12 +271,12 @@ export function PayoutsView() {
                       <p className="truncate text-xs text-destructive">
                         Rejected by {p.rejected_by_name ?? "another admin"}: {p.reject_reason}
                       </p>
+                    ) : p.failure_reason ? (
+                      <p className="truncate text-xs text-destructive">{p.failure_reason}</p>
                     ) : p.checker_user_uuid ? (
                       <p className="truncate text-xs text-text-secondary">
                         Approved by {p.checker_name ?? "another admin"}
                       </p>
-                    ) : p.failure_reason ? (
-                      <p className="truncate text-xs text-destructive">{p.failure_reason}</p>
                     ) : null}
                   </div>
                 </div>
@@ -225,7 +286,9 @@ export function PayoutsView() {
                   {clickable ? (
                     <button
                       type="button"
-                      onClick={() => openDecision(p)}
+                      onClick={() =>
+                        approvalAction ? openDecision(p) : openManualAction(p)
+                      }
                       className="w-full text-left transition-colors hover:[&>div]:border-brand-cta"
                     >
                       {card}
@@ -329,6 +392,116 @@ export function PayoutsView() {
                     </Button>
                   </>
                 )}
+              </DialogFooter>
+            </>
+          ) : null}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={manualActive !== null} onOpenChange={(o) => !o && closeManualAction()}>
+        <DialogContent className="max-w-lg">
+          {manualActive ? (
+            <>
+              <DialogHeader>
+                <DialogTitle>
+                  {manualActive.status === "approved"
+                    ? "Record cheque issuance"
+                    : manualActive.status === "processing"
+                      ? manualFailure
+                        ? "Record cheque failure"
+                        : "Confirm cheque clearance"
+                      : "Reverse cleared cheque"}
+                </DialogTitle>
+                <DialogDescription>
+                  {formatPaise(manualActive.amount_paise)} · {manualActive.destination_hint}
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="space-y-4">
+                {manualActive.status === "approved" ? (
+                  <div className="space-y-1.5">
+                    <label htmlFor="manual-cheque-reference" className="text-sm font-medium">
+                      Cheque reference
+                    </label>
+                    <Input
+                      id="manual-cheque-reference"
+                      value={manualValue}
+                      onChange={(event) => setManualValue(event.target.value)}
+                      placeholder="CHQ-2026-0001"
+                      maxLength={64}
+                      autoComplete="off"
+                    />
+                    <p className="text-xs text-text-secondary">
+                      Only a masked reference and deduplication fingerprint are retained.
+                    </p>
+                  </div>
+                ) : manualActive.status === "processing" && !manualFailure ? (
+                  <p className="rounded-lg bg-muted p-3 text-sm text-text-secondary">
+                    Confirm only after the cheque has cleared. This creates the recipient&apos;s
+                    paid ledger credit.
+                  </p>
+                ) : (
+                  <div className="space-y-1.5">
+                    <label htmlFor="manual-cheque-reason" className="text-sm font-medium">
+                      {manualActive.status === "paid"
+                        ? "Reason for reversal"
+                        : "Reason for failure"}
+                    </label>
+                    <Textarea
+                      id="manual-cheque-reason"
+                      value={manualValue}
+                      onChange={(event) => setManualValue(event.target.value)}
+                      placeholder={
+                        manualActive.status === "paid"
+                          ? "Reason for reversal"
+                          : "Reason the cheque failed or was voided"
+                      }
+                      rows={3}
+                      maxLength={200}
+                    />
+                  </div>
+                )}
+              </div>
+
+              <DialogFooter className="gap-2 sm:gap-2">
+                {manualActive.status === "processing" && !manualFailure ? (
+                  <Button
+                    variant="outline"
+                    onClick={() => setManualFailure(true)}
+                    disabled={busy}
+                  >
+                    Record failure
+                  </Button>
+                ) : manualActive.status === "processing" && manualFailure ? (
+                  <Button
+                    variant="ghost"
+                    onClick={() => {
+                      setManualFailure(false);
+                      setManualValue("");
+                    }}
+                    disabled={busy}
+                  >
+                    Back
+                  </Button>
+                ) : (
+                  <Button variant="outline" onClick={closeManualAction} disabled={busy}>
+                    Cancel
+                  </Button>
+                )}
+                <Button
+                  variant={manualFailure || manualActive.status === "paid" ? "destructive" : "default"}
+                  onClick={() => void onManualAction(manualActive)}
+                  disabled={busy}
+                >
+                  {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                  {manualActive.status === "approved"
+                    ? "Mark issued"
+                    : manualActive.status === "processing" && manualFailure
+                      ? "Mark failed"
+                      : manualActive.status === "processing"
+                        ? "Mark cleared"
+                        : "Reverse payout"}
+                </Button>
               </DialogFooter>
             </>
           ) : null}

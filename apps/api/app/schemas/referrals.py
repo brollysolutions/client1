@@ -22,7 +22,7 @@ from uuid import UUID
 from pydantic import BaseModel, model_validator
 
 from app.models.payout import PayoutDestination
-from app.schemas.payments import PayoutDestinationInput
+from app.schemas.payments import PayoutDestinationInput, validate_destination
 
 
 class ReferralStats(BaseModel):
@@ -112,12 +112,7 @@ class ReferralPayoutRequest(BaseModel):
     # more than it saves for two fields.
     @model_validator(mode="after")
     def _require_matching_destination(self) -> ReferralPayoutRequest:
-        if self.destination_type == PayoutDestination.VPA:
-            if not self.destination.vpa or "@" not in self.destination.vpa:
-                raise ValueError("A valid UPI VPA (name@bank) is required for a vpa payout.")
-        else:  # bank_account
-            if not self.destination.ifsc or not self.destination.account_number:
-                raise ValueError("ifsc and account_number are required for a bank_account payout.")
+        validate_destination(self.destination_type, self.destination)
         return self
 
 

@@ -4,14 +4,15 @@ Status: **Derived, actively maintained plan**
 
 As of: **2026-08-08**
 
-Evidence baseline: `14773ae` ([PR #151](https://github.com/brollysolutions/client1/pull/151))
+Evidence baseline: `7a68044` ([PR #153](https://github.com/brollysolutions/client1/pull/153)),
+plus [PR #154](https://github.com/brollysolutions/client1/pull/154)
 
 ## Outcome
 
 Complete the approved Loans and Real Estate scope without weakening
 authorization, business-line segregation, PII/KYC handling, payout controls,
 or auditability. The current evidence-based implementation coverage is
-approximately **91.9%**; see [`feature-status.md`](feature-status.md) for the
+approximately **92.5%**; see [`feature-status.md`](feature-status.md) for the
 calculation and requirement-level gaps.
 
 ## Working rules
@@ -61,10 +62,12 @@ Admin field visibility and contact controls are **Done** in
 [PR #145](https://github.com/brollysolutions/client1/pull/145). Agent-lead expiry was delivered earlier
 from the same branch in [PR #144](https://github.com/brollysolutions/client1/pull/144).
 Vehicle arrangements are **Done** in
-[PR #149](https://github.com/brollysolutions/client1/pull/149). Analytics is
-merged, notification/email redirect completion is merged, and Lead assignment
-completion is ready for review; the deferred Map/GMB seam is the next decision
-gate.
+[PR #149](https://github.com/brollysolutions/client1/pull/149). Analytics,
+notification/email redirect completion, and Lead assignment completion are
+merged. Payment-method completion is implemented from the approved FR-10.3
+scope decision and is in review in
+[PR #154](https://github.com/brollysolutions/client1/pull/154); the deferred
+Map/GMB seam remains the next unresolved decision gate.
 
 | Priority | Feature / requirements | Status | Recommended model / effort | Decision gate and acceptance summary |
 | ---: | --- | --- | --- | --- |
@@ -79,6 +82,81 @@ gate.
 | 9 | Authenticated banner personalization (FR-12.1 through FR-12.4, FR-18.1) | **Done** — [PR #152](https://github.com/brollysolutions/client1/pull/152) | `gpt-5.6-sol` / Extra High | Delivered the closed audience grammar, server-proven Client/Agent line context, separate activity/coarse-location consent, private authenticated banner/offer placements, public non-leakage, safe fallbacks, 30-day retention/deletion, and negative targeting/RLS tests. Focused API (122), full web (287), seeded Client/Agent Playwright (2), production build, generated contracts, and migration upgrade/downgrade/head checks pass; the full API suite exceeded the local execution window. |
 | 10 | Map/GMB integration seam (FR-18.2) | Deferred pending scope | `gpt-5.6-terra` / High | Confirm it remains in v1; define provider-neutral coordinates/address boundary and privacy constraints before adding a dependency. |
 | 11 | Lead assignment completion (FR-4.2, FR-4.3) | **In review** — [PR #153](https://github.com/brollysolutions/client1/pull/153) | `gpt-5.6-sol` / Extra High | Delivered explicit per-line intent, deterministic least-loaded same-line assignment, bounded retry, OTP-proven Agent-lead binding, generic registration links, Admin fallback, audit/notifications, account-deletion closure, and database/RLS isolation. |
+| 12 | Payment-method completion (FR-10.3) | **In review** — [PR #154](https://github.com/brollysolutions/client1/pull/154) | `gpt-5.6-sol` / Extra High | Delivered UPI, bank-transfer, and audited manual-cheque disbursement; retained RazorpayX as the sole automated provider behind an explicit provider seam; excluded RuPay/card data, principal-payment collection, a second live provider, and automatic failover. |
+
+### Approved feature brief — Payment-method completion
+
+- **Success:** cashback, referral bonuses, and commissions can be disbursed by
+  UPI VPA, bank transfer, or manual cheque while emitting exactly one paid
+  recipient-ledger credit and preserving reversal accounting. FR-10.3 is
+  interpreted by payout outcome rather than treating provider, rail, card
+  network, and offline instrument as equivalent concepts.
+- **Online behavior:** preserve the existing RazorpayX maker/checker, cap,
+  idempotency, webhook, reconciliation, and reversal behavior. UPI and bank
+  transfer remain compatible with existing clients and stored rows; provider
+  selection is persisted explicitly so another provider can be added later
+  without changing the payout domain.
+- **Cheque behavior:** a different platform Admin approves the maker's request;
+  an authorized Admin records issuance with only a masked reference and
+  deduplication fingerprint; the payout remains processing until an Admin
+  records clearance. Only clearance emits the paid ledger row. A void or bounce
+  fails the payout, while a post-clearance reversal emits one compensating
+  ledger row.
+- **Security invariants:** raw VPA, bank-account, and cheque references are not
+  persisted or returned; platform-Admin authorization and payout RLS remain
+  server-side; maker/checker and self-payout denials, integer-minor-unit caps,
+  compare-and-swap transitions, idempotency, audit, and mock/live isolation
+  remain fail-closed. An ambiguous gateway result is reconciled before any
+  retry and never fails over automatically to another provider.
+- **Compatibility:** add an additive migration and backfill existing VPA/bank
+  payouts to the RazorpayX provider and matching delivery method. Keep current
+  API response fields during the transition, regenerate OpenAPI/client output,
+  and preserve existing transaction and account-deletion retention behavior.
+- **Verification:** cover migration upgrade/downgrade and one head; schema
+  validation; API authorization/RLS; all three methods; cheque issue, clear,
+  fail, reversal, duplicate, and concurrent transitions; existing RazorpayX
+  live/mock/webhook/reconciliation paths; masked API/UI output; generated
+  contracts; Admin forms; full API and web gates; security and PR review.
+- **Non-goals:** RuPay or any card-number handling, customer checkout, property
+  or loan-principal collection, recipient-saved payout credentials, a second
+  live gateway, configurable routing, and automatic cross-provider failover.
+
+### Delivered feature evidence — Payment-method completion
+
+- **Behavior:** payout rows now persist a provider independently from the
+  destination rail. Existing UPI VPA and bank-account payouts remain on the
+  RazorpayX adapter. Cashback, referral-bonus, and commission requests can also
+  create credential-free manual-cheque payouts; approval leaves them awaiting
+  issuance, issuance stores only a safe masked hint plus keyed fingerprint,
+  clearance emits the single paid ledger credit, pre-clearance failure emits no
+  credit, and post-clearance reversal emits one compensating negative row.
+- **Security and compatibility:** all money-moving manual actions require a
+  full platform Admin at the API boundary and retain maker/checker and
+  self-payout denials. Row locks serialize issue/clear/fail/reverse races;
+  provider-scoped uniqueness and webhook lookup prevent cross-provider
+  collisions; payout caps fail closed for real manual payouts; RLS and grants
+  remain unchanged; existing rows backfill to RazorpayX. The security review
+  found and fixed a short-reference masking edge case, and the correctness
+  review added nonblank audit reasons and an accessible reason control. No
+  remaining actionable finding was found.
+- **Fresh verification:** the migrated Docker database passes 55 payout API
+  tests, 30 provider/live/webhook/RLS tests, and 47 linked referral,
+  commission, and fee-cashback tests. Two focused masking regressions pass.
+  Ruff check/format pass across all 409 API files, and Alembic upgrade,
+  downgrade, re-upgrade, current, and one-head checks pass in a fresh temporary
+  database. Web lint/typecheck and all 294 unit tests pass. The canonical Linux
+  production builder compiled, typechecked against the generated contract,
+  rendered all 92 static pages, and packaged standalone output before the final
+  accessibility-only label refinement; the final source then passed lint,
+  strict typecheck, the full web tests, and the canonical cache-only production
+  build layer. A final image-export retry exhausted its 20-minute Docker Desktop
+  limit, while the host build reaches successful compile/typecheck/static
+  generation before Windows blocks standalone symlink creation with `EPERM`.
+  OpenAPI and the generated TypeScript schema reproduce from the final API
+  source. A complete API-suite attempt exited under its 29-minute in-container
+  bound after the host lost the output attachment; without a final pytest report
+  it is not counted as passing or failing, while all 134 changed-path API tests
+  have observed passing reports.
 
 ### Approved feature brief — Lead assignment completion
 

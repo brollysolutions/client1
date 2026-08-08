@@ -4,9 +4,9 @@ Status: **Derived living implementation ledger**
 
 As of: **2026-08-08**
 
-Evidence baseline: `14773ae` ([PR #151](https://github.com/brollysolutions/client1/pull/151)) plus
-[PR #152](https://github.com/brollysolutions/client1/pull/152) and
-[PR #153](https://github.com/brollysolutions/client1/pull/153)
+Evidence baseline: `7a68044` ([PR #153](https://github.com/brollysolutions/client1/pull/153)),
+plus payment-method completion in
+[PR #154](https://github.com/brollysolutions/client1/pull/154)
 
 ## Purpose and authority
 
@@ -33,18 +33,29 @@ live-provider configuration are assessed separately.
 
 | Measure | Result |
 | --- | ---: |
-| Complete requirements | 68 / 80 (85%) |
-| Partial requirements | 11 / 80 (13.75%) |
+| Complete requirements | 69 / 80 (86.25%) |
+| Partial requirements | 10 / 80 (12.5%) |
 | Not-started requirements | 1 / 80 (1.25%) |
-| Weighted implementation coverage | **91.9%** |
+| Weighted implementation coverage | **92.5%** |
 
 Weighted coverage gives each Complete item 1 point and each Partial item 0.5
-points: `(68 + 11 x 0.5) / 80 = 91.875%`. The weighting is a planning aid, not
+points: `(69 + 10 x 0.5) / 80 = 92.5%`. The weighting is a planning aid, not
 an estimate of calendar time: a single security-sensitive gap can require more
 work than several completed UI requirements.
 
 ## Delivered implementation
 
+- **Payment-method completion** (FR-10.3) is implemented in
+  [PR #154](https://github.com/brollysolutions/client1/pull/154). UPI VPA and bank
+  transfer remain on the provider-scoped RazorpayX path, while cashback,
+  referral bonuses, and commissions can use an audited manual-cheque lifecycle.
+  Approval, issuance, clearance-only ledger credit, pre-clearance failure, and
+  post-clearance compensating reversal are serialized and idempotent. Raw
+  destinations and cheque references are not persisted or returned; the
+  additive provider/method migration, unchanged Admin-only RLS, generated
+  contracts, API/web UI, security review, and database concurrency tests cover
+  the completed scope. RuPay/card handling, customer/principal collection, a
+  second live provider, and automatic failover remain explicit non-goals.
 - **Lead assignment completion** (FR-4.2 and FR-4.3) is implemented in
   [PR #153](https://github.com/brollysolutions/client1/pull/153). Explicit Loans/Real Estate
   registration intent and Agent introductions create independent same-line
@@ -102,9 +113,9 @@ work than several completed UI requirements.
 | Agent registration (FR-5.x) | 4 | 0 | 0 | OTP-verified application, KYC, Admin review, Agent ID, and owned-lead contact access exist. |
 | Loans (FR-6.x) | 6 | 0 | 0 | Public pages/calculators, applications, configurable products/banks, progression, transactions, and fee cashback exist. |
 | Real estate (FR-7.x) | 5 | 0 | 0 | Catalog, managed property submissions/media, inquiries, visits, deals, review, Employee work, and dedicated vehicle arrangements are implemented. |
-| Commissions (FR-8.x) | 3 | 0 | 0 | Manual Admin entry, Agent earnings, approval, RazorpayX, and cheque/manual paths exist. |
+| Commissions (FR-8.x) | 3 | 0 | 0 | Manual Admin entry, Agent earnings, approval, and provider-scoped RazorpayX or audited cheque payouts exist. |
 | Referrals (FR-9.x) | 5 | 0 | 0 | Client codes, attribution, conversion accrual, Admin payout, ledger, and Sub Admin rules exist. |
-| Payments (FR-10.x) | 3 | 1 | 0 | Money-purpose boundaries and payout controls exist; gateway/method breadth is narrower than specified. |
+| Payments (FR-10.x) | 4 | 0 | 0 | Property/principal collection remains prohibited; controlled outbound payouts support UPI VPA, bank transfer, and manual cheque with RazorpayX as the sole automated provider. |
 | Notifications (FR-11.x) | 3 | 0 | 0 | In-app, web push, Admin major-action, and verified-email transactional notifications now use audited same-origin workflow destinations. |
 | Banners/personalization (FR-12.x) | 4 | 0 | 0 | Approved content lifecycle now feeds authenticated, consented, line-validated Client/Agent placements through a closed fail-closed audience grammar; anonymous responses exclude targeted rows. |
 | Media/uploads (FR-13.x) | 0 | 4 | 0 | Secure purpose-specific image/PDF flows and property camera capture exist; unified per-line galleries, feedback attachments, video, and broader retention remain incomplete. |
@@ -113,7 +124,7 @@ work than several completed UI requirements.
 | Analytics (FR-16.x) | 0 | 3 | 0 | **In review** in [PR #150](https://github.com/brollysolutions/client1/pull/150): weekly/monthly reporting, filters, sorting, CSV/XLSX, selected-Agent groups, and business-line team summaries are implemented. Database-backed reporting tests remain blocked locally by a `_greenlet` DLL failure. |
 | Profile/account (FR-17.x) | 4 | 0 | 0 | Profile/settings, optional demographic/income/address details, transactions/support, deletion, retention, and Admin removal exist. |
 | Location (FR-18.x) | 1 | 0 | 1 | Explicit nested opt-in stores only the latest two-decimal point for 30 days and erases it on revocation, personalization disable, or account deletion; the map/GMB seam remains undecided. |
-| **Total** | **68** | **11** | **1** | **80 requirements** |
+| **Total** | **69** | **10** | **1** | **80 requirements** |
 
 ## Done
 
@@ -186,7 +197,7 @@ The following requirements are complete on the evidence baseline:
 | FR-2.8 | Partial | Agent pre-assignment editing, client profile editing, and Admin operational edits exist. | Define and enforce provenance-based edit ownership consistently across all submitted detail types. |
 | FR-4.2 | Complete | Agent-introduced leads are atomically attributed and assigned to the least-loaded active same-line Telecaller, queued for bounded retry without capacity, and bound to a same-mobile Client only after OTP-proven registration. | Preserve global Agent ownership, expiry deadlines, generic-link authority boundaries, and concurrency tests as the workflow evolves. |
 | FR-4.3 | Complete | Registration captures explicit one/both-line intent while retaining both Client profiles; each requested journey is independently bound and automatically assigned without cross-line leakage. | Preserve explicit intent, per-line uniqueness, deterministic assignment ordering, and account-deletion closure. |
-| FR-10.3 | Partial | RazorpayX VPA/bank payouts and manual cheque records exist. | Decide whether RuPay and multi-gateway routing are still required, then implement provider-neutral method support. |
+| FR-10.3 | Complete | Cashback, referral bonuses, and commissions support UPI VPA and bank transfer through an explicit RazorpayX provider adapter plus an audited manual-cheque lifecycle. Cheque approval does not credit the ledger; issue, clearance, failure, duplicate/concurrent settlement, and compensating reversal are server-controlled, masked, and covered by migrated database tests. | Preserve provider scoping, Admin authorization, caps, raw-destination minimization, row-lock/CAS idempotency, account-deletion retention, and the no-card/no-failover boundary when adding future providers. |
 | FR-11.2 | Complete | Every notification producer, Admin broadcast, web push, public banner CTA, and transactional email action uses a same-origin relevant route; verified active email addresses can receive best-effort transactional copies when enabled. | Maintain the producer inventory as future events are added; no marketing or unverified-email delivery is implied. |
 | FR-12.1 | Complete | Authenticated Client/Agent dashboards receive one eligible banner per default, personalized, and action layer through a closed, versioned, fail-closed audience grammar. | Maintain schema/version and negative-rule tests when new dimensions are proposed. |
 | FR-12.2 | Complete | The server proves Client line ownership, forces Agents to their active profile line, ranks exact-line/`both` content deterministically, and keeps Agents off customer offers. | Preserve server-side line proof and role separation for future placements. |

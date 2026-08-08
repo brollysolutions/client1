@@ -1,4 +1,4 @@
-"""Payments / payouts service — RazorpayX disbursement with a mock producer.
+"""Payments / payouts service — provider-routed online and manual disbursement.
 
 Live-vs-mock is switched by credential presence alone (``_is_live``), exactly
 like services/otp_delivery.py and services/email.py: empty RAZORPAY_* keys ⇒ the
@@ -36,20 +36,29 @@ Money is integer minor units (amount_paise), never a float.
 
 from __future__ import annotations
 
+import hashlib
+import hmac
 import logging
 import uuid
 from datetime import UTC, datetime, timedelta
+from typing import Protocol
 
 import httpx
 from sqlalchemy import func, or_, select, text, update
 from sqlalchemy.exc import IntegrityError
 
 from app.core.config import settings
-from app.core.masking import mask_bank_account, mask_vpa
+from app.core.masking import mask_bank_account, mask_cheque_reference, mask_vpa
 from app.db.session import AsyncSessionLocal
 from app.models.audit_log import AuditAction
 from app.models.notification import NotificationType
-from app.models.payout import Payout, PayoutDestination, PayoutStatus, PayoutType
+from app.models.payout import (
+    Payout,
+    PayoutDestination,
+    PayoutProvider,
+    PayoutStatus,
+    PayoutType,
+)
 from app.models.profile import AgentProfile, ClientProfile, StaffProfile
 from app.models.transaction import Transaction, TransactionStatus, TransactionType
 from app.services import payout_links
@@ -149,6 +158,10 @@ class MakerCheckerViolation(PayoutError):
     """the checker is the same account as the maker."""
 
 
+class DuplicateManualReference(PayoutError):
+    """the manual cheque reference fingerprint already belongs to a payout."""
+
+
 # ---------------------------------------------------------------------------
 # Live/mock switch
 # ---------------------------------------------------------------------------
@@ -161,6 +174,17 @@ def _is_live() -> bool:
     TWOFACTOR_API_KEY`` gate; there is no separate PAYMENTS_LIVE flag by design.
     """
     return bool(settings.RAZORPAY_KEY_ID and settings.RAZORPAY_KEY_SECRET)
+
+
+def _provider_for_destination(destination_type: PayoutDestination) -> PayoutProvider:
+    if destination_type == PayoutDestination.CHEQUE:
+        return PayoutProvider.MANUAL
+    return PayoutProvider.RAZORPAYX
+
+
+def _requires_configured_caps(provider: PayoutProvider) -> bool:
+    """Manual cheques are real outside development even without gateway keys."""
+    return _is_live() or (provider == PayoutProvider.MANUAL and settings.ENV != "development")
 
 
 # ---------------------------------------------------------------------------
@@ -192,6 +216,7 @@ async def create_payout(
     # its two routes in.
     if not 0 < amount_paise <= 10_000_000_000:
         raise PayoutAmountExceeded("Amount must be greater than 0 and within the payout bound.")
+    provider = _provider_for_destination(destination_type)
 
     async with AsyncSessionLocal() as db:
         # Serialize the daily-cap read+insert against concurrent creates: a
@@ -263,14 +288,14 @@ async def create_payout(
 
         # Guard (a): per-payout cap. 0 ⇒ unset: fail-closed when live, no cap in mock.
         max_cap = settings.PAYOUT_MAX_AMOUNT_PAISE
-        if max_cap <= 0 and _is_live():
+        if max_cap <= 0 and _requires_configured_caps(provider):
             raise PayoutCapNotConfigured("Per-payout cap is not configured.")
         if max_cap > 0 and amount_paise > max_cap:
             raise PayoutAmountExceeded("Amount exceeds the per-payout cap.")
 
         # Guard (c): daily aggregate cap over today's non-dead payouts (under the lock).
         daily_cap = settings.PAYOUT_DAILY_CAP_PAISE
-        if daily_cap <= 0 and _is_live():
+        if daily_cap <= 0 and _requires_configured_caps(provider):
             raise PayoutCapNotConfigured("Daily payout cap is not configured.")
         if daily_cap > 0:
             start_of_day = datetime.now(UTC).replace(hour=0, minute=0, second=0, microsecond=0)
@@ -303,23 +328,26 @@ async def create_payout(
         if dup:
             raise DuplicatePayout("A matching payout was already created recently.")
 
-        # Provision the gateway fund account now (no money moves) so approve
-        # carries no PII. Mock mode returns (None, None). Raw destination is used
-        # here and then discarded — only the masked hint is persisted. A gateway
-        # rejection here surfaces as a typed error (clean 4xx), never a raw 500.
+        # Provision online destinations now (no money moves) so approval carries
+        # no raw PII. Manual cheques collect their reference only at issuance.
+        # In every case only a masked hint is persisted.
         hint = _mask_destination(destination_type, destination)
-        try:
-            contact_id, fund_account_id = await _provision_fund_account(
-                recipient_user_uuid=recipient_user_uuid,
-                destination_type=destination_type,
-                destination=destination,
-            )
-        except httpx.HTTPError:
-            # Never stringify the httpx error — its body can echo the destination.
-            logger.warning("payout.provision_failed recipient=%s", recipient_user_uuid)
-            raise GatewayError(
-                "Could not validate the destination with the payment gateway."
-            ) from None
+        contact_id: str | None = None
+        fund_account_id: str | None = None
+        if provider == PayoutProvider.RAZORPAYX:
+            try:
+                contact_id, fund_account_id = await _provision_fund_account(
+                    recipient_user_uuid=recipient_user_uuid,
+                    destination_type=destination_type,
+                    destination=destination,
+                    provider=provider,
+                )
+            except httpx.HTTPError:
+                # Never stringify the httpx error — its body can echo the destination.
+                logger.warning("payout.provision_failed recipient=%s", recipient_user_uuid)
+                raise GatewayError(
+                    "Could not validate the destination with the payment gateway."
+                ) from None
 
         payout = Payout(
             recipient_user_uuid=recipient_user_uuid,
@@ -329,6 +357,7 @@ async def create_payout(
             currency="INR",
             status=PayoutStatus.PENDING_APPROVAL,
             destination_type=destination_type,
+            provider=provider,
             destination_hint=hint,
             idempotency_key=idempotency_key,
             maker_user_uuid=maker_user_uuid,
@@ -464,6 +493,195 @@ async def reject_payout(
 
 
 # ---------------------------------------------------------------------------
+# Manual cheque lifecycle
+# ---------------------------------------------------------------------------
+
+
+def _manual_reference_fingerprint(reference: str) -> str:
+    normalized = reference.strip().upper()
+    return hmac.new(
+        settings.SECRET_KEY.encode("utf-8"),
+        f"payout-cheque:{normalized}".encode(),
+        hashlib.sha256,
+    ).hexdigest()
+
+
+async def _manual_payout_for_update(db, payout_id: uuid.UUID) -> Payout:
+    payout = await db.scalar(select(Payout).where(Payout.id == payout_id).with_for_update())
+    if payout is None:
+        raise PayoutNotFound("Payout not found.")
+    if (
+        payout.provider != PayoutProvider.MANUAL
+        or payout.destination_type != PayoutDestination.CHEQUE
+    ):
+        raise PayoutStateError("Payout is not a manual cheque payout.")
+    return payout
+
+
+def _deny_manual_self_action(payout: Payout, actor_user_uuid: uuid.UUID) -> None:
+    if payout.recipient_user_uuid == actor_user_uuid:
+        raise SelfPayoutForbidden("You cannot operate a cheque payout to your own account.")
+
+
+async def issue_manual_cheque(
+    *,
+    payout_id: uuid.UUID,
+    reference: str,
+    actor_user_uuid: uuid.UUID,
+    actor_role: str | None,
+) -> None:
+    """Record offline issuance without marking the recipient ledger paid."""
+    fingerprint = _manual_reference_fingerprint(reference)
+    hint = mask_cheque_reference(reference)
+    try:
+        async with AsyncSessionLocal() as db:
+            payout = await _manual_payout_for_update(db, payout_id)
+            _deny_manual_self_action(payout, actor_user_uuid)
+            if payout.status != PayoutStatus.APPROVED:
+                raise PayoutStateError("Cheque payout is not awaiting issuance.")
+
+            payout.status = PayoutStatus.PROCESSING
+            payout.destination_hint = hint
+            payout.manual_reference_fingerprint = fingerprint
+            payout.manual_issued_at = datetime.now(UTC)
+            await record_audit(
+                db,
+                action=AuditAction.PAYOUT_MANUAL_ISSUED,
+                entity_type="payout",
+                entity_uuid=payout.id,
+                actor_uuid=actor_user_uuid,
+                actor_role=actor_role,
+                business_line=payout.business_line,
+                detail={
+                    "amount_paise": payout.amount_paise,
+                    "payout_type": payout.type.value,
+                    "destination_hint": hint,
+                },
+            )
+            await db.commit()
+    except IntegrityError as exc:
+        if getattr(exc.orig, "sqlstate", None) != "23505":
+            raise
+        raise DuplicateManualReference("Cheque reference is already in use.") from None
+
+    await notify_admins(
+        notification_type=NotificationType.ADMIN_PAYOUT_REVIEWED,
+        title="Cheque payout issued",
+        body=f"A {payout.type.value.replace('_', ' ')} cheque payout was issued.",
+        href="/dashboard/payouts",
+        exclude_user_uuid=actor_user_uuid,
+    )
+
+
+async def clear_manual_cheque(
+    *, payout_id: uuid.UUID, actor_user_uuid: uuid.UUID, actor_role: str | None
+) -> None:
+    """Record clearance and emit the one recipient-owned paid ledger row."""
+    async with AsyncSessionLocal() as db:
+        payout = await _manual_payout_for_update(db, payout_id)
+        _deny_manual_self_action(payout, actor_user_uuid)
+        if payout.status != PayoutStatus.PROCESSING or payout.manual_issued_at is None:
+            raise PayoutStateError("Cheque payout is not awaiting clearance.")
+        if payout.ledger_transaction_id is not None:
+            raise PayoutStateError("Cheque payout is already settled.")
+
+        transaction_id = await _emit_ledger_row(db, payout)
+        payout.status = PayoutStatus.PAID
+        payout.ledger_transaction_id = transaction_id
+        payout.manual_cleared_at = datetime.now(UTC)
+        await record_audit(
+            db,
+            action=AuditAction.PAYOUT_MANUAL_CLEARED,
+            entity_type="payout",
+            entity_uuid=payout.id,
+            actor_uuid=actor_user_uuid,
+            actor_role=actor_role,
+            business_line=payout.business_line,
+            detail={"amount_paise": payout.amount_paise, "payout_type": payout.type.value},
+        )
+        await db.commit()
+        await _payout_paid_hook(payout, transaction_id)
+
+    await notify_admins(
+        notification_type=NotificationType.ADMIN_PAYOUT_REVIEWED,
+        title="Cheque payout cleared",
+        body=f"A {payout.type.value.replace('_', ' ')} cheque payout cleared.",
+        href="/dashboard/payouts",
+        exclude_user_uuid=actor_user_uuid,
+    )
+
+
+async def fail_manual_cheque(
+    *,
+    payout_id: uuid.UUID,
+    reason: str,
+    actor_user_uuid: uuid.UUID,
+    actor_role: str | None,
+) -> None:
+    """Void an approved cheque or record a pre-clearance bounce/failure."""
+    async with AsyncSessionLocal() as db:
+        payout = await _manual_payout_for_update(db, payout_id)
+        _deny_manual_self_action(payout, actor_user_uuid)
+        if payout.status not in (PayoutStatus.APPROVED, PayoutStatus.PROCESSING):
+            raise PayoutStateError("Cheque payout cannot fail from its current state.")
+
+        payout.status = PayoutStatus.FAILED
+        payout.failure_reason = reason
+        await record_audit(
+            db,
+            action=AuditAction.PAYOUT_MANUAL_FAILED,
+            entity_type="payout",
+            entity_uuid=payout.id,
+            actor_uuid=actor_user_uuid,
+            actor_role=actor_role,
+            business_line=payout.business_line,
+            detail={
+                "amount_paise": payout.amount_paise,
+                "payout_type": payout.type.value,
+                "reason": reason,
+            },
+        )
+        await db.commit()
+        await _payout_released_hook(payout)
+
+
+async def reverse_manual_cheque(
+    *,
+    payout_id: uuid.UUID,
+    reason: str,
+    actor_user_uuid: uuid.UUID,
+    actor_role: str | None,
+) -> None:
+    """Reverse a cleared cheque with exactly one compensating ledger row."""
+    async with AsyncSessionLocal() as db:
+        payout = await _manual_payout_for_update(db, payout_id)
+        _deny_manual_self_action(payout, actor_user_uuid)
+        if payout.status != PayoutStatus.PAID or payout.reversal_transaction_id is not None:
+            raise PayoutStateError("Cheque payout is not eligible for reversal.")
+
+        reversal_id = await _emit_clawback_row(db, payout)
+        payout.status = PayoutStatus.REVERSED
+        payout.reversal_transaction_id = reversal_id
+        payout.failure_reason = reason
+        await record_audit(
+            db,
+            action=AuditAction.PAYOUT_MANUAL_REVERSED,
+            entity_type="payout",
+            entity_uuid=payout.id,
+            actor_uuid=actor_user_uuid,
+            actor_role=actor_role,
+            business_line=payout.business_line,
+            detail={
+                "amount_paise": payout.amount_paise,
+                "payout_type": payout.type.value,
+                "reason": reason,
+            },
+        )
+        await db.commit()
+        await _payout_released_hook(payout)
+
+
+# ---------------------------------------------------------------------------
 # Initiate + settle (gateway; best-effort, never raises)
 # ---------------------------------------------------------------------------
 
@@ -492,7 +710,11 @@ async def initiate_payout(payout_id: uuid.UUID) -> None:
             # already claimed it (or it was never approved) — do nothing.
             claim = await db.execute(
                 update(Payout)
-                .where(Payout.id == payout_id, Payout.status == PayoutStatus.APPROVED)
+                .where(
+                    Payout.id == payout_id,
+                    Payout.status == PayoutStatus.APPROVED,
+                    Payout.provider == PayoutProvider.RAZORPAYX,
+                )
                 .values(status=PayoutStatus.INITIATED)
             )
             if claim.rowcount == 0:
@@ -534,7 +756,12 @@ async def initiate_payout(payout_id: uuid.UUID) -> None:
         await _mark_failed(payout_id, "Payout initiation failed.")
 
 
-async def settle_from_webhook(*, event: str, gateway_payout_id: str) -> None:
+async def settle_from_webhook(
+    *,
+    event: str,
+    gateway_payout_id: str,
+    provider: PayoutProvider = PayoutProvider.RAZORPAYX,
+) -> None:
     """Apply a verified RazorpayX webhook event to the matching payout.
 
     Idempotent: a redelivered ``payout.processed`` never emits a second ledger
@@ -545,7 +772,10 @@ async def settle_from_webhook(*, event: str, gateway_payout_id: str) -> None:
         return
     async with AsyncSessionLocal() as db:
         payout = await db.scalar(
-            select(Payout).where(Payout.gateway_payout_id == gateway_payout_id)
+            select(Payout).where(
+                Payout.provider == provider,
+                Payout.gateway_payout_id == gateway_payout_id,
+            )
         )
         if payout is None:
             logger.warning("payout.webhook_unmatched gateway_payout_id=%s", gateway_payout_id)
@@ -659,6 +889,7 @@ async def reconcile_stuck_payouts() -> dict:
             await db.scalars(
                 select(Payout)
                 .where(
+                    Payout.provider == PayoutProvider.RAZORPAYX,
                     Payout.status.in_((PayoutStatus.INITIATED, PayoutStatus.FAILED)),
                     Payout.updated_at < cutoff,
                 )
@@ -693,7 +924,11 @@ async def reconcile_stuck_payouts() -> dict:
                 logger.warning(
                     "payout.reconcile_resurrected payout_id=%s from=failed to=paid", payout.id
                 )
-            await settle_from_webhook(event=event, gateway_payout_id=gateway_payout_id)
+            await settle_from_webhook(
+                event=event,
+                gateway_payout_id=gateway_payout_id,
+                provider=payout.provider,
+            )
             reconciled += 1
         except Exception:
             logger.warning("payout.reconcile_failed payout_id=%s", payout.id, exc_info=True)
@@ -727,6 +962,7 @@ async def audit_paid_payouts_for_drift() -> dict:
             await db.scalars(
                 select(Payout)
                 .where(
+                    Payout.provider == PayoutProvider.RAZORPAYX,
                     Payout.status == PayoutStatus.PAID,
                     Payout.updated_at >= cutoff,
                     # Always true for a PAID row (settle only matches by
@@ -754,7 +990,11 @@ async def audit_paid_payouts_for_drift() -> dict:
             event = _GATEWAY_STATUS_TO_EVENT.get(gateway_status)
             if event == "payout.reversed":
                 logger.warning("payout.reconcile_drift_reversed payout_id=%s", payout.id)
-                await settle_from_webhook(event=event, gateway_payout_id=gateway_payout_id)
+                await settle_from_webhook(
+                    event=event,
+                    gateway_payout_id=gateway_payout_id,
+                    provider=payout.provider,
+                )
                 reconciled += 1
                 continue
             # Any other terminal/unmapped gateway status is unexpected for an
@@ -811,7 +1051,7 @@ async def _emit_ledger_row(db, payout: Payout) -> uuid.UUID:
         amount_paise=payout.amount_paise,
         currency=payout.currency,
         description=_ledger_description(payout.type),
-        reference=payout.gateway_payout_id,
+        reference=_ledger_reference(payout),
         retained_ref=payout.retained_ref,
         delinked_at=payout.delinked_at,
     )
@@ -854,7 +1094,7 @@ async def _emit_clawback_row(db, payout: Payout) -> uuid.UUID:
         amount_paise=-payout.amount_paise,  # negative: compensating clawback entry
         currency=payout.currency,
         description=_clawback_description(payout.type),
-        reference=payout.gateway_payout_id,
+        reference=_ledger_reference(payout),
         retained_ref=payout.retained_ref,
         delinked_at=payout.delinked_at,
     )
@@ -921,7 +1161,15 @@ def _clawback_description(payout_type: PayoutType) -> str:
 def _mask_destination(destination_type: PayoutDestination, destination: dict) -> str:
     if destination_type == PayoutDestination.VPA:
         return mask_vpa(destination.get("vpa"))
-    return mask_bank_account(destination.get("ifsc"), destination.get("account_number"))
+    if destination_type == PayoutDestination.BANK_ACCOUNT:
+        return mask_bank_account(destination.get("ifsc"), destination.get("account_number"))
+    return "Cheque — not issued"
+
+
+def _ledger_reference(payout: Payout) -> str:
+    if payout.provider == PayoutProvider.MANUAL:
+        return f"manual:{payout.id}"
+    return payout.gateway_payout_id or f"gateway:{payout.id}"
 
 
 def _auth_users_table():
@@ -932,8 +1180,55 @@ def _auth_users_table():
 
 
 # ---------------------------------------------------------------------------
-# RazorpayX HTTP adapter (only reached when _is_live())
+# Provider boundary + RazorpayX HTTP adapter
 # ---------------------------------------------------------------------------
+
+
+class _ProviderAdapter(Protocol):
+    async def provision_destination(
+        self,
+        *,
+        recipient_user_uuid: uuid.UUID,
+        destination_type: PayoutDestination,
+        destination: dict,
+    ) -> tuple[str | None, str | None]: ...
+
+    async def initiate(self, payout: Payout) -> tuple[str, str]: ...
+
+    async def fetch_state(self, payout: Payout) -> tuple[str, str] | None: ...
+
+
+class _RazorpayXProviderAdapter:
+    async def provision_destination(
+        self,
+        *,
+        recipient_user_uuid: uuid.UUID,
+        destination_type: PayoutDestination,
+        destination: dict,
+    ) -> tuple[str | None, str | None]:
+        return await _razorpayx_provision_fund_account(
+            recipient_user_uuid=recipient_user_uuid,
+            destination_type=destination_type,
+            destination=destination,
+        )
+
+    async def initiate(self, payout: Payout) -> tuple[str, str]:
+        return await _razorpayx_create_gateway_payout(payout)
+
+    async def fetch_state(self, payout: Payout) -> tuple[str, str] | None:
+        return await _razorpayx_fetch_gateway_state(payout)
+
+
+_PROVIDER_ADAPTERS: dict[PayoutProvider, _ProviderAdapter] = {
+    PayoutProvider.RAZORPAYX: _RazorpayXProviderAdapter(),
+}
+
+
+def _provider_adapter(provider: PayoutProvider) -> _ProviderAdapter:
+    try:
+        return _PROVIDER_ADAPTERS[provider]
+    except KeyError:
+        raise PayoutStateError("Payout provider has no automated adapter.") from None
 
 
 def _razorpayx_auth() -> tuple[str, str]:
@@ -941,6 +1236,20 @@ def _razorpayx_auth() -> tuple[str, str]:
 
 
 async def _provision_fund_account(
+    *,
+    recipient_user_uuid: uuid.UUID,
+    destination_type: PayoutDestination,
+    destination: dict,
+    provider: PayoutProvider = PayoutProvider.RAZORPAYX,
+) -> tuple[str | None, str | None]:
+    return await _provider_adapter(provider).provision_destination(
+        recipient_user_uuid=recipient_user_uuid,
+        destination_type=destination_type,
+        destination=destination,
+    )
+
+
+async def _razorpayx_provision_fund_account(
     *,
     recipient_user_uuid: uuid.UUID,
     destination_type: PayoutDestination,
@@ -988,6 +1297,11 @@ async def _provision_fund_account(
 
 
 async def _create_gateway_payout(payout: Payout) -> tuple[str, str]:
+    provider = payout.provider or PayoutProvider.RAZORPAYX
+    return await _provider_adapter(PayoutProvider(provider)).initiate(payout)
+
+
+async def _razorpayx_create_gateway_payout(payout: Payout) -> tuple[str, str]:
     """POST the payout to RazorpayX with an idempotency header. Returns
     (payout_id, gateway_status). Raises on HTTP error (caller marks failed)."""
     mode = "UPI" if payout.destination_type == PayoutDestination.VPA else "IMPS"
@@ -1012,6 +1326,11 @@ async def _create_gateway_payout(payout: Payout) -> tuple[str, str]:
 
 
 async def _fetch_gateway_state(payout: Payout) -> tuple[str, str] | None:
+    provider = payout.provider or PayoutProvider.RAZORPAYX
+    return await _provider_adapter(PayoutProvider(provider)).fetch_state(payout)
+
+
+async def _razorpayx_fetch_gateway_state(payout: Payout) -> tuple[str, str] | None:
     """Read the gateway's own record of a payout for reconciliation.
 
     Returns (gateway_payout_id, gateway_status), or None if RazorpayX has no

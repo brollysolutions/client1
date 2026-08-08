@@ -1,4 +1,4 @@
-"""Payout administration — maker-checker disbursement + RazorpayX webhook.
+"""Payout administration — maker-checker disbursement and manual cheque actions.
 
 Admin surface (create / approve / reject / list) is platform-admin only, enforced
 in the app layer AND by the payouts RLS policy (platform_scope). The webhook
@@ -6,7 +6,8 @@ receiver is UNAUTHENTICATED but signature-gated (HMAC-SHA256, fail-closed) — i
 carries no JWT/RLS context because settle writes run on the bypass session.
 
 Every write goes through services.payments on the app-superuser bypass session;
-this router authenticates, validates the actor, and shapes the (masked) response.
+this router authenticates, validates the actor, and shapes the masked response.
+RazorpayX's webhook remains provider-specific and fail-closed.
 """
 
 from __future__ import annotations
@@ -25,8 +26,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import settings
 from app.core.deps import CurrentUser, get_active_user, is_platform_admin
 from app.db.session import get_db
-from app.models.payout import Payout, PayoutStatus, PayoutType
+from app.models.payout import Payout, PayoutProvider, PayoutStatus, PayoutType
 from app.schemas.payments import (
+    ManualChequeIssue,
     PayoutCreate,
     PayoutLinkDivergenceRead,
     PayoutLinkDivergencesRead,
@@ -55,6 +57,7 @@ _ERROR_STATUS = {
     payments_service.PayoutDailyCapExceeded: status.HTTP_422_UNPROCESSABLE_ENTITY,
     payments_service.PayoutCapNotConfigured: status.HTTP_422_UNPROCESSABLE_ENTITY,
     payments_service.DuplicatePayout: status.HTTP_409_CONFLICT,
+    payments_service.DuplicateManualReference: status.HTTP_409_CONFLICT,
     payments_service.PayoutStateError: status.HTTP_409_CONFLICT,
     payments_service.MakerCheckerViolation: status.HTTP_403_FORBIDDEN,
     payments_service.SelfPayoutForbidden: status.HTTP_403_FORBIDDEN,
@@ -234,6 +237,88 @@ async def reject_payout(
     return (await _to_read(db, [payout]))[0]
 
 
+@router.post("/{payout_id}/manual/issue", response_model=PayoutRead)
+async def issue_manual_cheque(
+    payout_id: UUID,
+    req: ManualChequeIssue,
+    current_user: CurrentUser = Depends(get_active_user),
+    db: AsyncSession = Depends(get_db),
+) -> PayoutRead:
+    _require_admin(current_user, action="Issuing a cheque payout")
+    try:
+        await payments_service.issue_manual_cheque(
+            payout_id=payout_id,
+            reference=req.reference,
+            actor_user_uuid=current_user.id,
+            actor_role=current_user.role,
+        )
+    except payments_service.PayoutError as exc:
+        raise _map_error(exc) from None
+    payout = await _get_payout_or_404(db, payout_id)
+    return (await _to_read(db, [payout]))[0]
+
+
+@router.post("/{payout_id}/manual/clear", response_model=PayoutRead)
+async def clear_manual_cheque(
+    payout_id: UUID,
+    current_user: CurrentUser = Depends(get_active_user),
+    db: AsyncSession = Depends(get_db),
+) -> PayoutRead:
+    _require_admin(current_user, action="Clearing a cheque payout")
+    try:
+        await payments_service.clear_manual_cheque(
+            payout_id=payout_id,
+            actor_user_uuid=current_user.id,
+            actor_role=current_user.role,
+        )
+    except payments_service.PayoutError as exc:
+        raise _map_error(exc) from None
+    payout = await _get_payout_or_404(db, payout_id)
+    return (await _to_read(db, [payout]))[0]
+
+
+@router.post("/{payout_id}/manual/fail", response_model=PayoutRead)
+async def fail_manual_cheque(
+    payout_id: UUID,
+    req: PayoutReject,
+    current_user: CurrentUser = Depends(get_active_user),
+    db: AsyncSession = Depends(get_db),
+) -> PayoutRead:
+    _require_admin(current_user, action="Failing a cheque payout")
+    try:
+        await payments_service.fail_manual_cheque(
+            payout_id=payout_id,
+            reason=req.reason,
+            actor_user_uuid=current_user.id,
+            actor_role=current_user.role,
+        )
+    except payments_service.PayoutError as exc:
+        raise _map_error(exc) from None
+    payout = await _get_payout_or_404(db, payout_id)
+    return (await _to_read(db, [payout]))[0]
+
+
+@router.post("/{payout_id}/manual/reverse", response_model=PayoutRead)
+async def reverse_manual_cheque(
+    payout_id: UUID,
+    req: PayoutReject,
+    current_user: CurrentUser = Depends(get_active_user),
+    db: AsyncSession = Depends(get_db),
+) -> PayoutRead:
+    _require_admin(current_user, action="Reversing a cheque payout")
+    try:
+        await payments_service.reverse_manual_cheque(
+            payout_id=payout_id,
+            reason=req.reason,
+            actor_user_uuid=current_user.id,
+            actor_role=current_user.role,
+        )
+    except payments_service.PayoutError as exc:
+        raise _map_error(exc) from None
+    payout = await _get_payout_or_404(db, payout_id)
+    return (await _to_read(db, [payout]))[0]
+
+
 @router.get("/recipients", response_model=PayoutRecipientListResponse)
 async def list_payout_recipients(
     q: str = Query(min_length=2, max_length=64),
@@ -329,5 +414,9 @@ async def razorpay_webhook(request: Request) -> WebhookAck:
         logger.warning("payout.webhook_malformed")
         return WebhookAck()
 
-    await payments_service.settle_from_webhook(event=event, gateway_payout_id=gateway_payout_id)
+    await payments_service.settle_from_webhook(
+        event=event,
+        gateway_payout_id=gateway_payout_id,
+        provider=PayoutProvider.RAZORPAYX,
+    )
     return WebhookAck()

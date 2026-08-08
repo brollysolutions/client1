@@ -16,10 +16,15 @@ import uuid
 
 import pytest
 from httpx import AsyncClient
+from pydantic import BaseModel, ValidationError
 from sqlalchemy import text
 
 from app.core.config import settings
 from app.core.security import create_access_token
+from app.schemas.commissions import CommissionPayoutRequest
+from app.schemas.fee_cashbacks import FeeCashbackPayoutRequest
+from app.schemas.payments import PayoutReject
+from app.schemas.referrals import ReferralPayoutRequest
 from app.services import payments as payments_service
 from conftest import full_registration, unique_mobile
 
@@ -63,6 +68,21 @@ def _create_body(recipient_uid: str, *, amount_paise: int = 50_000, **overrides)
     }
     body.update(overrides)
     return body
+
+
+@pytest.mark.parametrize(
+    "schema",
+    (ReferralPayoutRequest, CommissionPayoutRequest, FeeCashbackPayoutRequest),
+)
+def test_linked_payout_schemas_accept_credential_free_cheque(schema: type[BaseModel]) -> None:
+    parsed = schema.model_validate({"destination_type": "cheque", "destination": {}})
+    assert parsed.destination_type.value == "cheque"
+
+
+def test_payout_reason_is_trimmed_and_cannot_be_blank() -> None:
+    assert PayoutReject(reason="  cheque voided  ").reason == "cheque voided"
+    with pytest.raises(ValidationError, match="Reason must not be blank"):
+        PayoutReject(reason="   ")
 
 
 async def _seed_agent(business_line: str = "loans") -> str:
@@ -148,6 +168,7 @@ async def test_create_success_masks_destination(client: AsyncClient) -> None:
     assert resp.status_code == 201, resp.text
     data = resp.json()
     assert data["status"] == "pending_approval"
+    assert data["provider"] == "razorpayx"
     assert data["destination_hint"] == "***@okhdfc"
     # Raw VPA local-part must never appear in the response.
     assert "9876543210" not in resp.text
@@ -161,6 +182,48 @@ async def test_create_validation_failure(client: AsyncClient) -> None:
     # bank_account destination_type but no ifsc/account_number.
     body = _create_body(recipient_uid, destination_type="bank_account", destination={})
     resp = await client.post("/api/v1/payouts", headers=_headers(maker_token), json=body)
+    assert resp.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_create_cheque_has_no_raw_destination(client: AsyncClient) -> None:
+    maker_token, _ = await _make_admin(client)
+    _, recipient_mobile = await full_registration(client, lines=["loans"])
+    recipient_uid = await _auth_user_id(recipient_mobile)
+
+    resp = await client.post(
+        "/api/v1/payouts",
+        headers=_headers(maker_token),
+        json=_create_body(
+            recipient_uid,
+            destination_type="cheque",
+            destination={},
+        ),
+    )
+    assert resp.status_code == 201, resp.text
+    body = resp.json()
+    assert body["provider"] == "manual"
+    assert body["destination_type"] == "cheque"
+    assert body["destination_hint"] == "Cheque — not issued"
+    assert body["manual_issued_at"] is None
+    assert body["manual_cleared_at"] is None
+
+
+@pytest.mark.asyncio
+async def test_cheque_rejects_embedded_bank_or_vpa_details(client: AsyncClient) -> None:
+    maker_token, _ = await _make_admin(client)
+    _, recipient_mobile = await full_registration(client, lines=["loans"])
+    recipient_uid = await _auth_user_id(recipient_mobile)
+
+    resp = await client.post(
+        "/api/v1/payouts",
+        headers=_headers(maker_token),
+        json=_create_body(
+            recipient_uid,
+            destination_type="cheque",
+            destination={"vpa": "must-not-enter-storage@bank"},
+        ),
+    )
     assert resp.status_code == 422
 
 
@@ -368,6 +431,256 @@ async def test_mock_settle_emits_ledger_row(client: AsyncClient) -> None:
     assert txns[0]["status"] == "paid"
     assert txns[0]["amount_paise"] == 123_400
     assert txns[0]["type"] == "referral_bonus"
+
+
+@pytest.mark.asyncio
+async def test_manual_cheque_credits_only_after_clearance(client: AsyncClient) -> None:
+    maker_token, _ = await _make_admin(client)
+    checker_token, _ = await _make_admin(client)
+    recipient_token, recipient_mobile = await full_registration(client, lines=["loans"])
+    recipient_uid = await _auth_user_id(recipient_mobile)
+
+    created = await client.post(
+        "/api/v1/payouts",
+        headers=_headers(maker_token),
+        json=_create_body(
+            recipient_uid,
+            amount_paise=87_650,
+            destination_type="cheque",
+            destination={},
+        ),
+    )
+    payout_id = created.json()["id"]
+
+    approved = await client.post(
+        f"/api/v1/payouts/{payout_id}/approve", headers=_headers(checker_token)
+    )
+    assert approved.status_code == 200, approved.text
+    assert approved.json()["status"] == "approved"
+
+    before_issue = await client.get("/api/v1/transactions", headers=_headers(recipient_token))
+    assert before_issue.json()["transactions"] == []
+
+    reference = f"CHQ-{uuid.uuid4().hex[:12]}"
+    issued = await client.post(
+        f"/api/v1/payouts/{payout_id}/manual/issue",
+        headers=_headers(checker_token),
+        json={"reference": reference},
+    )
+    assert issued.status_code == 200, issued.text
+    issued_body = issued.json()
+    assert issued_body["status"] == "processing"
+    assert issued_body["destination_hint"] == f"Cheque ••••{reference[-4:]}"
+    assert issued_body["manual_issued_at"] is not None
+    assert reference not in issued.text
+
+    before_clear = await client.get("/api/v1/transactions", headers=_headers(recipient_token))
+    assert before_clear.json()["transactions"] == []
+
+    cleared = await client.post(
+        f"/api/v1/payouts/{payout_id}/manual/clear", headers=_headers(checker_token)
+    )
+    assert cleared.status_code == 200, cleared.text
+    assert cleared.json()["status"] == "paid"
+    assert cleared.json()["manual_cleared_at"] is not None
+
+    ledger = await client.get("/api/v1/transactions", headers=_headers(recipient_token))
+    txns = ledger.json()["transactions"]
+    assert len(txns) == 1
+    assert txns[0]["amount_paise"] == 87_650
+
+    import app.db.session as _session_mod
+
+    async with _session_mod.AsyncSessionLocal() as db:
+        row = (
+            await db.execute(
+                text(
+                    "SELECT p.manual_reference_fingerprint, t.reference "
+                    "FROM payouts p JOIN transactions t ON t.id = p.ledger_transaction_id "
+                    "WHERE p.id = CAST(:i AS uuid)"
+                ),
+                {"i": payout_id},
+            )
+        ).one()
+        assert len(row.manual_reference_fingerprint) == 64
+        assert reference not in row.manual_reference_fingerprint
+        assert row.reference == f"manual:{payout_id}"
+        audit_rows = (
+            await db.execute(
+                text(
+                    "SELECT action::text, detail::text FROM audit_log "
+                    "WHERE entity_uuid = CAST(:i AS uuid) "
+                    "AND action::text LIKE 'payout_manual_%' ORDER BY created_at"
+                ),
+                {"i": payout_id},
+            )
+        ).all()
+        assert [row[0] for row in audit_rows] == [
+            "payout_manual_issued",
+            "payout_manual_cleared",
+        ]
+        assert reference not in str(audit_rows)
+
+
+@pytest.mark.asyncio
+async def test_manual_cheque_failure_does_not_credit_ledger(client: AsyncClient) -> None:
+    maker_token, _ = await _make_admin(client)
+    checker_token, _ = await _make_admin(client)
+    recipient_token, recipient_mobile = await full_registration(client, lines=["loans"])
+    recipient_uid = await _auth_user_id(recipient_mobile)
+
+    created = await client.post(
+        "/api/v1/payouts",
+        headers=_headers(maker_token),
+        json=_create_body(recipient_uid, destination_type="cheque", destination={}),
+    )
+    payout_id = created.json()["id"]
+    await client.post(f"/api/v1/payouts/{payout_id}/approve", headers=_headers(checker_token))
+    failed = await client.post(
+        f"/api/v1/payouts/{payout_id}/manual/fail",
+        headers=_headers(checker_token),
+        json={"reason": "Cheque voided before issuance."},
+    )
+    assert failed.status_code == 200, failed.text
+    assert failed.json()["status"] == "failed"
+    ledger = await client.get("/api/v1/transactions", headers=_headers(recipient_token))
+    assert ledger.json()["transactions"] == []
+
+
+@pytest.mark.asyncio
+async def test_concurrent_manual_clear_emits_one_ledger_credit(client: AsyncClient) -> None:
+    maker_token, _ = await _make_admin(client)
+    checker_token, _ = await _make_admin(client)
+    recipient_token, recipient_mobile = await full_registration(client, lines=["loans"])
+    recipient_uid = await _auth_user_id(recipient_mobile)
+    created = await client.post(
+        "/api/v1/payouts",
+        headers=_headers(maker_token),
+        json=_create_body(
+            recipient_uid,
+            amount_paise=45_600,
+            destination_type="cheque",
+            destination={},
+        ),
+    )
+    payout_id = created.json()["id"]
+    await client.post(f"/api/v1/payouts/{payout_id}/approve", headers=_headers(checker_token))
+    await client.post(
+        f"/api/v1/payouts/{payout_id}/manual/issue",
+        headers=_headers(checker_token),
+        json={"reference": f"CHQ-RACE-{uuid.uuid4().hex[:10]}"},
+    )
+
+    first, second = await asyncio.gather(
+        client.post(f"/api/v1/payouts/{payout_id}/manual/clear", headers=_headers(checker_token)),
+        client.post(f"/api/v1/payouts/{payout_id}/manual/clear", headers=_headers(checker_token)),
+    )
+    assert sorted((first.status_code, second.status_code)) == [200, 409]
+    ledger = await client.get("/api/v1/transactions", headers=_headers(recipient_token))
+    assert [row["amount_paise"] for row in ledger.json()["transactions"]] == [45_600]
+
+
+@pytest.mark.asyncio
+async def test_manual_cheque_reversal_is_idempotent_and_nets_to_zero(client: AsyncClient) -> None:
+    maker_token, _ = await _make_admin(client)
+    checker_token, _ = await _make_admin(client)
+    recipient_token, recipient_mobile = await full_registration(client, lines=["loans"])
+    recipient_uid = await _auth_user_id(recipient_mobile)
+
+    created = await client.post(
+        "/api/v1/payouts",
+        headers=_headers(maker_token),
+        json=_create_body(
+            recipient_uid,
+            amount_paise=12_300,
+            destination_type="cheque",
+            destination={},
+        ),
+    )
+    payout_id = created.json()["id"]
+    await client.post(f"/api/v1/payouts/{payout_id}/approve", headers=_headers(checker_token))
+    await client.post(
+        f"/api/v1/payouts/{payout_id}/manual/issue",
+        headers=_headers(checker_token),
+        json={"reference": f"CHQ-{uuid.uuid4().hex[:12]}"},
+    )
+    await client.post(f"/api/v1/payouts/{payout_id}/manual/clear", headers=_headers(checker_token))
+
+    reversed_resp = await client.post(
+        f"/api/v1/payouts/{payout_id}/manual/reverse",
+        headers=_headers(checker_token),
+        json={"reason": "Cheque returned after clearance."},
+    )
+    assert reversed_resp.status_code == 200, reversed_resp.text
+    assert reversed_resp.json()["status"] == "reversed"
+    duplicate = await client.post(
+        f"/api/v1/payouts/{payout_id}/manual/reverse",
+        headers=_headers(checker_token),
+        json={"reason": "Duplicate reversal."},
+    )
+    assert duplicate.status_code == 409
+
+    ledger = await client.get("/api/v1/transactions", headers=_headers(recipient_token))
+    amounts = [row["amount_paise"] for row in ledger.json()["transactions"]]
+    assert sorted(amounts) == [-12_300, 12_300]
+    assert sum(amounts) == 0
+
+
+@pytest.mark.asyncio
+async def test_manual_cheque_reference_cannot_be_reused(client: AsyncClient) -> None:
+    maker_token, _ = await _make_admin(client)
+    checker_token, _ = await _make_admin(client)
+    reference = f"CHQ-DUPLICATE-{uuid.uuid4().hex[:12]}"
+    payout_ids: list[str] = []
+    for _ in range(2):
+        _, recipient_mobile = await full_registration(client, lines=["loans"])
+        recipient_uid = await _auth_user_id(recipient_mobile)
+        created = await client.post(
+            "/api/v1/payouts",
+            headers=_headers(maker_token),
+            json=_create_body(recipient_uid, destination_type="cheque", destination={}),
+        )
+        payout_ids.append(created.json()["id"])
+        await client.post(
+            f"/api/v1/payouts/{created.json()['id']}/approve",
+            headers=_headers(checker_token),
+        )
+
+    first = await client.post(
+        f"/api/v1/payouts/{payout_ids[0]}/manual/issue",
+        headers=_headers(checker_token),
+        json={"reference": reference},
+    )
+    second = await client.post(
+        f"/api/v1/payouts/{payout_ids[1]}/manual/issue",
+        headers=_headers(checker_token),
+        json={"reference": reference.lower()},
+    )
+    assert first.status_code == 200
+    assert second.status_code == 409
+
+
+@pytest.mark.asyncio
+async def test_sub_admin_cannot_operate_manual_cheque(client: AsyncClient) -> None:
+    maker_token, _ = await _make_admin(client)
+    checker_token, _ = await _make_admin(client)
+    sub_admin_token, _ = await _make_admin(client, role="sub_admin")
+    _, recipient_mobile = await full_registration(client, lines=["loans"])
+    recipient_uid = await _auth_user_id(recipient_mobile)
+    created = await client.post(
+        "/api/v1/payouts",
+        headers=_headers(maker_token),
+        json=_create_body(recipient_uid, destination_type="cheque", destination={}),
+    )
+    payout_id = created.json()["id"]
+    await client.post(f"/api/v1/payouts/{payout_id}/approve", headers=_headers(checker_token))
+
+    denied = await client.post(
+        f"/api/v1/payouts/{payout_id}/manual/issue",
+        headers=_headers(sub_admin_token),
+        json={"reference": "CHQ-SUBADMIN-1001"},
+    )
+    assert denied.status_code == 403
 
 
 @pytest.mark.asyncio

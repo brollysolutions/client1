@@ -1,5 +1,5 @@
-"""Payouts — the admin/gateway workflow for disbursing cashback / referral /
-commission money to platform users via RazorpayX.
+"""Payouts — the Admin workflow for disbursing cashback / referral / commission
+money through an online provider or an audited manual cheque.
 
 Sidecar to `transactions`, deliberately NOT an extension of it:
   - `transactions` is the recipient-owned, client-facing, immutable money LEDGER
@@ -13,9 +13,10 @@ service emits ONE `transactions` row (status `paid`) via the bypass-session
 producer pattern and stores its id back in `ledger_transaction_id`, which makes
 ledger emission idempotent against webhook redelivery.
 
-PII minimisation: the raw UPI VPA / bank account is handed to RazorpayX (contact
-+ fund_account) and NEVER persisted here. Only the gateway ids and a MASKED
-`destination_hint` (e.g. "***@okhdfc", "HDFC ****4321") are stored.
+PII minimisation: raw UPI VPA / bank account details are handed to RazorpayX and
+never persisted. A raw cheque reference exists only in the issuance request; the
+row retains a masked hint and keyed fingerprint. Gateway ids remain provider
+audit metadata.
 
 Money is integer minor units (amount_paise), never a float.
 """
@@ -42,10 +43,10 @@ class PayoutType(enum.StrEnum):
 
 class PayoutStatus(enum.StrEnum):
     PENDING_APPROVAL = "pending_approval"  # maker created; awaiting a checker
-    APPROVED = "approved"  # checker approved; about to hit the gateway
+    APPROVED = "approved"  # checker approved; ready for provider/manual issuance
     REJECTED = "rejected"  # checker rejected (terminal)
     INITIATED = "initiated"  # accepted by RazorpayX; awaiting webhook
-    PROCESSING = "processing"  # gateway processing (optional interim from webhook)
+    PROCESSING = "processing"  # gateway processing or cheque issued/awaiting clearance
     PAID = "paid"  # settled; ledger row emitted (terminal)
     FAILED = "failed"  # gateway/validation failure (terminal)
     REVERSED = "reversed"  # money returned after processing (terminal)
@@ -54,6 +55,14 @@ class PayoutStatus(enum.StrEnum):
 class PayoutDestination(enum.StrEnum):
     VPA = "vpa"  # UPI virtual payment address
     BANK_ACCOUNT = "bank_account"  # IFSC + account number
+    CHEQUE = "cheque"  # offline cheque; reference is supplied only at issuance
+
+
+class PayoutProvider(enum.StrEnum):
+    """Execution boundary, deliberately separate from the destination rail."""
+
+    RAZORPAYX = "razorpayx"
+    MANUAL = "manual"
 
 
 _ev = lambda x: [e.value for e in x]  # noqa: E731
@@ -63,6 +72,9 @@ payout_status_enum = ENUM(
 )
 payout_destination_enum = ENUM(
     PayoutDestination, name="payout_destination", create_type=False, values_callable=_ev
+)
+payout_provider_enum = ENUM(
+    PayoutProvider, name="payout_provider", create_type=False, values_callable=_ev
 )
 
 
@@ -89,6 +101,12 @@ class Payout(Base):
     destination_type: Mapped[PayoutDestination] = mapped_column(
         payout_destination_enum, nullable=False
     )
+    provider: Mapped[PayoutProvider] = mapped_column(
+        payout_provider_enum,
+        nullable=False,
+        default=PayoutProvider.RAZORPAYX,
+        server_default=PayoutProvider.RAZORPAYX.value,
+    )
     # MASKED only — never the raw VPA/account (see module docstring).
     destination_hint: Mapped[str] = mapped_column(String(40), nullable=False)
 
@@ -108,12 +126,23 @@ class Payout(Base):
     )
     reject_reason: Mapped[str | None] = mapped_column(String(200), nullable=True)
 
-    # RazorpayX gateway audit (all null in mock mode until initiate).
+    # Online-provider audit (all null for a manual cheque).
     gateway_contact_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
     gateway_fund_account_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
     gateway_payout_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
     gateway_status: Mapped[str | None] = mapped_column(String(40), nullable=True)
     failure_reason: Mapped[str | None] = mapped_column(String(200), nullable=True)
+
+    # Manual-cheque state. The raw reference is never persisted: only a masked
+    # display hint above plus this keyed fingerprint used to reject accidental
+    # cheque reuse. Both timestamps are server-authored workflow evidence.
+    manual_reference_fingerprint: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    manual_issued_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    manual_cleared_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
 
     # Set once on settle → makes ledger emission idempotent vs webhook redelivery.
     ledger_transaction_id: Mapped[uuid.UUID | None] = mapped_column(
