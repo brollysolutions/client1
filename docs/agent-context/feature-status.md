@@ -4,8 +4,8 @@ Status: **Derived living implementation ledger**
 
 As of: **2026-08-08**
 
-Evidence baseline: `14773ae` ([PR #151](https://github.com/brollysolutions/client1/pull/151)) plus the
-authenticated-personalization delivery branch (PR pending)
+Evidence baseline: `14773ae` ([PR #151](https://github.com/brollysolutions/client1/pull/151)) plus
+[PR #152](https://github.com/brollysolutions/client1/pull/152)
 
 ## Purpose and authority
 
@@ -45,8 +45,9 @@ work than several completed UI requirements.
 ## Delivered implementation
 
 - **Authenticated banner personalization** (FR-12.1 through FR-12.4 and
-  FR-18.1) is implemented on `feat/authenticated-banner-personalization` (PR
-  pending). A closed versioned grammar evaluates consented Client journey,
+  FR-18.1) is implemented in
+  [PR #152](https://github.com/brollysolutions/client1/pull/152). A closed
+  versioned grammar evaluates consented Client journey,
   Agent activity, and optional coarse-location signals only after server-side
   identity/line validation. Private no-store dashboard placements expose
   display-only banners and Client offers; anonymous responses exclude all
