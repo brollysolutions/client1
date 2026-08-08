@@ -20,6 +20,7 @@ import uuid
 import pytest
 from httpx import AsyncClient
 from sqlalchemy import text
+from sqlalchemy.exc import DBAPIError
 from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.pool import NullPool
 
@@ -164,7 +165,10 @@ async def test_line_telecaller_can_progress_own_assigned_lead(client: AsyncClien
 async def test_line_telecaller_cannot_touch_other_line_lead(client: AsyncClient) -> None:
     """A real_estate telecaller must not see/update a loans lead (USING filters it)."""
     staff_uuid = await _seed_telecaller_staff_profile("real_estate")
-    lead_id = await _seed_lead("loans", "assigned", assigned_telecaller_profile_uuid=staff_uuid)
+    loans_assignee_uuid = await _seed_telecaller_staff_profile("loans")
+    lead_id = await _seed_lead(
+        "loans", "assigned", assigned_telecaller_profile_uuid=loans_assignee_uuid
+    )
     rowcount = await _update_as_line_staff(
         role="telecaller",
         business_line="real_estate",
@@ -187,6 +191,17 @@ async def test_line_staff_cannot_move_lead_across_lines(client: AsyncClient) -> 
             staff_profile_uuid=staff_uuid,
             query="UPDATE leads SET business_line = 'real_estate' WHERE id = :id",
             params={"id": lead_id},
+        )
+
+
+@pytest.mark.asyncio
+async def test_client_cannot_close_another_accounts_leads(client: AsyncClient) -> None:
+    with pytest.raises(DBAPIError):
+        await _run_as(
+            role="client",
+            business_line="both",
+            query="SELECT close_account_leads(:target)",
+            params={"target": str(uuid.uuid4())},
         )
 
 

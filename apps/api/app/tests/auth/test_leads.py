@@ -8,6 +8,7 @@ Requires: running Postgres + Redis (docker compose up -d).
 
 from __future__ import annotations
 
+import pytest
 from httpx import AsyncClient
 from sqlalchemy import select
 
@@ -35,9 +36,10 @@ async def test_register_initiate_captures_lead_with_name_and_line(client: AsyncC
     leads = await _leads_for(mobile)
     assert len(leads) == 1
     assert leads[0].name == "Asha Rao"
-    # Self-registered clients enroll in both lines; the lead is anchored to loans.
+    # Profile enrollment remains both-line; omitted intent defaults to Loans for
+    # backward-compatible callers.
     assert leads[0].business_line == "loans"
-    assert leads[0].status == "new"
+    assert leads[0].status in {"new", "assigned"}
 
 
 async def test_forgot_initiate_captures_lead(client: AsyncClient) -> None:
@@ -47,7 +49,7 @@ async def test_forgot_initiate_captures_lead(client: AsyncClient) -> None:
 
 
 async def test_repeated_capture_is_deduped(client: AsyncClient) -> None:
-    """Multiple entries for the same mobile keep exactly one active lead."""
+    """Repeated capture keeps one live lead for the same mobile and line."""
     mobile = unique_mobile()
     for _ in range(3):
         await client.post("/api/v1/auth/login", json={"mobile": mobile, "password": "X@123456"})
@@ -68,22 +70,16 @@ async def test_capture_enriches_line_on_later_register(client: AsyncClient) -> N
     assert after[0].name == "Test User"
 
 
-async def test_capture_keeps_first_set_business_line(client: AsyncClient) -> None:
-    """business_line is immutable once set: a later capture with a DIFFERENT line
-    must not overwrite it (keep-first-set COALESCE). Otherwise the immutability
-    trigger rejects the write and, since capture is best-effort/swallowed, the
-    re-enquiry is silently lost."""
+async def test_capture_keeps_independent_line_journeys(client: AsyncClient) -> None:
     from app.services.leads import capture_lead
 
     mobile = unique_mobile()
     await capture_lead(mobile, business_line="loans")
     assert (await _leads_for(mobile))[0].business_line == "loans"
 
-    # A cross-line re-enquiry must keep the original line, not flip to real_estate.
     await capture_lead(mobile, business_line="real_estate")
     after = await _leads_for(mobile)
-    assert len(after) == 1
-    assert after[0].business_line == "loans"
+    assert sorted(lead.business_line for lead in after) == ["loans", "real_estate"]
 
 
 async def test_capture_sets_agent_attribution_on_insert(client: AsyncClient) -> None:
@@ -92,7 +88,7 @@ async def test_capture_sets_agent_attribution_on_insert(client: AsyncClient) -> 
     import app.db.session as _session_mod
     from app.models.profile import AgentProfile, ProfileStatus
     from app.models.user import User
-    from app.services.leads import capture_lead
+    from app.services.leads import capture_agent_lead
 
     # Create an auth_user and agent profile to reference
     agent_uuid = None
@@ -120,11 +116,12 @@ async def test_capture_sets_agent_attribution_on_insert(client: AsyncClient) -> 
         agent_uuid = agent.id
 
     mobile = unique_mobile()
-    await capture_lead(
-        mobile,
+    await capture_agent_lead(
+        mobile=mobile,
+        name=None,
         business_line="loans",
-        origin="agent",
-        origin_agent_profile_uuid=str(agent_uuid),
+        agent_profile_uuid=agent_uuid,
+        requirement=None,
     )
     lead = (await _leads_for(mobile))[0]
     assert str(lead.origin_agent_profile_uuid) == str(agent_uuid)
@@ -139,7 +136,7 @@ async def test_capture_keeps_first_set_agent_attribution(client: AsyncClient) ->
     import app.db.session as _session_mod
     from app.models.profile import AgentProfile, ProfileStatus
     from app.models.user import User
-    from app.services.leads import capture_lead
+    from app.services.leads import AgentLeadConflict, capture_agent_lead
 
     # Create two auth_users and agent profiles to reference
     first_agent_uuid = None
@@ -188,18 +185,21 @@ async def test_capture_keeps_first_set_agent_attribution(client: AsyncClient) ->
         second_agent_uuid = second_agent.id
 
     mobile = unique_mobile()
-    await capture_lead(
-        mobile,
+    await capture_agent_lead(
+        mobile=mobile,
+        name=None,
         business_line="loans",
-        origin="agent",
-        origin_agent_profile_uuid=str(first_agent_uuid),
+        agent_profile_uuid=first_agent_uuid,
+        requirement=None,
     )
-    await capture_lead(
-        mobile,
-        business_line="loans",
-        origin="agent",
-        origin_agent_profile_uuid=str(second_agent_uuid),
-    )
+    with pytest.raises(AgentLeadConflict):
+        await capture_agent_lead(
+            mobile=mobile,
+            name=None,
+            business_line="loans",
+            agent_profile_uuid=second_agent_uuid,
+            requirement=None,
+        )
 
     after = await _leads_for(mobile)
     assert len(after) == 1
@@ -228,8 +228,10 @@ async def test_capture_requirement_merge_still_works(client: AsyncClient) -> Non
     from app.services.leads import capture_lead
 
     mobile = unique_mobile()
-    await capture_lead(mobile, business_line="loans", requirement={"a": 1})
-    await capture_lead(mobile, business_line="loans", requirement={"b": 2})
+    # Keep this unresolved so no eligible Telecaller can lock the workflow
+    # between captures; assigned leads intentionally reject anonymous edits.
+    await capture_lead(mobile, requirement={"a": 1})
+    await capture_lead(mobile, requirement={"b": 2})
 
     after = await _leads_for(mobile)
     assert len(after) == 1

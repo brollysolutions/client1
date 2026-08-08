@@ -894,6 +894,12 @@ async def test_concurrent_delete_requests_serialize_via_row_lock(client: AsyncCl
 
 
 async def test_reregistration_with_freed_mobile_succeeds(client: AsyncClient) -> None:
+    from sqlalchemy import select
+
+    import app.db.session as _session_mod
+    from app.models.lead import Lead, LeadStatus
+    from app.models.profile import ClientProfile
+
     mobile = unique_mobile()
     email = unique_email()
     access_token, _ = await full_registration(client, mobile=mobile, email=email)
@@ -902,6 +908,23 @@ async def test_reregistration_with_freed_mobile_succeeds(client: AsyncClient) ->
         "/api/v1/auth/me", headers={"Authorization": f"Bearer {access_token}"}
     )
     old_codes = {p["customer_code"] for p in old_me.json()["profiles"]}
+    async with _session_mod.AsyncSessionLocal() as db:
+        old_lead_id = await db.scalar(
+            select(Lead.id).where(
+                Lead.mobile == mobile,
+                Lead.business_line == "loans",
+                Lead.status != LeadStatus.CLOSED,
+            )
+        )
+        unresolved_lead = Lead(
+            mobile=mobile,
+            business_line=None,
+            requirement={"source": "account-deletion-test"},
+        )
+        db.add(unresolved_lead)
+        await db.commit()
+        unresolved_lead_id = unresolved_lead.id
+    assert old_lead_id is not None
 
     await _delete_me(client, access_token)
 
@@ -920,3 +943,19 @@ async def test_reregistration_with_freed_mobile_succeeds(client: AsyncClient) ->
     # are visible on re-registration" (SRS 5.1).
     new_codes = {p["customer_code"] for p in body["profiles"]}
     assert new_codes.isdisjoint(old_codes)
+
+    async with _session_mod.AsyncSessionLocal() as db:
+        lead_rows = (
+            await db.execute(
+                select(Lead.id, Lead.status, ClientProfile.auth_user_uuid)
+                .outerjoin(ClientProfile, ClientProfile.id == Lead.client_profile_uuid)
+                .where(Lead.mobile == mobile)
+            )
+        ).all()
+    assert (old_lead_id, LeadStatus.CLOSED, uuid.UUID(old_uid)) in lead_rows
+    assert (unresolved_lead_id, LeadStatus.CLOSED, None) in lead_rows
+    assert [
+        row
+        for row in lead_rows
+        if row.status != LeadStatus.CLOSED and row.auth_user_uuid == uuid.UUID(new_uid)
+    ]

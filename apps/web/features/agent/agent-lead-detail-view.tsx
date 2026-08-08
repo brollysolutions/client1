@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Loader2 } from "lucide-react";
+import { Copy, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -46,6 +46,15 @@ export function AgentLeadDetailView({ leadId }: { leadId: string }) {
       toast.success("Updated");
     } else {
       toast.error("Couldn't update this lead", { description: (res as { error?: string }).error });
+    }
+  }
+
+  async function copyRegistrationLink() {
+    try {
+      await navigator.clipboard.writeText(`${window.location.origin}/register`);
+      toast.success("Registration link copied");
+    } catch {
+      toast.error("Couldn't copy the registration link");
     }
   }
 
@@ -95,6 +104,18 @@ export function AgentLeadDetailView({ leadId }: { leadId: string }) {
             ? "This person has created an account."
             : "Not registered on the platform yet."}
         </p>
+        {!lead.registered ? (
+          <Button
+            className="mt-3"
+            type="button"
+            size="sm"
+            variant="outline"
+            onClick={() => void copyRegistrationLink()}
+          >
+            <Copy className="h-4 w-4" aria-hidden="true" />
+            Copy registration link
+          </Button>
+        ) : null}
         <p className="mt-2 text-sm font-medium text-text-primary">
           {formatAgentLeadExpiry(lead.status, lead.expires_at, lead.expired_at)}
         </p>

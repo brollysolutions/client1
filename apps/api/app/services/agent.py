@@ -1,10 +1,9 @@
 """Agent lead sourcing + home summary (Agent Dashboard slice 1).
 
-Every function here runs on the request-scoped `db` session (Depends(get_db)),
-never a bypass AsyncSessionLocal session — leads_rls's agent branch already
-narrows queries to this agent's own-originated, own-line leads. The explicit
-`origin_agent_profile_uuid` filters below are defense-in-depth, not the only
-wall, mirroring services.telecaller's own posture.
+Read/update functions run on the request-scoped RLS session. Lead introduction
+delegates its mobile-identity, Agent-attribution, and automatic-assignment
+transaction to services.leads, then re-reads the result through the Agent's RLS
+session before returning it.
 """
 
 from __future__ import annotations
@@ -12,14 +11,14 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from uuid import UUID
 
-from sqlalchemy import func, select
+from sqlalchemy import select
 from sqlalchemy.exc import DBAPIError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.lead import Lead, LeadStatus
 from app.models.profile import AgentProfile
 from app.schemas.agent import AgentLeadCreate, AgentLeadUpdate
-from app.services.leads import capture_lead, has_expired_agent_lead
+from app.services.leads import AgentLeadConflict, capture_agent_lead
 
 
 class AgentProfileNotFound(Exception):
@@ -71,60 +70,32 @@ async def introduce_lead(
     business_line: str,
     payload: AgentLeadCreate,
 ) -> Lead:
-    """Capture a lead sourced by this agent. Reuses the same idempotent
-    mobile-upsert as every other capture path (services.leads.capture_lead) —
-    introducing an already-known mobile enriches that lead rather than
-    duplicating it, and never steals attribution or business_line from
-    whichever origin touched it first (both immutable once set).
-    """
+    """Capture and automatically assign a lead sourced by this Agent."""
     try:
-        if await has_expired_agent_lead(payload.mobile):
-            raise LeadCaptureFailed
-    except LeadCaptureFailed:
-        raise
+        lead = await capture_agent_lead(
+            mobile=payload.mobile,
+            name=payload.name,
+            business_line=business_line,
+            agent_profile_uuid=agent_profile_uuid,
+            requirement=payload.requirement,
+        )
+    except AgentLeadConflict as exc:
+        raise LeadCaptureFailed from exc
     except Exception as exc:
         raise LeadCaptureUnavailable from exc
 
-    committed = await capture_lead(
-        payload.mobile,
-        name=payload.name,
-        business_line=business_line,
-        origin="agent",
-        origin_agent_profile_uuid=str(agent_profile_uuid),
-        requirement=payload.requirement,
-    )
-    if not committed:
-        # The expiry scheduler may have won between the pre-check and INSERT.
-        # Re-check so the safe conflict is a 409, not a transient 503.
-        try:
-            if await has_expired_agent_lead(payload.mobile):
-                raise LeadCaptureFailed
-        except LeadCaptureFailed:
-            raise
-        except Exception as exc:
-            raise LeadCaptureUnavailable from exc
-        raise LeadCaptureUnavailable
-
-    lead = await db.scalar(
-        select(Lead)
-        .where(
-            Lead.mobile == payload.mobile,
+    # Re-read through the Agent's request-scoped RLS session so the response is
+    # shaped only from a row the caller remains authorized to see.
+    visible = await db.scalar(
+        select(Lead).where(
+            Lead.id == lead.id,
             Lead.origin_agent_profile_uuid == agent_profile_uuid,
             Lead.business_line == business_line,
-            Lead.agent_expired_at.is_(None),
-            Lead.assigned_telecaller_profile_uuid.is_(None),
-            (Lead.expires_at.is_(None) | (Lead.expires_at > func.now())),
         )
-        .order_by(Lead.updated_at.desc())
-        .limit(1)
     )
-    if lead is None:
-        # Committed, but not visible to this agent: the mobile's existing
-        # active lead is on the OTHER business line (origin_agent_profile_uuid
-        # may have backfilled without business_line matching — see the
-        # leads_rls agent branch, which requires both).
+    if visible is None:
         raise LeadCaptureFailed
-    return lead
+    return visible
 
 
 async def list_my_leads(

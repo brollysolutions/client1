@@ -219,7 +219,7 @@ async def test_reassigned_expired_lead_does_not_expire_again(client: AsyncClient
 
 
 @pytest.mark.asyncio
-async def test_expiring_manually_released_duplicate_does_not_break_batch(
+async def test_live_per_line_index_rejects_released_and_new_duplicate(
     client: AsyncClient,
 ) -> None:
     import app.db.session as _session_mod
@@ -243,17 +243,8 @@ async def test_expiring_manually_released_duplicate_does_not_break_batch(
             status=LeadStatus.NEW,
         )
         db.add_all([expired_candidate, active_duplicate])
-        await db.commit()
-        expired_candidate_id = expired_candidate.id
-        active_duplicate_id = active_duplicate.id
-
-    await expire_agent_leads()
-
-    candidate = await _load_lead(expired_candidate_id)
-    duplicate = await _load_lead(active_duplicate_id)
-    assert candidate.status == LeadStatus.RELEASED
-    assert candidate.agent_expired_at is not None
-    assert duplicate.status == LeadStatus.NEW
+        with pytest.raises(IntegrityError, match="uq_leads_mobile_line_live"):
+            await db.commit()
 
 
 @pytest.mark.asyncio

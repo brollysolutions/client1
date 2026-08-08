@@ -78,6 +78,21 @@ async def _seed_telecaller_staff_profile(business_line: str = "loans", active: b
         return str(profile.id)
 
 
+async def _assignment_audit(lead_id: str):
+    from sqlalchemy import select
+
+    import app.db.session as _session_mod
+    from app.models.audit_log import AuditAction, AuditLog
+
+    async with _session_mod.AsyncSessionLocal() as db:
+        return await db.scalar(
+            select(AuditLog).where(
+                AuditLog.entity_uuid == uuid.UUID(lead_id),
+                AuditLog.action == AuditAction.LEAD_ASSIGNED,
+            )
+        )
+
+
 def _admin_token(uid: str) -> str:
     return create_access_token(
         {"sub": uid, "role": "admin", "business_line": "", "platform_scope": "true"}
@@ -140,6 +155,15 @@ async def test_reassign_happy_path(client: AsyncClient) -> None:
     assert body["telecaller_staff_profile_uuid"] == telecaller_b
     assert body["previous_telecaller_staff_profile_uuid"] == telecaller_a
     assert body["release_reason"] == "A left the team"
+    audit = await _assignment_audit(lead_id)
+    assert audit is not None
+    assert str(audit.actor_uuid) == uid
+    assert audit.actor_role == "admin"
+    assert audit.detail == {
+        "mode": "manual_reassignment",
+        "telecaller_staff_profile_uuid": telecaller_b,
+        "previous_telecaller_staff_profile_uuid": telecaller_a,
+    }
 
     queue_res = await client.get("/api/v1/admin/leads", headers=headers)
     assert queue_res.status_code == 200, queue_res.text

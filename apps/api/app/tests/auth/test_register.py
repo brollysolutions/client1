@@ -6,6 +6,7 @@ Requires: running Postgres + Redis (docker compose up -d).
 
 from __future__ import annotations
 
+import pytest
 from httpx import AsyncClient
 
 from app.core.config import settings
@@ -24,7 +25,7 @@ def _payload(**overrides) -> dict:
         "first_name": "Test",
         "last_name": "User",
         "mobile": unique_mobile(),
-        "lines": ["loans"],
+        "service_lines": ["loans"],
     }
     body.update(overrides)
     return body
@@ -36,7 +37,9 @@ def _payload(**overrides) -> dict:
 
 
 async def test_register_initiate_loans_returns_otp_hint(client: AsyncClient) -> None:
-    resp = await client.post("/api/v1/auth/register/initiate", json=_payload(lines=["loans"]))
+    resp = await client.post(
+        "/api/v1/auth/register/initiate", json=_payload(service_lines=["loans"])
+    )
     assert resp.status_code == 200
     body = resp.json()
     assert body["delivery_channel"] == "none"  # mock mode: no voice/email creds
@@ -45,9 +48,43 @@ async def test_register_initiate_loans_returns_otp_hint(client: AsyncClient) -> 
 
 
 async def test_register_initiate_real_estate_returns_otp_hint(client: AsyncClient) -> None:
-    resp = await client.post("/api/v1/auth/register/initiate", json=_payload(lines=["real_estate"]))
+    resp = await client.post(
+        "/api/v1/auth/register/initiate", json=_payload(service_lines=["real_estate"])
+    )
     assert resp.status_code == 200
     assert resp.json()["otp_hint"] is not None
+
+
+@pytest.mark.parametrize(
+    "service_lines",
+    [[], ["loans", "loans"], ["wealth"]],
+)
+async def test_register_initiate_rejects_invalid_service_intent(
+    client: AsyncClient, service_lines: list[str]
+) -> None:
+    resp = await client.post(
+        "/api/v1/auth/register/initiate",
+        json=_payload(service_lines=service_lines),
+    )
+    assert resp.status_code == 422
+
+
+async def test_registration_token_carries_server_validated_service_intent(
+    client: AsyncClient,
+) -> None:
+    from app.core.security import decode_access_token
+
+    mobile = unique_mobile()
+    initiate = await client.post(
+        "/api/v1/auth/register/initiate",
+        json=_payload(mobile=mobile, service_lines=["real_estate", "loans"]),
+    )
+    verify = await client.post(
+        "/api/v1/auth/register/verify-otp",
+        json={"mobile": mobile, "otp": initiate.json()["otp_hint"]},
+    )
+    claims = decode_access_token(verify.json()["registration_token"])
+    assert claims["service_lines"] == ["loans", "real_estate"]
 
 
 async def test_register_initiate_otp_is_6_numeric_digits(client: AsyncClient) -> None:
