@@ -5,8 +5,8 @@ Status: **Derived living implementation ledger**
 As of: **2026-08-08**
 
 Evidence baseline: `14773ae` ([PR #151](https://github.com/brollysolutions/client1/pull/151)) plus
-[PR #152](https://github.com/brollysolutions/client1/pull/152) and the reviewed
-`feat/lead-assignment-completion` implementation (PR pending)
+[PR #152](https://github.com/brollysolutions/client1/pull/152) and
+[PR #153](https://github.com/brollysolutions/client1/pull/153)
 
 ## Purpose and authority
 
@@ -45,8 +45,8 @@ work than several completed UI requirements.
 
 ## Delivered implementation
 
-- **Lead assignment completion** (FR-4.2 and FR-4.3) is implemented on
-  `feat/lead-assignment-completion` (PR pending). Explicit Loans/Real Estate
+- **Lead assignment completion** (FR-4.2 and FR-4.3) is implemented in
+  [PR #153](https://github.com/brollysolutions/client1/pull/153). Explicit Loans/Real Estate
   registration intent and Agent introductions create independent same-line
   journeys; active Telecallers receive them by deterministic least workload,
   with a bounded 15-minute retry when capacity is absent. OTP-proven
@@ -135,7 +135,7 @@ The following requirements are complete on the evidence baseline:
   first-attribution deadlines, audit/notifications, Agent history/countdown UI,
   and API/RLS/concurrency tests. Agent expiry was delivered in
   [PR #144](https://github.com/brollysolutions/client1/pull/144); assignment
-  completion is on `feat/lead-assignment-completion` (PR pending).
+  completion is in [PR #153](https://github.com/brollysolutions/client1/pull/153).
 - Agent lifecycle: FR-5.1 through FR-5.4. Evidence includes public agent
   application intake, restricted uploads, Admin approval/rejection, Agent
   codes, Agent dashboards, and owned-lead visibility tests.
