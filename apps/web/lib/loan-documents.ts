@@ -8,6 +8,7 @@ import type { components } from "@contracts/generated/schema";
 
 import { apiRequest, type ApiResponse } from "@/lib/api/client";
 import { uploadFileToPresignedPost } from "@/lib/agent-application";
+import { validateLoanMediaFile } from "@/lib/loan-media";
 
 type Schemas = components["schemas"];
 export type LoanDocument = Schemas["LoanDocumentRead"];
@@ -87,6 +88,11 @@ export async function uploadLoanDocuments(
 
   for (let i = 0; i < entries.length; i++) {
     const { docType, file } = entries[i];
+    if (validateLoanMediaFile(file)) {
+      failed.push(docType);
+      onProgress?.(i + 1, entries.length);
+      continue;
+    }
     const contentType = file.type as LoanDocContentType;
 
     const presignRes = await presignLoanDocument(applicationId, docType, contentType);

@@ -70,6 +70,10 @@ ADMIN_BROADCAST_RATE = "admin_broadcast_rate:{admin_uuid}"
 # Redis quota and the private object-key prefix; orphan cleanup is storage-side.
 PROPERTY_MEDIA_PRESIGN = "property_media_presign:{owner_uuid}"
 
+# Authenticated Loans media uploads. The authenticated account owns the quota;
+# the private object key separately binds the client profile and application.
+LOAN_MEDIA_PRESIGN = "loan_media_presign:{owner_uuid}"
+
 # Authenticated coarse-location refreshes. Every capture follows an explicit
 # settings action, while this budget bounds retries and write amplification per
 # account.
@@ -90,6 +94,7 @@ TTL_AGENT_APPLY_OTP_DAILY = 24 * 60 * 60  # 24 h daily cap, purpose-scoped
 TTL_MOBILE_CHANGE_RATE = 60 * 60
 TTL_MOBILE_CHANGE_OTP_DAILY = 24 * 60 * 60
 TTL_PROPERTY_MEDIA_PRESIGN = 60 * 60
+TTL_LOAN_MEDIA_PRESIGN = 60 * 60
 TTL_PERSONALIZATION_LOCATION_CAPTURE = 60 * 60
 
 
@@ -233,6 +238,10 @@ def agent_apply_presign_key(jti: str) -> str:
 
 def property_media_presign_key(owner_uuid: str) -> str:
     return PROPERTY_MEDIA_PRESIGN.format(owner_uuid=owner_uuid)
+
+
+def loan_media_presign_key(owner_uuid: str) -> str:
+    return LOAN_MEDIA_PRESIGN.format(owner_uuid=owner_uuid)
 
 
 def personalization_location_capture_key(owner_uuid: str) -> str:

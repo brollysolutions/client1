@@ -16,13 +16,14 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 
-from app.core.deps import CurrentUser, get_active_user
+from app.cache.redis_keys import RedisCache
+from app.core.deps import CurrentUser, get_active_user, get_cache
 from app.db.session import get_db
 from app.models.loan import Bank, BankLoanTypeAvailability, LoanApplication, LoanType
 from app.models.loan_document import LoanDocument
@@ -52,6 +53,7 @@ router = APIRouter()
 _LOAN_DOCUMENT_ERROR_STATUS = {
     loan_documents.ApplicationNotFound: status.HTTP_404_NOT_FOUND,
     loan_documents.ApplicationNotWritable: status.HTTP_409_CONFLICT,
+    loan_documents.UploadRateExceeded: status.HTTP_429_TOO_MANY_REQUESTS,
     loan_documents.ObjectKeyMismatch: status.HTTP_400_BAD_REQUEST,
     loan_documents.UploadMissing: status.HTTP_422_UNPROCESSABLE_ENTITY,
     loan_documents.ContentTypeMismatch: status.HTTP_422_UNPROCESSABLE_ENTITY,
@@ -67,6 +69,11 @@ def _map_loan_document_error(exc: loan_documents.LoanDocumentError) -> HTTPExcep
     return HTTPException(status_code=code, detail=str(exc))
 
 
+def _private_no_store(response: Response) -> None:
+    """Signed private-media URLs are bearer links and must not be cached."""
+    response.headers["Cache-Control"] = "private, no-store"
+
+
 def _to_loan_document_read(document: LoanDocument) -> LoanDocumentRead:
     return LoanDocumentRead(
         id=document.id,
@@ -75,6 +82,13 @@ def _to_loan_document_read(document: LoanDocument) -> LoanDocumentRead:
         verified=document.verified,
         review_note=document.review_note,
         uploaded_at=document.uploaded_at,
+        content_type=document.content_type,
+        size_bytes=document.size_bytes,
+        preview_url=(
+            storage.presign_preview(document.object_key)
+            if document.content_type.startswith("image/")
+            else None
+        ),
         download_url=storage.presign_download(document.object_key),
     )
 
@@ -264,17 +278,24 @@ async def create_loan_application(
 async def presign_loan_document(
     application_id: UUID,
     req: LoanDocumentPresignRequest,
+    response: Response,
     current_user: CurrentUser = Depends(get_active_user),
     db: AsyncSession = Depends(get_db),
+    cache: RedisCache = Depends(get_cache),
 ) -> LoanDocumentPresignResponse:
     _require_loans_client(current_user)
+    _private_no_store(response)
     assert current_user.client_profile_uuid is not None
     try:
         application = await loan_documents.get_own_application(
             db, application_id, current_user.client_profile_uuid
         )
-        object_key, upload_url, fields, max_bytes = loan_documents.presign_document_upload(
-            application, req.doc_type, req.content_type
+        object_key, upload_url, fields, max_bytes = await loan_documents.presign_document_upload(
+            cache,
+            current_user.id,
+            application,
+            req.doc_type,
+            req.content_type,
         )
     except loan_documents.LoanDocumentError as exc:
         raise _map_loan_document_error(exc) from exc
@@ -294,10 +315,12 @@ async def presign_loan_document(
 async def confirm_loan_document(
     application_id: UUID,
     req: LoanDocumentCreate,
+    response: Response,
     current_user: CurrentUser = Depends(get_active_user),
     db: AsyncSession = Depends(get_db),
 ) -> LoanDocumentRead:
     _require_loans_client(current_user)
+    _private_no_store(response)
     assert current_user.client_profile_uuid is not None
     try:
         application = await loan_documents.get_own_application(
@@ -322,10 +345,12 @@ async def confirm_loan_document(
 )
 async def list_loan_documents_for_application(
     application_id: UUID,
+    response: Response,
     current_user: CurrentUser = Depends(get_active_user),
     db: AsyncSession = Depends(get_db),
 ) -> LoanDocumentListResponse:
     _require_loans_client(current_user)
+    _private_no_store(response)
     assert current_user.client_profile_uuid is not None
     try:
         await loan_documents.get_own_application(
@@ -339,6 +364,7 @@ async def list_loan_documents_for_application(
 
 @router.get("/documents", response_model=LoanDocumentListResponse)
 async def list_own_loan_documents(
+    response: Response,
     current_user: CurrentUser = Depends(get_active_user),
     db: AsyncSession = Depends(get_db),
 ) -> LoanDocumentListResponse:
@@ -346,6 +372,7 @@ async def list_own_loan_documents(
     client-owner branch on `loan_documents_select` is the only filter that
     matters."""
     _require_loans_client(current_user)
+    _private_no_store(response)
     documents = await loan_documents.list_for_client(db)
     return LoanDocumentListResponse(documents=[_to_loan_document_read(d) for d in documents])
 
