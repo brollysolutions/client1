@@ -48,7 +48,7 @@ work than several completed UI requirements.
 ## Delivered implementation
 
 - **Role-aware dashboard navigation** (FR-2.1 through FR-2.7 and FR-17.1) is
-  complete on `security/business-line-classification` (PR pending). A typed
+  complete in [PR #162](https://github.com/brollysolutions/client1/pull/162). A typed
   role/business-line capability catalogue now drives grouped sidebar navigation
   and a shared direct-route UX guard for all 52 checked-in dashboard pages.
   Client Loans/Real Estate features remain line-specific; Agent, Telecaller,
