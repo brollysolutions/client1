@@ -33,7 +33,7 @@ from app.core.config import settings
 from app.core.masking import mask_mobile
 from app.db.session import AsyncSessionLocal
 from app.models.audit_log import AuditAction
-from app.models.lead import Lead, LeadOrigin, LeadStatus
+from app.models.lead import Lead, LeadAssignmentCursor, LeadOrigin, LeadStatus
 from app.models.notification import NotificationType
 from app.models.profile import ClientProfile, ProfileStatus, StaffProfile, StaffRole
 from app.models.user import User
@@ -43,7 +43,6 @@ from app.services.notifications import emit_notification
 logger = logging.getLogger(__name__)
 
 _ASSIGNABLE_STATUSES = (LeadStatus.NEW, LeadStatus.RELEASED)
-_WORKLOAD_STATUSES = (LeadStatus.ASSIGNED, LeadStatus.WORKING)
 _VALID_LINES = frozenset({"loans", "real_estate"})
 
 
@@ -125,31 +124,58 @@ def _merge_requirement(
     return merged
 
 
-async def _select_automatic_telecaller(db: AsyncSession, business_line: str) -> StaffProfile | None:
-    workload = (
-        select(
-            Lead.assigned_telecaller_profile_uuid.label("staff_profile_uuid"),
-            func.count(Lead.id).label("active_count"),
-        )
-        .where(
-            Lead.business_line == business_line,
-            Lead.assigned_telecaller_profile_uuid.is_not(None),
-            Lead.status.in_(_WORKLOAD_STATUSES),
-        )
-        .group_by(Lead.assigned_telecaller_profile_uuid)
-        .subquery()
+async def _select_round_robin_telecaller(
+    db: AsyncSession, business_line: str
+) -> StaffProfile | None:
+    """Select and advance one durable same-line rotation turn.
+
+    The caller holds the per-line advisory lock. The cursor and lead mutation
+    therefore commit or roll back together, so concurrent capture and retry
+    paths cannot consume the same turn or advance without an assignment.
+    """
+    telecallers = list(
+        (
+            await db.scalars(
+                select(StaffProfile)
+                .where(
+                    StaffProfile.role == StaffRole.TELECALLER,
+                    StaffProfile.status == ProfileStatus.ACTIVE,
+                    StaffProfile.business_line == business_line,
+                )
+                .order_by(StaffProfile.created_at, StaffProfile.id)
+                .with_for_update()
+            )
+        ).all()
     )
-    return await db.scalar(
-        select(StaffProfile)
-        .outerjoin(workload, workload.c.staff_profile_uuid == StaffProfile.id)
-        .where(
-            StaffProfile.role == StaffRole.TELECALLER,
-            StaffProfile.status == ProfileStatus.ACTIVE,
-            StaffProfile.business_line == business_line,
-        )
-        .order_by(func.coalesce(workload.c.active_count, 0), StaffProfile.id)
-        .limit(1)
+    if not telecallers:
+        return None
+
+    cursor = await db.scalar(
+        select(LeadAssignmentCursor)
+        .where(LeadAssignmentCursor.business_line == business_line)
+        .with_for_update()
     )
+    if cursor is None:
+        cursor = LeadAssignmentCursor(business_line=business_line)
+        db.add(cursor)
+
+    selected = telecallers[0]
+    if cursor.last_telecaller_profile_uuid is not None:
+        last_profile = await db.get(StaffProfile, cursor.last_telecaller_profile_uuid)
+        if last_profile is not None:
+            last_key = (last_profile.created_at, last_profile.id)
+            selected = next(
+                (
+                    telecaller
+                    for telecaller in telecallers
+                    if (telecaller.created_at, telecaller.id) > last_key
+                ),
+                telecallers[0],
+            )
+
+    cursor.last_telecaller_profile_uuid = selected.id
+    cursor.updated_at = datetime.now(UTC)
+    return selected
 
 
 async def auto_assign_locked_lead(db: AsyncSession, lead: Lead) -> LeadAssignmentNotice | None:
@@ -162,7 +188,7 @@ async def auto_assign_locked_lead(db: AsyncSession, lead: Lead) -> LeadAssignmen
         return None
 
     await _lock_assignment_line(db, lead.business_line)
-    telecaller = await _select_automatic_telecaller(db, lead.business_line)
+    telecaller = await _select_round_robin_telecaller(db, lead.business_line)
     if telecaller is None:
         return None
 

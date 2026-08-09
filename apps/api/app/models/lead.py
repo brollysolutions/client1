@@ -39,6 +39,34 @@ lead_origin_enum = ENUM(LeadOrigin, name="lead_origin", create_type=False, value
 lead_status_enum = ENUM(LeadStatus, name="lead_status", create_type=False, values_callable=_ev)
 
 
+class LeadAssignmentCursor(Base):
+    """Internal per-line cursor for deterministic automatic assignment."""
+
+    __tablename__ = "lead_assignment_cursors"
+    __table_args__ = (
+        CheckConstraint(
+            "business_line::text IN ('loans', 'real_estate')",
+            name="business_line_operational",
+        ),
+    )
+
+    business_line: Mapped[str] = mapped_column(
+        business_line_enum,
+        primary_key=True,
+    )
+    last_telecaller_profile_uuid: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("staff_profiles.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=datetime.utcnow,
+        onupdate=datetime.utcnow,
+    )
+
+
 class Lead(Base):
     __tablename__ = "leads"
     __table_args__ = (
