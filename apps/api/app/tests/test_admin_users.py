@@ -109,6 +109,26 @@ async def test_admin_creates_telecaller_with_line(client: AsyncClient) -> None:
 
 
 @pytest.mark.asyncio
+async def test_admin_creates_dual_line_employee(client: AsyncClient) -> None:
+    _, mobile = await full_registration(client)
+    uid = await _auth_user_uuid(mobile)
+    res = await client.post(
+        "/api/v1/admin/users/create",
+        json={
+            "first_name": "Dual",
+            "last_name": "Employee",
+            "mobile": unique_mobile(),
+            "email": f"dual-employee.{uid[:8]}@example.com",
+            "role": "employee",
+            "business_line": "both",
+        },
+        headers={"Authorization": f"Bearer {_admin_token(uid)}"},
+    )
+    assert res.status_code == 201, res.text
+    assert res.json()["business_line"] == "both"
+
+
+@pytest.mark.asyncio
 async def test_sub_admin_with_business_line_is_rejected(client: AsyncClient) -> None:
     _, mobile = await full_registration(client)
     uid = await _auth_user_uuid(mobile)

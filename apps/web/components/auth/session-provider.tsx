@@ -3,7 +3,12 @@
 import * as React from "react";
 
 import { registerTokenGetter, registerTokenRefresher } from "@/lib/api/client";
-import { refresh as refreshSession, type AuthTokens, type BusinessLine, type UserRole } from "@/lib/auth";
+import {
+  refresh as refreshSession,
+  type AuthTokens,
+  type StaffBusinessLine,
+  type UserRole,
+} from "@/lib/auth";
 
 // The access token lives in memory only (never localStorage) so an XSS payload
 // can't read it. A hard reload loses it, then re-hydrates from the httponly
@@ -61,7 +66,7 @@ type Session = {
   role: UserRole;
   phoneVerified: boolean;
   emailVerified: boolean;
-  businessLine: BusinessLine | null;
+  businessLine: StaffBusinessLine | null;
 };
 
 type AuthContextValue = {

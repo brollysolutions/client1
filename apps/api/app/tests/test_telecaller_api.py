@@ -150,6 +150,28 @@ async def test_list_leads_returns_assigned(client: AsyncClient) -> None:
 
 
 @pytest.mark.asyncio
+async def test_dual_line_telecaller_selects_one_lead_queue_per_request(
+    client: AsyncClient,
+) -> None:
+    auth_uuid, staff_uuid = await _seed_telecaller("both")
+    leads = {line: await _seed_assigned_lead(line, staff_uuid) for line in ("loans", "real_estate")}
+    token = _telecaller_token(auth_uuid, staff_uuid, "both")
+
+    for line in ("loans", "real_estate"):
+        res = await client.get(
+            "/api/v1/telecaller/leads",
+            headers={
+                "Authorization": f"Bearer {token}",
+                "X-Business-Line": line,
+            },
+        )
+        assert res.status_code == 200, res.text
+        ids = {row["id"] for row in res.json()}
+        assert leads[line] in ids
+        assert leads["real_estate" if line == "loans" else "loans"] not in ids
+
+
+@pytest.mark.asyncio
 async def test_get_lead_detail(client: AsyncClient) -> None:
     auth_uuid, staff_uuid = await _seed_telecaller("loans")
     lead_id = await _seed_assigned_lead("loans", staff_uuid)

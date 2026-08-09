@@ -73,6 +73,27 @@ describe("login()", () => {
     expect(res.ok && res.data.forceReset).toBe(true);
   });
 
+  it("retains the dual-line staff claim for dashboard switching", async () => {
+    vi.stubGlobal(
+      "fetch",
+      mockFetch(200, {
+        access_token: tokenWith({
+          sub: "u",
+          role: "telecaller",
+          business_line: "both",
+          force_reset: false,
+        }),
+        token_type: "bearer",
+        expires_in: 1800,
+        phone_verified: true,
+        email_verified: true,
+      }),
+    );
+
+    const res = await login("+919000000007", "pw");
+    expect(res.ok && res.data.businessLine).toBe("both");
+  });
+
   it("surfaces the backend detail string on a 4xx", async () => {
     vi.stubGlobal("fetch", mockFetch(401, { detail: "Invalid mobile number or password." }));
     const res = await login("+919000000007", "pw");

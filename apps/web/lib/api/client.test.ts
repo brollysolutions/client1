@@ -1,6 +1,11 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { apiRequest, registerTokenGetter, registerTokenRefresher } from "./client";
+import {
+  apiRequest,
+  registerBusinessLineGetter,
+  registerTokenGetter,
+  registerTokenRefresher,
+} from "./client";
 
 function fakeResponse(status: number, body: unknown): Response {
   return {
@@ -17,10 +22,25 @@ function authHeaders(opts: RequestInit | undefined): string | undefined {
 afterEach(() => {
   vi.unstubAllGlobals();
   registerTokenGetter(() => null);
+  registerBusinessLineGetter(() => null);
   registerTokenRefresher(async () => null);
 });
 
 describe("apiRequest 401 -> refresh -> retry", () => {
+  it("sends the selected operational line", async () => {
+    registerTokenGetter(() => "token");
+    registerBusinessLineGetter(() => "real_estate");
+    const fetchMock = vi.fn(async (_url: string, _opts?: RequestInit) =>
+      fakeResponse(200, { value: 42 }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await apiRequest("/api/v1/employee/tasks");
+
+    const headers = fetchMock.mock.calls[0]?.[1]?.headers as Record<string, string>;
+    expect(headers["X-Business-Line"]).toBe("real_estate");
+  });
+
   it("refreshes once and retries with the new token", async () => {
     registerTokenGetter(() => "old-token");
     let refreshCalls = 0;

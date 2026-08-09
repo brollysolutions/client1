@@ -105,6 +105,8 @@ class PayoutRead(BaseModel):
     maker_name: str | None = None
     checker_name: str | None = None
     rejected_by_name: str | None = None
+    viewer_is_maker: bool = False
+    viewer_can_approve: bool = False
 
 
 class PayoutListResponse(BaseModel):

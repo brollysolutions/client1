@@ -14,8 +14,8 @@ const LABELS: Record<BusinessLine, string> = {
 };
 
 // Single swap button (not a tabs widget: it swaps a whole route, not an inline
-// panel) that flips the workspace between the client's lines. Shown on every
-// dashboard page for multi-line clients. Line accent is blue-only (ADR-0007),
+// panel) that flips the workspace between available lines. Shown for multi-line
+// clients and dual-line Telecaller/Employee staff. Line accent is blue-only (ADR-0007),
 // so the button shows the current line by label, not by colour.
 export function LineSwitcher() {
   const { activeLine, setActiveLine, canSwitch } = useLine();

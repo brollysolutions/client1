@@ -209,7 +209,7 @@ async def resolve_broadcast_recipients(
                 stmt = stmt.where(StaffProfile.role == StaffRole.ADMIN)
             if business_line is not None:
                 stmt = stmt.where(
-                    (StaffProfile.business_line == business_line)
+                    (StaffProfile.business_line.in_((business_line, "both")))
                     | (StaffProfile.business_line.is_(None))
                 )
             uuids |= set((await session.scalars(stmt)).all())

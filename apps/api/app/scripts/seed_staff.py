@@ -57,10 +57,10 @@ async def _seed(mobile: str, role_value: str, business_line: str | None) -> None
         else ProfileScope.LINE
     )
     if scope == ProfileScope.LINE:
-        if business_line not in ("loans", "real_estate"):
+        if business_line not in ("loans", "real_estate", "both"):
             print(
                 f"[seed_staff] role={role.value} is line-scoped; pass business_line "
-                "as the third argument: 'loans' or 'real_estate'."
+                "as the third argument: 'loans', 'real_estate', or 'both'."
             )
             return
     else:

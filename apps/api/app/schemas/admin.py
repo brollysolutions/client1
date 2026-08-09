@@ -23,8 +23,8 @@ class StaffCreateRequest(BaseModel):
     email: EmailStr
     role: StaffRoleLiteral
     # sub_admin is platform-scoped (business_line must be omitted/null); telecaller
-    # and employee are line-scoped (a single loans/real_estate line is required).
-    business_line: Literal["loans", "real_estate"] | None = None
+    # and employee are line-scoped (loans, real_estate, or both is required).
+    business_line: Literal["loans", "real_estate", "both"] | None = None
 
     @field_validator("email")
     @classmethod
@@ -38,7 +38,7 @@ class StaffCreateRequest(BaseModel):
                 raise ValueError("Sub Admin is platform-scoped; do not provide a business_line.")
         else:
             if self.business_line is None:
-                raise ValueError("A single business_line is required for this role.")
+                raise ValueError("A business_line is required for this role.")
         return self
 
 
@@ -47,7 +47,7 @@ class StaffCreateResponse(BaseModel):
     last_name: str
     mobile: str
     role: StaffRoleLiteral
-    business_line: Literal["loans", "real_estate"] | None
+    business_line: Literal["loans", "real_estate", "both"] | None
     staff_code: str
     # Shown once, never persisted/logged. None when attaching a staff role to an
     # account that already had a working password (their credentials are unchanged).
@@ -199,7 +199,7 @@ class TaskAssignRequest(BaseModel):
 class AdminEmployeeRead(BaseModel):
     id: UUID
     staff_code: str
-    business_line: Literal["loans", "real_estate"]
+    business_line: Literal["loans", "real_estate", "both"]
     first_name: str
     last_name: str
 

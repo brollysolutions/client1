@@ -6,6 +6,7 @@ import { Bell, PhoneCall } from "lucide-react";
 
 import { Skeleton } from "@/components/ui/skeleton";
 import { FetchError } from "@/features/dashboard/fetch-error";
+import { useLine } from "@/features/dashboard/line-provider";
 import { getNotifications, type AppNotification } from "@/lib/notifications";
 import { getTelecallerHome, type TelecallerHome as TelecallerHomeData } from "@/lib/telecaller-api";
 
@@ -31,6 +32,7 @@ type Status = "loading" | "ready" | "error";
 // notifications preview. Mirrors AdminHome's minimal-landing posture — this
 // slice ships the lead-follow-up flow only.
 export function TelecallerHome() {
+  const { activeLine } = useLine();
   const [home, setHome] = React.useState<TelecallerHomeData | null>(null);
   const [notifications, setNotifications] = React.useState<AppNotification[]>([]);
   const [status, setStatus] = React.useState<Status>("loading");
@@ -64,7 +66,7 @@ export function TelecallerHome() {
     return () => {
       active = false;
     };
-  }, [reloadKey]);
+  }, [activeLine, reloadKey]);
 
   if (status === "loading") {
     return (

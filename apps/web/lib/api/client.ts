@@ -15,9 +15,16 @@ const BASE_URL =
 // The auth provider registers a getter here so requests can attach the in-memory
 // access token without this module knowing about React or where the token lives.
 let readAccessToken: () => string | null = () => null;
+let readBusinessLine: () => "loans" | "real_estate" | null = () => null;
 
 export function registerTokenGetter(getter: () => string | null): void {
   readAccessToken = getter;
+}
+
+export function registerBusinessLineGetter(
+  getter: () => "loans" | "real_estate" | null,
+): void {
+  readBusinessLine = getter;
 }
 
 // The auth provider also registers a refresher: on a 401 the wrapper calls it
@@ -118,6 +125,8 @@ export async function apiRequest<TResponse = undefined>(
   const attempt = async (token: string | null): Promise<Response | null> => {
     const headers: Record<string, string> = { "Content-Type": "application/json" };
     if (token) headers.Authorization = `Bearer ${token}`;
+    const businessLine = readBusinessLine();
+    if (businessLine) headers["X-Business-Line"] = businessLine;
     try {
       return await fetch(`${BASE_URL}${path}`, {
         method,
@@ -172,6 +181,8 @@ export async function apiDownload(
   const attempt = async (token: string | null): Promise<Response | null> => {
     const headers: Record<string, string> = {};
     if (token) headers.Authorization = `Bearer ${token}`;
+    const businessLine = readBusinessLine();
+    if (businessLine) headers["X-Business-Line"] = businessLine;
     try {
       return await fetch(`${BASE_URL}${path}`, {
         method: "GET",

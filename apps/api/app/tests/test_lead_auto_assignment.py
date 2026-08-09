@@ -129,6 +129,24 @@ def _silence_assignment_notifications(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 @pytest.mark.asyncio
+async def test_dual_line_telecaller_is_eligible_for_each_assignment_queue() -> None:
+    telecaller = await _seed_telecaller("both")
+
+    async with db_session.AsyncSessionLocal() as db:
+        leads = [
+            Lead(mobile=unique_mobile(), business_line=line, status=LeadStatus.NEW)
+            for line in ("loans", "real_estate")
+        ]
+        db.add_all(leads)
+        await db.flush()
+
+        for lead in leads:
+            notice = await auto_assign_locked_lead(db, lead)
+            assert notice is not None
+            assert lead.assigned_telecaller_profile_uuid == telecaller.id
+
+
+@pytest.mark.asyncio
 async def test_agent_leads_rotate_in_stable_order_independent_of_workload() -> None:
     telecallers = [await _seed_telecaller("loans") for _ in range(3)]
     await _seed_telecaller("real_estate")

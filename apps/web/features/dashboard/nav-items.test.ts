@@ -4,7 +4,7 @@ import path from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-import type { BusinessLine, UserRole } from "@/lib/auth";
+import type { BusinessLine, StaffBusinessLine, UserRole } from "@/lib/auth";
 
 import {
   findDashboardRouteRule,
@@ -16,7 +16,7 @@ import {
 
 function context(
   role: UserRole,
-  businessLine: BusinessLine | null = null,
+  businessLine: StaffBusinessLine | null = null,
   activeLine: BusinessLine = "loans",
   profileLines?: readonly BusinessLine[],
 ): DashboardAccessContext {
@@ -103,6 +103,22 @@ describe("role-aware dashboard navigation", () => {
       "employee-tasks",
     ]);
     expect(navKeys(context("employee", "real_estate"))).toEqual([
+      "home",
+      "employee-tasks",
+      "employee-vehicle-arrangements",
+    ]);
+  });
+
+  it("uses the selected line for dual-line Telecaller and Employee navigation", () => {
+    expect(navKeys(context("telecaller", "both", "loans"))).toEqual([
+      "home",
+      "telecaller-leads",
+    ]);
+    expect(navKeys(context("employee", "both", "loans"))).toEqual([
+      "home",
+      "employee-tasks",
+    ]);
+    expect(navKeys(context("employee", "both", "real_estate"))).toEqual([
       "home",
       "employee-tasks",
       "employee-vehicle-arrangements",

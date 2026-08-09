@@ -120,7 +120,7 @@ async def _active_real_estate_employee(
         employee is None
         or employee.role != StaffRole.EMPLOYEE
         or employee.status != ProfileStatus.ACTIVE
-        or employee.business_line != "real_estate"
+        or employee.business_line not in ("real_estate", "both")
     ):
         raise InvalidArrangementEmployee
     return employee
