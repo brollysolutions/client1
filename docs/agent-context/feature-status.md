@@ -33,13 +33,13 @@ live-provider configuration are assessed separately.
 
 | Measure | Result |
 | --- | ---: |
-| Complete requirements | 69 / 80 (86.25%) |
-| Partial requirements | 10 / 80 (12.5%) |
+| Complete requirements | 72 / 80 (90%) |
+| Partial requirements | 7 / 80 (8.75%) |
 | Not-started requirements | 1 / 80 (1.25%) |
-| Weighted implementation coverage | **92.5%** |
+| Weighted implementation coverage | **94.4%** |
 
 Weighted coverage gives each Complete item 1 point and each Partial item 0.5
-points: `(69 + 10 x 0.5) / 80 = 92.5%`. The weighting is a planning aid, not
+points: `(72 + 7 x 0.5) / 80 = 94.375%`, rounded to **94.4%**. The weighting is a planning aid, not
 an estimate of calendar time: a single security-sensitive gap can require more
 work than several completed UI requirements.
 
@@ -121,10 +121,10 @@ work than several completed UI requirements.
 | Media/uploads (FR-13.x) | 0 | 4 | 0 | Secure purpose-specific image/PDF flows and property camera capture exist; unified per-line galleries, feedback attachments, video, and broader retention remain incomplete. |
 | Support (FR-14.x) | 4 | 0 | 0 | Central tickets, WhatsApp route, Admin triage/resolution, and structured mobile-change fulfilment exist. |
 | Contact privacy (FR-15.x) | 4 | 0 | 0 | Agent-owned and Telecaller-assigned mobile access is locked; Employee raw/deny/provider-neutral invitation modes and least-data projection are enforced server-side. |
-| Analytics (FR-16.x) | 0 | 3 | 0 | **In review** in [PR #150](https://github.com/brollysolutions/client1/pull/150): weekly/monthly reporting, filters, sorting, CSV/XLSX, selected-Agent groups, and business-line team summaries are implemented. Database-backed reporting tests remain blocked locally by a `_greenlet` DLL failure. |
+| Analytics (FR-16.x) | 3 | 0 | 0 | **Complete** in [PR #156](https://github.com/brollysolutions/client1/pull/156): Linux PostgreSQL/Redis verification passed 30 reporting service/API/RLS tests with one Alembic head; web lint, strict typecheck, 294 unit tests, and the 92-page production build passed. |
 | Profile/account (FR-17.x) | 4 | 0 | 0 | Profile/settings, optional demographic/income/address details, transactions/support, deletion, retention, and Admin removal exist. |
 | Location (FR-18.x) | 1 | 0 | 1 | Explicit nested opt-in stores only the latest two-decimal point for 30 days and erases it on revocation, personalization disable, or account deletion; the map/GMB seam remains undecided. |
-| **Total** | **69** | **10** | **1** | **80 requirements** |
+| **Total** | **72** | **7** | **1** | **80 requirements** |
 
 ## Done
 
@@ -207,9 +207,9 @@ The following requirements are complete on the evidence baseline:
 | FR-13.2 | Partial | Agent KYC, loan/task documents, banners, and property submissions have managed upload flows; property submission supports browser camera capture. | Add approved feedback/media attachments and camera capture to other applicable journeys. |
 | FR-13.3 | Partial | Managed property media constrains images/PDFs and verifies content signatures; other current flows also constrain types. | Define safe video types, size/duration limits, transcoding/serving policy, malware scanning, content checks, and image metadata normalization. |
 | FR-13.4 | Partial | Property media enforces quotas, upload rate limits, canonical snapshots, orphan/rejection/promotion cleanup, inactive-public cleanup, and account-deletion cleanup. | Apply consistent controls to every media purpose and define approved reviewer-document retention. |
-| FR-16.1 | Partial | [PR #150](https://github.com/brollysolutions/client1/pull/150) adds formula-safe Excel export alongside the existing CSV export, with the same capped result set and truncation signal. | Run database-backed export tests and production build in a healthy environment. |
-| FR-16.2 | Partial | Reports filter by business line and a selected multi-Agent list; the list is the ad hoc group filter, with no persistent group/team model added. | Verify the filter path against a PostgreSQL-backed environment. |
-| FR-16.3 | Partial | The Agents report now returns and renders Loans/Real Estate business-line team performance summaries, retaining per-Agent sorting and selective views. | Verify team aggregate totals against a PostgreSQL-backed environment. |
+| FR-16.1 | Complete | [PR #150](https://github.com/brollysolutions/client1/pull/150) adds formula-safe Excel export alongside the existing CSV export, with the same capped result set and truncation signal. Linux PostgreSQL/Redis verification passed the reporting service/API/RLS suite; the web production build completed. | Maintain bounded exports, formula-safe cell writing, and current verification coverage. |
+| FR-16.2 | Complete | Reports filter by business line and a selected multi-Agent list; the list is the ad hoc group filter, with no persistent group/team model added. PostgreSQL-backed service/API/RLS tests passed. | Preserve the server-side platform-Admin guard and the business-line predicates when filters evolve. |
+| FR-16.3 | Complete | The Agents report returns and renders Loans/Real Estate business-line team performance summaries, retaining per-Agent sorting and selective views. PostgreSQL-backed aggregate tests passed. | Preserve line-scoped team totals and anti-fan-out aggregate coverage. |
 | FR-18.1 | Complete | An explicit nested opt-in stores only the latest server-rounded two-decimal point, omits stale/unavailable matches, purges after 30 days, and erases on revoke/disable/deletion without logging coordinates. | Maintain the retention job and location-free audit contract. |
 | FR-18.2 | Not started — excluded from active roadmap | Address-based properties and visits exist, but no map seam is defined. | Explicitly removed from the active implementation plan on 2026-08-08. Keep this approved-SRS requirement uncounted as delivered; reconsider only through a new product decision and a privacy/provider design review. |
 
