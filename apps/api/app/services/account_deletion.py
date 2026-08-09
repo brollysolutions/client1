@@ -93,6 +93,7 @@ from app.models.profile import (
 from app.models.property_media import PropertySubmissionMedia
 from app.models.property_submission import PropertySubmission, SubmissionStatus
 from app.models.support_ticket import SupportTicket
+from app.models.task import TaskFeedbackMedia
 from app.models.transaction import Transaction
 from app.models.user import User, UserStatus
 from app.services import payout_links, storage
@@ -457,6 +458,35 @@ async def delete_account(
     except Exception:
         logger.exception(
             "account_deletion.phase_b_failed target_auth_user_uuid=%s", target_auth_user_uuid
+        )
+
+    # Property-visit feedback is private uploader content. Its ordinary DELETE
+    # policy intentionally requires the Employee to remain assigned to a
+    # writable task, which cannot cover account erasure after reassignment or
+    # task closure. Use a narrow bypass cleanup and remove storage only after
+    # the database commit, matching the other private upload purposes below.
+    feedback_media_keys: list[str] = []
+    try:
+        async with db_session.AsyncSessionLocal() as session:
+            feedback_media = list(
+                (
+                    await session.scalars(
+                        select(TaskFeedbackMedia).where(
+                            TaskFeedbackMedia.uploaded_by_uuid == target_auth_user_uuid
+                        )
+                    )
+                ).all()
+            )
+            feedback_media_keys = [asset.object_key for asset in feedback_media]
+            for asset in feedback_media:
+                await session.delete(asset)
+            await session.commit()
+        for object_key in feedback_media_keys:
+            storage.delete_object(object_key)
+    except Exception:
+        logger.exception(
+            "account_deletion.task_feedback_cleanup_failed target_auth_user_uuid=%s",
+            target_auth_user_uuid,
         )
 
     # Property-submission media is private user content, including optional

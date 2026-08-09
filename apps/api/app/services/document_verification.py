@@ -135,6 +135,7 @@ async def list_subjects(
         .join(LoanDocument, LoanDocument.loan_application_uuid == LoanApplication.id)
         .join(Lead, Lead.id == LoanApplication.lead_uuid)
         .join(LoanType, LoanType.id == LoanApplication.loan_type_id)
+        .where(LoanDocument.processing_status == "ready")
         .group_by(LoanApplication.id, LoanType.label, Lead.name, Lead.mobile)
     )
 
@@ -219,7 +220,10 @@ async def list_documents(
 
     stmt = (
         select(LoanDocument)
-        .where(LoanDocument.loan_application_uuid == subject_uuid)
+        .where(
+            LoanDocument.loan_application_uuid == subject_uuid,
+            LoanDocument.processing_status == "ready",
+        )
         .order_by(LoanDocument.uploaded_at.desc())
     )
     rows = (await db.scalars(stmt)).all()
@@ -291,7 +295,12 @@ async def set_verification(
         notify_href = "/dashboard/tasks"
     else:
         document = await db.scalar(
-            select(LoanDocument).where(LoanDocument.id == document_id).with_for_update()
+            select(LoanDocument)
+            .where(
+                LoanDocument.id == document_id,
+                LoanDocument.processing_status == "ready",
+            )
+            .with_for_update()
         )
         if document is None:
             raise DocumentNotFound("Document not found.")

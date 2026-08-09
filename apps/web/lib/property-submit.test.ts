@@ -112,6 +112,12 @@ describe("validateForm()", () => {
         documents: [new File(["text"], "note.txt", { type: "text/plain" })],
       }).documents,
     ).toBeTruthy();
+    expect(
+      validateForm({
+        ...VALID,
+        video: new File(["mov"], "tour.mov", { type: "video/quicktime" }),
+      }).video,
+    ).toBeTruthy();
   });
 });
 

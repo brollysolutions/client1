@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Literal
 
 from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -98,6 +99,25 @@ class Settings(BaseSettings):
     # loan-application KYC upload path (services/loan_documents.py).
     LOAN_DOCUMENT_MAX_UPLOAD_BYTES: int = 5 * 1024 * 1024
     LOAN_DOCUMENT_MAX_PER_APPLICATION: int = 12
+
+    # Managed-media processing. New images/PDFs are sanitized or scanned before
+    # canonical acceptance. Videos are quarantined and processed by the single
+    # scheduler service before any signed/public playback URL is projected.
+    MEDIA_MALWARE_SCAN_MODE: Literal["disabled", "clamav"] = "disabled"
+    CLAMAV_HOST: str = "clamav"
+    CLAMAV_PORT: int = 3310
+    CLAMAV_TIMEOUT_SECONDS: int = 20
+    MEDIA_VIDEO_MAX_UPLOAD_BYTES: int = 20 * 1024 * 1024
+    PROPERTY_VIDEO_MAX_DURATION_SECONDS: int = 120
+    LOAN_VIDEO_MAX_DURATION_SECONDS: int = 60
+    LOAN_VIDEO_MAX_PER_APPLICATION: int = 2
+    TASK_FEEDBACK_MAX_UPLOAD_BYTES: int = 5 * 1024 * 1024
+    TASK_FEEDBACK_MAX_PER_TASK: int = 5
+    MEDIA_FFMPEG_BINARY: str = "ffmpeg"
+    MEDIA_FFPROBE_BINARY: str = "ffprobe"
+    MEDIA_TRANSCODE_TIMEOUT_SECONDS: int = 180
+    MEDIA_FAILED_RETENTION_DAYS: int = 7
+    MEDIA_PRIVATE_RETENTION_DAYS: int = 90
 
     # Return the plaintext OTP in the API response (otp_hint) when delivery is
     # mocked, so local/dev flows are testable without a real voice/email channel.
@@ -279,6 +299,34 @@ class Settings(BaseSettings):
             # network-level interception.
             if not self.SPACES_ENDPOINT_URL.startswith("https://"):
                 raise ValueError("SPACES_ENDPOINT_URL must use https:// outside development.")
+        return self
+
+    @model_validator(mode="after")
+    def _guard_media_processing(self) -> "Settings":
+        # Development may deliberately run without the resource-heavy local
+        # scanner when exercising non-upload paths. Every other environment is
+        # fail-closed: accepting private/KYC media without a scanner is a boot
+        # error, not a silent downgrade.
+        if self.ENV != "development" and self.MEDIA_MALWARE_SCAN_MODE != "clamav":
+            raise ValueError("MEDIA_MALWARE_SCAN_MODE must be 'clamav' outside development.")
+        positive = {
+            "CLAMAV_PORT": self.CLAMAV_PORT,
+            "CLAMAV_TIMEOUT_SECONDS": self.CLAMAV_TIMEOUT_SECONDS,
+            "MEDIA_VIDEO_MAX_UPLOAD_BYTES": self.MEDIA_VIDEO_MAX_UPLOAD_BYTES,
+            "PROPERTY_VIDEO_MAX_DURATION_SECONDS": self.PROPERTY_VIDEO_MAX_DURATION_SECONDS,
+            "LOAN_VIDEO_MAX_DURATION_SECONDS": self.LOAN_VIDEO_MAX_DURATION_SECONDS,
+            "LOAN_VIDEO_MAX_PER_APPLICATION": self.LOAN_VIDEO_MAX_PER_APPLICATION,
+            "TASK_FEEDBACK_MAX_UPLOAD_BYTES": self.TASK_FEEDBACK_MAX_UPLOAD_BYTES,
+            "TASK_FEEDBACK_MAX_PER_TASK": self.TASK_FEEDBACK_MAX_PER_TASK,
+            "MEDIA_TRANSCODE_TIMEOUT_SECONDS": self.MEDIA_TRANSCODE_TIMEOUT_SECONDS,
+            "MEDIA_FAILED_RETENTION_DAYS": self.MEDIA_FAILED_RETENTION_DAYS,
+            "MEDIA_PRIVATE_RETENTION_DAYS": self.MEDIA_PRIVATE_RETENTION_DAYS,
+        }
+        invalid = [name for name, value in positive.items() if value <= 0]
+        if invalid:
+            raise ValueError(f"Media-processing settings must be positive: {', '.join(invalid)}.")
+        if self.MEDIA_MALWARE_SCAN_MODE == "clamav" and not self.CLAMAV_HOST.strip():
+            raise ValueError("CLAMAV_HOST is required when ClamAV scanning is enabled.")
         return self
 
     @model_validator(mode="after")

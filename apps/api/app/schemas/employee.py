@@ -28,6 +28,7 @@ DocTypeLiteral = Literal[
     "other",
 ]
 DocContentTypeLiteral = Literal["image/jpeg", "image/png", "image/webp", "application/pdf"]
+FeedbackContentTypeLiteral = Literal["image/jpeg", "image/png", "image/webp", "application/pdf"]
 
 
 class EmployeeTaskRead(BaseModel):
@@ -86,4 +87,30 @@ class TaskDocumentRead(BaseModel):
     verified: bool
     review_note: str | None
     uploaded_at: datetime
+    download_url: str
+
+
+class TaskFeedbackMediaPresignRequest(BaseModel):
+    content_type: FeedbackContentTypeLiteral
+
+
+class TaskFeedbackMediaPresignResponse(BaseModel):
+    object_key: str
+    upload_url: str
+    fields: dict[str, str]
+    max_bytes: int
+
+
+class TaskFeedbackMediaCreate(BaseModel):
+    object_key: Annotated[str, Field(max_length=600)]
+    content_type: FeedbackContentTypeLiteral
+
+
+class TaskFeedbackMediaRead(BaseModel):
+    id: UUID
+    kind: Literal["image", "document"]
+    content_type: FeedbackContentTypeLiteral
+    size_bytes: int
+    created_at: datetime
+    preview_url: str | None
     download_url: str

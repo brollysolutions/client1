@@ -23,14 +23,25 @@ from app.cache.redis_keys import (
     RedisCache,
     property_media_presign_key,
 )
+from app.core.config import settings
 from app.db.session import AsyncSessionLocal
 from app.models.audit_log import AuditAction
 from app.models.property import Property
-from app.models.property_media import PropertyMedia, PropertySubmissionMedia
+from app.models.property_media import (
+    MediaProcessingStatus,
+    PropertyMedia,
+    PropertySubmissionMedia,
+)
 from app.models.property_submission import PropertySubmission, SubmissionStatus
 from app.schemas.property_submissions import SubmissionCreate, SubmissionMediaInput
 from app.services import storage
 from app.services.audit_log import record as record_audit
+from app.services.media_processing import (
+    MalwareDetected,
+    MediaProcessingError,
+    ScannerUnavailable,
+    canonicalize_object,
+)
 
 IMAGE_MAX_BYTES = 5 * 1024 * 1024
 DOCUMENT_MAX_BYTES = 5 * 1024 * 1024
@@ -44,6 +55,7 @@ _MEDIA_EXTENSION = {
     "image/png": ".png",
     "image/webp": ".webp",
     "application/pdf": ".pdf",
+    "video/mp4": ".mp4",
 }
 
 
@@ -75,7 +87,13 @@ class MediaObjectChanged(Exception):
     """Raised when submitted bytes no longer match their verified metadata."""
 
 
+class MediaNotReady(Exception):
+    """Raised when asynchronous processing has not produced safe canonical bytes."""
+
+
 def _max_bytes(content_type: str) -> int:
+    if content_type == "video/mp4":
+        return settings.MEDIA_VIDEO_MAX_UPLOAD_BYTES
     return DOCUMENT_MAX_BYTES if content_type == "application/pdf" else IMAGE_MAX_BYTES
 
 
@@ -92,6 +110,10 @@ async def _delete_objects(object_keys: list[str]) -> None:
 
 async def verify_stored_media(asset: PropertySubmissionMedia) -> None:
     """Fail closed if a signed upload was replaced after submission."""
+    if asset.processing_status != MediaProcessingStatus.READY or (
+        asset.kind == "video" and (asset.sanitized_at is None or asset.duration_seconds is None)
+    ):
+        raise MediaNotReady
     try:
         current_size = await asyncio.to_thread(storage.head_object, asset.object_key)
         valid = current_size == asset.size_bytes and await asyncio.to_thread(
@@ -126,7 +148,7 @@ async def create_submission(
     owner_uuid: UUID,
 ) -> PropertySubmission:
     owner_prefix = f"{_STAGING_PREFIX}{owner_uuid}/"
-    verified: list[tuple[SubmissionMediaInput, UUID, str, int]] = []
+    verified: list[tuple[SubmissionMediaInput, UUID, str, int, str, datetime | None]] = []
     canonical_keys: list[str] = []
     try:
         for asset in payload.media:
@@ -145,15 +167,29 @@ async def create_submission(
                 media_id = uuid.uuid4()
                 canonical_key = (
                     f"{_CANONICAL_PREFIX}{owner_uuid}/{media_id}/"
-                    f"asset{_MEDIA_EXTENSION[asset.content_type]}"
-                )
-                await asyncio.to_thread(
-                    storage.copy_object,
-                    asset.object_key,
-                    canonical_key,
-                    asset.content_type,
+                    f"{'upload' if asset.kind == 'video' else 'asset'}"
+                    f"{_MEDIA_EXTENSION[asset.content_type]}"
                 )
                 canonical_keys.append(canonical_key)
+                if asset.kind == "video":
+                    await asyncio.to_thread(
+                        storage.copy_object,
+                        asset.object_key,
+                        canonical_key,
+                        asset.content_type,
+                    )
+                    processing_status = MediaProcessingStatus.PENDING
+                    sanitized_at = None
+                else:
+                    size = await asyncio.to_thread(
+                        canonicalize_object,
+                        asset.object_key,
+                        canonical_key,
+                        asset.content_type,
+                        max_bytes=_max_bytes(asset.content_type),
+                    )
+                    processing_status = MediaProcessingStatus.READY
+                    sanitized_at = datetime.now(UTC)
                 canonical_size = await asyncio.to_thread(storage.head_object, canonical_key)
                 canonical_valid = canonical_size == size and await asyncio.to_thread(
                     storage.content_matches_declared_type,
@@ -164,11 +200,19 @@ async def create_submission(
                     raise MediaStorageUnavailable
             except (MediaUploadMissing, MediaContentMismatch):
                 raise
+            except MalwareDetected as exc:
+                await _delete_objects([asset.object_key])
+                raise MediaContentMismatch from exc
+            except ScannerUnavailable as exc:
+                raise MediaStorageUnavailable from exc
+            except MediaProcessingError as exc:
+                await _delete_objects([asset.object_key])
+                raise MediaContentMismatch from exc
             except MediaStorageUnavailable:
                 raise
             except Exception as exc:
                 raise MediaStorageUnavailable from exc
-            verified.append((asset, media_id, canonical_key, size))
+            verified.append((asset, media_id, canonical_key, size, processing_status, sanitized_at))
     except Exception:
         await _delete_objects(canonical_keys)
         raise
@@ -182,7 +226,7 @@ async def create_submission(
     )
     db.add(submission)
     await db.flush()
-    for asset, media_id, canonical_key, size in verified:
+    for asset, media_id, canonical_key, size, processing_status, sanitized_at in verified:
         db.add(
             PropertySubmissionMedia(
                 id=media_id,
@@ -193,6 +237,9 @@ async def create_submission(
                 object_key=canonical_key,
                 size_bytes=size,
                 position=asset.position,
+                processing_status=processing_status,
+                processed_at=sanitized_at,
+                sanitized_at=sanitized_at,
             )
         )
     try:
@@ -246,11 +293,11 @@ async def approve_submission(
         for asset in media:
             try:
                 await verify_stored_media(asset)
-            except (MediaObjectChanged, MediaStorageUnavailable):
+            except (MediaObjectChanged, MediaStorageUnavailable, MediaNotReady):
                 await session.rollback()
                 raise
-        image_media = [asset for asset in media if asset.kind == "image"]
-        for public_position, asset in enumerate(image_media):
+        public_assets = [asset for asset in media if asset.kind in {"image", "video"}]
+        for public_position, asset in enumerate(public_assets):
             filename = asset.object_key.rsplit("/", 1)[-1]
             public_key = f"{_PUBLIC_PREFIX}{property_uuid}/{asset.id}/{filename}"
             try:
@@ -278,10 +325,13 @@ async def approve_submission(
                 PropertyMedia(
                     property_uuid=property_uuid,
                     business_line="real_estate",
+                    kind=asset.kind,
                     content_type=asset.content_type,
                     object_key=public_key,
                     size_bytes=asset.size_bytes,
                     position=public_position,
+                    duration_seconds=asset.duration_seconds,
+                    sanitized_at=asset.sanitized_at,
                 )
             )
             promoted_sources.append(asset.object_key)

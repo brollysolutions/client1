@@ -17,6 +17,7 @@ export type AgentApplicationDetail = Schemas["AgentApplicationDetailRead"];
 export type AgentApplicationDocument = Schemas["AgentApplicationDocument"];
 export type AgentApproveResponse = Schemas["AgentApproveResponse"];
 export type AdminTask = Schemas["AdminTaskRead"];
+export type TaskFeedbackMedia = Schemas["TaskFeedbackMediaRead"];
 export type AdminEmployee = Schemas["AdminEmployeeRead"];
 export type AdminLead = Schemas["AdminLeadRead"];
 export type AdminAssignedLead = Schemas["AdminAssignedLeadRead"];
@@ -75,9 +76,15 @@ export async function rejectAgentApplication(
   });
 }
 
-export async function listAdminTasks(statusFilter?: string): Promise<ApiResponse<AdminTask[]>> {
-  const query = statusFilter ? `?status_filter=${encodeURIComponent(statusFilter)}` : "";
-  return apiRequest<AdminTask[]>(`/api/v1/admin/tasks${query}`);
+export async function listAdminTasks(
+  statusFilter?: string,
+  taskTypeFilter?: string,
+): Promise<ApiResponse<AdminTask[]>> {
+  const query = new URLSearchParams();
+  if (statusFilter) query.set("status_filter", statusFilter);
+  if (taskTypeFilter) query.set("task_type_filter", taskTypeFilter);
+  const suffix = query.size > 0 ? `?${query.toString()}` : "";
+  return apiRequest<AdminTask[]>(`/api/v1/admin/tasks${suffix}`);
 }
 
 export async function assignTask(
@@ -88,6 +95,12 @@ export async function assignTask(
     method: "POST",
     body: { employee_profile_uuid: employeeProfileUuid },
   });
+}
+
+export async function listAdminTaskFeedbackMedia(
+  taskId: string,
+): Promise<ApiResponse<TaskFeedbackMedia[]>> {
+  return apiRequest<TaskFeedbackMedia[]>(`/api/v1/admin/tasks/${taskId}/feedback-media`);
 }
 
 export async function listAdminLeads(): Promise<ApiResponse<AdminLead[]>> {

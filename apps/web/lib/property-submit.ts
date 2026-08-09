@@ -40,6 +40,7 @@ export type SubmitFormState = {
   meta: string;
   images: File[];
   documents: File[];
+  video: File | null;
   category: PropertyCategory | "";
   city: string;
   locality: string;
@@ -62,6 +63,7 @@ export const EMPTY_FORM: SubmitFormState = {
   meta: "",
   images: [],
   documents: [],
+  video: null,
   category: "",
   city: "",
   locality: "",
@@ -152,6 +154,15 @@ export function validateForm(form: SubmitFormState): Record<string, string> {
     errs.documents = "Reviewer documents must be PDFs.";
   } else if (form.documents.some((file) => file.size > maxBytes)) {
     errs.documents = "Each PDF must be 5 MiB or smaller.";
+  }
+  if (form.video) {
+    if (form.video.type !== "video/mp4") {
+      errs.video = "The property video must be an MP4 file.";
+    } else if (form.video.size > 20 * 1024 * 1024) {
+      errs.video = "The property video must be 20 MiB or smaller.";
+    } else if (form.video.size < 1) {
+      errs.video = "The property video is empty.";
+    }
   }
   return errs;
 }

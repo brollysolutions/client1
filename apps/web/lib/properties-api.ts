@@ -24,6 +24,7 @@ export function mapProperty(raw: Schemas["PropertyRead"]): REListing {
     category: raw.category,
     meta: raw.meta ?? undefined,
     image: raw.media_urls?.[0] ?? raw.image ?? undefined,
+    ...(raw.media?.length ? { media: raw.media } : {}),
     pincode: raw.pincode,
     furnishing: raw.furnishing,
     status: raw.construction_status,

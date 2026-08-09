@@ -14,6 +14,7 @@ import type { PropertyListing } from "@/lib/properties";
 type Schemas = components["schemas"];
 
 export function mapPublicListing(raw: Schemas["PublicPropertyRead"]): PropertyListing {
+  const media = (raw.media ?? []).filter((item) => isAllowedAssetUrl(item.url));
   return {
     id: raw.id,
     title: raw.title,
@@ -23,8 +24,10 @@ export function mapPublicListing(raw: Schemas["PublicPropertyRead"]): PropertyLi
     category: raw.category,
     meta: raw.meta ?? undefined,
     image:
+      media.find((item) => item.kind === "image")?.url ??
       raw.media_urls?.find(isAllowedAssetUrl) ??
       (raw.image?.startsWith("/") ? raw.image : undefined),
+    media: media.length > 0 ? media : undefined,
     reraNumber: raw.rera_number,
   };
 }

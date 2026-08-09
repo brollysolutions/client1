@@ -138,10 +138,15 @@ def _submission_payload(uid: str) -> dict:
 
 @pytest.fixture
 def storage_ok(monkeypatch: pytest.MonkeyPatch) -> None:
-    from app.services import storage
+    from app.services import property_submissions, storage
 
     monkeypatch.setattr(storage, "head_object", lambda _key: 2048)
     monkeypatch.setattr(storage, "content_matches_declared_type", lambda _key, _ct: True)
+    monkeypatch.setattr(
+        property_submissions,
+        "canonicalize_object",
+        lambda _source, _destination, _content_type, *, max_bytes: 2048,
+    )
     monkeypatch.setattr(storage, "copy_object", lambda _source, _destination, _ct: None)
     monkeypatch.setattr(storage, "delete_object", lambda _key: None)
 

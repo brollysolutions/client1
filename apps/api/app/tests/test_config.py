@@ -17,6 +17,7 @@ _REAL_SPACES = {
     "SPACES_ACCESS_KEY": "real-access-key",
     "SPACES_SECRET_KEY": "real-secret-key",
     "PUBLIC_WEB_ORIGIN": "https://app.example.com",
+    "MEDIA_MALWARE_SCAN_MODE": "clamav",
 }
 
 
@@ -64,6 +65,25 @@ def test_real_storage_credentials_accepted_in_production() -> None:
 def test_placeholder_storage_credentials_allowed_in_development() -> None:
     s = Settings(ENV="development", SECRET_KEY=_INSECURE_DEFAULT_SECRET)
     assert s.SPACES_ACCESS_KEY == "minioadmin"
+
+
+def test_disabled_media_scanner_rejected_outside_development() -> None:
+    with pytest.raises(ValidationError):
+        Settings(
+            ENV="production",
+            SECRET_KEY=_GOOD_KEY,
+            MEDIA_MALWARE_SCAN_MODE="disabled",
+            **{
+                key: value
+                for key, value in _REAL_SPACES.items()
+                if key != "MEDIA_MALWARE_SCAN_MODE"
+            },
+        )
+
+
+def test_clamav_media_scanner_accepted_outside_development() -> None:
+    settings = Settings(ENV="production", SECRET_KEY=_GOOD_KEY, **_REAL_SPACES)
+    assert settings.MEDIA_MALWARE_SCAN_MODE == "clamav"
 
 
 def test_non_https_storage_endpoint_rejected_in_production() -> None:

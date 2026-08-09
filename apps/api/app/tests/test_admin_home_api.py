@@ -277,12 +277,17 @@ _SUBMISSION_PAYLOAD = {
 async def test_pending_property_submission_from_another_submitter_appears(
     client: AsyncClient, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    from app.services import storage
+    from app.services import property_submissions, storage
 
     monkeypatch.setattr(storage, "head_object", lambda _key: 2048)
     monkeypatch.setattr(storage, "content_matches_declared_type", lambda _key, _ct: True)
     monkeypatch.setattr(storage, "copy_object", lambda _source, _destination, _ct: None)
     monkeypatch.setattr(storage, "delete_object", lambda _key: None)
+    monkeypatch.setattr(
+        property_submissions,
+        "canonicalize_object",
+        lambda _source, _destination, _content_type, *, max_bytes: 2048,
+    )
 
     _, owner_mobile = await full_registration(client, lines=["real_estate"])
     owner_uid = await _auth_user_uuid(owner_mobile)

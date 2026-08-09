@@ -4,14 +4,16 @@ Status: **Derived, actively maintained plan**
 
 As of: **2026-08-09**
 
-Evidence baseline: `bc8efe7` ([PR #156](https://github.com/brollysolutions/client1/pull/156))
+Evidence baseline: `20a4ed8`
+([PR #159](https://github.com/brollysolutions/client1/pull/159)), based on
+`59ae35b` ([PR #158](https://github.com/brollysolutions/client1/pull/158))
 
 ## Outcome
 
 Complete the approved Loans and Real Estate scope without weakening
 authorization, business-line segregation, PII/KYC handling, payout controls,
 or auditability. The current evidence-based implementation coverage is
-approximately **95.6%** across 79 active requirements; see
+approximately **98.1%** across 79 active requirements; see
 [`feature-status.md`](feature-status.md) for the
 calculation and requirement-level gaps.
 
@@ -65,8 +67,8 @@ included in completion coverage.
 | Priority | Feature / requirements | Why now | Planning model / effort | Implementation model / effort | Exit criteria |
 | ---: | --- | --- | --- | --- | --- |
 | 1 | Analytics verification (FR-16.1–FR-16.3) | **Done** in [PR #156](https://github.com/brollysolutions/client1/pull/156): a Linux PostgreSQL/Redis run passed the reporting service/API/RLS suite, and the web production build completed. | `gpt-5.6-terra` / High | `gpt-5.6-terra` / High | No defect was proven; retain the existing authorization, RLS, export-safety, and team-dimension invariants. |
-| 2 | Media controls completion (FR-13.1–FR-13.4) | **Bounded Loans gallery slice done** in [PR #157](https://github.com/brollysolutions/client1/pull/157). Feedback attachments, retention policy, and video remain the next product decisions. | `gpt-5.6-sol` / Extra High | `gpt-5.6-sol` / Extra High | Delivered grouped private Loans media, image preview, PDF download, camera capture, presign throttling, immutable canonical uploads, compatible cleanup, and denial tests. Keep the overall item active for the explicit non-goals. |
-| 3 | Provenance-based edit ownership (FR-2.8) | Current edit paths work, but ownership rules are not uniform across submitted detail types. | `gpt-5.6-sol` / High | `gpt-5.6-sol` / Extra High | Define per-field creator/reviewer/Admin authority; enforce it in service and RLS paths with cross-role/cross-line denial tests. |
+| 2 | Media controls completion (FR-13.1–FR-13.4) | **Done** in [PR #159](https://github.com/brollysolutions/client1/pull/159): purpose-bound property and Loans MP4, assigned-Employee property-visit feedback attachments, fail-closed malware scanning, metadata removal/transcoding, and explicit retention complete the approved scope without a universal asset library. | `gpt-5.6-sol` / Extra High | `gpt-5.6-sol` / Extra High | Preserve the delivered purpose, assignment, line, private/public promotion, processing-state, retention, and account-deletion invariants. |
+| 3 | Provenance-based edit ownership (FR-2.8) | **Next.** Current edit paths work, but ownership rules are not uniform across submitted detail types. | `gpt-5.6-sol` / High | `gpt-5.6-sol` / Extra High | Define per-field creator/reviewer/Admin authority; enforce it in service and RLS paths with cross-role/cross-line denial tests. |
 | 4 | Admin operational coverage audit (FR-2.2) | Admin has broad coverage, but the approved requirement calls for exhaustive view/update coverage. | `gpt-5.6-terra` / High | `gpt-5.6-terra` / High | Inventory every required Admin surface, close confirmed gaps, and add authorization plus accessible UI coverage. |
 | 5 | Business-line classification hardening (FR-1.1) | Legacy nullable classification and future media paths can undermine the line-isolation invariant. | `gpt-5.6-sol` / High | `gpt-5.6-sol` / Extra High | Audit all records and new media purposes; backfill or constrain only with a reviewed migration and RLS denial coverage. |
 
@@ -99,6 +101,73 @@ included in completion coverage.
   caching and private-key logging. The repository-wide API suite reached its
   20-minute command bound without a final report and is inconclusive rather
   than passing.
+
+### Approved integrated feature brief - media controls finalization
+
+- **Branch / PR:** `feat/media-controls-finalization` /
+  [PR #159](https://github.com/brollysolutions/client1/pull/159).
+- **Success:** complete FR-13.1 through FR-13.4 with purpose-bound Real Estate
+  and Loans video, private Employee site-visit feedback attachments, safe
+  playback/download behavior, and a documented lifecycle for every managed
+  media purpose.
+- **Architecture:** extend the existing property-submission and loan-application
+  media boundaries; add a dedicated property-visit feedback-media child rather
+  than overloading `task_documents`; process attacker-controlled assets into
+  immutable canonical objects before they become previewable or public. Keep
+  generated contracts owned by FastAPI and storage keys out of API responses.
+- **Security invariants:** server-stamped business line, owner/assignment and
+  platform-Admin authorization, PostgreSQL RLS, signed upload size/type policy,
+  content verification, self-hosted fail-closed malware scanning, metadata
+  removal, bounded video validation/transcoding, quotas and rate limits,
+  no-store private links, row-locked idempotency, account-deletion cleanup, and
+  scheduled orphan/retention cleanup. Pending, failed, or unscanned media must
+  never be public or playable.
+- **Compatibility:** preserve existing image/PDF rows, legacy/canonical object
+  keys, Admin-only property review, verified-document behavior, catalogue image
+  projection, and current deletion semantics. Deploy additive schema and
+  processing support before exposing new controls.
+- **Non-goals:** a universal media library, public Loans media, new reviewer
+  roles, marketing/user-generated feeds, client-visible internal visit
+  feedback, live streaming, and any third-party scanner/transcoder that exports
+  private media outside the deployment.
+- **Verification:** focused schema/service/storage/processor tests; owner,
+  assignment, role, cross-user, and cross-line denial; MIME/signature, malware,
+  codec/duration/dimension, quota, rate-limit, replay, concurrency, processing
+  outage, deletion, retention, and orphan cleanup; generated contracts; RLS and
+  migration upgrade/downgrade/one-head checks; accessible responsive web flows;
+  seeded Client/Employee/Admin browser journeys; full applicable API/web gates;
+  security review; PR review; and repository verification.
+
+### Delivered feature evidence - media controls finalization
+
+- **Behavior:** Real Estate submissions accept one MP4 and Loans applications
+  accept up to two MP4 assets within their existing per-application quota.
+  Assigned Real Estate Employees can add private image/PDF feedback to active
+  property-visit tasks; platform Admin can review it without exposing it to
+  Clients, Agents, Telecallers, or unrelated Employees.
+- **Processing and lifecycle:** ClamAV scanning fails closed outside the
+  explicitly disabled development mode; Pillow rewrites accepted images; and
+  FFmpeg emits bounded H.264/AAC MP4 without submitted metadata or subtitle
+  streams. Row-locked jobs recover stale work, preserve retriable staging data
+  on scanner outages, remove known-malicious or irreparably invalid objects,
+  and enforce the approved 7/90-day private retention windows. Account deletion
+  and orphan cleanup include feedback media.
+- **Security and review:** private signed links are no-store; server-side
+  ownership, assignment, role, business-line, quota, and state checks are
+  backed by RLS and database ready-video invariants. Security review fixed
+  feedback-uploader account-deletion cleanup. PR review fixed immediate malware
+  cleanup, ready-video metadata constraints, Admin review polling, and bounded
+  Admin task queries; no actionable finding remains.
+- **Fresh verification:** Ruff lint/format pass across 418 API files; 117
+  affected PostgreSQL/RLS/media tests pass after the earlier 1,589-test full API
+  regression; the migration downgrade/re-upgrade passes with exactly one head;
+  generated contracts are current; web lint/typecheck and all 301 Vitest tests
+  pass; the Linux production image builds all 92 routes; and all four Playwright
+  journeys pass against that production image. The mandated
+  `./scripts/verify.sh --ci` wrapper was also run, but its monolithic API phase
+  reached the 30-minute command bound without a final pytest report; it is
+  inconclusive rather than passing, and its later web stages did not run inside
+  that wrapper.
 
 ## Delivered and historical backlog
 
@@ -765,9 +834,9 @@ merged. Payment-method completion is merged in
 
 ## Delivery sequence
 
-The next active item is **media controls completion** (FR-13.1–FR-13.4). Scope
-an approved, bounded media-purpose slice before beginning work on the remaining
-cross-cutting authorization or classification items.
+The next active item is **provenance-based edit ownership** (FR-2.8). Define
+the field-level creator, reviewer, and platform-Admin authority matrix before
+changing the remaining cross-cutting authorization paths.
 
 For each item:
 
@@ -801,6 +870,7 @@ The backlog builds on these delivered foundations:
 
 | Date | Change | Evidence |
 | --- | --- | --- |
+| 2026-08-09 | Completed media controls finalization (FR-13.1 through FR-13.4) and promoted provenance-based edit ownership as the next priority. | [PR #159](https://github.com/brollysolutions/client1/pull/159); property/Loans MP4, assigned-Employee visit feedback, scanning/sanitization/transcoding, retention/account deletion, generated contracts, 117 focused API tests after the 1,589-test split regression, 301 web tests, Linux 92-route build, four Playwright journeys, migration round-trip/one-head, security and PR review. The repository wrapper was attempted but its monolithic API phase exceeded 30 minutes without a report. |
 | 2026-08-09 | Removed Map/GMB integration (FR-18.2) completely from the active product baseline and recalculated coverage over 79 requirements. | Explicit user direction; CS-010; `feature-status.md`; all 7 feature-tracking tests pass with a denominator-aware status assertion. |
 | 2026-08-08 | Initially excluded Map/GMB integration (FR-18.2) from the active roadmap; this narrower decision was superseded by the complete scope removal recorded on 2026-08-09. | User direction and the later CS-010 amendment. |
 | 2026-08-07 | Completed FR-11.2 implementation pending review: same-origin notification/broadcast/push/banner destinations, verified-email transactional copies, PII-minimized notification copy, and API/web safety tests. | [PR #151](https://github.com/brollysolutions/client1/pull/151); focused Ruff/pytest and Vitest evidence. |

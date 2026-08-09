@@ -75,6 +75,10 @@ def _private_no_store(response: Response) -> None:
 
 
 def _to_loan_document_read(document: LoanDocument) -> LoanDocumentRead:
+    ready = document.processing_status == "ready" and (
+        document.content_type != "video/mp4"
+        or (document.sanitized_at is not None and document.duration_seconds is not None)
+    )
     return LoanDocumentRead(
         id=document.id,
         loan_application_uuid=document.loan_application_uuid,
@@ -86,10 +90,18 @@ def _to_loan_document_read(document: LoanDocument) -> LoanDocumentRead:
         size_bytes=document.size_bytes,
         preview_url=(
             storage.presign_preview(document.object_key)
-            if document.content_type.startswith("image/")
+            if ready and document.content_type.startswith("image/")
             else None
         ),
-        download_url=storage.presign_download(document.object_key),
+        playback_url=(
+            storage.presign_preview(document.object_key)
+            if ready and document.content_type == "video/mp4"
+            else None
+        ),
+        download_url=(storage.presign_download(document.object_key) if ready else None),
+        processing_status=document.processing_status,
+        processing_error_code=document.processing_error_code,
+        duration_seconds=document.duration_seconds,
     )
 
 

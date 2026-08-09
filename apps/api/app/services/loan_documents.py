@@ -36,8 +36,15 @@ from app.cache.redis_keys import (
 from app.core.config import settings
 from app.models.loan import LoanApplication
 from app.models.loan_document import LoanDocument
+from app.models.property_media import MediaProcessingStatus
 from app.services import storage
 from app.services.loan_applications import TERMINAL_STATUSES
+from app.services.media_processing import (
+    MalwareDetected,
+    MediaProcessingError,
+    ScannerUnavailable,
+    canonicalize_object,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -51,6 +58,7 @@ _MEDIA_EXTENSION = {
     "image/png": ".png",
     "image/webp": ".webp",
     "application/pdf": ".pdf",
+    "video/mp4": ".mp4",
 }
 _LEGACY_KEY_RE = re.compile(
     r"^loan-applications/[0-9a-f-]{36}/[0-9a-f]{32}-"
@@ -61,7 +69,7 @@ _STAGING_KEY_RE = re.compile(
     r"(?P<owner>[0-9a-f-]{36})/(?P<application>[0-9a-f-]{36})/"
     r"(?P<media>[0-9a-f-]{36})/"
     r"(?P<doc_type>aadhaar_front|aadhaar_back|pan|salary_slip|bank_statement|sale_deed|photo|other)"
-    r"(?P<extension>\.jpg|\.png|\.webp|\.pdf)$"
+    r"(?P<extension>\.jpg|\.png|\.webp|\.pdf|\.mp4)$"
 )
 # Well clear of the 300s presign TTL, so an in-flight upload is never mistaken
 # for an orphan — same margin agent-application orphan purge uses.
@@ -179,7 +187,11 @@ async def presign_document_upload(
         doc_type,
         content_type,
     )
-    max_bytes = settings.LOAN_DOCUMENT_MAX_UPLOAD_BYTES
+    max_bytes = (
+        settings.MEDIA_VIDEO_MAX_UPLOAD_BYTES
+        if content_type == "video/mp4"
+        else settings.LOAN_DOCUMENT_MAX_UPLOAD_BYTES
+    )
     url, fields = storage.presign_upload_post(object_key, content_type, max_bytes=max_bytes)
     return object_key, url, fields, max_bytes
 
@@ -227,7 +239,12 @@ async def _verify_upload(key: str, content_type: str) -> int:
         size = await asyncio.to_thread(storage.head_object, key)
     except Exception as exc:  # transport failure — fail closed, don't swallow
         raise StorageUnavailable from exc
-    if size is None or size <= 0 or size > settings.LOAN_DOCUMENT_MAX_UPLOAD_BYTES:
+    max_bytes = (
+        settings.MEDIA_VIDEO_MAX_UPLOAD_BYTES
+        if content_type == "video/mp4"
+        else settings.LOAN_DOCUMENT_MAX_UPLOAD_BYTES
+    )
+    if size is None or size <= 0 or size > max_bytes:
         raise UploadMissing
     try:
         matches = await asyncio.to_thread(storage.content_matches_declared_type, key, content_type)
@@ -254,7 +271,8 @@ def _canonical_key(
 ) -> str:
     return (
         f"{_CANONICAL_PREFIX}{application.client_profile_uuid}/{application.id}/{media_id}/"
-        f"asset{_MEDIA_EXTENSION[content_type]}"
+        f"{'upload' if content_type == 'video/mp4' else 'asset'}"
+        f"{_MEDIA_EXTENSION[content_type]}"
     )
 
 
@@ -299,6 +317,17 @@ async def create_loan_document(
     )
     if (existing_count or 0) >= settings.LOAN_DOCUMENT_MAX_PER_APPLICATION:
         raise DocumentLimitReached("This application already has the maximum number of documents.")
+    if content_type == "video/mp4":
+        video_count = await db.scalar(
+            select(func.count())
+            .select_from(LoanDocument)
+            .where(
+                LoanDocument.loan_application_uuid == locked_application.id,
+                LoanDocument.content_type == "video/mp4",
+            )
+        )
+        if (video_count or 0) >= settings.LOAN_VIDEO_MAX_PER_APPLICATION:
+            raise DocumentLimitReached("This application already has the maximum number of videos.")
 
     try:
         size_bytes = await _verify_upload(object_key, content_type)
@@ -312,15 +341,39 @@ async def create_loan_document(
 
     canonical_key = _canonical_key(locked_application, media_id, content_type)
     try:
-        await asyncio.to_thread(
-            storage.copy_object,
-            object_key,
-            canonical_key,
-            content_type,
-        )
+        if content_type == "video/mp4":
+            await asyncio.to_thread(
+                storage.copy_object,
+                object_key,
+                canonical_key,
+                content_type,
+            )
+            processing_status = MediaProcessingStatus.PENDING
+            sanitized_at = None
+        else:
+            size_bytes = await asyncio.to_thread(
+                canonicalize_object,
+                object_key,
+                canonical_key,
+                content_type,
+                max_bytes=settings.LOAN_DOCUMENT_MAX_UPLOAD_BYTES,
+            )
+            processing_status = MediaProcessingStatus.READY
+            sanitized_at = datetime.now(UTC)
         canonical_size = await _verify_upload(canonical_key, content_type)
         if canonical_size != size_bytes:
             raise StorageUnavailable
+    except MalwareDetected as exc:
+        await _best_effort_delete(canonical_key)
+        await _best_effort_delete(object_key)
+        raise ContentTypeMismatch from exc
+    except ScannerUnavailable as exc:
+        await _best_effort_delete(canonical_key)
+        raise StorageUnavailable from exc
+    except MediaProcessingError as exc:
+        await _best_effort_delete(canonical_key)
+        await _best_effort_delete(object_key)
+        raise ContentTypeMismatch from exc
     except Exception as exc:
         await _best_effort_delete(canonical_key)
         if isinstance(exc, StorageUnavailable):
@@ -337,6 +390,9 @@ async def create_loan_document(
         content_type=content_type,
         size_bytes=size_bytes,
         uploaded_by_uuid=uploaded_by_uuid,
+        processing_status=processing_status,
+        processed_at=sanitized_at,
+        sanitized_at=sanitized_at,
     )
     db.add(document)
     try:

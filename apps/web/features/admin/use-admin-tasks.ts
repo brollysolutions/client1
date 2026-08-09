@@ -9,7 +9,7 @@ import {
   type AdminTask,
 } from "@/lib/admin-api";
 
-// Fetches the unassigned-task queue plus the active-employee list (for the
+// Fetches the field-task queue plus the active-employee list (for the
 // assign dialog's picker) in parallel. Mirrors features/admin/use-agent-queue.ts's
 // fetch/reload triad, extended with a second data source that doesn't need its
 // own reload (the employee roster doesn't change mid-session).
@@ -22,14 +22,23 @@ export function useAdminTasksQueue() {
   const load = React.useCallback(async () => {
     setLoading(true);
     setError(null);
-    const [tasksRes, employeesRes] = await Promise.all([
+    const [unassignedRes, propertyVisitsRes, employeesRes] = await Promise.all([
       listAdminTasks("unassigned"),
+      listAdminTasks(undefined, "property_visit"),
       listAdminEmployees(),
     ]);
-    if (tasksRes.ok) setTasks(tasksRes.data);
-    else setError(tasksRes.error);
+    if (unassignedRes.ok && propertyVisitsRes.ok) {
+      setTasks(
+        Array.from(
+          new Map(
+            [...unassignedRes.data, ...propertyVisitsRes.data].map((task) => [task.id, task]),
+          ).values(),
+        ),
+      );
+    } else if (!unassignedRes.ok) setError(unassignedRes.error);
+    else if (!propertyVisitsRes.ok) setError(propertyVisitsRes.error);
     if (employeesRes.ok) setEmployees(employeesRes.data);
-    else if (tasksRes.ok) setError(employeesRes.error);
+    else if (unassignedRes.ok && propertyVisitsRes.ok) setError(employeesRes.error);
     setLoading(false);
   }, []);
 

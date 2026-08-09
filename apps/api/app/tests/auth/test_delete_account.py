@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import asyncio
 import uuid
+from datetime import UTC, datetime
 
 import pytest
 import redis.asyncio as aioredis
@@ -593,6 +594,69 @@ async def test_delete_rejects_pending_property_submission_and_purges_private_med
     assert status_value == "rejected"
     assert review_note == "Submission closed because the owner account was deleted."
     assert media_count == 0
+
+
+async def test_delete_purges_uploaded_task_feedback_media(
+    client: AsyncClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import app.db.session as session_module
+    from app.models.profile import ProfileScope, ProfileStatus, StaffProfile, StaffRole
+    from app.models.task import TaskFeedbackMedia
+    from app.services import storage
+
+    from ..test_employee_task_documents import _seed_task
+
+    deleted_keys: list[str] = []
+    monkeypatch.setattr(storage, "delete_object", deleted_keys.append)
+    access_token, mobile = await full_registration(client, lines=["real_estate"])
+    uid = await _auth_user_uuid(mobile)
+    async with session_module.AsyncSessionLocal() as session:
+        employee = StaffProfile(
+            auth_user_uuid=uuid.UUID(uid),
+            role=StaffRole.EMPLOYEE,
+            scope=ProfileScope.LINE,
+            business_line="real_estate",
+            staff_code=f"EM-{uuid.uuid4().hex[:8]}",
+            status=ProfileStatus.ACTIVE,
+        )
+        session.add(employee)
+        await session.commit()
+        employee_id = str(employee.id)
+
+    task_id = await _seed_task(
+        "real_estate",
+        employee_id,
+        task_type="property_visit",
+        status="completed",
+    )
+    media_id = uuid.uuid4()
+    object_key = f"private/task-feedback/canonical/{task_id}/{media_id}/asset.jpg"
+    async with session_module.AsyncSessionLocal() as session:
+        session.add(
+            TaskFeedbackMedia(
+                id=media_id,
+                task_uuid=uuid.UUID(task_id),
+                business_line="real_estate",
+                kind="image",
+                content_type="image/jpeg",
+                object_key=object_key,
+                size_bytes=1024,
+                uploaded_by_uuid=uuid.UUID(uid),
+                sanitized_at=datetime.now(UTC),
+            )
+        )
+        await session.commit()
+
+    response = await _delete_me(client, access_token)
+
+    assert response.status_code == 200, response.text
+    assert object_key in deleted_keys
+    async with session_module.AsyncSessionLocal() as session:
+        count = await session.scalar(
+            text("SELECT count(*) FROM task_feedback_media WHERE id = :id"),
+            {"id": media_id},
+        )
+    assert count == 0
 
 
 # ---------------------------------------------------------------------------

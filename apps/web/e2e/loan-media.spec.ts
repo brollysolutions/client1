@@ -52,6 +52,7 @@ async function logIn(page: Page, account: RegisteredAccount): Promise<void> {
   await page.locator("input#password").fill(account.password);
   await page.getByRole("button", { name: "Login" }).click();
   await expect(page).toHaveURL(/\/dashboard$/, { timeout: 60_000 });
+  await expect(page.getByRole("region", { name: "Dashboard highlights" })).toBeVisible();
 }
 
 async function deleteAccount(
@@ -110,6 +111,7 @@ test("Loans media is grouped, previewable, downloadable, and camera-ready", asyn
               uploaded_at: "2026-08-09T10:00:00Z",
               content_type: "image/png",
               size_bytes: 1024,
+              processing_status: "ready",
               preview_url: PIXEL,
               download_url: PIXEL,
             },
@@ -122,6 +124,7 @@ test("Loans media is grouped, previewable, downloadable, and camera-ready", asyn
               uploaded_at: "2026-08-08T10:00:00Z",
               content_type: "application/pdf",
               size_bytes: 2048,
+              processing_status: "ready",
               preview_url: null,
               download_url: "data:application/pdf;base64,JVBERi0xLjQK",
             },

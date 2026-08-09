@@ -31,11 +31,13 @@ export async function presignPropertyMedia(
 export async function uploadPropertyMedia(
   images: File[],
   documents: File[],
+  video: File | null,
   onProgress?: (done: number, total: number) => void,
 ): Promise<{ ok: true; media: SubmissionMediaInput[] } | { ok: false; error: string }> {
   const files = [
     ...images.map((file) => ({ file, kind: "image" as const })),
     ...documents.map((file) => ({ file, kind: "document" as const })),
+    ...(video ? [{ file: video, kind: "video" as const }] : []),
   ];
   const media: SubmissionMediaInput[] = [];
   for (let index = 0; index < files.length; index += 1) {
@@ -80,6 +82,10 @@ export async function listSubmissions(
   );
   if (!res.ok) return res;
   return { ok: true, status: res.status, data: res.data.submissions };
+}
+
+export async function getSubmission(id: string): Promise<ApiResponse<Submission>> {
+  return apiRequest<Submission>(`/api/v1/property-submissions/${id}`);
 }
 
 export async function approveSubmission(id: string): Promise<ApiResponse<Submission>> {
