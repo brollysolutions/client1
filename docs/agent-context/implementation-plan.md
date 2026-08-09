@@ -68,9 +68,58 @@ included in completion coverage.
 | ---: | --- | --- | --- | --- | --- |
 | 1 | Analytics verification (FR-16.1–FR-16.3) | **Done** in [PR #156](https://github.com/brollysolutions/client1/pull/156): a Linux PostgreSQL/Redis run passed the reporting service/API/RLS suite, and the web production build completed. | `gpt-5.6-terra` / High | `gpt-5.6-terra` / High | No defect was proven; retain the existing authorization, RLS, export-safety, and team-dimension invariants. |
 | 2 | Media controls completion (FR-13.1–FR-13.4) | **Done** in [PR #159](https://github.com/brollysolutions/client1/pull/159): purpose-bound property and Loans MP4, assigned-Employee property-visit feedback attachments, fail-closed malware scanning, metadata removal/transcoding, and explicit retention complete the approved scope without a universal asset library. | `gpt-5.6-sol` / Extra High | `gpt-5.6-sol` / Extra High | Preserve the delivered purpose, assignment, line, private/public promotion, processing-state, retention, and account-deletion invariants. |
-| 3 | Provenance-based edit ownership (FR-2.8) | Current edit paths work, but ownership rules are not uniform across submitted detail types. | `gpt-5.6-sol` / High | `gpt-5.6-sol` / Extra High | Define per-field creator/reviewer/Admin authority; enforce it in service and RLS paths with cross-role/cross-line denial tests. |
-| 4 | Admin operational coverage audit (FR-2.2) | Admin has broad coverage, but the approved requirement calls for exhaustive view/update coverage. | `gpt-5.6-terra` / High | `gpt-5.6-terra` / High | Inventory every required Admin surface, close confirmed gaps, and add authorization plus accessible UI coverage. |
-| 5 | Business-line classification hardening (FR-1.1) | **Done** in [PR #160](https://github.com/brollysolutions/client1/pull/160): every mapped table and managed-media purpose has an explicit classification mode; operational rows, fixed domains, staged referrals, global content, staff scope, and audit exceptions are database-constrained. | `gpt-5.6-sol` / High | `gpt-5.6-sol` / Extra High | Preserve the exhaustive classification ledger, exact-line lead intent, count-only deployment preflight, immutable tags, and parent/provenance checks as schemas evolve. |
+| 3 | Role-aware dashboard navigation (FR-2.1–FR-2.7, FR-17.1) | **Done** on `security/business-line-classification` (PR pending): one typed capability catalogue now drives grouped navigation and direct-route UX for all 52 dashboard page entry points; 9 focused unit tests, all 310 web tests, an 8-case live-stack Playwright role/mobile matrix, and the canonical Linux production build pass. | `gpt-5.6-sol` / Extra High | `gpt-5.6-sol` / Extra High | Preserve the single capability source, explicit route inventory, Client held-line checks, single-line staff scope, fixed local redirects, and server-side dependency/RLS authority whenever dashboard routes change. |
+| 4 | Provenance-based edit ownership (FR-2.8) | Current edit paths work, but ownership rules are not uniform across submitted detail types. | `gpt-5.6-sol` / High | `gpt-5.6-sol` / Extra High | Define per-field creator/reviewer/Admin authority; enforce it in service and RLS paths with cross-role/cross-line denial tests. |
+| 5 | Admin operational coverage audit (FR-2.2) | Admin has broad coverage, but the approved requirement calls for exhaustive view/update coverage. | `gpt-5.6-terra` / High | `gpt-5.6-terra` / High | Inventory every required Admin surface, close confirmed gaps, and add authorization plus accessible UI coverage. |
+| 6 | Business-line classification hardening (FR-1.1) | **Done** in [PR #160](https://github.com/brollysolutions/client1/pull/160): every mapped table and managed-media purpose has an explicit classification mode; operational rows, fixed domains, staged referrals, global content, staff scope, and audit exceptions are database-constrained. | `gpt-5.6-sol` / High | `gpt-5.6-sol` / Extra High | Preserve the exhaustive classification ledger, exact-line lead intent, count-only deployment preflight, immutable tags, and parent/provenance checks as schemas evolve. |
+
+### Delivered feature brief - role-aware dashboard navigation
+
+- **Branch / PR:** `security/business-line-classification` / PR pending.
+- **Success:** after login, Client, Agent, Telecaller, Employee, Sub Admin, and
+  Admin users land on their existing role home and see a complete, responsive
+  sidebar containing only the current features authorized for that role and,
+  where applicable, its business line.
+- **Behavior and architecture:** replace overlapping navigation booleans with a
+  typed, declarative role/line capability map. Use the same map for sidebar
+  filtering and a dashboard-level direct-route UX guard, including nested
+  routes. Group large Admin and Sub Admin menus without changing destinations;
+  preserve the existing Client line switcher and line-specific feature sets.
+- **Acceptance criteria:** Client Loans/Real Estate items remain isolated by the
+  active line; Agent, Telecaller, and Employee items remain single-line; Sub
+  Admin receives its current CMS, property-submission, and referral-rule
+  surfaces; Admin receives all currently guarded operational surfaces; shared
+  notification/settings/support destinations remain intentionally common; and
+  mobile, expanded, collapsed, tooltip, active-state, and keyboard behavior
+  remain usable.
+- **Security and compatibility:** browser role/JWT checks remain navigation
+  hints only. Existing API dependencies, service ownership checks, PostgreSQL
+  RLS, platform-scope requirements, and record/business-line predicates remain
+  authoritative and unchanged. A hidden item or UX redirect must never be
+  treated as authorization, and the map must not advertise any route whose API
+  currently denies that role.
+- **Non-goals:** new features, API/schema/contract/migration changes, permission
+  expansion, changing login credentials or session storage, replacing role
+  home content, redesigning the dashboard visual system, or completing the
+  broader FR-2.2 view/update coverage gap.
+- **Verification matrix:** pure role/line navigation tests for all six roles;
+  Client-only and cross-line negative cases; shared and nested-route access
+  tests; sidebar expanded/collapsed/mobile rendering and accessible labels;
+  targeted Vitest; web lint, typecheck, full unit suite, production build, and
+  role-based Playwright where the existing fixtures permit it; security review,
+  diff review, and repository feature-tracking checks.
+- **Delivered evidence:** every one of the 52 checked-in dashboard pages has an
+  explicit route rule; 9 focused Vitest cases cover exact navigation matrices,
+  nesting, shared pages, held Client lines, and negative routes; all 310 web
+  tests pass; 8 Playwright cases pass against disposable Client, Agent,
+  Telecaller, Employee, Sub Admin, and Admin sessions, including mobile and
+  authoring behavior; lint and typecheck pass; and the canonical Linux Docker
+  builder completes the production build. The native Windows build completed
+  compilation, type validation, and all 92 static pages before the known host
+  EPERM symlink limitation in standalone packaging. Security and diff reviews
+  found no remaining actionable issue; no API, contract, database, RLS, or
+  permission change was made. Completion coverage remains 98.7% because this
+  hardens already-complete role-dashboard requirements.
 
 ### Delivered feature brief - business-line classification hardening
 

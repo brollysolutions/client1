@@ -9,6 +9,7 @@ import { RealEstateProvider } from "@/features/real-estate/store";
 import { cn } from "@/lib/utils";
 
 import { AppSidebar } from "./app-sidebar";
+import { DashboardRouteGuard } from "./dashboard-route-guard";
 import { LineProvider } from "./line-provider";
 import { LineSwitcher } from "./line-switcher";
 import { MeProvider } from "./me-provider";
@@ -89,7 +90,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   <ProfileMenu />
                 </header>
 
-                <main className="w-full py-8">{children}</main>
+                <main className="w-full py-8">
+                  <DashboardRouteGuard>{children}</DashboardRouteGuard>
+                </main>
               </div>
             </div>
           </LoanCompareProvider>
