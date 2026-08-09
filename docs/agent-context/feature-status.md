@@ -4,7 +4,8 @@ Status: **Derived living implementation ledger**
 
 As of: **2026-08-09**
 
-Evidence baseline: `feat/media-controls-finalization` (PR pending), based on
+Evidence baseline: `20a4ed8`
+([PR #159](https://github.com/brollysolutions/client1/pull/159)), based on
 `59ae35b` ([PR #158](https://github.com/brollysolutions/client1/pull/158))
 
 ## Purpose and authority
@@ -46,8 +47,8 @@ work than several completed UI requirements.
 
 ## Delivered implementation
 
-- **Media controls finalization** (FR-13.1 through FR-13.4) is complete on
-  `feat/media-controls-finalization` (PR pending). Property and Loans workflows
+- **Media controls finalization** (FR-13.1 through FR-13.4) is complete in
+  [PR #159](https://github.com/brollysolutions/client1/pull/159). Property and Loans workflows
   now accept bounded MP4 assets with private pending/processing states and
   purpose-specific publication rules; assigned Real Estate Employees can attach
   private sanitized images/PDFs to property-visit feedback for Admin review.
