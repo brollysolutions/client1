@@ -26,9 +26,7 @@ Lead.origin_agent_profile_uuid (NULL unless origin == AGENT).
 loan_applications and property_deals have no agent column of their own --
 attribution is reached only by joining through lead_uuid. A lead/loan/deal
 row with no agent is excluded from an agent-filtered query and from the
-agents report's per-agent totals; it is never surfaced as a NULL bucket
-there (unlike leads.business_line, which IS surfaced as "unassigned" --
-those are different absences with different meanings).
+agents report's per-agent totals; it is never surfaced as a NULL bucket.
 
 Agents-report fan-out trap. One agent can own many leads, each of which
 owns at most one loan_application and one property_deal, but a single join
@@ -46,7 +44,7 @@ from typing import Any, Literal
 from uuid import UUID
 from zoneinfo import ZoneInfo
 
-from sqlalchemy import ColumnElement, String, func, select
+from sqlalchemy import ColumnElement, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.lead import Lead, LeadStatus
@@ -59,7 +57,6 @@ IST = ZoneInfo("Asia/Kolkata")
 
 ReportBucketValue = Literal["week", "month"]
 BusinessLineValue = Literal["loans", "real_estate"]
-LeadsBusinessLineValue = Literal["loans", "real_estate", "unassigned"]
 
 # 50,000 rows is generous for anything FR-16 asks for and cheap to hold in a
 # worker's memory; nothing in the spec caps export size, but an all-time
@@ -110,13 +107,11 @@ def _leads_filters(
     *,
     start: datetime,
     end: datetime,
-    business_line: LeadsBusinessLineValue | None,
+    business_line: BusinessLineValue | None,
     agent_profile_uuids: list[UUID] | None,
 ) -> list[ColumnElement]:
     filters: list[ColumnElement] = [Lead.created_at >= start, Lead.created_at < end]
-    if business_line == "unassigned":
-        filters.append(Lead.business_line.is_(None))
-    elif business_line is not None:
+    if business_line is not None:
         filters.append(Lead.business_line == business_line)
     if agent_profile_uuids:
         filters.append(Lead.origin_agent_profile_uuid.in_(agent_profile_uuids))
@@ -129,7 +124,7 @@ async def get_leads_report(
     date_from: date,
     date_to: date,
     bucket: ReportBucketValue,
-    business_line: LeadsBusinessLineValue | None = None,
+    business_line: BusinessLineValue | None = None,
     agent_profile_uuids: list[UUID] | None = None,
     sort_by: str | None = None,
     sort_dir: Literal["asc", "desc"] = "desc",
@@ -142,10 +137,7 @@ async def get_leads_report(
     )
 
     bucket_col = _bucket_col(Lead.created_at, bucket).label("bucket_start")
-    # business_line_enum and a plain VARCHAR literal don't implicitly cast for
-    # Postgres's COALESCE (unlike a plain text column) -- cast the enum side
-    # to text first.
-    line_col = func.coalesce(Lead.business_line.cast(String), "unassigned").label("business_line")
+    line_col = Lead.business_line.label("business_line")
 
     grouped = (
         select(

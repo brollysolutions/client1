@@ -143,6 +143,7 @@ async def test_create_gateway_payout_sends_idempotency_header(monkeypatch) -> No
     payout = Payout(
         id=uuid.uuid4(),
         recipient_user_uuid=uuid.uuid4(),
+        business_line="loans",
         type=PayoutType.CASHBACK,
         amount_paise=500_00,
         currency="INR",
@@ -184,6 +185,7 @@ async def _seed_stuck_payout(
     async with _session_mod.AsyncSessionLocal() as db:
         payout = Payout(
             recipient_user_uuid=uuid.UUID(recipient_uid),
+            business_line="loans",
             type=PayoutType.CASHBACK,
             amount_paise=120_000,
             currency="INR",
@@ -245,6 +247,7 @@ async def _seed_paid_payout(
     async with _session_mod.AsyncSessionLocal() as db:
         txn = Transaction(
             user_uuid=uuid.UUID(recipient_uid),
+            business_line="loans",
             type=TransactionType.CASHBACK,
             status=TransactionStatus.PAID,
             amount_paise=120_000,
@@ -256,6 +259,7 @@ async def _seed_paid_payout(
         await db.flush()
         payout = Payout(
             recipient_user_uuid=uuid.UUID(recipient_uid),
+            business_line="loans",
             type=PayoutType.CASHBACK,
             amount_paise=120_000,
             currency="INR",

@@ -5,13 +5,9 @@ app.auth_user_uuid, not client_profile_uuid. This is deliberate, not just for
 consistency — commission payouts go to AGENTS, not clients, so the owner must
 be the account identity, which is what makes this correct for both.
 
-business_line is nullable PROVENANCE metadata (null = platform-level, e.g.
-referral; "loans" = loan-cashback origin), not an access axis: no RLS branch
-reads it, so it can't reproduce the client_profile_uuid single-claim gap, and
-there is no line-staff visibility to segregate here (a payout is an
-account-level financial record). Unlike enquiries/bookmarks, this column is
-NOT wrapped in the enforce_business_line_immutable trigger — it isn't
-RLS-load-bearing and there is no client write path to guard.
+business_line is immutable provenance metadata and always identifies one
+operational line. RLS remains identity-owned because commission payouts go to
+agents, but classification is still required for reconciliation and reporting.
 
 No producers exist yet (the money layer / Razorpay integration is a separate,
 later milestone), so this table ships empty in production; only SELECT is
@@ -70,8 +66,8 @@ class Transaction(Base):
     user_uuid: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("auth_users.id", ondelete="SET NULL"), nullable=True
     )
-    # Provenance only — no RLS branch reads this column (see module docstring).
-    business_line: Mapped[str | None] = mapped_column(business_line_enum, nullable=True)
+    # Immutable operational provenance; no RLS branch reads this column.
+    business_line: Mapped[str] = mapped_column(business_line_enum, nullable=False)
     type: Mapped[TransactionType] = mapped_column(transaction_type_enum, nullable=False)
     status: Mapped[TransactionStatus] = mapped_column(
         transaction_status_enum, nullable=False, default=TransactionStatus.PENDING

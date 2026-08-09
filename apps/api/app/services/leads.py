@@ -1,7 +1,7 @@
 """Lead capture — durable, best-effort persistence of every enquiring mobile.
 
-Called at the top of every auth entry point (register/initiate, login,
-forgot/initiate) so no number is lost, even if the user never completes the flow.
+Called only after a visitor expresses Loans or Real Estate intent. Login and
+password-recovery attempts remain authentication events, not sales leads.
 
 Design notes:
   * Runs on its OWN session (not the request session). login/forgot raise
@@ -12,8 +12,7 @@ Design notes:
     so the unauthenticated INSERT always succeeds — same mechanism as the existing
     unauthenticated AuthEvent insert.
   * Idempotent through a mobile advisory lock plus per-line live indexes. One
-    mobile can have independent Loans and Real Estate journeys, while unknown
-    login/forgot captures stay unresolved until a line is explicitly known.
+    mobile can have independent Loans and Real Estate journeys.
   * Best-effort: all errors are swallowed so capture can never break or slow-fail
     the auth response (which would also leak timing — see enumeration-safety).
 """
@@ -26,7 +25,7 @@ from datetime import UTC, datetime, timedelta
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import and_, case, func, or_, select, update
+from sqlalchemy import and_, func, or_, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -231,7 +230,7 @@ async def capture_lead(
     mobile: str,
     *,
     name: str | None = None,
-    business_line: str | None = None,
+    business_line: str,
     origin: str = "direct",
     origin_agent_profile_uuid: str | None = None,
     requirement: dict[str, Any] | None = None,
@@ -247,43 +246,25 @@ async def capture_lead(
     notice: LeadAssignmentNotice | None = None
     try:
         async with AsyncSessionLocal() as session:
-            if business_line is not None and business_line not in _VALID_LINES:
+            if business_line not in _VALID_LINES:
                 raise ValueError("Operational leads require a supported business line.")
             if origin_agent_profile_uuid is not None or origin != LeadOrigin.DIRECT.value:
                 raise ValueError("Agent lead capture must use capture_agent_lead().")
 
             await lock_lead_mobile(session, mobile)
-            if business_line is not None:
-                await _lock_assignment_line(session, business_line)
+            await _lock_assignment_line(session, business_line)
             live = Lead.status != LeadStatus.CLOSED
-            if business_line is None:
-                candidate = await session.scalar(
-                    select(Lead)
-                    .where(Lead.mobile == mobile, live)
-                    .order_by(
-                        case((Lead.business_line.is_(None), 0), else_=1),
-                        Lead.updated_at.desc(),
-                        Lead.id,
-                    )
-                    .limit(1)
-                    .with_for_update()
+            candidate = await session.scalar(
+                select(Lead)
+                .where(
+                    Lead.mobile == mobile,
+                    live,
+                    Lead.business_line == business_line,
                 )
-            else:
-                candidate = await session.scalar(
-                    select(Lead)
-                    .where(
-                        Lead.mobile == mobile,
-                        live,
-                        or_(Lead.business_line == business_line, Lead.business_line.is_(None)),
-                    )
-                    .order_by(
-                        case((Lead.business_line == business_line, 0), else_=1),
-                        Lead.updated_at.desc(),
-                        Lead.id,
-                    )
-                    .limit(1)
-                    .with_for_update()
-                )
+                .order_by(Lead.updated_at.desc(), Lead.id)
+                .limit(1)
+                .with_for_update()
+            )
 
             if candidate is None:
                 candidate = Lead(
@@ -304,13 +285,10 @@ async def capture_lead(
                 ):
                     if name is not None:
                         candidate.name = name
-                    if candidate.business_line is None and business_line is not None:
-                        candidate.business_line = business_line
                     candidate.requirement = _merge_requirement(candidate.requirement, requirement)
                 candidate.updated_at = datetime.now(UTC)
             await session.flush()
-            if business_line is not None:
-                notice = await auto_assign_locked_lead(session, candidate)
+            notice = await auto_assign_locked_lead(session, candidate)
             await session.commit()
         if notice is not None:
             await notify_lead_assignments([notice])
@@ -363,7 +341,7 @@ async def capture_agent_lead(
                 ).all()
             )
             if any(
-                row.business_line not in (None, business_line)
+                row.business_line != business_line
                 or (
                     row.origin_agent_profile_uuid is not None
                     and row.origin_agent_profile_uuid != agent_profile_uuid
@@ -374,7 +352,7 @@ async def capture_agent_lead(
 
             lead = next(
                 (row for row in existing if row.business_line == business_line),
-                next((row for row in existing if row.business_line is None), None),
+                None,
             )
             if lead is None:
                 lead = Lead(
@@ -451,18 +429,6 @@ async def _ensure_client_line_lead(
         .with_for_update()
     )
     if lead is None:
-        lead = await db.scalar(
-            select(Lead)
-            .where(
-                Lead.mobile == mobile,
-                Lead.business_line.is_(None),
-                Lead.status != LeadStatus.CLOSED,
-            )
-            .order_by(Lead.updated_at.desc(), Lead.id)
-            .limit(1)
-            .with_for_update()
-        )
-    if lead is None:
         lead = Lead(
             mobile=mobile,
             business_line=business_line,
@@ -476,8 +442,6 @@ async def _ensure_client_line_lead(
     else:
         if lead.client_profile_uuid not in (None, client_profile_uuid):
             raise ValueError("Lead is already claimed by a different Client profile.")
-        if lead.business_line is None:
-            lead.business_line = business_line
         lead.client_profile_uuid = client_profile_uuid
         if lead.name is None and name is not None:
             lead.name = name

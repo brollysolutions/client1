@@ -616,13 +616,6 @@ async def login(
     await check_login_lock(cache, req.mobile)
     # Per-IP failed-login backstop against credential spraying across mobiles.
     await check_login_rate_ip(cache, ip)
-    # Capture every login attempt's number as a lead (unconditional → enumeration-safe).
-    # Kept IN-LINE, not deferred to a BackgroundTask: FastAPI runs background tasks only
-    # when the endpoint returns a response, and the unknown-mobile / wrong-password paths
-    # raise HTTPException — a deferred capture would be silently dropped there, which is
-    # exactly the failed-login lead we most want to keep.
-    await capture_lead(req.mobile)
-
     user = await db.scalar(select(User).where(User.mobile == req.mobile))
     if not user or not user.password_hash:
         # Unknown mobile still counts against the source IP: credential
@@ -851,11 +844,6 @@ async def forgot_initiate(
 ) -> ForgotInitiateResponse:
     # Per-IP cap first (uniform for known/unknown mobile → enumeration-safe).
     await check_otp_rate_ip(cache, ip)
-    # Capture unconditionally, but deferred to a background task — the response path
-    # stays identical for known vs unknown mobile (enumeration-safe) and no longer
-    # pays the lead-write round-trip in-line.
-    background_tasks.add_task(capture_lead, mobile)
-
     user = await db.scalar(select(User).where(User.mobile == mobile))
     # Create the same short-lived, rate-limited challenge for known and unknown
     # mobiles. This keeps rate-limit and verification behavior uniform; an

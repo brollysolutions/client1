@@ -1,6 +1,6 @@
 import * as React from "react";
 
-import { getAgentsReport } from "@/lib/reports-api";
+import { getAgentsReport, type ReportBusinessLine } from "@/lib/reports-api";
 import { toIsoDateIST } from "@/lib/reports";
 
 export type AgentOption = { id: string; label: string };
@@ -14,7 +14,7 @@ const FIVE_YEARS_MS = 5 * 365 * 24 * 60 * 60 * 1000;
 // is populated from one wide, fixed 5-year lookback (independent of
 // whatever date range the report itself is currently filtered to) rather
 // than a bespoke lookup endpoint.
-export function useAgentOptions(businessLine?: string) {
+export function useAgentOptions(businessLine?: ReportBusinessLine) {
   const [options, setOptions] = React.useState<AgentOption[]>([]);
   const [loading, setLoading] = React.useState(true);
 

@@ -53,7 +53,7 @@ def validate_destination(
 class PayoutCreate(BaseModel):
     recipient_user_uuid: UUID
     type: PayoutType
-    business_line: Literal["loans", "real_estate"] | None = None
+    business_line: Literal["loans", "real_estate"]
     # Upper bound guards against an accidental extra-zero disbursement and keeps
     # sums well inside BigInteger. ₹100,000,000 (10^10 paise) is far above any
     # real cashback/referral/commission; the per-payout cap tightens it further.
@@ -75,7 +75,7 @@ class PayoutRead(BaseModel):
     # legitimately have no recipient left.
     recipient_user_uuid: UUID | None
     type: PayoutType
-    business_line: str | None
+    business_line: Literal["loans", "real_estate"]
     amount_paise: int
     currency: str
     status: PayoutStatus

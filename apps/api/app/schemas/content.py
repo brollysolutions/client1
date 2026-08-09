@@ -9,6 +9,7 @@ stable, so neither appears in ContentBlockUpdate.
 from __future__ import annotations
 
 from datetime import datetime
+from typing import Literal
 from uuid import UUID
 
 from pydantic import BaseModel, Field
@@ -25,7 +26,7 @@ class ContentBlockCreate(BaseModel):
     title: str = Field(min_length=1, max_length=500)
     body: str | None = Field(default=None, max_length=50_000)
     # Omitted / null = cross-line global content (spec §5.3).
-    business_line: str | None = Field(default=None, pattern="^(loans|real_estate|both)$")
+    business_line: str | None = Field(default=None, pattern="^(loans|real_estate)$")
 
 
 class ContentBlockUpdate(BaseModel):
@@ -40,7 +41,7 @@ class ContentBlockRead(BaseModel):
     section: str
     title: str
     body: str | None
-    business_line: str | None
+    business_line: Literal["loans", "real_estate"] | None
     status: ContentStatus
     created_by_uuid: UUID
     created_at: datetime
@@ -73,7 +74,7 @@ class PublicContentBlockRead(BaseModel):
     section: str
     title: str
     body: str | None
-    business_line: str | None
+    business_line: Literal["loans", "real_estate"] | None
 
 
 class PublicContentBlockListResponse(BaseModel):

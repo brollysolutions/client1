@@ -42,7 +42,7 @@ async def _seed_initiated_payout(recipient_uid: str, maker_uid: str, gateway_pay
     async with _session_mod.AsyncSessionLocal() as db:
         payout = Payout(
             recipient_user_uuid=uuid.UUID(recipient_uid),
-            business_line=None,
+            business_line="loans",
             type=PayoutType.COMMISSION,
             amount_paise=250_000,
             currency="INR",

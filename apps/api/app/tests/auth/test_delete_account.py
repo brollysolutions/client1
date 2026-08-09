@@ -163,6 +163,7 @@ async def _seed_payout(uid: str, *, status=None, payout_type=None) -> str:
     async with _session_mod.AsyncSessionLocal() as db:
         payout = Payout(
             recipient_user_uuid=uuid.UUID(uid),
+            business_line="loans",
             type=payout_type or PayoutType.CASHBACK,
             amount_paise=25_000,
             currency="INR",
@@ -246,7 +247,7 @@ async def _seed_transaction(uid: str) -> str:
     async with _session_mod.AsyncSessionLocal() as db:
         txn = Transaction(
             user_uuid=uuid.UUID(uid),
-            business_line=None,
+            business_line="loans",
             type=TransactionType.CASHBACK,
             status=TransactionStatus.PAID,
             amount_paise=50_000,
@@ -878,6 +879,7 @@ async def test_delete_regression_live_settle_leaves_transaction_not_delinked(
     async with _session_mod.AsyncSessionLocal() as db:
         payout = Payout(
             recipient_user_uuid=uuid.UUID(uid),
+            business_line="loans",
             type=PayoutType.CASHBACK,
             amount_paise=25_000,
             currency="INR",
@@ -980,14 +982,14 @@ async def test_reregistration_with_freed_mobile_succeeds(client: AsyncClient) ->
                 Lead.status != LeadStatus.CLOSED,
             )
         )
-        unresolved_lead = Lead(
+        real_estate_lead = Lead(
             mobile=mobile,
-            business_line=None,
+            business_line="real_estate",
             requirement={"source": "account-deletion-test"},
         )
-        db.add(unresolved_lead)
+        db.add(real_estate_lead)
         await db.commit()
-        unresolved_lead_id = unresolved_lead.id
+        real_estate_lead_id = real_estate_lead.id
     assert old_lead_id is not None
 
     await _delete_me(client, access_token)
@@ -1017,7 +1019,7 @@ async def test_reregistration_with_freed_mobile_succeeds(client: AsyncClient) ->
             )
         ).all()
     assert (old_lead_id, LeadStatus.CLOSED, uuid.UUID(old_uid)) in lead_rows
-    assert (unresolved_lead_id, LeadStatus.CLOSED, None) in lead_rows
+    assert (real_estate_lead_id, LeadStatus.CLOSED, None) in lead_rows
     assert [
         row
         for row in lead_rows

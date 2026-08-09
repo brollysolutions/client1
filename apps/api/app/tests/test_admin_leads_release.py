@@ -30,7 +30,7 @@ async def _auth_user_uuid(mobile: str) -> str:
 
 
 async def _seed_lead(
-    business_line: str | None,
+    business_line: str,
     status: str = "new",
     assigned_telecaller_profile_uuid: str | None = None,
 ) -> str:

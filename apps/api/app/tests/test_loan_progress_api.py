@@ -12,6 +12,7 @@ import uuid
 import pytest
 from httpx import AsyncClient
 from sqlalchemy import text
+from sqlalchemy.exc import IntegrityError
 
 from app.core.security import create_access_token
 from conftest import full_registration
@@ -435,28 +436,11 @@ async def test_telecaller_not_assigned_is_404(client: AsyncClient) -> None:
 
 
 @pytest.mark.asyncio
-async def test_non_loans_application_is_409(client: AsyncClient) -> None:
-    auth_uuid, staff_uuid = await _seed_telecaller("real_estate")
+async def test_non_loans_application_is_rejected_by_database(client: AsyncClient) -> None:
+    _, staff_uuid = await _seed_telecaller("real_estate")
     lead_id = await _seed_assigned_lead("real_estate", staff_uuid)
-    application_id = await _seed_loan_application(lead_id, "real_estate")
-
-    try:
-        res = await client.patch(
-            f"/api/v1/telecaller/loan-applications/{application_id}",
-            json={"status": "contacted"},
-            headers={
-                "Authorization": f"Bearer {_telecaller_token(auth_uuid, staff_uuid, 'real_estate')}"
-            },
-        )
-        assert res.status_code == 409
-    finally:
-        import app.db.session as _session_mod
-
-        async with _session_mod.AsyncSessionLocal() as db:
-            await db.execute(
-                text("DELETE FROM loan_applications WHERE id = :id"), {"id": application_id}
-            )
-            await db.commit()
+    with pytest.raises(IntegrityError, match="ck_loan_applications_business_line_fixed"):
+        await _seed_loan_application(lead_id, "real_estate")
 
 
 # ---------------------------------------------------------------------------

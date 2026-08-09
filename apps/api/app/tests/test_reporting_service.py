@@ -54,7 +54,7 @@ async def _seed_agent(business_line: str = "loans") -> str:
 
 async def _seed_lead(
     *,
-    business_line: str | None,
+    business_line: str,
     created_at: datetime,
     status: LeadStatus = LeadStatus.NEW,
     origin_agent_profile_uuid: str | None = None,
@@ -230,30 +230,6 @@ async def test_ist_week_boundary_regression() -> None:
         r for r in rows if r["bucket_start"].astimezone(reporting.IST).date() == utc_week_start
     ]
     assert not wrong_week, "row was bucketed into the UTC week instead of the IST week"
-
-
-# ---------------------------------------------------------------------------
-# NULL business_line -> explicit "unassigned" group
-# ---------------------------------------------------------------------------
-
-
-@pytest.mark.asyncio
-async def test_null_business_line_surfaces_as_unassigned() -> None:
-    created_at = datetime(2031, 3, 10, 12, 0, 0, tzinfo=UTC)
-    await _seed_lead(business_line=None, created_at=created_at)
-
-    async with _session_mod.AsyncSessionLocal() as db:
-        rows, _total, summary = await reporting.get_leads_report(
-            db,
-            date_from=date(2031, 3, 10),
-            date_to=date(2031, 3, 10),
-            bucket="week",
-            limit=500,
-        )
-
-    unassigned_rows = [r for r in rows if r["business_line"] == "unassigned"]
-    assert unassigned_rows, "NULL business_line lead was dropped instead of shown as unassigned"
-    assert summary["total_count"] >= 1
 
 
 # ---------------------------------------------------------------------------

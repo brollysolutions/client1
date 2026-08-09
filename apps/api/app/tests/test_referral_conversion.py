@@ -15,6 +15,7 @@ import uuid
 import pytest
 from httpx import AsyncClient
 from sqlalchemy import text
+from sqlalchemy.exc import IntegrityError
 
 from app.core.security import create_access_token
 from app.services import referrals
@@ -356,10 +357,9 @@ async def test_no_active_config_records_reason_without_amount(client: AsyncClien
     _, mobile_a = await full_registration(client, lines=["loans"])
     uid_a = await _auth_user_uuid(mobile_a)
     referral_id, referred_uuid = await _seed_pending_referral(uid_a)
-    # Earlier tests in this module each leave their own active "loans"/"both"
-    # config behind (the shared test DB never truncates) — clear both so this
-    # test genuinely exercises "zero active candidates".
-    await _deactivate_configs("loans", "both")
+    # Earlier tests in this module leave active Loans configs behind (the
+    # shared test DB never truncates), so clear them to exercise zero candidates.
+    await _deactivate_configs("loans")
 
     await referrals.record_conversion(
         referred_auth_user_uuid=uuid.UUID(referred_uuid),
@@ -376,23 +376,11 @@ async def test_no_active_config_records_reason_without_amount(client: AsyncClien
 
 
 @pytest.mark.asyncio
-async def test_exact_line_config_beats_both(client: AsyncClient) -> None:
+async def test_identity_only_both_config_is_rejected(client: AsyncClient) -> None:
     _, mobile_a = await full_registration(client, lines=["loans"])
     uid_a = await _auth_user_uuid(mobile_a)
-    referral_id, referred_uuid = await _seed_pending_referral(uid_a)
-    await _seed_config("both", "100", {}, created_by_uuid=uid_a)
-    loans_config_id = await _seed_config("loans", "500", {}, created_by_uuid=uid_a)
-
-    await referrals.record_conversion(
-        referred_auth_user_uuid=uuid.UUID(referred_uuid),
-        business_line="loans",
-        ref_type="loan_application",
-        ref_uuid=uuid.uuid4(),
-    )
-
-    row = await _get_referral(referral_id)
-    assert row["bonus_amount_paise"] == 50000
-    assert str(row["bonus_config_uuid"]) == loans_config_id
+    with pytest.raises(IntegrityError, match="ck_referral_bonus_config_business_line_operational"):
+        await _seed_config("both", "100", {}, created_by_uuid=uid_a)
 
 
 @pytest.mark.asyncio

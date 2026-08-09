@@ -55,7 +55,7 @@ async def _seed_transaction(uid: str, *, delinked_at: datetime | None) -> str:
     async with _session_mod.AsyncSessionLocal() as db:
         txn = Transaction(
             user_uuid=None if delinked_at else uuid.UUID(uid),
-            business_line=None,
+            business_line="loans",
             type=TransactionType.CASHBACK,
             status=TransactionStatus.PAID,
             amount_paise=10_000,
@@ -77,6 +77,7 @@ async def _seed_payout(
     async with _session_mod.AsyncSessionLocal() as db:
         payout = Payout(
             recipient_user_uuid=None if delinked_at else uuid.UUID(maker_uid),
+            business_line="loans",
             type=PayoutType.CASHBACK,
             amount_paise=10_000,
             currency="INR",
@@ -105,6 +106,7 @@ async def _seed_referral(
         referral = Referral(
             referrer_auth_user_uuid=uuid.UUID(referrer_uid),
             referred_mobile=unique_mobile(),
+            business_line="loans",
             conversion_status=ReferralStatus.PAID,
             bonus_amount_paise=10_000,
             reward_payout_uuid=uuid.UUID(reward_payout_uuid) if reward_payout_uuid else None,

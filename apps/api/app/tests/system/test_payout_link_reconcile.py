@@ -76,6 +76,7 @@ async def _seed_payout(
     async with _session_mod.AsyncSessionLocal() as db:
         payout = Payout(
             recipient_user_uuid=uuid.UUID(uid),
+            business_line="loans",
             type=payout_type,
             amount_paise=50_000,
             currency="INR",
@@ -208,6 +209,7 @@ async def _seed_referral(referrer_uid: str, *, status: ReferralStatus, payout_uu
         referral = Referral(
             referrer_auth_user_uuid=uuid.UUID(referrer_uid),
             referred_mobile=unique_mobile(),
+            business_line="loans",
             conversion_status=status,
             bonus_amount_paise=50_000,
             reward_payout_uuid=uuid.UUID(payout_uuid),

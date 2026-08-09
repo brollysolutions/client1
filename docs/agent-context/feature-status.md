@@ -4,9 +4,8 @@ Status: **Derived living implementation ledger**
 
 As of: **2026-08-09**
 
-Evidence baseline: `20a4ed8`
-([PR #159](https://github.com/brollysolutions/client1/pull/159)), based on
-`59ae35b` ([PR #158](https://github.com/brollysolutions/client1/pull/158))
+Evidence baseline: `security/business-line-classification` (PR link pending),
+based on `493a4fc` ([PR #159](https://github.com/brollysolutions/client1/pull/159))
 
 ## Purpose and authority
 
@@ -35,17 +34,34 @@ live-provider configuration are assessed separately.
 
 | Measure | Result |
 | --- | ---: |
-| Complete requirements | 76 / 79 (96.2%) |
-| Partial requirements | 3 / 79 (3.8%) |
+| Complete requirements | 77 / 79 (97.5%) |
+| Partial requirements | 2 / 79 (2.5%) |
 | Not-started requirements | 0 / 79 (0%) |
-| Weighted implementation coverage | **98.1%** |
+| Weighted implementation coverage | **98.7%** |
 
 Weighted coverage gives each Complete item 1 point and each Partial item 0.5
-points: `(76 + 3 x 0.5) / 79 = 98.10%`, rounded to **98.1%**. The weighting is a planning aid, not
+points: `(77 + 2 x 0.5) / 79 = 98.73%`, rounded to **98.7%**. The weighting is a planning aid, not
 an estimate of calendar time: a single security-sensitive gap can require more
 work than several completed UI requirements.
 
 ## Delivered implementation
+
+- **Business-line classification hardening** (FR-1.1) is complete on
+  `security/business-line-classification` (PR link pending). An exhaustive
+  contract classifies every mapped table and managed-media purpose; operational
+  rows now require exactly Loans or Real Estate, while staged referrals,
+  platform staff, global content, audit, identity, derived, and configuration
+  exceptions are explicit. Database checks, immutable tags, and parent/source
+  triggers reject missing, `both`, cross-line, and bypass-session mismatches.
+  Login and password recovery no longer manufacture sales leads; public intent,
+  payout creation, bonus rules, reports, and web controls require a concrete
+  line. Fresh evidence covers all 1,602 current API tests across isolated
+  groups with corrected files rerun, ten classification tests, four clean
+  installs and a migration round-trip, one Alembic head, Ruff, generated
+  contracts, 301 web tests, and a Linux 92-page production build. Count-only
+  preflight intentionally blocks the accumulated dev database's 424 ambiguous
+  legacy leads; production rollout requires authoritative remediation. The next
+  priority is provenance-based edit ownership (FR-2.8).
 
 - **Media controls finalization** (FR-13.1 through FR-13.4) is complete in
   [PR #159](https://github.com/brollysolutions/client1/pull/159). Property and Loans workflows
@@ -140,7 +156,7 @@ work than several completed UI requirements.
 
 | Feature area | Complete | Partial | Not started | Coverage notes |
 | --- | ---: | ---: | ---: | --- |
-| Platform and segregation (FR-1.x) | 4 | 1 | 0 | Core line tagging, routing, RLS, dashboards, APIs, and real-estate media paths exist; universal coverage still needs review for future media purposes. |
+| Platform and segregation (FR-1.x) | 5 | 0 | 0 | Every mapped table and managed-media purpose has an explicit classification mode; database checks and provenance triggers enforce concrete operational lines while preserving reviewed global/identity exceptions. |
 | Roles and access (FR-2.x) | 7 | 2 | 0 | Six role surfaces, server/RLS guards, and Admin-managed closed-catalogue field visibility exist; Admin coverage and edit ownership are not exhaustive. |
 | Authentication (FR-3.x) | 5 | 0 | 0 | OTP/password/session flows, dual-line client identity, support-assisted mobile change, and mobile-first registration with optional verified email recovery exist. |
 | Leads (FR-4.x) | 6 | 0 | 0 | Explicit per-line intent, deterministic automatic assignment/retry, OTP account binding, Admin fallback, ownership, fixed Agent expiry, and Agent/Telecaller workflows are implemented. |
@@ -158,13 +174,13 @@ work than several completed UI requirements.
 | Analytics (FR-16.x) | 3 | 0 | 0 | **Complete** in [PR #156](https://github.com/brollysolutions/client1/pull/156): Linux PostgreSQL/Redis verification passed 30 reporting service/API/RLS tests with one Alembic head; web lint, strict typecheck, 294 unit tests, and the 92-page production build passed. |
 | Profile/account (FR-17.x) | 4 | 0 | 0 | Profile/settings, optional demographic/income/address details, transactions/support, deletion, retention, and Admin removal exist. |
 | Location (FR-18.x) | 1 | 0 | 0 | Explicit nested opt-in stores only the latest two-decimal point for 30 days and erases it on revocation, personalization disable, or account deletion; CS-010 removes FR-18.2 Map/GMB integration from scope. |
-| **Total** | **76** | **3** | **0** | **79 active requirements** |
+| **Total** | **77** | **2** | **0** | **79 active requirements** |
 
 ## Done
 
 The following requirements are complete on the evidence baseline:
 
-- Platform and access: FR-1.2 through FR-1.5; FR-2.1; FR-2.3 through
+- Platform and access: FR-1.1 through FR-1.5; FR-2.1; FR-2.3 through
   FR-2.7; and FR-2.9. Evidence includes `app/core/deps.py`, profile models, RLS
   migrations, role dashboards, Admin field-visibility APIs/UI, server-side
   response projection, policy audit, and cross-role/cross-line tests.
@@ -234,7 +250,7 @@ The following requirements are complete on the evidence baseline:
 
 | Requirement | Status | Implemented slice | Remaining work |
 | --- | --- | --- | --- |
-| FR-1.1 | Partial | Most domain records, including the completed managed media purposes, are server-stamped with one line. | Audit and constrain any nullable legacy classification outside the completed media paths. |
+| FR-1.1 | Complete | Every mapped table and managed-media purpose is inventoried; operational rows require one immutable Loans/Real Estate tag, parent/source copies must match, and only reviewed staged/global/identity exceptions remain nullable or allow `both`. | Preserve the exhaustive ledger and migration/negative tests for every future table, relation, content audience, and media purpose. |
 | FR-2.2 | Partial | Admin dashboards cover users, leads, tasks, agents, loans, deals, payouts, content, audit, and reports. | Complete the requirement's exhaustive view/update coverage and verify every surface in Admin UI. |
 | FR-2.8 | Partial | Agent pre-assignment editing, client profile editing, and Admin operational edits exist. | Define and enforce provenance-based edit ownership consistently across all submitted detail types. |
 | FR-4.2 | Complete | Agent-introduced leads are atomically attributed and assigned to the least-loaded active same-line Telecaller, queued for bounded retry without capacity, and bound to a same-mobile Client only after OTP-proven registration. | Preserve global Agent ownership, expiry deadlines, generic-link authority boundaries, and concurrency tests as the workflow evolves. |

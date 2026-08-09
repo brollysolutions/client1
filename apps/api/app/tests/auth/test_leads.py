@@ -1,8 +1,8 @@
 """Lead-capture integration tests.
 
-Verifies that every auth entry point persists the mobile to the leads table, that
-re-capture is idempotent (partial-unique on active leads), and that a later
-registration enriches the existing lead's name/business_line.
+Verifies that only explicit service intent creates a classified lead, that
+re-capture is idempotent per line, and that independent line journeys remain
+separate.
 Requires: running Postgres + Redis (docker compose up -d).
 """
 
@@ -42,26 +42,23 @@ async def test_register_initiate_captures_lead_with_name_and_line(client: AsyncC
     assert leads[0].status in {"new", "assigned"}
 
 
-async def test_forgot_initiate_captures_lead(client: AsyncClient) -> None:
+async def test_forgot_initiate_does_not_capture_lead(client: AsyncClient) -> None:
     mobile = unique_mobile()
     await client.post("/api/v1/auth/forgot/initiate", json={"mobile": mobile})
-    assert len(await _leads_for(mobile)) == 1
+    assert await _leads_for(mobile) == []
 
 
-async def test_repeated_capture_is_deduped(client: AsyncClient) -> None:
-    """Repeated capture keeps one live lead for the same mobile and line."""
+async def test_failed_login_attempts_do_not_capture_leads(client: AsyncClient) -> None:
     mobile = unique_mobile()
     for _ in range(3):
         await client.post("/api/v1/auth/login", json={"mobile": mobile, "password": "X@123456"})
-    assert len(await _leads_for(mobile)) == 1
+    assert await _leads_for(mobile) == []
 
 
-async def test_capture_enriches_line_on_later_register(client: AsyncClient) -> None:
-    """A login (no line) then a register (loans) enriches the same lead's line."""
+async def test_register_after_login_creates_classified_lead(client: AsyncClient) -> None:
     mobile = unique_mobile()
     await client.post("/api/v1/auth/login", json={"mobile": mobile, "password": "X@123456"})
-    before = await _leads_for(mobile)
-    assert before[0].business_line is None
+    assert await _leads_for(mobile) == []
 
     await initiate_and_get_otp(client, mobile, lines=["loans"])
     after = await _leads_for(mobile)
@@ -208,8 +205,8 @@ async def test_capture_keeps_first_set_agent_attribution(client: AsyncClient) ->
 
 async def test_capture_repeated_none_requirement_stays_null(client: AsyncClient) -> None:
     """Regression for the JSONB none_as_null bug: two sequential captures for the
-    same mobile with no requirement passed either time (the normal register/login/
-    forgot case) must leave requirement as Python None, not corrupt it into
+    same mobile with no requirement passed either time must leave requirement
+    as Python None, not corrupt it into
     [None, None] via a spurious jsonb || merge."""
     from app.services.leads import capture_lead
 
@@ -222,16 +219,20 @@ async def test_capture_repeated_none_requirement_stays_null(client: AsyncClient)
     assert after[0].requirement is None
 
 
-async def test_capture_requirement_merge_still_works(client: AsyncClient) -> None:
-    """The none_as_null fix must not break the LEGITIMATE merge path: two captures
-    with real (non-None) requirement dicts still merge key-by-key."""
-    from app.services.leads import capture_lead
+async def test_capture_requirement_merge_still_works(
+    client: AsyncClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """An open unassigned lead merges repeat intent for the same line."""
+    import app.services.leads as leads_service
+
+    async def no_assignment(*_args, **_kwargs):
+        return None
+
+    monkeypatch.setattr(leads_service, "auto_assign_locked_lead", no_assignment)
 
     mobile = unique_mobile()
-    # Keep this unresolved so no eligible Telecaller can lock the workflow
-    # between captures; assigned leads intentionally reject anonymous edits.
-    await capture_lead(mobile, requirement={"a": 1})
-    await capture_lead(mobile, requirement={"b": 2})
+    await leads_service.capture_lead(mobile, business_line="loans", requirement={"a": 1})
+    await leads_service.capture_lead(mobile, business_line="loans", requirement={"b": 2})
 
     after = await _leads_for(mobile)
     assert len(after) == 1

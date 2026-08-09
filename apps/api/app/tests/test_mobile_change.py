@@ -231,8 +231,8 @@ async def test_unlinked_lead_collision_is_not_hidden_by_linked_rows(
         await db.execute(
             text(
                 "INSERT INTO leads "
-                "(id, origin, mobile, status, created_at, updated_at) "
-                "VALUES (:id, 'direct', :number, 'new', now(), now())"
+                "(id, business_line, origin, mobile, status, created_at, updated_at) "
+                "VALUES (:id, 'loans', 'direct', :number, 'new', now(), now())"
             ),
             {"id": uuid.uuid4(), "number": replacement},
         )
@@ -355,8 +355,8 @@ async def test_maker_checker_completion_updates_identity_and_revokes_sessions(
         await db.execute(
             text(
                 "INSERT INTO leads "
-                "(id, origin, mobile, status, created_at, updated_at) "
-                "VALUES (:id, 'direct', :number, 'new', now(), now())"
+                "(id, business_line, origin, mobile, status, created_at, updated_at) "
+                "VALUES (:id, 'real_estate', 'direct', :number, 'new', now(), now())"
             ),
             {"id": uuid.uuid4(), "number": current},
         )

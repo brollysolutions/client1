@@ -42,7 +42,7 @@ from decimal import ROUND_DOWN, Decimal
 from typing import Literal
 from uuid import UUID
 
-from sqlalchemy import case, func, select, text, update
+from sqlalchemy import func, select, text, update
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -260,17 +260,14 @@ def _parse_rule_nonneg_int(rule: dict, key: str) -> int | None:
 
 
 async def _select_config(session: AsyncSession, business_line: str) -> ReferralBonusConfig | None:
-    """D8: active config for the exact line beats an active 'both' config;
-    tie-break newest-updated, then highest id. Zero candidates -> caller
-    records no_active_config rather than guessing an amount."""
+    """Select the newest active config for the exact operational line."""
     return await session.scalar(
         select(ReferralBonusConfig)
         .where(
             ReferralBonusConfig.active.is_(True),
-            ReferralBonusConfig.business_line.in_((business_line, "both")),
+            ReferralBonusConfig.business_line == business_line,
         )
         .order_by(
-            case((ReferralBonusConfig.business_line == business_line, 0), else_=1),
             ReferralBonusConfig.updated_at.desc(),
             ReferralBonusConfig.id.desc(),
         )
