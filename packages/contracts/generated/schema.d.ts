@@ -3691,7 +3691,7 @@ export interface components {
             /** Bonus Amount Paise */
             bonus_amount_paise: number | null;
             /** Business Line */
-            business_line: string | null;
+            business_line: ("loans" | "real_estate") | null;
             /** Conversion Status */
             conversion_status: string;
             /** Converted At */
@@ -4268,7 +4268,7 @@ export interface components {
             /** Actor Uuid */
             actor_uuid: string | null;
             /** Business Line */
-            business_line: string | null;
+            business_line: ("loans" | "real_estate") | null;
             /**
              * Created At
              * Format: date-time
@@ -4810,7 +4810,7 @@ export interface components {
             /** Body */
             body: string | null;
             /** Business Line */
-            business_line: string | null;
+            business_line: ("loans" | "real_estate") | null;
             /**
              * Created At
              * Format: date-time
@@ -6108,8 +6108,11 @@ export interface components {
         PayoutCreate: {
             /** Amount Paise */
             amount_paise: number;
-            /** Business Line */
-            business_line?: ("loans" | "real_estate") | null;
+            /**
+             * Business Line
+             * @enum {string}
+             */
+            business_line: "loans" | "real_estate";
             destination: components["schemas"]["PayoutDestinationInput"];
             destination_type: components["schemas"]["PayoutDestination"];
             /** Idempotency Key */
@@ -6177,8 +6180,11 @@ export interface components {
         PayoutRead: {
             /** Amount Paise */
             amount_paise: number;
-            /** Business Line */
-            business_line: string | null;
+            /**
+             * Business Line
+             * @enum {string}
+             */
+            business_line: "loans" | "real_estate";
             /** Checker Name */
             checker_name?: string | null;
             /** Checker User Uuid */
@@ -6571,7 +6577,7 @@ export interface components {
             /** Body */
             body: string | null;
             /** Business Line */
-            business_line: string | null;
+            business_line: ("loans" | "real_estate") | null;
             /** Section */
             section: string;
             /** Slug */
@@ -6601,7 +6607,7 @@ export interface components {
              * Topic
              * @enum {string}
              */
-            topic: "loans" | "real_estate" | "agent";
+            topic: "loans" | "real_estate";
         };
         /** PublicLeadResponse */
         PublicLeadResponse: {
@@ -6801,8 +6807,11 @@ export interface components {
         ReferralPayoutActivityRead: {
             /** Amount Paise */
             amount_paise: number;
-            /** Business Line */
-            business_line: string | null;
+            /**
+             * Business Line
+             * @enum {string}
+             */
+            business_line: "loans" | "real_estate";
             /**
              * Created At
              * Format: date-time
@@ -6857,7 +6866,7 @@ export interface components {
             /** Bonus Amount Paise */
             bonus_amount_paise: number | null;
             /** Business Line */
-            business_line: string | null;
+            business_line: ("loans" | "real_estate") | null;
             /** Conversion Status */
             conversion_status: string;
             /** Converted At */
@@ -9617,7 +9626,7 @@ export interface operations {
                 date_from: string;
                 date_to: string;
                 bucket?: "week" | "month";
-                business_line?: ("loans" | "real_estate" | "unassigned") | null;
+                business_line?: ("loans" | "real_estate") | null;
                 agent_profile_uuid?: string[] | null;
                 sort_by?: string | null;
                 sort_dir?: "asc" | "desc";
@@ -9656,7 +9665,7 @@ export interface operations {
                 date_from: string;
                 date_to: string;
                 bucket?: "week" | "month";
-                business_line?: ("loans" | "real_estate" | "unassigned") | null;
+                business_line?: ("loans" | "real_estate") | null;
                 agent_profile_uuid?: string[] | null;
             };
             header?: never;
@@ -9691,7 +9700,7 @@ export interface operations {
                 date_from: string;
                 date_to: string;
                 bucket?: "week" | "month";
-                business_line?: ("loans" | "real_estate" | "unassigned") | null;
+                business_line?: ("loans" | "real_estate") | null;
                 agent_profile_uuid?: string[] | null;
             };
             header?: never;

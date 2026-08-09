@@ -61,6 +61,7 @@ def _create_body(recipient_uid: str, *, amount_paise: int = 50_000, **overrides)
     body = {
         "recipient_user_uuid": recipient_uid,
         "type": "referral_bonus",
+        "business_line": "loans",
         "amount_paise": amount_paise,
         "destination_type": "vpa",
         "destination": {"vpa": "9876543210@okhdfc"},

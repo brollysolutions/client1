@@ -188,6 +188,7 @@ async def create_referral_payout(
         referral.conversion_status != ReferralStatus.ACCRUED
         or referral.reward_payout_uuid is not None
         or referral.bonus_amount_paise is None
+        or referral.business_line not in {"loans", "real_estate"}
     ):
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,

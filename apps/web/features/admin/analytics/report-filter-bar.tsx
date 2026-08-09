@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { resolveDatePreset, type DatePreset } from "@/lib/reports";
-import type { ReportBucket, ReportKind } from "@/lib/reports-api";
+import type { ReportBucket, ReportBusinessLine, ReportKind } from "@/lib/reports-api";
 import { useAgentOptions } from "./use-agent-options";
 
 const PRESETS: { value: DatePreset; label: string }[] = [
@@ -34,7 +34,7 @@ export type ReportFilterValue = {
   dateFrom: string;
   dateTo: string;
   bucket: ReportBucket;
-  businessLine: string | undefined;
+  businessLine: ReportBusinessLine | undefined;
   agentProfileUuids: string[];
 };
 
@@ -53,21 +53,12 @@ export function ReportFilterBar({
 }) {
   const [agentQuery, setAgentQuery] = React.useState("");
   const [agentPopoverOpen, setAgentPopoverOpen] = React.useState(false);
-  const { options: agentOptions, loading: agentsLoading } = useAgentOptions(
-    value.businessLine === "unassigned" ? undefined : value.businessLine,
-  );
+  const { options: agentOptions, loading: agentsLoading } = useAgentOptions(value.businessLine);
 
-  const businessLineOptions =
-    kind === "leads"
-      ? [
-          { value: "loans", label: "Loans" },
-          { value: "real_estate", label: "Real Estate" },
-          { value: "unassigned", label: "Unassigned" },
-        ]
-      : [
-          { value: "loans", label: "Loans" },
-          { value: "real_estate", label: "Real Estate" },
-        ];
+  const businessLineOptions = [
+    { value: "loans", label: "Loans" },
+    { value: "real_estate", label: "Real Estate" },
+  ];
 
   function applyPreset(preset: DatePreset) {
     const { dateFrom, dateTo } = resolveDatePreset(preset, new Date());
@@ -148,7 +139,12 @@ export function ReportFilterBar({
           <span className="text-xs font-medium text-text-secondary">Business line</span>
           <Select
             value={value.businessLine ?? "__all"}
-            onValueChange={(v) => onChange({ ...value, businessLine: v === "__all" ? undefined : v })}
+            onValueChange={(v) =>
+              onChange({
+                ...value,
+                businessLine: v === "__all" ? undefined : (v as ReportBusinessLine),
+              })
+            }
           >
             <SelectTrigger className="w-[160px]">
               <SelectValue placeholder="All lines" />

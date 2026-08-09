@@ -48,7 +48,7 @@ async def _seed_transaction(user_uuid: str, *, txn_type: str = "referral_bonus")
     async with _session_mod.AsyncSessionLocal() as db:
         txn = Transaction(
             user_uuid=uuid.UUID(user_uuid),
-            business_line=None,
+            business_line="loans",
             type=TransactionType(txn_type),
             status=TransactionStatus.PAID,
             amount_paise=100_000,

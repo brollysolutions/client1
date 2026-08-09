@@ -88,9 +88,8 @@ class Payout(Base):
     recipient_user_uuid: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("auth_users.id", ondelete="SET NULL"), nullable=True
     )
-    # Provenance only (null = platform-level, e.g. referral); copied onto the
-    # emitted ledger row. No RLS branch reads it (same stance as transactions).
-    business_line: Mapped[str | None] = mapped_column(business_line_enum, nullable=True)
+    # Immutable operational provenance copied onto emitted ledger rows.
+    business_line: Mapped[str] = mapped_column(business_line_enum, nullable=False)
     type: Mapped[PayoutType] = mapped_column(payout_type_enum, nullable=False)
     amount_paise: Mapped[int] = mapped_column(BigInteger, nullable=False)
     currency: Mapped[str] = mapped_column(String(3), nullable=False, default="INR")

@@ -13,10 +13,9 @@ from typing import Annotated, Literal
 
 from pydantic import BaseModel, EmailStr, Field, field_validator
 
-# What a public enquiry is about. "agent" is not a business line: it lands as
-# business_line NULL + requirement.topic = "agent" for triage (leads.business_line
-# is immutable once set, so guessing a line here would be worse than none).
-LeadTopic = Literal["loans", "real_estate", "agent"]
+# Public sales enquiries must name one operational business line. Partner
+# applications use their dedicated OTP/KYC flow and already choose a line.
+LeadTopic = Literal["loans", "real_estate"]
 
 # Origin page slug (contact, product-card, calculator-emi, ...). The web lib
 # mints one per surface, so a Literal would drift every time a page ships; a

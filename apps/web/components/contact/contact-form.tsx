@@ -20,7 +20,6 @@ import { isValidMobile, normalizeMobile } from "@/lib/phone";
 const TOPICS: { value: LeadTopic; label: string }[] = [
   { value: "loans", label: "Loans" },
   { value: "real_estate", label: "Real Estate" },
-  { value: "agent", label: "Partner" },
 ];
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -165,7 +164,7 @@ export function ContactForm({
           <div
             role="group"
             aria-labelledby="contact-line-label"
-            className="grid grid-cols-3 gap-2"
+            className="grid grid-cols-2 gap-2"
           >
             {TOPICS.map((option) => (
               <button

@@ -1,7 +1,7 @@
 """Public lead endpoint tests (docs/specs/public-leads-endpoint.md).
 
-Covers: happy path insert, enrich-on-conflict, agent topic (NULL line +
-requirement.topic), validation rejects, per-mobile rate cap, honeypot drop.
+Covers: classified insert, enrich-on-conflict, validation rejects, per-mobile
+rate cap, and honeypot drop.
 
 Requires: running Postgres + Redis (docker compose up -d).
 """
@@ -71,17 +71,25 @@ async def test_create_lead_persists_row(client: AsyncClient) -> None:
     assert lead.requirement["message"] == "Need 5 lakh"
 
 
-async def test_create_lead_enriches_open_existing(client: AsyncClient) -> None:
+async def test_create_lead_enriches_open_existing(
+    client: AsyncClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import app.services.leads as leads_service
+
+    async def no_assignment(*_args, **_kwargs):
+        return None
+
+    monkeypatch.setattr(leads_service, "auto_assign_locked_lead", no_assignment)
     mobile = unique_mobile()
     assert (
-        await client.post("/api/v1/leads", json=_payload(mobile, topic="agent"))
+        await client.post("/api/v1/leads", json=_payload(mobile, topic="loans"))
     ).status_code == 202
-    # Second submit adds email + message; name/line survive, keys merge.
+    # A second same-line request enriches the open, unassigned workflow.
     resp = await client.post(
         "/api/v1/leads",
         json=_payload(
             mobile,
-            topic="agent",
+            topic="loans",
             email="visitor@example.com",
             message="Call after 6pm",
         ),
@@ -90,20 +98,9 @@ async def test_create_lead_enriches_open_existing(client: AsyncClient) -> None:
 
     lead = await _get_lead(mobile)
     assert lead is not None
-    assert lead.business_line is None
+    assert lead.business_line == "loans"
     assert lead.requirement["email"] == "visitor@example.com"
     assert lead.requirement["message"] == "Call after 6pm"
-
-
-async def test_agent_topic_stores_null_line_and_topic_marker(client: AsyncClient) -> None:
-    mobile = unique_mobile()
-    resp = await client.post("/api/v1/leads", json=_payload(mobile, topic="agent"))
-    assert resp.status_code == 202
-
-    lead = await _get_lead(mobile)
-    assert lead is not None
-    assert lead.business_line is None
-    assert lead.requirement["topic"] == "agent"
 
 
 @pytest.mark.parametrize(
@@ -111,6 +108,7 @@ async def test_agent_topic_stores_null_line_and_topic_marker(client: AsyncClient
     [
         {"mobile": "98765"},  # not E.164
         {"topic": "crypto"},  # outside whitelist
+        {"topic": "agent"},  # partner enquiries are not operational leads
         {"origin": "https://evil.example"},  # outside whitelist
         {"name": ""},  # blank
         {"message": "x" * 1001},  # over cap

@@ -307,7 +307,7 @@ async def test_payout_activity_lists_referral_bonus_transactions(client: AsyncCl
     async with _session_mod.AsyncSessionLocal() as db:
         txn = Transaction(
             user_uuid=uuid.UUID(uid),
-            business_line=None,
+            business_line="loans",
             type=TransactionType.REFERRAL_BONUS,
             status=TransactionStatus.PAID,
             amount_paise=50_000,

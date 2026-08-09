@@ -68,9 +68,56 @@ included in completion coverage.
 | ---: | --- | --- | --- | --- | --- |
 | 1 | Analytics verification (FR-16.1–FR-16.3) | **Done** in [PR #156](https://github.com/brollysolutions/client1/pull/156): a Linux PostgreSQL/Redis run passed the reporting service/API/RLS suite, and the web production build completed. | `gpt-5.6-terra` / High | `gpt-5.6-terra` / High | No defect was proven; retain the existing authorization, RLS, export-safety, and team-dimension invariants. |
 | 2 | Media controls completion (FR-13.1–FR-13.4) | **Done** in [PR #159](https://github.com/brollysolutions/client1/pull/159): purpose-bound property and Loans MP4, assigned-Employee property-visit feedback attachments, fail-closed malware scanning, metadata removal/transcoding, and explicit retention complete the approved scope without a universal asset library. | `gpt-5.6-sol` / Extra High | `gpt-5.6-sol` / Extra High | Preserve the delivered purpose, assignment, line, private/public promotion, processing-state, retention, and account-deletion invariants. |
-| 3 | Provenance-based edit ownership (FR-2.8) | **Next.** Current edit paths work, but ownership rules are not uniform across submitted detail types. | `gpt-5.6-sol` / High | `gpt-5.6-sol` / Extra High | Define per-field creator/reviewer/Admin authority; enforce it in service and RLS paths with cross-role/cross-line denial tests. |
+| 3 | Provenance-based edit ownership (FR-2.8) | Current edit paths work, but ownership rules are not uniform across submitted detail types. | `gpt-5.6-sol` / High | `gpt-5.6-sol` / Extra High | Define per-field creator/reviewer/Admin authority; enforce it in service and RLS paths with cross-role/cross-line denial tests. |
 | 4 | Admin operational coverage audit (FR-2.2) | Admin has broad coverage, but the approved requirement calls for exhaustive view/update coverage. | `gpt-5.6-terra` / High | `gpt-5.6-terra` / High | Inventory every required Admin surface, close confirmed gaps, and add authorization plus accessible UI coverage. |
-| 5 | Business-line classification hardening (FR-1.1) | Legacy nullable classification and future media paths can undermine the line-isolation invariant. | `gpt-5.6-sol` / High | `gpt-5.6-sol` / Extra High | Audit all records and new media purposes; backfill or constrain only with a reviewed migration and RLS denial coverage. |
+| 5 | Business-line classification hardening (FR-1.1) | **Done** on `security/business-line-classification` (PR link pending): every mapped table and managed-media purpose has an explicit classification mode; operational rows, fixed domains, staged referrals, global content, staff scope, and audit exceptions are database-constrained. | `gpt-5.6-sol` / High | `gpt-5.6-sol` / Extra High | Preserve the exhaustive classification ledger, exact-line lead intent, count-only deployment preflight, immutable tags, and parent/provenance checks as schemas evolve. |
+
+### Delivered feature brief - business-line classification hardening
+
+- **Branch / PR:** `security/business-line-classification` / PR link pending.
+- **Success:** every operational lead, workflow, content artifact, upload, and
+  report row is classified as exactly `loans` or `real_estate` at creation;
+  platform/identity records and deliberately global content are explicit,
+  allowlisted exceptions rather than accidental nullable rows.
+- **Behavior:** login and password-recovery attempts no longer create sales
+  leads without service intent. Public lead capture requires an operational
+  line; a dual-line Client still has independent per-line journeys, while
+  platform Admin/Sub Admin identity scope remains separate from record tags.
+- **Architecture:** add a maintained classification contract for every mapped
+  table and managed-media purpose; derive child tags from fixed domains or
+  owning rows; enforce operational-only values, lifecycle-specific nullable
+  states, parent/child equality, and immutability in an additive migration and
+  service validation.
+- **Security and failure invariants:** reject `both`, missing, mismatched, and
+  post-creation line changes on operational records even through bypass paths;
+  preserve owner checks and Admin-only platform bypass; use count-only migration
+  preflight, deterministic backfill, and fail closed on ambiguous legacy data;
+  never log row PII while diagnosing classification failures.
+- **Compatibility:** preserve CS-001 dual-line Clients, current platform-scoped
+  Admin/Sub Admin behavior, global CMS content, historical audit records,
+  payout idempotency/retention, and purpose-specific media privacy. Request
+  payloads may express intent but never override a profile, route, source, or
+  parent-derived line.
+- **Non-goals:** record reclassification UI, changing RLS ownership semantics,
+  merging Client journeys, introducing a universal media library, adding a new
+  telemetry/dependency surface, or rewriting historical audit events.
+- **Verification matrix:** structural classification-contract coverage; public
+  and auth capture behavior; direct SQL null/`both`/mutation rejection; staged
+  lifecycle first-assignment checks; parent/child mismatch rejection; every
+  role's same-line/cross-line RLS outcomes; payout/referral provenance; all
+  managed-media purposes; migration upgrade/downgrade and one head; focused and
+  full API/web/contract/repository gates; security and PR review.
+- **Fresh evidence:** all 1,602 current API tests are covered across four clean,
+  isolated PostgreSQL/Redis groups; obsolete fixture expectations found by the
+  grouped run were corrected and every affected file rerun with no remaining
+  failure. Ten structural/direct-database classification tests, a migration
+  downgrade/re-upgrade, four clean installs, Ruff lint/format, one Alembic head,
+  generated contracts, web lint/typecheck, all 301 web tests, and a Linux
+  92-page production build pass. The shared development database remains
+  intentionally blocked by count-only preflight because it contains 424
+  ambiguous legacy leads; deployment requires authoritative operational
+  classification rather than an inferred or lossy backfill. Security and diff
+  review found no remaining reachable vulnerability or correctness defect.
 
 ### Delivered feature brief - workflow-bound Loans media gallery
 
@@ -834,9 +881,11 @@ merged. Payment-method completion is merged in
 
 ## Delivery sequence
 
-The next active item is **provenance-based edit ownership** (FR-2.8). Define
-the field-level creator, reviewer, and platform-Admin authority matrix before
-changing the remaining cross-cutting authorization paths.
+The next active item is **provenance-based edit ownership** (FR-2.8). Define the
+field-level creator, reviewer, and platform-Admin authority matrix before
+changing the remaining cross-cutting authorization paths. Business-line
+classification hardening (FR-1.1) is delivered on
+`security/business-line-classification` with its PR link pending.
 
 For each item:
 

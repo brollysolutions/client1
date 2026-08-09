@@ -142,15 +142,17 @@ async def test_login_response_includes_verification_flags(client: AsyncClient) -
     assert body["email_verified"] is False
 
 
-async def test_login_unknown_mobile_is_captured_as_lead(client: AsyncClient) -> None:
-    """Even a failed login on an unknown mobile saves the number to leads."""
+async def test_login_unknown_mobile_is_not_captured_as_lead(client: AsyncClient) -> None:
+    """Authentication attempts without service intent do not become sales leads."""
     mobile = unique_mobile()
     await client.post("/api/v1/auth/login", json={"mobile": mobile, "password": PASSWORD})
-    assert await _lead_exists(mobile) is True
+    assert await _lead_exists(mobile) is False
 
 
-async def test_login_capture_failure_does_not_break_login(client: AsyncClient, monkeypatch) -> None:
-    """If lead capture's DB session fails, capture swallows it and login still succeeds."""
+async def test_registration_capture_failure_does_not_break_login(
+    client: AsyncClient, monkeypatch
+) -> None:
+    """A best-effort registration lead failure does not break later authentication."""
 
     def _boom():
         raise RuntimeError("db down")

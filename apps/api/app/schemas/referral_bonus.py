@@ -9,14 +9,14 @@ from __future__ import annotations
 
 from datetime import datetime
 from decimal import Decimal
-from typing import Any
+from typing import Any, Literal
 from uuid import UUID
 
 from pydantic import BaseModel, Field
 
 
 class ReferralBonusConfigCreate(BaseModel):
-    business_line: str = Field(pattern="^(loans|real_estate|both)$")
+    business_line: str = Field(pattern="^(loans|real_estate)$")
     bonus_amount: Decimal = Field(ge=0)
     rule: dict[str, Any] = Field(default_factory=dict)
     active: bool = False
@@ -50,7 +50,7 @@ class ReferralPayoutActivityRead(BaseModel):
 
     id: UUID
     user_uuid: UUID
-    business_line: str | None
+    business_line: Literal["loans", "real_estate"]
     status: str
     amount_paise: int
     currency: str

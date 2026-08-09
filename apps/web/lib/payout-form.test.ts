@@ -47,22 +47,20 @@ function form(overrides: Partial<PayoutFormState>): PayoutFormState {
 }
 
 describe("buildPayoutPayload()", () => {
-  it("emits business_line: null when the select is empty", () => {
-    const payload = buildPayoutPayload(
-      form({
-        recipient: { authUserUuid: "u1", name: "Test User", code: "CL-X" },
-        type: "cashback",
-        businessLine: "",
-        amountRupees: "100",
-        destinationType: "vpa",
-        vpa: "payee@okhdfc",
-      }),
-      "idem-key-12345",
-    );
-    expect(payload.business_line).toBeNull();
-    expect(payload.recipient_user_uuid).toBe("u1");
-    expect(payload.amount_paise).toBe(10_000);
-    expect(payload.destination).toEqual({ vpa: "payee@okhdfc" });
+  it("rejects a payout without an operational business line", () => {
+    expect(() =>
+      buildPayoutPayload(
+        form({
+          recipient: { authUserUuid: "u1", name: "Test User", code: "CL-X" },
+          type: "cashback",
+          businessLine: "",
+          amountRupees: "100",
+          destinationType: "vpa",
+          vpa: "payee@okhdfc",
+        }),
+        "idem-key-12345",
+      ),
+    ).toThrow();
   });
 
   it("builds a bank_account destination", () => {
@@ -92,6 +90,7 @@ describe("buildPayoutPayload()", () => {
       form({
         recipient: { authUserUuid: "u3", name: "Test User", code: null },
         type: "cashback",
+        businessLine: "real_estate",
         amountRupees: "25",
         destinationType: "cheque",
         vpa: "stale@bank",
@@ -110,6 +109,7 @@ describe("buildPayoutPayload()", () => {
         form({
           recipient: { authUserUuid: "u1", name: "Test User", code: null },
           type: "cashback",
+          businessLine: "loans",
           amountRupees: "not-a-number",
           destinationType: "vpa",
           vpa: "payee@okhdfc",
@@ -121,10 +121,11 @@ describe("buildPayoutPayload()", () => {
 });
 
 describe("validatePayoutForm()", () => {
-  it("requires a recipient, type, amount, and destination", () => {
+  it("requires a recipient, type, business line, amount, and destination", () => {
     const errs = validatePayoutForm(EMPTY_PAYOUT_FORM);
     expect(errs.recipient).toBeTruthy();
     expect(errs.type).toBeTruthy();
+    expect(errs.businessLine).toBeTruthy();
     expect(errs.amountRupees).toBeTruthy();
     expect(errs.destinationType).toBeTruthy();
   });
@@ -134,6 +135,7 @@ describe("validatePayoutForm()", () => {
       form({
         recipient: { authUserUuid: "u1", name: "Test User", code: null },
         type: "cashback",
+        businessLine: "loans",
         amountRupees: "10",
         destinationType: "vpa",
         vpa: "not-a-vpa",
@@ -147,6 +149,7 @@ describe("validatePayoutForm()", () => {
       form({
         recipient: { authUserUuid: "u1", name: "Test User", code: null },
         type: "cashback",
+        businessLine: "loans",
         amountRupees: "10",
         destinationType: "bank_account",
         ifsc: "",
@@ -162,6 +165,7 @@ describe("validatePayoutForm()", () => {
       form({
         recipient: { authUserUuid: "u1", name: "Test User", code: "CL-X" },
         type: "cashback",
+        businessLine: "loans",
         amountRupees: "10",
         destinationType: "vpa",
         vpa: "payee@okhdfc",
@@ -175,6 +179,7 @@ describe("validatePayoutForm()", () => {
       form({
         recipient: { authUserUuid: "u1", name: "Test User", code: null },
         type: "cashback",
+        businessLine: "real_estate",
         amountRupees: "10",
         destinationType: "cheque",
       }),

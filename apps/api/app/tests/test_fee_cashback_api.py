@@ -443,6 +443,7 @@ async def test_cancel_blocked_once_payout_attached(client: AsyncClient) -> None:
     async with _session_mod.AsyncSessionLocal() as db:
         payout = Payout(
             recipient_user_uuid=uuid.UUID(client_uid),
+            business_line="loans",
             type=PayoutType.CASHBACK,
             amount_paise=50_000,
             currency="INR",

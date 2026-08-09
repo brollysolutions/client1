@@ -64,18 +64,6 @@ export function EarnAgentTracks() {
           </article>
         </div>
 
-        <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row sm:gap-4">
-          <p className="text-sm text-text-secondary">
-            Have questions before you apply?
-          </p>
-          <Link
-            href="/contact?line=agent"
-            className="inline-flex h-10 items-center justify-center rounded-md border border-[var(--nav-primary)] px-4 text-sm font-medium text-[var(--nav-primary)] transition hover:bg-[var(--nav-tint)]"
-          >
-            Contact us
-          </Link>
-        </div>
-
         <p className="mx-auto mt-8 max-w-2xl text-center text-sm text-text-secondary">
           Every partner account is single-line. If you already have a client
           account, you can still apply for a separate partner account through

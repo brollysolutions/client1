@@ -82,7 +82,7 @@ async def _admin_headers(client: AsyncClient) -> dict[str, str]:
     return {"Authorization": f"Bearer {_admin_token(uid)}"}
 
 
-async def _seed_lead(*, business_line: str | None, created_at: datetime) -> str:
+async def _seed_lead(*, business_line: str, created_at: datetime) -> str:
     import app.db.session as _session_mod
     from app.models.lead import Lead, LeadOrigin
 
@@ -215,23 +215,15 @@ async def test_sort_by_invalid_field_422(client: AsyncClient) -> None:
     assert res.status_code == 422
 
 
-# ---------------------------------------------------------------------------
-# NULL business_line -> unassigned
-# ---------------------------------------------------------------------------
-
-
 @pytest.mark.asyncio
-async def test_unassigned_leads_group_via_api(client: AsyncClient) -> None:
+async def test_unassigned_leads_filter_is_rejected(client: AsyncClient) -> None:
     headers = await _admin_headers(client)
     d = date(2032, 3, 15)
-    await _seed_lead(business_line=None, created_at=datetime(2032, 3, 15, 8, 0, tzinfo=UTC))
-
     res = await client.get(
-        f"/api/v1/admin/reports/leads?date_from={d}&date_to={d}", headers=headers
+        f"/api/v1/admin/reports/leads?date_from={d}&date_to={d}&business_line=unassigned",
+        headers=headers,
     )
-    assert res.status_code == 200, res.text
-    body = res.json()
-    assert any(r["business_line"] == "unassigned" for r in body["rows"])
+    assert res.status_code == 422
 
 
 # ---------------------------------------------------------------------------

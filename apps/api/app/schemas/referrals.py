@@ -48,7 +48,7 @@ class ReferralRead(BaseModel):
     # Never the raw number — see app/core/masking.py::mask_mobile. The raw
     # referred_mobile column is never projected into any response.
     referred_mobile_masked: str
-    business_line: str | None
+    business_line: Literal["loans", "real_estate"] | None
     conversion_status: str
     bonus_amount_paise: int | None
     converted_at: datetime | None
@@ -75,7 +75,7 @@ class AdminReferralRead(BaseModel):
     referrer_name: str | None = None
     referrer_code: str | None = None
     referred_mobile_masked: str
-    business_line: str | None
+    business_line: Literal["loans", "real_estate"] | None
     conversion_status: str
     accrual_reason: str | None
     bonus_amount_paise: int | None
