@@ -4,8 +4,9 @@ Status: **Derived living implementation ledger**
 
 As of: **2026-08-10**
 
-Evidence baseline: `feat/lead-round-robin` (PR pending), based on `c0dc8b2`
-([PR #162](https://github.com/brollysolutions/client1/pull/162))
+Evidence baseline: `64db2f3`
+([PR #163](https://github.com/brollysolutions/client1/pull/163)), based on
+`c0dc8b2` ([PR #162](https://github.com/brollysolutions/client1/pull/162))
 
 ## Purpose and authority
 
@@ -123,7 +124,8 @@ work than several completed UI requirements.
   second live provider, and automatic failover remain explicit non-goals.
 - **Lead assignment completion** (FR-4.2 and FR-4.3) was established in
   [PR #153](https://github.com/brollysolutions/client1/pull/153) and its automatic
-  selection policy is updated on `feat/lead-round-robin` (PR pending). Explicit
+  selection policy is updated in
+  [PR #163](https://github.com/brollysolutions/client1/pull/163). Explicit
   Loans/Real Estate registration intent and Agent introductions create
   independent same-line journeys; active Telecallers now receive them through
   separate durable per-line round-robin cursors in stable creation order, with
