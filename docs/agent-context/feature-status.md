@@ -2,11 +2,9 @@
 
 Status: **Derived living implementation ledger**
 
-As of: **2026-08-08**
+As of: **2026-08-09**
 
-Evidence baseline: `7a68044` ([PR #153](https://github.com/brollysolutions/client1/pull/153)),
-plus payment-method completion in
-[PR #154](https://github.com/brollysolutions/client1/pull/154)
+Evidence baseline: `bc8efe7` ([PR #156](https://github.com/brollysolutions/client1/pull/156))
 
 ## Purpose and authority
 
@@ -45,6 +43,21 @@ work than several completed UI requirements.
 
 ## Delivered implementation
 
+- **Workflow-bound Loans media gallery** (FR-13.1 through FR-13.4) is
+  implemented on `feat/media-controls-completion` (PR pending). Clients see
+  private image/PDF media grouped by loan application, with image preview,
+  forced PDF download, camera capture, and review state. Per-owner presign
+  throttling, 5 MiB/12-file caps, owner/application-bound staging keys,
+  magic-byte checks, row-locked quota/replay handling, immutable canonical
+  copies, no-store signed-link responses, opaque logging, legacy-key
+  compatibility, deletion, and dual-namespace orphan cleanup preserve the
+  security boundary. Generated contracts, 39 Loans/storage API tests, 23
+  RLS/Admin-verification tests, 298 web tests, a seeded browser journey, web
+  lint/typecheck, a Linux production build, tracking checks, and the one-head
+  migration assertion pass. The full API suite reached its 20-minute bound
+  without a final report. Video, public Loans media, feedback attachments, a
+  universal asset library, new reviewer roles, and an external malware scanner
+  remain explicit non-goals, so the four requirement statuses remain Partial.
 - **Payment-method completion** (FR-10.3) is implemented in
   [PR #154](https://github.com/brollysolutions/client1/pull/154). UPI VPA and bank
   transfer remain on the provider-scoped RazorpayX path, while cashback,
@@ -118,7 +131,7 @@ work than several completed UI requirements.
 | Payments (FR-10.x) | 4 | 0 | 0 | Property/principal collection remains prohibited; controlled outbound payouts support UPI VPA, bank transfer, and manual cheque with RazorpayX as the sole automated provider. |
 | Notifications (FR-11.x) | 3 | 0 | 0 | In-app, web push, Admin major-action, and verified-email transactional notifications now use audited same-origin workflow destinations. |
 | Banners/personalization (FR-12.x) | 4 | 0 | 0 | Approved content lifecycle now feeds authenticated, consented, line-validated Client/Agent placements through a closed fail-closed audience grammar; anonymous responses exclude targeted rows. |
-| Media/uploads (FR-13.x) | 0 | 4 | 0 | Secure purpose-specific image/PDF flows and property camera capture exist; unified per-line galleries, feedback attachments, video, and broader retention remain incomplete. |
+| Media/uploads (FR-13.x) | 0 | 4 | 0 | Secure purpose-specific image/PDF flows, property and workflow-bound Loans galleries, camera capture, immutable storage snapshots, quotas, and cleanup exist; feedback attachments, video, and broader retention remain incomplete. |
 | Support (FR-14.x) | 4 | 0 | 0 | Central tickets, WhatsApp route, Admin triage/resolution, and structured mobile-change fulfilment exist. |
 | Contact privacy (FR-15.x) | 4 | 0 | 0 | Agent-owned and Telecaller-assigned mobile access is locked; Employee raw/deny/provider-neutral invitation modes and least-data projection are enforced server-side. |
 | Analytics (FR-16.x) | 3 | 0 | 0 | **Complete** in [PR #156](https://github.com/brollysolutions/client1/pull/156): Linux PostgreSQL/Redis verification passed 30 reporting service/API/RLS tests with one Alembic head; web lint, strict typecheck, 294 unit tests, and the 92-page production build passed. |
@@ -181,6 +194,13 @@ The following requirements are complete on the evidence baseline:
   occupation/address details; transaction and support surfaces;
   password-confirmed self-deletion; Admin deletion; immediate profile-PII scrub;
   de-linking; and seven-year retention purge behavior.
+- Media controls: FR-13.1 through FR-13.4. Evidence includes separate managed
+  Real Estate and workflow-bound Loans galleries; private image preview and
+  forced document download; camera capture; bounded signed POST uploads;
+  content sniffing; immutable canonical copies; owner/application binding;
+  RLS, replay, concurrency, rate-limit, deletion, and orphan-cleanup tests. Video,
+  feedback attachments, broader retention, and malware-provider policy remain
+  unresolved.
 - Personalization: FR-12.1 through FR-12.4 and FR-18.1. Evidence includes the
   versioned audience schema, server-side Client/Agent line proof, consented
   workflow/location matching, private display-only placements, public
@@ -203,15 +223,15 @@ The following requirements are complete on the evidence baseline:
 | FR-12.2 | Complete | The server proves Client line ownership, forces Agents to their active profile line, ranks exact-line/`both` content deterministically, and keeps Agents off customer offers. | Preserve server-side line proof and role separation for future placements. |
 | FR-12.3 | Complete | Sub Admin authoring and Admin banner approval validate the closed grammar; only eligible consented users receive personalized rows, with public and cross-role negatives. | Keep approval and anonymous allowlist tests alongside future CMS changes. |
 | FR-12.4 | Complete | Existing workflow facts and optional coarse location drive auditable, consented banner/offer placement without clickstream or inferred demographics. | Treat any new signal source as a separately approved privacy/security change. |
-| FR-13.1 | Partial | Real-estate property submissions now have an owned private review gallery and approved public image gallery. | Add the separate Loans gallery and any other approved per-line gallery surfaces. |
-| FR-13.2 | Partial | Agent KYC, loan/task documents, banners, and property submissions have managed upload flows; property submission supports browser camera capture. | Add approved feedback/media attachments and camera capture to other applicable journeys. |
-| FR-13.3 | Partial | Managed property media constrains images/PDFs and verifies content signatures; other current flows also constrain types. | Define safe video types, size/duration limits, transcoding/serving policy, malware scanning, content checks, and image metadata normalization. |
-| FR-13.4 | Partial | Property media enforces quotas, upload rate limits, canonical snapshots, orphan/rejection/promotion cleanup, inactive-public cleanup, and account-deletion cleanup. | Apply consistent controls to every media purpose and define approved reviewer-document retention. |
+| FR-13.1 | Partial | Real Estate has private review/approved public galleries; Loans now has a private per-application image/PDF gallery with review state. | Define whether video belongs in either gallery and approve any other per-line gallery surface. |
+| FR-13.2 | Partial | Agent KYC, loan/task documents, banners, and property submissions have managed upload flows; property and Loans media support browser camera capture. | Add only purpose-approved feedback/media attachments to the applicable journeys. |
+| FR-13.3 | Partial | Managed property and Loans media constrain images/PDFs and verify content signatures; accepted Loans media is copied to an immutable canonical key. | Define safe video types, size/duration limits, transcoding/serving policy, malware scanning, and image metadata normalization. |
+| FR-13.4 | Partial | Property and Loans media enforce purpose-specific quotas, upload rate limits, canonical snapshots, deletion/account cleanup, and scheduled orphan/lifecycle cleanup. | Extend controls to any future feedback/video purpose and define approved reviewer-document retention. |
 | FR-16.1 | Complete | [PR #150](https://github.com/brollysolutions/client1/pull/150) adds formula-safe Excel export alongside the existing CSV export, with the same capped result set and truncation signal. Linux PostgreSQL/Redis verification passed the reporting service/API/RLS suite; the web production build completed. | Maintain bounded exports, formula-safe cell writing, and current verification coverage. |
 | FR-16.2 | Complete | Reports filter by business line and a selected multi-Agent list; the list is the ad hoc group filter, with no persistent group/team model added. PostgreSQL-backed service/API/RLS tests passed. | Preserve the server-side platform-Admin guard and the business-line predicates when filters evolve. |
 | FR-16.3 | Complete | The Agents report returns and renders Loans/Real Estate business-line team performance summaries, retaining per-Agent sorting and selective views. PostgreSQL-backed aggregate tests passed. | Preserve line-scoped team totals and anti-fan-out aggregate coverage. |
 | FR-18.1 | Complete | An explicit nested opt-in stores only the latest server-rounded two-decimal point, omits stale/unavailable matches, purges after 30 days, and erases on revoke/disable/deletion without logging coordinates. | Maintain the retention job and location-free audit contract. |
-| FR-18.2 | Not started — excluded from active roadmap | Address-based properties and visits exist, but no map seam is defined. | Explicitly removed from the active implementation plan on 2026-08-08. Keep this approved-SRS requirement uncounted as delivered; reconsider only through a new product decision and a privacy/provider design review. |
+| FR-18.2 | Not started | Address-based properties and visits exist, but no map seam is defined; this requirement was excluded from the active roadmap on 2026-08-08. | Keep this approved-SRS requirement uncounted as delivered; reconsider only through a new product decision and a privacy/provider design review. |
 
 ## Evidence map
 

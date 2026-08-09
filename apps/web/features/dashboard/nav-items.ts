@@ -57,7 +57,7 @@ export const NAV_ITEMS: NavItem[] = [
   { key: "home", label: "Home", href: "/dashboard", icon: House },
   { key: "explore", label: "Explore", href: "/dashboard/explore", icon: Telescope },
   { key: "apply", label: "Apply for a loan", href: "/dashboard/apply", icon: FilePlus2, loansOnly: true },
-  { key: "documents", label: "Documents", href: "/dashboard/documents", icon: FolderClosed, loansOnly: true },
+  { key: "documents", label: "Loan media", href: "/dashboard/documents", icon: FolderClosed, loansOnly: true },
   { key: "loan-offers", label: "Compare Loan Offers", href: "/dashboard/loan-offers", icon: Scale, loansOnly: true },
   { key: "loan-officer", label: "My Loan Officer", href: "/dashboard/loan-officer", icon: UserRound, loansOnly: true },
   { key: "bookmarks", label: "Bookmarks", href: "/dashboard/bookmarks", icon: Bookmark, realEstateOnly: true },

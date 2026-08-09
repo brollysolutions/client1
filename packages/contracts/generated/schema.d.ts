@@ -5530,6 +5530,11 @@ export interface components {
         };
         /** LoanDocumentRead */
         LoanDocumentRead: {
+            /**
+             * Content Type
+             * @enum {string}
+             */
+            content_type: "image/jpeg" | "image/png" | "image/webp" | "application/pdf";
             /** Doc Type */
             doc_type: string;
             /** Download Url */
@@ -5544,8 +5549,12 @@ export interface components {
              * Format: uuid
              */
             loan_application_uuid: string;
+            /** Preview Url */
+            preview_url: string | null;
             /** Review Note */
             review_note: string | null;
+            /** Size Bytes */
+            size_bytes: number;
             /**
              * Uploaded At
              * Format: date-time
