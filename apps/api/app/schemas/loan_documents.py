@@ -52,6 +52,9 @@ class LoanDocumentRead(BaseModel):
     verified: bool
     review_note: str | None
     uploaded_at: datetime
+    content_type: LoanDocContentTypeLiteral
+    size_bytes: int
+    preview_url: str | None
     download_url: str
 
 

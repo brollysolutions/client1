@@ -9,6 +9,7 @@ import {
   type LoanDocType,
   type LoanDocument,
 } from "@/lib/loan-documents";
+import { validateLoanMediaFile } from "@/lib/loan-media";
 import { getLoanApplications, type LoanApplication } from "@/lib/loans";
 
 type Status = "loading" | "ready" | "error";
@@ -22,6 +23,7 @@ function findActiveApplication(applications: LoanApplication[]): LoanApplication
 // active application new uploads attach to — see documents-view.tsx).
 export function useLoanDocuments() {
   const [documents, setDocuments] = React.useState<LoanDocument[]>([]);
+  const [applications, setApplications] = React.useState<LoanApplication[]>([]);
   const [activeApplication, setActiveApplication] = React.useState<LoanApplication | null>(null);
   const [status, setStatus] = React.useState<Status>("loading");
   const [error, setError] = React.useState<string | null>(null);
@@ -42,8 +44,14 @@ export function useLoanDocuments() {
         setStatus("error");
         return;
       }
+      if (!appsRes.ok) {
+        setError(appsRes.error);
+        setStatus("error");
+        return;
+      }
       setDocuments(docsRes.data);
-      setActiveApplication(appsRes.ok ? findActiveApplication(appsRes.data) : null);
+      setApplications(appsRes.data);
+      setActiveApplication(findActiveApplication(appsRes.data));
       setStatus("ready");
     };
     void run();
@@ -65,6 +73,8 @@ export function useLoanDocuments() {
     if (!activeApplication) {
       return { ok: false, error: "No active application to attach this document to." };
     }
+    const validationError = validateLoanMediaFile(file);
+    if (validationError) return { ok: false, error: validationError };
     setUploading(true);
     try {
       const { failed } = await uploadLoanDocuments(activeApplication.id, [{ docType, file }]);
@@ -94,6 +104,7 @@ export function useLoanDocuments() {
 
   return {
     documents,
+    applications,
     activeApplication,
     status,
     error,

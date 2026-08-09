@@ -2,9 +2,9 @@
 
 Status: **Derived, actively maintained plan**
 
-As of: **2026-08-08**
+As of: **2026-08-09**
 
-Evidence baseline: `49c67e1` ([PR #154](https://github.com/brollysolutions/client1/pull/154))
+Evidence baseline: `bc8efe7` ([PR #156](https://github.com/brollysolutions/client1/pull/156))
 
 ## Outcome
 
@@ -65,10 +65,40 @@ from the baseline.
 | Priority | Feature / requirements | Why now | Planning model / effort | Implementation model / effort | Exit criteria |
 | ---: | --- | --- | --- | --- | --- |
 | 1 | Analytics verification (FR-16.1–FR-16.3) | **Done** in [PR #156](https://github.com/brollysolutions/client1/pull/156): a Linux PostgreSQL/Redis run passed the reporting service/API/RLS suite, and the web production build completed. | `gpt-5.6-terra` / High | `gpt-5.6-terra` / High | No defect was proven; retain the existing authorization, RLS, export-safety, and team-dimension invariants. |
-| 2 | Media controls completion (FR-13.1–FR-13.4) | The largest remaining product gap: Loans galleries, approved feedback attachments, consistent retention, and a decision on video. | `gpt-5.6-sol` / Extra High | `gpt-5.6-sol` / Extra High | Approve a bounded media-purpose slice; preserve private storage, content checks, quotas, RLS, deletion, and retention. Video requires a separate explicit policy decision. |
+| 2 | Media controls completion (FR-13.1–FR-13.4) | **Bounded Loans gallery slice done** in [PR #157](https://github.com/brollysolutions/client1/pull/157). Feedback attachments, retention policy, and video remain the next product decisions. | `gpt-5.6-sol` / Extra High | `gpt-5.6-sol` / Extra High | Delivered grouped private Loans media, image preview, PDF download, camera capture, presign throttling, immutable canonical uploads, compatible cleanup, and denial tests. Keep the overall item active for the explicit non-goals. |
 | 3 | Provenance-based edit ownership (FR-2.8) | Current edit paths work, but ownership rules are not uniform across submitted detail types. | `gpt-5.6-sol` / High | `gpt-5.6-sol` / Extra High | Define per-field creator/reviewer/Admin authority; enforce it in service and RLS paths with cross-role/cross-line denial tests. |
 | 4 | Admin operational coverage audit (FR-2.2) | Admin has broad coverage, but the approved requirement calls for exhaustive view/update coverage. | `gpt-5.6-terra` / High | `gpt-5.6-terra` / High | Inventory every required Admin surface, close confirmed gaps, and add authorization plus accessible UI coverage. |
 | 5 | Business-line classification hardening (FR-1.1) | Legacy nullable classification and future media paths can undermine the line-isolation invariant. | `gpt-5.6-sol` / High | `gpt-5.6-sol` / Extra High | Audit all records and new media purposes; backfill or constrain only with a reviewed migration and RLS denial coverage. |
+
+### Delivered feature brief - workflow-bound Loans media gallery
+
+- **Branch:** `feat/media-controls-completion`.
+- **Success:** a Client can view private loan media grouped by its owning loan
+  application, preview supported images, download PDFs, upload from the device,
+  and capture a photo while retaining the existing review status and notes.
+- **Architecture:** extend the existing `loan_documents` purpose-bound model and
+  generated contract. New confirmations copy verified staging objects to an
+  immutable owner/application/media canonical key; legacy stored and in-flight
+  keys remain readable so the change is additive and deploy-safe.
+- **Security invariants:** server-side ownership and business-line checks,
+  PostgreSQL RLS, private storage, declared-type plus magic-byte verification,
+  the existing 5 MiB/file and 12 files/application limits, per-owner presign
+  throttling, opaque API responses, deletion, and orphan cleanup remain
+  mandatory. A replay or copy/database failure must not replace or expose an
+  accepted object.
+- **Non-goals:** video, public Loans media, site-visit feedback attachments, a
+  universal asset library, new reviewer roles, and an external malware scanning
+  provider. Video and feedback need separate purpose, retention, and access
+  policy decisions.
+- **Verification:** focused service/API/storage-failure and web behavior tests;
+  owner, cross-user, cross-line, replay, quota, and cleanup denial coverage;
+  generated contracts; 39 Loans/storage API tests; 23 RLS/Admin-verification
+  tests; 298 web unit tests; one seeded Playwright journey; full web lint,
+  typecheck, and an isolated Linux 92-page production build; feature-tracking
+  checks; and one Alembic head all pass. Security review remediated response
+  caching and private-key logging. The repository-wide API suite reached its
+  20-minute command bound without a final report and is inconclusive rather
+  than passing.
 
 ## Delivered and historical backlog
 

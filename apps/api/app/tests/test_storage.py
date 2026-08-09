@@ -51,6 +51,20 @@ def test_copy_object_replaces_metadata_with_verified_content_type(
     )
 
 
+def test_delete_failure_does_not_log_private_object_key(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    client = MagicMock()
+    client.delete_object.side_effect = ConnectionError("storage unavailable")
+    monkeypatch.setattr(storage, "_client", lambda _endpoint: client)
+    private_key = "private/loan-applications/canonical/owner/application/media/asset.jpg"
+
+    storage.delete_object(private_key)
+
+    assert "storage delete_object failed" in caplog.text
+    assert private_key not in caplog.text
+
+
 def test_delete_object_swallows_unreachable_endpoint() -> None:
     # No live storage service in this test process — delete_object must not
     # raise (best-effort per the DB row being the source of truth).

@@ -6109,6 +6109,16 @@
       },
       "LoanDocumentRead": {
         "properties": {
+          "content_type": {
+            "enum": [
+              "image/jpeg",
+              "image/png",
+              "image/webp",
+              "application/pdf"
+            ],
+            "title": "Content Type",
+            "type": "string"
+          },
           "doc_type": {
             "title": "Doc Type",
             "type": "string"
@@ -6127,6 +6137,17 @@
             "title": "Loan Application Uuid",
             "type": "string"
           },
+          "preview_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Preview Url"
+          },
           "review_note": {
             "anyOf": [
               {
@@ -6137,6 +6158,10 @@
               }
             ],
             "title": "Review Note"
+          },
+          "size_bytes": {
+            "title": "Size Bytes",
+            "type": "integer"
           },
           "uploaded_at": {
             "format": "date-time",
@@ -6155,6 +6180,9 @@
           "verified",
           "review_note",
           "uploaded_at",
+          "content_type",
+          "size_bytes",
+          "preview_url",
           "download_url"
         ],
         "title": "LoanDocumentRead",

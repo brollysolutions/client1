@@ -10,12 +10,16 @@ verified-document-cannot-be-deleted guard.
 
 from __future__ import annotations
 
+import asyncio
 import uuid
+from datetime import UTC, datetime, timedelta
 
 import pytest
 from httpx import AsyncClient
-from sqlalchemy import text
+from sqlalchemy import select, text
 
+from app.cache.redis_keys import RedisCache
+from app.models.loan_document import LoanDocument
 from app.services import storage
 from conftest import full_registration
 
@@ -32,6 +36,8 @@ def _mock_uploads_ok(monkeypatch: pytest.MonkeyPatch, size: int = 2048) -> None:
     # §2-12) does a real ranged GET, and these tests never PUT real bytes to
     # the presigned URL, so it would 404 and mask whatever this is testing.
     monkeypatch.setattr(storage, "content_matches_declared_type", lambda _key, _ct: True)
+    monkeypatch.setattr(storage, "copy_object", lambda _source, _destination, _ct: None)
+    monkeypatch.setattr(storage, "delete_object", lambda _key: None)
 
 
 def _mock_uploads_missing(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -79,12 +85,17 @@ async def _seed_loan_type() -> str:
 
 
 async def _presign_and_confirm(
-    client: AsyncClient, token: str, application_id: str, *, doc_type: str = "aadhaar_front"
+    client: AsyncClient,
+    token: str,
+    application_id: str,
+    *,
+    doc_type: str = "aadhaar_front",
+    content_type: str = "image/jpeg",
 ) -> dict:
     presign_res = await client.post(
         f"/api/v1/loans/applications/{application_id}/documents/presign",
         headers=_headers(token),
-        json={"doc_type": doc_type, "content_type": "image/jpeg"},
+        json={"doc_type": doc_type, "content_type": content_type},
     )
     assert presign_res.status_code == 200, presign_res.text
     object_key = presign_res.json()["object_key"]
@@ -92,7 +103,7 @@ async def _presign_and_confirm(
     confirm_res = await client.post(
         f"/api/v1/loans/applications/{application_id}/documents",
         headers=_headers(token),
-        json={"doc_type": doc_type, "object_key": object_key, "content_type": "image/jpeg"},
+        json={"doc_type": doc_type, "object_key": object_key, "content_type": content_type},
     )
     return confirm_res
 
@@ -132,8 +143,11 @@ async def test_presign_returns_fields_and_max_bytes(client: AsyncClient) -> None
         json={"doc_type": "aadhaar_front", "content_type": "image/jpeg"},
     )
     assert res.status_code == 200, res.text
+    assert res.headers["cache-control"] == "private, no-store"
     body = res.json()
-    assert body["object_key"].startswith(f"loan-applications/{application_id}/")
+    assert "/staging/" in body["object_key"]
+    assert f"/{application_id}/" in body["object_key"]
+    assert body["object_key"].endswith("/aadhaar_front.jpg")
     assert "upload_url" in body
     assert isinstance(body["fields"], dict)
     assert body["max_bytes"] == 5 * 1024 * 1024
@@ -148,6 +162,23 @@ async def test_presign_on_closed_application_conflicts(client: AsyncClient) -> N
         json={"doc_type": "aadhaar_front", "content_type": "image/jpeg"},
     )
     assert res.status_code == 409, res.text
+
+
+async def test_presign_rate_limit_fails_closed(
+    client: AsyncClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    token, application_id = await _make_client_with_application(client)
+
+    async def over_limit(_cache: RedisCache, _key: str, _ttl: int) -> int:
+        return 37
+
+    monkeypatch.setattr(RedisCache, "incr_with_expire", over_limit)
+    res = await client.post(
+        f"/api/v1/loans/applications/{application_id}/documents/presign",
+        headers=_headers(token),
+        json={"doc_type": "aadhaar_front", "content_type": "image/jpeg"},
+    )
+    assert res.status_code == 429, res.text
 
 
 async def test_presign_on_another_clients_application_404s(client: AsyncClient) -> None:
@@ -168,14 +199,60 @@ async def test_presign_on_another_clients_application_404s(client: AsyncClient) 
 
 async def test_confirm_happy_path(client: AsyncClient, monkeypatch: pytest.MonkeyPatch) -> None:
     _mock_uploads_ok(monkeypatch)
+    copies: list[tuple[str, str]] = []
+    deleted: list[str] = []
+    monkeypatch.setattr(
+        storage,
+        "copy_object",
+        lambda source, destination, _ct: copies.append((source, destination)),
+    )
+    monkeypatch.setattr(storage, "delete_object", deleted.append)
     token, application_id = await _make_client_with_application(client)
     res = await _presign_and_confirm(client, token, application_id)
     assert res.status_code == 201, res.text
+    assert res.headers["cache-control"] == "private, no-store"
     body = res.json()
     assert body["doc_type"] == "aadhaar_front"
     assert body["verified"] is False
     assert body["review_note"] is None
+    assert body["content_type"] == "image/jpeg"
+    assert body["size_bytes"] == 2048
+    assert body["preview_url"].startswith("http")
     assert "download_url" in body
+    assert "object_key" not in body
+
+    assert len(copies) == 1
+    staging_key, canonical_key = copies[0]
+    assert "/staging/" in staging_key
+    assert "/canonical/" in canonical_key
+    assert canonical_key.endswith("/asset.jpg")
+    assert deleted == [staging_key]
+
+    import app.db.session as _session_mod
+
+    async with _session_mod.AsyncSessionLocal() as db:
+        stored_key = await db.scalar(
+            select(LoanDocument.object_key).where(LoanDocument.id == uuid.UUID(body["id"]))
+        )
+    assert stored_key == canonical_key
+
+
+async def test_confirm_pdf_has_download_without_inline_preview(
+    client: AsyncClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _mock_uploads_ok(monkeypatch)
+    token, application_id = await _make_client_with_application(client)
+    res = await _presign_and_confirm(
+        client,
+        token,
+        application_id,
+        doc_type="bank_statement",
+        content_type="application/pdf",
+    )
+    assert res.status_code == 201, res.text
+    assert res.json()["content_type"] == "application/pdf"
+    assert res.json()["preview_url"] is None
+    assert res.json()["download_url"].startswith("http")
 
 
 async def test_confirm_content_type_mismatch_rejected_and_deletes_object(
@@ -275,6 +352,33 @@ async def test_confirm_storage_transport_error_502s(
     assert res.status_code == 502, res.text
 
 
+async def test_confirm_copy_failure_502s_without_creating_row(
+    client: AsyncClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(storage, "head_object", lambda _key: 2048)
+    monkeypatch.setattr(storage, "content_matches_declared_type", lambda _key, _ct: True)
+
+    def copy_fails(_source: str, _destination: str, _content_type: str) -> None:
+        raise ConnectionError("copy unavailable")
+
+    deleted: list[str] = []
+    monkeypatch.setattr(storage, "copy_object", copy_fails)
+    monkeypatch.setattr(storage, "delete_object", deleted.append)
+    token, application_id = await _make_client_with_application(client)
+
+    res = await _presign_and_confirm(client, token, application_id)
+
+    assert res.status_code == 502, res.text
+    assert len(deleted) == 1
+    assert "/canonical/" in deleted[0]
+    list_res = await client.get(
+        f"/api/v1/loans/applications/{application_id}/documents",
+        headers=_headers(token),
+    )
+    assert list_res.status_code == 200, list_res.text
+    assert list_res.json()["documents"] == []
+
+
 async def test_confirm_key_replay_rejected(
     client: AsyncClient, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -299,6 +403,68 @@ async def test_confirm_key_replay_rejected(
         json=body,
     )
     assert res2.status_code == 400, res2.text
+
+
+async def test_concurrent_replay_copies_once_and_keeps_accepted_canonical(
+    client: AsyncClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _mock_uploads_ok(monkeypatch)
+    copies: list[tuple[str, str]] = []
+    deleted: list[str] = []
+    monkeypatch.setattr(
+        storage,
+        "copy_object",
+        lambda source, destination, _ct: copies.append((source, destination)),
+    )
+    monkeypatch.setattr(storage, "delete_object", deleted.append)
+    token, application_id = await _make_client_with_application(client)
+    presign_res = await client.post(
+        f"/api/v1/loans/applications/{application_id}/documents/presign",
+        headers=_headers(token),
+        json={"doc_type": "photo", "content_type": "image/jpeg"},
+    )
+    assert presign_res.status_code == 200, presign_res.text
+    object_key = presign_res.json()["object_key"]
+    payload = {"doc_type": "photo", "object_key": object_key, "content_type": "image/jpeg"}
+
+    responses = await asyncio.gather(
+        *(
+            client.post(
+                f"/api/v1/loans/applications/{application_id}/documents",
+                headers=_headers(token),
+                json=payload,
+            )
+            for _ in range(2)
+        )
+    )
+
+    assert sorted(response.status_code for response in responses) == [201, 400]
+    assert len(copies) == 1
+    assert deleted == [object_key]
+
+
+async def test_confirm_accepts_already_issued_legacy_presign(
+    client: AsyncClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _mock_uploads_ok(monkeypatch)
+    copies: list[tuple[str, str]] = []
+    monkeypatch.setattr(
+        storage,
+        "copy_object",
+        lambda source, destination, _ct: copies.append((source, destination)),
+    )
+    token, application_id = await _make_client_with_application(client)
+    legacy_key = f"loan-applications/{application_id}/{uuid.uuid4().hex}-photo"
+
+    res = await client.post(
+        f"/api/v1/loans/applications/{application_id}/documents",
+        headers=_headers(token),
+        json={"doc_type": "photo", "object_key": legacy_key, "content_type": "image/jpeg"},
+    )
+
+    assert res.status_code == 201, res.text
+    assert copies[0][0] == legacy_key
+    assert "/canonical/" in copies[0][1]
 
 
 async def test_confirm_on_closed_application_conflicts(
@@ -336,18 +502,47 @@ async def test_document_cap_enforced(client: AsyncClient, monkeypatch: pytest.Mo
         "aadhaar_front",
         "aadhaar_back",
         "pan",
-        "salary_slip",
     ]
-    assert len(doc_types) == 12
+    assert len(doc_types) == 11
     for doc_type in doc_types:
         res = await _presign_and_confirm(client, token, application_id, doc_type=doc_type)
         assert res.status_code == 201, res.text
 
-    # 13th document exceeds LOAN_DOCUMENT_MAX_PER_APPLICATION (12).
-    over_cap_res = await _presign_and_confirm(
-        client, token, application_id, doc_type="bank_statement"
+    pending: list[dict[str, str]] = []
+    for doc_type in ("salary_slip", "bank_statement"):
+        presign_res = await client.post(
+            f"/api/v1/loans/applications/{application_id}/documents/presign",
+            headers=_headers(token),
+            json={"doc_type": doc_type, "content_type": "image/jpeg"},
+        )
+        assert presign_res.status_code == 200, presign_res.text
+        pending.append(
+            {
+                "doc_type": doc_type,
+                "object_key": presign_res.json()["object_key"],
+                "content_type": "image/jpeg",
+            }
+        )
+
+    # With eleven existing documents, two concurrent confirms race for the
+    # final slot. The application-row lock admits exactly one.
+    final_responses = await asyncio.gather(
+        *(
+            client.post(
+                f"/api/v1/loans/applications/{application_id}/documents",
+                headers=_headers(token),
+                json=payload,
+            )
+            for payload in pending
+        )
     )
-    assert over_cap_res.status_code == 409, over_cap_res.text
+    assert sorted(response.status_code for response in final_responses) == [201, 409]
+
+    list_res = await client.get(
+        f"/api/v1/loans/applications/{application_id}/documents",
+        headers=_headers(token),
+    )
+    assert len(list_res.json()["documents"]) == 12
 
 
 # ---------------------------------------------------------------------------
@@ -364,6 +559,7 @@ async def test_list_per_application(client: AsyncClient, monkeypatch: pytest.Mon
         f"/api/v1/loans/applications/{application_id}/documents", headers=_headers(token)
     )
     assert res.status_code == 200, res.text
+    assert res.headers["cache-control"] == "private, no-store"
     assert len(res.json()["documents"]) == 1
 
 
@@ -379,9 +575,50 @@ async def test_list_own_documents_across_applications_scoped_to_caller(
 
     res_a = await client.get("/api/v1/loans/documents", headers=_headers(token_a))
     assert res_a.status_code == 200, res_a.text
+    assert res_a.headers["cache-control"] == "private, no-store"
     ids_a = {d["loan_application_uuid"] for d in res_a.json()["documents"]}
     assert application_a in ids_a
     assert application_b not in ids_a
+
+
+async def test_orphan_sweep_covers_both_layouts_and_keeps_referenced_canonical(
+    client: AsyncClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from app.services import loan_documents
+
+    _mock_uploads_ok(monkeypatch)
+    copies: list[tuple[str, str]] = []
+    monkeypatch.setattr(
+        storage,
+        "copy_object",
+        lambda source, destination, _ct: copies.append((source, destination)),
+    )
+    token, application_id = await _make_client_with_application(client)
+    confirmed = await _presign_and_confirm(client, token, application_id)
+    assert confirmed.status_code == 201, confirmed.text
+    canonical_key = copies[0][1]
+
+    old = datetime.now(UTC) - timedelta(hours=2)
+    fresh = datetime.now(UTC) - timedelta(minutes=5)
+    legacy_orphan = f"loan-applications/{application_id}/{uuid.uuid4().hex}-other"
+    staging_fresh = copies[0][0]
+
+    def list_objects(prefix: str) -> list[dict]:
+        if prefix == "loan-applications/":
+            return [{"key": legacy_orphan, "last_modified": old}]
+        return [
+            {"key": canonical_key, "last_modified": old},
+            {"key": staging_fresh, "last_modified": fresh},
+        ]
+
+    deleted: list[str] = []
+    monkeypatch.setattr(storage, "list_objects", list_objects)
+    monkeypatch.setattr(storage, "delete_object", deleted.append)
+
+    summary = await loan_documents.purge_orphaned_uploads()
+
+    assert summary == {"scanned": 3, "deleted": 1}
+    assert deleted == [legacy_orphan]
 
 
 # ---------------------------------------------------------------------------

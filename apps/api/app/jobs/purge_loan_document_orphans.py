@@ -1,9 +1,8 @@
-"""Delete orphaned client loan-document KYC uploads (docs/specs/client-kyc-upload.md).
+"""Delete orphaned private client Loans media (docs/specs/client-kyc-upload.md).
 
 The presign endpoint hands out a signed URL before any LoanDocument row
-exists — a client who requests a presign, uploads, then never calls confirm
-(closes the tab, network drop) leaves an object in storage that nothing
-references. This job is the only place that leftover gets cleaned up.
+exists. The sweep covers abandoned legacy/staging uploads plus interrupted
+canonical-copy cleanup while protecting every referenced accepted object.
 Mirrors jobs/purge_agent_application_orphans.py exactly (and is itself
 mirrored by jobs/purge_task_document_orphans.py for the tasks/ prefix).
 """

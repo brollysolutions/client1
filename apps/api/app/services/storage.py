@@ -288,11 +288,11 @@ def delete_object(object_key: str) -> None:
     # Best-effort: the task_documents row is the source of truth for what the
     # employee sees. A storage-side failure here must not block the DB delete
     # (an orphaned object is a cheap, silent cost; a stuck delete flow is not).
-    # Logged (key only, never document content/PII) so a persistent storage
-    # problem doesn't go completely unnoticed.
+    # Logged without the key: private keys can contain account/application
+    # identifiers and must not become durable log data.
     try:
         _client(settings.SPACES_ENDPOINT_URL).delete_object(
             Bucket=settings.SPACES_BUCKET, Key=object_key
         )
     except Exception:
-        logger.warning("storage delete_object failed for key=%s", object_key)
+        logger.warning("storage delete_object failed")
