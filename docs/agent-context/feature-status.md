@@ -49,7 +49,7 @@ work than several completed UI requirements.
 
 - **Staff line access and payout workflow corrections** (FR-1.4, FR-2.5,
   FR-2.6, FR-10.3, and FR-11.x) are complete on
-  `feat/staff-lines-payout-workflow` (PR pending). Admin provisioning now offers
+  [PR #164](https://github.com/brollysolutions/client1/pull/164). Admin provisioning now offers
   Loans, Real Estate, or Both for Telecallers and Employees. Dual-line staff
   select one concrete line per request; the API validates the selector before
   installing RLS context, while assignment and ownership policies continue to
