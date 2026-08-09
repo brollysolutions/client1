@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Image from "next/image";
-import { Camera, Download, FileText, ImageIcon, Loader2, Trash2, Upload } from "lucide-react";
+import { Camera, Download, FileText, ImageIcon, Loader2, Trash2, Upload, Video } from "lucide-react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
@@ -93,8 +93,8 @@ export function DocumentsView() {
         {activeApplication ? (
           <>
             <p className="mt-1 text-sm text-text-secondary">
-              Attach to {activeApplication.loanTypeLabel}. JPEG, PNG, WebP, or PDF; up to 5 MiB
-              each and 12 files per application.
+              Attach to {activeApplication.loanTypeLabel}. Images and PDFs can be up to 5 MiB;
+              MP4 videos can be up to 20 MiB and 1 minute. Limit 12 files, including 2 videos.
             </p>
             <div className="mt-4 flex flex-wrap items-end gap-3">
               <div className="w-52">
@@ -207,6 +207,8 @@ export function DocumentsView() {
                     const label =
                       DOC_TYPE_LABEL[document.doc_type as DocTypeValue] ?? document.doc_type;
                     const isImage = document.content_type.startsWith("image/");
+                    const isVideo = document.content_type === "video/mp4";
+                    const ready = document.processing_status === "ready";
                     return (
                       <li key={document.id} className="overflow-hidden rounded-xl border border-border">
                         {isImage && document.preview_url ? (
@@ -226,9 +228,25 @@ export function DocumentsView() {
                               className="object-cover"
                             />
                           </a>
+                        ) : isVideo && document.playback_url ? (
+                          <video
+                            src={document.playback_url}
+                            controls
+                            preload="metadata"
+                            className="aspect-video w-full bg-black object-contain"
+                            aria-label={`${label} video`}
+                          />
                         ) : (
                           <div className="flex aspect-video items-center justify-center bg-muted text-text-secondary">
-                            <FileText className="h-8 w-8" aria-hidden="true" />
+                            {isVideo ? (
+                              ready ? (
+                                <Video className="h-8 w-8" aria-hidden="true" />
+                              ) : (
+                                <Loader2 className="h-8 w-8 animate-spin" aria-hidden="true" />
+                              )
+                            ) : (
+                              <FileText className="h-8 w-8" aria-hidden="true" />
+                            )}
                           </div>
                         )}
 
@@ -240,7 +258,11 @@ export function DocumentsView() {
                             </p>
                           </div>
                           <div>
-                            <Badge
+                            {!ready ? (
+                              <Badge className={cn(document.processing_status === "failed" ? "bg-destructive/10 text-destructive" : "bg-muted text-text-secondary")}>
+                                {document.processing_status === "failed" ? "Processing failed" : "Processing"}
+                              </Badge>
+                            ) : <Badge
                               className={cn(
                                 document.verified
                                   ? "bg-success/10 text-success"
@@ -254,18 +276,25 @@ export function DocumentsView() {
                                 : document.review_note
                                   ? "Needs attention"
                                   : "Awaiting review"}
-                            </Badge>
+                            </Badge>}
                             {document.review_note ? (
                               <p className="mt-2 text-xs text-warning">{document.review_note}</p>
                             ) : null}
                           </div>
                           <div className="flex items-center gap-2">
-                            <Button asChild type="button" size="sm" variant="outline" className="flex-1">
-                              <a href={document.download_url} target="_blank" rel="noreferrer">
+                            {document.download_url ? (
+                              <Button asChild type="button" size="sm" variant="outline" className="flex-1">
+                                <a href={document.download_url} target="_blank" rel="noreferrer">
+                                  <Download className="h-4 w-4" aria-hidden="true" />
+                                  Download
+                                </a>
+                              </Button>
+                            ) : (
+                              <Button type="button" size="sm" variant="outline" className="flex-1" disabled>
                                 <Download className="h-4 w-4" aria-hidden="true" />
-                                Download
-                              </a>
-                            </Button>
+                                Unavailable
+                              </Button>
+                            )}
                             <Button
                               type="button"
                               size="sm"

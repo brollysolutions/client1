@@ -26,6 +26,7 @@ import {
 } from "@/lib/employee-api";
 
 import { EmployeeTaskDocumentPanel } from "./employee-task-document-panel";
+import { EmployeeTaskFeedbackPanel } from "./employee-task-feedback-panel";
 import { useEmployeeTaskDetail } from "./use-employee-task-detail";
 
 type TaskStatusValue = NonNullable<EmployeeTaskUpdate["status"]>;
@@ -354,6 +355,9 @@ export function EmployeeTaskDetailView({ taskId }: { taskId: string }) {
 
       {isDocumentCollection ? (
         <EmployeeTaskDocumentPanel taskId={task.id} disabled={isTerminal} />
+      ) : null}
+      {isPropertyVisit ? (
+        <EmployeeTaskFeedbackPanel taskId={task.id} disabled={isTerminal} />
       ) : null}
     </div>
   );

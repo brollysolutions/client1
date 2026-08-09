@@ -14,6 +14,7 @@ from datetime import UTC, datetime, timedelta
 import pytest
 from httpx import AsyncClient
 from sqlalchemy import select, text
+from sqlalchemy.exc import IntegrityError
 
 from app.cache.redis_keys import RedisCache
 from app.core.security import create_access_token
@@ -23,6 +24,7 @@ from app.models.property_media import PropertyMedia, PropertySubmissionMedia
 from app.models.property_submission import PropertySubmission
 from app.services import property_submissions as submission_service
 from app.services import storage
+from app.services.media_processing import MalwareDetected
 from conftest import full_registration
 
 
@@ -98,10 +100,28 @@ def _payload_with_document(uid: str) -> dict:
     return payload
 
 
+def _payload_with_video(uid: str) -> dict:
+    payload = _payload(uid)
+    payload["media"].append(
+        {
+            "kind": "video",
+            "content_type": "video/mp4",
+            "object_key": (f"private/property-submissions/staging/{uid}/{uuid.uuid4()}/asset.mp4"),
+            "position": 1,
+        }
+    )
+    return payload
+
+
 @pytest.fixture(autouse=True)
 def _storage_ok(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(storage, "head_object", lambda _key: 2048)
     monkeypatch.setattr(storage, "content_matches_declared_type", lambda _key, _ct: True)
+    monkeypatch.setattr(
+        submission_service,
+        "canonicalize_object",
+        lambda _source, _destination, _content_type, *, max_bytes: 2048,
+    )
     monkeypatch.setattr(storage, "copy_object", lambda _source, _destination, _ct: None)
     monkeypatch.setattr(storage, "delete_object", lambda _key: None)
 
@@ -124,6 +144,80 @@ async def test_agent_submit_creates_pending(client: AsyncClient) -> None:
 
 
 @pytest.mark.asyncio
+async def test_video_stays_private_pending_and_blocks_approval(client: AsyncClient) -> None:
+    _, mobile = await full_registration(client, lines=["real_estate"])
+    uid = await _auth_user_uuid(mobile)
+    created = await client.post(
+        "/api/v1/property-submissions",
+        json=_payload_with_video(uid),
+        headers={"Authorization": f"Bearer {_agent_token(uid)}"},
+    )
+
+    assert created.status_code == 201, created.text
+    video = next(item for item in created.json()["media"] if item["kind"] == "video")
+    assert video["processing_status"] == "pending"
+    assert video["duration_seconds"] is None
+
+    import app.db.session as session_module
+
+    async with session_module.AsyncSessionLocal() as session:
+        with pytest.raises(IntegrityError):
+            await session.execute(
+                text(
+                    "UPDATE property_submission_media SET processing_status = 'ready' "
+                    "WHERE id = :media_id"
+                ),
+                {"media_id": video["id"]},
+            )
+            await session.commit()
+        await session.rollback()
+
+    approved = await client.post(
+        f"/api/v1/property-submissions/{created.json()['id']}/approve",
+        headers={"Authorization": f"Bearer {_admin_token(uid)}"},
+    )
+    assert approved.status_code == 409, approved.text
+    assert approved.json()["detail"] == "All media must finish processing before approval."
+
+
+@pytest.mark.asyncio
+async def test_video_presign_uses_twenty_megabyte_cap(client: AsyncClient) -> None:
+    _, mobile = await full_registration(client, lines=["real_estate"])
+    uid = await _auth_user_uuid(mobile)
+    response = await client.post(
+        "/api/v1/property-submissions/media-upload-url",
+        json={"kind": "video", "content_type": "video/mp4"},
+        headers={"Authorization": f"Bearer {_agent_token(uid)}"},
+    )
+
+    assert response.status_code == 200, response.text
+    assert response.json()["max_bytes"] == 20 * 1024 * 1024
+    assert response.json()["object_key"].endswith("/asset.mp4")
+
+
+@pytest.mark.asyncio
+async def test_submission_rejects_more_than_one_video(client: AsyncClient) -> None:
+    _, mobile = await full_registration(client, lines=["real_estate"])
+    uid = await _auth_user_uuid(mobile)
+    payload = _payload_with_video(uid)
+    payload["media"].append(
+        {
+            "kind": "video",
+            "content_type": "video/mp4",
+            "object_key": (f"private/property-submissions/staging/{uid}/{uuid.uuid4()}/asset.mp4"),
+            "position": 2,
+        }
+    )
+
+    response = await client.post(
+        "/api/v1/property-submissions",
+        json=payload,
+        headers={"Authorization": f"Bearer {_agent_token(uid)}"},
+    )
+    assert response.status_code == 422, response.text
+
+
+@pytest.mark.asyncio
 async def test_submission_canonicalizes_staging_upload_to_opaque_private_key(
     client: AsyncClient, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -131,9 +225,9 @@ async def test_submission_canonicalizes_staging_upload_to_opaque_private_key(
 
     copies: list[tuple[str, str]] = []
     monkeypatch.setattr(
-        storage,
-        "copy_object",
-        lambda source, destination, _ct: copies.append((source, destination)),
+        submission_service,
+        "canonicalize_object",
+        lambda source, destination, _ct, *, max_bytes: copies.append((source, destination)) or 2048,
     )
     _, mobile = await full_registration(client, lines=["real_estate"])
     uid = await _auth_user_uuid(mobile)
@@ -169,6 +263,32 @@ async def test_submission_canonicalizes_staging_upload_to_opaque_private_key(
         headers={"Authorization": f"Bearer {_agent_token(uid)}"},
     )
     assert replay_response.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_submission_malware_rejection_removes_staging_and_canonical_objects(
+    client: AsyncClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    def malware(*_args, **_kwargs):
+        raise MalwareDetected
+
+    deleted: list[str] = []
+    monkeypatch.setattr(submission_service, "canonicalize_object", malware)
+    monkeypatch.setattr(storage, "delete_object", deleted.append)
+    _, mobile = await full_registration(client, lines=["real_estate"])
+    uid = await _auth_user_uuid(mobile)
+    payload = _payload(uid)
+
+    response = await client.post(
+        "/api/v1/property-submissions",
+        json=payload,
+        headers={"Authorization": f"Bearer {_agent_token(uid)}"},
+    )
+
+    assert response.status_code == 422, response.text
+    assert payload["media"][0]["object_key"] in deleted
+    assert len(deleted) == 2
+    assert any("/canonical/" in key for key in deleted)
 
 
 @pytest.mark.asyncio

@@ -10,6 +10,12 @@ COPY --from=ghcr.io/astral-sh/uv:0.5 /uv /uvx /bin/
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
 
+# Managed video is decoded and re-encoded before any playback URL exists.
+# Install the distribution-patched binaries in both dev and prod stages.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ffmpeg \
+    && rm -rf /var/lib/apt/lists/*
+
 # ---------- dev ----------
 # No UV_SYSTEM_PYTHON here: uv creates /app/.venv so the api_venv named volume
 # in docker-compose.dev.yml is seeded from the image on first use, preventing

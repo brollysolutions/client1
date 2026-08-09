@@ -5993,7 +5993,8 @@
               "image/jpeg",
               "image/png",
               "image/webp",
-              "application/pdf"
+              "application/pdf",
+              "video/mp4"
             ],
             "title": "Content Type",
             "type": "string"
@@ -6049,7 +6050,8 @@
               "image/jpeg",
               "image/png",
               "image/webp",
-              "application/pdf"
+              "application/pdf",
+              "video/mp4"
             ],
             "title": "Content Type",
             "type": "string"
@@ -6114,7 +6116,8 @@
               "image/jpeg",
               "image/png",
               "image/webp",
-              "application/pdf"
+              "application/pdf",
+              "video/mp4"
             ],
             "title": "Content Type",
             "type": "string"
@@ -6124,8 +6127,26 @@
             "type": "string"
           },
           "download_url": {
-            "title": "Download Url",
-            "type": "string"
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Download Url"
+          },
+          "duration_seconds": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duration Seconds"
           },
           "id": {
             "format": "uuid",
@@ -6137,6 +6158,17 @@
             "title": "Loan Application Uuid",
             "type": "string"
           },
+          "playback_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Playback Url"
+          },
           "preview_url": {
             "anyOf": [
               {
@@ -6147,6 +6179,27 @@
               }
             ],
             "title": "Preview Url"
+          },
+          "processing_error_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Processing Error Code"
+          },
+          "processing_status": {
+            "enum": [
+              "pending",
+              "processing",
+              "ready",
+              "failed"
+            ],
+            "title": "Processing Status",
+            "type": "string"
           },
           "review_note": {
             "anyOf": [
@@ -6183,7 +6236,11 @@
           "content_type",
           "size_bytes",
           "preview_url",
-          "download_url"
+          "playback_url",
+          "download_url",
+          "processing_status",
+          "processing_error_code",
+          "duration_seconds"
         ],
         "title": "LoanDocumentRead",
         "type": "object"
@@ -8580,6 +8637,45 @@
         "title": "PropertyListResponse",
         "type": "object"
       },
+      "PropertyMediaRead": {
+        "properties": {
+          "content_type": {
+            "title": "Content Type",
+            "type": "string"
+          },
+          "duration_seconds": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duration Seconds"
+          },
+          "kind": {
+            "enum": [
+              "image",
+              "video"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "url": {
+            "title": "Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "url",
+          "content_type",
+          "duration_seconds"
+        ],
+        "title": "PropertyMediaRead",
+        "type": "object"
+      },
       "PropertyMediaUploadRequest": {
         "properties": {
           "content_type": {
@@ -8595,6 +8691,10 @@
               {
                 "const": "application/pdf",
                 "type": "string"
+              },
+              {
+                "const": "video/mp4",
+                "type": "string"
               }
             ],
             "title": "Content Type"
@@ -8602,7 +8702,8 @@
           "kind": {
             "enum": [
               "image",
-              "document"
+              "document",
+              "video"
             ],
             "title": "Kind",
             "type": "string"
@@ -8712,6 +8813,13 @@
           "location": {
             "title": "Location",
             "type": "string"
+          },
+          "media": {
+            "items": {
+              "$ref": "#/components/schemas/PropertyMediaRead"
+            },
+            "title": "Media",
+            "type": "array"
           },
           "media_urls": {
             "items": {
@@ -9156,6 +9264,13 @@
           "location": {
             "title": "Location",
             "type": "string"
+          },
+          "media": {
+            "items": {
+              "$ref": "#/components/schemas/PropertyMediaRead"
+            },
+            "title": "Media",
+            "type": "array"
           },
           "media_urls": {
             "items": {
@@ -10388,7 +10503,7 @@
             "items": {
               "$ref": "#/components/schemas/SubmissionMediaInput"
             },
-            "maxItems": 12,
+            "maxItems": 13,
             "minItems": 1,
             "title": "Media",
             "type": "array"
@@ -10496,6 +10611,10 @@
               {
                 "const": "application/pdf",
                 "type": "string"
+              },
+              {
+                "const": "video/mp4",
+                "type": "string"
               }
             ],
             "title": "Content Type"
@@ -10503,7 +10622,8 @@
           "kind": {
             "enum": [
               "image",
-              "document"
+              "document",
+              "video"
             ],
             "title": "Kind",
             "type": "string"
@@ -10511,12 +10631,12 @@
           "object_key": {
             "maxLength": 600,
             "minLength": 1,
-            "pattern": "^private/property-submissions/staging/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/asset\\.(jpg|png|webp|pdf)$",
+            "pattern": "^private/property-submissions/staging/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/asset\\.(jpg|png|webp|pdf|mp4)$",
             "title": "Object Key",
             "type": "string"
           },
           "position": {
-            "maximum": 11.0,
+            "maximum": 12.0,
             "minimum": 0.0,
             "title": "Position",
             "type": "integer"
@@ -10537,6 +10657,17 @@
             "title": "Content Type",
             "type": "string"
           },
+          "duration_seconds": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duration Seconds"
+          },
           "id": {
             "format": "uuid",
             "title": "Id",
@@ -10545,7 +10676,8 @@
           "kind": {
             "enum": [
               "image",
-              "document"
+              "document",
+              "video"
             ],
             "title": "Kind",
             "type": "string"
@@ -10553,6 +10685,27 @@
           "position": {
             "title": "Position",
             "type": "integer"
+          },
+          "processing_error_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Processing Error Code"
+          },
+          "processing_status": {
+            "enum": [
+              "pending",
+              "processing",
+              "ready",
+              "failed"
+            ],
+            "title": "Processing Status",
+            "type": "string"
           },
           "size_bytes": {
             "title": "Size Bytes",
@@ -10564,7 +10717,10 @@
           "kind",
           "content_type",
           "size_bytes",
-          "position"
+          "position",
+          "processing_status",
+          "processing_error_code",
+          "duration_seconds"
         ],
         "title": "SubmissionMediaRead",
         "type": "object"
@@ -11163,6 +11319,143 @@
         "title": "TaskDocumentRead",
         "type": "object"
       },
+      "TaskFeedbackMediaCreate": {
+        "properties": {
+          "content_type": {
+            "enum": [
+              "image/jpeg",
+              "image/png",
+              "image/webp",
+              "application/pdf"
+            ],
+            "title": "Content Type",
+            "type": "string"
+          },
+          "object_key": {
+            "maxLength": 600,
+            "title": "Object Key",
+            "type": "string"
+          }
+        },
+        "required": [
+          "object_key",
+          "content_type"
+        ],
+        "title": "TaskFeedbackMediaCreate",
+        "type": "object"
+      },
+      "TaskFeedbackMediaPresignRequest": {
+        "properties": {
+          "content_type": {
+            "enum": [
+              "image/jpeg",
+              "image/png",
+              "image/webp",
+              "application/pdf"
+            ],
+            "title": "Content Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "content_type"
+        ],
+        "title": "TaskFeedbackMediaPresignRequest",
+        "type": "object"
+      },
+      "TaskFeedbackMediaPresignResponse": {
+        "properties": {
+          "fields": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Fields",
+            "type": "object"
+          },
+          "max_bytes": {
+            "title": "Max Bytes",
+            "type": "integer"
+          },
+          "object_key": {
+            "title": "Object Key",
+            "type": "string"
+          },
+          "upload_url": {
+            "title": "Upload Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "object_key",
+          "upload_url",
+          "fields",
+          "max_bytes"
+        ],
+        "title": "TaskFeedbackMediaPresignResponse",
+        "type": "object"
+      },
+      "TaskFeedbackMediaRead": {
+        "properties": {
+          "content_type": {
+            "enum": [
+              "image/jpeg",
+              "image/png",
+              "image/webp",
+              "application/pdf"
+            ],
+            "title": "Content Type",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "download_url": {
+            "title": "Download Url",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "image",
+              "document"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "preview_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Preview Url"
+          },
+          "size_bytes": {
+            "title": "Size Bytes",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "content_type",
+          "size_bytes",
+          "created_at",
+          "preview_url",
+          "download_url"
+        ],
+        "title": "TaskFeedbackMediaRead",
+        "type": "object"
+      },
       "TaskRead": {
         "properties": {
           "assigned_employee_profile_uuid": {
@@ -11249,6 +11542,27 @@
         ],
         "title": "TaskRead",
         "type": "object"
+      },
+      "TaskStatus": {
+        "enum": [
+          "unassigned",
+          "assigned",
+          "in_progress",
+          "completed",
+          "cancelled",
+          "blocked"
+        ],
+        "title": "TaskStatus",
+        "type": "string"
+      },
+      "TaskType": {
+        "enum": [
+          "document_collection",
+          "property_visit",
+          "background_check"
+        ],
+        "title": "TaskType",
+        "type": "string"
       },
       "TeamPerformanceSummary": {
         "description": "Per-business-line performance summary.\n\nThe established data model has no mutable team-membership entity. Agents\nare permanently line-scoped, so the Loans and Real Estate business lines\nare the authoritative team dimension for FR-16.3.",
@@ -16665,13 +16979,41 @@
             "schema": {
               "anyOf": [
                 {
-                  "type": "string"
+                  "$ref": "#/components/schemas/TaskStatus"
                 },
                 {
                   "type": "null"
                 }
               ],
               "title": "Status Filter"
+            }
+          },
+          {
+            "in": "query",
+            "name": "task_type_filter",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/TaskType"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Task Type Filter"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 200,
+              "maximum": 500,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
             }
           }
         ],
@@ -16765,6 +17107,58 @@
           }
         ],
         "summary": "Assign Task",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/tasks/{task_id}/feedback-media": {
+      "get": {
+        "operationId": "list_task_feedback_for_admin_api_v1_admin_tasks__task_id__feedback_media_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "task_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Task Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/TaskFeedbackMediaRead"
+                  },
+                  "title": "Response List Task Feedback For Admin Api V1 Admin Tasks  Task Id  Feedback Media Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "List Task Feedback For Admin",
         "tags": [
           "admin"
         ]
@@ -19414,6 +19808,223 @@
           }
         ],
         "summary": "Delete Document",
+        "tags": [
+          "employee"
+        ]
+      }
+    },
+    "/api/v1/employee/tasks/{task_id}/feedback-media": {
+      "get": {
+        "operationId": "list_task_feedback_media_api_v1_employee_tasks__task_id__feedback_media_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "task_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Task Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/TaskFeedbackMediaRead"
+                  },
+                  "title": "Response List Task Feedback Media Api V1 Employee Tasks  Task Id  Feedback Media Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "List Task Feedback Media",
+        "tags": [
+          "employee"
+        ]
+      },
+      "post": {
+        "operationId": "confirm_task_feedback_media_api_v1_employee_tasks__task_id__feedback_media_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "task_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Task Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TaskFeedbackMediaCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskFeedbackMediaRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Confirm Task Feedback Media",
+        "tags": [
+          "employee"
+        ]
+      }
+    },
+    "/api/v1/employee/tasks/{task_id}/feedback-media/presign": {
+      "post": {
+        "operationId": "presign_task_feedback_media_api_v1_employee_tasks__task_id__feedback_media_presign_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "task_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Task Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TaskFeedbackMediaPresignRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskFeedbackMediaPresignResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Presign Task Feedback Media",
+        "tags": [
+          "employee"
+        ]
+      }
+    },
+    "/api/v1/employee/tasks/{task_id}/feedback-media/{media_id}": {
+      "delete": {
+        "operationId": "delete_task_feedback_media_api_v1_employee_tasks__task_id__feedback_media__media_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "task_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Task Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "media_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Media Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Delete Task Feedback Media",
         "tags": [
           "employee"
         ]

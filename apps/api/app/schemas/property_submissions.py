@@ -19,25 +19,34 @@ from app.models.property_submission import SubmissionStatus
 
 PropertyImageContentType = Literal["image/jpeg", "image/png", "image/webp"]
 PropertyDocumentContentType = Literal["application/pdf"]
-PropertyMediaContentType = PropertyImageContentType | PropertyDocumentContentType
+PropertyVideoContentType = Literal["video/mp4"]
+PropertyMediaContentType = (
+    PropertyImageContentType | PropertyDocumentContentType | PropertyVideoContentType
+)
 
 _PRIVATE_KEY_PATTERN = (
     r"^private/property-submissions/staging/"
     r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/"
     r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/"
-    r"asset\.(jpg|png|webp|pdf)$"
+    r"asset\.(jpg|png|webp|pdf|mp4)$"
 )
 
 
 class SubmissionMediaInput(BaseModel):
-    kind: Literal["image", "document"]
+    kind: Literal["image", "document", "video"]
     content_type: PropertyMediaContentType
     object_key: str = Field(min_length=1, max_length=600, pattern=_PRIVATE_KEY_PATTERN)
-    position: int = Field(ge=0, le=11)
+    position: int = Field(ge=0, le=12)
 
     @model_validator(mode="after")
     def validate_kind_matches_type(self) -> SubmissionMediaInput:
-        expected = "document" if self.content_type == "application/pdf" else "image"
+        expected = (
+            "document"
+            if self.content_type == "application/pdf"
+            else "video"
+            if self.content_type == "video/mp4"
+            else "image"
+        )
         if self.kind != expected:
             raise ValueError("Media kind does not match content type.")
         return self
@@ -61,16 +70,19 @@ class SubmissionCreate(BaseModel):
     age_years: int = Field(default=0, ge=0)
     rera_number: str = Field(min_length=1, max_length=40)
     details: dict = Field(default_factory=dict)
-    media: list[SubmissionMediaInput] = Field(min_length=1, max_length=12)
+    media: list[SubmissionMediaInput] = Field(min_length=1, max_length=13)
 
     @model_validator(mode="after")
     def validate_media_quota(self) -> SubmissionCreate:
         images = [asset for asset in self.media if asset.kind == "image"]
         documents = [asset for asset in self.media if asset.kind == "document"]
+        videos = [asset for asset in self.media if asset.kind == "video"]
         if not 1 <= len(images) <= 10:
             raise ValueError("A submission requires between one and ten images.")
         if len(documents) > 2:
             raise ValueError("A submission may include at most two PDF documents.")
+        if len(videos) > 1:
+            raise ValueError("A submission may include at most one video.")
         keys = [asset.object_key for asset in self.media]
         positions = [asset.position for asset in self.media]
         if len(keys) != len(set(keys)):
@@ -82,10 +94,13 @@ class SubmissionCreate(BaseModel):
 
 class SubmissionMediaRead(BaseModel):
     id: UUID
-    kind: Literal["image", "document"]
+    kind: Literal["image", "document", "video"]
     content_type: str
     size_bytes: int
     position: int
+    processing_status: Literal["pending", "processing", "ready", "failed"]
+    processing_error_code: str | None
+    duration_seconds: int | None
 
 
 class SubmissionRead(BaseModel):
@@ -126,12 +141,18 @@ class RejectRequest(BaseModel):
 
 
 class PropertyMediaUploadRequest(BaseModel):
-    kind: Literal["image", "document"]
+    kind: Literal["image", "document", "video"]
     content_type: PropertyMediaContentType
 
     @model_validator(mode="after")
     def validate_kind_matches_type(self) -> PropertyMediaUploadRequest:
-        expected = "document" if self.content_type == "application/pdf" else "image"
+        expected = (
+            "document"
+            if self.content_type == "application/pdf"
+            else "video"
+            if self.content_type == "video/mp4"
+            else "image"
+        )
         if self.kind != expected:
             raise ValueError("Media kind does not match content type.")
         return self

@@ -19,7 +19,7 @@ from datetime import datetime
 from typing import Literal
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -30,6 +30,7 @@ from app.db.session import get_db
 from app.models.audit_log import AuditAction
 from app.models.profile import AgentApplication, StaffRole, SubmissionStatus
 from app.models.support_ticket import SupportStatus
+from app.models.task import Task, TaskStatus, TaskType
 from app.schemas.admin import (
     AdminAccountDeleteRequest,
     AdminAssignedLeadRead,
@@ -57,6 +58,7 @@ from app.schemas.admin import (
 )
 from app.schemas.audit_log import AuditLogListResponse, AuditLogRead
 from app.schemas.auth import MessageResponse
+from app.schemas.employee import TaskFeedbackMediaRead
 from app.schemas.field_visibility import (
     FieldVisibilityEntryRead,
     FieldVisibilityListResponse,
@@ -173,6 +175,7 @@ from app.services.support_tickets import (
 from app.services.support_tickets import (
     view_for_admin as view_support_ticket_for_admin,
 )
+from app.services.task_feedback import list_feedback_media
 from app.services.tasks import (
     InvalidEmployee,
     TaskNotAssignable,
@@ -635,12 +638,50 @@ async def list_assigned(
 
 @router.get("/tasks", response_model=list[AdminTaskRead])
 async def list_tasks(
-    status_filter: str | None = None,
+    status_filter: TaskStatus | None = None,
+    task_type_filter: TaskType | None = None,
+    limit: int = Query(default=200, ge=1, le=500),
     current_user: CurrentUser = Depends(require_platform_admin),
     db: AsyncSession = Depends(get_db),
 ) -> list[AdminTaskRead]:
-    tasks = await list_unassigned_tasks(db, status_filter)
+    tasks = await list_unassigned_tasks(
+        db,
+        status_filter,
+        task_type_filter,
+        limit=limit,
+    )
     return [AdminTaskRead.model_validate(t, from_attributes=True) for t in tasks]
+
+
+@router.get(
+    "/tasks/{task_id}/feedback-media",
+    response_model=list[TaskFeedbackMediaRead],
+)
+async def list_task_feedback_for_admin(
+    task_id: UUID,
+    response: Response,
+    current_user: CurrentUser = Depends(require_platform_admin),
+    db: AsyncSession = Depends(get_db),
+) -> list[TaskFeedbackMediaRead]:
+    del current_user
+    response.headers["Cache-Control"] = "private, no-store"
+    task = await db.get(Task, task_id)
+    if task is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Task not found.")
+    return [
+        TaskFeedbackMediaRead(
+            id=item.id,
+            kind=item.kind,
+            content_type=item.content_type,
+            size_bytes=item.size_bytes,
+            created_at=item.created_at,
+            preview_url=(
+                storage.presign_preview(item.object_key) if item.kind == "image" else None
+            ),
+            download_url=storage.presign_download(item.object_key),
+        )
+        for item in await list_feedback_media(db, task_id)
+    ]
 
 
 @router.post("/tasks/{task_id}/assign", response_model=AdminTaskRead)

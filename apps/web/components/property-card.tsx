@@ -2,6 +2,7 @@ import Image from "next/image";
 import { MapPin } from "lucide-react";
 
 import { LeadDialog } from "@/components/lead-dialog";
+import { PropertyMediaDialog } from "@/components/property-media-dialog";
 import {
   Card,
   CardContent,
@@ -66,7 +67,10 @@ export function PropertyCard({ listing }: { listing: PropertyListing }) {
         </p>
       </CardContent>
 
-      <CardFooter className="pt-5">
+      <CardFooter className="flex flex-col gap-2 pt-5">
+        {listing.media?.length ? (
+          <PropertyMediaDialog title={listing.title} media={listing.media} />
+        ) : null}
         <LeadDialog
           businessLine="real_estate"
           product={`${listing.title}, ${listing.location}`}

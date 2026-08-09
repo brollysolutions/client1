@@ -17,10 +17,13 @@ from datetime import UTC, datetime, timedelta
 import pytest
 from httpx import AsyncClient
 from sqlalchemy import select, text
+from sqlalchemy.exc import IntegrityError
 
 from app.cache.redis_keys import RedisCache
 from app.models.loan_document import LoanDocument
+from app.services import loan_documents as loan_document_service
 from app.services import storage
+from app.services.media_processing import MalwareDetected
 from conftest import full_registration
 
 pytestmark = pytest.mark.asyncio
@@ -36,6 +39,11 @@ def _mock_uploads_ok(monkeypatch: pytest.MonkeyPatch, size: int = 2048) -> None:
     # §2-12) does a real ranged GET, and these tests never PUT real bytes to
     # the presigned URL, so it would 404 and mask whatever this is testing.
     monkeypatch.setattr(storage, "content_matches_declared_type", lambda _key, _ct: True)
+    monkeypatch.setattr(
+        loan_document_service,
+        "canonicalize_object",
+        lambda _source, _destination, _content_type, *, max_bytes: size,
+    )
     monkeypatch.setattr(storage, "copy_object", lambda _source, _destination, _ct: None)
     monkeypatch.setattr(storage, "delete_object", lambda _key: None)
 
@@ -153,6 +161,68 @@ async def test_presign_returns_fields_and_max_bytes(client: AsyncClient) -> None
     assert body["max_bytes"] == 5 * 1024 * 1024
 
 
+async def test_video_presign_and_confirm_stays_private_pending(
+    client: AsyncClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _mock_uploads_ok(monkeypatch)
+    token, application_id = await _make_client_with_application(client)
+    presign = await client.post(
+        f"/api/v1/loans/applications/{application_id}/documents/presign",
+        headers=_headers(token),
+        json={"doc_type": "other", "content_type": "video/mp4"},
+    )
+    assert presign.status_code == 200, presign.text
+    assert presign.json()["max_bytes"] == 20 * 1024 * 1024
+    assert presign.json()["object_key"].endswith("other.mp4")
+
+    confirmed = await client.post(
+        f"/api/v1/loans/applications/{application_id}/documents",
+        headers=_headers(token),
+        json={
+            "doc_type": "other",
+            "content_type": "video/mp4",
+            "object_key": presign.json()["object_key"],
+        },
+    )
+    assert confirmed.status_code == 201, confirmed.text
+    body = confirmed.json()
+    assert body["processing_status"] == "pending"
+    assert body["preview_url"] is None
+    assert body["playback_url"] is None
+    assert body["download_url"] is None
+
+    import app.db.session as session_module
+
+    async with session_module.AsyncSessionLocal() as session:
+        with pytest.raises(IntegrityError):
+            await session.execute(
+                text(
+                    "UPDATE loan_documents SET processing_status = 'ready' WHERE id = :document_id"
+                ),
+                {"document_id": body["id"]},
+            )
+            await session.commit()
+        await session.rollback()
+
+
+async def test_third_video_exceeds_per_application_quota(
+    client: AsyncClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _mock_uploads_ok(monkeypatch)
+    token, application_id = await _make_client_with_application(client)
+    responses = [
+        await _presign_and_confirm(
+            client,
+            token,
+            application_id,
+            doc_type="other",
+            content_type="video/mp4",
+        )
+        for _ in range(3)
+    ]
+    assert [response.status_code for response in responses] == [201, 201, 409]
+
+
 async def test_presign_on_closed_application_conflicts(client: AsyncClient) -> None:
     token, application_id = await _make_client_with_application(client)
     await _set_application_status(application_id, "closed")
@@ -202,9 +272,9 @@ async def test_confirm_happy_path(client: AsyncClient, monkeypatch: pytest.Monke
     copies: list[tuple[str, str]] = []
     deleted: list[str] = []
     monkeypatch.setattr(
-        storage,
-        "copy_object",
-        lambda source, destination, _ct: copies.append((source, destination)),
+        loan_document_service,
+        "canonicalize_object",
+        lambda source, destination, _ct, *, max_bytes: copies.append((source, destination)) or 2048,
     )
     monkeypatch.setattr(storage, "delete_object", deleted.append)
     token, application_id = await _make_client_with_application(client)
@@ -358,11 +428,11 @@ async def test_confirm_copy_failure_502s_without_creating_row(
     monkeypatch.setattr(storage, "head_object", lambda _key: 2048)
     monkeypatch.setattr(storage, "content_matches_declared_type", lambda _key, _ct: True)
 
-    def copy_fails(_source: str, _destination: str, _content_type: str) -> None:
+    def copy_fails(_source: str, _destination: str, _content_type: str, *, max_bytes: int) -> int:
         raise ConnectionError("copy unavailable")
 
     deleted: list[str] = []
-    monkeypatch.setattr(storage, "copy_object", copy_fails)
+    monkeypatch.setattr(loan_document_service, "canonicalize_object", copy_fails)
     monkeypatch.setattr(storage, "delete_object", deleted.append)
     token, application_id = await _make_client_with_application(client)
 
@@ -377,6 +447,37 @@ async def test_confirm_copy_failure_502s_without_creating_row(
     )
     assert list_res.status_code == 200, list_res.text
     assert list_res.json()["documents"] == []
+
+
+async def test_confirm_malware_rejection_removes_staging_and_canonical_objects(
+    client: AsyncClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _mock_uploads_ok(monkeypatch)
+
+    def malware(*_args, **_kwargs):
+        raise MalwareDetected
+
+    deleted: list[str] = []
+    monkeypatch.setattr(loan_document_service, "canonicalize_object", malware)
+    monkeypatch.setattr(storage, "delete_object", deleted.append)
+    token, application_id = await _make_client_with_application(client)
+    presign = await client.post(
+        f"/api/v1/loans/applications/{application_id}/documents/presign",
+        headers=_headers(token),
+        json={"doc_type": "photo", "content_type": "image/jpeg"},
+    )
+    object_key = presign.json()["object_key"]
+
+    response = await client.post(
+        f"/api/v1/loans/applications/{application_id}/documents",
+        headers=_headers(token),
+        json={"doc_type": "photo", "object_key": object_key, "content_type": "image/jpeg"},
+    )
+
+    assert response.status_code == 422, response.text
+    assert object_key in deleted
+    assert len(deleted) == 2
+    assert any("/canonical/" in key for key in deleted)
 
 
 async def test_confirm_key_replay_rejected(
@@ -412,9 +513,9 @@ async def test_concurrent_replay_copies_once_and_keeps_accepted_canonical(
     copies: list[tuple[str, str]] = []
     deleted: list[str] = []
     monkeypatch.setattr(
-        storage,
-        "copy_object",
-        lambda source, destination, _ct: copies.append((source, destination)),
+        loan_document_service,
+        "canonicalize_object",
+        lambda source, destination, _ct, *, max_bytes: copies.append((source, destination)) or 2048,
     )
     monkeypatch.setattr(storage, "delete_object", deleted.append)
     token, application_id = await _make_client_with_application(client)
@@ -449,9 +550,9 @@ async def test_confirm_accepts_already_issued_legacy_presign(
     _mock_uploads_ok(monkeypatch)
     copies: list[tuple[str, str]] = []
     monkeypatch.setattr(
-        storage,
-        "copy_object",
-        lambda source, destination, _ct: copies.append((source, destination)),
+        loan_document_service,
+        "canonicalize_object",
+        lambda source, destination, _ct, *, max_bytes: copies.append((source, destination)) or 2048,
     )
     token, application_id = await _make_client_with_application(client)
     legacy_key = f"loan-applications/{application_id}/{uuid.uuid4().hex}-photo"
@@ -589,9 +690,9 @@ async def test_orphan_sweep_covers_both_layouts_and_keeps_referenced_canonical(
     _mock_uploads_ok(monkeypatch)
     copies: list[tuple[str, str]] = []
     monkeypatch.setattr(
-        storage,
-        "copy_object",
-        lambda source, destination, _ct: copies.append((source, destination)),
+        loan_document_service,
+        "canonicalize_object",
+        lambda source, destination, _ct, *, max_bytes: copies.append((source, destination)) or 2048,
     )
     token, application_id = await _make_client_with_application(client)
     confirmed = await _presign_and_confirm(client, token, application_id)

@@ -74,6 +74,9 @@ PROPERTY_MEDIA_PRESIGN = "property_media_presign:{owner_uuid}"
 # the private object key separately binds the client profile and application.
 LOAN_MEDIA_PRESIGN = "loan_media_presign:{owner_uuid}"
 
+# Assigned-Employee private site-visit feedback uploads.
+TASK_FEEDBACK_MEDIA_PRESIGN = "task_feedback_media_presign:{owner_uuid}"
+
 # Authenticated coarse-location refreshes. Every capture follows an explicit
 # settings action, while this budget bounds retries and write amplification per
 # account.
@@ -95,6 +98,7 @@ TTL_MOBILE_CHANGE_RATE = 60 * 60
 TTL_MOBILE_CHANGE_OTP_DAILY = 24 * 60 * 60
 TTL_PROPERTY_MEDIA_PRESIGN = 60 * 60
 TTL_LOAN_MEDIA_PRESIGN = 60 * 60
+TTL_TASK_FEEDBACK_MEDIA_PRESIGN = 60 * 60
 TTL_PERSONALIZATION_LOCATION_CAPTURE = 60 * 60
 
 
@@ -242,6 +246,10 @@ def property_media_presign_key(owner_uuid: str) -> str:
 
 def loan_media_presign_key(owner_uuid: str) -> str:
     return LOAN_MEDIA_PRESIGN.format(owner_uuid=owner_uuid)
+
+
+def task_feedback_media_presign_key(owner_uuid: str) -> str:
+    return TASK_FEEDBACK_MEDIA_PRESIGN.format(owner_uuid=owner_uuid)
 
 
 def personalization_location_capture_key(owner_uuid: str) -> str:

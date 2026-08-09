@@ -32,7 +32,11 @@ function document(id: string, applicationId: string): LoanDocument {
     content_type: "image/jpeg",
     size_bytes: 1024,
     preview_url: "https://storage.test/preview",
+    playback_url: null,
     download_url: "https://storage.test/download",
+    processing_status: "ready",
+    processing_error_code: null,
+    duration_seconds: null,
   };
 }
 
@@ -60,6 +64,13 @@ describe("groupLoanMedia", () => {
 describe("validateLoanMediaFile", () => {
   it("accepts supported non-empty files within 5 MiB", () => {
     expect(validateLoanMediaFile({ type: "application/pdf", size: 5 * 1024 * 1024 })).toBeNull();
+  });
+
+  it("accepts MP4 video up to the separate 20 MiB cap", () => {
+    expect(validateLoanMediaFile({ type: "video/mp4", size: 20 * 1024 * 1024 })).toBeNull();
+    expect(validateLoanMediaFile({ type: "video/mp4", size: 20 * 1024 * 1024 + 1 })).toMatch(
+      /20 MiB/,
+    );
   });
 
   it("rejects unsupported, empty, and oversized files before presign", () => {

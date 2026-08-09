@@ -171,9 +171,11 @@ async def test_response_omits_internal_fields(client: AsyncClient) -> None:
             "meta",
             "image",
             "media_urls",
+            "media",
             "category",
             "rera_number",
         }
+        assert row["media"] == []
         for internal_field in (
             "active",
             "created_at",

@@ -30,6 +30,17 @@ services:
       timeout: 5s
       retries: 10
 
+  clamav:
+    image: clamav/clamav:1.4
+    volumes:
+      - clamav_data:/var/lib/clamav
+    healthcheck:
+      test: ["CMD-SHELL", "clamdscan --ping 10"]
+      interval: 30s
+      timeout: 15s
+      retries: 10
+      start_period: 120s
+
   pgbouncer:
     image: edoburu/pgbouncer:v1.23.1-p3
     environment:
@@ -122,6 +133,9 @@ services:
     command: sh -c "uv run alembic upgrade head && uv run fastapi dev app/main.py --host 0.0.0.0 --port 8000"
     env_file:
       - ./apps/api/.env.local
+    environment:
+      MEDIA_MALWARE_SCAN_MODE: clamav
+      CLAMAV_HOST: clamav
     ports:
       - "8000:8000"
     depends_on:
@@ -130,6 +144,8 @@ services:
       redis:
         condition: service_healthy
       minio:
+        condition: service_healthy
+      clamav:
         condition: service_healthy
     healthcheck:
       # python:slim has no curl; use stdlib urllib to hit the readiness probe.
@@ -146,6 +162,9 @@ services:
     command: uv run python -m app.scheduler.main
     env_file:
       - ./apps/api/.env.local
+    environment:
+      MEDIA_MALWARE_SCAN_MODE: clamav
+      CLAMAV_HOST: clamav
     depends_on:
       pgbouncer:
         condition: service_healthy
@@ -153,6 +172,8 @@ services:
         condition: service_healthy
       # Wait for api, which owns `alembic upgrade head`, so scheduler jobs never hit an unmigrated DB.
       api:
+        condition: service_healthy
+      clamav:
         condition: service_healthy
     healthcheck:
       # No HTTP port; assert the heartbeat job refreshed its liveness marker recently.
@@ -198,3 +219,4 @@ volumes:
   web_next:
   api_venv:
   minio_data:
+  clamav_data:

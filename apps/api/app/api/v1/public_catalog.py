@@ -23,7 +23,7 @@ from app.schemas.content import PublicContentBlockListResponse, PublicContentBlo
 from app.schemas.offers import PublicOfferListResponse, PublicOfferRead
 from app.schemas.properties import PublicPropertyListResponse, PublicPropertyRead
 from app.services import storage
-from app.services.properties import media_urls_by_property
+from app.services.properties import media_by_property, media_urls_by_property
 from app.services.public_catalog import (
     get_public_content_block_by_slug,
     list_public_banners,
@@ -41,10 +41,11 @@ async def list_properties_public(
 ) -> PublicPropertyListResponse:
     properties = await list_public_properties(db)
     media = await media_urls_by_property(db, [property.id for property in properties])
+    media_items = await media_by_property(db, [property.id for property in properties])
     return PublicPropertyListResponse(
         properties=[
             PublicPropertyRead.model_validate(p, from_attributes=True).model_copy(
-                update={"media_urls": media[p.id]}
+                update={"media_urls": media[p.id], "media": media_items[p.id]}
             )
             for p in properties
         ]

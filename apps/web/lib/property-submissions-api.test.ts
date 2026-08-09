@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { registerTokenGetter, registerTokenRefresher } from "@/lib/api/client";
-import { uploadPropertyMedia } from "@/lib/property-submissions-api";
+import { getSubmission, uploadPropertyMedia } from "@/lib/property-submissions-api";
 
 function response(status: number, body?: unknown): Response {
   return {
@@ -43,6 +43,7 @@ describe("uploadPropertyMedia", () => {
     const result = await uploadPropertyMedia(
       [new File(["image"], "front.jpg", { type: "image/jpeg" })],
       [new File(["pdf"], "rera.pdf", { type: "application/pdf" })],
+      null,
     );
 
     expect(result.ok).toBe(true);
@@ -79,7 +80,54 @@ describe("uploadPropertyMedia", () => {
     const result = await uploadPropertyMedia(
       [new File(["image"], "front.jpg", { type: "image/jpeg" })],
       [],
+      null,
     );
     expect(result).toEqual({ ok: false, error: "Could not upload front.jpg." });
+  });
+
+  it("uploads an optional video after images and reviewer documents", async () => {
+    const bodies: Array<Record<string, unknown>> = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string, init?: RequestInit) => {
+        if (url.endsWith("/media-upload-url")) {
+          bodies.push(JSON.parse(String(init?.body)) as Record<string, unknown>);
+          return response(200, {
+            object_key: "private/property-submissions/staging/owner/batch/asset.mp4",
+            upload_url: "https://storage.test/bucket",
+            fields: { key: "asset", policy: "signed" },
+            max_bytes: 20 * 1024 * 1024,
+          });
+        }
+        return response(201);
+      }),
+    );
+
+    const result = await uploadPropertyMedia(
+      [new File(["image"], "front.jpg", { type: "image/jpeg" })],
+      [],
+      new File(["video"], "tour.mp4", { type: "video/mp4" }),
+    );
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.media.map((asset) => asset.kind)).toEqual(["image", "video"]);
+    expect(bodies.at(-1)).toEqual({ kind: "video", content_type: "video/mp4" });
+  });
+});
+
+describe("getSubmission", () => {
+  it("loads one submission detail for processing-status polling", async () => {
+    const submission = { id: "11111111-1111-4111-8111-111111111111", media: [] };
+    const fetchMock = vi.fn().mockResolvedValue(response(200, submission));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await getSubmission(submission.id);
+
+    expect(result.ok).toBe(true);
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining(`/api/v1/property-submissions/${submission.id}`),
+      expect.any(Object),
+    );
   });
 });

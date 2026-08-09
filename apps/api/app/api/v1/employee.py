@@ -9,14 +9,15 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.deps import CurrentUser, require_employee
+from app.cache.redis_keys import RedisCache
+from app.core.deps import CurrentUser, get_cache, require_employee
 from app.db.session import get_db
 from app.models.field_visibility import FieldTargetRole, FieldVisibilityMode
 from app.models.lead import Lead
-from app.models.task import Task, TaskDocument, TaskStatus
+from app.models.task import Task, TaskDocument, TaskFeedbackMedia, TaskStatus
 from app.schemas.employee import (
     EmployeeHomeResponse,
     EmployeeTaskRead,
@@ -25,6 +26,10 @@ from app.schemas.employee import (
     TaskDocumentPresignRequest,
     TaskDocumentPresignResponse,
     TaskDocumentRead,
+    TaskFeedbackMediaCreate,
+    TaskFeedbackMediaPresignRequest,
+    TaskFeedbackMediaPresignResponse,
+    TaskFeedbackMediaRead,
     TaskStatusLiteral,
     TaskTypeLiteral,
 )
@@ -60,8 +65,57 @@ from app.services.field_visibility import (
 from app.services.field_visibility import (
     create_contact_share_link as create_contact_share_link_record,
 )
+from app.services.task_feedback import (
+    FeedbackLimitReached,
+    FeedbackRateExceeded,
+    FeedbackStorageUnavailable,
+    FeedbackUploadInvalid,
+    TaskFeedbackError,
+    TaskNotWritable,
+    WrongTaskPurpose,
+    create_feedback_media,
+    delete_feedback_media,
+    list_feedback_media,
+    presign_feedback_upload,
+)
 
 router = APIRouter()
+
+
+def _feedback_error(exc: Exception) -> HTTPException:
+    if isinstance(exc, WrongTaskPurpose):
+        return HTTPException(
+            status.HTTP_409_CONFLICT, "Feedback is only available for property visits."
+        )
+    if isinstance(exc, TaskNotWritable):
+        return HTTPException(status.HTTP_409_CONFLICT, "This task no longer accepts feedback.")
+    if isinstance(exc, FeedbackLimitReached):
+        return HTTPException(
+            status.HTTP_409_CONFLICT, "This task already has the maximum feedback attachments."
+        )
+    if isinstance(exc, FeedbackRateExceeded):
+        return HTTPException(
+            status.HTTP_429_TOO_MANY_REQUESTS, "Too many upload attempts. Try again later."
+        )
+    if isinstance(exc, FeedbackStorageUnavailable):
+        return HTTPException(status.HTTP_502_BAD_GATEWAY, "Could not verify the upload. Try again.")
+    if isinstance(exc, FeedbackUploadInvalid):
+        return HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY, "The uploaded feedback file is invalid."
+        )
+    return HTTPException(status.HTTP_404_NOT_FOUND, "Feedback attachment not found.")
+
+
+def _to_feedback_read(item: TaskFeedbackMedia) -> TaskFeedbackMediaRead:
+    return TaskFeedbackMediaRead(
+        id=item.id,
+        kind=item.kind,
+        content_type=item.content_type,
+        size_bytes=item.size_bytes,
+        created_at=item.created_at,
+        preview_url=(storage.presign_preview(item.object_key) if item.kind == "image" else None),
+        download_url=storage.presign_download(item.object_key),
+    )
 
 
 def _staff_profile_uuid(current_user: CurrentUser) -> UUID:
@@ -337,6 +391,96 @@ async def delete_document(
     if document is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Document not found.")
     await delete_task_document(db, document)
+
+
+@router.post(
+    "/tasks/{task_id}/feedback-media/presign",
+    response_model=TaskFeedbackMediaPresignResponse,
+)
+async def presign_task_feedback_media(
+    task_id: UUID,
+    payload: TaskFeedbackMediaPresignRequest,
+    response: Response,
+    current_user: CurrentUser = Depends(require_employee),
+    db: AsyncSession = Depends(get_db),
+    cache: RedisCache = Depends(get_cache),
+) -> TaskFeedbackMediaPresignResponse:
+    response.headers["Cache-Control"] = "private, no-store"
+    task = await _get_own_task(db, task_id, _staff_profile_uuid(current_user))
+    try:
+        object_key, upload_url, fields, max_bytes = await presign_feedback_upload(
+            cache,
+            task,
+            owner_uuid=current_user.id,
+            content_type=payload.content_type,
+        )
+    except TaskFeedbackError as exc:
+        raise _feedback_error(exc) from exc
+    return TaskFeedbackMediaPresignResponse(
+        object_key=object_key,
+        upload_url=upload_url,
+        fields=fields,
+        max_bytes=max_bytes,
+    )
+
+
+@router.post(
+    "/tasks/{task_id}/feedback-media",
+    response_model=TaskFeedbackMediaRead,
+    status_code=status.HTTP_201_CREATED,
+)
+async def confirm_task_feedback_media(
+    task_id: UUID,
+    payload: TaskFeedbackMediaCreate,
+    response: Response,
+    current_user: CurrentUser = Depends(require_employee),
+    db: AsyncSession = Depends(get_db),
+) -> TaskFeedbackMediaRead:
+    response.headers["Cache-Control"] = "private, no-store"
+    task = await _get_own_task(db, task_id, _staff_profile_uuid(current_user))
+    try:
+        item = await create_feedback_media(
+            db,
+            task,
+            owner_uuid=current_user.id,
+            content_type=payload.content_type,
+            object_key=payload.object_key,
+        )
+    except TaskFeedbackError as exc:
+        raise _feedback_error(exc) from exc
+    return _to_feedback_read(item)
+
+
+@router.get(
+    "/tasks/{task_id}/feedback-media",
+    response_model=list[TaskFeedbackMediaRead],
+)
+async def list_task_feedback_media(
+    task_id: UUID,
+    response: Response,
+    current_user: CurrentUser = Depends(require_employee),
+    db: AsyncSession = Depends(get_db),
+) -> list[TaskFeedbackMediaRead]:
+    response.headers["Cache-Control"] = "private, no-store"
+    await _get_own_task(db, task_id, _staff_profile_uuid(current_user))
+    return [_to_feedback_read(item) for item in await list_feedback_media(db, task_id)]
+
+
+@router.delete(
+    "/tasks/{task_id}/feedback-media/{media_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+async def delete_task_feedback_media(
+    task_id: UUID,
+    media_id: UUID,
+    current_user: CurrentUser = Depends(require_employee),
+    db: AsyncSession = Depends(get_db),
+) -> None:
+    task = await _get_own_task(db, task_id, _staff_profile_uuid(current_user))
+    try:
+        await delete_feedback_media(db, task, media_id)
+    except TaskFeedbackError as exc:
+        raise _feedback_error(exc) from exc
 
 
 @router.get("/home", response_model=EmployeeHomeResponse, response_model_exclude_unset=True)

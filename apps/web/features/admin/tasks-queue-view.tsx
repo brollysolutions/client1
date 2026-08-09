@@ -1,7 +1,8 @@
 "use client";
 
 import * as React from "react";
-import { CheckCircle2, ClipboardList, Copy, Loader2 } from "lucide-react";
+import Image from "next/image";
+import { CheckCircle2, ClipboardList, Copy, Download, FileText, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
@@ -21,7 +22,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { assignTask, type AdminTask } from "@/lib/admin-api";
+import {
+  assignTask,
+  listAdminTaskFeedbackMedia,
+  type AdminTask,
+  type TaskFeedbackMedia,
+} from "@/lib/admin-api";
 import { useAdminTasksQueue } from "./use-admin-tasks";
 
 const TASK_TYPE_LABEL: Record<string, string> = {
@@ -52,6 +58,27 @@ export function TasksQueueView() {
   const [active, setActive] = React.useState<AdminTask | null>(null);
   const [selectedEmployee, setSelectedEmployee] = React.useState<string>("");
   const [busy, setBusy] = React.useState(false);
+  const [feedbackTask, setFeedbackTask] = React.useState<AdminTask | null>(null);
+  const [feedback, setFeedback] = React.useState<TaskFeedbackMedia[]>([]);
+  const [feedbackLoading, setFeedbackLoading] = React.useState(false);
+
+  React.useEffect(() => {
+    let activeRequest = true;
+    if (!feedbackTask) {
+      setFeedback([]);
+      return;
+    }
+    setFeedbackLoading(true);
+    void listAdminTaskFeedbackMedia(feedbackTask.id).then((result) => {
+      if (!activeRequest) return;
+      setFeedback(result.ok ? result.data : []);
+      setFeedbackLoading(false);
+      if (!result.ok) toast.error("Couldn’t load feedback", { description: result.error });
+    });
+    return () => {
+      activeRequest = false;
+    };
+  }, [feedbackTask]);
 
   const eligibleEmployees = React.useMemo(
     () => employees.filter((e) => e.business_line === active?.business_line),
@@ -85,9 +112,9 @@ export function TasksQueueView() {
   return (
     <div className="mx-auto w-full max-w-5xl space-y-6 px-4 sm:px-6 lg:px-10">
       <div>
-        <h1 className="text-2xl font-semibold text-text-primary">Unassigned tasks</h1>
+        <h1 className="text-2xl font-semibold text-text-primary">Field tasks</h1>
         <p className="text-sm text-text-secondary">
-          Hand each field task to an active employee on the matching business line.
+          Assign open work and review private property-visit feedback.
         </p>
       </div>
 
@@ -105,7 +132,7 @@ export function TasksQueueView() {
       ) : tasks.length === 0 ? (
         <div className="flex flex-col items-center rounded-2xl border border-border bg-card p-12 text-center">
           <ClipboardList className="h-8 w-8 text-text-secondary" aria-hidden="true" />
-          <p className="mt-3 font-medium text-text-primary">No unassigned tasks</p>
+          <p className="mt-3 font-medium text-text-primary">No field tasks</p>
           <p className="mt-1 text-sm text-text-secondary">
             New field tasks raised by telecallers will show up here.
           </p>
@@ -125,6 +152,7 @@ export function TasksQueueView() {
                   <Badge variant="secondary">
                     {LINE_LABEL[task.business_line] ?? task.business_line}
                   </Badge>
+                  <Badge variant="secondary">{task.status.replaceAll("_", " ")}</Badge>
                 </div>
                 <p className="text-xs text-text-secondary">Due: {formatDate(task.due_at)}</p>
                 {task.notes ? (
@@ -139,7 +167,11 @@ export function TasksQueueView() {
                   Lead {shortId(task.lead_uuid)}
                 </button>
               </div>
-              <Button onClick={() => openAssign(task)}>Assign</Button>
+              {task.status === "unassigned" ? (
+                <Button onClick={() => openAssign(task)}>Assign</Button>
+              ) : task.task_type === "property_visit" ? (
+                <Button variant="outline" onClick={() => setFeedbackTask(task)}>View feedback</Button>
+              ) : null}
             </li>
           ))}
         </ul>
@@ -194,6 +226,41 @@ export function TasksQueueView() {
               </DialogFooter>
             </>
           ) : null}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={feedbackTask !== null} onOpenChange={(open) => !open && setFeedbackTask(null)}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Property visit feedback</DialogTitle>
+            <DialogDescription>
+              Private attachments from the assigned Employee. They are retained for 90 days after the task closes.
+            </DialogDescription>
+          </DialogHeader>
+          {feedbackLoading ? (
+            <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin" /></div>
+          ) : feedback.length === 0 ? (
+            <p className="py-8 text-center text-sm text-text-secondary">No feedback attachments yet.</p>
+          ) : (
+            <ul className="grid gap-3 sm:grid-cols-2">
+              {feedback.map((item, index) => (
+                <li key={item.id} className="overflow-hidden rounded-xl border border-border">
+                  {item.preview_url ? (
+                    <a href={item.preview_url} target="_blank" rel="noreferrer" className="relative block aspect-video bg-muted">
+                      <Image src={item.preview_url} alt={`Visit feedback ${index + 1}`} fill unoptimized className="object-cover" />
+                    </a>
+                  ) : (
+                    <div className="flex aspect-video items-center justify-center bg-muted"><FileText className="h-7 w-7" /></div>
+                  )}
+                  <div className="p-3">
+                    <Button asChild size="sm" variant="outline" className="w-full">
+                      <a href={item.download_url} target="_blank" rel="noreferrer"><Download className="h-4 w-4" /> Download</a>
+                    </Button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
         </DialogContent>
       </Dialog>
     </div>
