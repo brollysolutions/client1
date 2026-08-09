@@ -71,25 +71,27 @@ class FeatureTrackingTests(unittest.TestCase):
             MODULE_PATH.parents[1] / "docs" / "agent-context" / "feature-status.md"
         )
         text = status_path.read_text(encoding="utf-8")
-        summary = {
-            label: int(value)
-            for label, value in re.findall(
-                r"\| (Complete requirements|Partial requirements|Not-started requirements) "
-                r"\| (\d+) / 80",
-                text,
-            )
-        }
+        summary_rows = re.findall(
+            r"\| (Complete requirements|Partial requirements|Not-started requirements) "
+            r"\| (\d+) / (\d+)",
+            text,
+        )
+        self.assertEqual(len(summary_rows), 3)
+        denominators = {int(denominator) for _, _, denominator in summary_rows}
+        self.assertEqual(len(denominators), 1)
+        active_total = denominators.pop()
+        summary = {label: int(value) for label, value, _ in summary_rows}
         rows = re.findall(
             r"^\| FR-[0-9.]+ \| (Partial|Not started) \|", text, re.MULTILINE
         )
         partial = rows.count("Partial")
         not_started = rows.count("Not started")
-        complete = 80 - len(rows)
+        complete = active_total - len(rows)
 
         self.assertEqual(summary["Complete requirements"], complete)
         self.assertEqual(summary["Partial requirements"], partial)
         self.assertEqual(summary["Not-started requirements"], not_started)
-        self.assertIn(f"**{(complete + partial * 0.5) / 80:.1%}", text)
+        self.assertIn(f"**{(complete + partial * 0.5) / active_total:.1%}", text)
 
 
 if __name__ == "__main__":
