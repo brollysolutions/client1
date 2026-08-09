@@ -70,11 +70,12 @@ included in completion coverage.
 | 2 | Media controls completion (FR-13.1–FR-13.4) | **Done** in [PR #159](https://github.com/brollysolutions/client1/pull/159): purpose-bound property and Loans MP4, assigned-Employee property-visit feedback attachments, fail-closed malware scanning, metadata removal/transcoding, and explicit retention complete the approved scope without a universal asset library. | `gpt-5.6-sol` / Extra High | `gpt-5.6-sol` / Extra High | Preserve the delivered purpose, assignment, line, private/public promotion, processing-state, retention, and account-deletion invariants. |
 | 3 | Provenance-based edit ownership (FR-2.8) | Current edit paths work, but ownership rules are not uniform across submitted detail types. | `gpt-5.6-sol` / High | `gpt-5.6-sol` / Extra High | Define per-field creator/reviewer/Admin authority; enforce it in service and RLS paths with cross-role/cross-line denial tests. |
 | 4 | Admin operational coverage audit (FR-2.2) | Admin has broad coverage, but the approved requirement calls for exhaustive view/update coverage. | `gpt-5.6-terra` / High | `gpt-5.6-terra` / High | Inventory every required Admin surface, close confirmed gaps, and add authorization plus accessible UI coverage. |
-| 5 | Business-line classification hardening (FR-1.1) | **Done** on `security/business-line-classification` (PR link pending): every mapped table and managed-media purpose has an explicit classification mode; operational rows, fixed domains, staged referrals, global content, staff scope, and audit exceptions are database-constrained. | `gpt-5.6-sol` / High | `gpt-5.6-sol` / Extra High | Preserve the exhaustive classification ledger, exact-line lead intent, count-only deployment preflight, immutable tags, and parent/provenance checks as schemas evolve. |
+| 5 | Business-line classification hardening (FR-1.1) | **Done** in [PR #160](https://github.com/brollysolutions/client1/pull/160): every mapped table and managed-media purpose has an explicit classification mode; operational rows, fixed domains, staged referrals, global content, staff scope, and audit exceptions are database-constrained. | `gpt-5.6-sol` / High | `gpt-5.6-sol` / Extra High | Preserve the exhaustive classification ledger, exact-line lead intent, count-only deployment preflight, immutable tags, and parent/provenance checks as schemas evolve. |
 
 ### Delivered feature brief - business-line classification hardening
 
-- **Branch / PR:** `security/business-line-classification` / PR link pending.
+- **Branch / PR:** `security/business-line-classification` /
+  [PR #160](https://github.com/brollysolutions/client1/pull/160).
 - **Success:** every operational lead, workflow, content artifact, upload, and
   report row is classified as exactly `loans` or `real_estate` at creation;
   platform/identity records and deliberately global content are explicit,
@@ -884,8 +885,8 @@ merged. Payment-method completion is merged in
 The next active item is **provenance-based edit ownership** (FR-2.8). Define the
 field-level creator, reviewer, and platform-Admin authority matrix before
 changing the remaining cross-cutting authorization paths. Business-line
-classification hardening (FR-1.1) is delivered on
-`security/business-line-classification` with its PR link pending.
+classification hardening (FR-1.1) is delivered in
+[PR #160](https://github.com/brollysolutions/client1/pull/160).
 
 For each item:
 
