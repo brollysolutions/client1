@@ -4,7 +4,8 @@ Status: **Derived living implementation ledger**
 
 As of: **2026-08-09**
 
-Evidence baseline: `security/business-line-classification` (PR link pending),
+Evidence baseline: `security/business-line-classification`
+([PR #160](https://github.com/brollysolutions/client1/pull/160)),
 based on `493a4fc` ([PR #159](https://github.com/brollysolutions/client1/pull/159))
 
 ## Purpose and authority
@@ -46,8 +47,8 @@ work than several completed UI requirements.
 
 ## Delivered implementation
 
-- **Business-line classification hardening** (FR-1.1) is complete on
-  `security/business-line-classification` (PR link pending). An exhaustive
+- **Business-line classification hardening** (FR-1.1) is complete in
+  [PR #160](https://github.com/brollysolutions/client1/pull/160). An exhaustive
   contract classifies every mapped table and managed-media purpose; operational
   rows now require exactly Loans or Real Estate, while staged referrals,
   platform staff, global content, audit, identity, derived, and configuration
