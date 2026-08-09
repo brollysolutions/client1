@@ -11,13 +11,13 @@ from datetime import UTC, datetime
 import pytest
 import pytest_asyncio
 from httpx import AsyncClient
-from sqlalchemy import func, select, update
+from sqlalchemy import func, select, text, update
 from sqlalchemy.exc import DBAPIError
 
 import app.db.session as db_session
 from app.jobs.assign_unassigned_leads import _assign_batch
 from app.models.audit_log import AuditAction, AuditLog
-from app.models.lead import Lead, LeadOrigin, LeadStatus
+from app.models.lead import Lead, LeadAssignmentCursor, LeadOrigin, LeadStatus
 from app.models.profile import (
     AgentProfile,
     ClientProfile,
@@ -27,7 +27,12 @@ from app.models.profile import (
     StaffRole,
 )
 from app.models.user import User
-from app.services.leads import auto_assign_locked_lead, capture_agent_lead, capture_lead
+from app.services.leads import (
+    assign_lead_to_telecaller,
+    auto_assign_locked_lead,
+    capture_agent_lead,
+    capture_lead,
+)
 from conftest import full_registration, unique_mobile
 
 
@@ -124,11 +129,9 @@ def _silence_assignment_notifications(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 @pytest.mark.asyncio
-async def test_agent_lead_uses_least_loaded_same_line_telecaller() -> None:
-    busy = await _seed_telecaller("loans")
-    available = await _seed_telecaller("loans")
+async def test_agent_leads_rotate_in_stable_order_independent_of_workload() -> None:
+    telecallers = [await _seed_telecaller("loans") for _ in range(3)]
     await _seed_telecaller("real_estate")
-    agent = await _seed_agent("loans")
 
     async with db_session.AsyncSessionLocal() as db:
         db.add(
@@ -136,32 +139,147 @@ async def test_agent_lead_uses_least_loaded_same_line_telecaller() -> None:
                 mobile=unique_mobile(),
                 business_line="loans",
                 status=LeadStatus.WORKING,
-                assigned_telecaller_profile_uuid=busy.id,
+                assigned_telecaller_profile_uuid=telecallers[0].id,
             )
         )
         await db.commit()
 
-    lead = await capture_agent_lead(
-        mobile=unique_mobile(),
-        name="Introduced Client",
-        business_line="loans",
-        agent_profile_uuid=agent.id,
-        requirement={"notes": "Home loan"},
-    )
+    leads = []
+    for _ in range(6):
+        agent = await _seed_agent("loans")
+        leads.append(
+            await capture_agent_lead(
+                mobile=unique_mobile(),
+                name="Introduced Client",
+                business_line="loans",
+                agent_profile_uuid=agent.id,
+                requirement={"notes": "Home loan"},
+            )
+        )
 
-    assert lead.status == LeadStatus.ASSIGNED
-    assert lead.assigned_telecaller_profile_uuid == available.id
+    assert [lead.assigned_telecaller_profile_uuid for lead in leads] == [
+        telecallers[0].id,
+        telecallers[1].id,
+        telecallers[2].id,
+        telecallers[0].id,
+        telecallers[1].id,
+        telecallers[2].id,
+    ]
+    assert all(lead.status == LeadStatus.ASSIGNED for lead in leads)
     async with db_session.AsyncSessionLocal() as db:
         audit_count = await db.scalar(
             select(func.count())
             .select_from(AuditLog)
             .where(
-                AuditLog.entity_uuid == lead.id,
+                AuditLog.entity_uuid.in_([lead.id for lead in leads]),
                 AuditLog.action == AuditAction.LEAD_ASSIGNED,
                 AuditLog.actor_uuid.is_(None),
             )
         )
-    assert audit_count == 1
+    assert audit_count == 6
+
+
+@pytest.mark.asyncio
+async def test_round_robin_skips_inactive_telecaller_and_rejoins_in_order() -> None:
+    first = await _seed_telecaller("loans")
+    second = await _seed_telecaller("loans", active=False)
+    third = await _seed_telecaller("loans")
+    agents = [await _seed_agent("loans") for _ in range(4)]
+
+    leads = []
+    for agent in agents[:2]:
+        leads.append(
+            await capture_agent_lead(
+                mobile=unique_mobile(),
+                name=None,
+                business_line="loans",
+                agent_profile_uuid=agent.id,
+                requirement=None,
+            )
+        )
+
+    async with db_session.AsyncSessionLocal() as db:
+        stored = await db.get(StaffProfile, second.id)
+        assert stored is not None
+        stored.status = ProfileStatus.ACTIVE
+        await db.commit()
+
+    for agent in agents[2:]:
+        leads.append(
+            await capture_agent_lead(
+                mobile=unique_mobile(),
+                name=None,
+                business_line="loans",
+                agent_profile_uuid=agent.id,
+                requirement=None,
+            )
+        )
+
+    assert [lead.assigned_telecaller_profile_uuid for lead in leads] == [
+        first.id,
+        third.id,
+        first.id,
+        second.id,
+    ]
+
+
+@pytest.mark.asyncio
+async def test_business_lines_advance_independent_round_robin_cursors() -> None:
+    loans = [await _seed_telecaller("loans") for _ in range(2)]
+    real_estate = [await _seed_telecaller("real_estate") for _ in range(2)]
+    assignments: dict[str, list[uuid.UUID | None]] = {"loans": [], "real_estate": []}
+
+    for line in ("loans", "real_estate", "loans", "real_estate"):
+        agent = await _seed_agent(line)
+        lead = await capture_agent_lead(
+            mobile=unique_mobile(),
+            name=None,
+            business_line=line,
+            agent_profile_uuid=agent.id,
+            requirement=None,
+        )
+        assignments[line].append(lead.assigned_telecaller_profile_uuid)
+
+    assert assignments == {
+        "loans": [loans[0].id, loans[1].id],
+        "real_estate": [real_estate[0].id, real_estate[1].id],
+    }
+
+
+@pytest.mark.asyncio
+async def test_manual_assignment_does_not_consume_automatic_turn() -> None:
+    first = await _seed_telecaller("loans")
+    second = await _seed_telecaller("loans")
+    actor = await _seed_agent("loans")
+
+    async with db_session.AsyncSessionLocal() as db:
+        manually_assigned = Lead(
+            mobile=unique_mobile(),
+            business_line="loans",
+            status=LeadStatus.NEW,
+            origin=LeadOrigin.DIRECT,
+        )
+        db.add(manually_assigned)
+        await db.commit()
+        await assign_lead_to_telecaller(
+            db,
+            manually_assigned.id,
+            second.id,
+            actor_uuid=actor.auth_user_uuid,
+            actor_role="admin",
+        )
+
+    automatic_agent = await _seed_agent("loans")
+    automatically_assigned = await capture_agent_lead(
+        mobile=unique_mobile(),
+        name=None,
+        business_line="loans",
+        agent_profile_uuid=automatic_agent.id,
+        requirement=None,
+    )
+
+    assert manually_assigned.assigned_telecaller_profile_uuid == second.id
+    assert automatically_assigned.assigned_telecaller_profile_uuid == first.id
 
 
 @pytest.mark.asyncio
@@ -347,9 +465,9 @@ async def test_direct_both_intent_creates_independent_assigned_journeys(
 
 
 @pytest.mark.asyncio
-async def test_concurrent_assignment_keeps_workloads_balanced() -> None:
-    telecallers = [await _seed_telecaller("loans") for _ in range(2)]
-    agents = [await _seed_agent("loans") for _ in range(4)]
+async def test_concurrent_assignment_consumes_each_round_robin_turn_once() -> None:
+    telecallers = [await _seed_telecaller("loans") for _ in range(3)]
+    agents = [await _seed_agent("loans") for _ in range(6)]
 
     leads = await asyncio.gather(
         *[
@@ -365,8 +483,59 @@ async def test_concurrent_assignment_keeps_workloads_balanced() -> None:
     )
 
     counts = Counter(lead.assigned_telecaller_profile_uuid for lead in leads)
-    assert set(counts) == {telecaller.id for telecaller in telecallers}
-    assert max(counts.values()) - min(counts.values()) <= 1
+    assert counts == Counter({telecaller.id: 2 for telecaller in telecallers})
+
+
+@pytest.mark.asyncio
+async def test_cursor_state_is_unreachable_to_api_user() -> None:
+    async with db_session.AsyncSessionLocal() as db:
+        grants = list(
+            (
+                await db.scalars(
+                    text(
+                        "SELECT privilege_type "
+                        "FROM information_schema.role_table_grants "
+                        "WHERE table_schema = 'public' "
+                        "AND table_name = 'lead_assignment_cursors' "
+                        "AND grantee = 'api_user'"
+                    )
+                )
+            ).all()
+        )
+        rls = (
+            await db.execute(
+                text(
+                    "SELECT relrowsecurity, relforcerowsecurity FROM pg_class "
+                    "WHERE relname = 'lead_assignment_cursors'"
+                )
+            )
+        ).one()
+
+    assert grants == []
+    assert rls == (True, True)
+
+    async with db_session.engine.connect() as connection:
+        transaction = await connection.begin()
+        try:
+            await connection.execute(text("SET LOCAL ROLE api_user"))
+            with pytest.raises(DBAPIError):
+                await connection.execute(text("SELECT * FROM lead_assignment_cursors"))
+        finally:
+            await transaction.rollback()
+
+
+@pytest.mark.asyncio
+async def test_database_rejects_cross_line_assignment_cursor() -> None:
+    await _seed_telecaller("loans")
+    real_estate = await _seed_telecaller("real_estate")
+
+    async with db_session.AsyncSessionLocal() as db:
+        cursor = await db.get(LeadAssignmentCursor, "loans")
+        assert cursor is not None
+        cursor.last_telecaller_profile_uuid = real_estate.id
+        with pytest.raises(DBAPIError):
+            await db.commit()
+        await db.rollback()
 
 
 @pytest.mark.asyncio

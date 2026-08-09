@@ -2,11 +2,10 @@
 
 Status: **Derived living implementation ledger**
 
-As of: **2026-08-09**
+As of: **2026-08-10**
 
-Evidence baseline: `security/business-line-classification`
-([PR #160](https://github.com/brollysolutions/client1/pull/160)),
-based on `493a4fc` ([PR #159](https://github.com/brollysolutions/client1/pull/159))
+Evidence baseline: `feat/lead-round-robin` (PR pending), based on `c0dc8b2`
+([PR #162](https://github.com/brollysolutions/client1/pull/162))
 
 ## Purpose and authority
 
@@ -122,16 +121,22 @@ work than several completed UI requirements.
   contracts, API/web UI, security review, and database concurrency tests cover
   the completed scope. RuPay/card handling, customer/principal collection, a
   second live provider, and automatic failover remain explicit non-goals.
-- **Lead assignment completion** (FR-4.2 and FR-4.3) is implemented in
-  [PR #153](https://github.com/brollysolutions/client1/pull/153). Explicit Loans/Real Estate
-  registration intent and Agent introductions create independent same-line
-  journeys; active Telecallers receive them by deterministic least workload,
-  with a bounded 15-minute retry when capacity is absent. OTP-proven
+- **Lead assignment completion** (FR-4.2 and FR-4.3) was established in
+  [PR #153](https://github.com/brollysolutions/client1/pull/153) and its automatic
+  selection policy is updated on `feat/lead-round-robin` (PR pending). Explicit
+  Loans/Real Estate registration intent and Agent introductions create
+  independent same-line journeys; active Telecallers now receive them through
+  separate durable per-line round-robin cursors in stable creation order, with
+  a bounded 15-minute retry when capacity is absent. OTP-proven
   registration binds same-mobile Agent leads without putting a lead ID or
   mobile in the shared link. Database uniqueness, fixed-search-path validation,
-  account-deletion closure, RLS tests, PII-safe audit/notifications, generated
-  contracts, and API/browser concurrency and isolation coverage protect the
-  workflow.
+  row-locked selection, cursor zero-grant/RLS isolation, cross-line database
+  validation, account-deletion closure, PII-safe audit/notifications, and
+  concurrency coverage protect the workflow. Fresh evidence includes 188
+  affected tests, a 25-test focused assignment/classification pass, Ruff across
+  423 API files, and a migration round-trip with one Alembic head. The
+  monolithic API suite exceeded 30 minutes without a final report and is
+  inconclusive rather than passing; no API contract or web change was required.
 - **Authenticated banner personalization** (FR-12.1 through FR-12.4 and
   FR-18.1) is implemented in
   [PR #152](https://github.com/brollysolutions/client1/pull/152). A closed
@@ -175,7 +180,7 @@ work than several completed UI requirements.
 | Platform and segregation (FR-1.x) | 5 | 0 | 0 | Every mapped table and managed-media purpose has an explicit classification mode; database checks and provenance triggers enforce concrete operational lines while preserving reviewed global/identity exceptions. |
 | Roles and access (FR-2.x) | 7 | 2 | 0 | Six role surfaces, server/RLS guards, and Admin-managed closed-catalogue field visibility exist; Admin coverage and edit ownership are not exhaustive. |
 | Authentication (FR-3.x) | 5 | 0 | 0 | OTP/password/session flows, dual-line client identity, support-assisted mobile change, and mobile-first registration with optional verified email recovery exist. |
-| Leads (FR-4.x) | 6 | 0 | 0 | Explicit per-line intent, deterministic automatic assignment/retry, OTP account binding, Admin fallback, ownership, fixed Agent expiry, and Agent/Telecaller workflows are implemented. |
+| Leads (FR-4.x) | 6 | 0 | 0 | Explicit per-line intent, deterministic per-line round-robin assignment/retry, OTP account binding, Admin fallback, ownership, fixed Agent expiry, and Agent/Telecaller workflows are implemented. |
 | Agent registration (FR-5.x) | 4 | 0 | 0 | OTP-verified application, KYC, Admin review, Agent ID, and owned-lead contact access exist. |
 | Loans (FR-6.x) | 6 | 0 | 0 | Public pages/calculators, applications, configurable products/banks, progression, transactions, and fee cashback exist. |
 | Real estate (FR-7.x) | 5 | 0 | 0 | Catalog, managed property submissions/media, inquiries, visits, deals, review, Employee work, and dedicated vehicle arrangements are implemented. |
@@ -206,7 +211,7 @@ The following requirements are complete on the evidence baseline:
   OTP intake, platform-Admin maker/checker review, session-generation revocation,
   linked-contact updates, collision rollback, and API/RLS/concurrency tests.
 - Lead operations: FR-4.1 through FR-4.6. Evidence includes independent
-  per-line journeys, explicit registration intent, deterministic least-loaded
+  per-line journeys, explicit registration intent, deterministic round-robin
   same-line automatic assignment, bounded retry, OTP-proven Agent-lead binding,
   Admin assignment/release fallback, Telecaller follow-up, fixed
   first-attribution deadlines, audit/notifications, Agent history/countdown UI,
@@ -269,8 +274,8 @@ The following requirements are complete on the evidence baseline:
 | FR-1.1 | Complete | Every mapped table and managed-media purpose is inventoried; operational rows require one immutable Loans/Real Estate tag, parent/source copies must match, and only reviewed staged/global/identity exceptions remain nullable or allow `both`. | Preserve the exhaustive ledger and migration/negative tests for every future table, relation, content audience, and media purpose. |
 | FR-2.2 | Partial | Admin dashboards cover users, leads, tasks, agents, loans, deals, payouts, content, audit, and reports. | Complete the requirement's exhaustive view/update coverage and verify every surface in Admin UI. |
 | FR-2.8 | Partial | Agent pre-assignment editing, client profile editing, and Admin operational edits exist. | Define and enforce provenance-based edit ownership consistently across all submitted detail types. |
-| FR-4.2 | Complete | Agent-introduced leads are atomically attributed and assigned to the least-loaded active same-line Telecaller, queued for bounded retry without capacity, and bound to a same-mobile Client only after OTP-proven registration. | Preserve global Agent ownership, expiry deadlines, generic-link authority boundaries, and concurrency tests as the workflow evolves. |
-| FR-4.3 | Complete | Registration captures explicit one/both-line intent while retaining both Client profiles; each requested journey is independently bound and automatically assigned without cross-line leakage. | Preserve explicit intent, per-line uniqueness, deterministic assignment ordering, and account-deletion closure. |
+| FR-4.2 | Complete | Agent-introduced leads are atomically attributed and assigned through a durable, active-only same-line round-robin cursor, queued for bounded retry without capacity, and bound to a same-mobile Client only after OTP-proven registration. | Preserve global Agent ownership, expiry deadlines, generic-link authority boundaries, stable Telecaller order, cursor isolation, and concurrency tests as the workflow evolves. |
+| FR-4.3 | Complete | Registration captures explicit one/both-line intent while retaining both Client profiles; each requested journey is independently bound and assigned through its line's separate round-robin cursor without cross-line leakage. | Preserve explicit intent, per-line uniqueness, deterministic assignment ordering, and account-deletion closure. |
 | FR-10.3 | Complete | Cashback, referral bonuses, and commissions support UPI VPA and bank transfer through an explicit RazorpayX provider adapter plus an audited manual-cheque lifecycle. Cheque approval does not credit the ledger; issue, clearance, failure, duplicate/concurrent settlement, and compensating reversal are server-controlled, masked, and covered by migrated database tests. | Preserve provider scoping, Admin authorization, caps, raw-destination minimization, row-lock/CAS idempotency, account-deletion retention, and the no-card/no-failover boundary when adding future providers. |
 | FR-11.2 | Complete | Every notification producer, Admin broadcast, web push, public banner CTA, and transactional email action uses a same-origin relevant route; verified active email addresses can receive best-effort transactional copies when enabled. | Maintain the producer inventory as future events are added; no marketing or unverified-email delivery is implied. |
 | FR-12.1 | Complete | Authenticated Client/Agent dashboards receive one eligible banner per default, personalized, and action layer through a closed, versioned, fail-closed audience grammar. | Maintain schema/version and negative-rule tests when new dimensions are proposed. |

@@ -2,7 +2,7 @@
 
 Status: **Derived, actively maintained plan**
 
-As of: **2026-08-09**
+As of: **2026-08-10**
 
 Evidence baseline: `20a4ed8`
 ([PR #159](https://github.com/brollysolutions/client1/pull/159)), based on
@@ -69,9 +69,51 @@ included in completion coverage.
 | 1 | Analytics verification (FR-16.1–FR-16.3) | **Done** in [PR #156](https://github.com/brollysolutions/client1/pull/156): a Linux PostgreSQL/Redis run passed the reporting service/API/RLS suite, and the web production build completed. | `gpt-5.6-terra` / High | `gpt-5.6-terra` / High | No defect was proven; retain the existing authorization, RLS, export-safety, and team-dimension invariants. |
 | 2 | Media controls completion (FR-13.1–FR-13.4) | **Done** in [PR #159](https://github.com/brollysolutions/client1/pull/159): purpose-bound property and Loans MP4, assigned-Employee property-visit feedback attachments, fail-closed malware scanning, metadata removal/transcoding, and explicit retention complete the approved scope without a universal asset library. | `gpt-5.6-sol` / Extra High | `gpt-5.6-sol` / Extra High | Preserve the delivered purpose, assignment, line, private/public promotion, processing-state, retention, and account-deletion invariants. |
 | 3 | Role-aware dashboard navigation (FR-2.1–FR-2.7, FR-17.1) | **Done** in [PR #162](https://github.com/brollysolutions/client1/pull/162): one typed capability catalogue now drives grouped navigation and direct-route UX for all 52 dashboard page entry points; 9 focused unit tests, all 310 web tests, an 8-case live-stack Playwright role/mobile matrix, and the canonical Linux production build pass. | `gpt-5.6-sol` / Extra High | `gpt-5.6-sol` / Extra High | Preserve the single capability source, explicit route inventory, Client held-line checks, single-line staff scope, fixed local redirects, and server-side dependency/RLS authority whenever dashboard routes change. |
-| 4 | Provenance-based edit ownership (FR-2.8) | Current edit paths work, but ownership rules are not uniform across submitted detail types. | `gpt-5.6-sol` / High | `gpt-5.6-sol` / Extra High | Define per-field creator/reviewer/Admin authority; enforce it in service and RLS paths with cross-role/cross-line denial tests. |
-| 5 | Admin operational coverage audit (FR-2.2) | Admin has broad coverage, but the approved requirement calls for exhaustive view/update coverage. | `gpt-5.6-terra` / High | `gpt-5.6-terra` / High | Inventory every required Admin surface, close confirmed gaps, and add authorization plus accessible UI coverage. |
-| 6 | Business-line classification hardening (FR-1.1) | **Done** in [PR #160](https://github.com/brollysolutions/client1/pull/160): every mapped table and managed-media purpose has an explicit classification mode; operational rows, fixed domains, staged referrals, global content, staff scope, and audit exceptions are database-constrained. | `gpt-5.6-sol` / High | `gpt-5.6-sol` / Extra High | Preserve the exhaustive classification ledger, exact-line lead intent, count-only deployment preflight, immutable tags, and parent/provenance checks as schemas evolve. |
+| 4 | Round-robin Telecaller assignment (FR-4.2, FR-4.3) | **Done; PR pending** on `feat/lead-round-robin`: workload-sensitive selection is replaced by the explicitly requested durable rotation while preserving the delivered assignment lifecycle. | `gpt-5.6-sol` / High | `gpt-5.6-sol` / Extra High | Each business line advances independently through active same-line Telecallers in stable creation order; concurrent automatic assignments cannot duplicate or skip a turn; inactive staff, no-capacity retry, manual Admin assignment, RLS, audit, and notification behavior remain safe. |
+| 5 | Provenance-based edit ownership (FR-2.8) | Current edit paths work, but ownership rules are not uniform across submitted detail types. | `gpt-5.6-sol` / High | `gpt-5.6-sol` / Extra High | Define per-field creator/reviewer/Admin authority; enforce it in service and RLS paths with cross-role/cross-line denial tests. |
+| 6 | Admin operational coverage audit (FR-2.2) | Admin has broad coverage, but the approved requirement calls for exhaustive view/update coverage. | `gpt-5.6-terra` / High | `gpt-5.6-terra` / High | Inventory every required Admin surface, close confirmed gaps, and add authorization plus accessible UI coverage. |
+| 7 | Business-line classification hardening (FR-1.1) | **Done** in [PR #160](https://github.com/brollysolutions/client1/pull/160): every mapped table and managed-media purpose has an explicit classification mode; operational rows, fixed domains, staged referrals, global content, staff scope, and audit exceptions are database-constrained. | `gpt-5.6-sol` / High | `gpt-5.6-sol` / Extra High | Preserve the exhaustive classification ledger, exact-line lead intent, count-only deployment preflight, immutable tags, and parent/provenance checks as schemas evolve. |
+
+### Delivered feature brief - round-robin Telecaller assignment
+
+- **Branch / PR:** `feat/lead-round-robin` / PR pending.
+- **Success:** for each business line, consecutive automatically assigned leads
+  cycle through active Telecallers in stable creation order: 1, 2, 3, 1, 2,
+  3, independently of whether earlier leads remain active.
+- **Behavior:** only active same-line Telecallers participate. Inactive staff
+  are skipped and rejoin when reactivated; a newly created Telecaller joins the
+  stable order. The cursor advances only after a successful automatic
+  assignment. Manual Admin assignment or reassignment does not consume a turn,
+  and missing capacity leaves the lead in the existing bounded retry queue.
+- **Architecture:** persist one internal cursor per operational business line
+  and update it in the same transaction as the lead assignment. Reuse the
+  existing per-line advisory lock so direct capture, Agent introduction,
+  registration binding, client journey creation, and the scheduler serialize
+  selection consistently under concurrency.
+- **Security and failure invariants:** preserve exact-line server-side
+  selection, the database assignee-validation trigger, existing lead and staff
+  RLS, OTP ownership binding, PII-free audit/notification payloads, post-commit
+  notifications, terminal-state exclusions, and idempotent no-capacity retry.
+  The cursor is internal operational state and is not exposed through an API.
+- **Non-goals:** workload balancing, shifts or quotas, changing manual Admin
+  controls, Agent ownership or expiry, lead statuses, UI/API/contract changes,
+  notification content, or cross-line staff access.
+- **Verification matrix:** stable 1-2-3 rotation and wraparound; independence
+  from assigned/working workload; separate Loans and Real Estate cursors;
+  inactive/reactivated/new Telecaller behavior; no-capacity retry; idempotency;
+  concurrent assignment ordering; database cross-line rejection; migration
+  upgrade/downgrade and one head; focused and full API gates; security and diff
+  review; feature-tracking checks.
+- **Fresh evidence:** all 188 affected lead, auth, Admin, Agent, expiry, RLS,
+  classification-contract, and database-contract tests pass after the final
+  concurrency hardening; the focused assignment/classification group passes 25
+  tests. Ruff lint and formatting pass across 423 API files. The migration
+  downgrade/re-upgrade succeeds and Alembic reports one head. Security review
+  added row locks around eligible Telecallers plus direct zero-grant/RLS and
+  cross-line cursor-tampering denial tests; no actionable finding remains. The
+  monolithic full API command reached its explicit 30-minute bound without a
+  final pytest report and is inconclusive rather than passing. No API schema,
+  generated contract, web surface, dependency, or external integration changed.
 
 ### Delivered feature brief - role-aware dashboard navigation
 
@@ -289,7 +331,7 @@ merged. Payment-method completion is merged in
 | 7 | Analytics completion (FR-16.1 through FR-16.3) | **Done** — [PR #150](https://github.com/brollysolutions/client1/pull/150), verified by [PR #156](https://github.com/brollysolutions/client1/pull/156) | `gpt-5.6-terra` / High | Linux PostgreSQL/Redis verification passed all 30 reporting service/API/RLS tests with one Alembic head. Web lint, strict typecheck, 294 unit tests, and the 92-page production build passed. The full API suite reached its 20-minute bound without a final report, so it remains inconclusive rather than passing. |
 | 8 | Notification/email redirect completeness (FR-11.2) | **Merged** — [PR #151](https://github.com/brollysolutions/client1/pull/151) | `gpt-5.6-terra` / High | All producer, broadcast, push, and banner paths accept only same-origin destinations; verified-email transactional copies use the same safe page; PII-prone notification copy is removed; focused API/web safety checks pass. |
 | 9 | Authenticated banner personalization (FR-12.1 through FR-12.4, FR-18.1) | **Done** — [PR #152](https://github.com/brollysolutions/client1/pull/152) | `gpt-5.6-sol` / Extra High | Delivered the closed audience grammar, server-proven Client/Agent line context, separate activity/coarse-location consent, private authenticated banner/offer placements, public non-leakage, safe fallbacks, 30-day retention/deletion, and negative targeting/RLS tests. Focused API (122), full web (287), seeded Client/Agent Playwright (2), production build, generated contracts, and migration upgrade/downgrade/head checks pass; the full API suite exceeded the local execution window. |
-| 11 | Lead assignment completion (FR-4.2, FR-4.3) | **Merged** — [PR #153](https://github.com/brollysolutions/client1/pull/153) | `gpt-5.6-sol` / Extra High | Delivered explicit per-line intent, deterministic least-loaded same-line assignment, bounded retry, OTP-proven Agent-lead binding, generic registration links, Admin fallback, audit/notifications, account-deletion closure, and database/RLS isolation. |
+| 11 | Lead assignment completion (FR-4.2, FR-4.3) | **Merged** — [PR #153](https://github.com/brollysolutions/client1/pull/153) | `gpt-5.6-sol` / Extra High | Delivered explicit per-line intent, the initial least-loaded same-line assignment policy, bounded retry, OTP-proven Agent-lead binding, generic registration links, Admin fallback, audit/notifications, account-deletion closure, and database/RLS isolation. The assignment policy is superseded by the current round-robin feature above. |
 | 12 | Payment-method completion (FR-10.3) | **Merged** — [PR #154](https://github.com/brollysolutions/client1/pull/154) | `gpt-5.6-sol` / Extra High | Delivered UPI, bank-transfer, and audited manual-cheque disbursement; retained RazorpayX as the sole automated provider behind an explicit provider seam; excluded RuPay/card data, principal-payment collection, a second live provider, and automatic failover. |
 
 ### Approved feature brief — Payment-method completion
@@ -366,7 +408,7 @@ merged. Payment-method completion is merged in
   it is not counted as passing or failing, while all 134 changed-path API tests
   have observed passing reports.
 
-### Approved feature brief — Lead assignment completion
+### Historical approved feature brief — Lead assignment completion
 
 - **Success:** every Agent-introduced lead and every explicitly requested
   direct Client journey is assigned to one active same-line Telecaller without
@@ -404,7 +446,7 @@ merged. Payment-method completion is merged in
   registration/Agent UI tests and seeded browser flow; full API/web/repository
   gates; security review; and PR review.
 
-### Delivered feature evidence — Lead assignment completion
+### Historical delivered feature evidence — Lead assignment completion
 
 - **Behavior:** registration keeps both Client profiles but requires explicit
   Loans/Real Estate follow-up intent. Direct and Agent-introduced journeys are
@@ -970,6 +1012,7 @@ The backlog builds on these delivered foundations:
 
 | Date | Change | Evidence |
 | --- | --- | --- |
+| 2026-08-10 | Replaced least-loaded automatic Telecaller selection with durable per-line round-robin assignment while preserving FR-4.2/FR-4.3 completion. | `feat/lead-round-robin` (PR pending); exact 1-2-3 wraparound, inactive/reactivated staff, separate line cursors, manual isolation, no-capacity retry, concurrent turn consumption, migration round-trip/one-head, 188 affected tests, Ruff, RLS/grant and cross-line cursor denial, security review. The monolithic API suite exceeded 30 minutes without a final report. |
 | 2026-08-09 | Completed media controls finalization (FR-13.1 through FR-13.4) and promoted provenance-based edit ownership as the next priority. | [PR #159](https://github.com/brollysolutions/client1/pull/159); property/Loans MP4, assigned-Employee visit feedback, scanning/sanitization/transcoding, retention/account deletion, generated contracts, 117 focused API tests after the 1,589-test split regression, 301 web tests, Linux 92-route build, four Playwright journeys, migration round-trip/one-head, security and PR review. The repository wrapper was attempted but its monolithic API phase exceeded 30 minutes without a report. |
 | 2026-08-09 | Removed Map/GMB integration (FR-18.2) completely from the active product baseline and recalculated coverage over 79 requirements. | Explicit user direction; CS-010; `feature-status.md`; all 7 feature-tracking tests pass with a denominator-aware status assertion. |
 | 2026-08-08 | Initially excluded Map/GMB integration (FR-18.2) from the active roadmap; this narrower decision was superseded by the complete scope removal recorded on 2026-08-09. | User direction and the later CS-010 amendment. |
