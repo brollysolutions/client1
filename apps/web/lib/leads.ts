@@ -1,6 +1,6 @@
 // Landing-page lead capture, wired to the public POST /api/v1/leads endpoint
 // (apps/api/app/api/v1/leads.py; contract in packages/contracts). The wire
-// shape uses `topic` (loans | real_estate | agent); this module keeps the
+// shape uses `topic` (loans | real_estate); this module keeps the
 // older business_line field name so the many existing callers stay unchanged.
 
 import { apiRequest } from "@/lib/api/client";
@@ -8,10 +8,7 @@ import { toE164 } from "@/lib/phone";
 
 export type LeadBusinessLine = "loans" | "real_estate";
 
-// What a public enquiry is about. The contact form also fields questions
-// about the agent program, which is not a business line; the backend maps
-// "agent" leads to its own bucket when the public endpoint lands.
-export type LeadTopic = LeadBusinessLine | "agent";
+export type LeadTopic = LeadBusinessLine;
 
 export type LeadInput = {
   name: string;

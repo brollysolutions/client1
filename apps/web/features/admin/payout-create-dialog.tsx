@@ -136,22 +136,25 @@ export function PayoutCreateDialog({
             <div className="space-y-1.5">
               <Label>Business line</Label>
               <Select
-                value={form.businessLine || "none"}
+                value={form.businessLine || undefined}
                 onValueChange={(v) =>
-                  set("businessLine", (v === "none" ? "" : v) as PayoutFormState["businessLine"])
+                  set("businessLine", v as PayoutFormState["businessLine"])
                 }
               >
                 <SelectTrigger>
-                  <SelectValue />
+                  <SelectValue placeholder="Choose a business line" />
                 </SelectTrigger>
                 <SelectContent>
                   {BUSINESS_LINE_OPTIONS.map((o) => (
-                    <SelectItem key={o.value || "none"} value={o.value || "none"}>
+                    <SelectItem key={o.value} value={o.value}>
                       {o.label}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
+              {errors.businessLine ? (
+                <p className="text-xs text-destructive">{errors.businessLine}</p>
+              ) : null}
             </div>
           </div>
 

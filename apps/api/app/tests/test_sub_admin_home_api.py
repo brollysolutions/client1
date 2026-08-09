@@ -240,7 +240,7 @@ async def test_recent_referral_payouts_capped_at_five(client: AsyncClient) -> No
             db.add(
                 Transaction(
                     user_uuid=uuid.UUID(owner_uid),
-                    business_line=None,
+                    business_line="loans",
                     type=TransactionType.REFERRAL_BONUS,
                     status=TransactionStatus.PAID,
                     amount_paise=10_000,

@@ -6,13 +6,8 @@ pagination -- the summary is what stat tiles render, the rows are what the
 table renders, and they must never drift apart because one query is limited
 and the other is not (see `services/reporting.py`).
 
-`business_line` on `LeadsReportRow` can be the literal string "unassigned"
--- `leads.business_line` is nullable (models/lead.py), and an unassigned
-lead must render as an explicit row, never be dropped or folded into a line
-(see the migration/service docstrings for why). `LoansReportRow` and
-`DealsReportRow` never carry "unassigned": `loan_applications.business_line`
-and `property_deals.business_line` are NOT NULL and always "loans" /
-"real_estate" respectively.
+All operational report rows carry either "loans" or "real_estate". Database
+constraints reject missing or identity-only classifications before reporting.
 
 No request schema here (mirrors `api/v1/referrals.py`'s GET routes): every
 report is read via query parameters declared directly on the route, not a

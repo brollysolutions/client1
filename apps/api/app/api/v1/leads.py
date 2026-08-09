@@ -91,14 +91,8 @@ async def create_lead(
 
     await _check_lead_rates(cache, get_client_ip(request), req.mobile)
 
-    # "agent" is not a business line — store NULL and mark the topic for
-    # triage (leads.business_line is immutable once set; a guessed line
-    # would poison later enrichment).
-    business_line = req.topic if req.topic in ("loans", "real_estate") else None
-
     requirement = {
         "page": req.origin,
-        **({"topic": "agent"} if req.topic == "agent" else {}),
         **({"product": req.product} if req.product else {}),
         **({"email": req.email} if req.email else {}),
         **({"message": req.message} if req.message else {}),
@@ -107,7 +101,7 @@ async def create_lead(
     stored = await capture_lead(
         req.mobile,
         name=req.name,
-        business_line=business_line,
+        business_line=req.topic,
         origin="direct",  # LeadOrigin = referral source, not page; page is in requirement
         requirement=requirement,
     )

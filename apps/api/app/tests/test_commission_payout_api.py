@@ -188,6 +188,7 @@ async def _seed_dummy_payout(recipient_uuid: str, maker_uuid: str) -> str:
     async with _session_mod.AsyncSessionLocal() as db:
         payout = Payout(
             recipient_user_uuid=uuid.UUID(recipient_uuid),
+            business_line="loans",
             type=PayoutType.COMMISSION,
             amount_paise=50_000,
             currency="INR",

@@ -148,7 +148,7 @@ async def _seed_pending_payout(recipient_uuid: str, maker_uuid: str) -> str:
     async with _session_mod.AsyncSessionLocal() as db:
         payout = Payout(
             recipient_user_uuid=uuid.UUID(recipient_uuid),
-            business_line=None,
+            business_line="loans",
             type=PayoutType.REFERRAL_BONUS,
             amount_paise=100_000,
             currency="INR",

@@ -33,7 +33,6 @@ const REPORT_KINDS: { value: ReportKind; label: string }[] = [
 const LINE_LABEL: Record<string, string> = {
   loans: "Loans",
   real_estate: "Real Estate",
-  unassigned: "Unassigned",
 };
 
 type JourneyRow = { bucket_start: string; business_line: string; total: number; converted: number };

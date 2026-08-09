@@ -867,6 +867,10 @@
           "business_line": {
             "anyOf": [
               {
+                "enum": [
+                  "loans",
+                  "real_estate"
+                ],
                 "type": "string"
               },
               {
@@ -2429,6 +2433,10 @@
           "business_line": {
             "anyOf": [
               {
+                "enum": [
+                  "loans",
+                  "real_estate"
+                ],
                 "type": "string"
               },
               {
@@ -3908,7 +3916,7 @@
           "business_line": {
             "anyOf": [
               {
-                "pattern": "^(loans|real_estate|both)$",
+                "pattern": "^(loans|real_estate)$",
                 "type": "string"
               },
               {
@@ -3977,6 +3985,10 @@
           "business_line": {
             "anyOf": [
               {
+                "enum": [
+                  "loans",
+                  "real_estate"
+                ],
                 "type": "string"
               },
               {
@@ -7787,19 +7799,12 @@
             "type": "integer"
           },
           "business_line": {
-            "anyOf": [
-              {
-                "enum": [
-                  "loans",
-                  "real_estate"
-                ],
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
+            "enum": [
+              "loans",
+              "real_estate"
             ],
-            "title": "Business Line"
+            "title": "Business Line",
+            "type": "string"
           },
           "destination": {
             "$ref": "#/components/schemas/PayoutDestinationInput"
@@ -7825,6 +7830,7 @@
         "required": [
           "recipient_user_uuid",
           "type",
+          "business_line",
           "amount_paise",
           "destination_type",
           "destination",
@@ -7973,15 +7979,12 @@
             "type": "integer"
           },
           "business_line": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
+            "enum": [
+              "loans",
+              "real_estate"
             ],
-            "title": "Business Line"
+            "title": "Business Line",
+            "type": "string"
           },
           "checker_name": {
             "anyOf": [
@@ -9007,6 +9010,10 @@
           "business_line": {
             "anyOf": [
               {
+                "enum": [
+                  "loans",
+                  "real_estate"
+                ],
                 "type": "string"
               },
               {
@@ -9120,8 +9127,7 @@
           "topic": {
             "enum": [
               "loans",
-              "real_estate",
-              "agent"
+              "real_estate"
             ],
             "title": "Topic",
             "type": "string"
@@ -9378,7 +9384,7 @@
             "title": "Bonus Amount"
           },
           "business_line": {
-            "pattern": "^(loans|real_estate|both)$",
+            "pattern": "^(loans|real_estate)$",
             "title": "Business Line",
             "type": "string"
           },
@@ -9550,15 +9556,12 @@
             "type": "integer"
           },
           "business_line": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
+            "enum": [
+              "loans",
+              "real_estate"
             ],
-            "title": "Business Line"
+            "title": "Business Line",
+            "type": "string"
           },
           "created_at": {
             "format": "date-time",
@@ -9648,6 +9651,10 @@
           "business_line": {
             "anyOf": [
               {
+                "enum": [
+                  "loans",
+                  "real_estate"
+                ],
                 "type": "string"
               },
               {
@@ -16130,8 +16137,7 @@
                 {
                   "enum": [
                     "loans",
-                    "real_estate",
-                    "unassigned"
+                    "real_estate"
                   ],
                   "type": "string"
                 },
@@ -16296,8 +16302,7 @@
                 {
                   "enum": [
                     "loans",
-                    "real_estate",
-                    "unassigned"
+                    "real_estate"
                   ],
                   "type": "string"
                 },
@@ -16407,8 +16412,7 @@
                 {
                   "enum": [
                     "loans",
-                    "real_estate",
-                    "unassigned"
+                    "real_estate"
                   ],
                   "type": "string"
                 },

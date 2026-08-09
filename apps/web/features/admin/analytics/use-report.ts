@@ -8,6 +8,7 @@ import {
   type LeadsReportResponse,
   type LoansReportResponse,
   type ReportBucket,
+  type ReportBusinessLine,
   type ReportKind,
   type SortDir,
 } from "@/lib/reports-api";
@@ -24,7 +25,7 @@ export type ReportFilterInput = {
   dateFrom: string;
   dateTo: string;
   bucket?: ReportBucket;
-  businessLine?: string;
+  businessLine?: ReportBusinessLine;
   agentProfileUuids?: string[];
 };
 

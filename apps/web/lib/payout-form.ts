@@ -22,7 +22,6 @@ export const DESTINATION_OPTIONS = [
 ] as const satisfies readonly { value: PayoutDestination; label: string }[];
 
 export const BUSINESS_LINE_OPTIONS = [
-  { value: "", label: "Not line-specific" },
   { value: "loans", label: "Loans" },
   { value: "real_estate", label: "Real Estate" },
 ] as const;
@@ -85,6 +84,9 @@ export function buildPayoutPayload(form: PayoutFormState, idempotencyKey: string
   if (amountPaise === null) {
     throw new Error("buildPayoutPayload: amountRupees did not pass validation.");
   }
+  if (form.businessLine === "") {
+    throw new Error("buildPayoutPayload: businessLine did not pass validation.");
+  }
 
   const destination =
     form.destinationType === "bank_account"
@@ -100,7 +102,7 @@ export function buildPayoutPayload(form: PayoutFormState, idempotencyKey: string
   return {
     recipient_user_uuid: form.recipient?.authUserUuid ?? "",
     type: form.type as PayoutType,
-    business_line: form.businessLine === "" ? null : form.businessLine,
+    business_line: form.businessLine,
     amount_paise: amountPaise,
     destination_type: form.destinationType as PayoutDestination,
     destination,
@@ -113,6 +115,7 @@ export function validatePayoutForm(form: PayoutFormState): Record<string, string
 
   if (form.recipient === null) errs.recipient = "Choose a recipient.";
   if (form.type === "") errs.type = "Choose a payout type.";
+  if (form.businessLine === "") errs.businessLine = "Choose a business line.";
 
   if (rupeesToPaise(form.amountRupees) === null) {
     errs.amountRupees = "Enter an amount greater than 0 (up to two decimals).";

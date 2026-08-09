@@ -12,6 +12,7 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 from httpx import AsyncClient
+from sqlalchemy.exc import IntegrityError
 
 from app.core.security import create_access_token
 from conftest import full_registration, unique_mobile
@@ -384,35 +385,11 @@ async def test_add_loan_txn_for_unowned_application_is_404(client: AsyncClient) 
 
 
 @pytest.mark.asyncio
-async def test_add_loan_txn_for_non_loans_application_is_409(client: AsyncClient) -> None:
-    auth_uuid, staff_uuid = await _seed_telecaller("real_estate")
+async def test_non_loans_application_is_rejected_by_database(client: AsyncClient) -> None:
+    _, staff_uuid = await _seed_telecaller("real_estate")
     lead_id = await _seed_assigned_lead("real_estate", staff_uuid)
-    # Directly craft a non-loans application against this lead to exercise the
-    # line-mismatch guard (a real real_estate lead never legitimately has one).
-    # This is invalid data by design (loan_applications is loans-only) — the
-    # row is deleted below so it doesn't leak into other tests' RLS invariant
-    # checks (e.g. test_loans_rls.py asserts zero real_estate-line rows exist).
-    application_id = await _seed_loan_application(lead_id, "real_estate")
-
-    try:
-        res = await client.post(
-            f"/api/v1/telecaller/loan-applications/{application_id}/txn-history",
-            json={"bank_name": "HDFC"},
-            headers={
-                "Authorization": f"Bearer {_telecaller_token(auth_uuid, staff_uuid, 'real_estate')}"
-            },
-        )
-        assert res.status_code == 409
-    finally:
-        from sqlalchemy import text
-
-        import app.db.session as _session_mod
-
-        async with _session_mod.AsyncSessionLocal() as db:
-            await db.execute(
-                text("DELETE FROM loan_applications WHERE id = :id"), {"id": application_id}
-            )
-            await db.commit()
+    with pytest.raises(IntegrityError, match="ck_loan_applications_business_line_fixed"):
+        await _seed_loan_application(lead_id, "real_estate")
 
 
 @pytest.mark.asyncio

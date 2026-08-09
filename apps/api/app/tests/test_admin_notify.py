@@ -149,6 +149,7 @@ async def _seed_payout_pending_approval(recipient_uid: str, maker_uid: str) -> s
     async with _session_mod.AsyncSessionLocal() as db:
         payout = Payout(
             recipient_user_uuid=uuid.UUID(recipient_uid),
+            business_line="loans",
             type=PayoutType.CASHBACK,
             amount_paise=25_000,
             currency="INR",

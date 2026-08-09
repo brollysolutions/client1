@@ -12,7 +12,7 @@ type Schemas = components["schemas"];
 export type ReportKind = "leads" | "loans" | "deals" | "agents";
 export type ReportBucket = "week" | "month";
 export type ReportBusinessLine = "loans" | "real_estate";
-export type LeadsBusinessLine = ReportBusinessLine | "unassigned";
+export type LeadsBusinessLine = ReportBusinessLine;
 export type SortDir = "asc" | "desc";
 
 export type LeadsReportRow = Schemas["LeadsReportRow"];
@@ -32,7 +32,7 @@ export type ReportFilters = {
   dateFrom: string; // YYYY-MM-DD
   dateTo: string; // YYYY-MM-DD
   bucket?: ReportBucket; // ignored for "agents"
-  businessLine?: string; // "loans" | "real_estate" | "unassigned" (leads only)
+  businessLine?: ReportBusinessLine;
   agentProfileUuids?: string[];
   sortBy?: string;
   sortDir?: SortDir;

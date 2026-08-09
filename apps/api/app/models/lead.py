@@ -1,8 +1,8 @@
 """Lead spine — every captured mobile lands here (master_erd.mermaid §LEAD SPINE).
 
-A lead is a sales/follow-up record, NOT an account. It is created at every auth
-entry point (register/initiate, login, forgot/initiate) so no enquiring number is
-lost, even when the user never completes registration. Telecallers work this table.
+A lead is a sales/follow-up record, NOT an account. It is created only when the
+visitor expresses Loans or Real Estate intent. Authentication attempts without
+service intent remain auth events and never enter this operational table.
 `client_profile_uuid` stays NULL until the lead is claimed/registered. One mobile
 may have independent live Loans and Real Estate journeys.
 """
@@ -43,8 +43,8 @@ class Lead(Base):
     __tablename__ = "leads"
     __table_args__ = (
         CheckConstraint(
-            "business_line IS NULL OR business_line::text IN ('loans', 'real_estate')",
-            name="lead_business_line_is_operational",
+            "business_line::text IN ('loans', 'real_estate')",
+            name="business_line_operational",
         ),
         Index(
             "uq_leads_mobile_line_live",
@@ -52,12 +52,6 @@ class Lead(Base):
             "business_line",
             unique=True,
             postgresql_where=text("business_line IS NOT NULL AND status <> 'closed'"),
-        ),
-        Index(
-            "uq_leads_mobile_unresolved_live",
-            "mobile",
-            unique=True,
-            postgresql_where=text("business_line IS NULL AND status <> 'closed'"),
         ),
         Index(
             "uq_leads_mobile_agent_live",
@@ -83,9 +77,9 @@ class Lead(Base):
         ForeignKey("client_profiles.id", ondelete="SET NULL"),
         nullable=True,
     )
-    # Nullable: at login/forgot the line is unknown. A triage step assigns it later;
-    # until then line-scoped staff cannot see the lead (only platform Admin/Sub Admin).
-    business_line: Mapped[str | None] = mapped_column(business_line_enum, nullable=True)
+    # Operational rows are classified at creation. ``both`` is an identity claim,
+    # never a record value; the database check and additive migration enforce it.
+    business_line: Mapped[str] = mapped_column(business_line_enum, nullable=False)
     origin: Mapped[LeadOrigin] = mapped_column(
         lead_origin_enum, nullable=False, default=LeadOrigin.DIRECT
     )

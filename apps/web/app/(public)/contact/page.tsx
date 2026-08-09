@@ -61,9 +61,7 @@ export default async function ContactPage({
   // Only honor a valid topic from the CTA; otherwise let the form default.
   // `product` is free text (loan type / property / calculator name).
   const initialLine: LeadTopic | undefined =
-    line === "loans" || line === "real_estate" || line === "agent"
-      ? line
-      : undefined;
+    line === "loans" || line === "real_estate" ? line : undefined;
   const invitationToken =
     invitation && /^[A-Za-z0-9_-]{32,128}$/.test(invitation) ? invitation : undefined;
 
@@ -85,9 +83,9 @@ export default async function ContactPage({
                 Talk to a real person
               </h1>
               <p className="mt-5 max-w-2xl text-lg text-[var(--nav-text)] sm:text-xl">
-                A loan, a property, or becoming a partner. Whatever brought you
-                here, leave your number and our team will call you back. No
-                bots, no hold music.
+                A loan or a property. Whatever brought you here, leave your
+                number and the right team will call you back. No bots, no hold
+                music.
               </p>
             </div>
             <div

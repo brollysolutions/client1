@@ -8,7 +8,7 @@ also fabricate.
 """
 
 from datetime import datetime
-from typing import Any
+from typing import Any, Literal
 from uuid import UUID
 
 from pydantic import BaseModel
@@ -43,7 +43,7 @@ class AuditLogRead(BaseModel):
     action: AuditAction
     entity_type: str
     entity_uuid: UUID | None
-    business_line: str | None
+    business_line: Literal["loans", "real_estate"] | None
     detail: dict[str, Any] | None
     created_at: datetime
 

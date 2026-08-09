@@ -1,9 +1,8 @@
 """business_line immutability + perf-index presence tests (audit D2, P-perf2).
 
-The trigger (migration e5f6a7b8c9d0) must reject changing an already-set
-business_line on any business-scoped table, while still allowing the first
-NULL -> value assignment (lead triage). Runs on the app superuser session, which
-bypasses RLS, so it proves the trigger — not a policy — does the enforcing.
+Operational leads must be classified at creation and the trigger must reject
+changing that classification. Runs on the app superuser session, which bypasses
+RLS, so it proves the database constraints — not a policy — do the enforcing.
 
 Requires the Docker stack with migrations applied; auto-skips without Redis.
 """
@@ -17,7 +16,7 @@ from sqlalchemy import text
 from conftest import unique_mobile
 
 
-async def _seed_lead(business_line: str | None) -> str:
+async def _seed_lead(business_line: str) -> str:
     import app.db.session as _session_mod
     from app.models.lead import Lead, LeadOrigin, LeadStatus
 
@@ -45,22 +44,6 @@ async def _update_line(lead_id: str, new_line: str | None) -> None:
 
 
 @pytest.mark.asyncio
-async def test_null_business_line_can_be_assigned(client: AsyncClient) -> None:
-    """Triage: a lead that arrived with no line (login/forgot) can be assigned one."""
-    lead_id = await _seed_lead(None)
-    await _update_line(lead_id, "loans")  # must not raise
-
-    import app.db.session as _session_mod
-
-    async with _session_mod.AsyncSessionLocal() as db:
-        row = (
-            await db.execute(
-                text("SELECT business_line FROM leads WHERE id = :id"), {"id": lead_id}
-            )
-        ).fetchone()
-    assert row[0] == "loans"
-
-
 @pytest.mark.asyncio
 async def test_set_business_line_cannot_change(client: AsyncClient) -> None:
     """An already-set business_line cannot be flipped to another line."""
@@ -210,10 +193,7 @@ async def _update_referral_line(referral_id: str, new_line: str | None) -> None:
 async def test_referral_business_line_can_be_first_assigned_then_locked(
     client: AsyncClient,
 ) -> None:
-    """referrals.business_line ships NULL (unknown at signup — see
-    docs/specs/referral-program.md D13) and is set exactly once, at
-    conversion. Same NULL -> value permission this trigger already grants
-    leads, just exercised on a different table."""
+    """A staged referral can receive its line exactly once at conversion."""
     referral_id = await _seed_referral_row()
 
     await _update_referral_line(referral_id, "loans")  # must not raise
