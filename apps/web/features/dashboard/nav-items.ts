@@ -1,111 +1,646 @@
 import {
   ArrowLeftRight,
+  BadgePercent,
+  Banknote,
+  BarChart3,
   Bookmark,
   Building2,
   CalendarCheck,
   CarFront,
+  ClipboardCheck,
   ClipboardList,
+  FileCheck2,
   FilePlus2,
+  FileText,
   FolderClosed,
   Gift,
+  Headset,
   House,
   IndianRupee,
   Landmark,
+  Megaphone,
   MessageSquare,
   PhoneCall,
   Scale,
+  ScrollText,
+  ShieldCheck,
+  SlidersHorizontal,
   Telescope,
+  UserPlus,
   UserRound,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+
+import type { BusinessLine, UserRole } from "@/lib/auth";
+
+const ALL_ROLES: readonly UserRole[] = [
+  "admin",
+  "sub_admin",
+  "agent",
+  "telecaller",
+  "employee",
+  "client",
+];
+
+const CAPABILITIES = {
+  shared: { roles: ALL_ROLES },
+  client: { roles: ["client"] },
+  clientLoans: { roles: ["client"], lines: ["loans"] },
+  clientRealEstate: { roles: ["client"], lines: ["real_estate"] },
+  transactions: { roles: ["client", "agent"] },
+  agent: { roles: ["agent"] },
+  agentRealEstate: { roles: ["agent"], lines: ["real_estate"] },
+  telecaller: { roles: ["telecaller"] },
+  employee: { roles: ["employee"] },
+  employeeRealEstate: { roles: ["employee"], lines: ["real_estate"] },
+  subAdmin: { roles: ["sub_admin"] },
+  admin: { roles: ["admin"] },
+  cms: { roles: ["sub_admin", "admin"] },
+  referralRules: { roles: ["sub_admin", "admin"] },
+  realEstateSubmitter: {
+    roles: ["client", "agent"],
+    lines: ["real_estate"],
+  },
+} as const satisfies Record<
+  string,
+  { roles: readonly UserRole[]; lines?: readonly BusinessLine[] }
+>;
+
+export type DashboardCapability = keyof typeof CAPABILITIES;
+export type NavSectionKey =
+  | "workspace"
+  | "operations"
+  | "people"
+  | "finance"
+  | "content"
+  | "insights";
+
+export type DashboardAccessContext = {
+  role: UserRole;
+  businessLine: BusinessLine | null;
+  activeLine?: BusinessLine;
+  profileLines?: readonly BusinessLine[];
+};
 
 export type NavItem = {
   key: string;
   label: string;
   href: string;
   icon: LucideIcon;
-  // Loans-only surfaces. Hidden when the workspace is on the real-estate line so
-  // a loans feature is never offered under the real-estate accent.
-  loansOnly?: boolean;
-  // Real-estate-only surfaces. Hidden on the loans line for the same reason.
-  realEstateOnly?: boolean;
-  // Telecaller-only surface. Shown alongside Home for role=telecaller, hidden
-  // for every other role (mirrors how loansOnly/realEstateOnly gate the client rail).
-  telecallerOnly?: boolean;
-  // Employee-only surface. Shown alongside Home for role=employee, hidden for
-  // every other role (same pattern as telecallerOnly).
-  employeeOnly?: boolean;
-  // Agent-only surface. Shown alongside Home for role=agent, hidden for
-  // every other role (same pattern as telecallerOnly/employeeOnly).
-  agentOnly?: boolean;
-  // Admin-only surface. Shown alongside Home for role=admin, hidden for
-  // every other role (same pattern as telecallerOnly/employeeOnly/agentOnly).
-  // Only the two stateful pipelines earn a rail slot; Admin's approval
-  // surfaces (agents, banners, property-review) are reached from the Home
-  // queue, which shows live counts a rail icon cannot.
-  adminOnly?: boolean;
+  capability: DashboardCapability;
+  section: NavSectionKey;
 };
 
-// Slim workspace rail. Near-white chrome, icon-only with tooltips on desktop.
-// Icons are gray and turn blue on hover; the active item shows a blue icon plus
-// a left indicator bar (set in app-sidebar). Home, Transactions and Referrals
-// show for both lines; Apply and Documents are loans-only; Bookmarks/Enquiries/
-// Site Visits/Compare/My Agent are real-estate-only. Notifications live in the
-// top bar, Support + Profile in the account menu; identity sits in the rail's
-// bottom block.
-export const NAV_ITEMS: NavItem[] = [
-  { key: "home", label: "Home", href: "/dashboard", icon: House },
-  { key: "explore", label: "Explore", href: "/dashboard/explore", icon: Telescope },
-  { key: "apply", label: "Apply for a loan", href: "/dashboard/apply", icon: FilePlus2, loansOnly: true },
-  { key: "documents", label: "Loan media", href: "/dashboard/documents", icon: FolderClosed, loansOnly: true },
-  { key: "loan-offers", label: "Compare Loan Offers", href: "/dashboard/loan-offers", icon: Scale, loansOnly: true },
-  { key: "loan-officer", label: "My Loan Officer", href: "/dashboard/loan-officer", icon: UserRound, loansOnly: true },
-  { key: "bookmarks", label: "Bookmarks", href: "/dashboard/bookmarks", icon: Bookmark, realEstateOnly: true },
-  { key: "enquiries", label: "My Enquiries", href: "/dashboard/enquiries", icon: MessageSquare, realEstateOnly: true },
-  { key: "site-visits", label: "Site Visits", href: "/dashboard/site-visits", icon: CalendarCheck, realEstateOnly: true },
-  { key: "compare", label: "Compare", href: "/dashboard/compare", icon: Scale, realEstateOnly: true },
-  { key: "agent", label: "My Agent", href: "/dashboard/agent", icon: UserRound, realEstateOnly: true },
-  { key: "transactions", label: "Transactions", href: "/dashboard/transactions", icon: ArrowLeftRight },
-  { key: "referrals", label: "Referrals", href: "/dashboard/referrals", icon: Gift },
-  { key: "leads", label: "Leads", href: "/dashboard/leads", icon: PhoneCall, telecallerOnly: true },
-  { key: "tasks", label: "Tasks", href: "/dashboard/tasks", icon: ClipboardList, employeeOnly: true },
+export type NavSection = {
+  key: NavSectionKey;
+  label: string | null;
+  items: NavItem[];
+};
+
+const SECTION_META: readonly {
+  key: NavSectionKey;
+  label: string | null;
+}[] = [
+  { key: "workspace", label: null },
+  { key: "operations", label: "Operations" },
+  { key: "people", label: "People & access" },
+  { key: "finance", label: "Finance" },
+  { key: "content", label: "Content" },
+  { key: "insights", label: "Insights" },
+];
+
+// One navigation catalogue for all six dashboards. Capability definitions own
+// role and line eligibility; the sidebar only renders the result. API
+// dependencies and PostgreSQL RLS remain the authorization boundary.
+export const NAV_ITEMS: readonly NavItem[] = [
+  {
+    key: "home",
+    label: "Home",
+    href: "/dashboard",
+    icon: House,
+    capability: "shared",
+    section: "workspace",
+  },
+
+  // Client workspace. The active line filters the line-specific entries.
+  {
+    key: "explore",
+    label: "Explore",
+    href: "/dashboard/explore",
+    icon: Telescope,
+    capability: "client",
+    section: "workspace",
+  },
+  {
+    key: "apply",
+    label: "Apply for a loan",
+    href: "/dashboard/apply",
+    icon: FilePlus2,
+    capability: "clientLoans",
+    section: "workspace",
+  },
+  {
+    key: "documents",
+    label: "Loan media",
+    href: "/dashboard/documents",
+    icon: FolderClosed,
+    capability: "clientLoans",
+    section: "workspace",
+  },
+  {
+    key: "loan-offers",
+    label: "Compare Loan Offers",
+    href: "/dashboard/loan-offers",
+    icon: Scale,
+    capability: "clientLoans",
+    section: "workspace",
+  },
+  {
+    key: "loan-officer",
+    label: "My Loan Officer",
+    href: "/dashboard/loan-officer",
+    icon: UserRound,
+    capability: "clientLoans",
+    section: "workspace",
+  },
+  {
+    key: "bookmarks",
+    label: "Bookmarks",
+    href: "/dashboard/bookmarks",
+    icon: Bookmark,
+    capability: "clientRealEstate",
+    section: "workspace",
+  },
+  {
+    key: "enquiries",
+    label: "My Enquiries",
+    href: "/dashboard/enquiries",
+    icon: MessageSquare,
+    capability: "clientRealEstate",
+    section: "workspace",
+  },
+  {
+    key: "site-visits",
+    label: "Site Visits",
+    href: "/dashboard/site-visits",
+    icon: CalendarCheck,
+    capability: "clientRealEstate",
+    section: "workspace",
+  },
+  {
+    key: "compare",
+    label: "Compare",
+    href: "/dashboard/compare",
+    icon: Scale,
+    capability: "clientRealEstate",
+    section: "workspace",
+  },
+  {
+    key: "client-agent",
+    label: "My Agent",
+    href: "/dashboard/agent",
+    icon: UserRound,
+    capability: "clientRealEstate",
+    section: "workspace",
+  },
+  {
+    key: "client-listings",
+    label: "My Listings",
+    href: "/dashboard/my-submissions",
+    icon: Building2,
+    capability: "clientRealEstate",
+    section: "workspace",
+  },
+  {
+    key: "client-transactions",
+    label: "Transactions",
+    href: "/dashboard/transactions",
+    icon: ArrowLeftRight,
+    capability: "client",
+    section: "workspace",
+  },
+  {
+    key: "client-referrals",
+    label: "Referrals",
+    href: "/dashboard/referrals",
+    icon: Gift,
+    capability: "client",
+    section: "workspace",
+  },
+
+  // Agent, Telecaller, and Employee workspaces.
+  {
+    key: "telecaller-leads",
+    label: "Leads",
+    href: "/dashboard/leads",
+    icon: PhoneCall,
+    capability: "telecaller",
+    section: "operations",
+  },
+  {
+    key: "employee-tasks",
+    label: "Tasks",
+    href: "/dashboard/tasks",
+    icon: ClipboardList,
+    capability: "employee",
+    section: "operations",
+  },
   {
     key: "employee-vehicle-arrangements",
     label: "Vehicle arrangements",
     href: "/dashboard/vehicle-arrangements",
     icon: CarFront,
-    employeeOnly: true,
-    realEstateOnly: true,
+    capability: "employeeRealEstate",
+    section: "operations",
   },
-  { key: "agent-leads", label: "Leads", href: "/dashboard/leads", icon: PhoneCall, agentOnly: true },
+  {
+    key: "agent-leads",
+    label: "Leads",
+    href: "/dashboard/leads",
+    icon: PhoneCall,
+    capability: "agent",
+    section: "operations",
+  },
   {
     key: "agent-listings",
     label: "Listings",
     href: "/dashboard/my-submissions",
     icon: Building2,
-    agentOnly: true,
-    realEstateOnly: true,
+    capability: "agentRealEstate",
+    section: "operations",
   },
-  { key: "agent-earnings", label: "Earnings", href: "/dashboard/earnings", icon: IndianRupee, agentOnly: true },
+  {
+    key: "agent-earnings",
+    label: "Earnings",
+    href: "/dashboard/earnings",
+    icon: IndianRupee,
+    capability: "agent",
+    section: "finance",
+  },
+  {
+    key: "agent-transactions",
+    label: "Transactions",
+    href: "/dashboard/transactions",
+    icon: ArrowLeftRight,
+    capability: "agent",
+    section: "finance",
+  },
+
+  // Sub Admin surfaces.
+  {
+    key: "sub-admin-listings",
+    label: "Property listings",
+    href: "/dashboard/my-submissions",
+    icon: Building2,
+    capability: "subAdmin",
+    section: "operations",
+  },
+  {
+    key: "sub-admin-referral-rules",
+    label: "Referral rules",
+    href: "/dashboard/referral-rules",
+    icon: Gift,
+    capability: "subAdmin",
+    section: "finance",
+  },
+
+  // Shared CMS views. Sub Admin authors; Admin reviews or oversees according
+  // to the existing route/API behavior.
+  {
+    key: "banners",
+    label: "Banners",
+    href: "/dashboard/banners",
+    icon: Megaphone,
+    capability: "cms",
+    section: "content",
+  },
+  {
+    key: "offers",
+    label: "Offers",
+    href: "/dashboard/offers",
+    icon: BadgePercent,
+    capability: "cms",
+    section: "content",
+  },
+  {
+    key: "content",
+    label: "Website content",
+    href: "/dashboard/content",
+    icon: FileText,
+    capability: "cms",
+    section: "content",
+  },
+
+  // Admin operations.
+  {
+    key: "admin-leads",
+    label: "Lead assignments",
+    href: "/dashboard/admin-leads",
+    icon: PhoneCall,
+    capability: "admin",
+    section: "operations",
+  },
+  {
+    key: "admin-tasks",
+    label: "Task assignments",
+    href: "/dashboard/admin-tasks",
+    icon: ClipboardList,
+    capability: "admin",
+    section: "operations",
+  },
   {
     key: "admin-loans",
     label: "Loan applications",
     href: "/dashboard/loan-applications",
     icon: Landmark,
-    adminOnly: true,
+    capability: "admin",
+    section: "operations",
+  },
+  {
+    key: "admin-loan-config",
+    label: "Loan configuration",
+    href: "/dashboard/loan-config",
+    icon: SlidersHorizontal,
+    capability: "admin",
+    section: "operations",
   },
   {
     key: "admin-deals",
     label: "Property deals",
     href: "/dashboard/property-deals",
     icon: Building2,
-    adminOnly: true,
+    capability: "admin",
+    section: "operations",
   },
   {
     key: "admin-vehicle-arrangements",
     label: "Vehicle arrangements",
     href: "/dashboard/vehicle-arrangements",
     icon: CarFront,
-    adminOnly: true,
+    capability: "admin",
+    section: "operations",
+  },
+  {
+    key: "admin-property-review",
+    label: "Listing approvals",
+    href: "/dashboard/property-review",
+    icon: ClipboardCheck,
+    capability: "admin",
+    section: "operations",
+  },
+  {
+    key: "admin-document-verification",
+    label: "Document verification",
+    href: "/dashboard/document-verification",
+    icon: FileCheck2,
+    capability: "admin",
+    section: "operations",
+  },
+
+  // Admin people, security, finance, content, and reporting.
+  {
+    key: "admin-users",
+    label: "Users & staff",
+    href: "/dashboard/users",
+    icon: UserPlus,
+    capability: "admin",
+    section: "people",
+  },
+  {
+    key: "admin-agents",
+    label: "Agent applications",
+    href: "/dashboard/agents",
+    icon: UserRound,
+    capability: "admin",
+    section: "people",
+  },
+  {
+    key: "admin-support-tickets",
+    label: "Support tickets",
+    href: "/dashboard/support-tickets",
+    icon: Headset,
+    capability: "admin",
+    section: "people",
+  },
+  {
+    key: "admin-access-control",
+    label: "Access control",
+    href: "/dashboard/access-control",
+    icon: ShieldCheck,
+    capability: "admin",
+    section: "people",
+  },
+  {
+    key: "admin-payouts",
+    label: "Payouts",
+    href: "/dashboard/payouts",
+    icon: Banknote,
+    capability: "admin",
+    section: "finance",
+  },
+  {
+    key: "admin-commissions",
+    label: "Commissions",
+    href: "/dashboard/commissions",
+    icon: IndianRupee,
+    capability: "admin",
+    section: "finance",
+  },
+  {
+    key: "admin-fee-cashbacks",
+    label: "Fee cashbacks",
+    href: "/dashboard/fee-cashbacks",
+    icon: BadgePercent,
+    capability: "admin",
+    section: "finance",
+  },
+  {
+    key: "admin-referral-payouts",
+    label: "Referral payouts",
+    href: "/dashboard/referral-payouts",
+    icon: Gift,
+    capability: "admin",
+    section: "finance",
+  },
+  {
+    key: "admin-referral-rules",
+    label: "Referral rules",
+    href: "/dashboard/referral-rules",
+    icon: Gift,
+    capability: "admin",
+    section: "finance",
+  },
+  {
+    key: "admin-broadcast",
+    label: "Broadcast",
+    href: "/dashboard/broadcast",
+    icon: Megaphone,
+    capability: "admin",
+    section: "content",
+  },
+  {
+    key: "admin-analytics",
+    label: "Analytics",
+    href: "/dashboard/analytics",
+    icon: BarChart3,
+    capability: "admin",
+    section: "insights",
+  },
+  {
+    key: "admin-audit-log",
+    label: "Audit log",
+    href: "/dashboard/audit-log",
+    icon: ScrollText,
+    capability: "admin",
+    section: "insights",
   },
 ];
+
+export type DashboardRouteRule = {
+  path: string;
+  exact?: boolean;
+  capabilities: readonly DashboardCapability[];
+};
+
+// Specific child routes must precede their parent prefix. For example, an
+// Admin can view /banners but only a Sub Admin can author /banners/new.
+export const DASHBOARD_ROUTE_RULES: readonly DashboardRouteRule[] = [
+  { path: "/dashboard", exact: true, capabilities: ["shared"] },
+  { path: "/dashboard/banners/new", exact: true, capabilities: ["subAdmin"] },
+  { path: "/dashboard/content/new", exact: true, capabilities: ["subAdmin"] },
+  { path: "/dashboard/leads/new", exact: true, capabilities: ["agent"] },
+  { path: "/dashboard/offers/new", exact: true, capabilities: ["subAdmin"] },
+  { path: "/dashboard/access-control", exact: true, capabilities: ["admin"] },
+  { path: "/dashboard/admin-leads", exact: true, capabilities: ["admin"] },
+  { path: "/dashboard/admin-tasks", exact: true, capabilities: ["admin"] },
+  { path: "/dashboard/agent", exact: true, capabilities: ["clientRealEstate"] },
+  { path: "/dashboard/agents", exact: true, capabilities: ["admin"] },
+  { path: "/dashboard/analytics", exact: true, capabilities: ["admin"] },
+  { path: "/dashboard/apply", exact: true, capabilities: ["clientLoans"] },
+  { path: "/dashboard/audit-log", exact: true, capabilities: ["admin"] },
+  { path: "/dashboard/banners", capabilities: ["cms"] },
+  { path: "/dashboard/bookmarks", exact: true, capabilities: ["clientRealEstate"] },
+  { path: "/dashboard/broadcast", exact: true, capabilities: ["admin"] },
+  { path: "/dashboard/commissions", exact: true, capabilities: ["admin"] },
+  { path: "/dashboard/compare", exact: true, capabilities: ["clientRealEstate"] },
+  { path: "/dashboard/content", capabilities: ["cms"] },
+  { path: "/dashboard/documents", exact: true, capabilities: ["clientLoans"] },
+  {
+    path: "/dashboard/document-verification",
+    exact: true,
+    capabilities: ["admin"],
+  },
+  { path: "/dashboard/earnings", exact: true, capabilities: ["agent"] },
+  { path: "/dashboard/enquiries", exact: true, capabilities: ["clientRealEstate"] },
+  { path: "/dashboard/explore", capabilities: ["client"] },
+  { path: "/dashboard/fee-cashbacks", exact: true, capabilities: ["admin"] },
+  { path: "/dashboard/leads", capabilities: ["agent", "telecaller"] },
+  { path: "/dashboard/loan-applications", exact: true, capabilities: ["admin"] },
+  { path: "/dashboard/loan-config", exact: true, capabilities: ["admin"] },
+  { path: "/dashboard/loan-offers", exact: true, capabilities: ["clientLoans"] },
+  { path: "/dashboard/loan-officer", exact: true, capabilities: ["clientLoans"] },
+  { path: "/dashboard/loans", capabilities: ["clientLoans"] },
+  {
+    path: "/dashboard/my-submissions",
+    exact: true,
+    capabilities: ["realEstateSubmitter", "subAdmin"],
+  },
+  { path: "/dashboard/notifications", exact: true, capabilities: ["shared"] },
+  { path: "/dashboard/offers", capabilities: ["cms"] },
+  { path: "/dashboard/payouts", exact: true, capabilities: ["admin"] },
+  { path: "/dashboard/property-deals", exact: true, capabilities: ["admin"] },
+  { path: "/dashboard/property-review", exact: true, capabilities: ["admin"] },
+  {
+    path: "/dashboard/property-submit",
+    exact: true,
+    capabilities: ["realEstateSubmitter", "subAdmin"],
+  },
+  { path: "/dashboard/referral-payouts", exact: true, capabilities: ["admin"] },
+  {
+    path: "/dashboard/referral-rules",
+    exact: true,
+    capabilities: ["referralRules"],
+  },
+  { path: "/dashboard/referrals", exact: true, capabilities: ["client"] },
+  { path: "/dashboard/settings", exact: true, capabilities: ["shared"] },
+  { path: "/dashboard/site-visits", exact: true, capabilities: ["clientRealEstate"] },
+  { path: "/dashboard/support", exact: true, capabilities: ["shared"] },
+  { path: "/dashboard/support-tickets", exact: true, capabilities: ["admin"] },
+  { path: "/dashboard/tasks", capabilities: ["employee"] },
+  { path: "/dashboard/transactions", exact: true, capabilities: ["transactions"] },
+  { path: "/dashboard/users", exact: true, capabilities: ["admin"] },
+  {
+    path: "/dashboard/vehicle-arrangements",
+    exact: true,
+    capabilities: ["employeeRealEstate", "admin"],
+  },
+];
+
+function hasCapability(
+  capability: DashboardCapability,
+  context: DashboardAccessContext,
+  useProfileLines: boolean,
+): boolean {
+  const access = CAPABILITIES[capability];
+  if (!(access.roles as readonly UserRole[]).includes(context.role)) return false;
+  if (!("lines" in access)) return true;
+
+  const allowedLines = access.lines as readonly BusinessLine[];
+  if (context.role !== "client") {
+    return context.businessLine != null && allowedLines.includes(context.businessLine);
+  }
+
+  if (!useProfileLines) {
+    return context.activeLine != null && allowedLines.includes(context.activeLine);
+  }
+
+  // /auth/me failures must not become an accidental browser authorization
+  // boundary. When the profile list is unavailable, let the API/RLS decide.
+  if (context.profileLines === undefined) return true;
+  return context.profileLines.some((line) => allowedLines.includes(line));
+}
+
+export function getNavigationSections(context: DashboardAccessContext): NavSection[] {
+  const visible = NAV_ITEMS.filter((item) =>
+    hasCapability(item.capability, context, false),
+  );
+
+  return SECTION_META.map((section) => ({
+    ...section,
+    items: visible.filter((item) => item.section === section.key),
+  })).filter((section) => section.items.length > 0);
+}
+
+function matchesRoute(pathname: string, rule: DashboardRouteRule): boolean {
+  if (rule.exact) return pathname === rule.path;
+  return pathname === rule.path || pathname.startsWith(`${rule.path}/`);
+}
+
+export function findDashboardRouteRule(pathname: string): DashboardRouteRule | undefined {
+  return DASHBOARD_ROUTE_RULES.find((rule) => matchesRoute(pathname, rule));
+}
+
+export function getDashboardPathLine(pathname: string): BusinessLine | null {
+  const rule = findDashboardRouteRule(pathname);
+  if (!rule) return null;
+
+  const lines = new Set<BusinessLine>();
+  for (const capability of rule.capabilities) {
+    const access = CAPABILITIES[capability];
+    if (!("lines" in access)) continue;
+    for (const line of access.lines) lines.add(line);
+  }
+  return lines.size === 1 ? [...lines][0] : null;
+}
+
+export function isDashboardPathAllowed(
+  pathname: string,
+  context: DashboardAccessContext,
+): boolean {
+  if (!pathname.startsWith("/dashboard")) return true;
+  const rule = findDashboardRouteRule(pathname);
+  if (!rule) return false;
+  return rule.capabilities.some((capability) =>
+    hasCapability(capability, context, true),
+  );
+}

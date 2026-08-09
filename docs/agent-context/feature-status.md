@@ -47,6 +47,21 @@ work than several completed UI requirements.
 
 ## Delivered implementation
 
+- **Role-aware dashboard navigation** (FR-2.1 through FR-2.7 and FR-17.1) is
+  complete in [PR #162](https://github.com/brollysolutions/client1/pull/162). A typed
+  role/business-line capability catalogue now drives grouped sidebar navigation
+  and a shared direct-route UX guard for all 52 checked-in dashboard pages.
+  Client Loans/Real Estate features remain line-specific; Agent, Telecaller,
+  Employee, Sub Admin, and Admin see only their existing authorized workspaces;
+  and unknown or role-ineligible dashboard URLs return to the role home. API
+  dependencies, platform scope, service checks, and PostgreSQL RLS remain the
+  unchanged security boundary. Evidence: 9 focused navigation/route tests, all
+  310 web unit tests, lint, typecheck, a passing canonical Linux production
+  build, and 8 live-stack Playwright cases across all six roles plus mobile and
+  Sub Admin authoring. Security and diff reviews found no remaining actionable
+  issue. Coverage stays **98.7%** because this hardens existing completed role
+  requirements without claiming the remaining FR-2.2 or FR-2.8 gaps.
+
 - **Business-line classification hardening** (FR-1.1) is complete in
   [PR #160](https://github.com/brollysolutions/client1/pull/160). An exhaustive
   contract classifies every mapped table and managed-media purpose; operational

@@ -19,22 +19,15 @@ import { cn } from "@/lib/utils";
 import { AccountMenu } from "./account-menu";
 import { EXPLORE_CATEGORIES } from "./explore-categories";
 import { useLine } from "./line-provider";
-import { NAV_ITEMS, type NavItem } from "./nav-items";
+import {
+  getDashboardPathLine,
+  getNavigationSections,
+  type NavItem,
+} from "./nav-items";
 
 function isActive(pathname: string, href: string): boolean {
   if (pathname === href) return true;
   return href !== "/dashboard" && pathname.startsWith(`${href}/`);
-}
-
-// Apply and Documents are loans-only sub-pages. Their chrome accent must read as
-// loans regardless of the persisted switcher line, so the accent is derived from
-// the route here rather than by mutating the shared active line.
-function isLoansRoute(pathname: string): boolean {
-  return (
-    pathname.startsWith("/dashboard/apply") ||
-    pathname.startsWith("/dashboard/documents") ||
-    pathname.startsWith("/dashboard/loans")
-  );
 }
 
 // Slim workspace rail. Icon-only when collapsed (names live in tooltips); it
@@ -57,53 +50,24 @@ export function AppSidebar({
   const { activeLine } = useLine();
   const { count: bookmarkCount } = useBookmarks();
   const { session } = useAuth();
-  const isClient = session?.role === "client";
-  const isTelecaller = session?.role === "telecaller";
-  const isEmployee = session?.role === "employee";
-  const isAgent = session?.role === "agent";
-  const isAdmin = session?.role === "admin";
 
   // Labeled = the mobile drawer, or the desktop rail when the user expands it.
   const labeled = showLabels || expanded;
 
-  // The screen's line: forced to loans on loans-only routes, else the active line.
-  const screenLine = isLoansRoute(pathname) ? "loans" : activeLine;
+  // A line-specific route wins over persisted Client state so direct URLs and
+  // notification destinations never render the other line's navigation.
+  const screenLine =
+    getDashboardPathLine(pathname) ??
+    (session?.role === "client" ? activeLine : (session?.businessLine ?? activeLine));
   const activeText = screenLine === "loans" ? "text-loans-accent" : "text-realestate-accent";
 
-  // This rail is a client's property/loan browsing nav — Explore, Bookmarks,
-  // Enquiries, etc. are meaningless for staff roles, who have no business line
-  // of their own. Most non-client roles get just Home; their real navigation
-  // lives on the role's own landing page (e.g. AdminHome's cards). Telecaller is
-  // the exception: working leads is their everyday primary task, not an
-  // occasional action, so it gets a persistent rail item alongside Home.
-  const items = isClient
-    ? NAV_ITEMS.filter((i) => {
-        // Apply/Documents are loans-only; Bookmarks/Enquiries/Site Visits/
-        // Compare/My Agent are real-estate-only. Each drops out on the other
-        // line so a feature is never offered under the wrong line's screen.
-        // Home + the identity-level items (Explore, Transactions) stay for both.
-        if (i.loansOnly && screenLine !== "loans") return false;
-        if (i.realEstateOnly && screenLine !== "real_estate") return false;
-        return true;
+  const sections = session
+    ? getNavigationSections({
+        role: session.role,
+        businessLine: session.businessLine,
+        activeLine: screenLine,
       })
-    : isTelecaller
-      ? NAV_ITEMS.filter((i) => i.key === "home" || i.telecallerOnly)
-      : isEmployee
-        ? NAV_ITEMS.filter(
-            (i) =>
-              i.key === "home" ||
-              (i.employeeOnly &&
-                (!i.realEstateOnly || session?.businessLine === "real_estate")),
-          )
-        : isAgent
-          ? NAV_ITEMS.filter(
-              (i) =>
-                i.key === "home" ||
-                (i.agentOnly && (!i.realEstateOnly || session?.businessLine === "real_estate")),
-            )
-          : isAdmin
-            ? NAV_ITEMS.filter((i) => i.key === "home" || i.adminOnly)
-            : NAV_ITEMS.filter((i) => i.key === "home");
+    : [];
 
   return (
     <TooltipProvider delayDuration={0}>
@@ -121,36 +85,57 @@ export function AppSidebar({
           <div className="mb-2 mt-2" aria-hidden="true" />
         )}
 
-        {items.map((item) => {
-          const active = isActive(pathname, item.href);
-          // Explore expands to an inline accordion of product categories in the
-          // labeled rail (hover to open; stays open on an Explore route). The
-          // collapsed rail keeps it a plain icon link.
-          if (labeled && item.key === "explore") {
-            return (
-              <SidebarExplore
-                key={item.key}
-                item={item}
-                active={active}
-                activeText={activeText}
-                pathname={pathname}
-                screenLine={screenLine}
-                onNavigate={onNavigate}
-              />
-            );
-          }
-          return (
-            <SidebarLink
-              key={item.key}
-              item={item}
-              active={active}
-              activeText={activeText}
-              labeled={labeled}
-              onNavigate={onNavigate}
-              badge={item.key === "bookmarks" && bookmarkCount > 0 ? bookmarkCount : undefined}
-            />
-          );
-        })}
+        <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
+          {sections.map((section, sectionIndex) => (
+            <div
+              key={section.key}
+              className={cn(sectionIndex > 0 && "mt-3 border-t border-dash-border pt-3")}
+            >
+              {labeled && section.label ? (
+                <p className="mb-1 px-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-text-secondary">
+                  {section.label}
+                </p>
+              ) : null}
+
+              <div className="flex flex-col gap-1.5">
+                {section.items.map((item) => {
+                  const active = isActive(pathname, item.href);
+                  // Explore expands to an inline accordion of product categories in the
+                  // labeled rail (hover to open; stays open on an Explore route). The
+                  // collapsed rail keeps it a plain icon link.
+                  if (labeled && item.key === "explore") {
+                    return (
+                      <SidebarExplore
+                        key={item.key}
+                        item={item}
+                        active={active}
+                        activeText={activeText}
+                        pathname={pathname}
+                        screenLine={screenLine}
+                        onNavigate={onNavigate}
+                      />
+                    );
+                  }
+                  return (
+                    <SidebarLink
+                      key={item.key}
+                      item={item}
+                      active={active}
+                      activeText={activeText}
+                      labeled={labeled}
+                      onNavigate={onNavigate}
+                      badge={
+                        item.key === "bookmarks" && bookmarkCount > 0
+                          ? bookmarkCount
+                          : undefined
+                      }
+                    />
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
 
         <AccountMenu labeled={labeled} onNavigate={onNavigate} />
       </nav>
