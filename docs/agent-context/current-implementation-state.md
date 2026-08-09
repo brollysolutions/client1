@@ -2,7 +2,7 @@
 
 Status: **Derived reconciliation and later product amendment**
 
-As of: **2026-08-08**
+As of: **2026-08-09**
 
 Code baseline: `14773ae` ([PR #151](https://github.com/brollysolutions/client1/pull/151))
 
@@ -13,11 +13,11 @@ the later direction to preserve that work. It is derived from current code,
 tests, migrations, recent history, the supplied documents in this directory,
 and the explicit 2026-08-06 decision to keep completed behavior unchanged.
 
-The supplied SRS and feature list remain the original product baseline. This
-register supersedes them only for the specific conflicts identified below. It
-does not silently rewrite the supplied source documents. `SECURITY.md`, current
-authorization/RLS enforcement, migrations, and later explicit user decisions
-continue to govern implementation details.
+The supplied SRS and feature list remain the original historical product
+baseline. This register supersedes them only for the specific conflicts
+identified below. It does not silently rewrite the supplied source documents.
+`SECURITY.md`, current authorization/RLS enforcement, migrations, and later
+explicit user decisions continue to govern implementation details.
 
 This is not a claim that every SRS feature is complete. Section 4 separates
 genuine open work from document items that the implementation has already
@@ -289,6 +289,24 @@ Evidence:
 - [`apps/api/app/tests/test_payouts_live.py`](../../apps/api/app/tests/test_payouts_live.py)
 - [`apps/web/features/admin/payouts-view.tsx`](../../apps/web/features/admin/payouts-view.tsx)
 - [`packages/contracts/openapi/openapi.json`](../../packages/contracts/openapi/openapi.json)
+
+### CS-010 — Map/GMB integration is removed from the product scope
+
+**Decision (2026-08-09):** Map-based integration, including Google My Business
+(GMB) usage, is not part of the current product baseline or future backlog.
+FR-18.2 and the aligned feature-list bullet are superseded and must not be
+counted as incomplete, deferred, planned, or required for release.
+
+The original supplied SRS and feature list remain unchanged as historical
+source documents. This decision changes only their active authority for the
+specific Map/GMB requirement; it does not remove address-based properties,
+site visits, vehicle pickup locations, or the consented coarse-location
+personalization implemented under FR-18.1 and CS-008.
+
+**Implementation impact:** none. No Map/GMB integration exists in the current
+code, so no application, API, schema, migration, provider configuration, or
+data cleanup is required. Future reintroduction requires a new explicit product
+decision and a separate privacy, security, provider, and data-retention review.
 
 ## 3. Previously open items settled by current behavior
 
