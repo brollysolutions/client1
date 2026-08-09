@@ -44,7 +44,7 @@ work than several completed UI requirements.
 ## Delivered implementation
 
 - **Workflow-bound Loans media gallery** (FR-13.1 through FR-13.4) is
-  implemented on `feat/media-controls-completion` (PR pending). Clients see
+  implemented in [PR #157](https://github.com/brollysolutions/client1/pull/157). Clients see
   private image/PDF media grouped by loan application, with image preview,
   forced PDF download, camera capture, and review state. Per-owner presign
   throttling, 5 MiB/12-file caps, owner/application-bound staging keys,
