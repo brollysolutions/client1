@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Image from "next/image";
-import { ArrowDown, ArrowUp, FileText, Loader2, Plus, X } from "lucide-react";
+import { ArrowDown, ArrowUp, FileText, Loader2, Plus, Video, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,12 +34,22 @@ export function SubmitPropertyForm() {
     () => f.form.images.map((file) => ({ file, url: URL.createObjectURL(file) })),
     [f.form.images],
   );
+  const videoPreview = React.useMemo(
+    () => (f.form.video ? URL.createObjectURL(f.form.video) : null),
+    [f.form.video],
+  );
 
   React.useEffect(
     () => () => {
       imagePreviews.forEach((preview) => URL.revokeObjectURL(preview.url));
     },
     [imagePreviews],
+  );
+  React.useEffect(
+    () => () => {
+      if (videoPreview) URL.revokeObjectURL(videoPreview);
+    },
+    [videoPreview],
   );
 
   const commitAmenity = () => {
@@ -259,6 +269,48 @@ export function SubmitPropertyForm() {
                 ))}
               </ul>
             )}
+          </div>
+          <div>
+            <Label htmlFor="property-video">Property video (optional)</Label>
+            <Input
+              id="property-video"
+              type="file"
+              accept="video/mp4"
+              disabled={f.submitting}
+              onChange={(event) => {
+                f.setVideo(event.target.files?.[0] ?? null);
+                event.target.value = "";
+              }}
+            />
+            <p className="mt-1 text-xs text-text-secondary">
+              One MP4, up to 20 MiB and 2 minutes. It is scanned and normalized before review.
+            </p>
+            <FieldError msg={f.errors.video} />
+            {f.form.video && videoPreview ? (
+              <div className="mt-3 rounded-lg border p-2">
+                <video
+                  src={videoPreview}
+                  controls
+                  preload="metadata"
+                  className="aspect-video w-full rounded bg-black object-contain"
+                  aria-label="Selected property video preview"
+                />
+                <div className="mt-2 flex items-center gap-2 text-sm">
+                  <Video className="h-4 w-4 text-text-secondary" aria-hidden />
+                  <span className="min-w-0 flex-1 truncate">{f.form.video.name}</span>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    disabled={f.submitting}
+                    aria-label={`Remove ${f.form.video.name}`}
+                    onClick={() => f.setVideo(null)}
+                  >
+                    <X className="h-4 w-4" aria-hidden />
+                  </Button>
+                </div>
+              </div>
+            ) : null}
           </div>
           <div>
             <Label htmlFor="property-documents">Reviewer documents (optional)</Label>

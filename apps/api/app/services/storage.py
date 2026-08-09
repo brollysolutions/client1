@@ -22,6 +22,7 @@ falls back to SPACES_ENDPOINT_URL — no double config needed there.
 from __future__ import annotations
 
 import logging
+from pathlib import Path
 
 import boto3
 from botocore.client import BaseClient
@@ -227,6 +228,80 @@ def read_head_bytes(object_key: str, n: int = 16) -> bytes | None:
     return resp["Body"].read()
 
 
+def read_object_bytes(object_key: str, *, max_bytes: int) -> bytes | None:
+    """Read one bounded private object, returning None when it is absent.
+
+    The caller supplies the purpose-specific cap. ContentLength is checked
+    before reading and the body length is checked again so a storage/proxy
+    inconsistency can never turn a bounded sanitizer into an unbounded read.
+    """
+    try:
+        resp = _client(settings.SPACES_ENDPOINT_URL).get_object(
+            Bucket=settings.SPACES_BUCKET, Key=object_key
+        )
+    except ClientError as exc:
+        code = exc.response.get("Error", {}).get("Code")
+        if code in ("404", "NoSuchKey"):
+            return None
+        raise
+    content_length = int(resp.get("ContentLength", 0))
+    if content_length < 1 or content_length > max_bytes:
+        return None
+    body = resp["Body"].read(max_bytes + 1)
+    if len(body) != content_length or len(body) > max_bytes:
+        return None
+    return body
+
+
+def put_object_bytes(object_key: str, content: bytes, content_type: str) -> None:
+    """Write generated canonical bytes with an explicit safe content type."""
+    _client(settings.SPACES_ENDPOINT_URL).put_object(
+        Bucket=settings.SPACES_BUCKET,
+        Key=object_key,
+        Body=content,
+        ContentType=content_type,
+    )
+
+
+def download_object_to_file(object_key: str, path: Path, *, max_bytes: int) -> int:
+    """Stream one bounded private object to a caller-owned temporary path."""
+    try:
+        resp = _client(settings.SPACES_ENDPOINT_URL).get_object(
+            Bucket=settings.SPACES_BUCKET, Key=object_key
+        )
+    except ClientError as exc:
+        code = exc.response.get("Error", {}).get("Code")
+        if code in ("404", "NoSuchKey"):
+            return 0
+        raise
+    content_length = int(resp.get("ContentLength", 0))
+    if content_length < 1 or content_length > max_bytes:
+        return 0
+    written = 0
+    with path.open("wb") as output:
+        while chunk := resp["Body"].read(min(1024 * 1024, max_bytes + 1 - written)):
+            written += len(chunk)
+            if written > max_bytes:
+                output.close()
+                path.unlink(missing_ok=True)
+                return 0
+            output.write(chunk)
+    if written != content_length:
+        path.unlink(missing_ok=True)
+        return 0
+    return written
+
+
+def upload_file(object_key: str, path: Path, content_type: str) -> None:
+    """Upload a locally generated canonical file without exposing its path."""
+    _client(settings.SPACES_ENDPOINT_URL).upload_file(
+        str(path),
+        settings.SPACES_BUCKET,
+        object_key,
+        ExtraArgs={"ContentType": content_type},
+    )
+
+
 # Magic-byte signatures for the content types this codebase's managed upload
 # flows allow (employee, agent application, loan document, and property media).
 # (feature-status.md §2-12): the declared Content-Type is signed into the
@@ -254,6 +329,13 @@ def sniff_content_type(head: bytes) -> str | None:
             return content_type
     if head[:4] == _WEBP_RIFF_PREFIX and head[8:12] == _WEBP_MARKER:
         return "image/webp"
+    # ISO Base Media File Format: a 32-bit box length followed by `ftyp`.
+    # Accept only well-known MP4 brands; QuickTime/MOV and arbitrary ISO-BMFF
+    # payloads are not part of the closed upload vocabulary.
+    if len(head) >= 12 and head[4:8] == b"ftyp":
+        brands = {head[8:12], *(head[index : index + 4] for index in range(16, len(head), 4))}
+        if brands & {b"isom", b"iso2", b"mp41", b"mp42", b"avc1", b"M4V "}:
+            return "video/mp4"
     return None
 
 
@@ -262,7 +344,7 @@ def content_matches_declared_type(object_key: str, declared_content_type: str) -
     the caller declared at presign time. False on a mismatch, a type this
     module doesn't recognize, or a missing object — all three are "reject",
     never "assume it's fine"."""
-    head = read_head_bytes(object_key, 12)
+    head = read_head_bytes(object_key, 32)
     if head is None:
         return False
     return sniff_content_type(head) == declared_content_type
@@ -278,7 +360,7 @@ def content_type_is_recognized(object_key: str) -> bool:
     the actual security concern (arbitrary/executable content uploaded
     under a claimed KYC-document key); it just can't catch "uploaded a real
     PNG when a PDF was declared" without a schema change."""
-    head = read_head_bytes(object_key, 12)
+    head = read_head_bytes(object_key, 32)
     if head is None:
         return False
     return sniff_content_type(head) is not None

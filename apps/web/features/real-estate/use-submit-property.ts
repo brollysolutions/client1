@@ -54,6 +54,9 @@ export function useSubmitProperty() {
   const setDocuments = React.useCallback((documents: File[]) => {
     setForm((prev) => ({ ...prev, documents }));
   }, []);
+  const setVideo = React.useCallback((video: File | null) => {
+    setForm((prev) => ({ ...prev, video }));
+  }, []);
 
   const submit = React.useCallback(async () => {
     const found = validateForm(form);
@@ -63,10 +66,12 @@ export function useSubmitProperty() {
       return;
     }
     setSubmitting(true);
-    setUploadProgress(`Uploading 0 of ${form.images.length + form.documents.length}`);
+    const totalUploads = form.images.length + form.documents.length + (form.video ? 1 : 0);
+    setUploadProgress(`Uploading 0 of ${totalUploads}`);
     const uploaded = await uploadPropertyMedia(
       form.images,
       form.documents,
+      form.video,
       (done, total) => setUploadProgress(`Uploading ${done} of ${total}`),
     );
     if (!uploaded.ok) {
@@ -97,6 +102,7 @@ export function useSubmitProperty() {
     removeAmenity,
     setImages,
     setDocuments,
+    setVideo,
     errors,
     submitting,
     uploadProgress,

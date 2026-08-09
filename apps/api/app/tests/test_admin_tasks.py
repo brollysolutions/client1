@@ -57,7 +57,10 @@ async def _seed_staff_profile(role: str, business_line: str = "loans", active: b
 
 
 async def _seed_task(
-    business_line: str, raised_by_staff_uuid: str, status: str = "unassigned"
+    business_line: str,
+    raised_by_staff_uuid: str,
+    status: str = "unassigned",
+    task_type: str = "document_collection",
 ) -> str:
     import app.db.session as _session_mod
     from app.models.lead import Lead, LeadOrigin, LeadStatus
@@ -76,7 +79,7 @@ async def _seed_task(
         task = Task(
             raised_by_staff_profile_uuid=uuid.UUID(raised_by_staff_uuid),
             business_line=business_line,
-            task_type=TaskType.DOCUMENT_COLLECTION,
+            task_type=TaskType(task_type),
             lead_uuid=lead.id,
             status=TaskStatus(status),
         )
@@ -111,6 +114,43 @@ async def test_list_unassigned_tasks(client: AsyncClient) -> None:
     assert res.status_code == 200, res.text
     ids = [row["id"] for row in res.json()]
     assert task_id in ids
+
+
+@pytest.mark.asyncio
+async def test_list_tasks_filters_property_visits_and_rejects_invalid_filters(
+    client: AsyncClient,
+) -> None:
+    _, mobile = await full_registration(client)
+    uid = await _auth_user_uuid(mobile)
+    raiser_uuid = await _seed_staff_profile("telecaller", "real_estate")
+    visit_id = await _seed_task(
+        "real_estate",
+        raiser_uuid,
+        status="assigned",
+        task_type="property_visit",
+    )
+    document_id = await _seed_task(
+        "real_estate",
+        raiser_uuid,
+        status="assigned",
+        task_type="document_collection",
+    )
+    headers = {"Authorization": f"Bearer {_admin_token(uid)}"}
+
+    response = await client.get(
+        "/api/v1/admin/tasks?task_type_filter=property_visit&limit=50",
+        headers=headers,
+    )
+    invalid = await client.get(
+        "/api/v1/admin/tasks?task_type_filter=not-a-task",
+        headers=headers,
+    )
+
+    assert response.status_code == 200, response.text
+    ids = {row["id"] for row in response.json()}
+    assert visit_id in ids
+    assert document_id not in ids
+    assert invalid.status_code == 422, invalid.text
 
 
 @pytest.mark.asyncio

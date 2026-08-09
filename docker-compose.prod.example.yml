@@ -37,6 +37,22 @@ services:
       retries: 5
     restart: always
 
+  clamav:
+    image: clamav/clamav:1.4
+    volumes:
+      - clamav_data:/var/lib/clamav
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+    healthcheck:
+      test: ["CMD-SHELL", "clamdscan --ping 10"]
+      interval: 30s
+      timeout: 15s
+      retries: 10
+      start_period: 120s
+    restart: always
+
   pgbouncer:
     image: edoburu/pgbouncer:v1.23.1-p3
     environment:
@@ -73,10 +89,15 @@ services:
     command: uv run --no-sync uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 4
     env_file:
       - ./apps/api/.env.prod
+    environment:
+      MEDIA_MALWARE_SCAN_MODE: clamav
+      CLAMAV_HOST: clamav
     depends_on:
       pgbouncer:
         condition: service_healthy
       redis:
+        condition: service_healthy
+      clamav:
         condition: service_healthy
     deploy:
       resources:
@@ -97,16 +118,21 @@ services:
     command: uv run --no-sync python -m app.scheduler.main
     env_file:
       - ./apps/api/.env.prod
+    environment:
+      MEDIA_MALWARE_SCAN_MODE: clamav
+      CLAMAV_HOST: clamav
     depends_on:
       pgbouncer:
         condition: service_healthy
       redis:
         condition: service_healthy
+      clamav:
+        condition: service_healthy
     deploy:
       replicas: 1   # exactly one scheduler instance — never scale this service
       resources:
         limits:
-          memory: 256M
+          memory: 1G
     healthcheck:
       test: ["CMD", "python", "-c", "import os,time,sys; f='/tmp/scheduler.alive'; sys.exit(0 if os.path.exists(f) and time.time()-os.path.getmtime(f)<150 else 1)"]
       interval: 30s
@@ -195,3 +221,4 @@ services:
 
 volumes:
   postgres_data:
+  clamav_data:

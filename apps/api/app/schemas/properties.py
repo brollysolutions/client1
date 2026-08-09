@@ -9,11 +9,19 @@ public API is read-only.
 from __future__ import annotations
 
 from datetime import datetime
+from typing import Literal
 from uuid import UUID
 
 from pydantic import BaseModel, Field
 
 from app.models.property import ConstructionStatus, Furnishing, PropertyCategory
+
+
+class PropertyMediaRead(BaseModel):
+    kind: Literal["image", "video"]
+    url: str
+    content_type: str
+    duration_seconds: int | None
 
 
 class PropertyRead(BaseModel):
@@ -26,6 +34,7 @@ class PropertyRead(BaseModel):
     meta: str | None
     image: str | None
     media_urls: list[str] = Field(default_factory=list)
+    media: list[PropertyMediaRead] = Field(default_factory=list)
     category: PropertyCategory
     city: str
     locality: str
@@ -66,6 +75,7 @@ class PublicPropertyRead(BaseModel):
     meta: str | None
     image: str | None
     media_urls: list[str] = Field(default_factory=list)
+    media: list[PropertyMediaRead] = Field(default_factory=list)
     category: PropertyCategory
     rera_number: str
 

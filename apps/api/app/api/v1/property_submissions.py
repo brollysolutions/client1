@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -37,6 +37,7 @@ from app.schemas.property_submissions import (
 from app.services import storage
 from app.services.property_submissions import (
     MediaContentMismatch,
+    MediaNotReady,
     MediaObjectChanged,
     MediaObjectKeyMismatch,
     MediaStorageUnavailable,
@@ -179,9 +180,11 @@ async def get_submission(
 async def access_submission_media(
     submission_id: UUID,
     media_id: UUID,
+    response: Response,
     current_user: CurrentUser = Depends(get_active_user),
     db: AsyncSession = Depends(get_db),
 ) -> SubmissionMediaAccessResponse:
+    response.headers["Cache-Control"] = "private, no-store"
     asset = await db.scalar(
         select(PropertySubmissionMedia).where(
             PropertySubmissionMedia.id == media_id,
@@ -192,6 +195,11 @@ async def access_submission_media(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Media not found.")
     try:
         await verify_stored_media(asset)
+    except MediaNotReady as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="This media item is still being processed or could not be processed.",
+        ) from exc
     except MediaObjectChanged as exc:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
@@ -204,7 +212,7 @@ async def access_submission_media(
         ) from exc
     url = (
         storage.presign_preview(asset.object_key)
-        if asset.kind == "image"
+        if asset.kind in {"image", "video"}
         else storage.presign_download(asset.object_key)
     )
     return SubmissionMediaAccessResponse(url=url)
@@ -224,6 +232,11 @@ async def approve(
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="This submission has already been reviewed.",
+        ) from exc
+    except MediaNotReady as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="All media must finish processing before approval.",
         ) from exc
     except MediaObjectChanged as exc:
         raise HTTPException(

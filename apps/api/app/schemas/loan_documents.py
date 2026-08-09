@@ -24,7 +24,10 @@ LoanDocTypeLiteral = Literal[
     "photo",
     "other",
 ]
-LoanDocContentTypeLiteral = Literal["image/jpeg", "image/png", "image/webp", "application/pdf"]
+LoanDocContentTypeLiteral = Literal[
+    "image/jpeg", "image/png", "image/webp", "application/pdf", "video/mp4"
+]
+MediaProcessingStatusLiteral = Literal["pending", "processing", "ready", "failed"]
 
 
 class LoanDocumentPresignRequest(BaseModel):
@@ -55,7 +58,11 @@ class LoanDocumentRead(BaseModel):
     content_type: LoanDocContentTypeLiteral
     size_bytes: int
     preview_url: str | None
-    download_url: str
+    playback_url: str | None
+    download_url: str | None
+    processing_status: MediaProcessingStatusLiteral
+    processing_error_code: str | None
+    duration_seconds: int | None
 
 
 class LoanDocumentListResponse(BaseModel):

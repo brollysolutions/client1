@@ -16,6 +16,7 @@ import type { components } from "@contracts/generated/schema";
 // backend adds later is a compile error here (a missing CATEGORY_COPY key),
 // not a listing that silently never renders.
 export type PropertyCategory = components["schemas"]["PublicPropertyRead"]["category"];
+export type PropertyMediaItem = components["schemas"]["PropertyMediaRead"];
 
 export type PropertyListing = {
   id: string;
@@ -29,6 +30,8 @@ export type PropertyListing = {
   meta?: string; // "2 bed · 1,120 sqft"
   /** Resolved image URL; undefined ⇒ cream placeholder band. */
   image?: string;
+  /** Approved public images and normalized videos in display order. */
+  media?: PropertyMediaItem[];
   /** RERA registration number, a statutory disclosure on the card. */
   reraNumber?: string;
 };

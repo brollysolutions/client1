@@ -18,7 +18,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.notification import NotificationType
 from app.models.profile import ProfileStatus, StaffProfile, StaffRole
-from app.models.task import Task, TaskStatus
+from app.models.task import Task, TaskStatus, TaskType
 from app.models.user import User
 from app.services.notifications import emit_notification
 
@@ -37,11 +37,19 @@ class InvalidEmployee(Exception):
     task's business line."""
 
 
-async def list_unassigned_tasks(db: AsyncSession, status_filter: str | None = None) -> list[Task]:
+async def list_unassigned_tasks(
+    db: AsyncSession,
+    status_filter: TaskStatus | None = None,
+    task_type_filter: TaskType | None = None,
+    *,
+    limit: int = 200,
+) -> list[Task]:
     stmt = select(Task)
     if status_filter is not None:
-        stmt = stmt.where(Task.status == TaskStatus(status_filter))
-    stmt = stmt.order_by(Task.created_at.desc())
+        stmt = stmt.where(Task.status == status_filter)
+    if task_type_filter is not None:
+        stmt = stmt.where(Task.task_type == task_type_filter)
+    stmt = stmt.order_by(Task.created_at.desc()).limit(limit)
     return list((await db.scalars(stmt)).all())
 
 

@@ -42,6 +42,11 @@ def _force_mock_otp_channels() -> None:
     # it out of the way here; test_otp_rate_ip.py drives the cap explicitly with a
     # low override + a flushed key.
     settings.OTP_RATE_LIMIT_PER_IP = 1_000_000
+    # The mobile-change integration module likewise exercises many independent
+    # accounts through ASGITransport's one synthetic IP. Its purpose-specific
+    # per-account limits remain active; only the cross-test IP aggregate is
+    # raised here because that module has no rate-limit assertions of its own.
+    settings.MOBILE_CHANGE_RATE_LIMIT_PER_IP = 1_000_000
 
 
 @pytest.fixture(scope="session", autouse=True)

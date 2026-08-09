@@ -115,6 +115,24 @@ def test_scheduler_registers_property_media_purge_daily() -> None:
     assert job.coalesce is True
 
 
+def test_scheduler_registers_managed_media_processing_every_minute() -> None:
+    scheduler = build_scheduler()
+    job = scheduler.get_job("process_pending_media")
+    assert job is not None
+    assert job.trigger.interval.total_seconds() == 60
+    assert job.max_instances == 1
+    assert job.coalesce is True
+
+
+def test_scheduler_registers_private_media_retention_daily() -> None:
+    scheduler = build_scheduler()
+    job = scheduler.get_job("purge_expired_private_media")
+    assert job is not None
+    assert job.trigger.interval.total_seconds() == 24 * 60 * 60
+    assert job.max_instances == 1
+    assert job.coalesce is True
+
+
 def test_scheduler_registers_personalization_location_purge_daily() -> None:
     scheduler = build_scheduler()
     job = scheduler.get_job("purge_personalization_locations")

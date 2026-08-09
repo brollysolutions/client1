@@ -70,6 +70,11 @@ export function MySubmissionsView() {
                       ? ` · ${(s.media ?? []).filter((asset) => asset.kind === "document").length} private documents`
                       : ""}
                   </p>
+                  {(s.media ?? []).some((asset) => asset.kind === "video") ? (
+                    <p className="mt-1 text-xs text-text-secondary">
+                      Video {((s.media ?? []).find((asset) => asset.kind === "video")?.processing_status ?? "pending").replaceAll("_", " ")}
+                    </p>
+                  ) : null}
                   <p className="mt-1 text-xs text-text-secondary">
                     Submitted{" "}
                     {new Date(s.created_at).toLocaleDateString("en-IN", {

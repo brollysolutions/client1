@@ -20,6 +20,7 @@ import { formatPaiseCompact } from "@/lib/format";
 import {
   approveSubmission,
   accessSubmissionMedia,
+  getSubmission,
   rejectSubmission,
   type Submission,
 } from "@/lib/property-submissions-api";
@@ -34,6 +35,27 @@ export function ReviewQueueView() {
   const [mediaUrls, setMediaUrls] = React.useState<Record<string, string>>({});
   const [mediaLoading, setMediaLoading] = React.useState(false);
   const activeMedia = React.useMemo(() => active?.media ?? [], [active]);
+  const activeId = active?.id;
+  const waitingForMedia = activeMedia.some((asset) =>
+    ["pending", "processing"].includes(asset.processing_status),
+  );
+
+  React.useEffect(() => {
+    if (!activeId || !waitingForMedia) return;
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout>;
+    const poll = async () => {
+      const result = await getSubmission(activeId);
+      if (cancelled) return;
+      if (result.ok) setActive(result.data);
+      timer = setTimeout(() => void poll(), 5_000);
+    };
+    timer = setTimeout(() => void poll(), 5_000);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [activeId, waitingForMedia]);
 
   React.useEffect(() => {
     let cancelled = false;
@@ -184,6 +206,29 @@ export function ReviewQueueView() {
                   </div>
                 )}
 
+                {activeMedia.some((asset) => asset.kind === "video") ? (
+                  <div>
+                    <p className="mb-2 text-sm font-medium text-text-primary">Property video</p>
+                    {activeMedia.filter((asset) => asset.kind === "video").map((asset) => (
+                      <div key={asset.id} className="overflow-hidden rounded-xl border border-border bg-muted">
+                        {mediaUrls[asset.id] && asset.processing_status === "ready" ? (
+                          <video
+                            src={mediaUrls[asset.id]}
+                            controls
+                            preload="metadata"
+                            className="aspect-video w-full bg-black object-contain"
+                            aria-label={`${active.title} property video`}
+                          />
+                        ) : (
+                          <div className="flex aspect-video items-center justify-center text-sm text-text-secondary">
+                            {asset.processing_status === "failed" ? "Video processing failed" : "Video processing"}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
+
                 {activeMedia.some((asset) => asset.kind === "document") ? (
                   <div>
                     <p className="mb-2 text-sm font-medium text-text-primary">Reviewer documents</p>
@@ -250,7 +295,11 @@ export function ReviewQueueView() {
                     <Button variant="outline" onClick={() => setRejecting(true)} disabled={busy}>
                       Reject
                     </Button>
-                    <Button onClick={() => void onApprove(active)} disabled={busy}>
+                    <Button
+                      onClick={() => void onApprove(active)}
+                      disabled={busy || activeMedia.some((asset) => asset.processing_status !== "ready")}
+                      title={activeMedia.some((asset) => asset.processing_status !== "ready") ? "Wait for all media processing to finish" : undefined}
+                    >
                       {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
                       Approve
                     </Button>

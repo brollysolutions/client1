@@ -186,3 +186,11 @@ def test_public_asset_url_uses_public_endpoint_when_set() -> None:
         assert url.startswith("http://localhost:9000/")
     finally:
         settings.SPACES_PUBLIC_ENDPOINT_URL = original
+
+
+def test_sniff_content_type_accepts_mp4_brand_and_rejects_quicktime() -> None:
+    assert (
+        storage.sniff_content_type(b"\x00\x00\x00\x18ftypisom\x00\x00\x02\x00isommp42")
+        == "video/mp4"
+    )
+    assert storage.sniff_content_type(b"\x00\x00\x00\x14ftypqt  \x00\x00\x00\x00") is None

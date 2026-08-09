@@ -959,6 +959,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/tasks/{task_id}/feedback-media": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Task Feedback For Admin */
+        get: operations["list_task_feedback_for_admin_api_v1_admin_tasks__task_id__feedback_media_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/users/create": {
         parameters: {
             query?: never;
@@ -1777,6 +1794,58 @@ export interface paths {
         post?: never;
         /** Delete Document */
         delete: operations["delete_document_api_v1_employee_tasks__task_id__documents__document_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/employee/tasks/{task_id}/feedback-media": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Task Feedback Media */
+        get: operations["list_task_feedback_media_api_v1_employee_tasks__task_id__feedback_media_get"];
+        put?: never;
+        /** Confirm Task Feedback Media */
+        post: operations["confirm_task_feedback_media_api_v1_employee_tasks__task_id__feedback_media_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/employee/tasks/{task_id}/feedback-media/presign": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Presign Task Feedback Media */
+        post: operations["presign_task_feedback_media_api_v1_employee_tasks__task_id__feedback_media_presign_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/employee/tasks/{task_id}/feedback-media/{media_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete Task Feedback Media */
+        delete: operations["delete_task_feedback_media_api_v1_employee_tasks__task_id__feedback_media__media_id__delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -5488,7 +5557,7 @@ export interface components {
              * Content Type
              * @enum {string}
              */
-            content_type: "image/jpeg" | "image/png" | "image/webp" | "application/pdf";
+            content_type: "image/jpeg" | "image/png" | "image/webp" | "application/pdf" | "video/mp4";
             /**
              * Doc Type
              * @enum {string}
@@ -5508,7 +5577,7 @@ export interface components {
              * Content Type
              * @enum {string}
              */
-            content_type: "image/jpeg" | "image/png" | "image/webp" | "application/pdf";
+            content_type: "image/jpeg" | "image/png" | "image/webp" | "application/pdf" | "video/mp4";
             /**
              * Doc Type
              * @enum {string}
@@ -5534,11 +5603,13 @@ export interface components {
              * Content Type
              * @enum {string}
              */
-            content_type: "image/jpeg" | "image/png" | "image/webp" | "application/pdf";
+            content_type: "image/jpeg" | "image/png" | "image/webp" | "application/pdf" | "video/mp4";
             /** Doc Type */
             doc_type: string;
             /** Download Url */
-            download_url: string;
+            download_url: string | null;
+            /** Duration Seconds */
+            duration_seconds: number | null;
             /**
              * Id
              * Format: uuid
@@ -5549,8 +5620,17 @@ export interface components {
              * Format: uuid
              */
             loan_application_uuid: string;
+            /** Playback Url */
+            playback_url: string | null;
             /** Preview Url */
             preview_url: string | null;
+            /** Processing Error Code */
+            processing_error_code: string | null;
+            /**
+             * Processing Status
+             * @enum {string}
+             */
+            processing_status: "pending" | "processing" | "ready" | "failed";
             /** Review Note */
             review_note: string | null;
             /** Size Bytes */
@@ -6303,15 +6383,29 @@ export interface components {
             /** Properties */
             properties: components["schemas"]["PropertyRead"][];
         };
-        /** PropertyMediaUploadRequest */
-        PropertyMediaUploadRequest: {
+        /** PropertyMediaRead */
+        PropertyMediaRead: {
             /** Content Type */
-            content_type: ("image/jpeg" | "image/png" | "image/webp") | "application/pdf";
+            content_type: string;
+            /** Duration Seconds */
+            duration_seconds: number | null;
             /**
              * Kind
              * @enum {string}
              */
-            kind: "image" | "document";
+            kind: "image" | "video";
+            /** Url */
+            url: string;
+        };
+        /** PropertyMediaUploadRequest */
+        PropertyMediaUploadRequest: {
+            /** Content Type */
+            content_type: ("image/jpeg" | "image/png" | "image/webp") | "application/pdf" | "video/mp4";
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "image" | "document" | "video";
         };
         /** PropertyMediaUploadResponse */
         PropertyMediaUploadResponse: {
@@ -6359,6 +6453,8 @@ export interface components {
             locality: string;
             /** Location */
             location: string;
+            /** Media */
+            media?: components["schemas"]["PropertyMediaRead"][];
             /** Media Urls */
             media_urls?: string[];
             /** Meta */
@@ -6592,6 +6688,8 @@ export interface components {
             image: string | null;
             /** Location */
             location: string;
+            /** Media */
+            media?: components["schemas"]["PropertyMediaRead"][];
             /** Media Urls */
             media_urls?: string[];
             /** Meta */
@@ -7108,12 +7206,12 @@ export interface components {
         /** SubmissionMediaInput */
         SubmissionMediaInput: {
             /** Content Type */
-            content_type: ("image/jpeg" | "image/png" | "image/webp") | "application/pdf";
+            content_type: ("image/jpeg" | "image/png" | "image/webp") | "application/pdf" | "video/mp4";
             /**
              * Kind
              * @enum {string}
              */
-            kind: "image" | "document";
+            kind: "image" | "document" | "video";
             /** Object Key */
             object_key: string;
             /** Position */
@@ -7123,6 +7221,8 @@ export interface components {
         SubmissionMediaRead: {
             /** Content Type */
             content_type: string;
+            /** Duration Seconds */
+            duration_seconds: number | null;
             /**
              * Id
              * Format: uuid
@@ -7132,9 +7232,16 @@ export interface components {
              * Kind
              * @enum {string}
              */
-            kind: "image" | "document";
+            kind: "image" | "document" | "video";
             /** Position */
             position: number;
+            /** Processing Error Code */
+            processing_error_code: string | null;
+            /**
+             * Processing Status
+             * @enum {string}
+             */
+            processing_status: "pending" | "processing" | "ready" | "failed";
             /** Size Bytes */
             size_bytes: number;
         };
@@ -7371,6 +7478,66 @@ export interface components {
             /** Verified */
             verified: boolean;
         };
+        /** TaskFeedbackMediaCreate */
+        TaskFeedbackMediaCreate: {
+            /**
+             * Content Type
+             * @enum {string}
+             */
+            content_type: "image/jpeg" | "image/png" | "image/webp" | "application/pdf";
+            /** Object Key */
+            object_key: string;
+        };
+        /** TaskFeedbackMediaPresignRequest */
+        TaskFeedbackMediaPresignRequest: {
+            /**
+             * Content Type
+             * @enum {string}
+             */
+            content_type: "image/jpeg" | "image/png" | "image/webp" | "application/pdf";
+        };
+        /** TaskFeedbackMediaPresignResponse */
+        TaskFeedbackMediaPresignResponse: {
+            /** Fields */
+            fields: {
+                [key: string]: string;
+            };
+            /** Max Bytes */
+            max_bytes: number;
+            /** Object Key */
+            object_key: string;
+            /** Upload Url */
+            upload_url: string;
+        };
+        /** TaskFeedbackMediaRead */
+        TaskFeedbackMediaRead: {
+            /**
+             * Content Type
+             * @enum {string}
+             */
+            content_type: "image/jpeg" | "image/png" | "image/webp" | "application/pdf";
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Download Url */
+            download_url: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "image" | "document";
+            /** Preview Url */
+            preview_url: string | null;
+            /** Size Bytes */
+            size_bytes: number;
+        };
         /** TaskRead */
         TaskRead: {
             /** Assigned Employee Profile Uuid */
@@ -7405,6 +7572,16 @@ export interface components {
              */
             task_type: "document_collection" | "property_visit" | "background_check";
         };
+        /**
+         * TaskStatus
+         * @enum {string}
+         */
+        TaskStatus: "unassigned" | "assigned" | "in_progress" | "completed" | "cancelled" | "blocked";
+        /**
+         * TaskType
+         * @enum {string}
+         */
+        TaskType: "document_collection" | "property_visit" | "background_check";
         /**
          * TeamPerformanceSummary
          * @description Per-business-line performance summary.
@@ -9721,7 +9898,9 @@ export interface operations {
     list_tasks_api_v1_admin_tasks_get: {
         parameters: {
             query?: {
-                status_filter?: string | null;
+                status_filter?: components["schemas"]["TaskStatus"] | null;
+                task_type_filter?: components["schemas"]["TaskType"] | null;
+                limit?: number;
             };
             header?: never;
             path?: never;
@@ -9771,6 +9950,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AdminTaskRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_task_feedback_for_admin_api_v1_admin_tasks__task_id__feedback_media_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                task_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskFeedbackMediaRead"][];
                 };
             };
             /** @description Validation Error */
@@ -11560,6 +11770,137 @@ export interface operations {
             path: {
                 task_id: string;
                 document_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_task_feedback_media_api_v1_employee_tasks__task_id__feedback_media_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                task_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskFeedbackMediaRead"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    confirm_task_feedback_media_api_v1_employee_tasks__task_id__feedback_media_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                task_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TaskFeedbackMediaCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskFeedbackMediaRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    presign_task_feedback_media_api_v1_employee_tasks__task_id__feedback_media_presign_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                task_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TaskFeedbackMediaPresignRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskFeedbackMediaPresignResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_task_feedback_media_api_v1_employee_tasks__task_id__feedback_media__media_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                task_id: string;
+                media_id: string;
             };
             cookie?: never;
         };
