@@ -11,7 +11,8 @@ Evidence baseline: `bc8efe7` ([PR #156](https://github.com/brollysolutions/clien
 Complete the approved Loans and Real Estate scope without weakening
 authorization, business-line segregation, PII/KYC handling, payout controls,
 or auditability. The current evidence-based implementation coverage is
-approximately **94.4%**; see [`feature-status.md`](feature-status.md) for the
+approximately **95.6%** across 79 active requirements; see
+[`feature-status.md`](feature-status.md) for the
 calculation and requirement-level gaps.
 
 ## Working rules
@@ -57,10 +58,9 @@ default, not permission to skip the pre-implementation announcement.
 
 ## Prioritized active backlog
 
-Map/GMB integration (FR-18.2) is excluded from the active roadmap by the
-2026-08-08 product decision. It remains an unbuilt approved-SRS requirement in
-the status ledger, rather than being treated as delivered or silently removed
-from the baseline.
+FR-18.2 Map/GMB integration was removed from the product scope by CS-010 on
+2026-08-09. It is not an active, deferred, or release requirement and is not
+included in completion coverage.
 
 | Priority | Feature / requirements | Why now | Planning model / effort | Implementation model / effort | Exit criteria |
 | ---: | --- | --- | --- | --- | --- |
@@ -801,7 +801,8 @@ The backlog builds on these delivered foundations:
 
 | Date | Change | Evidence |
 | --- | --- | --- |
-| 2026-08-08 | Removed Map/GMB integration (FR-18.2) from the active roadmap by explicit product decision; added a priority-ordered plan with separate planning and implementation model recommendations. | User direction; FR-18.2 remains not started in `feature-status.md` to preserve the approved-SRS baseline. |
+| 2026-08-09 | Removed Map/GMB integration (FR-18.2) completely from the active product baseline and recalculated coverage over 79 requirements. | Explicit user direction; CS-010; `feature-status.md`; all 7 feature-tracking tests pass with a denominator-aware status assertion. |
+| 2026-08-08 | Initially excluded Map/GMB integration (FR-18.2) from the active roadmap; this narrower decision was superseded by the complete scope removal recorded on 2026-08-09. | User direction and the later CS-010 amendment. |
 | 2026-08-07 | Completed FR-11.2 implementation pending review: same-origin notification/broadcast/push/banner destinations, verified-email transactional copies, PII-minimized notification copy, and API/web safety tests. | [PR #151](https://github.com/brollysolutions/client1/pull/151); focused Ruff/pytest and Vitest evidence. |
 | 2026-08-07 | Completed FR-7.1 vehicle arrangements, resolved OI-003, and promoted analytics completion as the next priority. | [PR #149](https://github.com/brollysolutions/client1/pull/149); migration/RLS/API/web/contract changes; focused and regression tests; security review. |
 | 2026-08-06 | Completed FR-2.9, FR-15.1, and FR-15.4 field visibility/contact privacy; promoted support-assisted mobile-number change as the next priority. | [PR #145](https://github.com/brollysolutions/client1/pull/145); migration/RLS/API/web/contract changes; focused and regression tests; security and PR review. |

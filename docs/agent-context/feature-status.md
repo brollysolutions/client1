@@ -8,8 +8,10 @@ Evidence baseline: `bc8efe7` ([PR #156](https://github.com/brollysolutions/clien
 
 ## Purpose and authority
 
-This file answers what is implemented and what remains against the 80
-functional requirements in the approved SRS v1.2. It is derived from current
+This file answers what is implemented and what remains against the 79 active
+functional requirements. The supplied SRS v1.2 contains 80 historical
+requirements, but CS-010 removes FR-18.2 Map/GMB integration from the product
+scope. This ledger is derived from current
 code, migrations, tests, recent history, and
 [`current-implementation-state.md`](current-implementation-state.md). It does
 not rewrite or replace the approved SRS or feature list.
@@ -31,13 +33,13 @@ live-provider configuration are assessed separately.
 
 | Measure | Result |
 | --- | ---: |
-| Complete requirements | 72 / 80 (90%) |
-| Partial requirements | 7 / 80 (8.75%) |
-| Not-started requirements | 1 / 80 (1.25%) |
-| Weighted implementation coverage | **94.4%** |
+| Complete requirements | 72 / 79 (91.1%) |
+| Partial requirements | 7 / 79 (8.9%) |
+| Not-started requirements | 0 / 79 (0%) |
+| Weighted implementation coverage | **95.6%** |
 
 Weighted coverage gives each Complete item 1 point and each Partial item 0.5
-points: `(72 + 7 x 0.5) / 80 = 94.375%`, rounded to **94.4%**. The weighting is a planning aid, not
+points: `(72 + 7 x 0.5) / 79 = 95.57%`, rounded to **95.6%**. The weighting is a planning aid, not
 an estimate of calendar time: a single security-sensitive gap can require more
 work than several completed UI requirements.
 
@@ -136,8 +138,8 @@ work than several completed UI requirements.
 | Contact privacy (FR-15.x) | 4 | 0 | 0 | Agent-owned and Telecaller-assigned mobile access is locked; Employee raw/deny/provider-neutral invitation modes and least-data projection are enforced server-side. |
 | Analytics (FR-16.x) | 3 | 0 | 0 | **Complete** in [PR #156](https://github.com/brollysolutions/client1/pull/156): Linux PostgreSQL/Redis verification passed 30 reporting service/API/RLS tests with one Alembic head; web lint, strict typecheck, 294 unit tests, and the 92-page production build passed. |
 | Profile/account (FR-17.x) | 4 | 0 | 0 | Profile/settings, optional demographic/income/address details, transactions/support, deletion, retention, and Admin removal exist. |
-| Location (FR-18.x) | 1 | 0 | 1 | Explicit nested opt-in stores only the latest two-decimal point for 30 days and erases it on revocation, personalization disable, or account deletion; the map/GMB seam remains undecided. |
-| **Total** | **72** | **7** | **1** | **80 requirements** |
+| Location (FR-18.x) | 1 | 0 | 0 | Explicit nested opt-in stores only the latest two-decimal point for 30 days and erases it on revocation, personalization disable, or account deletion; CS-010 removes FR-18.2 Map/GMB integration from scope. |
+| **Total** | **72** | **7** | **0** | **79 active requirements** |
 
 ## Done
 
@@ -231,7 +233,6 @@ The following requirements are complete on the evidence baseline:
 | FR-16.2 | Complete | Reports filter by business line and a selected multi-Agent list; the list is the ad hoc group filter, with no persistent group/team model added. PostgreSQL-backed service/API/RLS tests passed. | Preserve the server-side platform-Admin guard and the business-line predicates when filters evolve. |
 | FR-16.3 | Complete | The Agents report returns and renders Loans/Real Estate business-line team performance summaries, retaining per-Agent sorting and selective views. PostgreSQL-backed aggregate tests passed. | Preserve line-scoped team totals and anti-fan-out aggregate coverage. |
 | FR-18.1 | Complete | An explicit nested opt-in stores only the latest server-rounded two-decimal point, omits stale/unavailable matches, purges after 30 days, and erases on revoke/disable/deletion without logging coordinates. | Maintain the retention job and location-free audit contract. |
-| FR-18.2 | Not started | Address-based properties and visits exist, but no map seam is defined; this requirement was excluded from the active roadmap on 2026-08-08. | Keep this approved-SRS requirement uncounted as delivered; reconsider only through a new product decision and a privacy/provider design review. |
 
 ## Evidence map
 
