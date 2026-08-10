@@ -185,6 +185,24 @@ async def test_admin_assigns_task_to_employee(client: AsyncClient) -> None:
 
 
 @pytest.mark.asyncio
+async def test_admin_assigns_each_line_to_dual_line_employee(client: AsyncClient) -> None:
+    _, mobile = await full_registration(client)
+    uid = await _auth_user_uuid(mobile)
+    employee_uuid = await _seed_staff_profile("employee", "both")
+
+    for line in ("loans", "real_estate"):
+        raiser_uuid = await _seed_staff_profile("telecaller", line)
+        task_id = await _seed_task(line, raiser_uuid)
+        res = await client.post(
+            f"/api/v1/admin/tasks/{task_id}/assign",
+            json={"employee_profile_uuid": employee_uuid},
+            headers={"Authorization": f"Bearer {_admin_token(uid)}"},
+        )
+        assert res.status_code == 200, res.text
+        assert res.json()["assigned_employee_profile_uuid"] == employee_uuid
+
+
+@pytest.mark.asyncio
 async def test_assign_already_assigned_task_conflicts(client: AsyncClient) -> None:
     _, mobile = await full_registration(client)
     uid = await _auth_user_uuid(mobile)
@@ -313,6 +331,7 @@ async def test_list_employees_filters_by_business_line(client: AsyncClient) -> N
     uid = await _auth_user_uuid(mobile)
     loans_uuid = await _seed_staff_profile("employee", "loans")
     re_uuid = await _seed_staff_profile("employee", "real_estate")
+    both_uuid = await _seed_staff_profile("employee", "both")
 
     res = await client.get(
         "/api/v1/admin/employees?business_line=loans",
@@ -321,6 +340,7 @@ async def test_list_employees_filters_by_business_line(client: AsyncClient) -> N
     assert res.status_code == 200, res.text
     ids = [row["id"] for row in res.json()]
     assert loans_uuid in ids
+    assert both_uuid in ids
     assert re_uuid not in ids
 
 

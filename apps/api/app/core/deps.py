@@ -29,6 +29,8 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 # on every transaction via the after_begin listener below. LOCAL (not session)
 # settings are required for pgBouncer transaction-pooling safety.
 _RLS_CONTEXT_KEY = "rls_context"
+_OPERATIONAL_BUSINESS_LINES = {"loans", "real_estate"}
+_DUAL_LINE_STAFF_ROLES = {"telecaller", "employee"}
 
 _SET_ROLE_SQL = text("SET LOCAL ROLE api_user")
 _SET_RLS_CONFIG_SQL = text(
@@ -80,7 +82,41 @@ async def get_cache(request: Request) -> RedisCache:
     return RedisCache(request.app.state.redis)
 
 
+def resolve_effective_business_line(
+    *,
+    role: str,
+    claimed_business_line: str | None,
+    requested_business_line: str | None,
+) -> str | None:
+    """Resolve a dual-line staff member to one concrete RLS line per request.
+
+    The signed JWT decides whether switching is allowed. The request header is
+    only a selector and can never expand a single-line token's access.
+    """
+    if role in _DUAL_LINE_STAFF_ROLES and claimed_business_line == "both":
+        if requested_business_line is None:
+            return "loans"
+        if requested_business_line not in _OPERATIONAL_BUSINESS_LINES:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="X-Business-Line must be loans or real_estate.",
+            )
+        return requested_business_line
+
+    if (
+        role in _DUAL_LINE_STAFF_ROLES
+        and requested_business_line is not None
+        and requested_business_line != claimed_business_line
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="This account is not assigned to the requested business line.",
+        )
+    return claimed_business_line
+
+
 async def get_current_user(
+    request: Request,
     token: str = Depends(oauth2_scheme),
     db: AsyncSession = Depends(get_db),
     redis_client: aioredis.Redis = Depends(get_redis),
@@ -127,7 +163,12 @@ async def get_current_user(
         raise credentials_error from exc
 
     role: str = claims.get("role", "client")
-    business_line: str | None = claims.get("business_line")
+    claimed_business_line: str | None = claims.get("business_line")
+    business_line = resolve_effective_business_line(
+        role=role,
+        claimed_business_line=claimed_business_line,
+        requested_business_line=request.headers.get("X-Business-Line"),
+    )
 
     # Set Postgres RLS session context (Auth Design §13, 7 variables)
     await _set_rls_context(

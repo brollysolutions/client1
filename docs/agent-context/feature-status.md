@@ -47,6 +47,26 @@ work than several completed UI requirements.
 
 ## Delivered implementation
 
+- **Staff line access and payout workflow corrections** (FR-1.4, FR-2.5,
+  FR-2.6, FR-10.3, and FR-11.x) are complete on
+  [PR #164](https://github.com/brollysolutions/client1/pull/164). Admin provisioning now offers
+  Loans, Real Estate, or Both for Telecallers and Employees. Dual-line staff
+  select one concrete line per request; the API validates the selector before
+  installing RLS context, while assignment and ownership policies continue to
+  isolate records. The Admin sidebar keeps wheel/touch/keyboard scrolling but
+  hides the visual track. Pending payouts now expose viewer-specific approval
+  eligibility so the maker sees a clear wait-for-another-Admin handoff while a
+  different Admin retains the approval action; the server-side maker/checker,
+  recipient, cap, idempotency, audit, and ledger controls are unchanged.
+  Notification behavior was verification-only and needed no product change.
+  Evidence: 50 notification API/RLS/link/push tests, 12 focused dual-line and
+  payout integration tests, a clean migration upgrade/downgrade/upgrade cycle,
+  Ruff, one Alembic head, generated contracts, web lint/typecheck, and all 313
+  web unit tests. The Windows build compiled, typechecked, and generated all 92
+  pages before standalone symlink creation failed with host `EPERM`; a separate
+  Linux Docker build exceeded its ten-minute reporting window, so artifact
+  packaging is inconclusive rather than passing.
+
 - **Role-aware dashboard navigation** (FR-2.1 through FR-2.7 and FR-17.1) is
   complete in [PR #162](https://github.com/brollysolutions/client1/pull/162). A typed
   role/business-line capability catalogue now drives grouped sidebar navigation

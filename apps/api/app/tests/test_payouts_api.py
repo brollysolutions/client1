@@ -343,7 +343,8 @@ async def test_guard_dedupe_and_rejected_frees_key(client: AsyncClient) -> None:
 
 @pytest.mark.asyncio
 async def test_maker_cannot_approve_own_payout(client: AsyncClient) -> None:
-    maker_token, maker_uid = await _make_admin(client)
+    maker_token, _ = await _make_admin(client)
+    checker_token, _ = await _make_admin(client)
     _, recipient_mobile = await full_registration(client, lines=["loans"])
     recipient_uid = await _auth_user_id(recipient_mobile)
 
@@ -351,6 +352,13 @@ async def test_maker_cannot_approve_own_payout(client: AsyncClient) -> None:
         "/api/v1/payouts", headers=_headers(maker_token), json=_create_body(recipient_uid)
     )
     payout_id = created.json()["id"]
+    assert created.json()["viewer_is_maker"] is True
+    assert created.json()["viewer_can_approve"] is False
+
+    checker_list = await client.get("/api/v1/payouts", headers=_headers(checker_token))
+    checker_view = next(p for p in checker_list.json()["payouts"] if p["id"] == payout_id)
+    assert checker_view["viewer_is_maker"] is False
+    assert checker_view["viewer_can_approve"] is True
 
     resp = await client.post(f"/api/v1/payouts/{payout_id}/approve", headers=_headers(maker_token))
     assert resp.status_code == 403

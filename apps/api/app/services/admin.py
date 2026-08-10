@@ -141,10 +141,11 @@ async def create_staff(
         entity_uuid=profile.id,
         actor_uuid=actor_id,
         actor_role=actor_role,
-        business_line=business_line,
+        business_line=None if business_line == "both" else business_line,
         detail={
             "role": role.value,
             "scope": scope.value,
+            "assigned_business_line": business_line,
             "staff_code": profile.staff_code,
             "new_account": temp_password is not None,
         },

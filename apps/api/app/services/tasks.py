@@ -65,7 +65,7 @@ async def list_active_employees(
         )
     )
     if business_line is not None:
-        stmt = stmt.where(StaffProfile.business_line == business_line)
+        stmt = stmt.where(StaffProfile.business_line.in_((business_line, "both")))
     stmt = stmt.order_by(User.first_name, User.last_name)
     return [(profile, user) for profile, user in (await db.execute(stmt)).all()]
 
@@ -84,7 +84,7 @@ async def assign_task_to_employee(
         employee is None
         or employee.role != StaffRole.EMPLOYEE
         or employee.status != ProfileStatus.ACTIVE
-        or employee.business_line != task.business_line
+        or employee.business_line not in (task.business_line, "both")
     ):
         raise InvalidEmployee
 

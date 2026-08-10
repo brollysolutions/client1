@@ -308,6 +308,34 @@ code, so no application, API, schema, migration, provider configuration, or
 data cleanup is required. Future reintroduction requires a new explicit product
 decision and a separate privacy, security, provider, and data-retention review.
 
+### CS-011 — Telecallers and Employees may be provisioned for both lines
+
+**Decision (2026-08-10):** an Admin may provision a Telecaller or Employee for
+Loans, Real Estate, or Both. This extends CS-003's line-scoped staff model; it
+does not make either role platform-scoped and does not extend dual-line access
+to Agents.
+
+A dual-line staff JWT carries `business_line=both`, while every operational API
+request resolves to exactly one concrete `loans` or `real_estate` line selected
+by the dashboard. The API validates that selector against the signed role and
+claim before installing PostgreSQL RLS context. A single-line token cannot use
+the selector to expand its access, and assignment/ownership policies continue
+to restrict records within the selected line.
+
+Database checks permit `both` only for line-scoped Telecaller and Employee
+profiles. Operational records, audit line tags, assignment cursors, leads,
+tasks, payouts, and media remain concretely classified as Loans or Real Estate.
+This supersedes earlier wording that implied all internal staff must hold only
+one line, while preserving the profile-based identity model and all RLS,
+maker/checker, audit, and assignment boundaries.
+
+Evidence:
+
+- migration `c5d6e7f8a9b0` and [`apps/api/app/core/deps.py`](../../apps/api/app/core/deps.py)
+- dual-line provisioning, assignment, selected-line RLS, and vehicle workflow tests
+- [`apps/web/features/dashboard/line-provider.tsx`](../../apps/web/features/dashboard/line-provider.tsx)
+- generated OpenAPI and TypeScript contracts
+
 ## 3. Previously open items settled by current behavior
 
 The following entries may still be labelled “open,” “assumed,” or “pending” in

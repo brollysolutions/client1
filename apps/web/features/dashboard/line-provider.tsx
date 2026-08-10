@@ -1,11 +1,14 @@
 "use client";
 
 import * as React from "react";
+import { usePathname } from "next/navigation";
 
 import { useAuth } from "@/components/auth/session-provider";
+import { registerBusinessLineGetter } from "@/lib/api/client";
 import type { BusinessLine } from "@/lib/auth";
 
 import { useMe } from "./me-provider";
+import { getDashboardPathLine } from "./nav-items";
 
 const ACTIVE_LINE_KEY = "dashboard:active-line";
 
@@ -20,6 +23,7 @@ type LineState = {
 const LineContext = React.createContext<LineState | null>(null);
 
 export function LineProvider({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
   const { me } = useMe();
   const { session } = useAuth();
   // Restore the last-viewed line synchronously so a real-estate client never
@@ -33,10 +37,19 @@ export function LineProvider({ children }: { children: React.ReactNode }) {
     return saved === "loans" || saved === "real_estate" ? saved : "loans";
   });
 
-  const lines = React.useMemo<BusinessLine[]>(
-    () => me?.profiles.map((p) => p.businessLine) ?? [],
-    [me],
-  );
+  const lines = React.useMemo<BusinessLine[]>(() => {
+    if (session?.role === "client") return me?.profiles.map((p) => p.businessLine) ?? [];
+    if (
+      (session?.role === "telecaller" || session?.role === "employee") &&
+      session.businessLine === "both"
+    ) {
+      return ["loans", "real_estate"];
+    }
+    if (session?.businessLine === "loans" || session?.businessLine === "real_estate") {
+      return [session.businessLine];
+    }
+    return [];
+  }, [me, session?.businessLine, session?.role]);
 
   // If the restored/default line isn't one the client holds, fall back to a held
   // line so the view never points at a line the user can't access.
@@ -46,24 +59,38 @@ export function LineProvider({ children }: { children: React.ReactNode }) {
     }
   }, [lines, activeLine]);
 
+  const routeLine = getDashboardPathLine(pathname);
+  const selectedLine = routeLine && lines.includes(routeLine) ? routeLine : activeLine;
+
   const setActiveLine = React.useCallback((line: BusinessLine) => {
     setActiveLineState(line);
     localStorage.setItem(ACTIVE_LINE_KEY, line);
   }, []);
 
-  // The switcher is a client-only concept (ADR-0007: staff/agent surfaces are
-  // single-line, per their JWT business_line, not the client_profiles this
-  // identity happens to hold). A self-registered client is always enrolled in
-  // both lines (see auth_service.register_set_password), so an Agent who
-  // applied through the client-first flow still carries two client_profiles
-  // alongside their AgentProfile — without the role check, lines.length > 1
-  // alone would wrongly show this client-only toggle on a single-line Agent/
-  // Telecaller/Employee dashboard.
-  const canSwitch = session?.role === "client" && lines.length > 1;
+  const lineRef = React.useRef(selectedLine);
+  lineRef.current = selectedLine;
+  const sendsSelectedLine =
+    (session?.role === "telecaller" || session?.role === "employee") &&
+    session.businessLine === "both";
+  const sendsSelectedLineRef = React.useRef(sendsSelectedLine);
+  sendsSelectedLineRef.current = sendsSelectedLine;
+  const getterRegistered = React.useRef(false);
+  if (!getterRegistered.current) {
+    getterRegistered.current = true;
+    registerBusinessLineGetter(() =>
+      sendsSelectedLineRef.current ? lineRef.current : null,
+    );
+  }
+
+  // Clients switch among held profiles. A dual-line Telecaller or Employee
+  // switches the concrete line used for each request; the API validates it
+  // before installing the PostgreSQL RLS context.
+  const canSwitch =
+    (session?.role === "client" && lines.length > 1) || sendsSelectedLine;
 
   const value = React.useMemo<LineState>(
-    () => ({ activeLine, setActiveLine, lines, canSwitch }),
-    [activeLine, setActiveLine, lines, canSwitch],
+    () => ({ activeLine: selectedLine, setActiveLine, lines, canSwitch }),
+    [selectedLine, setActiveLine, lines, canSwitch],
   );
 
   return <LineContext.Provider value={value}>{children}</LineContext.Provider>;

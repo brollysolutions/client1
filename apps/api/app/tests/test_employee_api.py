@@ -176,6 +176,26 @@ async def test_list_scoped_to_own_tasks_only(client: AsyncClient) -> None:
 
 
 @pytest.mark.asyncio
+async def test_dual_line_employee_selects_one_task_queue_per_request(client: AsyncClient) -> None:
+    auth_uuid, staff_uuid = await _seed_employee("both")
+    tasks = {line: await _seed_task(line, staff_uuid) for line in ("loans", "real_estate")}
+    token = _employee_token(auth_uuid, staff_uuid, "both")
+
+    for line in ("loans", "real_estate"):
+        res = await client.get(
+            "/api/v1/employee/tasks",
+            headers={
+                "Authorization": f"Bearer {token}",
+                "X-Business-Line": line,
+            },
+        )
+        assert res.status_code == 200, res.text
+        ids = {row["id"] for row in res.json()}
+        assert tasks[line] in ids
+        assert tasks["real_estate" if line == "loans" else "loans"] not in ids
+
+
+@pytest.mark.asyncio
 async def test_cross_line_task_is_404(client: AsyncClient) -> None:
     auth_a, staff_a = await _seed_employee("real_estate")
     task_id = await _seed_task("loans", None)  # unassigned loans task, different line entirely

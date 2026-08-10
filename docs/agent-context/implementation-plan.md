@@ -66,6 +66,7 @@ included in completion coverage.
 
 | Priority | Feature / requirements | Why now | Planning model / effort | Implementation model / effort | Exit criteria |
 | ---: | --- | --- | --- | --- | --- |
+| 0 | Staff line access and payout workflow corrections (FR-1.4, FR-2.5, FR-2.6, FR-10.3, FR-11.x) | **Done** in [PR #164](https://github.com/brollysolutions/client1/pull/164): Admin can provision Telecallers and Employees for Loans, Real Estate, or Both; selected-line RLS isolation, payout handoff UX, notification verification, and the hidden-but-scrollable Admin sidebar track are implemented and tested. | `gpt-5.6-sol` / Extra High | `gpt-5.6-sol` / Extra High | Both-line staff remain assignment-scoped and never receive platform bypass; payout maker/checker, caps, idempotency, audit, and ledger invariants remain intact; notification behavior is freshly tested; sidebar scrolling remains usable without a visible scrollbar. |
 | 1 | Analytics verification (FR-16.1–FR-16.3) | **Done** in [PR #156](https://github.com/brollysolutions/client1/pull/156): a Linux PostgreSQL/Redis run passed the reporting service/API/RLS suite, and the web production build completed. | `gpt-5.6-terra` / High | `gpt-5.6-terra` / High | No defect was proven; retain the existing authorization, RLS, export-safety, and team-dimension invariants. |
 | 2 | Media controls completion (FR-13.1–FR-13.4) | **Done** in [PR #159](https://github.com/brollysolutions/client1/pull/159): purpose-bound property and Loans MP4, assigned-Employee property-visit feedback attachments, fail-closed malware scanning, metadata removal/transcoding, and explicit retention complete the approved scope without a universal asset library. | `gpt-5.6-sol` / Extra High | `gpt-5.6-sol` / Extra High | Preserve the delivered purpose, assignment, line, private/public promotion, processing-state, retention, and account-deletion invariants. |
 | 3 | Role-aware dashboard navigation (FR-2.1–FR-2.7, FR-17.1) | **Done** in [PR #162](https://github.com/brollysolutions/client1/pull/162): one typed capability catalogue now drives grouped navigation and direct-route UX for all 52 dashboard page entry points; 9 focused unit tests, all 310 web tests, an 8-case live-stack Playwright role/mobile matrix, and the canonical Linux production build pass. | `gpt-5.6-sol` / Extra High | `gpt-5.6-sol` / Extra High | Preserve the single capability source, explicit route inventory, Client held-line checks, single-line staff scope, fixed local redirects, and server-side dependency/RLS authority whenever dashboard routes change. |
@@ -73,6 +74,42 @@ included in completion coverage.
 | 5 | Provenance-based edit ownership (FR-2.8) | Current edit paths work, but ownership rules are not uniform across submitted detail types. | `gpt-5.6-sol` / High | `gpt-5.6-sol` / Extra High | Define per-field creator/reviewer/Admin authority; enforce it in service and RLS paths with cross-role/cross-line denial tests. |
 | 6 | Admin operational coverage audit (FR-2.2) | Admin has broad coverage, but the approved requirement calls for exhaustive view/update coverage. | `gpt-5.6-terra` / High | `gpt-5.6-terra` / High | Inventory every required Admin surface, close confirmed gaps, and add authorization plus accessible UI coverage. |
 | 7 | Business-line classification hardening (FR-1.1) | **Done** in [PR #160](https://github.com/brollysolutions/client1/pull/160): every mapped table and managed-media purpose has an explicit classification mode; operational rows, fixed domains, staged referrals, global content, staff scope, and audit exceptions are database-constrained. | `gpt-5.6-sol` / High | `gpt-5.6-sol` / Extra High | Preserve the exhaustive classification ledger, exact-line lead intent, count-only deployment preflight, immutable tags, and parent/provenance checks as schemas evolve. |
+
+### Delivered feature brief - staff line access and payout workflow corrections
+
+- **Branch / PR:** `feat/staff-lines-payout-workflow` /
+  [PR #164](https://github.com/brollysolutions/client1/pull/164).
+- **Success:** Admin can provision Telecallers and Employees for Loans, Real
+  Estate, or Both; dual-line staff can work only records assigned to their
+  identity in either permitted line; and a payout raised by one Admin reaches a
+  different eligible Admin for approval without allowing self-approval.
+- **UI behavior:** hide the Admin sidebar's visual scrollbar while preserving
+  wheel, touch, keyboard, and short-viewport reachability. Display both-line
+  staff scope and line-aware queues. Make a creator-owned pending payout read as
+  waiting for another Admin rather than presenting a failing approval action.
+- **Architecture:** represent dual-line line staff with the existing `both`
+  business-line enum while retaining `scope=line`; update trusted JWT context,
+  API contracts, role-aware navigation, assignment eligibility, and only the
+  current RLS policies that authorize Telecaller/Employee assigned workflows.
+  Notify other active platform Admins after a payout request commits.
+- **Security and compatibility:** `both` must never set platform scope or grant
+  Admin/Sub Admin/Agent capabilities. Telecallers remain limited to assigned
+  leads and Employees to assigned tasks/arrangements. Preserve immutable record
+  line tags, independent round-robin cursors, maker != checker, maker/checker !=
+  recipient, amount/daily caps, deduplication, row-locked transitions, provider
+  separation, masked destinations, ledger consistency, and PII-free audit and
+  notification payloads.
+- **Non-goals:** Agent dual-line access, unassigned staff-wide data access,
+  weakening payout approval, changing payment providers, real-time notification
+  transport, redesigning the dashboard, or changing existing notification
+  producers unless fresh tests prove a defect.
+- **Verification matrix:** notification API/RLS/link/push tests; sidebar
+  short-viewport accessibility; staff-create schema/API/UI cases for all three
+  scopes; dual-line automatic/manual lead and task assignment; per-line cursor
+  behavior; same-user and cross-role/cross-assignment RLS denial; payout creator
+  UX and API denial; different-Admin approval and notification; concurrent
+  approval/ledger idempotency; migration round-trip and one head; generated
+  contract diff; full API/web gates; security and PR review.
 
 ### Delivered feature brief - round-robin Telecaller assignment
 

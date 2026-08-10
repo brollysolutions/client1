@@ -277,6 +277,10 @@ export function PayoutsView() {
                       <p className="truncate text-xs text-text-secondary">
                         Approved by {p.checker_name ?? "another admin"}
                       </p>
+                    ) : p.viewer_is_maker ? (
+                      <p className="truncate text-xs font-medium text-warning">
+                        Waiting for approval by another Admin
+                      </p>
                     ) : null}
                   </div>
                 </div>
@@ -344,7 +348,9 @@ export function PayoutsView() {
                 </dl>
 
                 <p className="rounded-lg bg-muted p-3 text-xs text-text-secondary">
-                  A payout must be approved by a different admin than the one who raised it.
+                  {active.viewer_is_maker
+                    ? "You raised this payout. Another Admin must approve it before payment can proceed."
+                    : "A payout must be approved by a different Admin than the one who raised it."}
                 </p>
 
                 {rejecting ? (
@@ -382,14 +388,16 @@ export function PayoutsView() {
                     <Button variant="outline" onClick={() => setRejecting(true)} disabled={busy}>
                       Reject
                     </Button>
-                    <Button onClick={() => void onApprove(active)} disabled={busy}>
-                      {busy ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <CheckCircle2 className="h-4 w-4" />
-                      )}
-                      Approve
-                    </Button>
+                    {active.viewer_can_approve ? (
+                      <Button onClick={() => void onApprove(active)} disabled={busy}>
+                        {busy ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <CheckCircle2 className="h-4 w-4" />
+                        )}
+                        Approve
+                      </Button>
+                    ) : null}
                   </>
                 )}
               </DialogFooter>
