@@ -48,7 +48,8 @@ work than several completed UI requirements.
 ## Delivered implementation
 
 - **AWS-inspired multi-role dashboard experience** (FR-2.1 through FR-2.7 and
-  FR-17.1) is implemented on `feat/aws-inspired-dashboards` (PR pending).
+  FR-17.1) is implemented in
+  [PR #167](https://github.com/brollysolutions/client1/pull/167).
   Admin, Sub Admin, Telecaller, Employee, and Agent now receive a permanently
   expanded labeled desktop sidebar without a panel-toggle icon, while Clients
   retain their remembered expand/collapse preference and every role retains the
