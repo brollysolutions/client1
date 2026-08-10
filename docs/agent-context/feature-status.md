@@ -47,9 +47,9 @@ work than several completed UI requirements.
 
 ## Delivered implementation
 
-- **Admin operational CMS coverage** (FR-2.2) is partially delivered on
-  `codex/20260810-161623-ps-d-dhanadhara-client1-docker-compose-f` (PR
-  pending). The verified coverage inventory found that platform Admin could
+- **Admin operational CMS coverage** (FR-2.2) is partially delivered in
+  [PR #168](https://github.com/brollysolutions/client1/pull/168). The verified
+  coverage inventory found that platform Admin could
   view, but not create or update, shared banners, offers, content blocks, and
   referral-bonus rules. Platform Admin can now author and correct those records
   through the existing typed routes and accessible dashboard forms; regular Sub
