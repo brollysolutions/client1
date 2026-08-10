@@ -20,7 +20,12 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.deps import CurrentUser, get_active_user, require_sub_admin
+from app.core.deps import (
+    CurrentUser,
+    get_active_user,
+    is_platform_admin,
+    require_sub_admin_or_platform_admin,
+)
 from app.db.session import get_db
 from app.models.referral_bonus_config import ReferralBonusConfig
 from app.models.transaction import Transaction, TransactionType
@@ -39,7 +44,7 @@ router = APIRouter()
 @router.post("", response_model=ReferralBonusConfigRead, status_code=status.HTTP_201_CREATED)
 async def create_config(
     payload: ReferralBonusConfigCreate,
-    current_user: CurrentUser = Depends(require_sub_admin),
+    current_user: CurrentUser = Depends(require_sub_admin_or_platform_admin),
     db: AsyncSession = Depends(get_db),
 ) -> ReferralBonusConfigRead:
     config = ReferralBonusConfig(created_by_uuid=current_user.id, **payload.model_dump())
@@ -82,7 +87,7 @@ async def get_config(
 async def update_config(
     config_id: UUID,
     payload: ReferralBonusConfigUpdate,
-    current_user: CurrentUser = Depends(require_sub_admin),
+    current_user: CurrentUser = Depends(require_sub_admin_or_platform_admin),
     db: AsyncSession = Depends(get_db),
 ) -> ReferralBonusConfigRead:
     config = await db.scalar(select(ReferralBonusConfig).where(ReferralBonusConfig.id == config_id))
@@ -93,7 +98,7 @@ async def update_config(
     # App-layer guard, mirroring banners/offers/content_blocks: sub_admin's
     # shared-visibility SELECT sees every config, so ownership must be checked
     # explicitly rather than relying on a silent RLS zero-row no-op.
-    if config.created_by_uuid != current_user.id:
+    if not is_platform_admin(current_user) and config.created_by_uuid != current_user.id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You can only edit referral bonus configs you created.",

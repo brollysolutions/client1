@@ -253,7 +253,7 @@ async def test_schedule_then_archive_directly_without_activating(client: AsyncCl
 
 
 @pytest.mark.asyncio
-async def test_admin_has_no_create_endpoint_access(client: AsyncClient) -> None:
+async def test_platform_admin_can_create_offer(client: AsyncClient) -> None:
     """Admin gets read-only oversight — no create/action write path exists."""
     _, mobile = await full_registration(client, lines=["loans"])
     uid = await _auth_user_uuid(mobile)
@@ -262,24 +262,27 @@ async def test_admin_has_no_create_endpoint_access(client: AsyncClient) -> None:
         json=_PAYLOAD,
         headers={"Authorization": f"Bearer {_admin_token(uid)}"},
     )
-    assert res.status_code == 403
+    assert res.status_code == 201, res.text
 
 
 @pytest.mark.asyncio
-async def test_admin_cannot_schedule_a_sub_admins_offer(client: AsyncClient) -> None:
-    _, mobile = await full_registration(client, lines=["loans"])
-    uid = await _auth_user_uuid(mobile)
+async def test_platform_admin_can_schedule_a_sub_admins_offer(client: AsyncClient) -> None:
+    _, owner_mobile = await full_registration(client, lines=["loans"])
+    owner_uid = await _auth_user_uuid(owner_mobile)
     created = await client.post(
         "/api/v1/offers",
         json=_PAYLOAD,
-        headers={"Authorization": f"Bearer {_sub_admin_token(uid)}"},
+        headers={"Authorization": f"Bearer {_sub_admin_token(owner_uid)}"},
     )
     offer_id = created.json()["id"]
+    _, admin_mobile = await full_registration(client, lines=["loans"])
+    admin_uid = await _auth_user_uuid(admin_mobile)
     res = await client.post(
         f"/api/v1/offers/{offer_id}/schedule",
-        headers={"Authorization": f"Bearer {_admin_token(uid)}"},
+        headers={"Authorization": f"Bearer {_admin_token(admin_uid)}"},
     )
-    assert res.status_code == 403
+    assert res.status_code == 200, res.text
+    assert res.json()["status"] == "scheduled"
 
 
 @pytest.mark.asyncio

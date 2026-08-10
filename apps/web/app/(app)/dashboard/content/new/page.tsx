@@ -13,7 +13,7 @@ import { ContentForm } from "@/features/sub-admin/content-form";
 export default function NewContentBlockPage() {
   const router = useRouter();
   const { session, isLoading } = useAuth();
-  const allowed = session != null && session.role === "sub_admin";
+  const allowed = session != null && (session.role === "sub_admin" || session.role === "admin");
 
   React.useEffect(() => {
     if (!isLoading && !allowed) router.replace("/dashboard");

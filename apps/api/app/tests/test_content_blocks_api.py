@@ -170,14 +170,14 @@ async def test_client_cannot_create(client: AsyncClient) -> None:
 
 
 @pytest.mark.asyncio
-async def test_admin_cannot_create(client: AsyncClient) -> None:
+async def test_platform_admin_can_create_content(client: AsyncClient) -> None:
     """Admin has read-only oversight — no authoring, no approval step."""
     _, mobile = await full_registration(client, lines=["loans"])
     uid = await _auth_user_uuid(mobile)
     res = await client.post(
         _URL, json=_payload(), headers={"Authorization": f"Bearer {_admin_token(uid)}"}
     )
-    assert res.status_code == 403
+    assert res.status_code == 201, res.text
 
 
 @pytest.mark.asyncio

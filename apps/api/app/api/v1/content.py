@@ -17,7 +17,12 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.deps import CurrentUser, get_active_user, require_sub_admin
+from app.core.deps import (
+    CurrentUser,
+    get_active_user,
+    is_platform_admin,
+    require_sub_admin_or_platform_admin,
+)
 from app.db.session import get_db
 from app.models.content_block import ContentBlock, ContentStatus
 from app.schemas.content import (
@@ -47,7 +52,7 @@ _SLUG_TAKEN = "That slug is already in use by another content block."
 @router.post("", response_model=ContentBlockRead, status_code=status.HTTP_201_CREATED)
 async def create_content_block(
     payload: ContentBlockCreate,
-    current_user: CurrentUser = Depends(require_sub_admin),
+    current_user: CurrentUser = Depends(require_sub_admin_or_platform_admin),
     db: AsyncSession = Depends(get_db),
 ) -> ContentBlockRead:
     block = ContentBlock(created_by_uuid=current_user.id, **payload.model_dump())
@@ -98,7 +103,7 @@ async def get_content_block(
 async def update_content_block(
     block_id: UUID,
     payload: ContentBlockUpdate,
-    current_user: CurrentUser = Depends(require_sub_admin),
+    current_user: CurrentUser = Depends(require_sub_admin_or_platform_admin),
     db: AsyncSession = Depends(get_db),
 ) -> ContentBlockRead:
     block = await db.scalar(select(ContentBlock).where(ContentBlock.id == block_id))
@@ -109,7 +114,7 @@ async def update_content_block(
     # App-layer guard, mirroring banners/offers: sub_admin's shared-visibility
     # SELECT sees every block, so ownership must be checked explicitly rather
     # than relying on a silent RLS zero-row no-op.
-    if block.created_by_uuid != current_user.id:
+    if not is_platform_admin(current_user) and block.created_by_uuid != current_user.id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You can only edit content blocks you created.",
@@ -137,7 +142,9 @@ async def _advance(
     block_id: UUID, target: ContentStatus, current_user: CurrentUser, db: AsyncSession
 ) -> ContentBlockRead:
     try:
-        block = await advance_content_block(block_id, current_user.id, target, db)
+        block = await advance_content_block(
+            block_id, current_user.id, target, db, can_manage_any=is_platform_admin(current_user)
+        )
     except ContentNotOwned as exc:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -163,7 +170,7 @@ async def _advance(
 @router.post("/{block_id}/publish", response_model=ContentBlockRead)
 async def publish(
     block_id: UUID,
-    current_user: CurrentUser = Depends(require_sub_admin),
+    current_user: CurrentUser = Depends(require_sub_admin_or_platform_admin),
     db: AsyncSession = Depends(get_db),
 ) -> ContentBlockRead:
     return await _advance(block_id, ContentStatus.PUBLISHED, current_user, db)
@@ -172,7 +179,7 @@ async def publish(
 @router.post("/{block_id}/archive", response_model=ContentBlockRead)
 async def archive(
     block_id: UUID,
-    current_user: CurrentUser = Depends(require_sub_admin),
+    current_user: CurrentUser = Depends(require_sub_admin_or_platform_admin),
     db: AsyncSession = Depends(get_db),
 ) -> ContentBlockRead:
     return await _advance(block_id, ContentStatus.ARCHIVED, current_user, db)

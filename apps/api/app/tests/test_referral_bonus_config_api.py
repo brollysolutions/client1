@@ -102,13 +102,25 @@ async def test_client_cannot_create(client: AsyncClient) -> None:
 
 
 @pytest.mark.asyncio
-async def test_admin_cannot_create(client: AsyncClient) -> None:
+async def test_platform_admin_can_create(client: AsyncClient) -> None:
     """Admin has read-only oversight — no authoring."""
     _, mobile = await full_registration(client, lines=["loans"])
     uid = await _auth_user_uuid(mobile)
     res = await client.post(
         _URL, json=_payload(), headers={"Authorization": f"Bearer {_admin_token(uid)}"}
     )
+    assert res.status_code == 201, res.text
+
+
+@pytest.mark.asyncio
+async def test_line_scoped_admin_cannot_create(client: AsyncClient) -> None:
+    """CMS overrides are reserved for the cross-line platform Admin."""
+    _, mobile = await full_registration(client, lines=["loans"])
+    uid = await _auth_user_uuid(mobile)
+    token = create_access_token(
+        {"sub": uid, "role": "admin", "business_line": "loans", "platform_scope": "false"}
+    )
+    res = await client.post(_URL, json=_payload(), headers={"Authorization": f"Bearer {token}"})
     assert res.status_code == 403
 
 
@@ -146,19 +158,21 @@ async def test_agent_cannot_create(client: AsyncClient) -> None:
 
 
 @pytest.mark.asyncio
-async def test_admin_cannot_update(client: AsyncClient) -> None:
+async def test_platform_admin_can_update(client: AsyncClient) -> None:
     """Same require_sub_admin guard as create — Admin has no write path here."""
-    _, mobile = await full_registration(client, lines=["loans"])
-    uid = await _auth_user_uuid(mobile)
-    headers = {"Authorization": f"Bearer {_sub_admin_token(uid)}"}
-    config = await _create(client, headers)
+    _, owner_mobile = await full_registration(client, lines=["loans"])
+    owner_uid = await _auth_user_uuid(owner_mobile)
+    config = await _create(client, {"Authorization": f"Bearer {_sub_admin_token(owner_uid)}"})
+    _, admin_mobile = await full_registration(client, lines=["loans"])
+    admin_uid = await _auth_user_uuid(admin_mobile)
 
     res = await client.patch(
         f"{_URL}/{config['id']}",
         json={"active": True},
-        headers={"Authorization": f"Bearer {_admin_token(uid)}"},
+        headers={"Authorization": f"Bearer {_admin_token(admin_uid)}"},
     )
-    assert res.status_code == 403
+    assert res.status_code == 200, res.text
+    assert res.json()["active"] is True
 
 
 @pytest.mark.asyncio
