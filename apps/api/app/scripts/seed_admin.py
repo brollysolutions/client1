@@ -42,6 +42,15 @@ async def _seed(mobile: str, email: str) -> None:
                     StaffProfile.status == ProfileStatus.ACTIVE,
                 )
             )
+            if existing is not None and not existing.is_primary_admin:
+                primary_exists = await db.scalar(
+                    select(StaffProfile.id).where(StaffProfile.is_primary_admin.is_(True))
+                )
+                if primary_exists is None:
+                    existing.is_primary_admin = True
+                    await db.commit()
+                    print(f"[seed_admin] Promoted {mobile} to Main Admin.")
+                    return
             if existing is not None:
                 print(f"[seed_admin] {mobile} is already an active admin — skipping.")
                 return
@@ -70,6 +79,9 @@ async def _seed(mobile: str, email: str) -> None:
             user.password_hash = await hash_password(temp_password)
             user.status = UserStatus.PENDING_PASSWORD_RESET
 
+        primary_exists = await db.scalar(
+            select(StaffProfile.id).where(StaffProfile.is_primary_admin.is_(True))
+        )
         db.add(
             StaffProfile(
                 auth_user_uuid=user.id,
@@ -78,6 +90,7 @@ async def _seed(mobile: str, email: str) -> None:
                 business_line=None,
                 staff_code=generate_profile_code("admin", user.first_name),
                 status=ProfileStatus.ACTIVE,
+                is_primary_admin=primary_exists is None,
             )
         )
         await db.commit()

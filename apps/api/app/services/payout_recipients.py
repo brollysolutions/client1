@@ -1,13 +1,9 @@
-"""Payout identity resolution + recipient search — read-only, caller's RLS session.
+"""Payout identity resolution and recipient search.
 
-Unlike services/payments.py, this module NEVER uses the AsyncSessionLocal bypass
-session. Both functions run on the request session, so `auth_users_rls` /
-`client_profiles_rls` / `agent_profiles_rls` apply exactly as they do for any
-other admin query. A platform Sub Admin caller resolving nothing here (all
-identity fields come back null) is the CORRECT outcome under
-a0b1c2d3e4f5_rls_scope_platform_bypass_to_admin's Group-1 bypass
-(`platform_scope='true' AND role='admin'` only) — not a bug to "fix" by widening
-the query or the RLS policy.
+Ordinary helpers use the caller's RLS session. Explicit payout-only helpers use
+the bypass session after the router proves an Admin or granted Sub Admin. Their
+projection is deliberately limited to display identity and recipient-search
+metadata; no email or full mobile is returned.
 """
 
 from __future__ import annotations
@@ -20,6 +16,7 @@ from uuid import UUID
 from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.db.session import AsyncSessionLocal
 from app.models.profile import AgentProfile, ClientProfile, StaffProfile
 from app.models.user import User, UserStatus
 
@@ -33,7 +30,7 @@ class Identity:
     code: str | None
 
 
-async def resolve_identities(
+async def _resolve_identities(
     db: AsyncSession,
     user_uuids: Collection[UUID],
     *,
@@ -112,6 +109,29 @@ async def resolve_identities(
     return result
 
 
+async def resolve_identities(
+    db: AsyncSession,
+    user_uuids: Collection[UUID],
+    *,
+    prefer_line: Mapping[UUID, str | None] | None = None,
+) -> dict[UUID, Identity]:
+    return await _resolve_identities(db, user_uuids, prefer_line=prefer_line)
+
+
+async def resolve_payout_identities(
+    user_uuids: Collection[UUID],
+    *,
+    prefer_line: Mapping[UUID, str | None] | None = None,
+) -> dict[UUID, Identity]:
+    """Narrow bypass projection for an already-authorized payout surface.
+
+    Returns only display name and profile code; never mobile, email, or raw
+    payout destination data. Authorization remains at the payout router.
+    """
+    async with AsyncSessionLocal() as db:
+        return await _resolve_identities(db, user_uuids, prefer_line=prefer_line)
+
+
 @dataclass(frozen=True)
 class RecipientHit:
     auth_user_uuid: UUID
@@ -121,7 +141,7 @@ class RecipientHit:
     mobile_last4: str
 
 
-async def search_recipients(
+async def _search_recipients(
     db: AsyncSession, *, q: str, limit: int, exclude_user_uuid: UUID
 ) -> list[RecipientHit]:
     """Admin-only recipient picker search. Filters mirror the create_payout
@@ -243,3 +263,27 @@ async def search_recipients(
             )
         )
     return hits
+
+
+async def search_recipients(
+    db: AsyncSession, *, q: str, limit: int, exclude_user_uuid: UUID
+) -> list[RecipientHit]:
+    return await _search_recipients(
+        db,
+        q=q,
+        limit=limit,
+        exclude_user_uuid=exclude_user_uuid,
+    )
+
+
+async def search_payout_recipients(
+    *, q: str, limit: int, exclude_user_uuid: UUID
+) -> list[RecipientHit]:
+    """Minimal bypass search after the router proves payout-request access."""
+    async with AsyncSessionLocal() as db:
+        return await _search_recipients(
+            db,
+            q=q,
+            limit=limit,
+            exclude_user_uuid=exclude_user_uuid,
+        )

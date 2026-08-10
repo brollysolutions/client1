@@ -12,6 +12,8 @@ import { apiRequest, type ApiResponse } from "@/lib/api/client";
 type Schemas = components["schemas"];
 export type StaffCreateRequest = Schemas["StaffCreateRequest"];
 export type StaffCreateResponse = Schemas["StaffCreateResponse"];
+export type StaffAccessEntry = Schemas["StaffAccessEntry"];
+export type StaffAccessList = Schemas["StaffAccessListResponse"];
 export type AgentApplication = Schemas["AgentApplicationRead"];
 export type AgentApplicationDetail = Schemas["AgentApplicationDetailRead"];
 export type AgentApplicationDocument = Schemas["AgentApplicationDocument"];
@@ -44,6 +46,23 @@ export async function createStaff(
     method: "POST",
     body: payload,
   });
+}
+
+export async function getStaffAccess(): Promise<ApiResponse<StaffAccessList>> {
+  return apiRequest<StaffAccessList>("/api/v1/admin/staff-access");
+}
+
+export async function setStaffFeature(
+  staffProfileUuid: string,
+  enabled: boolean,
+): Promise<ApiResponse<StaffAccessList>> {
+  return apiRequest<StaffAccessList>(
+    `/api/v1/admin/staff-access/${staffProfileUuid}/features`,
+    {
+      method: "PUT",
+      body: { feature: "payout_requests", enabled },
+    },
+  );
 }
 
 export async function listPendingAgentApplications(): Promise<ApiResponse<AgentApplication[]>> {

@@ -42,7 +42,7 @@ from app.schemas.auth import (
     SetPasswordRequest,
 )
 from app.services import auth_service
-from app.services.account_deletion import AccountAlreadyDeleted
+from app.services.account_deletion import AccountAlreadyDeleted, PrimaryAdminDeletionForbidden
 
 router = APIRouter()
 
@@ -280,6 +280,11 @@ async def delete_me(
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="This account has already been deleted.",
+        ) from exc
+    except PrimaryAdminDeletionForbidden as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="The Main Admin cannot be deleted without an explicit ownership transfer.",
         ) from exc
     _clear_refresh_cookie(response)
     return MessageResponse(message="Your account has been deleted.")

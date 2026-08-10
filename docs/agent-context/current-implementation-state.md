@@ -336,6 +336,47 @@ Evidence:
 - [`apps/web/features/dashboard/line-provider.tsx`](../../apps/web/features/dashboard/line-provider.tsx)
 - generated OpenAPI and TypeScript contracts
 
+### CS-012 — Main Admin hierarchy and delegated payout requests
+
+**Decision (2026-08-10):** the oldest existing active Admin is migrated as the
+single Main Admin. On a clean installation, the first seeded Admin becomes Main
+Admin. Only that live Main Admin identity may create additional Admin accounts,
+with a maximum of three additional active Admins, or grant/revoke closed staff
+features. Main Admin status is database-constrained to an active platform Admin
+and is not a caller-controlled token flag. Main Admin deletion is rejected until
+a separate, explicit ownership-transfer workflow is approved and implemented.
+
+The first closed feature is `payout_requests`. A granted platform Sub Admin may
+search the minimal payout-recipient projection, create payout requests, and
+list payout workflow rows. They may not approve or reject a payout, view payout
+link reconciliation, or issue, clear, fail, or reverse a manual cheque. Feature
+changes increment the target user's session version and revoke refresh tokens,
+so a grant or revocation takes effect on the next request and requires a normal
+sign-in to obtain fresh signed claims. Payout RLS independently requires the
+same feature claim.
+
+Main Admin-created payouts are the only approval-free exception. The service
+derives this exception from the live staff row and records an explicit
+`primary_admin_standalone` approval audit without fabricating a checker. The
+existing recipient/self-payout checks, configured caps, daily serialization,
+idempotency/deduplication, provider handling, masked destination storage,
+notification, and paid-ledger settlement rules remain in force. A Sub Admin or
+additional Admin remains a maker whose payout requires a different Admin.
+
+This decision supersedes the universal maker/checker wording only for a live
+Main Admin's own payout. It does not make Sub Admin a general platform Admin,
+does not permit arbitrary feature strings, and does not broaden any other RLS
+policy or business-line boundary.
+
+Evidence:
+
+- migration `d7f8a9b0c1d2` and the `staff_feature_grants` RLS policies
+- [`apps/api/app/services/admin.py`](../../apps/api/app/services/admin.py) and
+  [`apps/api/app/services/payments.py`](../../apps/api/app/services/payments.py)
+- hierarchy, grant/revocation, payout API/RLS, linked-payout, auth/session, and
+  dashboard capability tests
+- generated OpenAPI and TypeScript contracts
+
 ## 3. Previously open items settled by current behavior
 
 The following entries may still be labelled “open,” “assumed,” or “pending” in

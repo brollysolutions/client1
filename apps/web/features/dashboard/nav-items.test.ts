@@ -4,7 +4,12 @@ import path from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-import type { BusinessLine, StaffBusinessLine, UserRole } from "@/lib/auth";
+import type {
+  BusinessLine,
+  StaffBusinessLine,
+  StaffFeature,
+  UserRole,
+} from "@/lib/auth";
 
 import {
   findDashboardRouteRule,
@@ -19,8 +24,9 @@ function context(
   businessLine: StaffBusinessLine | null = null,
   activeLine: BusinessLine = "loans",
   profileLines?: readonly BusinessLine[],
+  staffFeatures?: readonly StaffFeature[],
 ): DashboardAccessContext {
-  return { role, businessLine, activeLine, profileLines };
+  return { role, businessLine, activeLine, profileLines, staffFeatures };
 }
 
 function navKeys(access: DashboardAccessContext): string[] {
@@ -134,6 +140,16 @@ describe("role-aware dashboard navigation", () => {
       "offers",
       "content",
     ]);
+
+    expect(navKeys(context("sub_admin", null, "loans", undefined, ["payout_requests"]))).toEqual([
+      "home",
+      "sub-admin-listings",
+      "sub-admin-referral-rules",
+      "admin-payouts",
+      "banners",
+      "offers",
+      "content",
+    ]);
   });
 
   it("makes every existing Admin workspace reachable in grouped navigation", () => {
@@ -228,6 +244,16 @@ describe("dashboard direct-route UX access", () => {
       ),
     ).toBe(true);
     expect(isDashboardPathAllowed("/dashboard/vehicle-arrangements", context("admin"))).toBe(true);
+  });
+
+  it("allows only a granted Sub Admin to open payouts", () => {
+    expect(isDashboardPathAllowed("/dashboard/payouts", context("sub_admin"))).toBe(false);
+    expect(
+      isDashboardPathAllowed(
+        "/dashboard/payouts",
+        context("sub_admin", null, "loans", undefined, ["payout_requests"]),
+      ),
+    ).toBe(true);
   });
 
   it("allows known shared pages and rejects unknown dashboard paths", () => {

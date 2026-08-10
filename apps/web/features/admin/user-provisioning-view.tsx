@@ -14,12 +14,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { createStaff, type StaffCreateRequest, type StaffCreateResponse } from "@/lib/admin-api";
+import {
+  createStaff,
+  getStaffAccess,
+  setStaffFeature,
+  type StaffAccessList,
+  type StaffCreateRequest,
+  type StaffCreateResponse,
+} from "@/lib/admin-api";
 import { TempCredentialPanel } from "./temp-credential-panel";
 
 type StaffRole = StaffCreateRequest["role"];
 
 const ROLE_OPTIONS: { value: StaffRole; label: string }[] = [
+  { value: "admin", label: "Admin" },
   { value: "sub_admin", label: "Sub Admin" },
   { value: "telecaller", label: "Telecaller" },
   { value: "employee", label: "Employee" },
@@ -48,8 +56,22 @@ export function UserProvisioningView() {
   const [form, setForm] = React.useState(EMPTY_FORM);
   const [submitting, setSubmitting] = React.useState(false);
   const [result, setResult] = React.useState<StaffCreateResponse | null>(null);
+  const [access, setAccess] = React.useState<StaffAccessList | null>(null);
+  const [featureBusy, setFeatureBusy] = React.useState<string | null>(null);
 
-  const needsLine = form.role !== "sub_admin";
+  const needsLine = form.role !== "admin" && form.role !== "sub_admin";
+  const visibleRoleOptions = access
+    ? ROLE_OPTIONS
+    : ROLE_OPTIONS.filter((option) => option.value !== "admin");
+
+  const refreshAccess = React.useCallback(async () => {
+    const response = await getStaffAccess();
+    if (response.ok) setAccess(response.data);
+  }, []);
+
+  React.useEffect(() => {
+    void refreshAccess();
+  }, [refreshAccess]);
 
   function setField<K extends keyof typeof form>(key: K, value: (typeof form)[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -70,13 +92,16 @@ export function UserProvisioningView() {
       mobile: form.mobile.trim(),
       email: form.email.trim(),
       role: form.role,
-      business_line: needsLine ? (form.business_line as "loans" | "real_estate") : null,
+      business_line: needsLine
+        ? (form.business_line as "loans" | "real_estate" | "both")
+        : null,
     });
     setSubmitting(false);
     if (res.ok) {
       toast.success("Account created");
       setResult(res.data);
       setForm(EMPTY_FORM);
+      void refreshAccess();
     } else {
       toast.error("Could not create account", { description: res.error });
     }
@@ -87,8 +112,9 @@ export function UserProvisioningView() {
       <div>
         <h1 className="text-2xl font-semibold text-text-primary">Provision staff</h1>
         <p className="mt-1 text-sm text-text-secondary">
-          Create a Sub Admin, Telecaller, or Employee account. A temp password is shown once,
-          share it securely, they set their own password on first login.
+          Create a Sub Admin, Telecaller, or Employee account
+          {access ? ", or use a Main Admin slot to create another Admin" : ""}. A temp password is
+          shown once; share it securely so they can set their own password on first login.
         </p>
       </div>
 
@@ -178,8 +204,16 @@ export function UserProvisioningView() {
                 <SelectValue placeholder="Choose a role" />
               </SelectTrigger>
               <SelectContent>
-                {ROLE_OPTIONS.map((o) => (
-                  <SelectItem key={o.value} value={o.value}>
+                {visibleRoleOptions.map((o) => (
+                  <SelectItem
+                    key={o.value}
+                    value={o.value}
+                    disabled={
+                      o.value === "admin" &&
+                      access != null &&
+                      access.additional_admin_count >= access.additional_admin_limit
+                    }
+                  >
                     {o.label}
                   </SelectItem>
                 ))}
@@ -210,7 +244,7 @@ export function UserProvisioningView() {
             </div>
           ) : (
             <p className="text-xs text-text-secondary">
-              Sub Admin acts across both business lines.
+              Admin and Sub Admin accounts act across both business lines.
             </p>
           )}
 
@@ -220,6 +254,65 @@ export function UserProvisioningView() {
           </Button>
         </form>
       )}
+
+      {access ? (
+        <section className="space-y-4 rounded-2xl border border-border bg-card p-5">
+          <div>
+            <h2 className="font-semibold text-text-primary">Admin delegation</h2>
+            <p className="mt-1 text-sm text-text-secondary">
+              {access.additional_admin_count} of {access.additional_admin_limit} additional Admin
+              accounts are active. Only the Main Admin can change these settings.
+            </p>
+          </div>
+
+          <div className="space-y-3">
+            {access.entries
+              .filter((entry) => entry.role === "sub_admin")
+              .map((entry) => {
+                const enabled = entry.features.includes("payout_requests");
+                return (
+                  <label
+                    key={entry.staff_profile_uuid}
+                    className="flex items-start justify-between gap-4 rounded-xl border border-border p-4"
+                  >
+                    <span>
+                      <span className="block font-medium text-text-primary">
+                        {entry.first_name} {entry.last_name}
+                      </span>
+                      <span className="block text-xs text-text-secondary">
+                        {entry.staff_code} · May prepare payout requests; an Admin must approve.
+                      </span>
+                    </span>
+                    <input
+                      type="checkbox"
+                      className="mt-1 h-4 w-4 accent-brand-cta"
+                      checked={enabled}
+                      disabled={featureBusy === entry.staff_profile_uuid}
+                      aria-label={`Allow ${entry.first_name} ${entry.last_name} to prepare payout requests`}
+                      onChange={async (event) => {
+                        setFeatureBusy(entry.staff_profile_uuid);
+                        const response = await setStaffFeature(
+                          entry.staff_profile_uuid,
+                          event.target.checked,
+                        );
+                        setFeatureBusy(null);
+                        if (response.ok) {
+                          setAccess(response.data);
+                          toast.success(
+                            event.target.checked ? "Payout access granted" : "Payout access revoked",
+                            { description: "The Sub Admin must sign in again." },
+                          );
+                        } else {
+                          toast.error("Could not update access", { description: response.error });
+                        }
+                      }}
+                    />
+                  </label>
+                );
+              })}
+          </div>
+        </section>
+      ) : null}
     </div>
   );
 }

@@ -40,6 +40,7 @@ from app.models.profile import (
     ClientProfile,
     ProfileScope,
     ProfileStatus,
+    StaffFeatureGrant,
     StaffProfile,
 )
 from app.models.user import User, UserStatus
@@ -192,6 +193,15 @@ async def _build_access_claims(db: AsyncSession, user: User) -> dict:
         # filter; line-scoped staff are pinned to their one business_line.
         claims["platform_scope"] = "true" if staff.scope == ProfileScope.PLATFORM else "false"
         claims["staff_profile_uuid"] = str(staff.id)
+        claims["staff_features"] = sorted(
+            (
+                await db.scalars(
+                    select(StaffFeatureGrant.feature).where(
+                        StaffFeatureGrant.staff_profile_uuid == staff.id
+                    )
+                )
+            ).all()
+        )
         return claims
 
     agent = await db.scalar(

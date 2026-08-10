@@ -28,6 +28,7 @@ export function DashboardRouteGuard({ children }: { children: React.ReactNode })
       // An unavailable /auth/me response must not become a browser auth wall.
       // Once known, held Client lines make cross-line direct URLs deterministic.
       profileLines: lines.length > 0 ? lines : undefined,
+      staffFeatures: session.staffFeatures,
     });
 
   React.useEffect(() => {
