@@ -59,6 +59,16 @@ const ACTION_META: Record<AuditAction, { label: string; icon: LucideIcon; tone: 
   },
   agent_rejected: { label: "Partner rejected", icon: Ban, tone: "bg-error/10 text-error" },
   staff_created: { label: "Staff account created", icon: UserPlus, tone: "bg-loans-soft text-loans-accent" },
+  staff_feature_granted: {
+    label: "Staff access granted",
+    icon: ShieldCheck,
+    tone: "bg-success/10 text-success",
+  },
+  staff_feature_revoked: {
+    label: "Staff access revoked",
+    icon: ShieldCheck,
+    tone: "bg-warning/10 text-warning",
+  },
   account_removed: { label: "Account removed", icon: UserMinus, tone: "bg-error/10 text-error" },
   payout_approved: { label: "Payout approved", icon: Wallet, tone: "bg-success/10 text-success" },
   payout_rejected: { label: "Payout rejected", icon: CircleSlash, tone: "bg-error/10 text-error" },

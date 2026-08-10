@@ -202,9 +202,11 @@ async def create_payout(
     destination: dict,
     idempotency_key: str,
     maker_user_uuid: uuid.UUID,
+    actor_role: str | None = None,
 ) -> uuid.UUID:
-    """Validate the four safety guards, provision the gateway fund account (real
-    mode), and persist a pending_approval payout. Returns the new payout id.
+    """Validate the safety guards, provision the gateway fund account (real
+    mode), and persist a payout. Main Admin payouts start approved; all others
+    require a different Admin checker. Returns the new payout id.
 
     Runs entirely on the bypass session: the guard reads (recipient, daily cap,
     dedupe) and the insert must not depend on the caller's RLS scope.
@@ -226,6 +228,20 @@ async def create_payout(
         # Admin-driven create volume is low, so contention is negligible.
         today_key = int(datetime.now(UTC).strftime("%Y%m%d"))
         await db.execute(text("SELECT pg_advisory_xact_lock(:k)"), {"k": today_key})
+
+        # Main Admin is the only approval-free maker. Derive this from the live
+        # staff row inside the trusted service; callers cannot request or forge
+        # the exception.
+        standalone = bool(
+            await db.scalar(
+                select(StaffProfile.id).where(
+                    StaffProfile.auth_user_uuid == maker_user_uuid,
+                    StaffProfile.role == "admin",
+                    StaffProfile.status == "active",
+                    StaffProfile.is_primary_admin.is_(True),
+                )
+            )
+        )
 
         # Guard (d): recipient must be a real, usable platform account.
         recipient_status = await db.scalar(
@@ -357,7 +373,7 @@ async def create_payout(
             type=payout_type,
             amount_paise=amount_paise,
             currency="INR",
-            status=PayoutStatus.PENDING_APPROVAL,
+            status=(PayoutStatus.APPROVED if standalone else PayoutStatus.PENDING_APPROVAL),
             destination_type=destination_type,
             provider=provider,
             destination_hint=hint,
@@ -368,13 +384,45 @@ async def create_payout(
         )
         db.add(payout)
         try:
+            await db.flush()
+            if standalone:
+                # The user-approved Main Admin exception is explicit and auditable:
+                # there is no checker and no fabricated self-approval identity.
+                await record_audit(
+                    db,
+                    action=AuditAction.PAYOUT_APPROVED,
+                    entity_type="payout",
+                    entity_uuid=payout.id,
+                    actor_uuid=maker_user_uuid,
+                    actor_role=actor_role or "admin",
+                    business_line=business_line,
+                    detail={
+                        "amount_paise": amount_paise,
+                        "payout_type": payout_type.value,
+                        "maker_user_uuid": str(maker_user_uuid),
+                        "approval_mode": "primary_admin_standalone",
+                    },
+                )
             await db.commit()
         except IntegrityError:
             # The partial-unique index catches a dedupe race the SELECT missed.
             # Only a unique-violation means "duplicate" — re-raise anything else.
             await db.rollback()
             raise DuplicatePayout("A matching payout already exists.") from None
-        return payout.id
+        payout_id = payout.id
+
+    if standalone:
+        await notify_admins(
+            notification_type=NotificationType.ADMIN_PAYOUT_REVIEWED,
+            title="Standalone payout authorized",
+            body=(
+                f"A {payout_type.value.replace('_', ' ')} payout was authorized by the Main Admin."
+            ),
+            href="/dashboard/payouts",
+            exclude_user_uuid=maker_user_uuid,
+        )
+        await initiate_payout(payout_id)
+    return payout_id
 
 
 # ---------------------------------------------------------------------------

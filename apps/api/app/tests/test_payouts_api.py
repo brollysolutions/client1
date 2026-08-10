@@ -40,17 +40,34 @@ async def _auth_user_id(mobile: str) -> str:
         return str(row[0])
 
 
-def _admin_token(user_id: str, *, role: str = "admin", platform_scope: str = "true") -> str:
+def _admin_token(
+    user_id: str,
+    *,
+    role: str = "admin",
+    platform_scope: str = "true",
+    staff_features: list[str] | None = None,
+) -> str:
     return create_access_token(
-        {"sub": user_id, "role": role, "business_line": "", "platform_scope": platform_scope}
+        {
+            "sub": user_id,
+            "role": role,
+            "business_line": "",
+            "platform_scope": platform_scope,
+            "staff_features": staff_features or [],
+        }
     )
 
 
-async def _make_admin(client: AsyncClient, *, role: str = "admin") -> tuple[str, str]:
+async def _make_admin(
+    client: AsyncClient,
+    *,
+    role: str = "admin",
+    staff_features: list[str] | None = None,
+) -> tuple[str, str]:
     """Register a throwaway account and return (admin_token, user_id) for it."""
     _, mobile = await full_registration(client, lines=["loans"])
     uid = await _auth_user_id(mobile)
-    return _admin_token(uid, role=role), uid
+    return _admin_token(uid, role=role, staff_features=staff_features), uid
 
 
 def _headers(token: str) -> dict[str, str]:
@@ -159,7 +176,11 @@ async def test_create_rejects_line_staff(client: AsyncClient) -> None:
 
 @pytest.mark.asyncio
 async def test_create_success_masks_destination(client: AsyncClient) -> None:
-    maker_token, _ = await _make_admin(client, role="sub_admin")
+    maker_token, _ = await _make_admin(
+        client,
+        role="sub_admin",
+        staff_features=["payout_requests"],
+    )
     _, recipient_mobile = await full_registration(client, lines=["loans"])
     recipient_uid = await _auth_user_id(recipient_mobile)
 
@@ -1033,7 +1054,7 @@ async def test_read_never_exposes_recipient_mobile(client: AsyncClient) -> None:
 
 
 @pytest.mark.asyncio
-async def test_sub_admin_list_identity_is_null(client: AsyncClient) -> None:
+async def test_ungranted_sub_admin_cannot_list_payouts(client: AsyncClient) -> None:
     maker_token, _ = await _make_admin(client)
     sub_admin_token, _ = await _make_admin(client, role="sub_admin")
     _, recipient_mobile = await full_registration(client, lines=["loans"])
@@ -1044,8 +1065,7 @@ async def test_sub_admin_list_identity_is_null(client: AsyncClient) -> None:
     )
 
     listed = await client.get("/api/v1/payouts", headers=_headers(sub_admin_token))
-    row = next(p for p in listed.json()["payouts"] if p["recipient_user_uuid"] == recipient_uid)
-    assert row["recipient_name"] is None
+    assert listed.status_code == 403
 
 
 # ---------------------------------------------------------------------------

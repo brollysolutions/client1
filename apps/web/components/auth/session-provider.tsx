@@ -7,6 +7,7 @@ import {
   refresh as refreshSession,
   type AuthTokens,
   type StaffBusinessLine,
+  type StaffFeature,
   type UserRole,
 } from "@/lib/auth";
 
@@ -67,6 +68,7 @@ type Session = {
   phoneVerified: boolean;
   emailVerified: boolean;
   businessLine: StaffBusinessLine | null;
+  staffFeatures: StaffFeature[];
 };
 
 type AuthContextValue = {
@@ -106,6 +108,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       phoneVerified: tokens.phoneVerified,
       emailVerified: tokens.emailVerified,
       businessLine: tokens.businessLine,
+      staffFeatures: tokens.staffFeatures,
     });
     setSessionHint(true);
   }, []);

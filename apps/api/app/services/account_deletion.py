@@ -125,6 +125,10 @@ class AccountAlreadyDeleted(Exception):
     """Raised when the target account is already SOFT_DELETED (idempotency guard)."""
 
 
+class PrimaryAdminDeletionForbidden(Exception):
+    """Raised because the immutable Main Admin requires an explicit transfer flow."""
+
+
 def _tombstone_mobile(user_id: UUID) -> str:
     # Fails RegisterInitiateRequest.mobile's `^\+[1-9]\d{6,14}$` pattern by
     # construction (no leading '+') — can never collide with a real
@@ -175,6 +179,13 @@ async def delete_account(
         raise AccountNotFound
     if user.status == UserStatus.SOFT_DELETED:
         raise AccountAlreadyDeleted
+    if await db.scalar(
+        select(StaffProfile.id).where(
+            StaffProfile.auth_user_uuid == target_auth_user_uuid,
+            StaffProfile.is_primary_admin.is_(True),
+        )
+    ):
+        raise PrimaryAdminDeletionForbidden
 
     original_mobile = user.mobile
     # Run before mutating or flushing the auth row so the independently

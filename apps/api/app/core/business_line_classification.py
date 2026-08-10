@@ -70,6 +70,7 @@ TABLE_CLASSIFICATION: dict[str, ClassificationMode] = {
     "refresh_tokens": ClassificationMode.IDENTITY,
     "site_visits": ClassificationMode.FIXED_REAL_ESTATE,
     "staff_profiles": ClassificationMode.PROFILE_SCOPE,
+    "staff_feature_grants": ClassificationMode.PLATFORM_CONFIG,
     "support_tickets": ClassificationMode.IDENTITY,
     "task_documents": ClassificationMode.DERIVED,
     "task_feedback_media": ClassificationMode.OPERATIONAL,

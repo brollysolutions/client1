@@ -79,6 +79,7 @@ def _patch_db_null_pool() -> None:
     import app.services.mobile_change as _mobile_change_mod
     import app.services.notifications as _notifications_mod
     import app.services.payments as _payments_mod
+    import app.services.payout_recipients as _payout_recipients_mod
     import app.services.property_submissions as _psub_mod
     import app.services.push as _push_mod
 
@@ -99,6 +100,8 @@ def _patch_db_null_pool() -> None:
     _notifications_mod.AsyncSessionLocal = null_pool_sessionmaker
     original_payments = _payments_mod.AsyncSessionLocal
     _payments_mod.AsyncSessionLocal = null_pool_sessionmaker
+    original_payout_recipients = _payout_recipients_mod.AsyncSessionLocal
+    _payout_recipients_mod.AsyncSessionLocal = null_pool_sessionmaker
     original_psub = _psub_mod.AsyncSessionLocal
     _psub_mod.AsyncSessionLocal = null_pool_sessionmaker
     original_banners = _banners_mod.AsyncSessionLocal
@@ -114,6 +117,7 @@ def _patch_db_null_pool() -> None:
     _leads_mod.AsyncSessionLocal = original_leads
     _notifications_mod.AsyncSessionLocal = original_notifications
     _payments_mod.AsyncSessionLocal = original_payments
+    _payout_recipients_mod.AsyncSessionLocal = original_payout_recipients
     _psub_mod.AsyncSessionLocal = original_psub
     _banners_mod.AsyncSessionLocal = original_banners
     _push_mod.AsyncSessionLocal = original_push

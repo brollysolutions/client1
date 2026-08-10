@@ -57,6 +57,8 @@ class AuditAction(enum.StrEnum):
     AGENT_APPROVED = "agent_approved"
     AGENT_REJECTED = "agent_rejected"
     STAFF_CREATED = "staff_created"
+    STAFF_FEATURE_GRANTED = "staff_feature_granted"
+    STAFF_FEATURE_REVOKED = "staff_feature_revoked"
     ACCOUNT_REMOVED = "account_removed"
     PAYOUT_APPROVED = "payout_approved"
     PAYOUT_REJECTED = "payout_rejected"

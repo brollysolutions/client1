@@ -68,6 +68,7 @@ export function AppSidebar({
         role: session.role,
         businessLine: session.businessLine,
         activeLine: screenLine,
+        staffFeatures: session.staffFeatures,
       })
     : [];
 

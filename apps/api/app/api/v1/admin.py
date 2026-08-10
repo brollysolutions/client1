@@ -52,8 +52,11 @@ from app.schemas.admin import (
     LeadAssignResponse,
     LeadReleaseRequest,
     LeadReleaseResponse,
+    StaffAccessEntry,
+    StaffAccessListResponse,
     StaffCreateRequest,
     StaffCreateResponse,
+    StaffFeatureUpdateRequest,
     TaskAssignRequest,
 )
 from app.schemas.audit_log import AuditLogListResponse, AuditLogRead
@@ -85,14 +88,26 @@ from app.schemas.support_tickets import (
     SupportTicketAdvanceRequest,
 )
 from app.services import storage
-from app.services.account_deletion import AccountAlreadyDeleted, AccountNotFound, delete_account
+from app.services.account_deletion import (
+    AccountAlreadyDeleted,
+    AccountNotFound,
+    PrimaryAdminDeletionForbidden,
+    delete_account,
+)
 from app.services.admin import (
+    ADDITIONAL_ADMIN_LIMIT,
+    AdditionalAdminLimitReached,
     AgentApplicationAlreadyReviewed,
     AgentApplicationEmailConflict,
+    InvalidStaffFeatureTarget,
+    PrimaryAdminRequired,
     StaffAlreadyExists,
     approve_agent_application,
     create_staff,
+    is_primary_admin,
+    list_staff_access,
     reject_agent_application,
+    set_staff_feature,
 )
 from app.services.admin_home import get_admin_home
 from app.services.audit_log import AuditEntryView
@@ -312,12 +327,26 @@ async def create_staff_user(
 ) -> StaffCreateResponse:
     try:
         profile, temp_password = await create_staff(
-            db, current_user.id, payload, actor_role=current_user.role
+            db,
+            current_user.id,
+            payload,
+            actor_role=current_user.role,
+            actor_staff_profile_uuid=current_user.staff_profile_uuid,
         )
     except StaffAlreadyExists as exc:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="This mobile number already has an active staff account.",
+        ) from exc
+    except PrimaryAdminRequired as exc:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only the Main Admin may create another Admin account.",
+        ) from exc
+    except AdditionalAdminLimitReached as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="The limit of three additional Admin accounts has been reached.",
         ) from exc
     return StaffCreateResponse(
         first_name=payload.first_name,
@@ -327,6 +356,67 @@ async def create_staff_user(
         business_line=profile.business_line,
         staff_code=profile.staff_code,
         temp_password=temp_password,
+    )
+
+
+@router.get("/staff-access", response_model=StaffAccessListResponse)
+async def get_staff_access(
+    current_user: CurrentUser = Depends(require_platform_admin),
+    db: AsyncSession = Depends(get_db),
+) -> StaffAccessListResponse:
+    if not await is_primary_admin(
+        db,
+        auth_user_uuid=current_user.id,
+        staff_profile_uuid=current_user.staff_profile_uuid,
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only the Main Admin may manage staff feature access.",
+        )
+    entries, additional_count = await list_staff_access(db)
+    return StaffAccessListResponse(
+        entries=[StaffAccessEntry(**entry) for entry in entries],
+        additional_admin_limit=ADDITIONAL_ADMIN_LIMIT,
+        additional_admin_count=additional_count,
+    )
+
+
+@router.put(
+    "/staff-access/{staff_profile_uuid}/features",
+    response_model=StaffAccessListResponse,
+)
+async def update_staff_feature(
+    staff_profile_uuid: UUID,
+    payload: StaffFeatureUpdateRequest,
+    current_user: CurrentUser = Depends(require_platform_admin),
+    db: AsyncSession = Depends(get_db),
+) -> StaffAccessListResponse:
+    try:
+        await set_staff_feature(
+            db,
+            actor_uuid=current_user.id,
+            actor_staff_profile_uuid=current_user.staff_profile_uuid,
+            target_staff_profile_uuid=staff_profile_uuid,
+            feature=payload.feature,
+            enabled=payload.enabled,
+            actor_role=current_user.role,
+        )
+    except PrimaryAdminRequired as exc:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only the Main Admin may manage staff feature access.",
+        ) from exc
+    except InvalidStaffFeatureTarget as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Feature grants may target only an active Sub Admin.",
+        ) from exc
+
+    entries, additional_count = await list_staff_access(db)
+    return StaffAccessListResponse(
+        entries=[StaffAccessEntry(**entry) for entry in entries],
+        additional_admin_limit=ADDITIONAL_ADMIN_LIMIT,
+        additional_admin_count=additional_count,
     )
 
 
@@ -372,6 +462,11 @@ async def delete_user(
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="This account has already been deleted.",
+        ) from exc
+    except PrimaryAdminDeletionForbidden as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="The Main Admin cannot be deleted without an explicit ownership transfer.",
         ) from exc
     return MessageResponse(message="Account deleted.")
 
