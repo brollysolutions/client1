@@ -4,8 +4,8 @@ Status: **Derived living implementation ledger**
 
 As of: **2026-08-11**
 
-Evidence baseline: FR-2.8 working tree on
-`codex/20260810-161623-ps-d-dhanadhara-client1-docker-compose-f` (PR pending).
+Evidence baseline: `dc1b8e7`
+([PR #169](https://github.com/brollysolutions/client1/pull/169)).
 
 ## Purpose and authority
 
@@ -46,8 +46,8 @@ work than several completed UI requirements.
 
 ## Delivered implementation
 
-- **Provenance-based edit ownership** (FR-2.8) is complete on the current
-  branch (PR pending). Lead names and journey notes now retain immutable
+- **Provenance-based edit ownership** (FR-2.8) is complete in
+  [PR #169](https://github.com/brollysolutions/client1/pull/169). Lead names and journey notes now retain immutable
   Agent/Client creator descriptors across capture and OTP binding. Agent edits
   remain available through assignment until Telecaller work starts; Client
   edits remain available until a terminal state; platform Admin corrections
