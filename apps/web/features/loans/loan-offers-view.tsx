@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { LoanOfferCard } from "@/features/loans/loan-offer-card";
 import { useLoanCompare } from "@/features/loans/loan-offers-store";
+import { DASHBOARD_ICONS } from "@/features/dashboard/dashboard-icons";
+import { DashboardHeader, DashboardPage, DashboardPanel, MetricCard, MetricGrid } from "@/features/dashboard/dashboard-ui";
 import { FetchError } from "@/features/dashboard/fetch-error";
 import { getBanks, getLoanTypes, type Bank, type LoanTypeOption } from "@/lib/loans";
 
@@ -90,33 +92,37 @@ export function LoanOffersView() {
 
   if (status === "loading") {
     return (
-      <div className="mx-auto w-full max-w-5xl space-y-6 px-4 sm:px-6 lg:px-10">
+      <DashboardPage>
         <Skeleton className="h-9 w-2/3" />
         <Skeleton className="h-40 rounded-xl" />
         <Skeleton className="h-40 rounded-xl" />
-      </div>
+      </DashboardPage>
     );
   }
 
   if (status === "error") {
     return (
-      <div className="mx-auto w-full max-w-5xl px-4 sm:px-6 lg:px-10">
+      <DashboardPage>
         <FetchError status={errorStatus} message={error} onRetry={retry} />
-      </div>
+      </DashboardPage>
     );
   }
 
   return (
-    <div className="mx-auto w-full max-w-5xl space-y-6 px-4 sm:px-6 lg:px-10">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-semibold text-text-primary">Compare Loan Offers</h1>
-          <p className="text-sm text-text-secondary">
-            See which banks we work with for each loan type. Shortlist up to 3 to keep track.
-          </p>
-        </div>
-        <Button onClick={() => router.push("/dashboard/apply")}>Apply for a loan</Button>
-      </div>
+    <DashboardPage>
+      <DashboardHeader
+        eyebrow="Loans marketplace"
+        title="Compare Loan Offers"
+        description="Review participating banks by loan type and shortlist up to three options."
+        actions={<Button onClick={() => router.push("/dashboard/apply")}>Apply for a loan</Button>}
+      />
+
+      <MetricGrid>
+        <MetricCard label="Loan types" value={loanTypes.length} icon={DASHBOARD_ICONS.loanApplications} />
+        <MetricCard label="Participating banks" value={allBanks.length} icon={Landmark} />
+        <MetricCard label="Shortlisted" value={`${shortlisted.length}/3`} icon={DASHBOARD_ICONS.compare} />
+        <MetricCard label="Next step" value="Apply" hint="Rates follow profile review" icon={DASHBOARD_ICONS.applyForLoan} href="/dashboard/apply" />
+      </MetricGrid>
 
       <div className="flex items-start gap-2 rounded-xl border border-border bg-card px-4 py-3 text-sm text-text-secondary">
         <Info className="mt-0.5 h-4 w-4 shrink-0 text-brand-blue" aria-hidden="true" />
@@ -127,18 +133,17 @@ export function LoanOffersView() {
       </div>
 
       {shortlisted.length > 0 && (
-        <div className="rounded-xl border border-border bg-card p-4">
+        <DashboardPanel title={`Your shortlist (${shortlisted.length}/3)`} action={
+          <button
+            type="button"
+            onClick={compare.clear}
+            className="cursor-pointer text-sm text-text-secondary transition-colors hover:text-brand-cta focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue"
+          >
+            Clear all
+          </button>
+        }>
           <div className="flex items-center justify-between gap-3">
-            <p className="text-sm font-medium text-text-primary">
-              Your shortlist ({shortlisted.length}/3)
-            </p>
-            <button
-              type="button"
-              onClick={compare.clear}
-              className="cursor-pointer text-sm text-text-secondary transition-colors hover:text-brand-cta focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue"
-            >
-              Clear all
-            </button>
+            <p className="text-sm text-text-secondary">Banks saved for this comparison session.</p>
           </div>
           <ul className="mt-3 flex flex-wrap gap-2">
             {shortlisted.map((bank) => (
@@ -151,7 +156,7 @@ export function LoanOffersView() {
               </li>
             ))}
           </ul>
-        </div>
+        </DashboardPanel>
       )}
 
       <div className="space-y-8">
@@ -177,6 +182,6 @@ export function LoanOffersView() {
           );
         })}
       </div>
-    </div>
+    </DashboardPage>
   );
 }

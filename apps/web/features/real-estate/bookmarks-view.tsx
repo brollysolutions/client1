@@ -5,6 +5,7 @@ import { Bookmark } from "lucide-react";
 
 import { Skeleton } from "@/components/ui/skeleton";
 import { FetchError } from "@/features/dashboard/fetch-error";
+import { DashboardHeader, DashboardPage } from "@/features/dashboard/dashboard-ui";
 import { PropertyBrowser } from "@/features/real-estate/property-browser";
 import { useBookmarks } from "@/features/real-estate/store";
 import { useProperties } from "@/features/real-estate/use-properties";
@@ -30,14 +31,15 @@ export function BookmarksView() {
   const errorMessage = status === "error" ? error : catalogError;
 
   const heading = (
-    <div>
-      <h1 className="text-2xl font-semibold text-text-primary">Bookmarks</h1>
-      <p className="text-sm text-text-secondary">Properties you have saved for later.</p>
-    </div>
+    <DashboardHeader
+      eyebrow="Real Estate shortlist"
+      title="Bookmarks"
+      description="Search, filter, and compare the properties you saved for later."
+    />
   );
 
   return (
-    <div className="mx-auto w-full max-w-[1320px] space-y-6 px-4 sm:px-6">
+    <DashboardPage>
       {loading ? (
         <>
           {heading}
@@ -74,6 +76,6 @@ export function BookmarksView() {
       ) : (
         <PropertyBrowser source={listings} header={heading} />
       )}
-    </div>
+    </DashboardPage>
   );
 }

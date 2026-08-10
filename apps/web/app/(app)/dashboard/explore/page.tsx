@@ -6,6 +6,7 @@ import type { LucideIcon } from "lucide-react";
 
 import { Skeleton } from "@/components/ui/skeleton";
 import { FetchError } from "@/features/dashboard/fetch-error";
+import { DashboardHeader, DashboardPage, DashboardSection } from "@/features/dashboard/dashboard-ui";
 import { useLine } from "@/features/dashboard/line-provider";
 import { EXPLORE_CATEGORIES } from "@/features/dashboard/explore-categories";
 import { PropertyBrowser } from "@/features/real-estate/property-browser";
@@ -27,20 +28,21 @@ export default function ExplorePage() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-5xl space-y-6 px-4 sm:px-6 lg:px-10">
-      <div>
-        <h1 className="text-2xl font-semibold text-text-primary">Explore</h1>
-        <p className="text-sm text-text-secondary">
-          Discover loans, cards, insurance and properties, all in one place.
-        </p>
-      </div>
+    <DashboardPage>
+      <DashboardHeader
+        eyebrow="Loans catalog"
+        title="Explore"
+        description="Discover loan, card, and insurance journeys available through your workspace."
+      />
 
-      <div className="grid gap-4 sm:grid-cols-2">
+      <DashboardSection title="Financial products" description="Choose a category to see its available journey.">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {EXPLORE_CATEGORIES.map(({ slug, label, icon: Icon, blurb }) => (
           <CategoryTile key={slug} slug={slug} label={label} Icon={Icon} blurb={blurb} />
         ))}
       </div>
-    </div>
+      </DashboardSection>
+    </DashboardPage>
   );
 }
 
@@ -51,16 +53,15 @@ function RealEstateExplore() {
   const { listings, loading, error, retry } = useProperties();
 
   const header = (
-    <div>
-      <h1 className="text-2xl font-semibold text-text-primary">Explore</h1>
-      <p className="text-sm text-text-secondary">
-        Search any property, or browse by type below.
-      </p>
-    </div>
+    <DashboardHeader
+      eyebrow="Real Estate catalog"
+      title="Explore properties"
+      description="Search by property, locality, city, or PIN code, or choose a catalog location directly."
+    />
   );
 
   return (
-    <div className="mx-auto w-full max-w-[1320px] space-y-8 px-4 sm:px-6">
+    <DashboardPage>
       {loading ? (
         <>
           {header}
@@ -88,7 +89,7 @@ function RealEstateExplore() {
           idle={<RealEstateHub listings={listings} />}
         />
       )}
-    </div>
+    </DashboardPage>
   );
 }
 

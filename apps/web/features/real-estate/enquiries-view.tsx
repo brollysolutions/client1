@@ -5,6 +5,8 @@ import { MessageSquare } from "lucide-react";
 
 import { Skeleton } from "@/components/ui/skeleton";
 import { FetchError } from "@/features/dashboard/fetch-error";
+import { DASHBOARD_ICONS } from "@/features/dashboard/dashboard-icons";
+import { DashboardHeader, DashboardPage, DashboardPanel, MetricCard, MetricGrid } from "@/features/dashboard/dashboard-ui";
 import { getEnquiries, type Enquiry, type EnquiryStatus } from "@/lib/enquiries";
 import { cn } from "@/lib/utils";
 
@@ -66,12 +68,17 @@ export function EnquiriesView() {
     };
   }, [reloadKey]);
 
+  const newCount = enquiries.filter((enquiry) => enquiry.status === "new").length;
+  const contactedCount = enquiries.filter((enquiry) => enquiry.status === "contacted").length;
+  const closedCount = enquiries.filter((enquiry) => enquiry.status === "closed").length;
+
   return (
-    <div className="mx-auto w-full max-w-5xl space-y-6 px-4 sm:px-6 lg:px-10">
-      <div>
-        <h1 className="text-2xl font-semibold text-text-primary">My Enquiries</h1>
-        <p className="text-sm text-text-secondary">Properties you have asked about.</p>
-      </div>
+    <DashboardPage>
+      <DashboardHeader
+        eyebrow="Real Estate activity"
+        title="My Enquiries"
+        description="Follow every property question from initial request through team contact and closure."
+      />
 
       {status === "loading" ? (
         <Skeleton className="h-40 rounded-xl" />
@@ -88,7 +95,15 @@ export function EnquiriesView() {
           </p>
         </div>
       ) : (
-        <div className="overflow-hidden rounded-xl border border-border bg-card">
+        <>
+        <MetricGrid>
+          <MetricCard label="All enquiries" value={enquiries.length} icon={DASHBOARD_ICONS.enquiries} />
+          <MetricCard label="New" value={newCount} icon={DASHBOARD_ICONS.enquiries} attention={newCount > 0} />
+          <MetricCard label="Contacted" value={contactedCount} icon={DASHBOARD_ICONS.agent} />
+          <MetricCard label="Closed" value={closedCount} icon={DASHBOARD_ICONS.listingApprovals} />
+        </MetricGrid>
+        <DashboardPanel title="Enquiry history" description="Properties you asked the team to contact you about.">
+        <div className="overflow-hidden">
           <table className="w-full text-left text-sm">
             <thead className="border-b border-border text-xs uppercase tracking-wide text-text-secondary">
               <tr>
@@ -124,7 +139,9 @@ export function EnquiriesView() {
             </tbody>
           </table>
         </div>
+        </DashboardPanel>
+        </>
       )}
-    </div>
+    </DashboardPage>
   );
 }

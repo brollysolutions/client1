@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { FetchError } from "@/features/dashboard/fetch-error";
+import { DashboardPanel } from "@/features/dashboard/dashboard-ui";
 import { STATUS_STYLES, formatDate } from "@/features/dashboard/loan-format";
 import { DOC_TYPE_LABEL, DOC_TYPE_OPTIONS, type DocTypeValue } from "@/lib/doc-types";
 import { groupLoanMedia, LOAN_CAMERA_ACCEPT, LOAN_MEDIA_ACCEPT } from "@/lib/loan-media";
@@ -86,10 +87,8 @@ export function DocumentsView() {
 
   return (
     <div className="space-y-6">
-      <section aria-labelledby="add-loan-media" className="rounded-2xl border border-border bg-card p-5">
-        <h2 id="add-loan-media" className="text-sm font-semibold text-text-primary">
-          Add loan media
-        </h2>
+      <DashboardPanel title="Add loan media" description="Files remain private to your loan workflow and authorized reviewers.">
+        <div id="add-loan-media">
         {activeApplication ? (
           <>
             <p className="mt-1 text-sm text-text-secondary">
@@ -162,7 +161,8 @@ export function DocumentsView() {
             applications remains available below.
           </p>
         )}
-      </section>
+        </div>
+      </DashboardPanel>
 
       {groups.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-border bg-card px-6 py-14 text-center">

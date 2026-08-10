@@ -66,7 +66,7 @@ included in completion coverage.
 
 | Priority | Feature / requirements | Why now | Planning model / effort | Implementation model / effort | Exit criteria |
 | ---: | --- | --- | --- | --- | --- |
-| 0 | AWS-inspired multi-role dashboard experience (FR-2.1-FR-2.7, FR-17.1) | **Done** in [PR #167](https://github.com/brollysolutions/client1/pull/167): the role-home/sidebar system now also covers Admin Users & staff and every Sub Admin authoring form without changing identity, content, upload, referral, or payout APIs. | `gpt-5.6-sol` / High | `gpt-5.6-sol` / High | Staff/Agent desktop navigation is expanded without a `PanelLeft` control; Client persistence and every mobile drawer remain intact; the same concept uses one icon across navigation and home surfaces; role homes, Users & staff, and all Sub Admin authoring routes use shared accessible operational patterns; provisioning, Main Admin limits, one-time credentials, feature-grant session invalidation, upload/approval lifecycles, payout separation, API/RLS authority, loading/restricted/error states, and responsive/browser coverage remain intact. |
+| 0 | AWS-inspired multi-role dashboard experience (FR-2.1-FR-2.7, FR-17.1) | **Done** in [PR #167](https://github.com/brollysolutions/client1/pull/167): the delivered role homes, Admin Users & staff, and Sub Admin forms now extend across the complete Client Loans and Real Estate workspace plus a universal notification preview. | `gpt-5.6-sol` / High | `gpt-5.6-sol` / High | Staff/Agent desktop navigation is expanded without a `PanelLeft` control; Client persistence and every mobile drawer remain intact; the same concept uses one icon across navigation and home surfaces; all named Client loan/property workflows use shared accessible operational patterns; referral copy/share feedback and the all-role notification preview are keyboard-accessible; location selection reuses existing catalog facets without GPS/Map/GMB; API/RLS, ownership, upload, payout, and safe-link authority remain intact. |
 | 0 | Delegated payout operations and Admin hierarchy (FR-2.2, FR-2.3, FR-10.3) | **Done** in [PR #165](https://github.com/brollysolutions/client1/pull/165): one durable Main Admin, bounded additional Admin provisioning, an explicit Sub Admin payout-request grant, immediate session invalidation, and the approved standalone Main Admin payout exception are implemented across API, RLS, audit, contracts, and web UI. | `gpt-5.6-sol` / Extra High | `gpt-5.6-sol` / Extra High | One immutable Main Admin can create at most three additional active Admins and grant/revoke the closed payout-request feature for active Sub Admins; granted Sub Admins may create/list payout requests but never approve, reject, issue, clear, fail, or reverse them; Main Admin-created payouts proceed without another approval while every other maker still requires a different Admin; self-payout, caps, idempotency, provider, audit, RLS, and ledger controls remain intact. |
 | 1 | Staff line access and payout workflow corrections (FR-1.4, FR-2.5, FR-2.6, FR-10.3, FR-11.x) | **Done** in [PR #164](https://github.com/brollysolutions/client1/pull/164): Admin can provision Telecallers and Employees for Loans, Real Estate, or Both; selected-line RLS isolation, payout handoff UX, notification verification, and the hidden-but-scrollable Admin sidebar track are implemented and tested. | `gpt-5.6-sol` / Extra High | `gpt-5.6-sol` / Extra High | Both-line staff remain assignment-scoped and never receive platform bypass; payout maker/checker, caps, idempotency, audit, and ledger invariants remain intact; notification behavior is freshly tested; sidebar scrolling remains usable without a visible scrollbar. |
 | 1 | Analytics verification (FR-16.1–FR-16.3) | **Done** in [PR #156](https://github.com/brollysolutions/client1/pull/156): a Linux PostgreSQL/Redis run passed the reporting service/API/RLS suite, and the web production build completed. | `gpt-5.6-terra` / High | `gpt-5.6-terra` / High | No defect was proven; retain the existing authorization, RLS, export-safety, and team-dimension invariants. |
@@ -88,6 +88,11 @@ included in completion coverage.
   to Admin Users & staff while preserving its existing provisioning and access
   controls, plus the banner, offer, content-block, property-submission, and
   referral-rule authoring workflows.
+  The active Client follow-up covers loan detail, Explore, loan application,
+  loan media, offer comparison, loan-officer, transaction, referral,
+  notification, enquiry, site-visit, property comparison, assigned-agent,
+  bookmark, and listing-submission surfaces, plus an all-role notification
+  preview in the shared shell.
 - **Behavior and architecture:** derive desktop rail behavior from the signed
   session role inside the existing shell; preserve the role/line capability
   catalogue and mobile sheet; introduce one semantic icon registry and small
@@ -101,7 +106,7 @@ included in completion coverage.
   render unauthorized counts.
 - **Non-goals:** copying AWS branding, adding Cloudscape or another dependency,
   changing routes, permissions, API schemas, payout behavior, database/RLS,
-  inner detail workflows, form validation/business logic, or implementing
+  form validation/business logic, GPS collection, Map/GMB integration, or
   configurable drag-and-drop dashboards.
 - **Verification matrix:** sidebar state and icon-registry unit tests; existing
   role/line navigation matrix; targeted home tests where practical; lint,
@@ -119,6 +124,18 @@ included in completion coverage.
   eight-case live-stack Playwright matrix (including Admin Users & staff and all
   five Sub Admin authoring routes), and a Linux production image that compiled
   and packaged all 92 routes.
+  The Client-workspace follow-up adds a real application-backed loan-detail
+  journey, all named Loans and Real Estate route headers, in-code referral copy
+  confirmation, a WhatsApp glyph, catalog location selection, and a shared
+  notification preview for every role. Full ESLint, strict TypeScript, all 319
+  unit tests, and a nine-case live-stack Playwright matrix pass; the matrix
+  covers all six roles, every Sub Admin form, Client mobile navigation, all
+  named Client surfaces, clipboard feedback, WhatsApp rendering, and structured
+  location selection. The exact final-tree native production build compiled,
+  passed its internal lint/type phase, and generated all 92 routes before the
+  known Windows standalone symlink `EPERM`; a separate Linux image attempt
+  reached its 15-minute bound without a final report after Docker Desktop became
+  unresponsive, so artifact export is inconclusive rather than passing.
 
 ### Delivered feature brief - staff line access and payout workflow corrections
 

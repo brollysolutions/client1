@@ -71,7 +71,24 @@ work than several completed UI requirements.
   upload/approval boundaries, and payout separation. Fresh follow-up evidence:
   full lint and strict typecheck, all 319 unit tests, all eight live-stack
   Playwright cases with expanded Admin/Sub Admin route assertions, and a Linux
-  production image packaging all 92 routes.
+  production image packaging all 92 routes. A second follow-up completes the
+  same presentation system across Client loan detail, Explore, application,
+  private loan media, bank comparison, loan-officer, transaction, referral,
+  notification, enquiry, site-visit, property comparison, assigned-agent,
+  bookmark, and listing-submission surfaces. Referral copy feedback now appears
+  inside the code tile with a check confirmation and the share action uses a
+  WhatsApp glyph. Property search adds an explicit action and structured
+  map-pin location picker over existing locality/city/PIN facets, without GPS
+  or Map/GMB. The shared shell provides a lazy, safe-link notification preview
+  on hover, focus, or click for every dashboard role. Fresh evidence: full
+  ESLint, strict TypeScript, all 319 unit tests, and nine live-stack Playwright
+  cases covering all six roles and the complete Client route/interaction
+  matrix. The exact final-tree native build compiled, passed its internal
+  lint/type phase, and generated all 92 routes before the known Windows
+  standalone symlink `EPERM`; the Linux image attempt reached 15 minutes
+  without a final report after Docker Desktop became unresponsive, so artifact
+  export is inconclusive. API ownership, RLS, uploads, payouts, and contracts
+  remain unchanged.
 
 - **Delegated payout operations and Admin hierarchy** (FR-2.2, FR-2.3, and
   FR-10.3) are complete in

@@ -4,6 +4,8 @@ import Link from "next/link";
 import { Scale, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { DASHBOARD_ICONS } from "@/features/dashboard/dashboard-icons";
+import { DashboardHeader, DashboardPage, DashboardPanel, MetricCard, MetricGrid } from "@/features/dashboard/dashboard-ui";
 import { useBookmarks, useCompare } from "@/features/real-estate/store";
 import { useProperties } from "@/features/real-estate/use-properties";
 import type { REListing } from "@/lib/real-estate";
@@ -36,20 +38,24 @@ export function CompareView() {
     .filter((l): l is NonNullable<typeof l> => Boolean(l));
 
   return (
-    <div className="mx-auto w-full max-w-5xl space-y-6 px-4 sm:px-6 lg:px-10">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-semibold text-text-primary">Compare</h1>
-          <p className="text-sm text-text-secondary">
-            Compare up to 3 properties side by side.
-          </p>
-        </div>
-        {listings.length > 0 && (
+    <DashboardPage>
+      <DashboardHeader
+        eyebrow="Real Estate shortlist"
+        title="Compare properties"
+        description="Review up to three saved properties side by side using the same core details."
+        actions={listings.length > 0 ? (
           <Button variant="outline" size="sm" onClick={compare.clear}>
             Clear all
           </Button>
-        )}
-      </div>
+        ) : undefined}
+      />
+
+      <MetricGrid>
+        <MetricCard label="Comparing" value={`${listings.length}/3`} icon={DASHBOARD_ICONS.compare} />
+        <MetricCard label="Bookmarks" value={bookmarks.ids.length} icon={DASHBOARD_ICONS.bookmarks} />
+        <MetricCard label="Quick-add options" value={addable.length} icon={DASHBOARD_ICONS.propertyListings} />
+        <MetricCard label="Catalog" value={catalog.length} icon={DASHBOARD_ICONS.explore} href="/dashboard/explore" />
+      </MetricGrid>
 
       {listings.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-border bg-card px-6 py-14 text-center">
@@ -68,7 +74,8 @@ export function CompareView() {
           </Link>
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-border bg-card">
+        <DashboardPanel title="Side-by-side details" description="Remove an item at any time to make room for another property.">
+        <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead>
               <tr className="border-b border-border">
@@ -114,6 +121,7 @@ export function CompareView() {
             </tbody>
           </table>
         </div>
+        </DashboardPanel>
       )}
 
       {listings.length < 3 && addable.length > 0 && (
@@ -133,6 +141,6 @@ export function CompareView() {
           </div>
         </div>
       )}
-    </div>
+    </DashboardPage>
   );
 }

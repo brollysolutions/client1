@@ -174,6 +174,32 @@ async function deleteAccount(
   expect(response.ok(), await response.text()).toBeTruthy();
 }
 
+async function createClientLoanApplication(
+  request: APIRequestContext,
+  account: RegisteredAccount,
+): Promise<{ id: string; label: string }> {
+  const headers = { Authorization: `Bearer ${account.accessToken}` };
+  const typesResponse = await request.get(`${API_BASE_URL}/api/v1/loans/loan-types`, {
+    headers,
+  });
+  expect(typesResponse.ok(), await typesResponse.text()).toBeTruthy();
+  const types = (await typesResponse.json()) as {
+    loan_types: { id: string; label: string }[];
+  };
+  expect(types.loan_types.length).toBeGreaterThan(0);
+  const loanType = types.loan_types[0];
+  const applicationResponse = await request.post(
+    `${API_BASE_URL}/api/v1/loans/applications`,
+    {
+      headers,
+      data: { loan_type_id: loanType.id, amount_requested: "500000" },
+    },
+  );
+  expect(applicationResponse.ok(), await applicationResponse.text()).toBeTruthy();
+  const application = (await applicationResponse.json()) as { id: string };
+  return { id: application.id, label: loanType.label };
+}
+
 test.describe("role-aware dashboard navigation", () => {
   // A cold local Next.js dev container can spend more than a minute compiling
   // the login and dashboard routes before the role assertions begin.
@@ -199,6 +225,9 @@ test.describe("role-aware dashboard navigation", () => {
         }
         const navigation = page.locator('nav[aria-label="Workspace"]:visible');
         await expect(navigation).toBeVisible();
+
+        await page.getByRole("button", { name: /Notifications/ }).hover();
+        await expect(page.getByRole("link", { name: "View all notifications" })).toBeVisible();
 
         for (const label of scenario.expected) {
           await expect(navigation.getByRole("link", { name: label, exact: true })).toHaveCount(1);
@@ -265,6 +294,112 @@ test.describe("role-aware dashboard navigation", () => {
       await expect(navigation.getByRole("link", { name: "Loan media" })).toBeVisible();
       await expect(navigation.getByRole("link", { name: "Leads", exact: true })).toHaveCount(0);
       await expect(navigation.getByRole("link", { name: "Tasks", exact: true })).toHaveCount(0);
+    } finally {
+      await deleteAccount(request, account);
+    }
+  });
+
+  test("Client retains the redesigned Loans and Real Estate workspaces", async ({
+    context,
+    page,
+    request,
+  }) => {
+    test.setTimeout(300_000);
+    const account = await registerClient(request, 400);
+    try {
+      const application = await createClientLoanApplication(request, account);
+      await context.grantPermissions(["clipboard-read", "clipboard-write"], {
+        origin: "http://localhost:3000",
+      });
+      await logIn(page, account);
+
+      for (const surface of [
+        { path: "/dashboard", heading: "Your loan journey" },
+        { path: `/dashboard/loans/${application.id}`, heading: application.label },
+        { path: "/dashboard/explore", heading: "Explore" },
+        { path: "/dashboard/apply", heading: "Apply for a loan" },
+        { path: "/dashboard/documents", heading: "Loan media" },
+        { path: "/dashboard/loan-offers", heading: "Compare Loan Offers" },
+        { path: "/dashboard/loan-officer", heading: "My Loan Officer" },
+        { path: "/dashboard/transactions", heading: "Transactions" },
+        { path: "/dashboard/referrals", heading: "Referrals" },
+        { path: "/dashboard/notifications", heading: "Notifications" },
+      ]) {
+        await page.goto(surface.path);
+        await expect(page.getByRole("heading", { name: surface.heading, exact: true })).toBeVisible();
+        await expect(page.locator("main header")).toBeVisible();
+      }
+
+      await page.goto("/dashboard/referrals");
+      const copyButton = page.getByRole("button", { name: "Copy referral code" });
+      await expect(copyButton).toBeVisible();
+      await copyButton.click();
+      await expect(page.getByText("Copied", { exact: true })).toBeVisible();
+      await expect(page.getByRole("button", { name: "Referral code copied" })).toBeVisible();
+      const whatsapp = page.getByRole("link", { name: "Share on WhatsApp" });
+      await expect(whatsapp).toBeVisible();
+      await expect(whatsapp.locator("svg")).toBeVisible();
+
+      await page.getByRole("button", { name: "Switch to Real Estate" }).click();
+      await expect(page).toHaveURL(/\/dashboard$/);
+      await page.route("**/api/v1/properties", async (route) => {
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({
+            properties: [
+              {
+                id: "11111111-1111-4111-8111-111111111111",
+                active: true,
+                age_years: 2,
+                amenities: ["parking"],
+                area_sqft: 1100,
+                bhk: 2,
+                category: "apartments",
+                city: "Pune",
+                construction_status: "ready_to_move",
+                created_at: "2026-08-10T08:00:00Z",
+                furnishing: "semi_furnished",
+                image: null,
+                locality: "Baner",
+                location: "Baner, Pune",
+                media: [],
+                media_urls: [],
+                meta: "2 bed · 1,100 sqft",
+                pincode: "411045",
+                price_display: "₹75 L",
+                price_paise: 750000000,
+                rera_number: "P52100000001",
+                title: "Baner Heights",
+                type: "Apartment",
+              },
+            ],
+          }),
+        });
+      });
+
+      await page.goto("/dashboard/explore");
+      await expect(page.getByRole("heading", { name: "Explore properties" })).toBeVisible();
+      await expect(page.getByRole("button", { name: "Search", exact: true })).toBeVisible();
+      const locationPicker = page.getByRole("combobox", { name: "Choose property location" });
+      await locationPicker.click();
+      await page.getByRole("option", { name: "Baner" }).click();
+      await expect(locationPicker).toContainText("Baner");
+
+      for (const surface of [
+        { path: "/dashboard/bookmarks", heading: "Bookmarks" },
+        { path: "/dashboard/enquiries", heading: "My Enquiries" },
+        { path: "/dashboard/site-visits", heading: "Site Visits" },
+        { path: "/dashboard/compare", heading: "Compare properties" },
+        { path: "/dashboard/agent", heading: "My Agent" },
+        { path: "/dashboard/my-submissions", heading: "My listings" },
+        { path: "/dashboard/transactions", heading: "Transactions" },
+        { path: "/dashboard/referrals", heading: "Referrals" },
+      ]) {
+        await page.goto(surface.path);
+        await expect(page.getByRole("heading", { name: surface.heading, exact: true })).toBeVisible();
+        await expect(page.locator("main header")).toBeVisible();
+      }
     } finally {
       await deleteAccount(request, account);
     }

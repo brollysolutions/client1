@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { UserAvatar } from "@/components/user-avatar";
 import { FetchError } from "@/features/dashboard/fetch-error";
+import { DASHBOARD_ICONS } from "@/features/dashboard/dashboard-icons";
+import { DashboardHeader, DashboardPage, DashboardPanel, MetricCard, MetricGrid } from "@/features/dashboard/dashboard-ui";
 import { getMyAgent, type AgentContact } from "@/lib/property-deals";
 
 type Status = "loading" | "ready" | "error";
@@ -48,11 +50,12 @@ export function AgentView() {
   }, [reloadKey]);
 
   return (
-    <div className="mx-auto w-full max-w-5xl space-y-6 px-4 sm:px-6 lg:px-10">
-      <div>
-        <h1 className="text-2xl font-semibold text-text-primary">My Agent</h1>
-        <p className="text-sm text-text-secondary">Your assigned real-estate agent.</p>
-      </div>
+    <DashboardPage>
+      <DashboardHeader
+        eyebrow="Real Estate support"
+        title="My Agent"
+        description="See who owns your active property deal and use the secure support route to connect."
+      />
 
       {status === "loading" ? (
         <Skeleton className="h-48 rounded-2xl" />
@@ -68,7 +71,14 @@ export function AgentView() {
           </p>
         </div>
       ) : (
-        <div className="rounded-2xl border border-border bg-card p-6">
+        <>
+        <MetricGrid>
+          <MetricCard label="Assignment" value="Active" icon={DASHBOARD_ICONS.agent} />
+          <MetricCard label="Agent code" value={agent.agentCode} icon={ShieldCheck} />
+          <MetricCard label="Contact route" value="Support" icon={DASHBOARD_ICONS.supportTickets} href="/dashboard/support" />
+          <MetricCard label="Privacy" value="Protected" icon={ShieldCheck} hint="Direct details stay private" />
+        </MetricGrid>
+        <DashboardPanel title="Assigned agent" description="Your current property-deal contact inside Dhanadhara.">
           <div className="flex items-center gap-4">
             <UserAvatar name={agent.name} size="lg" />
             <div className="min-w-0">
@@ -88,8 +98,9 @@ export function AgentView() {
           <Button className="mt-2 w-full sm:w-auto" onClick={() => router.push("/dashboard/support")}>
             Contact agent
           </Button>
-        </div>
+        </DashboardPanel>
+        </>
       )}
-    </div>
+    </DashboardPage>
   );
 }

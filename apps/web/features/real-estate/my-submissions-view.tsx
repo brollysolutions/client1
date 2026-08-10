@@ -6,6 +6,8 @@ import { Inbox, Loader2 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { DASHBOARD_ICONS } from "@/features/dashboard/dashboard-icons";
+import { DashboardHeader, DashboardPage, DashboardPanel, MetricCard, MetricGrid } from "@/features/dashboard/dashboard-ui";
 import { formatPaiseCompact } from "@/lib/format";
 import type { Submission } from "@/lib/property-submissions-api";
 import { useMySubmissions } from "./use-my-submissions";
@@ -23,16 +25,18 @@ const STATUS_LABEL: Record<Submission["status"], string> = {
 
 export function MySubmissionsView() {
   const { items, loading, error, reload } = useMySubmissions();
+  const pendingCount = items.filter((item) => item.status === "pending").length;
+  const approvedCount = items.filter((item) => item.status === "approved").length;
+  const rejectedCount = items.filter((item) => item.status === "rejected").length;
 
   return (
-    <div className="mx-auto w-full max-w-3xl px-4 py-8">
-      <div className="mb-6 flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-text-primary">My submissions</h1>
-          <p className="mt-1 text-sm text-text-secondary">Listings you have submitted for review.</p>
-        </div>
-        <Button asChild size="sm"><Link href="/dashboard/property-submit">New listing</Link></Button>
-      </div>
+    <DashboardPage>
+      <DashboardHeader
+        eyebrow="Real Estate listings"
+        title="My listings"
+        description="Track every property submitted for review and see the latest approval state."
+        actions={<Button asChild size="sm"><Link href="/dashboard/property-submit">New listing</Link></Button>}
+      />
 
       {loading && (
         <div className="flex min-h-[30vh] items-center justify-center">
@@ -56,9 +60,17 @@ export function MySubmissionsView() {
       )}
 
       {!loading && !error && items.length > 0 && (
-        <ul className="space-y-3">
+        <>
+        <MetricGrid>
+          <MetricCard label="All listings" value={items.length} icon={DASHBOARD_ICONS.propertyListings} />
+          <MetricCard label="Pending review" value={pendingCount} icon={DASHBOARD_ICONS.listingApprovals} attention={pendingCount > 0} />
+          <MetricCard label="Approved" value={approvedCount} icon={DASHBOARD_ICONS.listingApprovals} />
+          <MetricCard label="Rejected" value={rejectedCount} icon={DASHBOARD_ICONS.propertyListings} attention={rejectedCount > 0} />
+        </MetricGrid>
+        <DashboardPanel title="Submission history" description="Media counts, review state, and reviewer feedback for your listings.">
+        <ul className="divide-y divide-border">
           {items.map((s) => (
-            <li key={s.id} className="rounded-lg border p-4">
+            <li key={s.id} className="py-4 first:pt-0 last:pb-0">
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <p className="font-medium text-text-primary">{s.title}</p>
@@ -94,7 +106,9 @@ export function MySubmissionsView() {
             </li>
           ))}
         </ul>
+        </DashboardPanel>
+        </>
       )}
-    </div>
+    </DashboardPage>
   );
 }
