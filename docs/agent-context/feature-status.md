@@ -47,6 +47,49 @@ work than several completed UI requirements.
 
 ## Delivered implementation
 
+- **AWS-inspired multi-role dashboard experience** (FR-2.1 through FR-2.7 and
+  FR-17.1) is implemented in
+  [PR #167](https://github.com/brollysolutions/client1/pull/167).
+  Admin, Sub Admin, Telecaller, Employee, and Agent now receive a permanently
+  expanded labeled desktop sidebar without a panel-toggle icon, while Clients
+  retain their remembered expand/collapse preference and every role retains the
+  mobile drawer. One semantic icon registry drives navigation and home
+  shortcuts. Shared page-header, metric, queue, panel, status, and quick-action
+  patterns give all six role homes a denser operational hierarchy without
+  changing routes, permissions, API schemas, or RLS. The Employee home exposes
+  Vehicle arrangements only for the active Real Estate line. Fresh evidence:
+  15 focused sidebar/navigation tests, all 319 web unit tests, full lint, strict
+  typecheck, a passing Linux production image with all 92 routes, and an
+  eight-case live-stack Playwright role/mobile matrix. The native Windows build
+  also compiled, typechecked, and generated all routes before the known
+  standalone symlink `EPERM`. Coverage remains **98.7%** because this improves
+  already-complete role dashboard requirements without closing FR-2.2 or
+  FR-2.8. A follow-up on the same PR brings Admin Users & staff plus every Sub
+  Admin banner, offer, content-block, property-submission, and referral-rule
+  form into the same operational hierarchy. It preserves identity authority,
+  one-time credentials, Main Admin limits and session invalidation, managed
+  upload/approval boundaries, and payout separation. Fresh follow-up evidence:
+  full lint and strict typecheck, all 319 unit tests, all eight live-stack
+  Playwright cases with expanded Admin/Sub Admin route assertions, and a Linux
+  production image packaging all 92 routes. A second follow-up completes the
+  same presentation system across Client loan detail, Explore, application,
+  private loan media, bank comparison, loan-officer, transaction, referral,
+  notification, enquiry, site-visit, property comparison, assigned-agent,
+  bookmark, and listing-submission surfaces. Referral copy feedback now appears
+  inside the code tile with a check confirmation and the share action uses a
+  WhatsApp glyph. Property search adds an explicit action and structured
+  map-pin location picker over existing locality/city/PIN facets, without GPS
+  or Map/GMB. The shared shell provides a lazy, safe-link notification preview
+  on hover, focus, or click for every dashboard role. Fresh evidence: full
+  ESLint, strict TypeScript, all 319 unit tests, and nine live-stack Playwright
+  cases covering all six roles and the complete Client route/interaction
+  matrix. The exact final-tree native build compiled, passed its internal
+  lint/type phase, and generated all 92 routes before the known Windows
+  standalone symlink `EPERM`; the Linux image attempt reached 15 minutes
+  without a final report after Docker Desktop became unresponsive, so artifact
+  export is inconclusive. API ownership, RLS, uploads, payouts, and contracts
+  remain unchanged.
+
 - **Delegated payout operations and Admin hierarchy** (FR-2.2, FR-2.3, and
   FR-10.3) are complete in
   [PR #165](https://github.com/brollysolutions/client1/pull/165). One

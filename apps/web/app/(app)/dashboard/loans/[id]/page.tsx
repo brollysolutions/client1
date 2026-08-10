@@ -10,6 +10,8 @@ import { cn } from "@/lib/utils";
 import { getLoanApplication, type LoanApplication } from "@/lib/loans";
 
 import { FetchError } from "@/features/dashboard/fetch-error";
+import { DASHBOARD_ICONS } from "@/features/dashboard/dashboard-icons";
+import { DashboardHeader, DashboardPage, DashboardPanel, MetricCard, MetricGrid } from "@/features/dashboard/dashboard-ui";
 import {
   FEE_OUTCOME_LABEL,
   PIPELINE,
@@ -59,15 +61,7 @@ export default function LoanDetailPage() {
   }, [id, reloadKey]);
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6 px-4 sm:px-6 lg:px-10">
-      <Link
-        href="/dashboard"
-        className="inline-flex items-center gap-1.5 text-sm text-text-secondary transition-colors hover:text-text-primary"
-      >
-        <ArrowLeft className="h-4 w-4" />
-        Back to your loans
-      </Link>
-
+    <DashboardPage>
       {status === "loading" ? (
         <div className="space-y-4">
           <Skeleton className="h-9 w-56 rounded-lg" />
@@ -78,7 +72,7 @@ export default function LoanDetailPage() {
       ) : application ? (
         <LoanDetail application={application} />
       ) : null}
-    </div>
+    </DashboardPage>
   );
 }
 
@@ -89,20 +83,37 @@ function LoanDetail({ application: a }: { application: LoanApplication }) {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-semibold text-text-primary">{a.loanTypeLabel}</h1>
-          <p className="text-sm text-text-secondary">Applied on {formatDate(a.openedOn)}</p>
-        </div>
-        <span
-          className={cn(
-            "inline-flex rounded-full px-3 py-1 text-xs font-medium",
-            s.className,
-          )}
-        >
-          {s.label}
-        </span>
-      </div>
+      <DashboardHeader
+        eyebrow="Loan application"
+        title={a.loanTypeLabel}
+        description={`Applied on ${formatDate(a.openedOn)}. Follow the current decision and next stage below.`}
+        actions={
+          <div className="flex items-center gap-3">
+            <Link
+              href="/dashboard"
+              className="inline-flex items-center gap-1.5 text-sm font-medium text-brand-cta hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue"
+            >
+              <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+              All loans
+            </Link>
+            <span className={cn("inline-flex rounded-full px-3 py-1 text-xs font-medium", s.className)}>
+              {s.label}
+            </span>
+          </div>
+        }
+      />
+
+      <MetricGrid>
+        <MetricCard label="Requested" value={formatAmount(a.amountRequested)} icon={DASHBOARD_ICONS.loanApplications} />
+        <MetricCard label="Sanctioned" value={formatAmount(a.amountSanctioned)} icon={DASHBOARD_ICONS.earnings} />
+        <MetricCard label="Interest rate" value={formatRate(a.interestRate)} icon={DASHBOARD_ICONS.loanConfiguration} />
+        <MetricCard
+          label="Processing fee"
+          value={formatAmount(a.processingFee)}
+          hint={a.feeOutcome ? FEE_OUTCOME_LABEL[a.feeOutcome] : "Not finalized"}
+          icon={DASHBOARD_ICONS.transactions}
+        />
+      </MetricGrid>
 
       {offPipeline && a.statusReason ? (
         <div
@@ -127,9 +138,7 @@ function LoanDetail({ application: a }: { application: LoanApplication }) {
         </div>
       ) : null}
 
-      {/* Deal terms */}
-      <section className="rounded-xl border border-border bg-card p-6">
-        <h2 className="text-sm font-medium text-text-secondary">Loan details</h2>
+      <DashboardPanel title="Loan details" description="Terms recorded against this application.">
         <dl className="mt-4 grid gap-4 sm:grid-cols-2">
           <Term label="Amount requested" value={formatAmount(a.amountRequested)} />
           <Term label="Amount sanctioned" value={formatAmount(a.amountSanctioned)} />
@@ -144,11 +153,10 @@ function LoanDetail({ application: a }: { application: LoanApplication }) {
           />
           {a.closedOn ? <Term label="Closed on" value={formatDate(a.closedOn)} /> : null}
         </dl>
-      </section>
+      </DashboardPanel>
 
       {/* Journey timeline */}
-      <section className="rounded-xl border border-border bg-card p-6">
-        <h2 className="text-sm font-medium text-text-secondary">Application journey</h2>
+      <DashboardPanel title="Application journey" description="Your application moves through these operational stages.">
         <ol className="mt-5 space-y-0">
           {PIPELINE.map((stage, i) => {
             const done = activeIndex >= 0 && i < activeIndex;
@@ -203,7 +211,7 @@ function LoanDetail({ application: a }: { application: LoanApplication }) {
               : "The journey is paused. Our team will pick it back up soon."}
           </p>
         ) : null}
-      </section>
+      </DashboardPanel>
     </div>
   );
 }

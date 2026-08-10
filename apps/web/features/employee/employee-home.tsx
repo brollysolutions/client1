@@ -2,10 +2,22 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { AlertTriangle, Bell, ClipboardList } from "lucide-react";
+import { AlertTriangle, Bell } from "lucide-react";
 
 import { Skeleton } from "@/components/ui/skeleton";
 import { FetchError } from "@/features/dashboard/fetch-error";
+import { DASHBOARD_ICONS } from "@/features/dashboard/dashboard-icons";
+import {
+  DashboardHeader,
+  DashboardPage,
+  DashboardPanel,
+  DashboardQuickAction,
+  DashboardSection,
+  DashboardTextLink,
+  MetricCard,
+  MetricGrid,
+  QuickActionGrid,
+} from "@/features/dashboard/dashboard-ui";
 import { useLine } from "@/features/dashboard/line-provider";
 import { getNotifications, type AppNotification } from "@/lib/notifications";
 import { getEmployeeHome, type EmployeeHome as EmployeeHomeData } from "@/lib/employee-api";
@@ -75,27 +87,59 @@ export function EmployeeHome() {
 
   if (status === "loading") {
     return (
-      <div className="mx-auto w-full max-w-5xl space-y-5 px-4 sm:px-6 lg:px-10">
+      <DashboardPage className="space-y-5">
         <Skeleton className="h-9 w-48 rounded-lg" />
         <Skeleton className="h-64 rounded-2xl" />
-      </div>
+      </DashboardPage>
     );
   }
 
   if (status === "error" || !home) {
     return (
-      <div className="mx-auto w-full max-w-5xl px-4 sm:px-6 lg:px-10">
+      <DashboardPage>
         <FetchError status={errorStatus} message={error} onRetry={retry} />
-      </div>
+      </DashboardPage>
     );
   }
 
+  const inProgressCount = home.counts_by_status.in_progress ?? 0;
+  const completedCount = home.counts_by_status.completed ?? 0;
+
   return (
-    <div className="mx-auto w-full max-w-5xl space-y-6 px-4 sm:px-6 lg:px-10">
-      <div>
-        <h1 className="text-2xl font-semibold text-text-primary">Home</h1>
-        <p className="mt-1 text-sm text-text-secondary">Your field tasks for today.</p>
-      </div>
+    <DashboardPage>
+      <DashboardHeader
+        eyebrow={activeLine === "real_estate" ? "Real Estate operations" : "Loans operations"}
+        title="Field operations"
+        description="Prioritize today's assigned work, overdue tasks, and field follow-through."
+      />
+
+      <MetricGrid>
+        <MetricCard
+          label="Due today"
+          value={home.tasks_today.length}
+          icon={DASHBOARD_ICONS.tasks}
+          href="/dashboard/tasks"
+        />
+        <MetricCard
+          label="In progress"
+          value={inProgressCount}
+          icon={DASHBOARD_ICONS.tasks}
+          href="/dashboard/tasks"
+        />
+        <MetricCard
+          label="Overdue"
+          value={home.overdue_count}
+          icon={AlertTriangle}
+          href="/dashboard/tasks"
+          attention={home.overdue_count > 0}
+        />
+        <MetricCard
+          label="Completed"
+          value={completedCount}
+          icon={DASHBOARD_ICONS.tasks}
+          href="/dashboard/tasks"
+        />
+      </MetricGrid>
 
       {home.overdue_count > 0 ? (
         <div className="flex items-center gap-2 rounded-xl border border-warning/30 bg-warning/10 px-4 py-3 text-sm text-warning">
@@ -104,13 +148,16 @@ export function EmployeeHome() {
         </div>
       ) : null}
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        <div className="rounded-2xl border border-border bg-card p-5">
-          <h2 className="text-sm font-semibold text-text-primary">Today&apos;s tasks</h2>
+      <div className="grid gap-4 xl:grid-cols-2">
+        <DashboardPanel
+          title="Today's tasks"
+          description="Assignments due before the end of the day"
+          action={<DashboardTextLink href="/dashboard/tasks">View all tasks</DashboardTextLink>}
+        >
           {home.tasks_today.length === 0 ? (
-            <p className="mt-3 text-sm text-text-secondary">Nothing due today.</p>
+            <p className="text-sm text-text-secondary">Nothing due today.</p>
           ) : (
-            <ul className="mt-3 space-y-2">
+            <ul className="space-y-2">
               {home.tasks_today.map((task) => (
                 <li key={task.id}>
                   <Link
@@ -118,7 +165,7 @@ export function EmployeeHome() {
                     className="flex items-center justify-between gap-3 rounded-xl border border-border p-3 text-sm transition-colors hover:border-brand-cta"
                   >
                     <span className="flex items-center gap-2 font-medium text-text-primary">
-                      <ClipboardList className="h-4 w-4 text-brand-cta" aria-hidden="true" />
+                      <DASHBOARD_ICONS.tasks className="h-4 w-4 text-brand-cta" aria-hidden="true" />
                       {task.lead_name ?? task.lead_mobile}
                     </span>
                     <span className="text-xs text-text-secondary">{formatDateTime(task.due_at)}</span>
@@ -127,15 +174,14 @@ export function EmployeeHome() {
               ))}
             </ul>
           )}
-        </div>
+        </DashboardPanel>
 
-        <div className="rounded-2xl border border-border bg-card p-5">
-          <h2 className="text-sm font-semibold text-text-primary">Your tasks</h2>
+        <DashboardPanel title="Task distribution" description="Current workload by status and type">
           {Object.keys(home.counts_by_status).length === 0 ? (
-            <p className="mt-3 text-sm text-text-secondary">No tasks assigned yet.</p>
+            <p className="text-sm text-text-secondary">No tasks assigned yet.</p>
           ) : (
             <>
-              <ul className="mt-3 space-y-2">
+              <ul className="space-y-2">
                 {Object.entries(home.counts_by_status).map(([key, count]) => (
                   <li key={key} className="flex items-center justify-between text-sm">
                     <span className="text-text-secondary">{STATUS_LABEL[key] ?? key}</span>
@@ -153,26 +199,34 @@ export function EmployeeHome() {
               </ul>
             </>
           )}
-          <Link
-            href="/dashboard/tasks"
-            className="mt-4 inline-block text-sm font-medium text-brand-cta hover:underline"
-          >
-            View all tasks
-          </Link>
-        </div>
+        </DashboardPanel>
       </div>
 
-      <div className="rounded-2xl border border-border bg-card p-5">
-        <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-text-primary">Notifications</h2>
-          <Link href="/dashboard/notifications" className="text-xs text-brand-cta hover:underline">
-            View all
-          </Link>
-        </div>
+      {activeLine === "real_estate" ? (
+        <DashboardSection
+          title="Real Estate field work"
+          description="Pickup coordination is separate from your assigned property and document tasks."
+        >
+          <QuickActionGrid>
+            <DashboardQuickAction
+              href="/dashboard/vehicle-arrangements"
+              title="Vehicle arrangements"
+              description="Review assigned pickups and record completion or cancellation."
+              icon={DASHBOARD_ICONS.vehicleArrangements}
+            />
+          </QuickActionGrid>
+        </DashboardSection>
+      ) : null}
+
+      <DashboardPanel
+        title="Notifications"
+        description="Recent updates about your assigned work"
+        action={<DashboardTextLink href="/dashboard/notifications">View all</DashboardTextLink>}
+      >
         {notifications.length === 0 ? (
-          <p className="mt-3 text-sm text-text-secondary">No notifications yet.</p>
+          <p className="text-sm text-text-secondary">No notifications yet.</p>
         ) : (
-          <ul className="mt-3 space-y-2">
+          <ul className="space-y-3">
             {notifications.map((n) => (
               <li key={n.id} className="flex items-start gap-2 text-sm">
                 <Bell className="mt-0.5 h-4 w-4 shrink-0 text-text-secondary" aria-hidden="true" />
@@ -184,7 +238,7 @@ export function EmployeeHome() {
             ))}
           </ul>
         )}
-      </div>
-    </div>
+      </DashboardPanel>
+    </DashboardPage>
   );
 }

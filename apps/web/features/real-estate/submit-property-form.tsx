@@ -15,6 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { DashboardFormPage } from "@/features/dashboard/dashboard-ui";
 import {
   CATEGORY_OPTIONS,
   FURNISHING_OPTIONS,
@@ -66,14 +67,15 @@ export function SubmitPropertyForm() {
   };
 
   return (
-    <div className="mx-auto w-full max-w-2xl px-4 py-8">
-      <div className="mb-6">
-        <h1 className="text-2xl font-semibold text-text-primary">Submit a property</h1>
-        <p className="mt-1 text-sm text-text-secondary">
-          Your listing goes to the review team. You can track its status under My submissions.
-        </p>
-      </div>
-
+    <DashboardFormPage
+      eyebrow="Property listings"
+      title="Submit a property"
+      description="Capture listing details, managed media, and private reviewer documents for Admin review."
+      backHref="/dashboard/my-submissions"
+      backLabel="Back to submissions"
+      formTitle="Listing submission"
+      formDescription="Nothing becomes public until the review team approves the submission."
+    >
       <form
         className="space-y-6"
         onSubmit={(e) => {
@@ -82,7 +84,13 @@ export function SubmitPropertyForm() {
         }}
       >
         {/* Basics */}
-        <section className="space-y-4">
+        <section className="space-y-4 rounded-xl border border-border bg-muted/20 p-4 sm:p-5">
+          <div>
+            <h2 className="text-sm font-semibold text-text-primary">Listing basics</h2>
+            <p className="mt-0.5 text-xs text-text-secondary">
+              Provide the public title, property type, and catalogue category.
+            </p>
+          </div>
           <div>
             <Label htmlFor="title">Title</Label>
             <Input id="title" value={f.form.title} onChange={(e) => f.setField("title", e.target.value)} maxLength={200} />
@@ -108,7 +116,13 @@ export function SubmitPropertyForm() {
         </section>
 
         {/* Location & price */}
-        <section className="grid gap-4 sm:grid-cols-2">
+        <section className="grid gap-4 rounded-xl border border-border bg-muted/20 p-4 sm:grid-cols-2 sm:p-5">
+          <div className="sm:col-span-2">
+            <h2 className="text-sm font-semibold text-text-primary">Location and price</h2>
+            <p className="mt-0.5 text-xs text-text-secondary">
+              Add the searchable location fields and customer-facing price.
+            </p>
+          </div>
           <div>
             <Label htmlFor="location">Location (display)</Label>
             <Input id="location" value={f.form.location} onChange={(e) => f.setField("location", e.target.value)} maxLength={160} />
@@ -140,7 +154,13 @@ export function SubmitPropertyForm() {
         </section>
 
         {/* Specs */}
-        <section className="grid gap-4 sm:grid-cols-3">
+        <section className="grid gap-4 rounded-xl border border-border bg-muted/20 p-4 sm:grid-cols-3 sm:p-5">
+          <div className="sm:col-span-3">
+            <h2 className="text-sm font-semibold text-text-primary">Property specifications</h2>
+            <p className="mt-0.5 text-xs text-text-secondary">
+              Record the key facts used for filtering and compliance review.
+            </p>
+          </div>
           <div>
             <Label htmlFor="bhk">BHK</Label>
             <Input id="bhk" inputMode="numeric" value={f.form.bhk} onChange={(e) => f.setField("bhk", e.target.value.replace(/\D/g, ""))} />
@@ -181,7 +201,13 @@ export function SubmitPropertyForm() {
         </section>
 
         {/* Amenities */}
-        <section>
+        <section className="space-y-4 rounded-xl border border-border bg-muted/20 p-4 sm:p-5">
+          <div>
+            <h2 className="text-sm font-semibold text-text-primary">Amenities</h2>
+            <p className="mt-0.5 text-xs text-text-secondary">
+              Add concise, customer-visible property features.
+            </p>
+          </div>
           <Label htmlFor="amenity">Amenities</Label>
           <div className="flex gap-2">
             <Input id="amenity" value={amenityDraft}
@@ -205,9 +231,14 @@ export function SubmitPropertyForm() {
         </section>
 
         {/* Extra details (JSONB key/value) */}
-        <section>
+        <section className="space-y-4 rounded-xl border border-border bg-muted/20 p-4 sm:p-5">
           <div className="flex items-center justify-between">
-            <Label>Extra details</Label>
+            <div>
+              <h2 className="text-sm font-semibold text-text-primary">Extra details</h2>
+              <p className="mt-0.5 text-xs text-text-secondary">
+                Optional structured facts that do not fit the standard fields.
+              </p>
+            </div>
             <Button type="button" variant="ghost" size="sm" onClick={f.addDetailRow}>
               <Plus className="mr-1 h-4 w-4" /> Add row
             </Button>
@@ -226,7 +257,13 @@ export function SubmitPropertyForm() {
         </section>
 
         {/* Managed media + meta */}
-        <section className="space-y-4">
+        <section className="space-y-4 rounded-xl border border-border bg-muted/20 p-4 sm:p-5">
+          <div>
+            <h2 className="text-sm font-semibold text-text-primary">Media and review material</h2>
+            <p className="mt-0.5 text-xs text-text-secondary">
+              Public media is scanned and normalized; reviewer PDFs always remain private.
+            </p>
+          </div>
           <div>
             <Label htmlFor="property-images">Property images</Label>
             <Input
@@ -351,10 +388,10 @@ export function SubmitPropertyForm() {
         </section>
 
         <Button type="submit" disabled={f.submitting} className="w-full sm:w-auto">
-          {f.submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          {f.submitting ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : null}
           {f.uploadProgress ?? "Submit for review"}
         </Button>
       </form>
-    </div>
+    </DashboardFormPage>
   );
 }

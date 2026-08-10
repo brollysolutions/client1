@@ -3,6 +3,7 @@
 import * as React from "react";
 import { Menu } from "lucide-react";
 
+import { useAuth } from "@/components/auth/session-provider";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { LoanCompareProvider } from "@/features/loans/loan-offers-store";
 import { RealEstateProvider } from "@/features/real-estate/store";
@@ -15,24 +16,27 @@ import { LineSwitcher } from "./line-switcher";
 import { MeProvider } from "./me-provider";
 import { NotificationBell } from "./notification-bell";
 import { ProfileMenu } from "./profile-menu";
+import { hasFixedDesktopSidebar, isDesktopSidebarExpanded } from "./shell-state";
 
 const RAIL_OPEN_KEY = "dashboard:rail-open";
 
-// Authenticated dashboard shell: a slim icon rail on desktop that expands to a
-// labeled sidebar from the logo toggle, a drawer on mobile, and a top bar holding
-// the line switcher + account menu on the right. MeProvider + LineProvider wrap
-// everything so the rail, switcher, and account menu share one /auth/me fetch and
-// one active line. `font-geist` scopes Geist to the (app) subtree.
+// Authenticated dashboard shell: Clients retain the remembered expandable icon
+// rail, while operational roles use an always-labeled desktop sidebar. Every
+// role gets the same mobile drawer and a top bar with line/account utilities.
 export function AppShell({ children }: { children: React.ReactNode }) {
+  const { session } = useAuth();
   const [mobileOpen, setMobileOpen] = React.useState(false);
   const [railOpen, setRailOpen] = React.useState(false);
+  const fixedDesktopSidebar = hasFixedDesktopSidebar(session?.role);
+  const desktopSidebarExpanded = isDesktopSidebarExpanded(session?.role, railOpen);
 
   // Restore the desktop rail state after mount (kept out of the initializer so
   // SSR and first paint always agree on the collapsed default).
   React.useEffect(() => {
     if (typeof window === "undefined") return;
+    if (session?.role !== "client") return;
     setRailOpen(window.localStorage.getItem(RAIL_OPEN_KEY) === "1");
-  }, []);
+  }, [session?.role]);
 
   const toggleRail = React.useCallback(() => {
     setRailOpen((open) => {
@@ -54,10 +58,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <aside
                 className={cn(
                   "fixed inset-y-0 left-0 z-30 hidden transition-[width] duration-300 ease-out lg:block",
-                  railOpen ? "w-62" : "w-16",
+                  desktopSidebarExpanded ? "w-62" : "w-16",
                 )}
               >
-                <AppSidebar expanded={railOpen} onToggle={toggleRail} />
+                <AppSidebar
+                  expanded={desktopSidebarExpanded}
+                  onToggle={fixedDesktopSidebar ? undefined : toggleRail}
+                />
               </aside>
 
               {/* Mobile drawer */}
@@ -71,7 +78,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <div
                 className={cn(
                   "transition-[padding] duration-300 ease-out",
-                  railOpen ? "lg:pl-62" : "lg:pl-16",
+                  desktopSidebarExpanded ? "lg:pl-62" : "lg:pl-16",
                 )}
               >
                 {/* Top bar */}
