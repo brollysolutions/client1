@@ -309,6 +309,45 @@
         "title": "AdminHomeResponse",
         "type": "object"
       },
+      "AdminLeadDetailsPatch": {
+        "properties": {
+          "name": {
+            "anyOf": [
+              {
+                "maxLength": 100,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "maxLength": 1000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "reason": {
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "reason"
+        ],
+        "title": "AdminLeadDetailsPatch",
+        "type": "object"
+      },
       "AdminLeadRead": {
         "properties": {
           "business_line": {
@@ -2363,6 +2402,7 @@
           "notification_broadcast",
           "agent_lead_expired",
           "lead_assigned",
+          "lead_details_updated",
           "field_visibility_updated",
           "mobile_change_verified",
           "mobile_changed",
@@ -5578,6 +5618,132 @@
           "status"
         ],
         "title": "LeadAssignResponse",
+        "type": "object"
+      },
+      "LeadDetailsPatch": {
+        "properties": {
+          "name": {
+            "anyOf": [
+              {
+                "maxLength": 100,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "maxLength": 1000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          }
+        },
+        "title": "LeadDetailsPatch",
+        "type": "object"
+      },
+      "LeadDetailsRead": {
+        "properties": {
+          "business_line": {
+            "enum": [
+              "loans",
+              "real_estate"
+            ],
+            "title": "Business Line",
+            "type": "string"
+          },
+          "editable_fields": {
+            "items": {
+              "enum": [
+                "name",
+                "requirement.notes"
+              ],
+              "type": "string"
+            },
+            "title": "Editable Fields",
+            "type": "array"
+          },
+          "field_owners": {
+            "additionalProperties": {
+              "enum": [
+                "agent",
+                "client",
+                "telecaller",
+                "admin",
+                "system",
+                "unclaimed",
+                "legacy_locked"
+              ],
+              "type": "string"
+            },
+            "title": "Field Owners",
+            "type": "object"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "requirement": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Requirement"
+          },
+          "status": {
+            "enum": [
+              "new",
+              "assigned",
+              "working",
+              "converted",
+              "closed",
+              "released"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "business_line",
+          "status",
+          "name",
+          "requirement",
+          "field_owners",
+          "editable_fields",
+          "updated_at"
+        ],
+        "title": "LeadDetailsRead",
         "type": "object"
       },
       "LeadReleaseRequest": {
@@ -12043,19 +12209,8 @@
         "type": "object"
       },
       "TelecallerLeadUpdate": {
+        "additionalProperties": false,
         "properties": {
-          "requirement": {
-            "anyOf": [
-              {
-                "additionalProperties": true,
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Requirement"
-          },
           "status": {
             "anyOf": [
               {
@@ -14861,6 +15016,110 @@
           }
         ],
         "summary": "Assign Lead",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/leads/{lead_id}/details": {
+      "get": {
+        "operationId": "get_lead_details_api_v1_admin_leads__lead_id__details_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "lead_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Lead Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeadDetailsRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Get Lead Details",
+        "tags": [
+          "admin"
+        ]
+      },
+      "patch": {
+        "operationId": "update_lead_details_api_v1_admin_leads__lead_id__details_patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "lead_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Lead Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminLeadDetailsPatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeadDetailsRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Update Lead Details",
         "tags": [
           "admin"
         ]
@@ -19191,6 +19450,116 @@
         "summary": "Delete Bookmark",
         "tags": [
           "bookmarks"
+        ]
+      }
+    },
+    "/api/v1/client/lead-details/{business_line}": {
+      "get": {
+        "operationId": "get_journey_details_api_v1_client_lead_details__business_line__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "business_line",
+            "required": true,
+            "schema": {
+              "enum": [
+                "loans",
+                "real_estate"
+              ],
+              "title": "Business Line",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeadDetailsRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Get Journey Details",
+        "tags": [
+          "client"
+        ]
+      },
+      "patch": {
+        "operationId": "update_journey_details_api_v1_client_lead_details__business_line__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "business_line",
+            "required": true,
+            "schema": {
+              "enum": [
+                "loans",
+                "real_estate"
+              ],
+              "title": "Business Line",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LeadDetailsPatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeadDetailsRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Update Journey Details",
+        "tags": [
+          "client"
         ]
       }
     },

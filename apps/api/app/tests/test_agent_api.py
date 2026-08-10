@@ -504,7 +504,7 @@ async def test_introduce_lead_cannot_steal_other_agents_unassigned_lead(
 
 
 @pytest.mark.asyncio
-async def test_lead_read_editable_reflects_assignment(client: AsyncClient) -> None:
+async def test_lead_read_editable_until_telecaller_starts_work(client: AsyncClient) -> None:
     auth_uuid, agent_uuid = await _seed_agent("loans")
     token = _agent_token(auth_uuid, agent_uuid)
     headers = {"Authorization": f"Bearer {token}"}
@@ -515,6 +515,17 @@ async def test_lead_read_editable_reflects_assignment(client: AsyncClient) -> No
     assert create_res.json()["editable"] is True
 
     await _assign_to_telecaller(lead_id)
+
+    get_res = await client.get(f"/api/v1/agent/leads/{lead_id}", headers=headers)
+    assert get_res.json()["editable"] is True
+
+    import app.db.session as session_module
+    from app.models.lead import Lead, LeadStatus
+
+    async with session_module.AsyncSessionLocal() as db:
+        lead = await db.get(Lead, uuid.UUID(lead_id))
+        lead.status = LeadStatus.WORKING
+        await db.commit()
 
     get_res = await client.get(f"/api/v1/agent/leads/{lead_id}", headers=headers)
     assert get_res.json()["editable"] is False
@@ -591,7 +602,7 @@ async def test_patch_lead_empty_payload_rejected(client: AsyncClient) -> None:
 
 
 @pytest.mark.asyncio
-async def test_patch_lead_locked_after_assignment_is_409(client: AsyncClient) -> None:
+async def test_patch_lead_remains_editable_after_assignment(client: AsyncClient) -> None:
     auth_uuid, agent_uuid = await _seed_agent("loans")
     token = _agent_token(auth_uuid, agent_uuid)
     headers = {"Authorization": f"Bearer {token}"}
@@ -607,7 +618,8 @@ async def test_patch_lead_locked_after_assignment_is_409(client: AsyncClient) ->
         json={"requirement": {"notes": "Too late."}},
         headers=headers,
     )
-    assert res.status_code == 409
+    assert res.status_code == 200, res.text
+    assert res.json()["requirement"]["notes"] == "Too late."
 
     # Still visible (read-only), just not writable.
     get_res = await client.get(f"/api/v1/agent/leads/{lead_id}", headers=headers)

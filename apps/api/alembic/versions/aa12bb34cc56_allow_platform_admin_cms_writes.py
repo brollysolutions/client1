@@ -39,7 +39,11 @@ def upgrade() -> None:
                 {_PLATFORM_ADMIN}
                 AND created_by_uuid::text = current_setting('app.auth_user_uuid', true)
                 AND status::text = 'draft')
-        );
+        )
+        """
+    )
+    op.execute(
+        f"""
         CREATE POLICY banners_update ON banners FOR UPDATE
         USING (
             (current_setting('app.role', true) = 'sub_admin'
@@ -52,7 +56,7 @@ def upgrade() -> None:
              AND created_by_uuid::text = current_setting('app.auth_user_uuid', true)
              AND status::text IN ('draft', 'pending_approval', 'rejected'))
             OR ({_PLATFORM_ADMIN} AND status::text IN ('draft', 'pending_approval', 'rejected'))
-        );
+        )
         """
     )
 
@@ -65,7 +69,11 @@ def upgrade() -> None:
                  AND created_by_uuid::text = current_setting('app.auth_user_uuid', true))
                 OR ({_PLATFORM_ADMIN}
                     AND created_by_uuid::text = current_setting('app.auth_user_uuid', true))
-            );
+            )
+            """
+        )
+        op.execute(
+            f"""
             CREATE POLICY {table}_update ON {table} FOR UPDATE
             USING (
                 (current_setting('app.role', true) = 'sub_admin'
@@ -76,7 +84,7 @@ def upgrade() -> None:
                 (current_setting('app.role', true) = 'sub_admin'
                  AND created_by_uuid::text = current_setting('app.auth_user_uuid', true))
                 OR ({_PLATFORM_ADMIN})
-            );
+            )
             """
         )
 
@@ -92,7 +100,11 @@ def downgrade() -> None:
             current_setting('app.role', true) = 'sub_admin'
             AND created_by_uuid::text = current_setting('app.auth_user_uuid', true)
             AND status::text = 'draft'
-        );
+        )
+        """
+    )
+    op.execute(
+        """
         CREATE POLICY banners_update ON banners FOR UPDATE
         USING (
             current_setting('app.role', true) = 'sub_admin'
@@ -102,7 +114,7 @@ def downgrade() -> None:
         WITH CHECK (
             created_by_uuid::text = current_setting('app.auth_user_uuid', true)
             AND status::text IN ('draft', 'pending_approval', 'rejected')
-        );
+        )
         """
     )
     for table in ("offers", "content_blocks", "referral_bonus_config"):
@@ -111,12 +123,16 @@ def downgrade() -> None:
             CREATE POLICY {table}_insert ON {table} FOR INSERT WITH CHECK (
                 current_setting('app.role', true) = 'sub_admin'
                 AND created_by_uuid::text = current_setting('app.auth_user_uuid', true)
-            );
+            )
+            """
+        )
+        op.execute(
+            f"""
             CREATE POLICY {table}_update ON {table} FOR UPDATE
             USING (
                 current_setting('app.role', true) = 'sub_admin'
                 AND created_by_uuid::text = current_setting('app.auth_user_uuid', true)
             )
-            WITH CHECK (created_by_uuid::text = current_setting('app.auth_user_uuid', true));
+            WITH CHECK (created_by_uuid::text = current_setting('app.auth_user_uuid', true))
             """
         )

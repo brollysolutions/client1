@@ -8,7 +8,6 @@ session before returning it.
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
 from uuid import UUID
 
 from sqlalchemy import select
@@ -18,6 +17,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.lead import Lead, LeadStatus
 from app.models.profile import AgentProfile
 from app.schemas.agent import AgentLeadCreate, AgentLeadUpdate
+from app.schemas.lead_details import LeadDetailsPatch
+from app.services.lead_details import (
+    DetailActor,
+    LeadDetailsForbidden,
+    LeadDetailsLocked,
+    patch_details,
+)
 from app.services.leads import AgentLeadConflict, capture_agent_lead
 
 
@@ -123,24 +129,32 @@ async def get_lead_for_agent(
     )
 
 
-async def update_lead_for_agent(db: AsyncSession, lead: Lead, payload: AgentLeadUpdate) -> Lead:
-    deadline_reached = lead.expires_at is not None and lead.expires_at <= datetime.now(UTC)
-    if (
-        lead.assigned_telecaller_profile_uuid is not None
-        or lead.agent_expired_at is not None
-        or deadline_reached
-    ):
-        raise LeadLocked
-    if payload.name is not None:
-        lead.name = payload.name
-    if payload.requirement is not None:
-        merged = dict(lead.requirement) if isinstance(lead.requirement, dict) else {}
-        merged.update(payload.requirement)
-        lead.requirement = merged
+async def update_lead_for_agent(
+    db: AsyncSession,
+    lead: Lead,
+    payload: AgentLeadUpdate,
+    *,
+    auth_user_uuid: UUID,
+    agent_profile_uuid: UUID,
+) -> Lead:
+    notes = payload.requirement.get("notes") if payload.requirement is not None else None
+    details = LeadDetailsPatch.model_validate(
+        {
+            **({"name": payload.name} if "name" in payload.model_fields_set else {}),
+            **({"notes": notes} if "requirement" in payload.model_fields_set else {}),
+        }
+    )
     try:
-        await db.commit()
-    except DBAPIError as exc:
+        return await patch_details(
+            db,
+            lead=lead,
+            payload=details,
+            actor=DetailActor(
+                role="agent",
+                subject_uuid=agent_profile_uuid,
+                auth_user_uuid=auth_user_uuid,
+            ),
+        )
+    except (LeadDetailsForbidden, LeadDetailsLocked, DBAPIError) as exc:
         await db.rollback()
         raise LeadLocked from exc
-    await db.refresh(lead)
-    return lead

@@ -2,11 +2,10 @@
 
 Status: **Derived living implementation ledger**
 
-As of: **2026-08-10**
+As of: **2026-08-11**
 
-Evidence baseline: `64db2f3`
-([PR #163](https://github.com/brollysolutions/client1/pull/163)), based on
-`c0dc8b2` ([PR #162](https://github.com/brollysolutions/client1/pull/162))
+Evidence baseline: FR-2.8 working tree on
+`codex/20260810-161623-ps-d-dhanadhara-client1-docker-compose-f` (PR pending).
 
 ## Purpose and authority
 
@@ -35,17 +34,40 @@ live-provider configuration are assessed separately.
 
 | Measure | Result |
 | --- | ---: |
-| Complete requirements | 77 / 79 (97.5%) |
-| Partial requirements | 2 / 79 (2.5%) |
+| Complete requirements | 78 / 79 (98.7%) |
+| Partial requirements | 1 / 79 (1.3%) |
 | Not-started requirements | 0 / 79 (0%) |
-| Weighted implementation coverage | **98.7%** |
+| Weighted implementation coverage | **99.4%** |
 
 Weighted coverage gives each Complete item 1 point and each Partial item 0.5
-points: `(77 + 2 x 0.5) / 79 = 98.73%`, rounded to **98.7%**. The weighting is a planning aid, not
+points: `(78 + 1 x 0.5) / 79 = 99.37%`, rounded to **99.4%**. The weighting is a planning aid, not
 an estimate of calendar time: a single security-sensitive gap can require more
 work than several completed UI requirements.
 
 ## Delivered implementation
+
+- **Provenance-based edit ownership** (FR-2.8) is complete on the current
+  branch (PR pending). Lead names and journey notes now retain immutable
+  Agent/Client creator descriptors across capture and OTP binding. Agent edits
+  remain available through assignment until Telecaller work starts; Client
+  edits remain available until a terminal state; platform Admin corrections
+  require an audited reason without transferring ownership. Telecaller notes
+  stay in append-only activities. A row-locked shared service, command-specific
+  RLS, and a database trigger enforce lifecycle, allowed columns, same-line and
+  creator authority and reject ownership-descriptor planting. The new Client
+  Settings card and Admin correction dialog use generated types and minimized
+  `private, no-store` responses. Fresh evidence includes repeated migration
+  downgrade/upgrade with one head, direct SQL denial tests, all 85 affected
+  ownership/public-capture/Agent/Telecaller/lead-RLS tests, API Ruff, full web ESLint, strict
+  TypeScript, all 320 Vitest tests, and a Linux production image packaging all
+  92 pages. The host build also compiled/generated every page before the known
+  Windows standalone-symlink `EPERM`. Security review found and remediated
+  descriptor planting, stale-row, superuser capture/claim overwrite,
+  direct-insert spoofing, response-minimization/cache, and silent-extra risks;
+  no finding remains. The
+  repository-wide verifier reached its 30-minute bound without a report and is
+  inconclusive rather than passing. The sole remaining partial requirement is
+  FR-2.2 Admin operational coverage.
 
 - **Admin operational CMS coverage** (FR-2.2) is partially delivered in
   [PR #168](https://github.com/brollysolutions/client1/pull/168). The verified
@@ -287,7 +309,7 @@ work than several completed UI requirements.
 | Feature area | Complete | Partial | Not started | Coverage notes |
 | --- | ---: | ---: | ---: | --- |
 | Platform and segregation (FR-1.x) | 5 | 0 | 0 | Every mapped table and managed-media purpose has an explicit classification mode; database checks and provenance triggers enforce concrete operational lines while preserving reviewed global/identity exceptions. |
-| Roles and access (FR-2.x) | 7 | 2 | 0 | Six role surfaces, server/RLS guards, and Admin-managed closed-catalogue field visibility exist; Admin coverage and edit ownership are not exhaustive. |
+| Roles and access (FR-2.x) | 8 | 1 | 0 | Six role surfaces, server/RLS guards, Admin-managed field visibility, and provenance-based lead-detail ownership exist; only the exhaustive Admin operational coverage audit remains partial. |
 | Authentication (FR-3.x) | 5 | 0 | 0 | OTP/password/session flows, dual-line client identity, support-assisted mobile change, and mobile-first registration with optional verified email recovery exist. |
 | Leads (FR-4.x) | 6 | 0 | 0 | Explicit per-line intent, deterministic per-line round-robin assignment/retry, OTP account binding, Admin fallback, ownership, fixed Agent expiry, and Agent/Telecaller workflows are implemented. |
 | Agent registration (FR-5.x) | 4 | 0 | 0 | OTP-verified application, KYC, Admin review, Agent ID, and owned-lead contact access exist. |
@@ -304,14 +326,14 @@ work than several completed UI requirements.
 | Analytics (FR-16.x) | 3 | 0 | 0 | **Complete** in [PR #156](https://github.com/brollysolutions/client1/pull/156): Linux PostgreSQL/Redis verification passed 30 reporting service/API/RLS tests with one Alembic head; web lint, strict typecheck, 294 unit tests, and the 92-page production build passed. |
 | Profile/account (FR-17.x) | 4 | 0 | 0 | Profile/settings, optional demographic/income/address details, transactions/support, deletion, retention, and Admin removal exist. |
 | Location (FR-18.x) | 1 | 0 | 0 | Explicit nested opt-in stores only the latest two-decimal point for 30 days and erases it on revocation, personalization disable, or account deletion; CS-010 removes FR-18.2 Map/GMB integration from scope. |
-| **Total** | **77** | **2** | **0** | **79 active requirements** |
+| **Total** | **78** | **1** | **0** | **79 active requirements** |
 
 ## Done
 
 The following requirements are complete on the evidence baseline:
 
 - Platform and access: FR-1.1 through FR-1.5; FR-2.1; FR-2.3 through
-  FR-2.7; and FR-2.9. Evidence includes `app/core/deps.py`, profile models, RLS
+  FR-2.9. Evidence includes `app/core/deps.py`, profile models, RLS
   migrations, role dashboards, Admin field-visibility APIs/UI, server-side
   response projection, policy audit, and cross-role/cross-line tests.
 - Authentication: FR-3.1 through FR-3.5 as amended by CS-001 and CS-005.
@@ -382,7 +404,7 @@ The following requirements are complete on the evidence baseline:
 | --- | --- | --- | --- |
 | FR-1.1 | Complete | Every mapped table and managed-media purpose is inventoried; operational rows require one immutable Loans/Real Estate tag, parent/source copies must match, and only reviewed staged/global/identity exceptions remain nullable or allow `both`. | Preserve the exhaustive ledger and migration/negative tests for every future table, relation, content audience, and media purpose. |
 | FR-2.2 | Partial | Admin dashboards cover users, leads, tasks, agents, loans, deals, payouts, content, audit, and reports; platform Admin can now create and update shared banners, offers, content blocks, and referral-bonus rules through server/RLS-enforced overrides. | Complete the remaining exhaustive inventory for user, media, listing, notification, and record-level Admin updates; execute PostgreSQL-backed authorization/RLS and accessible UI coverage. |
-| FR-2.8 | Partial | Agent pre-assignment editing, client profile editing, and Admin operational edits exist. | Define and enforce provenance-based edit ownership consistently across all submitted detail types. |
+| FR-2.8 | Complete | Lead name and journey notes carry immutable creator descriptors; Agent and Client edits follow explicit lifecycle cutoffs, Admin corrections preserve ownership and require an audited reason, and Telecaller notes remain append-only activities. Service checks, row locks, command-specific RLS, and a database trigger deny cross-owner, cross-role, cross-line, lifecycle, allowed-column, and descriptor-planting bypasses. | Preserve the ownership initializer/backfill, least-data no-store response, audit-value minimization, and direct SQL denial tests when adding future editable lead-detail paths. |
 | FR-4.2 | Complete | Agent-introduced leads are atomically attributed and assigned through a durable, active-only same-line round-robin cursor, queued for bounded retry without capacity, and bound to a same-mobile Client only after OTP-proven registration. | Preserve global Agent ownership, expiry deadlines, generic-link authority boundaries, stable Telecaller order, cursor isolation, and concurrency tests as the workflow evolves. |
 | FR-4.3 | Complete | Registration captures explicit one/both-line intent while retaining both Client profiles; each requested journey is independently bound and assigned through its line's separate round-robin cursor without cross-line leakage. | Preserve explicit intent, per-line uniqueness, deterministic assignment ordering, and account-deletion closure. |
 | FR-10.3 | Complete | Cashback, referral bonuses, and commissions support UPI VPA and bank transfer through an explicit RazorpayX provider adapter plus an audited manual-cheque lifecycle. Cheque approval does not credit the ledger; issue, clearance, failure, duplicate/concurrent settlement, and compensating reversal are server-controlled, masked, and covered by migrated database tests. | Preserve provider scoping, Admin authorization, caps, raw-destination minimization, row-lock/CAS idempotency, account-deletion retention, and the no-card/no-failover boundary when adding future providers. |
