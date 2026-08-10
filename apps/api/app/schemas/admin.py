@@ -13,7 +13,8 @@ from pydantic import BaseModel, EmailStr, Field, field_validator, model_validato
 # Staff provisioning
 # ---------------------------------------------------------------------------
 
-StaffRoleLiteral = Literal["sub_admin", "telecaller", "employee"]
+StaffRoleLiteral = Literal["admin", "sub_admin", "telecaller", "employee"]
+StaffFeatureLiteral = Literal["payout_requests"]
 
 
 class StaffCreateRequest(BaseModel):
@@ -22,7 +23,7 @@ class StaffCreateRequest(BaseModel):
     mobile: Annotated[str, Field(pattern=r"^\+[1-9]\d{6,14}$")]
     email: EmailStr
     role: StaffRoleLiteral
-    # sub_admin is platform-scoped (business_line must be omitted/null); telecaller
+    # admin/sub_admin are platform-scoped (business_line omitted); telecaller
     # and employee are line-scoped (loans, real_estate, or both is required).
     business_line: Literal["loans", "real_estate", "both"] | None = None
 
@@ -33,9 +34,9 @@ class StaffCreateRequest(BaseModel):
 
     @model_validator(mode="after")
     def check_business_line_matches_role(self) -> StaffCreateRequest:
-        if self.role == "sub_admin":
+        if self.role in ("admin", "sub_admin"):
             if self.business_line is not None:
-                raise ValueError("Sub Admin is platform-scoped; do not provide a business_line.")
+                raise ValueError("Platform Admin staff must not provide a business_line.")
         else:
             if self.business_line is None:
                 raise ValueError("A business_line is required for this role.")
@@ -52,6 +53,27 @@ class StaffCreateResponse(BaseModel):
     # Shown once, never persisted/logged. None when attaching a staff role to an
     # account that already had a working password (their credentials are unchanged).
     temp_password: str | None
+
+
+class StaffAccessEntry(BaseModel):
+    staff_profile_uuid: UUID
+    first_name: str
+    last_name: str
+    staff_code: str
+    role: Literal["admin", "sub_admin"]
+    is_primary_admin: bool
+    features: list[StaffFeatureLiteral]
+
+
+class StaffAccessListResponse(BaseModel):
+    entries: list[StaffAccessEntry]
+    additional_admin_limit: int = 3
+    additional_admin_count: int
+
+
+class StaffFeatureUpdateRequest(BaseModel):
+    feature: StaffFeatureLiteral
+    enabled: bool
 
 
 # ---------------------------------------------------------------------------

@@ -4,6 +4,7 @@ import * as React from "react";
 import { CheckCircle2, Loader2, Wallet, XCircle } from "lucide-react";
 import { toast } from "sonner";
 
+import { useAuth } from "@/components/auth/session-provider";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -83,6 +84,8 @@ function shortId(id: string): string {
 }
 
 export function PayoutsView() {
+  const { session } = useAuth();
+  const canReview = session?.role === "admin";
   const {
     payouts,
     status,
@@ -242,8 +245,9 @@ export function PayoutsView() {
         <>
           <ul className="space-y-3">
             {payouts.map((p) => {
-              const approvalAction = p.status === "pending_approval";
+              const approvalAction = canReview && p.status === "pending_approval";
               const manualAction =
+                canReview &&
                 p.provider === "manual" &&
                 (p.status === "approved" || p.status === "processing" || p.status === "paid");
               const clickable = approvalAction || manualAction;
@@ -385,9 +389,11 @@ export function PayoutsView() {
                   </>
                 ) : (
                   <>
-                    <Button variant="outline" onClick={() => setRejecting(true)} disabled={busy}>
-                      Reject
-                    </Button>
+                    {canReview ? (
+                      <Button variant="outline" onClick={() => setRejecting(true)} disabled={busy}>
+                        Reject
+                      </Button>
+                    ) : null}
                     {active.viewer_can_approve ? (
                       <Button onClick={() => void onApprove(active)} disabled={busy}>
                         {busy ? (

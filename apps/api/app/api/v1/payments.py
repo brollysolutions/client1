@@ -1,7 +1,8 @@
-"""Payout administration — maker-checker disbursement and manual cheque actions.
+"""Payout administration — delegated requests and Admin disbursement actions.
 
-Admin surface (create / approve / reject / list) is platform-admin only, enforced
-in the app layer AND by the payouts RLS policy (platform_scope). The webhook
+Create/list/recipient search admit a platform Admin or an explicitly granted
+Sub Admin. Approval, rejection, reconciliation, and manual-cheque actions remain
+Admin-only. These gates are enforced in the app layer and by payout RLS. The webhook
 receiver is UNAUTHENTICATED but signature-gated (HMAC-SHA256, fail-closed) — it
 carries no JWT/RLS context because settle writes run on the bypass session.
 
@@ -41,7 +42,7 @@ from app.schemas.payments import (
 )
 from app.services import payments as payments_service
 from app.services.payout_links import list_link_divergences
-from app.services.payout_recipients import resolve_identities, search_recipients
+from app.services.payout_recipients import resolve_payout_identities, search_payout_recipients
 
 logger = logging.getLogger(__name__)
 
@@ -70,12 +71,18 @@ def _map_error(exc: payments_service.PayoutError) -> HTTPException:
     return HTTPException(status_code=code, detail=str(exc))
 
 
-def _require_platform_admin(current_user: CurrentUser) -> None:
-    """Only platform Admin / Sub Admin may manage payouts."""
-    if current_user.role not in ("admin", "sub_admin") or current_user.platform_scope != "true":
+def _require_payout_requester(current_user: CurrentUser) -> None:
+    """Admin, or a platform Sub Admin with the explicit request grant."""
+    is_admin = is_platform_admin(current_user)
+    is_granted_sub_admin = (
+        current_user.role == "sub_admin"
+        and current_user.platform_scope == "true"
+        and "payout_requests" in current_user.staff_features
+    )
+    if not (is_admin or is_granted_sub_admin):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Payout administration is restricted to platform admins.",
+            detail="Payout requests require an Admin grant.",
         )
 
 
@@ -100,7 +107,6 @@ async def _get_payout_or_404(db: AsyncSession, payout_id: UUID) -> Payout:
 
 
 async def _to_read(
-    db: AsyncSession,
     payouts: Sequence[Payout],
     current_user: CurrentUser,
 ) -> list[PayoutRead]:
@@ -128,7 +134,7 @@ async def _to_read(
     identities_by_line: dict[str | None, dict[UUID, object]] = {}
     for line in lines_present:
         prefer_line = {p.recipient_user_uuid: line for p in payouts if p.business_line == line}
-        identities_by_line[line] = await resolve_identities(db, uuids, prefer_line=prefer_line)
+        identities_by_line[line] = await resolve_payout_identities(uuids, prefer_line=prefer_line)
 
     reads: list[PayoutRead] = []
     for p in payouts:
@@ -160,7 +166,7 @@ async def create_payout(
     current_user: CurrentUser = Depends(get_active_user),
     db: AsyncSession = Depends(get_db),
 ) -> PayoutRead:
-    _require_platform_admin(current_user)
+    _require_payout_requester(current_user)
     try:
         payout_id = await payments_service.create_payout(
             recipient_user_uuid=req.recipient_user_uuid,
@@ -171,12 +177,13 @@ async def create_payout(
             destination=req.destination.model_dump(),
             idempotency_key=req.idempotency_key,
             maker_user_uuid=current_user.id,
+            actor_role=current_user.role,
         )
     except payments_service.PayoutError as exc:
         raise _map_error(exc) from None
 
     payout = await _get_payout_or_404(db, payout_id)
-    return (await _to_read(db, [payout], current_user))[0]
+    return (await _to_read([payout], current_user))[0]
 
 
 @router.post("/{payout_id}/approve", response_model=PayoutRead)
@@ -196,7 +203,7 @@ async def approve_payout(
         raise _map_error(exc) from None
 
     payout = await _get_payout_or_404(db, payout_id)
-    return (await _to_read(db, [payout], current_user))[0]
+    return (await _to_read([payout], current_user))[0]
 
 
 @router.post("/{payout_id}/reject", response_model=PayoutRead)
@@ -206,7 +213,7 @@ async def reject_payout(
     current_user: CurrentUser = Depends(get_active_user),
     db: AsyncSession = Depends(get_db),
 ) -> PayoutRead:
-    _require_platform_admin(current_user)
+    _require_admin(current_user, action="Rejecting a payout")
     payout = await _get_payout_or_404(db, payout_id)
     if payout.type == PayoutType.REFERRAL_BONUS:
         # FR-9.5 (referrals.py's module docstring): Sub Admin manages
@@ -245,7 +252,7 @@ async def reject_payout(
     # instead of the ORM-vs-Core split there).
     db.expire(payout)
     payout = await _get_payout_or_404(db, payout_id)
-    return (await _to_read(db, [payout], current_user))[0]
+    return (await _to_read([payout], current_user))[0]
 
 
 @router.post("/{payout_id}/manual/issue", response_model=PayoutRead)
@@ -266,7 +273,7 @@ async def issue_manual_cheque(
     except payments_service.PayoutError as exc:
         raise _map_error(exc) from None
     payout = await _get_payout_or_404(db, payout_id)
-    return (await _to_read(db, [payout], current_user))[0]
+    return (await _to_read([payout], current_user))[0]
 
 
 @router.post("/{payout_id}/manual/clear", response_model=PayoutRead)
@@ -285,7 +292,7 @@ async def clear_manual_cheque(
     except payments_service.PayoutError as exc:
         raise _map_error(exc) from None
     payout = await _get_payout_or_404(db, payout_id)
-    return (await _to_read(db, [payout], current_user))[0]
+    return (await _to_read([payout], current_user))[0]
 
 
 @router.post("/{payout_id}/manual/fail", response_model=PayoutRead)
@@ -306,7 +313,7 @@ async def fail_manual_cheque(
     except payments_service.PayoutError as exc:
         raise _map_error(exc) from None
     payout = await _get_payout_or_404(db, payout_id)
-    return (await _to_read(db, [payout], current_user))[0]
+    return (await _to_read([payout], current_user))[0]
 
 
 @router.post("/{payout_id}/manual/reverse", response_model=PayoutRead)
@@ -327,7 +334,7 @@ async def reverse_manual_cheque(
     except payments_service.PayoutError as exc:
         raise _map_error(exc) from None
     payout = await _get_payout_or_404(db, payout_id)
-    return (await _to_read(db, [payout], current_user))[0]
+    return (await _to_read([payout], current_user))[0]
 
 
 @router.get("/recipients", response_model=PayoutRecipientListResponse)
@@ -335,16 +342,10 @@ async def list_payout_recipients(
     q: str = Query(min_length=2, max_length=64),
     limit: int = Query(default=20, ge=1, le=50),
     current_user: CurrentUser = Depends(get_active_user),
-    db: AsyncSession = Depends(get_db),
 ) -> PayoutRecipientListResponse:
-    """Recipient picker search for the payout create form.
-
-    Admin-only (not _require_platform_admin): a Sub Admin passing the looser
-    guard would hit auth_users_rls and get an always-empty 200, the worst
-    possible failure mode for a search box. An honest 403 says what is true.
-    """
-    _require_admin(current_user, action="Recipient lookup")
-    hits = await search_recipients(db, q=q, limit=limit, exclude_user_uuid=current_user.id)
+    """Minimal recipient picker for an authorized payout requester."""
+    _require_payout_requester(current_user)
+    hits = await search_payout_recipients(q=q, limit=limit, exclude_user_uuid=current_user.id)
     return PayoutRecipientListResponse(
         recipients=[
             PayoutRecipientRead(
@@ -370,7 +371,7 @@ async def get_payout_link_divergences(
     mutating counterpart exists on purpose: see payout_links.py's docstring
     for why a force-unlink endpoint would convert a display bug into a money
     bug."""
-    _require_platform_admin(current_user)
+    _require_admin(current_user, action="Viewing payout reconciliation")
     result = await list_link_divergences(db)
     return PayoutLinkDivergencesRead(
         paid_direction=[PayoutLinkDivergenceRead(**row) for row in result["paid_direction"]],
@@ -386,13 +387,13 @@ async def list_payouts(
     current_user: CurrentUser = Depends(get_active_user),
     db: AsyncSession = Depends(get_db),
 ) -> PayoutListResponse:
-    _require_platform_admin(current_user)
+    _require_payout_requester(current_user)
     stmt = select(Payout).order_by(Payout.created_at.desc()).limit(limit).offset(offset)
     if status_filter is not None:
         stmt = stmt.where(Payout.status == status_filter)
     result = await db.execute(stmt)
     payouts = result.scalars().all()
-    return PayoutListResponse(payouts=await _to_read(db, payouts, current_user))
+    return PayoutListResponse(payouts=await _to_read(payouts, current_user))
 
 
 @router.post("/webhook/razorpay", response_model=WebhookAck)

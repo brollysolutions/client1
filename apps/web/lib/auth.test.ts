@@ -94,6 +94,26 @@ describe("login()", () => {
     expect(res.ok && res.data.businessLine).toBe("both");
   });
 
+  it("retains supported staff feature claims and ignores unknown values", async () => {
+    vi.stubGlobal(
+      "fetch",
+      mockFetch(200, {
+        access_token: tokenWith({
+          sub: "u",
+          role: "sub_admin",
+          staff_features: ["payout_requests", "unknown_feature"],
+        }),
+        token_type: "bearer",
+        expires_in: 1800,
+        phone_verified: true,
+        email_verified: true,
+      }),
+    );
+
+    const res = await login("+919000000007", "pw");
+    expect(res.ok && res.data.staffFeatures).toEqual(["payout_requests"]);
+  });
+
   it("surfaces the backend detail string on a 4xx", async () => {
     vi.stubGlobal("fetch", mockFetch(401, { detail: "Invalid mobile number or password." }));
     const res = await login("+919000000007", "pw");

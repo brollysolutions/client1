@@ -31,7 +31,12 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
-import type { BusinessLine, StaffBusinessLine, UserRole } from "@/lib/auth";
+import type {
+  BusinessLine,
+  StaffBusinessLine,
+  StaffFeature,
+  UserRole,
+} from "@/lib/auth";
 
 const ALL_ROLES: readonly UserRole[] = [
   "admin",
@@ -55,6 +60,7 @@ const CAPABILITIES = {
   employeeRealEstate: { roles: ["employee"], lines: ["real_estate"] },
   subAdmin: { roles: ["sub_admin"] },
   admin: { roles: ["admin"] },
+  payouts: { roles: ["admin", "sub_admin"], staffFeature: "payout_requests" },
   cms: { roles: ["sub_admin", "admin"] },
   referralRules: { roles: ["sub_admin", "admin"] },
   realEstateSubmitter: {
@@ -63,7 +69,11 @@ const CAPABILITIES = {
   },
 } as const satisfies Record<
   string,
-  { roles: readonly UserRole[]; lines?: readonly BusinessLine[] }
+  {
+    roles: readonly UserRole[];
+    lines?: readonly BusinessLine[];
+    staffFeature?: StaffFeature;
+  }
 >;
 
 export type DashboardCapability = keyof typeof CAPABILITIES;
@@ -80,6 +90,7 @@ export type DashboardAccessContext = {
   businessLine: StaffBusinessLine | null;
   activeLine?: BusinessLine;
   profileLines?: readonly BusinessLine[];
+  staffFeatures?: readonly StaffFeature[];
 };
 
 export type NavItem = {
@@ -435,7 +446,7 @@ export const NAV_ITEMS: readonly NavItem[] = [
     label: "Payouts",
     href: "/dashboard/payouts",
     icon: Banknote,
-    capability: "admin",
+    capability: "payouts",
     section: "finance",
   },
   {
@@ -547,7 +558,7 @@ export const DASHBOARD_ROUTE_RULES: readonly DashboardRouteRule[] = [
   },
   { path: "/dashboard/notifications", exact: true, capabilities: ["shared"] },
   { path: "/dashboard/offers", capabilities: ["cms"] },
-  { path: "/dashboard/payouts", exact: true, capabilities: ["admin"] },
+  { path: "/dashboard/payouts", exact: true, capabilities: ["payouts"] },
   { path: "/dashboard/property-deals", exact: true, capabilities: ["admin"] },
   { path: "/dashboard/property-review", exact: true, capabilities: ["admin"] },
   {
@@ -583,6 +594,13 @@ function hasCapability(
 ): boolean {
   const access = CAPABILITIES[capability];
   if (!(access.roles as readonly UserRole[]).includes(context.role)) return false;
+  if (
+    context.role === "sub_admin" &&
+    "staffFeature" in access &&
+    !context.staffFeatures?.includes(access.staffFeature)
+  ) {
+    return false;
+  }
   if (!("lines" in access)) return true;
 
   const allowedLines = access.lines as readonly BusinessLine[];

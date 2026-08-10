@@ -891,6 +891,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/staff-access": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Staff Access */
+        get: operations["get_staff_access_api_v1_admin_staff_access_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/staff-access/{staff_profile_uuid}/features": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Update Staff Feature */
+        put: operations["update_staff_feature_api_v1_admin_staff_access__staff_profile_uuid__features_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/support-tickets": {
         parameters: {
             query?: never;
@@ -2417,11 +2451,7 @@ export interface paths {
         };
         /**
          * List Payout Recipients
-         * @description Recipient picker search for the payout create form.
-         *
-         *     Admin-only (not _require_platform_admin): a Sub Admin passing the looser
-         *     guard would hit auth_users_rls and get an always-empty 200, the worst
-         *     possible failure mode for a search box. An honest 403 says what is true.
+         * @description Minimal recipient picker for an authorized payout requester.
          */
         get: operations["list_payout_recipients_api_v1_payouts_recipients_get"];
         put?: never;
@@ -4231,7 +4261,7 @@ export interface components {
          *     `services/fee_cashbacks.py` (FR-6.6 processing-fee cashback).
          * @enum {string}
          */
-        AuditAction: "agent_approved" | "agent_rejected" | "staff_created" | "account_removed" | "payout_approved" | "payout_rejected" | "payout_manual_issued" | "payout_manual_cleared" | "payout_manual_failed" | "payout_manual_reversed" | "property_submission_approved" | "property_submission_rejected" | "support_ticket_advanced" | "retention_purged" | "loan_type_created" | "loan_type_updated" | "bank_created" | "bank_updated" | "bank_availability_updated" | "commission_entered" | "commission_cancelled" | "fee_cashback_entered" | "fee_cashback_cancelled" | "document_verified" | "document_unverified" | "payout_link_reconciled" | "notification_broadcast" | "agent_lead_expired" | "lead_assigned" | "field_visibility_updated" | "mobile_change_verified" | "mobile_changed" | "mobile_change_rejected" | "vehicle_arrangement_updated";
+        AuditAction: "agent_approved" | "agent_rejected" | "staff_created" | "staff_feature_granted" | "staff_feature_revoked" | "account_removed" | "payout_approved" | "payout_rejected" | "payout_manual_issued" | "payout_manual_cleared" | "payout_manual_failed" | "payout_manual_reversed" | "property_submission_approved" | "property_submission_rejected" | "support_ticket_advanced" | "retention_purged" | "loan_type_created" | "loan_type_updated" | "bank_created" | "bank_updated" | "bank_availability_updated" | "commission_entered" | "commission_cancelled" | "fee_cashback_entered" | "fee_cashback_cancelled" | "document_verified" | "document_unverified" | "payout_link_reconciled" | "notification_broadcast" | "agent_lead_expired" | "lead_assigned" | "field_visibility_updated" | "mobile_change_verified" | "mobile_changed" | "mobile_change_rejected" | "vehicle_arrangement_updated";
         /** AuditLogListResponse */
         AuditLogListResponse: {
             /** Entries */
@@ -7111,6 +7141,41 @@ export interface components {
          * @enum {string}
          */
         SiteVisitTimeSlot: "morning" | "afternoon" | "evening";
+        /** StaffAccessEntry */
+        StaffAccessEntry: {
+            /** Features */
+            features: "payout_requests"[];
+            /** First Name */
+            first_name: string;
+            /** Is Primary Admin */
+            is_primary_admin: boolean;
+            /** Last Name */
+            last_name: string;
+            /**
+             * Role
+             * @enum {string}
+             */
+            role: "admin" | "sub_admin";
+            /** Staff Code */
+            staff_code: string;
+            /**
+             * Staff Profile Uuid
+             * Format: uuid
+             */
+            staff_profile_uuid: string;
+        };
+        /** StaffAccessListResponse */
+        StaffAccessListResponse: {
+            /** Additional Admin Count */
+            additional_admin_count: number;
+            /**
+             * Additional Admin Limit
+             * @default 3
+             */
+            additional_admin_limit: number;
+            /** Entries */
+            entries: components["schemas"]["StaffAccessEntry"][];
+        };
         /** StaffCreateRequest */
         StaffCreateRequest: {
             /** Business Line */
@@ -7130,7 +7195,7 @@ export interface components {
              * Role
              * @enum {string}
              */
-            role: "sub_admin" | "telecaller" | "employee";
+            role: "admin" | "sub_admin" | "telecaller" | "employee";
         };
         /** StaffCreateResponse */
         StaffCreateResponse: {
@@ -7146,11 +7211,21 @@ export interface components {
              * Role
              * @enum {string}
              */
-            role: "sub_admin" | "telecaller" | "employee";
+            role: "admin" | "sub_admin" | "telecaller" | "employee";
             /** Staff Code */
             staff_code: string;
             /** Temp Password */
             temp_password: string | null;
+        };
+        /** StaffFeatureUpdateRequest */
+        StaffFeatureUpdateRequest: {
+            /** Enabled */
+            enabled: boolean;
+            /**
+             * Feature
+             * @constant
+             */
+            feature: "payout_requests";
         };
         /** SubAdminHomeResponse */
         SubAdminHomeResponse: {
@@ -9835,6 +9910,61 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_staff_access_api_v1_admin_staff_access_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffAccessListResponse"];
+                };
+            };
+        };
+    };
+    update_staff_feature_api_v1_admin_staff_access__staff_profile_uuid__features_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                staff_profile_uuid: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StaffFeatureUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffAccessListResponse"];
                 };
             };
             /** @description Validation Error */

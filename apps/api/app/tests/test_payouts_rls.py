@@ -1,10 +1,9 @@
-"""payouts RLS — admin-only workflow isolation.
+"""Payout RLS isolation for Admins and explicitly granted Sub Admins.
 
-Verifies migration 9d2e3f4a5b6c's platform-scope-only policy: an Admin / Sub
-Admin (platform_scope='true') sees every payout; the recipient client sees
-NONE (the maker/checker/gateway machinery is never exposed to them); line staff
-and agents see NONE. This is the opposite ownership model from transactions
-(recipient-owned) — payouts belong to the admin workflow, not the payee.
+An Admin or a platform Sub Admin whose signed session carries the
+``payout_requests`` feature sees payouts. Ungranted Sub Admins, recipient
+clients, line staff, and agents see none. This is the opposite ownership model
+from transactions (recipient-owned): payouts belong to the staff workflow.
 
 Requires the Docker stack with migrations applied; auto-skips without Redis.
 """
@@ -64,6 +63,7 @@ async def _select_as(
     role: str = "client",
     business_line: str = "",
     platform_scope: str = "false",
+    staff_features: str = "",
 ) -> list[dict]:
     """Open a fresh connection, drop to api_user, set the RLS context, list rows."""
     raw_url = settings.DATABASE_URL.replace("pgbouncer:5432", "postgres:5432")
@@ -88,13 +88,15 @@ async def _select_as(
                     "set_config('app.client_profile_uuid', '', true),"
                     "set_config('app.agent_profile_uuid', '', true),"
                     "set_config('app.staff_profile_uuid', '', true),"
-                    "set_config('app.platform_scope', :ps, true)"
+                    "set_config('app.platform_scope', :ps, true),"
+                    "set_config('app.staff_features', :features, true)"
                 ),
                 {
                     "uuid": auth_user_uuid or str(uuid.uuid4()),
                     "role": role,
                     "bl": business_line,
                     "ps": platform_scope,
+                    "features": staff_features,
                 },
             )
             result = await conn.execute(text("SELECT id FROM payouts"))
@@ -118,18 +120,31 @@ async def test_admin_sees_all_payouts(client: AsyncClient) -> None:
 
 
 @pytest.mark.asyncio
-async def test_platform_sub_admin_sees_payouts(client: AsyncClient) -> None:
-    """a0b1c2d3e4f5: Sub Admin is the maker in the payouts maker-checker flow
-    (api/v1/payments.py::_require_platform_admin admits admin+sub_admin for
-    list/create/reject) — this narrow branch keeps that working."""
+async def test_granted_platform_sub_admin_sees_payouts(client: AsyncClient) -> None:
     _, recipient_mobile = await full_registration(client, lines=["loans"])
     _, maker_mobile = await full_registration(client, lines=["loans"])
     recipient_uid = await _auth_user_uuid(recipient_mobile)
     maker_uid = await _auth_user_uuid(maker_mobile)
     payout_id = await _seed_payout(recipient_uid, maker_uid)
 
-    rows = await _select_as(role="sub_admin", platform_scope="true")
+    rows = await _select_as(
+        role="sub_admin",
+        platform_scope="true",
+        staff_features="payout_requests",
+    )
     assert uuid.UUID(payout_id) in [r["id"] for r in rows]
+
+
+@pytest.mark.asyncio
+async def test_ungranted_platform_sub_admin_sees_no_payouts(client: AsyncClient) -> None:
+    _, recipient_mobile = await full_registration(client, lines=["loans"])
+    _, maker_mobile = await full_registration(client, lines=["loans"])
+    recipient_uid = await _auth_user_uuid(recipient_mobile)
+    maker_uid = await _auth_user_uuid(maker_mobile)
+    await _seed_payout(recipient_uid, maker_uid)
+
+    rows = await _select_as(role="sub_admin", platform_scope="true")
+    assert rows == []
 
 
 @pytest.mark.asyncio

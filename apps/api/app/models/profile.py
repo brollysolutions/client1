@@ -3,7 +3,7 @@ import uuid
 from datetime import datetime
 from typing import Optional
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, String
+from sqlalchemy import Boolean, CheckConstraint, DateTime, ForeignKey, String
 from sqlalchemy.dialects.postgresql import ENUM, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -108,6 +108,12 @@ class StaffProfile(Base):
     created_by_auth_user_uuid: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("auth_users.id", ondelete="SET NULL"), nullable=True
     )
+    # Exactly one active existing Admin is backfilled as the immutable Main Admin by
+    # migration d7f8a9b0c1d2. Additional Admins remain full platform Admins but
+    # cannot create more Admins or delegate Sub Admin features.
+    is_primary_admin: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default="false"
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, default=datetime.utcnow
     )
@@ -120,6 +126,30 @@ class StaffProfile(Base):
     )
     created_by_user: Mapped[Optional["User"]] = relationship(
         "User", foreign_keys=[created_by_auth_user_uuid]
+    )
+
+
+class StaffFeatureGrant(Base):
+    """Closed, revocable feature grants for an active Sub Admin.
+
+    The first supported feature is payout request preparation. Approval and
+    every later money-moving action intentionally remain Admin-only.
+    """
+
+    __tablename__ = "staff_feature_grants"
+    __table_args__ = (CheckConstraint("feature IN ('payout_requests')", name="feature_supported"),)
+
+    staff_profile_uuid: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("staff_profiles.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    feature: Mapped[str] = mapped_column(String(64), primary_key=True)
+    granted_by_auth_user_uuid: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("auth_users.id", ondelete="SET NULL"), nullable=True
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=datetime.utcnow
     )
 
 

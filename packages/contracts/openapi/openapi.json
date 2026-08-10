@@ -2335,6 +2335,8 @@
           "agent_approved",
           "agent_rejected",
           "staff_created",
+          "staff_feature_granted",
+          "staff_feature_revoked",
           "account_removed",
           "payout_approved",
           "payout_rejected",
@@ -10294,6 +10296,84 @@
         "title": "SiteVisitTimeSlot",
         "type": "string"
       },
+      "StaffAccessEntry": {
+        "properties": {
+          "features": {
+            "items": {
+              "const": "payout_requests",
+              "type": "string"
+            },
+            "title": "Features",
+            "type": "array"
+          },
+          "first_name": {
+            "title": "First Name",
+            "type": "string"
+          },
+          "is_primary_admin": {
+            "title": "Is Primary Admin",
+            "type": "boolean"
+          },
+          "last_name": {
+            "title": "Last Name",
+            "type": "string"
+          },
+          "role": {
+            "enum": [
+              "admin",
+              "sub_admin"
+            ],
+            "title": "Role",
+            "type": "string"
+          },
+          "staff_code": {
+            "title": "Staff Code",
+            "type": "string"
+          },
+          "staff_profile_uuid": {
+            "format": "uuid",
+            "title": "Staff Profile Uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "staff_profile_uuid",
+          "first_name",
+          "last_name",
+          "staff_code",
+          "role",
+          "is_primary_admin",
+          "features"
+        ],
+        "title": "StaffAccessEntry",
+        "type": "object"
+      },
+      "StaffAccessListResponse": {
+        "properties": {
+          "additional_admin_count": {
+            "title": "Additional Admin Count",
+            "type": "integer"
+          },
+          "additional_admin_limit": {
+            "default": 3,
+            "title": "Additional Admin Limit",
+            "type": "integer"
+          },
+          "entries": {
+            "items": {
+              "$ref": "#/components/schemas/StaffAccessEntry"
+            },
+            "title": "Entries",
+            "type": "array"
+          }
+        },
+        "required": [
+          "entries",
+          "additional_admin_count"
+        ],
+        "title": "StaffAccessListResponse",
+        "type": "object"
+      },
       "StaffCreateRequest": {
         "properties": {
           "business_line": {
@@ -10336,6 +10416,7 @@
           },
           "role": {
             "enum": [
+              "admin",
               "sub_admin",
               "telecaller",
               "employee"
@@ -10386,6 +10467,7 @@
           },
           "role": {
             "enum": [
+              "admin",
               "sub_admin",
               "telecaller",
               "employee"
@@ -10419,6 +10501,25 @@
           "temp_password"
         ],
         "title": "StaffCreateResponse",
+        "type": "object"
+      },
+      "StaffFeatureUpdateRequest": {
+        "properties": {
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "feature": {
+            "const": "payout_requests",
+            "title": "Feature",
+            "type": "string"
+          }
+        },
+        "required": [
+          "feature",
+          "enabled"
+        ],
+        "title": "StaffFeatureUpdateRequest",
         "type": "object"
       },
       "SubAdminHomeResponse": {
@@ -16873,6 +16974,90 @@
         ]
       }
     },
+    "/api/v1/admin/staff-access": {
+      "get": {
+        "operationId": "get_staff_access_api_v1_admin_staff_access_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffAccessListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Get Staff Access",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/staff-access/{staff_profile_uuid}/features": {
+      "put": {
+        "operationId": "update_staff_feature_api_v1_admin_staff_access__staff_profile_uuid__features_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "staff_profile_uuid",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Staff Profile Uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StaffFeatureUpdateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffAccessListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Update Staff Feature",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
     "/api/v1/admin/support-tickets": {
       "get": {
         "operationId": "list_support_tickets_api_v1_admin_support_tickets_get",
@@ -21684,7 +21869,7 @@
     },
     "/api/v1/payouts/recipients": {
       "get": {
-        "description": "Recipient picker search for the payout create form.\n\nAdmin-only (not _require_platform_admin): a Sub Admin passing the looser\nguard would hit auth_users_rls and get an always-empty 200, the worst\npossible failure mode for a search box. An honest 403 says what is true.",
+        "description": "Minimal recipient picker for an authorized payout requester.",
         "operationId": "list_payout_recipients_api_v1_payouts_recipients_get",
         "parameters": [
           {

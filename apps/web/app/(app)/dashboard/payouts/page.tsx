@@ -7,15 +7,16 @@ import { Loader2 } from "lucide-react";
 import { useAuth } from "@/components/auth/session-provider";
 import { PayoutsView } from "@/features/admin/payouts-view";
 
-// Admin-only route. AppGuard (the (app) layout) already enforces auth; this adds
-// the role gate. UX gate only — the API's _require_admin/_require_platform_admin
-// on /api/v1/payouts is the real wall.
-const ADMIN_ROLES = new Set(["admin"]);
+// AppGuard already enforces auth; this adds the Admin-or-granted-Sub-Admin UX
+// gate. The API dependency and payout RLS policy remain the authorization wall.
 
 export default function PayoutsPage() {
   const router = useRouter();
   const { session, isLoading } = useAuth();
-  const allowed = session != null && ADMIN_ROLES.has(session.role);
+  const allowed =
+    session != null &&
+    (session.role === "admin" ||
+      (session.role === "sub_admin" && session.staffFeatures.includes("payout_requests")));
 
   React.useEffect(() => {
     if (!isLoading && !allowed) router.replace("/dashboard");

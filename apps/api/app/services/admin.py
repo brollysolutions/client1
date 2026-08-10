@@ -17,7 +17,7 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import delete, func, select, text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -29,6 +29,7 @@ from app.models.profile import (
     AgentProfile,
     ProfileScope,
     ProfileStatus,
+    StaffFeatureGrant,
     StaffProfile,
     StaffRole,
     SubmissionStatus,
@@ -45,6 +46,43 @@ class StaffAlreadyExists(Exception):
     """Raised when the target mobile already has an ACTIVE staff profile."""
 
 
+class PrimaryAdminRequired(Exception):
+    """Raised when a Main-Admin-only hierarchy action is attempted."""
+
+
+class AdditionalAdminLimitReached(Exception):
+    """Raised when three active additional Admin accounts already exist."""
+
+
+class InvalidStaffFeatureTarget(Exception):
+    """Raised when a grant targets anyone except an active Sub Admin."""
+
+
+ADDITIONAL_ADMIN_LIMIT = 3
+SUPPORTED_STAFF_FEATURES = {"payout_requests"}
+
+
+async def is_primary_admin(
+    db: AsyncSession,
+    *,
+    auth_user_uuid: UUID,
+    staff_profile_uuid: UUID | None,
+) -> bool:
+    if staff_profile_uuid is None:
+        return False
+    return bool(
+        await db.scalar(
+            select(StaffProfile.is_primary_admin).where(
+                StaffProfile.id == staff_profile_uuid,
+                StaffProfile.auth_user_uuid == auth_user_uuid,
+                StaffProfile.role == StaffRole.ADMIN,
+                StaffProfile.scope == ProfileScope.PLATFORM,
+                StaffProfile.status == ProfileStatus.ACTIVE,
+            )
+        )
+    )
+
+
 class AgentApplicationAlreadyReviewed(Exception):
     """Raised when approve/reject targets a row that is no longer pending."""
 
@@ -59,6 +97,7 @@ async def create_staff(
     payload: StaffCreateRequest,
     *,
     actor_role: str | None = None,
+    actor_staff_profile_uuid: UUID | None = None,
 ) -> tuple[StaffProfile, str | None]:
     """Create or attach a staff profile. Returns (profile, temp_password).
 
@@ -69,7 +108,34 @@ async def create_staff(
     forced-reset flow (Auth Design §6.2) takes over on first sign-in.
     """
     role = StaffRole(payload.role)
-    scope = ProfileScope.PLATFORM if role == StaffRole.SUB_ADMIN else ProfileScope.LINE
+    if role == StaffRole.ADMIN:
+        if not await is_primary_admin(
+            db,
+            auth_user_uuid=actor_id,
+            staff_profile_uuid=actor_staff_profile_uuid,
+        ):
+            raise PrimaryAdminRequired
+        # Serialize the count and INSERT so concurrent requests cannot both
+        # observe the last free slot. The stable key is internal and held only
+        # for this transaction.
+        await db.execute(text("SELECT pg_advisory_xact_lock(73190421)"))
+        additional_admins = await db.scalar(
+            select(func.count())
+            .select_from(StaffProfile)
+            .where(
+                StaffProfile.role == StaffRole.ADMIN,
+                StaffProfile.status == ProfileStatus.ACTIVE,
+                StaffProfile.is_primary_admin.is_(False),
+            )
+        )
+        if (additional_admins or 0) >= ADDITIONAL_ADMIN_LIMIT:
+            raise AdditionalAdminLimitReached
+
+    scope = (
+        ProfileScope.PLATFORM
+        if role in (StaffRole.ADMIN, StaffRole.SUB_ADMIN)
+        else ProfileScope.LINE
+    )
     business_line = None if scope == ProfileScope.PLATFORM else payload.business_line
 
     user = await db.scalar(select(User).where(User.mobile == payload.mobile))
@@ -120,6 +186,7 @@ async def create_staff(
         staff_code="",
         status=ProfileStatus.ACTIVE,
         created_by_auth_user_uuid=actor_id,
+        is_primary_admin=False,
     )
     for attempt in range(5):
         profile.staff_code = generate_profile_code(role.value, payload.first_name, business_line)
@@ -163,6 +230,127 @@ async def create_staff(
     )
 
     return profile, temp_password
+
+
+async def list_staff_access(db: AsyncSession) -> tuple[list[dict], int]:
+    rows = (
+        await db.execute(
+            select(StaffProfile, User)
+            .join(User, User.id == StaffProfile.auth_user_uuid)
+            .where(
+                StaffProfile.role.in_((StaffRole.ADMIN, StaffRole.SUB_ADMIN)),
+                StaffProfile.status == ProfileStatus.ACTIVE,
+            )
+            .order_by(
+                StaffProfile.is_primary_admin.desc(), StaffProfile.created_at, StaffProfile.id
+            )
+        )
+    ).all()
+    profile_ids = [profile.id for profile, _user in rows]
+    grants = (
+        await db.execute(
+            select(StaffFeatureGrant.staff_profile_uuid, StaffFeatureGrant.feature).where(
+                StaffFeatureGrant.staff_profile_uuid.in_(profile_ids)
+            )
+        )
+    ).all()
+    by_profile: dict[UUID, list[str]] = {}
+    for profile_uuid, feature in grants:
+        by_profile.setdefault(profile_uuid, []).append(feature)
+
+    entries = [
+        {
+            "staff_profile_uuid": profile.id,
+            "first_name": user.first_name,
+            "last_name": user.last_name,
+            "staff_code": profile.staff_code,
+            "role": profile.role.value,
+            "is_primary_admin": profile.is_primary_admin,
+            "features": sorted(by_profile.get(profile.id, [])),
+        }
+        for profile, user in rows
+    ]
+    additional_count = sum(
+        1
+        for profile, _user in rows
+        if profile.role == StaffRole.ADMIN and not profile.is_primary_admin
+    )
+    return entries, additional_count
+
+
+async def set_staff_feature(
+    db: AsyncSession,
+    *,
+    actor_uuid: UUID,
+    actor_staff_profile_uuid: UUID | None,
+    target_staff_profile_uuid: UUID,
+    feature: str,
+    enabled: bool,
+    actor_role: str | None,
+) -> None:
+    if feature not in SUPPORTED_STAFF_FEATURES:
+        raise ValueError("Unsupported staff feature.")
+    if not await is_primary_admin(
+        db,
+        auth_user_uuid=actor_uuid,
+        staff_profile_uuid=actor_staff_profile_uuid,
+    ):
+        raise PrimaryAdminRequired
+
+    target = await db.get(StaffProfile, target_staff_profile_uuid, with_for_update=True)
+    if (
+        target is None
+        or target.role != StaffRole.SUB_ADMIN
+        or target.scope != ProfileScope.PLATFORM
+        or target.status != ProfileStatus.ACTIVE
+    ):
+        raise InvalidStaffFeatureTarget
+
+    grant = await db.get(StaffFeatureGrant, (target_staff_profile_uuid, feature))
+    changed = False
+    if enabled and grant is None:
+        db.add(
+            StaffFeatureGrant(
+                staff_profile_uuid=target_staff_profile_uuid,
+                feature=feature,
+                granted_by_auth_user_uuid=actor_uuid,
+            )
+        )
+        changed = True
+    elif not enabled and grant is not None:
+        await db.execute(
+            delete(StaffFeatureGrant).where(
+                StaffFeatureGrant.staff_profile_uuid == target_staff_profile_uuid,
+                StaffFeatureGrant.feature == feature,
+            )
+        )
+        changed = True
+
+    if not changed:
+        return
+
+    target_user = await db.get(User, target.auth_user_uuid, with_for_update=True)
+    if target_user is not None:
+        # Feature claims live in access tokens. Version invalidation makes a
+        # grant/revocation effective on the target's very next request.
+        target_user.session_version += 1
+        from app.services.auth_service import _revoke_all_refresh_tokens
+
+        await _revoke_all_refresh_tokens(db, target_user.id, commit=False)
+
+    await record_audit(
+        db,
+        action=(
+            AuditAction.STAFF_FEATURE_GRANTED if enabled else AuditAction.STAFF_FEATURE_REVOKED
+        ),
+        entity_type="staff_profile",
+        entity_uuid=target.id,
+        actor_uuid=actor_uuid,
+        actor_role=actor_role,
+        business_line=None,
+        detail={"feature": feature, "target_role": target.role.value},
+    )
+    await db.commit()
 
 
 async def approve_agent_application(

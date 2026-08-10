@@ -41,7 +41,8 @@ _SET_RLS_CONFIG_SQL = text(
     "set_config('app.client_profile_uuid', :client_profile_uuid, true), "
     "set_config('app.agent_profile_uuid', :agent_profile_uuid, true), "
     "set_config('app.staff_profile_uuid', :staff_profile_uuid, true), "
-    "set_config('app.platform_scope', :platform_scope, true)"
+    "set_config('app.platform_scope', :platform_scope, true), "
+    "set_config('app.staff_features', :staff_features, true)"
 )
 
 
@@ -71,6 +72,7 @@ class CurrentUser:
     agent_profile_uuid: UUID | None = None
     staff_profile_uuid: UUID | None = None
     platform_scope: str | None = None
+    staff_features: frozenset[str] = field(default_factory=frozenset)
     force_reset: bool = field(default=False)
 
 
@@ -163,6 +165,9 @@ async def get_current_user(
         raise credentials_error from exc
 
     role: str = claims.get("role", "client")
+    staff_features = frozenset(
+        feature for feature in claims.get("staff_features", []) if feature == "payout_requests"
+    )
     claimed_business_line: str | None = claims.get("business_line")
     business_line = resolve_effective_business_line(
         role=role,
@@ -180,6 +185,7 @@ async def get_current_user(
         agent_profile_uuid=claims.get("agent_profile_uuid", ""),
         staff_profile_uuid=claims.get("staff_profile_uuid", ""),
         platform_scope=claims.get("platform_scope", "line"),
+        staff_features=",".join(sorted(staff_features)),
     )
 
     # Fetch mobile from DB (needed for change-password policy check)
@@ -224,6 +230,7 @@ async def get_current_user(
         agent_profile_uuid=_parse_uuid(claims.get("agent_profile_uuid")),
         staff_profile_uuid=_parse_uuid(claims.get("staff_profile_uuid")),
         platform_scope=claims.get("platform_scope"),
+        staff_features=staff_features,
         force_reset=claims.get("force_reset", False),
     )
 
@@ -396,8 +403,9 @@ async def _set_rls_context(
     agent_profile_uuid: str,
     staff_profile_uuid: str,
     platform_scope: str,
+    staff_features: str = "",
 ) -> None:
-    """Drop from superuser to api_user and set the 7-variable Postgres RLS context.
+    """Drop from superuser to api_user and set the Postgres RLS context.
 
     The API connects as 'app' (superuser) which bypasses RLS unconditionally.
     SET LOCAL ROLE api_user switches to a non-superuser role so RLS policies are
@@ -414,6 +422,7 @@ async def _set_rls_context(
         "agent_profile_uuid": agent_profile_uuid,
         "staff_profile_uuid": staff_profile_uuid,
         "platform_scope": platform_scope,
+        "staff_features": staff_features,
     }
     db.sync_session.info[_RLS_CONTEXT_KEY] = ctx
     # Apply to the current transaction now; the listener only fires for

@@ -47,6 +47,30 @@ work than several completed UI requirements.
 
 ## Delivered implementation
 
+- **Delegated payout operations and Admin hierarchy** (FR-2.2, FR-2.3, and
+  FR-10.3) are complete on `feat/staff-lines-payout-workflow` (PR pending). One
+  migration-backed Main Admin may create at most three additional active Admin
+  accounts and grant or revoke the closed `payout_requests` feature for active
+  Sub Admins. Grant changes invalidate the target's access and refresh sessions;
+  the next normal login receives the persisted feature in a signed claim that
+  is enforced by the API and payout RLS. A granted Sub Admin may search
+  recipients and create/list payout requests, but approval, rejection,
+  reconciliation, and every manual-cheque action remain Admin-only. Main
+  Admin-created payouts are the sole approval-free exception and retain caps,
+  self-payout denial, idempotency, audit, provider, and ledger controls; payouts
+  raised by a Sub Admin or additional Admin still require a different Admin.
+  Evidence: migration downgrade/upgrade with one head; 4 hierarchy/grant tests,
+  61 payout/API-RLS tests, 94 linked-payout/admin/auth tests, and 35 account-
+  deletion tests; generated contracts; and web lint, typecheck, and all 315
+  unit tests. The host production build
+  compiled, typechecked, and generated all 92 pages before Windows standalone
+  symlink creation failed with `EPERM`; the mounted-workspace Linux build timed
+  out during output tracing, so artifact packaging remains inconclusive. The
+  monolithic 1,620-test API run reached its 30-minute bound at 57% with
+  order-sensitive auth/rate-limit failures; the exact affected login/IP-rate
+  modules pass independently (23 tests), so the broad run is recorded as
+  inconclusive rather than passing.
+
 - **Staff line access and payout workflow corrections** (FR-1.4, FR-2.5,
   FR-2.6, FR-10.3, and FR-11.x) are complete on
   [PR #164](https://github.com/brollysolutions/client1/pull/164). Admin provisioning now offers

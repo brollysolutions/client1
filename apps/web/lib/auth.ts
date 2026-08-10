@@ -15,6 +15,7 @@ type Schemas = components["schemas"];
 
 export type BusinessLine = "loans" | "real_estate";
 export type StaffBusinessLine = BusinessLine | "both";
+export type StaffFeature = "payout_requests";
 
 // sessionStorage key used to hand the mobile number typed on /login over to
 // /forgot-password so the user isn't asked for it a second time. Kept out of the
@@ -118,6 +119,7 @@ export type AuthTokens = {
   // line; Telecallers/Employees carry one line or `both`. A client's lines live
   // in Me.profiles[] instead, and platform-scoped staff carry no line at all.
   businessLine: StaffBusinessLine | null;
+  staffFeatures: StaffFeature[];
 };
 
 // --- mapping helpers --------------------------------------------------------
@@ -167,6 +169,11 @@ function toAuthTokens(data: Schemas["AuthTokensResponse"]): AuthTokens {
   const claims = readClaims(data.access_token);
   const role = claims.role as UserRole;
   const businessLine = claims.business_line;
+  const staffFeatures = Array.isArray(claims.staff_features)
+    ? claims.staff_features.filter(
+        (feature): feature is StaffFeature => feature === "payout_requests",
+      )
+    : [];
   return {
     accessToken: data.access_token,
     expiresIn: data.expires_in,
@@ -178,6 +185,7 @@ function toAuthTokens(data: Schemas["AuthTokensResponse"]): AuthTokens {
       businessLine === "loans" || businessLine === "real_estate" || businessLine === "both"
         ? businessLine
         : null,
+    staffFeatures,
   };
 }
 
