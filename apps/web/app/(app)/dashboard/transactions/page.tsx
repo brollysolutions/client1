@@ -6,6 +6,8 @@ import type { LucideIcon } from "lucide-react";
 
 import { Skeleton } from "@/components/ui/skeleton";
 import { FetchError } from "@/features/dashboard/fetch-error";
+import { DASHBOARD_ICONS } from "@/features/dashboard/dashboard-icons";
+import { DashboardHeader, DashboardPage, DashboardPanel, MetricCard, MetricGrid } from "@/features/dashboard/dashboard-ui";
 import { formatPaise } from "@/lib/format";
 import {
   getTransactions,
@@ -84,15 +86,20 @@ export default function TransactionsPage() {
   const totalPaidPaise = transactions
     .filter((t) => t.status === "paid")
     .reduce((sum, t) => sum + t.amountPaise, 0);
+  const processingCount = transactions.filter((transaction) =>
+    ["pending", "processing"].includes(transaction.status),
+  ).length;
+  const referralCount = transactions.filter(
+    (transaction) => transaction.type === "referral_bonus",
+  ).length;
 
   return (
-    <div className="mx-auto w-full max-w-5xl space-y-6 px-4 sm:px-6 lg:px-10">
-      <div>
-        <h1 className="text-2xl font-semibold text-text-primary">Transactions</h1>
-        <p className="text-sm text-text-secondary">
-          Your cashback and referral payouts, all in one place.
-        </p>
-      </div>
+    <DashboardPage>
+      <DashboardHeader
+        eyebrow="Financial activity"
+        title="Transactions"
+        description="Track cashback, referral bonuses, commissions, and any settlement reversals."
+      />
 
       {status === "loading" ? (
         <Skeleton className="h-40 rounded-xl" />
@@ -110,16 +117,15 @@ export default function TransactionsPage() {
         </div>
       ) : (
         <>
-          <div className="rounded-2xl border border-border bg-card p-6">
-            <p className="text-xs font-medium uppercase tracking-wide text-text-secondary">
-              Total paid out
-            </p>
-            <p className="mt-1 text-3xl font-semibold text-text-primary">
-              {formatPaise(totalPaidPaise)}
-            </p>
-          </div>
+          <MetricGrid>
+            <MetricCard label="Total paid" value={formatPaise(totalPaidPaise)} icon={DASHBOARD_ICONS.earnings} />
+            <MetricCard label="Transactions" value={transactions.length} icon={DASHBOARD_ICONS.transactions} />
+            <MetricCard label="Processing" value={processingCount} icon={Wallet} attention={processingCount > 0} />
+            <MetricCard label="Referral rewards" value={referralCount} icon={DASHBOARD_ICONS.referrals} />
+          </MetricGrid>
 
-          <div className="overflow-x-auto rounded-xl border border-border bg-card">
+          <DashboardPanel title="Transaction history" description="A read-only ledger of your reward and payout activity.">
+          <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
               <thead className="border-b border-border text-xs uppercase tracking-wide text-text-secondary">
                 <tr>
@@ -181,8 +187,9 @@ export default function TransactionsPage() {
               </tbody>
             </table>
           </div>
+          </DashboardPanel>
         </>
       )}
-    </div>
+    </DashboardPage>
   );
 }

@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { UserAvatar } from "@/components/user-avatar";
 import { FetchError } from "@/features/dashboard/fetch-error";
+import { DASHBOARD_ICONS } from "@/features/dashboard/dashboard-icons";
+import { DashboardHeader, DashboardPage, DashboardPanel, MetricCard, MetricGrid } from "@/features/dashboard/dashboard-ui";
 import { getMyLoanOfficer, type LoanOfficerContact } from "@/lib/loans";
 
 type Status = "loading" | "ready" | "error";
@@ -48,11 +50,12 @@ export function LoanOfficerView() {
   }, [reloadKey]);
 
   return (
-    <div className="mx-auto w-full max-w-5xl space-y-6 px-4 sm:px-6 lg:px-10">
-      <div>
-        <h1 className="text-2xl font-semibold text-text-primary">My Loan Officer</h1>
-        <p className="text-sm text-text-secondary">Your assigned loan officer.</p>
-      </div>
+    <DashboardPage>
+      <DashboardHeader
+        eyebrow="Loans support"
+        title="My Loan Officer"
+        description="See who owns your application and use the secure support route to get connected."
+      />
 
       {status === "loading" ? (
         <Skeleton className="h-48 rounded-2xl" />
@@ -69,7 +72,14 @@ export function LoanOfficerView() {
           </p>
         </div>
       ) : (
-        <div className="rounded-2xl border border-border bg-card p-6">
+        <>
+        <MetricGrid>
+          <MetricCard label="Assignment" value="Active" icon={DASHBOARD_ICONS.loanOfficer} />
+          <MetricCard label="Staff code" value={officer.staffCode} icon={ShieldCheck} />
+          <MetricCard label="Contact route" value="Support" icon={DASHBOARD_ICONS.supportTickets} href="/dashboard/support" />
+          <MetricCard label="Privacy" value="Protected" icon={ShieldCheck} hint="Direct details stay private" />
+        </MetricGrid>
+        <DashboardPanel title="Assigned officer" description="Your current application contact inside Dhanadhara.">
           <div className="flex items-center gap-4">
             <UserAvatar name={officer.name} size="lg" />
             <div className="min-w-0">
@@ -89,8 +99,9 @@ export function LoanOfficerView() {
           <Button className="mt-2 w-full sm:w-auto" onClick={() => router.push("/dashboard/support")}>
             Contact loan officer
           </Button>
-        </div>
+        </DashboardPanel>
+        </>
       )}
-    </div>
+    </DashboardPage>
   );
 }

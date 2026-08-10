@@ -15,7 +15,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  DashboardFormPage,
+  DashboardFormSection,
+} from "@/features/dashboard/dashboard-ui";
 import { createOffer } from "@/lib/offers-api";
+
 import { AudienceRuleFields, emptyAudienceRules } from "./audience-rule-fields";
 
 const LINE_OPTIONS = [
@@ -32,11 +37,12 @@ const DISCOUNT_TYPE_OPTIONS = [
 
 export function OfferForm() {
   const router = useRouter();
-  const [businessLine, setBusinessLine] = React.useState<(typeof LINE_OPTIONS)[number]["value"]>(
-    "loans",
-  );
-  const [discountType, setDiscountType] =
-    React.useState<(typeof DISCOUNT_TYPE_OPTIONS)[number]["value"]>("percentage");
+  const [businessLine, setBusinessLine] = React.useState<
+    (typeof LINE_OPTIONS)[number]["value"]
+  >("loans");
+  const [discountType, setDiscountType] = React.useState<
+    (typeof DISCOUNT_TYPE_OPTIONS)[number]["value"]
+  >("percentage");
   const [title, setTitle] = React.useState("");
   const [description, setDescription] = React.useState("");
   const [discountValue, setDiscountValue] = React.useState("");
@@ -50,8 +56,8 @@ export function OfferForm() {
   const [scheduleError, setScheduleError] = React.useState<string | undefined>();
   const [submitting, setSubmitting] = React.useState(false);
 
-  async function onSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  async function onSubmit(event: React.FormEvent) {
+    event.preventDefault();
     let hasError = false;
     if (title.trim().length === 0) {
       setTitleError("Title is required.");
@@ -102,147 +108,164 @@ export function OfferForm() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-2xl px-4 py-8">
-      <div className="mb-6">
-        <h1 className="text-2xl font-semibold text-text-primary">New offer</h1>
-        <p className="mt-1 text-sm text-text-secondary">
-          Saved as a draft first. Schedule it, then activate it when the discount should go live.
-        </p>
-      </div>
+    <DashboardFormPage
+      eyebrow="Promotions"
+      title="New offer"
+      description="Configure the discount, eligible audience, priority, and active schedule."
+      backHref="/dashboard/offers"
+      backLabel="Back to offers"
+      formTitle="Offer configuration"
+      formDescription="The offer is saved as a draft before scheduling and activation."
+    >
+      <form className="space-y-6" onSubmit={(event) => void onSubmit(event)}>
+        <DashboardFormSection
+          title="Offer details"
+          description="Name the promotion and define its commercial value."
+        >
+          <div>
+            <Label htmlFor="title">Title</Label>
+            <Input
+              id="title"
+              value={title}
+              onChange={(event) => setTitle(event.target.value)}
+              maxLength={500}
+            />
+            {titleError ? <p className="mt-1 text-sm text-destructive">{titleError}</p> : null}
+          </div>
 
-      <form className="space-y-6" onSubmit={onSubmit}>
-        <div>
-          <Label htmlFor="title">Title</Label>
-          <Input
-            id="title"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            maxLength={500}
+          <div>
+            <Label htmlFor="description">Description</Label>
+            <Input
+              id="description"
+              value={description}
+              onChange={(event) => setDescription(event.target.value)}
+              maxLength={2000}
+            />
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <Label htmlFor="business-line">Line</Label>
+              <Select
+                value={businessLine}
+                onValueChange={(value) => setBusinessLine(value as typeof businessLine)}
+              >
+                <SelectTrigger id="business-line">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {LINE_OPTIONS.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="discount-type">Discount type</Label>
+              <Select
+                value={discountType}
+                onValueChange={(value) => setDiscountType(value as typeof discountType)}
+              >
+                <SelectTrigger id="discount-type">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {DISCOUNT_TYPE_OPTIONS.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-3">
+            <div>
+              <Label htmlFor="discount-value">
+                {discountType === "percentage" ? "Discount (%)" : "Discount (₹)"}
+              </Label>
+              <Input
+                id="discount-value"
+                inputMode="decimal"
+                value={discountValue}
+                onChange={(event) =>
+                  setDiscountValue(event.target.value.replace(/[^0-9.]/g, ""))
+                }
+              />
+              {discountError ? (
+                <p className="mt-1 text-sm text-destructive">{discountError}</p>
+              ) : null}
+            </div>
+            <div>
+              <Label htmlFor="code">Promo code</Label>
+              <Input
+                id="code"
+                placeholder="Optional"
+                value={code}
+                onChange={(event) => setCode(event.target.value)}
+                maxLength={100}
+              />
+            </div>
+            <div>
+              <Label htmlFor="priority">Priority</Label>
+              <Input
+                id="priority"
+                inputMode="numeric"
+                value={priority}
+                onChange={(event) => setPriority(event.target.value.replace(/\D/g, ""))}
+              />
+              <p className="mt-1 text-xs text-text-secondary">Higher appears first.</p>
+            </div>
+          </div>
+        </DashboardFormSection>
+
+        <DashboardFormSection
+          title="Audience"
+          description="Leave user type empty for all Clients, or narrow the offer with workflow and location signals."
+        >
+          <AudienceRuleFields
+            value={audienceRules}
+            onChange={setAudienceRules}
+            disabled={submitting}
+            allowedUserTypes={["client"]}
           />
-          {titleError ? <p className="mt-1 text-sm text-destructive">{titleError}</p> : null}
-        </div>
+        </DashboardFormSection>
 
-        <div>
-          <Label htmlFor="description">Description</Label>
-          <Input
-            id="description"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            maxLength={2000}
-          />
-        </div>
-
-        <div>
-          <Label htmlFor="priority">Priority</Label>
-          <Input
-            id="priority"
-            inputMode="numeric"
-            value={priority}
-            onChange={(event) => setPriority(event.target.value.replace(/\D/g, ""))}
-          />
-          <p className="mt-1 text-xs text-text-secondary">Higher-priority offers appear first.</p>
-        </div>
-
-        <AudienceRuleFields
-          value={audienceRules}
-          onChange={setAudienceRules}
-          disabled={submitting}
-          allowedUserTypes={["client"]}
-        />
-
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div>
-            <Label htmlFor="business-line">Line</Label>
-            <Select
-              value={businessLine}
-              onValueChange={(v) => setBusinessLine(v as typeof businessLine)}
-            >
-              <SelectTrigger id="business-line">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {LINE_OPTIONS.map((o) => (
-                  <SelectItem key={o.value} value={o.value}>
-                    {o.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+        <DashboardFormSection
+          title="Schedule"
+          description="Choose the live window now or leave it open for later scheduling."
+        >
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <Label htmlFor="starts-at">Goes live at</Label>
+              <Input
+                id="starts-at"
+                type="datetime-local"
+                value={startsAt}
+                onChange={(event) => setStartsAt(event.target.value)}
+              />
+            </div>
+            <div>
+              <Label htmlFor="ends-at">Expires at</Label>
+              <Input
+                id="ends-at"
+                type="datetime-local"
+                value={endsAt}
+                onChange={(event) => setEndsAt(event.target.value)}
+              />
+            </div>
           </div>
-          <div>
-            <Label htmlFor="discount-type">Discount type</Label>
-            <Select
-              value={discountType}
-              onValueChange={(v) => setDiscountType(v as typeof discountType)}
-            >
-              <SelectTrigger id="discount-type">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {DISCOUNT_TYPE_OPTIONS.map((o) => (
-                  <SelectItem key={o.value} value={o.value}>
-                    {o.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div>
-            <Label htmlFor="discount-value">
-              {discountType === "percentage" ? "Discount (%)" : "Discount (₹)"}
-            </Label>
-            <Input
-              id="discount-value"
-              inputMode="decimal"
-              value={discountValue}
-              onChange={(e) => setDiscountValue(e.target.value.replace(/[^0-9.]/g, ""))}
-            />
-            {discountError ? (
-              <p className="mt-1 text-sm text-destructive">{discountError}</p>
-            ) : null}
-          </div>
-          <div>
-            <Label htmlFor="code">Promo code</Label>
-            <Input
-              id="code"
-              placeholder="Optional"
-              value={code}
-              onChange={(e) => setCode(e.target.value)}
-              maxLength={100}
-            />
-          </div>
-        </div>
-
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div>
-            <Label htmlFor="starts-at">Goes live at</Label>
-            <Input
-              id="starts-at"
-              type="datetime-local"
-              value={startsAt}
-              onChange={(e) => setStartsAt(e.target.value)}
-            />
-          </div>
-          <div>
-            <Label htmlFor="ends-at">Expires at</Label>
-            <Input
-              id="ends-at"
-              type="datetime-local"
-              value={endsAt}
-              onChange={(e) => setEndsAt(e.target.value)}
-            />
-          </div>
-        </div>
-        {scheduleError ? <p className="-mt-3 text-sm text-destructive">{scheduleError}</p> : null}
+          {scheduleError ? <p className="text-sm text-destructive">{scheduleError}</p> : null}
+        </DashboardFormSection>
 
         <Button type="submit" disabled={submitting} className="w-full sm:w-auto">
-          {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          Save draft
+          {submitting ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : null}
+          {submitting ? "Saving draft…" : "Save draft"}
         </Button>
       </form>
-    </div>
+    </DashboardFormPage>
   );
 }

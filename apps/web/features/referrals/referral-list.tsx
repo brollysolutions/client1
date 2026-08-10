@@ -38,10 +38,10 @@ function formatDate(iso: string | null): string {
     : d.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
 }
 
-export function ReferralList({ referrals }: { referrals: Referral[] }) {
+export function ReferralList({ referrals, embedded = false }: { referrals: Referral[]; embedded?: boolean }) {
   if (referrals.length === 0) {
     return (
-      <div className="rounded-2xl border border-dashed border-border bg-card px-6 py-14 text-center">
+      <div className={cn("rounded-2xl border border-dashed border-border px-6 py-14 text-center", embedded ? "bg-muted/20" : "bg-card")}>
         <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-muted text-text-secondary">
           <Users className="h-6 w-6" />
         </span>
@@ -55,7 +55,7 @@ export function ReferralList({ referrals }: { referrals: Referral[] }) {
   }
 
   return (
-    <div className="overflow-x-auto rounded-xl border border-border bg-card">
+    <div className={cn("overflow-x-auto", !embedded && "rounded-xl border border-border bg-card")}>
       <table className="w-full text-left text-sm">
         <thead className="border-b border-border text-xs uppercase tracking-wide text-text-secondary">
           <tr>

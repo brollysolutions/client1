@@ -16,6 +16,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  DashboardFormPage,
+  DashboardFormSection,
+} from "@/features/dashboard/dashboard-ui";
 import { createContentBlock } from "@/lib/content-api";
 
 // "global" is a UI-only sentinel. The API models cross-line content as a null
@@ -106,103 +110,117 @@ export function ContentForm() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-2xl px-4 py-8">
-      <div className="mb-6">
-        <h1 className="text-2xl font-semibold text-text-primary">New content block</h1>
-        <p className="mt-1 text-sm text-text-secondary">
-          Saved as a draft first. Publish it when the copy is ready to go live.
-        </p>
-      </div>
-
+    <DashboardFormPage
+      eyebrow="Website content"
+      title="New content block"
+      description="Create reusable website copy with an explicit placement and business-line scope."
+      backHref="/dashboard/content"
+      backLabel="Back to content"
+      formTitle="Content configuration"
+      formDescription="The block is saved as a draft until it is ready to publish."
+    >
       <form className="space-y-6" onSubmit={onSubmit}>
-        <div>
-          <Label htmlFor="title">Title</Label>
-          <Input
-            id="title"
-            value={title}
-            onChange={(e) => {
-              setTitle(e.target.value);
-              // Fill the slug from the title until the user edits it directly.
-              if (slug.length === 0 || slug === slugify(title)) setSlug(slugify(e.target.value));
-            }}
-            maxLength={500}
-          />
-          {titleError ? <p className="mt-1 text-sm text-destructive">{titleError}</p> : null}
-        </div>
-
-        <div className="grid gap-4 sm:grid-cols-2">
+        <DashboardFormSection
+          title="Placement"
+          description="Define the internal key, website section, and audience line before writing the copy."
+        >
           <div>
-            <Label htmlFor="slug">Slug</Label>
+            <Label htmlFor="title">Title</Label>
             <Input
-              id="slug"
-              value={slug}
-              onChange={(e) => setSlug(e.target.value.toLowerCase())}
-              maxLength={200}
-              placeholder="homepage-hero-copy"
+              id="title"
+              value={title}
+              onChange={(event) => {
+                setTitle(event.target.value);
+                if (slug.length === 0 || slug === slugify(title)) {
+                  setSlug(slugify(event.target.value));
+                }
+              }}
+              maxLength={500}
+            />
+            {titleError ? <p className="mt-1 text-sm text-destructive">{titleError}</p> : null}
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <Label htmlFor="slug">Slug</Label>
+              <Input
+                id="slug"
+                value={slug}
+                onChange={(event) => setSlug(event.target.value.toLowerCase())}
+                maxLength={200}
+                placeholder="homepage-hero-copy"
+              />
+              <p className="mt-1 text-xs text-text-secondary">
+                Immutable key used by the website to locate this block.
+              </p>
+              {slugError ? <p className="mt-1 text-sm text-destructive">{slugError}</p> : null}
+            </div>
+            <div>
+              <Label htmlFor="section">Section</Label>
+              <Input
+                id="section"
+                value={section}
+                onChange={(event) => setSection(event.target.value)}
+                maxLength={200}
+                placeholder="homepage-hero"
+              />
+              <p className="mt-1 text-xs text-text-secondary">
+                Identifies where this block appears.
+              </p>
+              {sectionError ? (
+                <p className="mt-1 text-sm text-destructive">{sectionError}</p>
+              ) : null}
+            </div>
+          </div>
+
+          <div>
+            <Label htmlFor="business-line">Line</Label>
+            <Select
+              value={businessLine}
+              onValueChange={(value) => setBusinessLine(value as typeof businessLine)}
+            >
+              <SelectTrigger id="business-line">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {LINE_OPTIONS.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="mt-1 text-xs text-text-secondary">
+              Global content shows on pages for both lines. This cannot be changed later.
+            </p>
+          </div>
+        </DashboardFormSection>
+
+        <DashboardFormSection
+          title="Copy"
+          description="Draft the body now or leave it empty and complete it before publishing."
+        >
+          <div>
+            <Label htmlFor="body">Body</Label>
+            <Textarea
+              id="body"
+              value={body}
+              onChange={(event) => setBody(event.target.value)}
+              maxLength={50000}
+              rows={12}
+              placeholder="Write the copy here."
             />
             <p className="mt-1 text-xs text-text-secondary">
-              The key the website uses to find this block. It cannot be changed later.
+              A block needs a body before it can be published.
             </p>
-            {slugError ? <p className="mt-1 text-sm text-destructive">{slugError}</p> : null}
           </div>
-          <div>
-            <Label htmlFor="section">Section</Label>
-            <Input
-              id="section"
-              value={section}
-              onChange={(e) => setSection(e.target.value)}
-              maxLength={200}
-              placeholder="homepage-hero"
-            />
-            <p className="mt-1 text-xs text-text-secondary">
-              Where this block appears on the site.
-            </p>
-            {sectionError ? <p className="mt-1 text-sm text-destructive">{sectionError}</p> : null}
-          </div>
-        </div>
-
-        <div>
-          <Label htmlFor="business-line">Line</Label>
-          <Select
-            value={businessLine}
-            onValueChange={(v) => setBusinessLine(v as typeof businessLine)}
-          >
-            <SelectTrigger id="business-line">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {LINE_OPTIONS.map((o) => (
-                <SelectItem key={o.value} value={o.value}>
-                  {o.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <p className="mt-1 text-xs text-text-secondary">
-            Global content shows on pages for both lines. This cannot be changed later.
-          </p>
-        </div>
-
-        <div>
-          <Label htmlFor="body">Body</Label>
-          <Textarea
-            id="body"
-            value={body}
-            onChange={(e) => setBody(e.target.value)}
-            maxLength={50000}
-            rows={10}
-            placeholder="Write the copy here. You can leave this empty and fill it in later."
-          />
-          <p className="mt-1 text-xs text-text-secondary">
-            A block needs a body before it can be published.
-          </p>
-        </div>
+        </DashboardFormSection>
 
         <Button type="submit" disabled={submitting} className="w-full sm:w-auto">
-          {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          Save draft
+          {submitting ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : null}
+          {submitting ? "Saving draft…" : "Save draft"}
         </Button>
       </form>
-    </div>
+    </DashboardFormPage>
   );
 }

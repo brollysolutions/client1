@@ -2,77 +2,22 @@
 
 import * as React from "react";
 import Link from "next/link";
-import {
-  Bell,
-  CalendarCheck,
-  CalendarX,
-  CarFront,
-  CheckCheck,
-  ClipboardList,
-  Eraser,
-  FileCheck2,
-  Gift,
-  Headset,
-  Home,
-  Landmark,
-  Megaphone,
-  PhoneCall,
-  ShieldAlert,
-  Smartphone,
-  Undo2,
-  Wallet,
-} from "lucide-react";
-import type { LucideIcon } from "lucide-react";
+import { Bell, CheckCheck } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { DASHBOARD_ICONS } from "@/features/dashboard/dashboard-icons";
+import { DashboardHeader, DashboardPage, DashboardPanel, MetricCard, MetricGrid } from "@/features/dashboard/dashboard-ui";
 import { FetchError } from "@/features/dashboard/fetch-error";
+import { formatNotificationTime, NOTIFICATION_TYPE_ICON } from "@/features/dashboard/notification-presenter";
 import {
   getNotifications,
   markAllNotificationsRead,
   markNotificationRead,
   type AppNotification,
-  type NotificationType,
 } from "@/lib/notifications";
 import { cn } from "@/lib/utils";
 import { isSafeLocalHref } from "@/lib/safe-local-href";
-
-const TYPE_ICON: Record<NotificationType, LucideIcon> = {
-  site_visit_requested: CalendarCheck,
-  site_visit_cancelled: CalendarX,
-  support_ticket_received: Headset,
-  support_ticket_resolved: Headset,
-  lead_assigned: PhoneCall,
-  lead_released: Undo2,
-  agent_lead_expired: Undo2,
-  task_assigned: ClipboardList,
-  loan_status_updated: Landmark,
-  property_deal_status_updated: Home,
-  referral_converted: Gift,
-  document_review_updated: FileCheck2,
-  admin_payout_reviewed: Wallet,
-  admin_account_action: ShieldAlert,
-  admin_retention_purged: Eraser,
-  admin_broadcast: Megaphone,
-  mobile_change_requested: Smartphone,
-  mobile_changed: Smartphone,
-  mobile_change_rejected: ShieldAlert,
-  vehicle_arrangement_updated: CarFront,
-};
-
-function formatRelativeTime(iso: string): string {
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return "";
-  const diffMin = Math.round((Date.now() - d.getTime()) / 60_000);
-  if (diffMin < 1) return "Just now";
-  if (diffMin < 60) return `${diffMin}m ago`;
-  const diffHr = Math.round(diffMin / 60);
-  if (diffHr < 24) return `${diffHr}h ago`;
-  const diffDay = Math.round(diffHr / 24);
-  if (diffDay === 1) return "Yesterday";
-  if (diffDay < 7) return `${diffDay} days ago`;
-  return d.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
-}
 
 type Status = "loading" | "ready" | "error";
 
@@ -114,6 +59,10 @@ export default function NotificationsPage() {
   }, [reloadKey]);
 
   const hasUnread = items.some((n) => !n.readAt);
+  const unreadCount = items.filter((notification) => !notification.readAt).length;
+  const linkedCount = items.filter(
+    (notification) => notification.href && isSafeLocalHref(notification.href),
+  ).length;
 
   async function handleMarkRead(id: string) {
     const prevItems = items;
@@ -136,16 +85,29 @@ export default function NotificationsPage() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-5xl space-y-6 px-4 sm:px-6 lg:px-10">
-      <div>
-        <h1 className="text-2xl font-semibold text-text-primary">Notifications</h1>
-        <p className="text-sm text-text-secondary">
-          Updates on your applications, payouts, and account.
-        </p>
-      </div>
+    <DashboardPage>
+      <DashboardHeader
+        eyebrow="Workspace updates"
+        title="Notifications"
+        description="Review application, payout, assignment, property, and account updates in one place."
+        actions={
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={!hasUnread || markingAll}
+            onClick={handleMarkAllRead}
+          >
+            <CheckCheck className="h-4 w-4" aria-hidden="true" />
+            {markingAll ? "Marking read..." : "Mark all as read"}
+          </Button>
+        }
+      />
 
       {status === "loading" ? (
-        <Skeleton className="h-40 rounded-xl" />
+        <div className="space-y-4">
+          <Skeleton className="h-28 rounded-xl" />
+          <Skeleton className="h-48 rounded-xl" />
+        </div>
       ) : status === "error" ? (
         <FetchError status={errorStatus} message={error} onRetry={retry} />
       ) : items.length === 0 ? (
@@ -160,28 +122,24 @@ export default function NotificationsPage() {
         </div>
       ) : (
         <>
-          <div className="flex justify-end">
-            <button
-              type="button"
-              disabled={!hasUnread || markingAll}
-              onClick={handleMarkAllRead}
-              className="inline-flex items-center gap-1.5 text-sm font-medium text-loans-accent transition-colors hover:text-loans-accent/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-loans-accent focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:text-text-secondary disabled:opacity-60"
-            >
-              <CheckCheck className="h-4 w-4" />
-              Mark all as read
-            </button>
-          </div>
+          <MetricGrid>
+            <MetricCard label="All updates" value={items.length} icon={Bell} />
+            <MetricCard label="Unread" value={unreadCount} icon={Bell} attention={unreadCount > 0} />
+            <MetricCard label="Action links" value={linkedCount} icon={DASHBOARD_ICONS.explore} hint="Safe dashboard destinations" />
+            <MetricCard label="Read" value={items.length - unreadCount} icon={CheckCheck} />
+          </MetricGrid>
 
+          <DashboardPanel title="Recent updates" description="Unread items are highlighted and may link to the relevant workspace.">
           <ul className="space-y-3">
             {items.map((n) => {
-              const Icon = TYPE_ICON[n.type];
+              const Icon = NOTIFICATION_TYPE_ICON[n.type];
               const unread = !n.readAt;
               const body = (
                 <div className="min-w-0 flex-1">
                   <div className="flex items-start justify-between gap-3">
                     <p className="font-medium text-text-primary">{n.title}</p>
                     <span className="shrink-0 text-xs text-text-secondary">
-                      {formatRelativeTime(n.createdAt)}
+                      {formatNotificationTime(n.createdAt)}
                     </span>
                   </div>
                   <p className="mt-0.5 text-sm text-text-secondary">{n.body}</p>
@@ -219,8 +177,9 @@ export default function NotificationsPage() {
               );
             })}
           </ul>
+          </DashboardPanel>
         </>
       )}
-    </div>
+    </DashboardPage>
   );
 }

@@ -1,19 +1,22 @@
 "use client";
 
 import * as React from "react";
-import Link from "next/link";
-import {
-  BadgePercent,
-  Building2,
-  Clock,
-  FileText,
-  Gift,
-  Megaphone,
-} from "lucide-react";
+import { Clock } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { FetchError } from "@/features/dashboard/fetch-error";
+import { DASHBOARD_ICONS } from "@/features/dashboard/dashboard-icons";
+import {
+  DashboardHeader,
+  DashboardPage,
+  DashboardPanel,
+  DashboardQuickAction,
+  DashboardTextLink,
+  MetricCard,
+  MetricGrid,
+  QuickActionGrid,
+} from "@/features/dashboard/dashboard-ui";
 import { formatPaiseCompact } from "@/lib/format";
 import { getSubAdminHome, type SubAdminHome as SubAdminHomeData } from "@/lib/sub-admin-api";
 
@@ -77,39 +80,51 @@ export function SubAdminHome() {
 
   if (status === "loading") {
     return (
-      <div className="mx-auto w-full max-w-5xl space-y-5 px-4 sm:px-6 lg:px-10">
+      <DashboardPage className="space-y-5">
         <Skeleton className="h-9 w-48 rounded-lg" />
         <Skeleton className="h-40 rounded-2xl" />
         <Skeleton className="h-40 rounded-2xl" />
-      </div>
+      </DashboardPage>
     );
   }
 
   if (status === "error" || !home) {
     return (
-      <div className="mx-auto w-full max-w-5xl px-4 sm:px-6 lg:px-10">
+      <DashboardPage>
         <FetchError status={errorStatus} message={error} onRetry={retry} />
-      </div>
+      </DashboardPage>
     );
   }
 
   return (
-    <div className="mx-auto w-full max-w-5xl space-y-6 px-4 sm:px-6 lg:px-10">
-      <div>
-        <h1 className="text-2xl font-semibold text-text-primary">Sub Admin</h1>
-        <p className="mt-1 text-sm text-text-secondary">
-          Manage marketing content and submit property listings for review.
-        </p>
-      </div>
+    <DashboardPage>
+      <DashboardHeader
+        eyebrow="Content operations"
+        title="Sub Admin workspace"
+        description="Create content, monitor approval status, and manage cross-line promotions."
+        actions={<DashboardTextLink href="/dashboard/banners/new">Create banner</DashboardTextLink>}
+      />
 
-      <div className="rounded-2xl border border-border bg-card p-5">
-        <h2 className="text-sm font-semibold text-text-primary">Awaiting Admin approval</h2>
+      <MetricGrid>
+        <MetricCard
+          label="Awaiting approval"
+          value={home.pending_approval.length}
+          icon={Clock}
+          attention={home.pending_approval.length > 0}
+        />
+        <MetricCard label="Live banners" value={home.live_banners_count} icon={DASHBOARD_ICONS.banners} href="/dashboard/banners" />
+        <MetricCard label="Active offers" value={home.live_offers_count} icon={DASHBOARD_ICONS.offers} href="/dashboard/offers" />
+        <MetricCard label="Content drafts" value={home.content_drafts_count} icon={DASHBOARD_ICONS.websiteContent} href="/dashboard/content" />
+      </MetricGrid>
+
+      <div className="grid gap-4 xl:grid-cols-[1.4fr_1fr]">
+        <DashboardPanel title="Awaiting Admin approval" description="Your latest submitted work">
         {home.pending_approval.length === 0 ? (
-          <p className="mt-3 text-sm text-text-secondary">
+          <p className="text-sm text-text-secondary">
             Nothing of yours is waiting on Admin right now.
           </p>
         ) : (
-          <ul className="mt-3 space-y-2">
+          <ul className="space-y-2">
             {home.pending_approval.map((item) => (
               <li
                 key={item.id}
@@ -128,40 +143,17 @@ export function SubAdminHome() {
             ))}
           </ul>
         )}
-      </div>
+        </DashboardPanel>
 
-      <div className="grid gap-4 sm:grid-cols-3">
-        <div className="rounded-2xl border border-border bg-card p-5">
-          <p className="text-sm text-text-secondary">Live banners</p>
-          <p className="mt-1 text-2xl font-semibold text-text-primary">
-            {home.live_banners_count}
-          </p>
-        </div>
-        <div className="rounded-2xl border border-border bg-card p-5">
-          <p className="text-sm text-text-secondary">Active offers</p>
-          <p className="mt-1 text-2xl font-semibold text-text-primary">
-            {home.live_offers_count}
-          </p>
-        </div>
-        <div className="rounded-2xl border border-border bg-card p-5">
-          <p className="text-sm text-text-secondary">Content drafts</p>
-          <p className="mt-1 text-2xl font-semibold text-text-primary">
-            {home.content_drafts_count}
-          </p>
-        </div>
-      </div>
-
-      <div className="rounded-2xl border border-border bg-card p-5">
-        <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-text-primary">Recent referral payouts</h2>
-          <Link href="/dashboard/referral-rules" className="text-xs text-brand-cta hover:underline">
-            View all
-          </Link>
-        </div>
+        <DashboardPanel
+          title="Recent referral payouts"
+          description="Latest activity under the configured rules"
+          action={<DashboardTextLink href="/dashboard/referral-rules">View rules</DashboardTextLink>}
+        >
         {home.recent_referral_payouts.length === 0 ? (
-          <p className="mt-3 text-sm text-text-secondary">No referral payouts yet.</p>
+          <p className="text-sm text-text-secondary">No referral payouts yet.</p>
         ) : (
-          <ul className="mt-3 space-y-2">
+          <ul className="space-y-2">
             {home.recent_referral_payouts.map((row) => (
               <li key={row.id} className="flex items-center justify-between text-sm">
                 <span className="text-text-secondary capitalize">{row.status}</span>
@@ -172,72 +164,16 @@ export function SubAdminHome() {
             ))}
           </ul>
         )}
+        </DashboardPanel>
       </div>
 
-      <div>
-        <h2 className="mb-3 text-sm font-semibold text-text-primary">Manage</h2>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Link href="/dashboard/banners">
-            <div className="flex h-full items-start gap-3 rounded-2xl border border-border bg-card p-4 transition-colors hover:border-brand-cta">
-              <Megaphone className="h-5 w-5 shrink-0 text-brand-cta" aria-hidden="true" />
-              <div>
-                <p className="font-medium text-text-primary">Banners</p>
-                <p className="text-sm text-text-secondary">
-                  Create banner drafts and submit them for Admin approval.
-                </p>
-              </div>
-            </div>
-          </Link>
-
-          <Link href="/dashboard/property-submit">
-            <div className="flex h-full items-start gap-3 rounded-2xl border border-border bg-card p-4 transition-colors hover:border-brand-cta">
-              <Building2 className="h-5 w-5 shrink-0 text-brand-cta" aria-hidden="true" />
-              <div>
-                <p className="font-medium text-text-primary">Property listings</p>
-                <p className="text-sm text-text-secondary">
-                  Submit a property listing for Admin approval.
-                </p>
-              </div>
-            </div>
-          </Link>
-
-          <Link href="/dashboard/offers">
-            <div className="flex h-full items-start gap-3 rounded-2xl border border-border bg-card p-4 transition-colors hover:border-brand-cta">
-              <BadgePercent className="h-5 w-5 shrink-0 text-brand-cta" aria-hidden="true" />
-              <div>
-                <p className="font-medium text-text-primary">Offers</p>
-                <p className="text-sm text-text-secondary">
-                  Create and schedule discount offers.
-                </p>
-              </div>
-            </div>
-          </Link>
-
-          <Link href="/dashboard/content">
-            <div className="flex h-full items-start gap-3 rounded-2xl border border-border bg-card p-4 transition-colors hover:border-brand-cta">
-              <FileText className="h-5 w-5 shrink-0 text-brand-cta" aria-hidden="true" />
-              <div>
-                <p className="font-medium text-text-primary">Website content</p>
-                <p className="text-sm text-text-secondary">
-                  Write and publish copy for the public site.
-                </p>
-              </div>
-            </div>
-          </Link>
-
-          <Link href="/dashboard/referral-rules">
-            <div className="flex h-full items-start gap-3 rounded-2xl border border-border bg-card p-4 transition-colors hover:border-brand-cta">
-              <Gift className="h-5 w-5 shrink-0 text-brand-cta" aria-hidden="true" />
-              <div>
-                <p className="font-medium text-text-primary">Referral bonus</p>
-                <p className="text-sm text-text-secondary">
-                  Set referral bonus rules and review recent payout activity.
-                </p>
-              </div>
-            </div>
-          </Link>
-        </div>
-      </div>
-    </div>
+      <QuickActionGrid>
+        <DashboardQuickAction href="/dashboard/banners" title="Banners" description="Create drafts and submit them for Admin approval." icon={DASHBOARD_ICONS.banners} />
+        <DashboardQuickAction href="/dashboard/property-submit" title="Property listings" description="Submit a managed property listing for review." icon={DASHBOARD_ICONS.propertyListings} />
+        <DashboardQuickAction href="/dashboard/offers" title="Offers" description="Create and schedule customer promotions." icon={DASHBOARD_ICONS.offers} />
+        <DashboardQuickAction href="/dashboard/content" title="Website content" description="Write and publish approved public-site copy." icon={DASHBOARD_ICONS.websiteContent} />
+        <DashboardQuickAction href="/dashboard/referral-rules" title="Referral bonus" description="Manage bonus rules and review payout activity." icon={DASHBOARD_ICONS.referrals} />
+      </QuickActionGrid>
+    </DashboardPage>
   );
 }

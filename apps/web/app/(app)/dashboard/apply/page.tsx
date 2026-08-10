@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { FetchError } from "@/features/dashboard/fetch-error";
+import { DashboardHeader, DashboardPage, DashboardPanel } from "@/features/dashboard/dashboard-ui";
 import {
   uploadLoanDocuments,
   type LoanDocType,
@@ -175,25 +176,29 @@ export default function ApplyPage() {
 
   if (status === "loading") {
     return (
-      <div className="mx-auto w-full max-w-3xl space-y-6 px-4 sm:px-6 lg:px-10">
+      <DashboardPage className="max-w-5xl">
         <Skeleton className="h-9 w-2/3" />
         <Skeleton className="h-72 rounded-xl" />
-      </div>
+      </DashboardPage>
     );
   }
 
   if (status === "error") {
     return (
-      <div className="mx-auto w-full max-w-3xl px-4 sm:px-6 lg:px-10">
+      <DashboardPage className="max-w-5xl">
         <FetchError status={errorStatus} message={error} onRetry={retry} />
-      </div>
+      </DashboardPage>
     );
   }
 
   if (activeApplication) {
     return (
-      <div className="mx-auto w-full max-w-3xl space-y-6 px-4 sm:px-6 lg:px-10">
-        <h1 className="text-2xl font-semibold text-text-primary">Apply for a loan</h1>
+      <DashboardPage className="max-w-5xl">
+        <DashboardHeader
+          eyebrow="Loans workspace"
+          title="Apply for a loan"
+          description="Start a new request or return to the application already being processed."
+        />
         <div className="rounded-2xl border border-dashed border-border bg-card px-6 py-14 text-center">
           <h2 className="text-lg font-semibold text-text-primary">
             You already have an application in progress
@@ -209,20 +214,23 @@ export default function ApplyPage() {
             View your application
           </Button>
         </div>
-      </div>
+      </DashboardPage>
     );
   }
 
   return (
-    <div className="mx-auto w-full max-w-3xl space-y-8 px-4 sm:px-6 lg:px-10">
-      <div>
-        <h1 className="text-2xl font-semibold text-text-primary">Apply for a loan</h1>
-        <p className="text-sm text-text-secondary">
-          Tell us what you need, and our team will take it from there.
-        </p>
-      </div>
+    <DashboardPage className="max-w-5xl">
+      <DashboardHeader
+        eyebrow="Loans workspace"
+        title="Apply for a loan"
+        description="Choose the loan and amount you need. Supporting KYC media can be added now or later."
+      />
 
-      <div>
+      <DashboardPanel
+        title="Application details"
+        description="Required fields are limited to the loan type and requested amount."
+      >
+      <div className="mb-8">
         <div className="flex items-center justify-between gap-3">
           <span className="text-sm font-medium text-text-primary">Your application</span>
           <span aria-live="polite" className="text-sm font-medium tabular-nums text-brand-cta">
@@ -344,6 +352,7 @@ export default function ApplyPage() {
           </p>
         </div>
       </form>
-    </div>
+      </DashboardPanel>
+    </DashboardPage>
   );
 }

@@ -7,6 +7,8 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { FetchError } from "@/features/dashboard/fetch-error";
+import { DASHBOARD_ICONS } from "@/features/dashboard/dashboard-icons";
+import { DashboardHeader, DashboardPage, DashboardPanel, MetricCard, MetricGrid } from "@/features/dashboard/dashboard-ui";
 import { cancelSiteVisit, getSiteVisits, type SiteVisit, type SiteVisitStatus } from "@/lib/site-visits";
 import { cn } from "@/lib/utils";
 
@@ -111,12 +113,19 @@ export function SiteVisitsView() {
     }
   }
 
+  const upcomingCount = visits.filter((visit) =>
+    ["requested", "confirmed"].includes(visit.status),
+  ).length;
+  const completedCount = visits.filter((visit) => visit.status === "done").length;
+  const pickupCount = visits.filter((visit) => visit.vehicleArrangement != null).length;
+
   return (
-    <div className="mx-auto w-full max-w-5xl space-y-6 px-4 sm:px-6 lg:px-10">
-      <div>
-        <h1 className="text-2xl font-semibold text-text-primary">Site Visits</h1>
-        <p className="text-sm text-text-secondary">Your scheduled property visits.</p>
-      </div>
+    <DashboardPage>
+      <DashboardHeader
+        eyebrow="Real Estate activity"
+        title="Site Visits"
+        description="Track visit confirmation, preferred slots, pickup arrangements, and completion."
+      />
 
       {status === "loading" ? (
         <Skeleton className="h-40 rounded-xl" />
@@ -133,7 +142,15 @@ export function SiteVisitsView() {
           </p>
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-border bg-card">
+        <>
+        <MetricGrid>
+          <MetricCard label="All visits" value={visits.length} icon={DASHBOARD_ICONS.siteVisits} />
+          <MetricCard label="Upcoming" value={upcomingCount} icon={DASHBOARD_ICONS.siteVisits} attention={upcomingCount > 0} />
+          <MetricCard label="Completed" value={completedCount} icon={DASHBOARD_ICONS.listingApprovals} />
+          <MetricCard label="Pickup requested" value={pickupCount} icon={DASHBOARD_ICONS.vehicleArrangements} />
+        </MetricGrid>
+        <DashboardPanel title="Visit schedule" description="Client-owned visits and company-managed pickup status.">
+        <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead className="border-b border-border text-xs uppercase tracking-wide text-text-secondary">
               <tr>
@@ -217,7 +234,9 @@ export function SiteVisitsView() {
             </tbody>
           </table>
         </div>
+        </DashboardPanel>
+        </>
       )}
-    </div>
+    </DashboardPage>
   );
 }

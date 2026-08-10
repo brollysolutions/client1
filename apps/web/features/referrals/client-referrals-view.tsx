@@ -3,6 +3,8 @@
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { formatPaise } from "@/lib/format";
+import { DASHBOARD_ICONS } from "@/features/dashboard/dashboard-icons";
+import { DashboardHeader, DashboardPage, DashboardPanel, MetricCard, MetricGrid } from "@/features/dashboard/dashboard-ui";
 import { ReferralCodeCard } from "./referral-code-card";
 import { ReferralList } from "./referral-list";
 import { useReferrals } from "./use-referrals";
@@ -11,13 +13,12 @@ export function ClientReferralsView() {
   const { my, referrals, loading, error, reload } = useReferrals();
 
   return (
-    <div className="mx-auto w-full max-w-5xl space-y-6 px-4 sm:px-6 lg:px-10">
-      <div>
-        <h1 className="text-2xl font-semibold text-text-primary">Referrals</h1>
-        <p className="text-sm text-text-secondary">
-          Your referral code, sharing tools, and conversion tracking.
-        </p>
-      </div>
+    <DashboardPage>
+      <DashboardHeader
+        eyebrow="Rewards"
+        title="Referrals"
+        description="Share your personal code and track every eligible conversion and reward."
+      />
 
       {loading ? (
         <div className="space-y-6">
@@ -35,27 +36,22 @@ export function ClientReferralsView() {
         <>
           <ReferralCodeCard my={my} />
 
-          {my.eligible && my.stats.total > 0 ? (
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-              <StatTile label="Referrals" value={String(my.stats.total)} />
-              <StatTile label="Converted" value={String(my.stats.accrued + my.stats.paid)} />
-              <StatTile label="Bonus accrued" value={formatPaise(my.stats.accrued_amount_paise)} />
-              <StatTile label="Bonus paid" value={formatPaise(my.stats.paid_amount_paise)} />
-            </div>
+          {my.eligible ? (
+            <MetricGrid>
+              <MetricCard label="Referrals" value={my.stats.total} icon={DASHBOARD_ICONS.referrals} />
+              <MetricCard label="Converted" value={my.stats.accrued + my.stats.paid} icon={DASHBOARD_ICONS.referrals} />
+              <MetricCard label="Bonus accrued" value={formatPaise(my.stats.accrued_amount_paise)} icon={DASHBOARD_ICONS.earnings} />
+              <MetricCard label="Bonus paid" value={formatPaise(my.stats.paid_amount_paise)} icon={DASHBOARD_ICONS.transactions} />
+            </MetricGrid>
           ) : null}
 
-          {my.eligible ? <ReferralList referrals={referrals} /> : null}
+          {my.eligible ? (
+            <DashboardPanel title="Referral activity" description="Conversion and reward status for people who joined with your code.">
+              <ReferralList referrals={referrals} embedded />
+            </DashboardPanel>
+          ) : null}
         </>
       )}
-    </div>
-  );
-}
-
-function StatTile({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-2xl border border-border bg-card p-4">
-      <p className="text-xs font-medium uppercase tracking-wide text-text-secondary">{label}</p>
-      <p className="mt-1 text-xl font-semibold text-text-primary">{value}</p>
-    </div>
+    </DashboardPage>
   );
 }

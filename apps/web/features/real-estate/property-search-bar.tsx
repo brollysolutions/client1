@@ -1,15 +1,18 @@
 "use client";
 
 import * as React from "react";
-import { Building2, MapPin, X } from "lucide-react";
+import { Building2, MapPin, Search, X } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Popover, PopoverAnchor, PopoverContent } from "@/components/ui/popover";
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
@@ -226,6 +229,42 @@ export function PropertySearchBar({
     setFilters({ q: title, locality: undefined, city: undefined, pincode: undefined });
   }
 
+  function submitSearch() {
+    const trimmed = text.trim();
+    if (
+      filters.locality === trimmed ||
+      filters.city === trimmed ||
+      filters.pincode === trimmed
+    ) {
+      setOpen(false);
+      return;
+    }
+    setOpen(false);
+    setFilters({
+      q: trimmed || undefined,
+      locality: undefined,
+      city: undefined,
+      pincode: undefined,
+    });
+  }
+
+  const selectedLocation = filters.locality
+    ? `locality:${filters.locality}`
+    : filters.city
+      ? `city:${filters.city}`
+      : filters.pincode
+        ? `pincode:${filters.pincode}`
+        : undefined;
+
+  function selectLocation(value: string) {
+    const separator = value.indexOf(":");
+    const kind = value.slice(0, separator);
+    const location = value.slice(separator + 1);
+    if (kind === "locality") pickLocality(location);
+    else if (kind === "city") pickCity(location);
+    else pickPincode(location);
+  }
+
   const chips = buildChips(filters, setFilters);
 
   return (
@@ -299,6 +338,57 @@ export function PropertySearchBar({
             </PopoverContent>
           </Popover>
         </Command>
+
+        <Button
+          type="button"
+          className="h-12 shrink-0 px-5 sm:w-auto"
+          onClick={submitSearch}
+        >
+          <Search className="h-4 w-4" aria-hidden="true" />
+          Search
+        </Button>
+
+        <Select value={selectedLocation} onValueChange={selectLocation}>
+          <SelectTrigger
+            aria-label="Choose property location"
+            className="h-12 w-full cursor-pointer rounded-lg border-border bg-card px-4 hover:border-brand-cta hover:bg-brand-cta-tint hover:text-brand-cta focus-visible:border-brand-cta focus-visible:ring-brand-cta/40 data-[size=default]:h-12 sm:w-[190px]"
+          >
+            <MapPin className="h-4 w-4 text-brand-cta" aria-hidden="true" />
+            <SelectValue placeholder="Choose location" />
+          </SelectTrigger>
+          <SelectContent>
+            {suggestionIndex.localities.length ? (
+              <SelectGroup>
+                <SelectLabel>Localities</SelectLabel>
+                {suggestionIndex.localities.slice(0, 12).map((location) => (
+                  <SelectItem key={`locality:${location}`} value={`locality:${location}`}>
+                    {location}
+                  </SelectItem>
+                ))}
+              </SelectGroup>
+            ) : null}
+            {suggestionIndex.cities.length ? (
+              <SelectGroup>
+                <SelectLabel>Cities</SelectLabel>
+                {suggestionIndex.cities.slice(0, 12).map((location) => (
+                  <SelectItem key={`city:${location}`} value={`city:${location}`}>
+                    {location}
+                  </SelectItem>
+                ))}
+              </SelectGroup>
+            ) : null}
+            {suggestionIndex.pincodes.length ? (
+              <SelectGroup>
+                <SelectLabel>PIN codes</SelectLabel>
+                {suggestionIndex.pincodes.slice(0, 12).map((location) => (
+                  <SelectItem key={`pincode:${location}`} value={`pincode:${location}`}>
+                    {location}
+                  </SelectItem>
+                ))}
+              </SelectGroup>
+            ) : null}
+          </SelectContent>
+        </Select>
 
         {active ? (
           <Select

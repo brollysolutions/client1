@@ -72,17 +72,7 @@ export function ReferralConfigForm({ onCreated }: { onCreated: () => void }) {
   }
 
   return (
-    <form
-      className="space-y-4 rounded-2xl border border-border bg-card p-6"
-      onSubmit={onSubmit}
-    >
-      <div>
-        <h2 className="text-lg font-semibold text-text-primary">New bonus rule</h2>
-        <p className="mt-1 text-sm text-text-secondary">
-          Set the amount and conditions. This only configures the rule, it never sends a payout.
-        </p>
-      </div>
-
+    <form className="space-y-5" onSubmit={onSubmit}>
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
           <Label htmlFor="ref-line">Line</Label>
@@ -139,8 +129,8 @@ export function ReferralConfigForm({ onCreated }: { onCreated: () => void }) {
       </label>
 
       <Button type="submit" disabled={submitting} className="w-full sm:w-auto">
-        {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-        Save rule
+        {submitting ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : null}
+        {submitting ? "Saving rule…" : "Save rule"}
       </Button>
     </form>
   );

@@ -2,9 +2,16 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { IndianRupee, PhoneCall, UserRound } from "lucide-react";
-
 import { Skeleton } from "@/components/ui/skeleton";
+import { DASHBOARD_ICONS } from "@/features/dashboard/dashboard-icons";
+import {
+  DashboardHeader,
+  DashboardPage,
+  DashboardPanel,
+  DashboardTextLink,
+  MetricCard,
+  MetricGrid,
+} from "@/features/dashboard/dashboard-ui";
 import { FetchError } from "@/features/dashboard/fetch-error";
 import { formatPaise } from "@/lib/format";
 
@@ -45,44 +52,58 @@ export function AgentHome() {
 
   if (status === "loading") {
     return (
-      <div className="mx-auto w-full max-w-5xl space-y-5 px-4 sm:px-6 lg:px-10">
+      <DashboardPage className="space-y-5">
         <Skeleton className="h-9 w-48 rounded-lg" />
         <Skeleton className="h-64 rounded-2xl" />
-      </div>
+      </DashboardPage>
     );
   }
 
   if (status === "error" || !home) {
     return (
-      <div className="mx-auto w-full max-w-5xl px-4 sm:px-6 lg:px-10">
+      <DashboardPage>
         <FetchError status={errorStatus} message={error} onRetry={retry} />
-      </div>
+      </DashboardPage>
     );
   }
 
+  const totalLeads = Object.values(home.counts_by_status).reduce((sum, count) => sum + count, 0);
+  const paidAmount = earnings ? formatPaise(earnings.totals.paid_amount_paise) : "-";
+
   return (
-    <div className="mx-auto w-full max-w-5xl space-y-6 px-4 sm:px-6 lg:px-10">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-semibold text-text-primary">Home</h1>
-          <p className="mt-1 text-sm text-text-secondary">Your introduced leads, at a glance.</p>
-        </div>
+    <DashboardPage>
+      <DashboardHeader
+        eyebrow={home.profile.business_line === "real_estate" ? "Real Estate partner" : "Loans partner"}
+        title="Agent workspace"
+        description="Monitor introduced leads, registration standing, and commission progress."
+        actions={
         <Link
           href="/dashboard/leads/new"
           className="inline-flex items-center gap-2 rounded-lg bg-brand-cta px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-cta/90"
         >
-          <PhoneCall className="h-4 w-4" aria-hidden="true" />
+          <DASHBOARD_ICONS.leads className="h-4 w-4" aria-hidden="true" />
           Introduce a lead
         </Link>
-      </div>
+        }
+      />
 
-      <div className="grid gap-4 lg:grid-cols-3">
-        <div className="rounded-2xl border border-border bg-card p-5">
-          <h2 className="text-sm font-semibold text-text-primary">Your leads</h2>
+      <MetricGrid>
+        <MetricCard label="Introduced leads" value={totalLeads} icon={DASHBOARD_ICONS.leads} href="/dashboard/leads" />
+        <MetricCard label="Working" value={home.counts_by_status.working ?? 0} icon={DASHBOARD_ICONS.leads} href="/dashboard/leads" />
+        <MetricCard label="Converted" value={home.counts_by_status.converted ?? 0} icon={DASHBOARD_ICONS.leads} href="/dashboard/leads" />
+        <MetricCard label="Commission paid" value={paidAmount} icon={DASHBOARD_ICONS.earnings} href="/dashboard/earnings" />
+      </MetricGrid>
+
+      <div className="grid gap-4 xl:grid-cols-3">
+        <DashboardPanel
+          title="Lead distribution"
+          description="Introduced leads by current status"
+          action={<DashboardTextLink href="/dashboard/leads">View leads</DashboardTextLink>}
+        >
           {Object.keys(home.counts_by_status).length === 0 ? (
-            <p className="mt-3 text-sm text-text-secondary">No leads introduced yet.</p>
+            <p className="text-sm text-text-secondary">No leads introduced yet.</p>
           ) : (
-            <ul className="mt-3 space-y-2">
+            <ul className="space-y-2">
               {Object.entries(home.counts_by_status).map(([key, count]) => (
                 <li key={key} className="flex items-center justify-between text-sm">
                   <span className="text-text-secondary">{STATUS_LABEL[key] ?? key}</span>
@@ -91,20 +112,10 @@ export function AgentHome() {
               ))}
             </ul>
           )}
-          <Link
-            href="/dashboard/leads"
-            className="mt-4 inline-block text-sm font-medium text-brand-cta hover:underline"
-          >
-            View all leads
-          </Link>
-        </div>
+        </DashboardPanel>
 
-        <div className="rounded-2xl border border-border bg-card p-5">
-          <h2 className="flex items-center gap-2 text-sm font-semibold text-text-primary">
-            <UserRound className="h-4 w-4 text-text-secondary" aria-hidden="true" />
-            Registration status
-          </h2>
-          <dl className="mt-3 space-y-2 text-sm">
+        <DashboardPanel title="Registration status" description="Your approved partner profile">
+          <dl className="space-y-2 text-sm">
             <div className="flex items-center justify-between">
               <dt className="text-text-secondary">Agent code</dt>
               <dd className="font-medium text-text-primary">{home.profile.agent_code}</dd>
@@ -130,17 +141,17 @@ export function AgentHome() {
               <dd className="font-medium text-text-primary">{formatDate(home.profile.approved_at)}</dd>
             </div>
           </dl>
-        </div>
+        </DashboardPanel>
 
-        <div className="rounded-2xl border border-border bg-card p-5">
-          <h2 className="flex items-center gap-2 text-sm font-semibold text-text-primary">
-            <IndianRupee className="h-4 w-4 text-text-secondary" aria-hidden="true" />
-            Commission summary
-          </h2>
+        <DashboardPanel
+          title="Commission summary"
+          description="Negotiated earnings by payout state"
+          action={<DashboardTextLink href="/dashboard/earnings">View earnings</DashboardTextLink>}
+        >
           {earningsStatus === "loading" ? (
-            <Skeleton className="mt-3 h-16 rounded-lg" />
+            <Skeleton className="h-16 rounded-lg" />
           ) : earningsStatus === "error" ? (
-            <div className="mt-3 flex items-center justify-between gap-2 text-sm">
+            <div className="flex items-center justify-between gap-2 text-sm">
               <p className="text-text-secondary">Couldn&apos;t load your earnings.</p>
               <button
                 type="button"
@@ -151,7 +162,7 @@ export function AgentHome() {
               </button>
             </div>
           ) : earnings && earnings.rows.length > 0 ? (
-            <dl className="mt-3 space-y-2 text-sm">
+            <dl className="space-y-2 text-sm">
               <div className="flex items-center justify-between">
                 <dt className="text-text-secondary">Pending</dt>
                 <dd className="font-medium text-text-primary">
@@ -166,16 +177,10 @@ export function AgentHome() {
               </div>
             </dl>
           ) : (
-            <p className="mt-3 text-sm text-text-secondary">No commissions recorded yet.</p>
+            <p className="text-sm text-text-secondary">No commissions recorded yet.</p>
           )}
-          <Link
-            href="/dashboard/earnings"
-            className="mt-4 inline-block text-sm font-medium text-brand-cta hover:underline"
-          >
-            View earnings
-          </Link>
-        </div>
+        </DashboardPanel>
       </div>
-    </div>
+    </DashboardPage>
   );
 }

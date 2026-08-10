@@ -12,12 +12,14 @@ import type {
 } from "@/lib/auth";
 
 import {
+  NAV_ITEMS,
   findDashboardRouteRule,
   getDashboardPathLine,
   getNavigationSections,
   isDashboardPathAllowed,
   type DashboardAccessContext,
 } from "./nav-items";
+import { DASHBOARD_ICONS } from "./dashboard-icons";
 
 function context(
   role: UserRole,
@@ -60,6 +62,29 @@ function dashboardPageRoutes(
 }
 
 describe("role-aware dashboard navigation", () => {
+  it("uses one canonical icon for concepts repeated across role dashboards", () => {
+    const iconsFor = (href: string) =>
+      NAV_ITEMS.filter((item) => item.href === href).map((item) => item.icon);
+
+    expect(iconsFor("/dashboard/leads")).toEqual([
+      DASHBOARD_ICONS.leads,
+      DASHBOARD_ICONS.leads,
+    ]);
+    expect(iconsFor("/dashboard/my-submissions")).toEqual([
+      DASHBOARD_ICONS.propertyListings,
+      DASHBOARD_ICONS.propertyListings,
+      DASHBOARD_ICONS.propertyListings,
+    ]);
+    expect(iconsFor("/dashboard/referral-rules")).toEqual([
+      DASHBOARD_ICONS.referrals,
+      DASHBOARD_ICONS.referrals,
+    ]);
+    expect(iconsFor("/dashboard/vehicle-arrangements")).toEqual([
+      DASHBOARD_ICONS.vehicleArrangements,
+      DASHBOARD_ICONS.vehicleArrangements,
+    ]);
+  });
+
   it("keeps Client Loans and Real Estate features separate", () => {
     expect(navKeys(context("client", null, "loans"))).toEqual([
       "home",
