@@ -215,6 +215,14 @@ test.describe("role-aware dashboard navigation", () => {
           ).toBeVisible();
         }
 
+        if (scenario.name === "Admin") {
+          await page.goto("/dashboard/users");
+          await expect(page.getByRole("heading", { name: "Users & staff" })).toBeVisible();
+          await expect(page.getByRole("heading", { name: "Create staff account" })).toBeVisible();
+          await expect(page.getByRole("heading", { name: "Staff access" })).toBeVisible();
+          await expect(page.locator("main form")).toBeVisible();
+        }
+
         await page.goto(scenario.deniedPath);
         await expect(page).toHaveURL(/\/dashboard$/, { timeout: 15_000 });
       } finally {
@@ -223,14 +231,23 @@ test.describe("role-aware dashboard navigation", () => {
     });
   }
 
-  test("Sub Admin retains its authoring route", async ({ page, request }) => {
+  test("Sub Admin retains every authoring route", async ({ page, request }) => {
     const account = await registerClient(request, 200);
     try {
       promoteAccount(account, scenarios[4]);
       await logIn(page, account);
-      await page.goto("/dashboard/banners/new");
-      await expect(page.getByRole("heading", { name: "New banner" })).toBeVisible();
-      await expect(page).toHaveURL(/\/dashboard\/banners\/new$/);
+      for (const authoringRoute of [
+        { path: "/dashboard/banners/new", heading: "New banner" },
+        { path: "/dashboard/offers/new", heading: "New offer" },
+        { path: "/dashboard/content/new", heading: "New content block" },
+        { path: "/dashboard/property-submit", heading: "Submit a property" },
+        { path: "/dashboard/referral-rules", heading: "Referral bonus rules" },
+      ]) {
+        await page.goto(authoringRoute.path);
+        await expect(page.getByRole("heading", { name: authoringRoute.heading })).toBeVisible();
+        await expect(page.locator("main form")).toBeVisible();
+        await expect(page).toHaveURL(new RegExp(`${authoringRoute.path}$`));
+      }
     } finally {
       await deleteAccount(request, account);
     }

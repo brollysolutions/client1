@@ -153,6 +153,72 @@ export function DashboardSection({
   );
 }
 
+export function DashboardFormPage({
+  eyebrow,
+  title,
+  description,
+  backHref,
+  backLabel,
+  formTitle,
+  formDescription,
+  children,
+  aside,
+}: {
+  eyebrow: string;
+  title: string;
+  description: string;
+  backHref: string;
+  backLabel: string;
+  formTitle: string;
+  formDescription?: string;
+  children: ReactNode;
+  aside?: ReactNode;
+}) {
+  return (
+    <DashboardPage>
+      <DashboardHeader
+        eyebrow={eyebrow}
+        title={title}
+        description={description}
+        actions={<DashboardTextLink href={backHref}>{backLabel}</DashboardTextLink>}
+      />
+      <div
+        className={cn(
+          "grid items-start gap-4",
+          aside ? "xl:grid-cols-[minmax(0,1fr)_20rem]" : "max-w-5xl",
+        )}
+      >
+        <DashboardPanel title={formTitle} description={formDescription}>
+          {children}
+        </DashboardPanel>
+        {aside ? <aside className="space-y-4">{aside}</aside> : null}
+      </div>
+    </DashboardPage>
+  );
+}
+
+export function DashboardFormSection({
+  title,
+  description,
+  children,
+}: {
+  title: string;
+  description?: string;
+  children: ReactNode;
+}) {
+  return (
+    <section className="space-y-4 rounded-xl border border-border bg-muted/20 p-4 sm:p-5">
+      <div>
+        <h2 className="text-sm font-semibold text-text-primary">{title}</h2>
+        {description ? (
+          <p className="mt-0.5 text-xs leading-5 text-text-secondary">{description}</p>
+        ) : null}
+      </div>
+      {children}
+    </section>
+  );
+}
+
 export function QuickActionGrid({ children }: { children: ReactNode }) {
   return <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">{children}</div>;
 }

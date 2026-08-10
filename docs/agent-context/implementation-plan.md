@@ -66,7 +66,7 @@ included in completion coverage.
 
 | Priority | Feature / requirements | Why now | Planning model / effort | Implementation model / effort | Exit criteria |
 | ---: | --- | --- | --- | --- | --- |
-| 0 | AWS-inspired multi-role dashboard experience (FR-2.1-FR-2.7, FR-17.1) | **Done** in [PR #167](https://github.com/brollysolutions/client1/pull/167): the desktop sidebar is permanently open for Admin, Sub Admin, Telecaller, Employee, and Agent; the Client's remembered rail behavior is preserved; semantic icons are centralized; and all six role homes use a coherent operational hierarchy. | `gpt-5.6-sol` / High | `gpt-5.6-sol` / High | Staff/Agent desktop navigation is expanded without a `PanelLeft` control; Client persistence and every mobile drawer remain intact; the same concept uses one icon across navigation and home surfaces; role homes use shared accessible page-header, metric, queue, status, and quick-action patterns; no API/RLS capability expands; targeted tests, the full web gate, production build, and role/mobile browser coverage pass. |
+| 0 | AWS-inspired multi-role dashboard experience (FR-2.1-FR-2.7, FR-17.1) | **Done** in [PR #167](https://github.com/brollysolutions/client1/pull/167): the role-home/sidebar system now also covers Admin Users & staff and every Sub Admin authoring form without changing identity, content, upload, referral, or payout APIs. | `gpt-5.6-sol` / High | `gpt-5.6-sol` / High | Staff/Agent desktop navigation is expanded without a `PanelLeft` control; Client persistence and every mobile drawer remain intact; the same concept uses one icon across navigation and home surfaces; role homes, Users & staff, and all Sub Admin authoring routes use shared accessible operational patterns; provisioning, Main Admin limits, one-time credentials, feature-grant session invalidation, upload/approval lifecycles, payout separation, API/RLS authority, loading/restricted/error states, and responsive/browser coverage remain intact. |
 | 0 | Delegated payout operations and Admin hierarchy (FR-2.2, FR-2.3, FR-10.3) | **Done** in [PR #165](https://github.com/brollysolutions/client1/pull/165): one durable Main Admin, bounded additional Admin provisioning, an explicit Sub Admin payout-request grant, immediate session invalidation, and the approved standalone Main Admin payout exception are implemented across API, RLS, audit, contracts, and web UI. | `gpt-5.6-sol` / Extra High | `gpt-5.6-sol` / Extra High | One immutable Main Admin can create at most three additional active Admins and grant/revoke the closed payout-request feature for active Sub Admins; granted Sub Admins may create/list payout requests but never approve, reject, issue, clear, fail, or reverse them; Main Admin-created payouts proceed without another approval while every other maker still requires a different Admin; self-payout, caps, idempotency, provider, audit, RLS, and ledger controls remain intact. |
 | 1 | Staff line access and payout workflow corrections (FR-1.4, FR-2.5, FR-2.6, FR-10.3, FR-11.x) | **Done** in [PR #164](https://github.com/brollysolutions/client1/pull/164): Admin can provision Telecallers and Employees for Loans, Real Estate, or Both; selected-line RLS isolation, payout handoff UX, notification verification, and the hidden-but-scrollable Admin sidebar track are implemented and tested. | `gpt-5.6-sol` / Extra High | `gpt-5.6-sol` / Extra High | Both-line staff remain assignment-scoped and never receive platform bypass; payout maker/checker, caps, idempotency, audit, and ledger invariants remain intact; notification behavior is freshly tested; sidebar scrolling remains usable without a visible scrollbar. |
 | 1 | Analytics verification (FR-16.1–FR-16.3) | **Done** in [PR #156](https://github.com/brollysolutions/client1/pull/156): a Linux PostgreSQL/Redis run passed the reporting service/API/RLS suite, and the web production build completed. | `gpt-5.6-terra` / High | `gpt-5.6-terra` / High | No defect was proven; retain the existing authorization, RLS, export-safety, and team-dimension invariants. |
@@ -84,7 +84,10 @@ included in completion coverage.
 - **Success:** Clients retain the current optional desktop rail while every
   operational role receives a stable, always-expanded desktop workspace; all
   six landing pages make priority work, status, and frequent actions scannable
-  without duplicating the entire sidebar.
+  without duplicating the entire sidebar. The follow-up extends that hierarchy
+  to Admin Users & staff while preserving its existing provisioning and access
+  controls, plus the banner, offer, content-block, property-submission, and
+  referral-rule authoring workflows.
 - **Behavior and architecture:** derive desktop rail behavior from the signed
   session role inside the existing shell; preserve the role/line capability
   catalogue and mobile sheet; introduce one semantic icon registry and small
@@ -98,8 +101,8 @@ included in completion coverage.
   render unauthorized counts.
 - **Non-goals:** copying AWS branding, adding Cloudscape or another dependency,
   changing routes, permissions, API schemas, payout behavior, database/RLS,
-  inner detail/form workflows, or implementing configurable drag-and-drop
-  dashboards.
+  inner detail workflows, form validation/business logic, or implementing
+  configurable drag-and-drop dashboards.
 - **Verification matrix:** sidebar state and icon-registry unit tests; existing
   role/line navigation matrix; targeted home tests where practical; lint,
   strict typecheck, full Vitest, production build, and Playwright coverage for
@@ -112,6 +115,10 @@ included in completion coverage.
   The Employee case asserts its Real Estate Vehicle arrangements card. The
   native Windows build compiled, typechecked, and generated all routes before
   the known standalone symlink `EPERM`; the Linux image is authoritative.
+  The follow-up reran full ESLint, strict TypeScript, all 319 unit tests, the
+  eight-case live-stack Playwright matrix (including Admin Users & staff and all
+  five Sub Admin authoring routes), and a Linux production image that compiled
+  and packaged all 92 routes.
 
 ### Delivered feature brief - staff line access and payout workflow corrections
 

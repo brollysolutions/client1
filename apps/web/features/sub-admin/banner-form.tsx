@@ -18,6 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { DashboardFormPage } from "@/features/dashboard/dashboard-ui";
 import { uploadFileToPresignedPost } from "@/lib/agent-application";
 import { createBanner, getBannerImageUploadUrl } from "@/lib/banners-api";
 import {
@@ -139,15 +140,15 @@ export function BannerForm() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-2xl px-4 py-8">
-      <div className="mb-6">
-        <h1 className="text-2xl font-semibold text-text-primary">New banner</h1>
-        <p className="mt-1 text-sm text-text-secondary">
-          Saved as a draft first. Submit it once you&apos;re happy, and it goes to Admin for
-          approval before going live.
-        </p>
-      </div>
-
+    <DashboardFormPage
+      eyebrow="Campaign content"
+      title="New banner"
+      description="Compose the message, audience, visual, and delivery window in one reviewable draft."
+      backHref="/dashboard/banners"
+      backLabel="Back to banners"
+      formTitle="Banner configuration"
+      formDescription="Admin approval is required before this banner can go live."
+    >
       <form className="space-y-6" onSubmit={onSubmit}>
         <div>
           <Label htmlFor="title">Title</Label>
@@ -309,10 +310,10 @@ export function BannerForm() {
           disabled={submitting || imageUploading}
           className="w-full sm:w-auto"
         >
-          {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          Save draft
+          {submitting ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : null}
+          {submitting ? "Saving draft…" : "Save draft"}
         </Button>
       </form>
-    </div>
+    </DashboardFormPage>
   );
 }

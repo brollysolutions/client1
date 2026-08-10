@@ -64,7 +64,14 @@ work than several completed UI requirements.
   also compiled, typechecked, and generated all routes before the known
   standalone symlink `EPERM`. Coverage remains **98.7%** because this improves
   already-complete role dashboard requirements without closing FR-2.2 or
-  FR-2.8.
+  FR-2.8. A follow-up on the same PR brings Admin Users & staff plus every Sub
+  Admin banner, offer, content-block, property-submission, and referral-rule
+  form into the same operational hierarchy. It preserves identity authority,
+  one-time credentials, Main Admin limits and session invalidation, managed
+  upload/approval boundaries, and payout separation. Fresh follow-up evidence:
+  full lint and strict typecheck, all 319 unit tests, all eight live-stack
+  Playwright cases with expanded Admin/Sub Admin route assertions, and a Linux
+  production image packaging all 92 routes.
 
 - **Delegated payout operations and Admin hierarchy** (FR-2.2, FR-2.3, and
   FR-10.3) are complete in
