@@ -13,7 +13,12 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.deps import CurrentUser, get_active_user, require_sub_admin
+from app.core.deps import (
+    CurrentUser,
+    get_active_user,
+    is_platform_admin,
+    require_sub_admin_or_platform_admin,
+)
 from app.db.session import get_db
 from app.models.offer import Offer, OfferStatus
 from app.schemas.offers import OfferCreate, OfferListResponse, OfferRead, OfferUpdate
@@ -37,7 +42,7 @@ _EDITABLE_STATUSES = (OfferStatus.DRAFT, OfferStatus.SCHEDULED)
 @router.post("", response_model=OfferRead, status_code=status.HTTP_201_CREATED)
 async def create_offer(
     payload: OfferCreate,
-    current_user: CurrentUser = Depends(require_sub_admin),
+    current_user: CurrentUser = Depends(require_sub_admin_or_platform_admin),
     db: AsyncSession = Depends(get_db),
 ) -> OfferRead:
     values = payload.model_dump(exclude={"audience_rules"})
@@ -83,7 +88,7 @@ async def get_offer(
 async def update_offer(
     offer_id: UUID,
     payload: OfferUpdate,
-    current_user: CurrentUser = Depends(require_sub_admin),
+    current_user: CurrentUser = Depends(require_sub_admin_or_platform_admin),
     db: AsyncSession = Depends(get_db),
 ) -> OfferRead:
     offer = await db.scalar(select(Offer).where(Offer.id == offer_id))
@@ -92,7 +97,7 @@ async def update_offer(
     # App-layer guard, mirroring banners' update endpoint: sub_admin's shared-
     # visibility SELECT sees every offer, so ownership must be checked explicitly
     # rather than relying on a silent RLS zero-row no-op.
-    if offer.created_by_uuid != current_user.id:
+    if not is_platform_admin(current_user) and offer.created_by_uuid != current_user.id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You can only edit offers you created.",
@@ -136,7 +141,9 @@ async def _advance(
     offer_id: UUID, target: OfferStatus, current_user: CurrentUser, db: AsyncSession
 ) -> OfferRead:
     try:
-        offer = await advance_offer(offer_id, current_user.id, target, db)
+        offer = await advance_offer(
+            offer_id, current_user.id, target, db, can_manage_any=is_platform_admin(current_user)
+        )
     except OfferNotOwned as exc:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -160,7 +167,7 @@ async def _advance(
 @router.post("/{offer_id}/schedule", response_model=OfferRead)
 async def schedule(
     offer_id: UUID,
-    current_user: CurrentUser = Depends(require_sub_admin),
+    current_user: CurrentUser = Depends(require_sub_admin_or_platform_admin),
     db: AsyncSession = Depends(get_db),
 ) -> OfferRead:
     return await _advance(offer_id, OfferStatus.SCHEDULED, current_user, db)
@@ -169,7 +176,7 @@ async def schedule(
 @router.post("/{offer_id}/activate", response_model=OfferRead)
 async def activate(
     offer_id: UUID,
-    current_user: CurrentUser = Depends(require_sub_admin),
+    current_user: CurrentUser = Depends(require_sub_admin_or_platform_admin),
     db: AsyncSession = Depends(get_db),
 ) -> OfferRead:
     return await _advance(offer_id, OfferStatus.ACTIVE, current_user, db)
@@ -178,7 +185,7 @@ async def activate(
 @router.post("/{offer_id}/archive", response_model=OfferRead)
 async def archive(
     offer_id: UUID,
-    current_user: CurrentUser = Depends(require_sub_admin),
+    current_user: CurrentUser = Depends(require_sub_admin_or_platform_admin),
     db: AsyncSession = Depends(get_db),
 ) -> OfferRead:
     return await _advance(offer_id, OfferStatus.ARCHIVED, current_user, db)

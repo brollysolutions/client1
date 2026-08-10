@@ -13,7 +13,7 @@ import { BannerForm } from "@/features/sub-admin/banner-form";
 export default function NewBannerPage() {
   const router = useRouter();
   const { session, isLoading } = useAuth();
-  const allowed = session != null && session.role === "sub_admin";
+  const allowed = session != null && (session.role === "sub_admin" || session.role === "admin");
 
   React.useEffect(() => {
     if (!isLoading && !allowed) router.replace("/dashboard");

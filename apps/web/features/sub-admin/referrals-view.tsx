@@ -107,14 +107,12 @@ export function ReferralsView() {
                 : "grid items-start gap-4 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]"
             }
           >
-            {!isAdmin ? (
-              <DashboardPanel
+            <DashboardPanel
                 title="New bonus rule"
                 description="Set the amount and conditions. This form never initiates a payout."
               >
                 <ReferralConfigForm onCreated={() => void reload()} />
               </DashboardPanel>
-            ) : null}
 
             <DashboardPanel
               title="Bonus rules"
@@ -156,8 +154,7 @@ export function ReferralsView() {
                         <Badge variant={config.active ? "secondary" : "outline"}>
                           {config.active ? "Active" : "Inactive"}
                         </Badge>
-                        {!isAdmin ? (
-                          <Button
+                        <Button
                             size="sm"
                             variant="outline"
                             disabled={busyId === config.id}
@@ -171,7 +168,6 @@ export function ReferralsView() {
                               "Activate"
                             )}
                           </Button>
-                        ) : null}
                       </div>
                     </li>
                   ))}

@@ -139,19 +139,15 @@ export function BannersView() {
         <div>
           <h1 className="text-2xl font-semibold text-text-primary">Banners</h1>
           <p className="text-sm text-text-secondary">
-            {isAdmin
-              ? "Approve or reject banner drafts submitted by the content team."
-              : "Create banner drafts and submit them for Admin approval."}
+            Create banner drafts, correct editable records, and review submitted work.
           </p>
         </div>
-        {!isAdmin ? (
-          <Link href="/dashboard/banners/new">
-            <Button>
-              <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
-              New banner
-            </Button>
-          </Link>
-        ) : null}
+        <Link href="/dashboard/banners/new">
+          <Button>
+            <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
+            New banner
+          </Button>
+        </Link>
       </div>
 
       {loading ? (
@@ -170,9 +166,7 @@ export function BannersView() {
           <Inbox className="h-8 w-8 text-text-secondary" aria-hidden="true" />
           <p className="mt-3 font-medium text-text-primary">No banners yet</p>
           <p className="mt-1 text-sm text-text-secondary">
-            {isAdmin
-              ? "Submitted drafts will show up here for approval."
-              : "Create your first banner draft to get started."}
+            Create your first banner draft to get started.
           </p>
         </div>
       ) : (
@@ -223,7 +217,7 @@ export function BannersView() {
                   </div>
                 )}
 
-                {!isAdmin && EDITABLE_STATUSES.has(active.status) ? (
+                {EDITABLE_STATUSES.has(active.status) ? (
                   <div className="space-y-3">
                     <div>
                       <Label htmlFor="edit-title">Title</Label>
@@ -319,7 +313,7 @@ export function BannersView() {
                       </Button>
                     </>
                   )
-                ) : !isAdmin && EDITABLE_STATUSES.has(active.status) ? (
+                ) : EDITABLE_STATUSES.has(active.status) ? (
                   <>
                     <Button variant="outline" onClick={() => void onSaveEdit(active)} disabled={busy}>
                       {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}

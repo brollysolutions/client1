@@ -14,7 +14,13 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.deps import CurrentUser, get_active_user, require_admin, require_sub_admin
+from app.core.deps import (
+    CurrentUser,
+    get_active_user,
+    is_platform_admin,
+    require_admin,
+    require_sub_admin_or_platform_admin,
+)
 from app.db.session import get_db
 from app.models.banner import Banner, BannerStatus
 from app.schemas.banners import (
@@ -49,7 +55,7 @@ router = APIRouter()
 @router.post("", response_model=BannerRead, status_code=status.HTTP_201_CREATED)
 async def create_banner(
     payload: BannerCreate,
-    current_user: CurrentUser = Depends(require_sub_admin),
+    current_user: CurrentUser = Depends(require_sub_admin_or_platform_admin),
     db: AsyncSession = Depends(get_db),
 ) -> BannerRead:
     values = payload.model_dump(exclude={"audience_rules"})
@@ -64,7 +70,7 @@ async def create_banner(
 @router.post("/image-upload-url", response_model=BannerImageUploadResponse)
 async def get_banner_image_upload_url(
     payload: BannerImageUploadRequest,
-    current_user: CurrentUser = Depends(require_sub_admin),
+    current_user: CurrentUser = Depends(require_sub_admin_or_platform_admin),
 ) -> BannerImageUploadResponse:
     # No DB row yet -- a banner may not exist until after the image is
     # picked (create_banner takes image_key as a plain field). The key
@@ -120,7 +126,7 @@ async def get_banner(
 async def update_banner(
     banner_id: UUID,
     payload: BannerUpdate,
-    current_user: CurrentUser = Depends(require_sub_admin),
+    current_user: CurrentUser = Depends(require_sub_admin_or_platform_admin),
     db: AsyncSession = Depends(get_db),
 ) -> BannerRead:
     banner = await db.scalar(select(Banner).where(Banner.id == banner_id))
@@ -133,7 +139,7 @@ async def update_banner(
     # status are reported as distinct errors (403 vs 409) so the frontend, which
     # has no way to check ownership client-side (session carries role only, not
     # user id), can show the right message from a failed optimistic attempt.
-    if banner.created_by_uuid != current_user.id:
+    if not is_platform_admin(current_user) and banner.created_by_uuid != current_user.id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You can only edit banners you created.",
@@ -172,11 +178,13 @@ async def update_banner(
 @router.post("/{banner_id}/submit", response_model=BannerRead)
 async def submit(
     banner_id: UUID,
-    current_user: CurrentUser = Depends(require_sub_admin),
+    current_user: CurrentUser = Depends(require_sub_admin_or_platform_admin),
     db: AsyncSession = Depends(get_db),
 ) -> BannerRead:
     try:
-        banner = await submit_banner(banner_id, current_user.id, db)
+        banner = await submit_banner(
+            banner_id, current_user.id, db, can_manage_any=is_platform_admin(current_user)
+        )
     except BannerNotOwned as exc:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,

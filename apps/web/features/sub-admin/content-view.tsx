@@ -5,7 +5,6 @@ import Link from "next/link";
 import { Archive, Globe, Inbox, Loader2, Plus, Send } from "lucide-react";
 import { toast } from "sonner";
 
-import { useAuth } from "@/components/auth/session-provider";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -54,8 +53,6 @@ function lineText(block: ContentBlock): string {
 }
 
 export function ContentView() {
-  const { session } = useAuth();
-  const isAdmin = session?.role === "admin";
   const { items, loading, error, reload } = useContentQueue();
   const [active, setActive] = React.useState<ContentBlock | null>(null);
   const [draftTitle, setDraftTitle] = React.useState("");
@@ -122,19 +119,15 @@ export function ContentView() {
         <div>
           <h1 className="text-2xl font-semibold text-text-primary">Website content</h1>
           <p className="text-sm text-text-secondary">
-            {isAdmin
-              ? "Read-only view of every content block the content team manages."
-              : "Write website copy, publish it, and archive what is no longer needed."}
+            Write website copy, publish it, and archive what is no longer needed.
           </p>
         </div>
-        {!isAdmin ? (
-          <Link href="/dashboard/content/new">
-            <Button>
-              <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
-              New block
-            </Button>
-          </Link>
-        ) : null}
+        <Link href="/dashboard/content/new">
+          <Button>
+            <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
+            New block
+          </Button>
+        </Link>
       </div>
 
       {loading ? (
@@ -153,9 +146,7 @@ export function ContentView() {
           <Inbox className="h-8 w-8 text-text-secondary" aria-hidden="true" />
           <p className="mt-3 font-medium text-text-primary">No content blocks yet</p>
           <p className="mt-1 text-sm text-text-secondary">
-            {isAdmin
-              ? "Blocks the content team writes will show up here."
-              : "Write your first block of website copy to get started."}
+            Write your first block of website copy to get started.
           </p>
         </div>
       ) : (
@@ -199,7 +190,7 @@ export function ContentView() {
               </DialogHeader>
 
               <div className="space-y-4">
-                {!isAdmin && EDITABLE_STATUSES.has(active.status) ? (
+                {EDITABLE_STATUSES.has(active.status) ? (
                   <div className="space-y-3">
                     <div>
                       <Label htmlFor="edit-title">Title</Label>
@@ -247,13 +238,13 @@ export function ContentView() {
               </div>
 
               <DialogFooter className="gap-2 sm:gap-2">
-                {!isAdmin && EDITABLE_STATUSES.has(active.status) ? (
+                {EDITABLE_STATUSES.has(active.status) ? (
                   <Button variant="outline" onClick={() => void onSaveEdit(active)} disabled={busy}>
                     {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
                     Save
                   </Button>
                 ) : null}
-                {!isAdmin && active.status !== "archived" ? (
+                {active.status !== "archived" ? (
                   <Button
                     variant="outline"
                     onClick={() => void onAdvance(archiveContentBlock, active, "Content archived")}
@@ -263,7 +254,7 @@ export function ContentView() {
                     Archive
                   </Button>
                 ) : null}
-                {!isAdmin && active.status === "draft" ? (
+                {active.status === "draft" ? (
                   <Button
                     onClick={() => void onAdvance(publishContentBlock, active, "Content published")}
                     disabled={busy}

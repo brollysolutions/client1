@@ -43,7 +43,12 @@ class ContentBodyRequired(Exception):
 
 
 async def advance_content_block(
-    block_id: UUID, owner_uuid: UUID, target_status: ContentStatus, db: AsyncSession
+    block_id: UUID,
+    owner_uuid: UUID,
+    target_status: ContentStatus,
+    db: AsyncSession,
+    *,
+    can_manage_any: bool = False,
 ) -> ContentBlock | None:
     # Unlocked existence/ownership check first: Postgres RLS applies a table's
     # UPDATE policy (not just SELECT) to a `SELECT ... FOR UPDATE`, so locking up
@@ -53,7 +58,7 @@ async def advance_content_block(
     block = await db.scalar(select(ContentBlock).where(ContentBlock.id == block_id))
     if block is None:
         return None
-    if block.created_by_uuid != owner_uuid:
+    if not can_manage_any and block.created_by_uuid != owner_uuid:
         raise ContentNotOwned
     # Ownership confirmed — re-select FOR UPDATE to serialize concurrent advances
     # from the same owner (e.g. a double-clicked publish), mirroring offers.
