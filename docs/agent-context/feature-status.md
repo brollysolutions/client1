@@ -48,7 +48,8 @@ work than several completed UI requirements.
 ## Delivered implementation
 
 - **Delegated payout operations and Admin hierarchy** (FR-2.2, FR-2.3, and
-  FR-10.3) are complete on `feat/staff-lines-payout-workflow` (PR pending). One
+  FR-10.3) are complete in
+  [PR #165](https://github.com/brollysolutions/client1/pull/165). One
   migration-backed Main Admin may create at most three additional active Admin
   accounts and grant or revoke the closed `payout_requests` feature for active
   Sub Admins. Grant changes invalidate the target's access and refresh sessions;
