@@ -46,12 +46,18 @@ class BannerInvalidAudience(Exception):
     """Raised when a legacy or malformed rule set reaches review."""
 
 
-async def submit_banner(banner_id: UUID, submitter_uuid: UUID, db: AsyncSession) -> Banner | None:
+async def submit_banner(
+    banner_id: UUID,
+    submitter_uuid: UUID,
+    db: AsyncSession,
+    *,
+    can_manage_any: bool = False,
+) -> Banner | None:
     """draft/rejected -> pending_approval, own-row only (RLS-covered)."""
     banner = await db.scalar(select(Banner).where(Banner.id == banner_id))
     if banner is None:
         return None
-    if banner.created_by_uuid != submitter_uuid:
+    if not can_manage_any and banner.created_by_uuid != submitter_uuid:
         raise BannerNotOwned
     if banner.status not in (BannerStatus.DRAFT, BannerStatus.REJECTED):
         raise BannerAlreadyReviewed

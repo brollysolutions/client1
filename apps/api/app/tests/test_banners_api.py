@@ -199,23 +199,26 @@ async def test_admin_approve(client: AsyncClient) -> None:
 
 
 @pytest.mark.asyncio
-async def test_admin_cannot_patch_a_banner(client: AsyncClient) -> None:
+async def test_platform_admin_can_patch_a_banner(client: AsyncClient) -> None:
     """PATCH is a sub_admin-only create-time-editing action (require_sub_admin);
     Admin's role in this flow is approve/reject only, never field edits."""
-    _, mobile = await full_registration(client, lines=["loans"])
-    uid = await _auth_user_uuid(mobile)
+    _, owner_mobile = await full_registration(client, lines=["loans"])
+    owner_uid = await _auth_user_uuid(owner_mobile)
     created = await client.post(
         "/api/v1/banners",
         json=_PAYLOAD,
-        headers={"Authorization": f"Bearer {_sub_admin_token(uid)}"},
+        headers={"Authorization": f"Bearer {_sub_admin_token(owner_uid)}"},
     )
     banner_id = created.json()["id"]
+    _, admin_mobile = await full_registration(client, lines=["loans"])
+    admin_uid = await _auth_user_uuid(admin_mobile)
     res = await client.patch(
         f"/api/v1/banners/{banner_id}",
-        json={"title": "Admin edit attempt"},
-        headers={"Authorization": f"Bearer {_admin_token(uid)}"},
+        json={"title": "Admin correction"},
+        headers={"Authorization": f"Bearer {_admin_token(admin_uid)}"},
     )
-    assert res.status_code == 403
+    assert res.status_code == 200, res.text
+    assert res.json()["title"] == "Admin correction"
 
 
 @pytest.mark.asyncio

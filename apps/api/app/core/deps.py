@@ -287,6 +287,23 @@ async def require_sub_admin(
     return current_user
 
 
+async def require_sub_admin_or_platform_admin(
+    current_user: CurrentUser = Depends(get_active_user),
+) -> CurrentUser:
+    """Allow CMS authoring by its delegated owner or the platform Admin.
+
+    This is intentionally narrower than a role-only Admin check: CMS rows are
+    cross-line operational content, so a line-scoped Admin must not obtain a
+    misleading partial write capability.
+    """
+    if current_user.role == "sub_admin" or is_platform_admin(current_user):
+        return current_user
+    raise HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail="Only Sub Admin or platform Admin may perform this action.",
+    )
+
+
 async def require_telecaller(
     current_user: CurrentUser = Depends(get_active_user),
 ) -> CurrentUser:

@@ -48,7 +48,12 @@ class OfferInvalidAudience(Exception):
 
 
 async def advance_offer(
-    offer_id: UUID, owner_uuid: UUID, target_status: OfferStatus, db: AsyncSession
+    offer_id: UUID,
+    owner_uuid: UUID,
+    target_status: OfferStatus,
+    db: AsyncSession,
+    *,
+    can_manage_any: bool = False,
 ) -> Offer | None:
     # Unlocked existence/ownership check first: Postgres RLS applies a table's
     # UPDATE policy (not just SELECT) to a `SELECT ... FOR UPDATE`, so locking
@@ -58,7 +63,7 @@ async def advance_offer(
     offer = await db.scalar(select(Offer).where(Offer.id == offer_id))
     if offer is None:
         return None
-    if offer.created_by_uuid != owner_uuid:
+    if not can_manage_any and offer.created_by_uuid != owner_uuid:
         raise OfferNotOwned
     # Now that ownership is confirmed, re-select FOR UPDATE to serialize
     # concurrent advances from the same owner (e.g. a double-clicked action),

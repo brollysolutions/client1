@@ -13,7 +13,7 @@ import { OfferForm } from "@/features/sub-admin/offer-form";
 export default function NewOfferPage() {
   const router = useRouter();
   const { session, isLoading } = useAuth();
-  const allowed = session != null && session.role === "sub_admin";
+  const allowed = session != null && (session.role === "sub_admin" || session.role === "admin");
 
   React.useEffect(() => {
     if (!isLoading && !allowed) router.replace("/dashboard");

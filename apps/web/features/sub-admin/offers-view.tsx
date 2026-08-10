@@ -5,7 +5,6 @@ import Link from "next/link";
 import { Archive, CalendarClock, Inbox, Loader2, Plus, Zap } from "lucide-react";
 import { toast } from "sonner";
 
-import { useAuth } from "@/components/auth/session-provider";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -60,8 +59,6 @@ function discountText(offer: Offer): string {
 }
 
 export function OffersView() {
-  const { session } = useAuth();
-  const isAdmin = session?.role === "admin";
   const { items, loading, error, reload } = useOfferQueue();
   const [active, setActive] = React.useState<Offer | null>(null);
   const [draftTitle, setDraftTitle] = React.useState("");
@@ -116,19 +113,15 @@ export function OffersView() {
         <div>
           <h1 className="text-2xl font-semibold text-text-primary">Offers</h1>
           <p className="text-sm text-text-secondary">
-            {isAdmin
-              ? "Read-only view of every discount offer the content team manages."
-              : "Create discount offers, then schedule, activate, and archive them."}
+            Create discount offers, then schedule, activate, and archive them.
           </p>
         </div>
-        {!isAdmin ? (
-          <Link href="/dashboard/offers/new">
-            <Button>
-              <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
-              New offer
-            </Button>
-          </Link>
-        ) : null}
+        <Link href="/dashboard/offers/new">
+          <Button>
+            <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
+            New offer
+          </Button>
+        </Link>
       </div>
 
       {loading ? (
@@ -147,9 +140,7 @@ export function OffersView() {
           <Inbox className="h-8 w-8 text-text-secondary" aria-hidden="true" />
           <p className="mt-3 font-medium text-text-primary">No offers yet</p>
           <p className="mt-1 text-sm text-text-secondary">
-            {isAdmin
-              ? "Offers the content team creates will show up here."
-              : "Create your first discount offer to get started."}
+            Create your first discount offer to get started.
           </p>
         </div>
       ) : (
@@ -191,7 +182,7 @@ export function OffersView() {
               </DialogHeader>
 
               <div className="space-y-4">
-                {!isAdmin && EDITABLE_STATUSES.has(active.status) ? (
+                {EDITABLE_STATUSES.has(active.status) ? (
                   <div className="space-y-3">
                     <div>
                       <Label htmlFor="edit-title">Title</Label>
@@ -250,13 +241,13 @@ export function OffersView() {
               </div>
 
               <DialogFooter className="gap-2 sm:gap-2">
-                {!isAdmin && EDITABLE_STATUSES.has(active.status) ? (
+                {EDITABLE_STATUSES.has(active.status) ? (
                   <Button variant="outline" onClick={() => void onSaveEdit(active)} disabled={busy}>
                     {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
                     Save
                   </Button>
                 ) : null}
-                {!isAdmin && active.status === "draft" ? (
+                {active.status === "draft" ? (
                   <Button
                     onClick={() => void onAdvance(scheduleOffer, active, "Offer scheduled")}
                     disabled={busy}
@@ -269,7 +260,7 @@ export function OffersView() {
                     Schedule
                   </Button>
                 ) : null}
-                {!isAdmin && active.status === "scheduled" ? (
+                {active.status === "scheduled" ? (
                   <>
                     <Button
                       variant="outline"
@@ -288,7 +279,7 @@ export function OffersView() {
                     </Button>
                   </>
                 ) : null}
-                {!isAdmin && active.status === "active" ? (
+                {active.status === "active" ? (
                   <Button
                     variant="outline"
                     onClick={() => void onAdvance(archiveOffer, active, "Offer archived")}

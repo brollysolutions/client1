@@ -47,6 +47,25 @@ work than several completed UI requirements.
 
 ## Delivered implementation
 
+- **Admin operational CMS coverage** (FR-2.2) is partially delivered in
+  [PR #168](https://github.com/brollysolutions/client1/pull/168). The verified
+  coverage inventory found that platform Admin could
+  view, but not create or update, shared banners, offers, content blocks, and
+  referral-bonus rules. Platform Admin can now author and correct those records
+  through the existing typed routes and accessible dashboard forms; regular Sub
+  Admin users remain creator-scoped. A new additive RLS migration requires both
+  `role=admin` and `platform_scope=true` for the override, while preserving
+  immutable business-line triggers, no-delete lifecycle behavior, and existing
+  transition validation. Focused API and RLS suites were attempted but skipped
+  because the PostgreSQL fixture is unavailable; full API Ruff, migration-head,
+  web lint, strict typecheck, and 319 web unit tests pass. The full CI script
+  reached its 30-minute cap without a report. The host web build compiled,
+  typechecked, and generated all 92 routes but standalone trace export failed
+  on Windows symlink `EPERM`; the browser suite's API-dependent tests reset at
+  `localhost:8000` (one independent case passed). FR-2.2 remains Partial: the
+  next audit must inventory the remaining user, media, listing, notification,
+  and record-level Admin update surfaces and add executable database evidence.
+
 - **AWS-inspired multi-role dashboard experience** (FR-2.1 through FR-2.7 and
   FR-17.1) is implemented in
   [PR #167](https://github.com/brollysolutions/client1/pull/167).
@@ -362,7 +381,7 @@ The following requirements are complete on the evidence baseline:
 | Requirement | Status | Implemented slice | Remaining work |
 | --- | --- | --- | --- |
 | FR-1.1 | Complete | Every mapped table and managed-media purpose is inventoried; operational rows require one immutable Loans/Real Estate tag, parent/source copies must match, and only reviewed staged/global/identity exceptions remain nullable or allow `both`. | Preserve the exhaustive ledger and migration/negative tests for every future table, relation, content audience, and media purpose. |
-| FR-2.2 | Partial | Admin dashboards cover users, leads, tasks, agents, loans, deals, payouts, content, audit, and reports. | Complete the requirement's exhaustive view/update coverage and verify every surface in Admin UI. |
+| FR-2.2 | Partial | Admin dashboards cover users, leads, tasks, agents, loans, deals, payouts, content, audit, and reports; platform Admin can now create and update shared banners, offers, content blocks, and referral-bonus rules through server/RLS-enforced overrides. | Complete the remaining exhaustive inventory for user, media, listing, notification, and record-level Admin updates; execute PostgreSQL-backed authorization/RLS and accessible UI coverage. |
 | FR-2.8 | Partial | Agent pre-assignment editing, client profile editing, and Admin operational edits exist. | Define and enforce provenance-based edit ownership consistently across all submitted detail types. |
 | FR-4.2 | Complete | Agent-introduced leads are atomically attributed and assigned through a durable, active-only same-line round-robin cursor, queued for bounded retry without capacity, and bound to a same-mobile Client only after OTP-proven registration. | Preserve global Agent ownership, expiry deadlines, generic-link authority boundaries, stable Telecaller order, cursor isolation, and concurrency tests as the workflow evolves. |
 | FR-4.3 | Complete | Registration captures explicit one/both-line intent while retaining both Client profiles; each requested journey is independently bound and assigned through its line's separate round-robin cursor without cross-line leakage. | Preserve explicit intent, per-line uniqueness, deterministic assignment ordering, and account-deletion closure. |
