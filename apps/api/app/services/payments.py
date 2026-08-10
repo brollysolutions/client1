@@ -271,7 +271,7 @@ async def create_payout(
             .where(
                 StaffProfile.auth_user_uuid == recipient_user_uuid,
                 or_(
-                    StaffProfile.business_line == business_line,
+                    StaffProfile.business_line.in_((business_line, "both")),
                     StaffProfile.business_line.is_(None),
                 ),
             )

@@ -39,9 +39,10 @@ export default function DashboardPage() {
   }
 
   if (session?.role === "agent") {
+    const agentLine = session.businessLine === "real_estate" ? "real_estate" : "loans";
     return (
       <>
-        <PersonalizedPlacements businessLine={session.businessLine ?? "loans"} />
+        <PersonalizedPlacements businessLine={agentLine} />
         <AgentHome />
       </>
     );

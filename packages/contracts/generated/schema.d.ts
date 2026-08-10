@@ -3443,7 +3443,7 @@ export interface components {
              * Business Line
              * @enum {string}
              */
-            business_line: "loans" | "real_estate";
+            business_line: "loans" | "real_estate" | "both";
             /** First Name */
             first_name: string;
             /**
@@ -6243,6 +6243,16 @@ export interface components {
              * Format: date-time
              */
             updated_at: string;
+            /**
+             * Viewer Can Approve
+             * @default false
+             */
+            viewer_can_approve: boolean;
+            /**
+             * Viewer Is Maker
+             * @default false
+             */
+            viewer_is_maker: boolean;
         };
         /** PayoutRecipientListResponse */
         PayoutRecipientListResponse: {
@@ -7104,7 +7114,7 @@ export interface components {
         /** StaffCreateRequest */
         StaffCreateRequest: {
             /** Business Line */
-            business_line?: ("loans" | "real_estate") | null;
+            business_line?: ("loans" | "real_estate" | "both") | null;
             /**
              * Email
              * Format: email
@@ -7125,7 +7135,7 @@ export interface components {
         /** StaffCreateResponse */
         StaffCreateResponse: {
             /** Business Line */
-            business_line: ("loans" | "real_estate") | null;
+            business_line: ("loans" | "real_estate" | "both") | null;
             /** First Name */
             first_name: string;
             /** Last Name */

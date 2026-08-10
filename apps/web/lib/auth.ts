@@ -14,6 +14,7 @@ import { apiRequest, type ApiResponse } from "@/lib/api/client";
 type Schemas = components["schemas"];
 
 export type BusinessLine = "loans" | "real_estate";
+export type StaffBusinessLine = BusinessLine | "both";
 
 // sessionStorage key used to hand the mobile number typed on /login over to
 // /forgot-password so the user isn't asked for it a second time. Kept out of the
@@ -113,11 +114,10 @@ export type AuthTokens = {
   // accounts that must change their password on first login. The DB enforces
   // this; the flag is only a client routing hint.
   forceReset: boolean;
-  // Decoded from the access token's `business_line` claim. Only meaningful
-  // for single-line staff/agent roles (Agent/Telecaller/Employee); a client's
-  // lines live in Me.profiles[] instead, and platform-scoped staff (Admin,
-  // some Sub Admin) carry no line at all.
-  businessLine: BusinessLine | null;
+  // Decoded from the access token's `business_line` claim. Agents carry one
+  // line; Telecallers/Employees carry one line or `both`. A client's lines live
+  // in Me.profiles[] instead, and platform-scoped staff carry no line at all.
+  businessLine: StaffBusinessLine | null;
 };
 
 // --- mapping helpers --------------------------------------------------------
@@ -174,7 +174,10 @@ function toAuthTokens(data: Schemas["AuthTokensResponse"]): AuthTokens {
     emailVerified: data.email_verified,
     role: ROLES.has(role) ? role : "client",
     forceReset: claims.force_reset === true,
-    businessLine: businessLine === "loans" || businessLine === "real_estate" ? businessLine : null,
+    businessLine:
+      businessLine === "loans" || businessLine === "real_estate" || businessLine === "both"
+        ? businessLine
+        : null,
   };
 }
 

@@ -58,7 +58,9 @@ export function AppSidebar({
   // notification destinations never render the other line's navigation.
   const screenLine =
     getDashboardPathLine(pathname) ??
-    (session?.role === "client" ? activeLine : (session?.businessLine ?? activeLine));
+    (session?.role === "client" || session?.businessLine === "both"
+      ? activeLine
+      : (session?.businessLine ?? activeLine));
   const activeText = screenLine === "loans" ? "text-loans-accent" : "text-realestate-accent";
 
   const sections = session
@@ -85,7 +87,7 @@ export function AppSidebar({
           <div className="mb-2 mt-2" aria-hidden="true" />
         )}
 
-        <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
+        <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
           {sections.map((section, sectionIndex) => (
             <div
               key={section.key}

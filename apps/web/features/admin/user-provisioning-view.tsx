@@ -25,10 +25,15 @@ const ROLE_OPTIONS: { value: StaffRole; label: string }[] = [
   { value: "employee", label: "Employee" },
 ];
 
-const LINE_OPTIONS: { value: "loans" | "real_estate"; label: string }[] = [
+const LINE_OPTIONS: { value: "loans" | "real_estate" | "both"; label: string }[] = [
   { value: "loans", label: "Loans" },
   { value: "real_estate", label: "Real Estate" },
+  { value: "both", label: "Both" },
 ];
+
+const LINE_LABEL = Object.fromEntries(
+  LINE_OPTIONS.map((option) => [option.value, option.label]),
+) as Record<(typeof LINE_OPTIONS)[number]["value"], string>;
 
 const EMPTY_FORM = {
   first_name: "",
@@ -36,7 +41,7 @@ const EMPTY_FORM = {
   mobile: "",
   email: "",
   role: "sub_admin" as StaffRole,
-  business_line: "" as "" | "loans" | "real_estate",
+  business_line: "" as "" | "loans" | "real_estate" | "both",
 };
 
 export function UserProvisioningView() {
@@ -95,7 +100,7 @@ export function UserProvisioningView() {
             </p>
             <p className="text-sm text-text-secondary">
               {ROLE_OPTIONS.find((r) => r.value === result.role)?.label ?? result.role}
-              {result.business_line ? ` · ${result.business_line === "loans" ? "Loans" : "Real Estate"}` : ""}
+              {result.business_line ? ` · ${LINE_LABEL[result.business_line]}` : ""}
               {" · "}
               {result.staff_code}
             </p>
@@ -187,7 +192,9 @@ export function UserProvisioningView() {
               <Label htmlFor="business_line">Business line</Label>
               <Select
                 value={form.business_line}
-                onValueChange={(v) => setField("business_line", v as "loans" | "real_estate")}
+                onValueChange={(v) =>
+                  setField("business_line", v as "loans" | "real_estate" | "both")
+                }
               >
                 <SelectTrigger id="business_line">
                   <SelectValue placeholder="Choose a line" />

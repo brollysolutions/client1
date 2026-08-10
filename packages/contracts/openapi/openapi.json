@@ -214,7 +214,8 @@
           "business_line": {
             "enum": [
               "loans",
-              "real_estate"
+              "real_estate",
+              "both"
             ],
             "title": "Business Line",
             "type": "string"
@@ -8196,6 +8197,16 @@
             "format": "date-time",
             "title": "Updated At",
             "type": "string"
+          },
+          "viewer_can_approve": {
+            "default": false,
+            "title": "Viewer Can Approve",
+            "type": "boolean"
+          },
+          "viewer_is_maker": {
+            "default": false,
+            "title": "Viewer Is Maker",
+            "type": "boolean"
           }
         },
         "required": [
@@ -10290,7 +10301,8 @@
               {
                 "enum": [
                   "loans",
-                  "real_estate"
+                  "real_estate",
+                  "both"
                 ],
                 "type": "string"
               },
@@ -10349,7 +10361,8 @@
               {
                 "enum": [
                   "loans",
-                  "real_estate"
+                  "real_estate",
+                  "both"
                 ],
                 "type": "string"
               },

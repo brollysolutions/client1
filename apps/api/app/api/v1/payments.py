@@ -99,7 +99,11 @@ async def _get_payout_or_404(db: AsyncSession, payout_id: UUID) -> Payout:
     return payout
 
 
-async def _to_read(db: AsyncSession, payouts: Sequence[Payout]) -> list[PayoutRead]:
+async def _to_read(
+    db: AsyncSession,
+    payouts: Sequence[Payout],
+    current_user: CurrentUser,
+) -> list[PayoutRead]:
     """Enrich payout rows with display identity in a small, bounded batch.
 
     Resolves identities once per distinct business_line present in the batch
@@ -139,6 +143,13 @@ async def _to_read(db: AsyncSession, payouts: Sequence[Payout]) -> list[PayoutRe
         read.maker_name = maker.name if maker else None
         read.checker_name = checker.name if checker else None
         read.rejected_by_name = rejected_by.name if rejected_by else None
+        read.viewer_is_maker = p.maker_user_uuid == current_user.id
+        read.viewer_can_approve = (
+            p.status == PayoutStatus.PENDING_APPROVAL
+            and is_platform_admin(current_user)
+            and p.maker_user_uuid != current_user.id
+            and p.recipient_user_uuid != current_user.id
+        )
         reads.append(read)
     return reads
 
@@ -165,7 +176,7 @@ async def create_payout(
         raise _map_error(exc) from None
 
     payout = await _get_payout_or_404(db, payout_id)
-    return (await _to_read(db, [payout]))[0]
+    return (await _to_read(db, [payout], current_user))[0]
 
 
 @router.post("/{payout_id}/approve", response_model=PayoutRead)
@@ -185,7 +196,7 @@ async def approve_payout(
         raise _map_error(exc) from None
 
     payout = await _get_payout_or_404(db, payout_id)
-    return (await _to_read(db, [payout]))[0]
+    return (await _to_read(db, [payout], current_user))[0]
 
 
 @router.post("/{payout_id}/reject", response_model=PayoutRead)
@@ -234,7 +245,7 @@ async def reject_payout(
     # instead of the ORM-vs-Core split there).
     db.expire(payout)
     payout = await _get_payout_or_404(db, payout_id)
-    return (await _to_read(db, [payout]))[0]
+    return (await _to_read(db, [payout], current_user))[0]
 
 
 @router.post("/{payout_id}/manual/issue", response_model=PayoutRead)
@@ -255,7 +266,7 @@ async def issue_manual_cheque(
     except payments_service.PayoutError as exc:
         raise _map_error(exc) from None
     payout = await _get_payout_or_404(db, payout_id)
-    return (await _to_read(db, [payout]))[0]
+    return (await _to_read(db, [payout], current_user))[0]
 
 
 @router.post("/{payout_id}/manual/clear", response_model=PayoutRead)
@@ -274,7 +285,7 @@ async def clear_manual_cheque(
     except payments_service.PayoutError as exc:
         raise _map_error(exc) from None
     payout = await _get_payout_or_404(db, payout_id)
-    return (await _to_read(db, [payout]))[0]
+    return (await _to_read(db, [payout], current_user))[0]
 
 
 @router.post("/{payout_id}/manual/fail", response_model=PayoutRead)
@@ -295,7 +306,7 @@ async def fail_manual_cheque(
     except payments_service.PayoutError as exc:
         raise _map_error(exc) from None
     payout = await _get_payout_or_404(db, payout_id)
-    return (await _to_read(db, [payout]))[0]
+    return (await _to_read(db, [payout], current_user))[0]
 
 
 @router.post("/{payout_id}/manual/reverse", response_model=PayoutRead)
@@ -316,7 +327,7 @@ async def reverse_manual_cheque(
     except payments_service.PayoutError as exc:
         raise _map_error(exc) from None
     payout = await _get_payout_or_404(db, payout_id)
-    return (await _to_read(db, [payout]))[0]
+    return (await _to_read(db, [payout], current_user))[0]
 
 
 @router.get("/recipients", response_model=PayoutRecipientListResponse)
@@ -381,7 +392,7 @@ async def list_payouts(
         stmt = stmt.where(Payout.status == status_filter)
     result = await db.execute(stmt)
     payouts = result.scalars().all()
-    return PayoutListResponse(payouts=await _to_read(db, payouts))
+    return PayoutListResponse(payouts=await _to_read(db, payouts, current_user))
 
 
 @router.post("/webhook/razorpay", response_model=WebhookAck)

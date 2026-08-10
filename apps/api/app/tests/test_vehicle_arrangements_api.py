@@ -105,9 +105,13 @@ async def test_admin_arranges_assigns_and_employee_completes(client: AsyncClient
     arrangement_id = created.json()["vehicle_arrangement"]["id"]
 
     admin_token, _ = await _seed_staff(StaffRole.ADMIN, None)
-    employee_token, employee_profile_id = await _seed_staff(StaffRole.EMPLOYEE, "real_estate")
+    employee_token, employee_profile_id = await _seed_staff(StaffRole.EMPLOYEE, "both")
     other_token, _ = await _seed_staff(StaffRole.EMPLOYEE, "real_estate")
     admin_headers = {"Authorization": f"Bearer {admin_token}"}
+    employee_headers = {
+        "Authorization": f"Bearer {employee_token}",
+        "X-Business-Line": "real_estate",
+    }
 
     arranged = await client.patch(
         f"/api/v1/admin/vehicle-arrangements/{arrangement_id}",
@@ -135,7 +139,7 @@ async def test_admin_arranges_assigns_and_employee_completes(client: AsyncClient
 
     employee_view = await client.get(
         "/api/v1/employee/vehicle-arrangements",
-        headers={"Authorization": f"Bearer {employee_token}"},
+        headers=employee_headers,
     )
     assert [item["id"] for item in employee_view.json()] == [arrangement_id]
     other_view = await client.get(
@@ -146,7 +150,7 @@ async def test_admin_arranges_assigns_and_employee_completes(client: AsyncClient
 
     completed = await client.patch(
         f"/api/v1/employee/vehicle-arrangements/{arrangement_id}",
-        headers={"Authorization": f"Bearer {employee_token}"},
+        headers=employee_headers,
         json={"status": "completed"},
     )
     assert completed.status_code == 200, completed.text

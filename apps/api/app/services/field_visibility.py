@@ -8,7 +8,7 @@ import uuid
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 
-from sqlalchemy import select, text, update
+from sqlalchemy import or_, select, text, update
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -432,7 +432,10 @@ async def invitation_is_valid(token: str) -> bool:
                 ContactShareLink.revoked_at.is_(None),
                 ContactShareLink.used_at.is_(None),
                 Task.lead_uuid == ContactShareLink.lead_uuid,
-                Task.business_line == StaffProfile.business_line,
+                or_(
+                    Task.business_line == StaffProfile.business_line,
+                    StaffProfile.business_line == "both",
+                ),
                 StaffProfile.auth_user_uuid == ContactShareLink.created_by_uuid,
                 StaffProfile.role == StaffRole.EMPLOYEE,
                 StaffProfile.status == ProfileStatus.ACTIVE,
@@ -464,7 +467,10 @@ async def consume_invitation(token: str, mobile: str) -> bool:
                 ContactShareLink.used_at.is_(None),
                 Lead.mobile == mobile,
                 Task.lead_uuid == ContactShareLink.lead_uuid,
-                Task.business_line == StaffProfile.business_line,
+                or_(
+                    Task.business_line == StaffProfile.business_line,
+                    StaffProfile.business_line == "both",
+                ),
                 StaffProfile.auth_user_uuid == ContactShareLink.created_by_uuid,
                 StaffProfile.role == StaffRole.EMPLOYEE,
                 StaffProfile.status == ProfileStatus.ACTIVE,

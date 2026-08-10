@@ -6,6 +6,7 @@ import { AlertTriangle, Bell, ClipboardList } from "lucide-react";
 
 import { Skeleton } from "@/components/ui/skeleton";
 import { FetchError } from "@/features/dashboard/fetch-error";
+import { useLine } from "@/features/dashboard/line-provider";
 import { getNotifications, type AppNotification } from "@/lib/notifications";
 import { getEmployeeHome, type EmployeeHome as EmployeeHomeData } from "@/lib/employee-api";
 
@@ -36,6 +37,7 @@ type Status = "loading" | "ready" | "error";
 // Employee landing page: today's tasks, counts by type/status, an overdue flag,
 // and a notifications preview. Mirrors TelecallerHome's minimal-landing posture.
 export function EmployeeHome() {
+  const { activeLine } = useLine();
   const [home, setHome] = React.useState<EmployeeHomeData | null>(null);
   const [notifications, setNotifications] = React.useState<AppNotification[]>([]);
   const [status, setStatus] = React.useState<Status>("loading");
@@ -69,7 +71,7 @@ export function EmployeeHome() {
     return () => {
       active = false;
     };
-  }, [reloadKey]);
+  }, [activeLine, reloadKey]);
 
   if (status === "loading") {
     return (

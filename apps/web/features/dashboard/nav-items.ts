@@ -31,7 +31,7 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
-import type { BusinessLine, UserRole } from "@/lib/auth";
+import type { BusinessLine, StaffBusinessLine, UserRole } from "@/lib/auth";
 
 const ALL_ROLES: readonly UserRole[] = [
   "admin",
@@ -77,7 +77,7 @@ export type NavSectionKey =
 
 export type DashboardAccessContext = {
   role: UserRole;
-  businessLine: BusinessLine | null;
+  businessLine: StaffBusinessLine | null;
   activeLine?: BusinessLine;
   profileLines?: readonly BusinessLine[];
 };
@@ -587,7 +587,8 @@ function hasCapability(
 
   const allowedLines = access.lines as readonly BusinessLine[];
   if (context.role !== "client") {
-    return context.businessLine != null && allowedLines.includes(context.businessLine);
+    const line = context.businessLine === "both" ? context.activeLine : context.businessLine;
+    return line != null && allowedLines.includes(line);
   }
 
   if (!useProfileLines) {

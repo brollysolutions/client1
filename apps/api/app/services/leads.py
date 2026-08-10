@@ -140,7 +140,7 @@ async def _select_round_robin_telecaller(
                 .where(
                     StaffProfile.role == StaffRole.TELECALLER,
                     StaffProfile.status == ProfileStatus.ACTIVE,
-                    StaffProfile.business_line == business_line,
+                    StaffProfile.business_line.in_((business_line, "both")),
                 )
                 .order_by(StaffProfile.created_at, StaffProfile.id)
                 .with_for_update()
@@ -646,7 +646,7 @@ async def assign_lead_to_telecaller(
         telecaller is None
         or telecaller.role != StaffRole.TELECALLER
         or telecaller.status != ProfileStatus.ACTIVE
-        or telecaller.business_line != lead.business_line
+        or telecaller.business_line not in (lead.business_line, "both")
     ):
         raise InvalidTelecaller
 
@@ -722,7 +722,7 @@ async def release_lead_from_telecaller(
             new_telecaller is None
             or new_telecaller.role != StaffRole.TELECALLER
             or new_telecaller.status != ProfileStatus.ACTIVE
-            or new_telecaller.business_line != lead.business_line
+            or new_telecaller.business_line not in (lead.business_line, "both")
         ):
             raise InvalidTelecaller
 
