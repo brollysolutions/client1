@@ -4,12 +4,20 @@ import * as React from "react";
 import { SearchX } from "lucide-react";
 
 import { Skeleton } from "@/components/ui/skeleton";
+import { DASHBOARD_ICONS } from "@/features/dashboard/dashboard-icons";
+import {
+  DashboardHeader,
+  DashboardPage,
+  MetricCard,
+  MetricGrid,
+} from "@/features/dashboard/dashboard-ui";
 import { FetchError } from "@/features/dashboard/fetch-error";
 import { PropertyCard } from "@/features/real-estate/property-card";
 import { PropertyRow } from "@/features/real-estate/property-row";
 import { PropertySearchBar } from "@/features/real-estate/property-search-bar";
 import { usePropertyFilters } from "@/features/real-estate/use-property-filters";
 import { useProperties } from "@/features/real-estate/use-properties";
+import { useBookmarks } from "@/features/real-estate/store";
 import { buildSuggestionIndex } from "@/lib/property-facets";
 import { RE_CATEGORIES } from "@/lib/real-estate";
 
@@ -20,41 +28,50 @@ import { RE_CATEGORIES } from "@/lib/real-estate";
 // in-memory, so no server fetch); the filter engine runs client-side over it.
 export function RealEstateHome() {
   const { listings, loading, error, retry } = useProperties();
+  const { count: bookmarkCount } = useBookmarks();
   const { filters, setFilters, clearAll, active, activeCount, results, resultCount } =
     usePropertyFilters({ source: listings });
   const suggestionIndex = React.useMemo(() => buildSuggestionIndex(listings), [listings]);
 
   const heading = (
-    <div>
-      <h1 className="text-2xl font-semibold text-text-primary">Real Estate</h1>
-      <p className="text-sm text-text-secondary">
-        Search properties by locality, city, PIN code, or name, or browse by category below.
-      </p>
-    </div>
+    <DashboardHeader
+      eyebrow="Real Estate workspace"
+      title="Find your next property"
+      description="Search by locality, city, PIN code, or property name, then save and compare the best matches."
+    />
   );
 
   if (loading) {
     return (
-      <div className="mx-auto w-full max-w-[1320px] space-y-6 px-4 sm:px-6">
+      <DashboardPage>
         {heading}
         <Skeleton className="h-40 rounded-xl" />
-      </div>
+      </DashboardPage>
     );
   }
 
   if (error) {
     return (
-      <div className="mx-auto w-full max-w-[1320px] space-y-6 px-4 sm:px-6">
+      <DashboardPage>
         {heading}
         <FetchError status={null} message={error} onRetry={retry} />
-      </div>
+      </DashboardPage>
     );
   }
 
+  const cityCount = new Set(listings.map((listing) => listing.city).filter(Boolean)).size;
+  const categoryCount = new Set(listings.map((listing) => listing.category)).size;
+
   return (
-    <div className="space-y-6">
-      <div className="mx-auto w-full max-w-[1320px] space-y-6 px-4 sm:px-6">
+    <DashboardPage>
         {heading}
+
+        <MetricGrid>
+          <MetricCard label="Available properties" value={listings.length} icon={DASHBOARD_ICONS.propertyListings} />
+          <MetricCard label="Saved properties" value={bookmarkCount} icon={DASHBOARD_ICONS.bookmarks} href="/dashboard/bookmarks" />
+          <MetricCard label="Cities" value={cityCount} icon={DASHBOARD_ICONS.explore} />
+          <MetricCard label="Property categories" value={categoryCount} icon={DASHBOARD_ICONS.propertyListings} />
+        </MetricGrid>
 
         <PropertySearchBar
           filters={filters}
@@ -90,10 +107,8 @@ export function RealEstateHome() {
             </div>
           )
         ) : null}
-      </div>
-
       {active ? null : (
-        <div className="space-y-8 px-4 sm:px-6 lg:px-10">
+        <div className="space-y-8">
           {RE_CATEGORIES.map((cat) => (
             <PropertyRow
               key={cat.key}
@@ -105,6 +120,6 @@ export function RealEstateHome() {
           ))}
         </div>
       )}
-    </div>
+    </DashboardPage>
   );
 }

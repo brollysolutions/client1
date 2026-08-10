@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { ArrowRight, BadgePercent } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 
 import { useAuth } from "@/components/auth/session-provider";
 import { Badge } from "@/components/ui/badge";
@@ -14,6 +14,8 @@ import {
   type AuthenticatedPlacement,
 } from "@/lib/personalization-api";
 import { isSafeLocalHref } from "@/lib/safe-local-href";
+
+import { DASHBOARD_ICONS } from "./dashboard-icons";
 
 type BusinessLine = "loans" | "real_estate";
 
@@ -59,7 +61,7 @@ export function PersonalizedPlacements({ businessLine }: { businessLine: Busines
 
   if (loading) {
     return (
-      <div className="mx-auto mb-6 w-full max-w-5xl space-y-3 px-4 sm:px-6 lg:px-10">
+      <div className="mx-auto mb-6 w-full max-w-[1440px] space-y-3 px-4 sm:px-6 lg:px-8">
         <Skeleton className="h-36 rounded-2xl" />
       </div>
     );
@@ -73,7 +75,7 @@ export function PersonalizedPlacements({ businessLine }: { businessLine: Busines
   return (
     <section
       aria-label="Dashboard highlights"
-      className="mx-auto mb-6 w-full max-w-5xl space-y-3 px-4 sm:px-6 lg:px-10"
+      className="mx-auto mb-6 w-full max-w-[1440px] space-y-3 px-4 sm:px-6 lg:px-8"
     >
       {banners.map((banner) => (
         <DashboardBanner key={banner.id} banner={banner} />
@@ -83,7 +85,7 @@ export function PersonalizedPlacements({ businessLine }: { businessLine: Busines
           {offers.map((offer) => (
             <article key={offer.id} className="rounded-xl border border-blue-200 bg-blue-50 p-4">
               <div className="flex items-center gap-2 text-blue-800">
-                <BadgePercent className="h-4 w-4" aria-hidden="true" />
+                <DASHBOARD_ICONS.offers className="h-4 w-4" aria-hidden="true" />
                 <span className="text-xs font-semibold uppercase tracking-wide">Offer</span>
               </div>
               <h2 className="mt-2 font-semibold text-text-primary">{offer.title}</h2>

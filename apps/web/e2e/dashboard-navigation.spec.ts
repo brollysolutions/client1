@@ -186,7 +186,17 @@ test.describe("role-aware dashboard navigation", () => {
         promoteAccount(account, scenario);
         await logIn(page, account);
 
-        await page.getByRole("button", { name: "Expand sidebar" }).click();
+        const expandSidebar = page.getByRole("button", { name: "Expand sidebar" });
+        if (scenario.name === "Client") {
+          await expect(expandSidebar).toBeVisible();
+          await expandSidebar.click();
+          await expect(page.getByRole("button", { name: "Collapse sidebar" })).toBeVisible();
+          await page.reload();
+          await expect(page.getByRole("button", { name: "Collapse sidebar" })).toBeVisible();
+        } else {
+          await expect(expandSidebar).toHaveCount(0);
+          await expect(page.getByRole("button", { name: "Collapse sidebar" })).toHaveCount(0);
+        }
         const navigation = page.locator('nav[aria-label="Workspace"]:visible');
         await expect(navigation).toBeVisible();
 
@@ -195,6 +205,14 @@ test.describe("role-aware dashboard navigation", () => {
         }
         for (const label of scenario.excluded) {
           await expect(navigation.getByRole("link", { name: label, exact: true })).toHaveCount(0);
+        }
+
+        if (scenario.name === "Employee") {
+          await expect(
+            page
+              .locator('main a[href="/dashboard/vehicle-arrangements"]')
+              .filter({ hasText: "Review assigned pickups" }),
+          ).toBeVisible();
         }
 
         await page.goto(scenario.deniedPath);

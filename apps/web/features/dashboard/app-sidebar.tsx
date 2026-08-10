@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ChevronDown, ChevronRight, PanelLeft } from "lucide-react";
+import { ChevronDown, PanelLeft } from "lucide-react";
 
 import {
   Tooltip,
@@ -30,11 +30,9 @@ function isActive(pathname: string, href: string): boolean {
   return href !== "/dashboard" && pathname.startsWith(`${href}/`);
 }
 
-// Slim workspace rail. Icon-only when collapsed (names live in tooltips); it
-// expands to a labeled list when the user opens it from the toggle, and the
-// mobile drawer always shows labels. The active item reads as a blue icon plus a
-// left indicator bar (blue-only accent, ADR-0007). A mini account block is pinned
-// at the bottom.
+// Role-aware workspace navigation. The Client may collapse it to an icon rail;
+// operational roles are always labeled on desktop, and the mobile drawer always
+// shows labels. The active item reads as a blue icon plus a left indicator bar.
 export function AppSidebar({
   showLabels = false,
   expanded = false,
@@ -207,9 +205,10 @@ function SidebarLink({
       className={cn(
         "group/link relative flex items-center gap-3 rounded-lg text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue",
         labeled ? "px-3 py-2.5" : "h-12 w-12 justify-center",
-        // Hover: light-blue text/icon + left bar (below); the leading icon morphs
-        // into a chevron. No background fill. Active stays blue with a solid bar.
+        // Hover keeps the semantic icon stable and adds a subtle tint plus the
+        // left indicator. Active stays blue with a solid bar.
         active ? activeText : "text-text-secondary hover:text-sky-500",
+        !active && "hover:bg-brand-cta-tint/60",
       )}
     >
       <span
@@ -221,15 +220,7 @@ function SidebarLink({
         )}
       />
       <span className="relative grid h-5 w-5 shrink-0 place-items-center" aria-hidden="true">
-        <Icon
-          className={cn(
-            "h-5 w-5 transition-opacity",
-            active ? "opacity-100" : "group-hover/link:opacity-0",
-          )}
-        />
-        {!active && (
-          <ChevronRight className="absolute h-5 w-5 opacity-0 transition-opacity group-hover/link:opacity-100" />
-        )}
+        <Icon className="h-5 w-5" />
         {badge && !labeled ? (
           <span
             aria-hidden="true"

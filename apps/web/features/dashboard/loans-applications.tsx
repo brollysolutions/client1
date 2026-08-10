@@ -2,12 +2,14 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { ChevronRight, FileText, Plus } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { getLoanApplications, type LoanApplication } from "@/lib/loans";
 
+import { DASHBOARD_ICONS } from "./dashboard-icons";
+import { DashboardHeader, DashboardPage, MetricCard, MetricGrid } from "./dashboard-ui";
 import { FetchError } from "./fetch-error";
 import { STATUS_STYLES, formatAmount, formatDate } from "./loan-format";
 
@@ -22,7 +24,7 @@ function ApplyCta({ className }: { className?: string }) {
         className,
       )}
     >
-      <Plus className="h-4 w-4" />
+      <DASHBOARD_ICONS.applyForLoan className="h-4 w-4" aria-hidden="true" />
       Apply for a loan
     </Link>
   );
@@ -76,37 +78,51 @@ export function LoansApplications() {
 
   if (status === "loading") {
     return (
-      <div className="mx-auto w-full max-w-5xl space-y-5 px-4 sm:px-6 lg:px-10">
+      <DashboardPage className="space-y-5">
         <Skeleton className="h-9 w-48 rounded-lg" />
         <Skeleton className="h-64 rounded-2xl" />
-      </div>
+      </DashboardPage>
     );
   }
 
   if (status === "error") {
     return (
-      <div className="mx-auto w-full max-w-5xl px-4 sm:px-6 lg:px-10">
+      <DashboardPage>
         <FetchError status={errorStatus} message={error} onRetry={retry} />
-      </div>
+      </DashboardPage>
     );
   }
 
+  const activeCount = applications.filter(
+    (application) => !["disbursed", "closed", "rejected"].includes(application.status),
+  ).length;
+  const attentionCount = applications.filter((application) =>
+    ["on_hold", "rejected"].includes(application.status),
+  ).length;
+  const completedCount = applications.filter((application) =>
+    ["disbursed", "closed"].includes(application.status),
+  ).length;
+
   return (
-    <section className="mx-auto w-full max-w-5xl space-y-5 px-4 sm:px-6 lg:px-10">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-semibold text-text-primary">Your loans</h1>
-          <p className="text-sm text-text-secondary">
-            Track every loan you have applied for and its status.
-          </p>
-        </div>
-        <ApplyCta />
-      </div>
+    <DashboardPage>
+      <DashboardHeader
+        eyebrow="Loans workspace"
+        title="Your loan journey"
+        description="Track applications, see their latest status, and start a new request."
+        actions={<ApplyCta />}
+      />
+
+      <MetricGrid>
+        <MetricCard label="Applications" value={applications.length} icon={DASHBOARD_ICONS.loanApplications} />
+        <MetricCard label="Active" value={activeCount} icon={DASHBOARD_ICONS.loanApplications} />
+        <MetricCard label="Needs attention" value={attentionCount} icon={DASHBOARD_ICONS.loanApplications} attention={attentionCount > 0} />
+        <MetricCard label="Completed" value={completedCount} icon={DASHBOARD_ICONS.loanApplications} />
+      </MetricGrid>
 
       {applications.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-border bg-card px-6 py-16 text-center">
-          <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-loans-soft text-loans-accent">
-            <FileText className="h-6 w-6" />
+          <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-xl bg-loans-soft text-loans-accent">
+            <DASHBOARD_ICONS.loanApplications className="h-6 w-6" aria-hidden="true" />
           </span>
           <h2 className="mt-5 text-lg font-semibold text-text-primary">No loan applications yet</h2>
           <p className="mx-auto mt-2 max-w-md text-sm text-text-secondary">
@@ -180,6 +196,6 @@ export function LoansApplications() {
           </table>
         </div>
       )}
-    </section>
+    </DashboardPage>
   );
 }

@@ -47,6 +47,24 @@ work than several completed UI requirements.
 
 ## Delivered implementation
 
+- **AWS-inspired multi-role dashboard experience** (FR-2.1 through FR-2.7 and
+  FR-17.1) is implemented on `feat/aws-inspired-dashboards` (PR pending).
+  Admin, Sub Admin, Telecaller, Employee, and Agent now receive a permanently
+  expanded labeled desktop sidebar without a panel-toggle icon, while Clients
+  retain their remembered expand/collapse preference and every role retains the
+  mobile drawer. One semantic icon registry drives navigation and home
+  shortcuts. Shared page-header, metric, queue, panel, status, and quick-action
+  patterns give all six role homes a denser operational hierarchy without
+  changing routes, permissions, API schemas, or RLS. The Employee home exposes
+  Vehicle arrangements only for the active Real Estate line. Fresh evidence:
+  15 focused sidebar/navigation tests, all 319 web unit tests, full lint, strict
+  typecheck, a passing Linux production image with all 92 routes, and an
+  eight-case live-stack Playwright role/mobile matrix. The native Windows build
+  also compiled, typechecked, and generated all routes before the known
+  standalone symlink `EPERM`. Coverage remains **98.7%** because this improves
+  already-complete role dashboard requirements without closing FR-2.2 or
+  FR-2.8.
+
 - **Delegated payout operations and Admin hierarchy** (FR-2.2, FR-2.3, and
   FR-10.3) are complete in
   [PR #165](https://github.com/brollysolutions/client1/pull/165). One
