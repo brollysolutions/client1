@@ -7,7 +7,8 @@ As of: **2026-08-11**
 Evidence baseline: `466b5e3`
 ([PR #172](https://github.com/brollysolutions/client1/pull/172)), plus the
 verified Admin operational-visibility work on
-`security/admin-operational-coverage-contract` (PR pending).
+`security/admin-operational-coverage-contract`
+([PR #173](https://github.com/brollysolutions/client1/pull/173)).
 
 ## Purpose and authority
 
@@ -62,8 +63,8 @@ business-line segregation remain non-negotiable compatibility constraints.
 
 ## Delivered implementation
 
-- **Admin operational visibility remediation** (FR-2.2) is delivered on
-  `security/admin-operational-coverage-contract` (PR pending). Six dedicated,
+- **Admin operational visibility remediation** (FR-2.2) is delivered in
+  [PR #173](https://github.com/brollysolutions/client1/pull/173). Six dedicated,
   read-only, paginated routes require both the Admin role and platform scope
   before querying through the request's RLS-bound async session. Their explicit
   projections omit authentication IP/user-agent/detail, enquiry and visit
