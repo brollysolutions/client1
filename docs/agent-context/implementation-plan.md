@@ -2,18 +2,17 @@
 
 Status: **Derived, actively maintained plan**
 
-As of: **2026-08-10**
+As of: **2026-08-11**
 
-Evidence baseline: `20a4ed8`
-([PR #159](https://github.com/brollysolutions/client1/pull/159)), based on
-`59ae35b` ([PR #158](https://github.com/brollysolutions/client1/pull/158))
+Evidence baseline: `dc1b8e7`
+([PR #169](https://github.com/brollysolutions/client1/pull/169)).
 
 ## Outcome
 
 Complete the approved Loans and Real Estate scope without weakening
 authorization, business-line segregation, PII/KYC handling, payout controls,
 or auditability. The current evidence-based implementation coverage is
-approximately **98.1%** across 79 active requirements; see
+approximately **99.4%** across 79 active requirements; see
 [`feature-status.md`](feature-status.md) for the
 calculation and requirement-level gaps.
 
@@ -73,9 +72,46 @@ included in completion coverage.
 | 2 | Media controls completion (FR-13.1–FR-13.4) | **Done** in [PR #159](https://github.com/brollysolutions/client1/pull/159): purpose-bound property and Loans MP4, assigned-Employee property-visit feedback attachments, fail-closed malware scanning, metadata removal/transcoding, and explicit retention complete the approved scope without a universal asset library. | `gpt-5.6-sol` / Extra High | `gpt-5.6-sol` / Extra High | Preserve the delivered purpose, assignment, line, private/public promotion, processing-state, retention, and account-deletion invariants. |
 | 3 | Role-aware dashboard navigation (FR-2.1–FR-2.7, FR-17.1) | **Done** in [PR #162](https://github.com/brollysolutions/client1/pull/162): one typed capability catalogue now drives grouped navigation and direct-route UX for all 52 dashboard page entry points; 9 focused unit tests, all 310 web tests, an 8-case live-stack Playwright role/mobile matrix, and the canonical Linux production build pass. | `gpt-5.6-sol` / Extra High | `gpt-5.6-sol` / Extra High | Preserve the single capability source, explicit route inventory, Client held-line checks, single-line staff scope, fixed local redirects, and server-side dependency/RLS authority whenever dashboard routes change. |
 | 4 | Round-robin Telecaller assignment (FR-4.2, FR-4.3) | **Done** in [PR #163](https://github.com/brollysolutions/client1/pull/163): workload-sensitive selection is replaced by the explicitly requested durable rotation while preserving the delivered assignment lifecycle. | `gpt-5.6-sol` / High | `gpt-5.6-sol` / Extra High | Each business line advances independently through active same-line Telecallers in stable creation order; concurrent automatic assignments cannot duplicate or skip a turn; inactive staff, no-capacity retry, manual Admin assignment, RLS, audit, and notification behavior remain safe. |
-| 5 | Provenance-based edit ownership (FR-2.8) | Current edit paths work, but ownership rules are not uniform across submitted detail types. | `gpt-5.6-sol` / High | `gpt-5.6-sol` / Extra High | Define per-field creator/reviewer/Admin authority; enforce it in service and RLS paths with cross-role/cross-line denial tests. |
+| 5 | Provenance-based edit ownership (FR-2.8) | **Done** in [PR #169](https://github.com/brollysolutions/client1/pull/169): lead name and journey notes retain their Agent/Client creator, Agent edits remain open through assignment until work begins, Client edits remain open until terminal state, Admin corrections require an audited reason, and Telecaller qualification data stays in activities. | `gpt-5.6-sol` / High | `gpt-5.6-sol` / Extra High | Preserve immutable ownership, row locking, lifecycle cutoffs, no-store least-data responses, and service plus RLS/trigger denial coverage. |
 | 6 | Admin operational coverage audit (FR-2.2) | **Partially delivered** in [PR #168](https://github.com/brollysolutions/client1/pull/168): confirmed CMS override gaps are closed for platform Admin; the next priority is the remaining domain-by-domain inventory. | `gpt-5.6-terra` / High | `gpt-5.6-terra` / High | Inventory every required Admin surface, close confirmed gaps, and add authorization plus accessible UI coverage. |
 | 7 | Business-line classification hardening (FR-1.1) | **Done** in [PR #160](https://github.com/brollysolutions/client1/pull/160): every mapped table and managed-media purpose has an explicit classification mode; operational rows, fixed domains, staged referrals, global content, staff scope, and audit exceptions are database-constrained. | `gpt-5.6-sol` / High | `gpt-5.6-sol` / Extra High | Preserve the exhaustive classification ledger, exact-line lead intent, count-only deployment preflight, immutable tags, and parent/provenance checks as schemas evolve. |
+
+### Delivered feature brief - provenance-based edit ownership
+
+- **Branch / PR:** `codex/20260810-161623-ps-d-dhanadhara-client1-docker-compose-f` /
+  [PR #169](https://github.com/brollysolutions/client1/pull/169).
+- **Success:** lead names and journey notes carry immutable creator descriptors.
+  Agent-owned values remain editable by that Agent while the lead is `new` or
+  `assigned`; Client-owned values remain editable by that Client until the
+  journey becomes terminal. Platform Admin may correct either with a required
+  audit reason while preserving the original owner.
+- **Architecture and UI:** additive JSONB provenance is initialized on every
+  lead-creation/binding path and conservatively backfilled for legacy rows.
+  One row-locked service powers Agent, Client, and Admin edits. Client Settings
+  exposes only creator-editable journey fields; both Admin lead queues expose a
+  correction dialog with ownership labels. Generated OpenAPI types remain the
+  web contract.
+- **Security and compatibility:** command-specific RLS plus a database trigger
+  enforce role, line, lifecycle, immutable-owner, and allowed-column rules.
+  Ownership descriptors cannot be planted without a newly supplied value.
+  Employee/Sub Admin status progression remains intact but cannot alter detail
+  fields; Telecaller qualification notes are accepted only through append-only
+  activities. Responses include only name/notes and use `private, no-store`;
+  audit records contain changed field names and the bounded reason, not values.
+- **Non-goals:** generic provenance for every domain model, Client mobile-number
+  edits, arbitrary Telecaller requirement mutation, Agent ownership transfer,
+  or a new review workflow. Support-assisted mobile change remains authoritative.
+- **Fresh evidence:** all 85 affected ownership, public capture, Agent,
+  Telecaller, and lead-RLS tests pass on the final tree; Ruff passes across all
+  433 API files. The migration
+  repeatedly downgrades/upgrades and Alembic reports one head. Generated
+  contracts, full web ESLint, strict TypeScript, all 320 Vitest tests, and a
+  Linux production image packaging all 92 pages pass. Security review remediated
+  descriptor planting, stale-row races, superuser capture/claim overwrites,
+  direct-insert provenance spoofing, response overexposure/cacheability, and
+  silent Telecaller extras; no finding
+  remains. The repository-wide verifier reached its 30-minute bound without
+  emitting a report, so that aggregate run is inconclusive rather than passing.
 
 ### Delivered feature brief - AWS-inspired multi-role dashboard experience
 
@@ -1074,11 +1110,11 @@ merged. Payment-method completion is merged in
 
 ## Delivery sequence
 
-The next active item is **provenance-based edit ownership** (FR-2.8). Define the
-field-level creator, reviewer, and platform-Admin authority matrix before
-changing the remaining cross-cutting authorization paths. Business-line
-classification hardening (FR-1.1) is delivered in
-[PR #160](https://github.com/brollysolutions/client1/pull/160).
+The next active item is the remaining **Admin operational coverage audit**
+(FR-2.2): complete the domain-by-domain inventory and close only proven view or
+update gaps with server/RLS authorization and accessible UI evidence.
+Provenance-based edit ownership (FR-2.8) is delivered in
+[PR #169](https://github.com/brollysolutions/client1/pull/169).
 
 For each item:
 
@@ -1112,6 +1148,7 @@ The backlog builds on these delivered foundations:
 
 | Date | Change | Evidence |
 | --- | --- | --- |
+| 2026-08-11 | Completed provenance-based lead-detail ownership (FR-2.8) and promoted the remaining Admin operational coverage audit (FR-2.2). | [PR #169](https://github.com/brollysolutions/client1/pull/169); additive ownership migration/trigger/RLS, Agent/Client/Admin APIs, Client/Admin UI, generated contracts, migration round-trip/one-head, focused API/RLS/static/web tests, and security review. |
 | 2026-08-10 | Replaced least-loaded automatic Telecaller selection with durable per-line round-robin assignment while preserving FR-4.2/FR-4.3 completion. | [PR #163](https://github.com/brollysolutions/client1/pull/163); exact 1-2-3 wraparound, inactive/reactivated staff, separate line cursors, manual isolation, no-capacity retry, concurrent turn consumption, migration round-trip/one-head, 188 affected tests, Ruff, RLS/grant and cross-line cursor denial, security review. The monolithic API suite exceeded 30 minutes without a final report. |
 | 2026-08-09 | Completed media controls finalization (FR-13.1 through FR-13.4) and promoted provenance-based edit ownership as the next priority. | [PR #159](https://github.com/brollysolutions/client1/pull/159); property/Loans MP4, assigned-Employee visit feedback, scanning/sanitization/transcoding, retention/account deletion, generated contracts, 117 focused API tests after the 1,589-test split regression, 301 web tests, Linux 92-route build, four Playwright journeys, migration round-trip/one-head, security and PR review. The repository wrapper was attempted but its monolithic API phase exceeded 30 minutes without a report. |
 | 2026-08-09 | Removed Map/GMB integration (FR-18.2) completely from the active product baseline and recalculated coverage over 79 requirements. | Explicit user direction; CS-010; `feature-status.md`; all 7 feature-tracking tests pass with a denominator-aware status assertion. |

@@ -227,6 +227,19 @@ async def test_patch_lead_empty_payload_rejected(client: AsyncClient) -> None:
 
 
 @pytest.mark.asyncio
+async def test_patch_lead_rejects_detail_mutation(client: AsyncClient) -> None:
+    auth_uuid, staff_uuid = await _seed_telecaller("loans")
+    lead_id = await _seed_assigned_lead("loans", staff_uuid)
+
+    res = await client.patch(
+        f"/api/v1/telecaller/leads/{lead_id}",
+        json={"status": "working", "requirement": {"notes": "Overwrite"}},
+        headers={"Authorization": f"Bearer {_telecaller_token(auth_uuid, staff_uuid)}"},
+    )
+    assert res.status_code == 422
+
+
+@pytest.mark.asyncio
 async def test_log_call_activity_success(client: AsyncClient) -> None:
     auth_uuid, staff_uuid = await _seed_telecaller("loans")
     lead_id = await _seed_assigned_lead("loans", staff_uuid, status="assigned")

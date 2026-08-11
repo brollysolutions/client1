@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { releaseLead, type AdminAssignedLead } from "@/lib/admin-api";
+import { LeadDetailsDialog } from "./lead-details-dialog";
 import { useAdminAssignedLeads } from "./use-admin-assigned-leads";
 
 const LINE_LABEL: Record<string, string> = {
@@ -136,7 +137,14 @@ export function AssignedLeadsView() {
                     : "No active telecaller on this lead"}
                 </p>
               </div>
-              <Button onClick={() => openRelease(lead)}>Release / Reassign</Button>
+              <div className="flex flex-wrap gap-2">
+                <LeadDetailsDialog
+                  leadId={lead.id}
+                  leadName={lead.name}
+                  onSaved={() => void reload()}
+                />
+                <Button onClick={() => openRelease(lead)}>Release / Reassign</Button>
+              </div>
             </li>
           ))}
         </ul>

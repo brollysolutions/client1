@@ -126,6 +126,13 @@ class Lead(Base):
     requirement: Mapped[dict[str, Any] | None] = mapped_column(
         JSONB(none_as_null=True), nullable=True
     )
+    # Internal field-path ownership ledger for FR-2.8. Keys are ``name`` or
+    # ``requirement.<top-level-key>``; values contain an owner role and, for
+    # authenticated creators, the owning profile/user UUID. The API exposes
+    # only safe role labels and computed editable fields, never these UUIDs.
+    detail_ownership: Mapped[dict[str, Any]] = mapped_column(
+        JSONB(none_as_null=True), nullable=False, default=dict
+    )
     status: Mapped[LeadStatus] = mapped_column(
         lead_status_enum, nullable=False, default=LeadStatus.NEW
     )

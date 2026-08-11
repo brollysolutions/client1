@@ -96,10 +96,6 @@ async def list_activities_for_lead(db: AsyncSession, lead_id: UUID) -> list[Lead
 async def update_lead(db: AsyncSession, lead: Lead, payload: TelecallerLeadUpdate) -> Lead:
     if payload.status is not None:
         lead.status = LeadStatus(payload.status)
-    if payload.requirement is not None:
-        merged = dict(lead.requirement or {})
-        merged.update(payload.requirement)
-        lead.requirement = merged
     await db.commit()
     await db.refresh(lead)
     return lead

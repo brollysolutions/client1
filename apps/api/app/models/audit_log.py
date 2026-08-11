@@ -85,6 +85,7 @@ class AuditAction(enum.StrEnum):
     NOTIFICATION_BROADCAST = "notification_broadcast"
     AGENT_LEAD_EXPIRED = "agent_lead_expired"
     LEAD_ASSIGNED = "lead_assigned"
+    LEAD_DETAILS_UPDATED = "lead_details_updated"
     FIELD_VISIBILITY_UPDATED = "field_visibility_updated"
     MOBILE_CHANGE_VERIFIED = "mobile_change_verified"
     MOBILE_CHANGED = "mobile_changed"

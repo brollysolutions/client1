@@ -41,6 +41,7 @@ async def _seed_lead(
     async with _session_mod.AsyncSessionLocal() as db:
         lead = Lead(
             mobile=unique_mobile(),
+            name="Original" if origin_agent_profile_uuid else None,
             business_line=business_line,
             status=(
                 LeadStatus.NEW if assigned_telecaller_profile_uuid is None else LeadStatus.ASSIGNED
@@ -60,6 +61,16 @@ async def _seed_lead(
                 else None
             ),
             agent_expired_at=datetime.now(UTC) if agent_expired else None,
+            detail_ownership=(
+                {
+                    "name": {
+                        "role": "agent",
+                        "subject_uuid": origin_agent_profile_uuid,
+                    }
+                }
+                if origin_agent_profile_uuid
+                else {}
+            ),
         )
         db.add(lead)
         await db.commit()
@@ -189,11 +200,33 @@ async def test_agent_can_update_own_unassigned_lead(client: AsyncClient) -> None
 
 
 @pytest.mark.asyncio
-async def test_agent_cannot_update_after_telecaller_assigned(client: AsyncClient) -> None:
-    """The row IS visible under USING (agent's origin_agent_profile_uuid still
-    matches), so the UPDATE finds it and Postgres evaluates WITH CHECK on the
-    new row — which fails and raises, rather than silently matching 0 rows.
-    Same shape as the sibling test_leads_rls.py::test_line_staff_cannot_move_lead_across_lines."""
+async def test_agent_cannot_insert_detail_with_spoofed_owner(client: AsyncClient) -> None:
+    agent_uuid = await _seed_agent_profile("loans")
+    with pytest.raises(Exception):  # noqa: B017 - RLS rejects foreign provenance on insert
+        await _run_as(
+            role="agent",
+            business_line="loans",
+            agent_profile_uuid=agent_uuid,
+            query=(
+                "INSERT INTO leads "
+                "(id, mobile, business_line, origin, origin_agent_profile_uuid, status, name, "
+                "detail_ownership, expires_at, created_at, updated_at) "
+                "VALUES (:id, :mobile, 'loans', 'agent', :agent_id, 'new', 'Spoofed', "
+                "jsonb_build_object('name', jsonb_build_object("
+                "'role', 'client', 'subject_uuid', :foreign_owner)), "
+                "now() + INTERVAL '30 days', now(), now())"
+            ),
+            params={
+                "id": str(uuid.uuid4()),
+                "mobile": unique_mobile(),
+                "agent_id": agent_uuid,
+                "foreign_owner": str(uuid.uuid4()),
+            },
+        )
+
+
+@pytest.mark.asyncio
+async def test_agent_can_update_owned_detail_after_assignment(client: AsyncClient) -> None:
     agent_uuid = await _seed_agent_profile("loans")
     staff_uuid = await _seed_telecaller_staff_profile("loans")
     lead_id = await _seed_lead(
@@ -201,14 +234,40 @@ async def test_agent_cannot_update_after_telecaller_assigned(client: AsyncClient
         origin_agent_profile_uuid=agent_uuid,
         assigned_telecaller_profile_uuid=staff_uuid,
     )
-    with pytest.raises(Exception):  # noqa: B017 — asyncpg raises a row-security violation
-        await _run_as(
-            role="agent",
-            business_line="loans",
-            agent_profile_uuid=agent_uuid,
-            query="UPDATE leads SET name = 'Updated' WHERE id = :id",
-            params={"id": lead_id},
-        )
+    rowcount = await _run_as(
+        role="agent",
+        business_line="loans",
+        agent_profile_uuid=agent_uuid,
+        query="UPDATE leads SET name = 'Updated' WHERE id = :id",
+        params={"id": lead_id},
+    )
+    assert rowcount == 1
+
+
+@pytest.mark.asyncio
+async def test_agent_cannot_update_after_telecaller_starts_work(client: AsyncClient) -> None:
+    agent_uuid = await _seed_agent_profile("loans")
+    staff_uuid = await _seed_telecaller_staff_profile("loans")
+    lead_id = await _seed_lead(
+        "loans",
+        origin_agent_profile_uuid=agent_uuid,
+        assigned_telecaller_profile_uuid=staff_uuid,
+    )
+    import app.db.session as session_module
+    from app.models.lead import Lead, LeadStatus
+
+    async with session_module.AsyncSessionLocal() as db:
+        lead = await db.get(Lead, uuid.UUID(lead_id))
+        lead.status = LeadStatus.WORKING
+        await db.commit()
+    rowcount = await _run_as(
+        role="agent",
+        business_line="loans",
+        agent_profile_uuid=agent_uuid,
+        query="UPDATE leads SET name = 'Updated' WHERE id = :id",
+        params={"id": lead_id},
+    )
+    assert rowcount == 0
 
 
 @pytest.mark.asyncio
@@ -244,14 +303,14 @@ async def test_agent_can_select_but_cannot_update_expired_lead(client: AsyncClie
     )
     assert selected == 1
 
-    with pytest.raises(Exception):  # noqa: B017 — RLS WITH CHECK denies the write
-        await _run_as(
-            role="agent",
-            business_line="loans",
-            agent_profile_uuid=agent_uuid,
-            query="UPDATE leads SET name = 'Updated' WHERE id = :id",
-            params={"id": lead_id},
-        )
+    updated = await _run_as(
+        role="agent",
+        business_line="loans",
+        agent_profile_uuid=agent_uuid,
+        query="UPDATE leads SET name = 'Updated' WHERE id = :id",
+        params={"id": lead_id},
+    )
+    assert updated == 0
 
 
 @pytest.mark.asyncio
@@ -260,28 +319,28 @@ async def test_agent_cannot_update_past_deadline_before_scheduler_marker(
 ) -> None:
     agent_uuid = await _seed_agent_profile("loans")
     lead_id = await _seed_lead("loans", origin_agent_profile_uuid=agent_uuid, past_due=True)
-    with pytest.raises(Exception):  # noqa: B017 - RLS deadline check denies the write
-        await _run_as(
-            role="agent",
-            business_line="loans",
-            agent_profile_uuid=agent_uuid,
-            query="UPDATE leads SET name = 'Updated' WHERE id = :id",
-            params={"id": lead_id},
-        )
+    updated = await _run_as(
+        role="agent",
+        business_line="loans",
+        agent_profile_uuid=agent_uuid,
+        query="UPDATE leads SET name = 'Updated' WHERE id = :id",
+        params={"id": lead_id},
+    )
+    assert updated == 0
 
 
 @pytest.mark.asyncio
 async def test_agent_cannot_clear_expiry_marker_to_bypass_rls(client: AsyncClient) -> None:
     agent_uuid = await _seed_agent_profile("loans")
     lead_id = await _seed_lead("loans", origin_agent_profile_uuid=agent_uuid, agent_expired=True)
-    with pytest.raises(Exception):  # noqa: B017 — immutable trigger rejects reset
-        await _run_as(
-            role="agent",
-            business_line="loans",
-            agent_profile_uuid=agent_uuid,
-            query="UPDATE leads SET agent_expired_at = NULL WHERE id = :id",
-            params={"id": lead_id},
-        )
+    updated = await _run_as(
+        role="agent",
+        business_line="loans",
+        agent_profile_uuid=agent_uuid,
+        query="UPDATE leads SET agent_expired_at = NULL WHERE id = :id",
+        params={"id": lead_id},
+    )
+    assert updated == 0
 
 
 @pytest.mark.asyncio

@@ -22,6 +22,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { assignLead, type AdminLead } from "@/lib/admin-api";
+import { LeadDetailsDialog } from "./lead-details-dialog";
 import { useAdminLeadsQueue } from "./use-admin-leads";
 
 const LINE_LABEL: Record<string, string> = {
@@ -116,7 +117,14 @@ export function LeadsQueueView() {
                   {lead.mobile} · {formatDate(lead.created_at)}
                 </p>
               </div>
-              <Button onClick={() => openAssign(lead)}>Assign</Button>
+              <div className="flex flex-wrap gap-2">
+                <LeadDetailsDialog
+                  leadId={lead.id}
+                  leadName={lead.name}
+                  onSaved={() => void reload()}
+                />
+                <Button onClick={() => openAssign(lead)}>Assign</Button>
+              </div>
             </li>
           ))}
         </ul>

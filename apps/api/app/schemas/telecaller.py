@@ -7,7 +7,7 @@ from decimal import Decimal
 from typing import Annotated, Any, Literal
 from uuid import UUID
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 LeadStatusLiteral = Literal["new", "assigned", "working", "converted", "closed", "released"]
 LoanStatusLiteral = Literal[
@@ -89,13 +89,14 @@ class LeadActivityRead(BaseModel):
 
 
 class TelecallerLeadUpdate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     status: TelecallerLeadStatusLiteral | None = None
-    requirement: dict[str, Any] | None = None
 
     @model_validator(mode="after")
     def _at_least_one_field(self) -> TelecallerLeadUpdate:
-        if self.status is None and self.requirement is None:
-            raise ValueError("Provide at least one of status or requirement.")
+        if self.status is None:
+            raise ValueError("Provide status; qualification details belong in call activities.")
         return self
 
 

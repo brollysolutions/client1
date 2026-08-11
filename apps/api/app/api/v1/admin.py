@@ -67,6 +67,7 @@ from app.schemas.field_visibility import (
     FieldVisibilityListResponse,
     FieldVisibilityUpdateRequest,
 )
+from app.schemas.lead_details import AdminLeadDetailsPatch, LeadDetailsRead
 from app.schemas.loan_config import (
     AdminBankListResponse,
     AdminBankRead,
@@ -121,6 +122,20 @@ from app.services.field_visibility import (
 )
 from app.services.field_visibility import (
     update_for_admin as update_field_visibility,
+)
+from app.services.lead_details import (
+    DetailActor,
+    LeadDetailsLocked,
+    LeadDetailsNotFound,
+)
+from app.services.lead_details import (
+    get_for_actor as get_lead_details_for_actor,
+)
+from app.services.lead_details import (
+    patch_details as patch_owned_lead_details,
+)
+from app.services.lead_details import (
+    to_read as to_lead_details_read,
 )
 from app.services.leads import (
     InvalidTelecaller,
@@ -729,6 +744,52 @@ async def list_assigned(
         )
         for lead, staff, user in rows
     ]
+
+
+@router.get("/leads/{lead_id}/details", response_model=LeadDetailsRead)
+async def get_lead_details(
+    lead_id: UUID,
+    response: Response,
+    current_user: CurrentUser = Depends(require_platform_admin),
+    db: AsyncSession = Depends(get_db),
+) -> LeadDetailsRead:
+    response.headers["Cache-Control"] = "private, no-store"
+    actor = DetailActor(role="admin", subject_uuid=current_user.id, auth_user_uuid=current_user.id)
+    try:
+        lead = await get_lead_details_for_actor(db, lead_id, actor)
+    except LeadDetailsNotFound as exc:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Lead not found.") from exc
+    return to_lead_details_read(lead, actor)
+
+
+@router.patch("/leads/{lead_id}/details", response_model=LeadDetailsRead)
+async def update_lead_details(
+    lead_id: UUID,
+    payload: AdminLeadDetailsPatch,
+    response: Response,
+    current_user: CurrentUser = Depends(require_platform_admin),
+    db: AsyncSession = Depends(get_db),
+) -> LeadDetailsRead:
+    response.headers["Cache-Control"] = "private, no-store"
+    actor = DetailActor(role="admin", subject_uuid=current_user.id, auth_user_uuid=current_user.id)
+    try:
+        lead = await get_lead_details_for_actor(db, lead_id, actor)
+    except LeadDetailsNotFound as exc:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Lead not found.") from exc
+    try:
+        lead = await patch_owned_lead_details(
+            db,
+            lead=lead,
+            payload=payload,
+            actor=actor,
+            admin_reason=payload.reason,
+        )
+    except LeadDetailsLocked as exc:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            "Lead details changed concurrently; reload and try again.",
+        ) from exc
+    return to_lead_details_read(lead, actor)
 
 
 @router.get("/tasks", response_model=list[AdminTaskRead])
