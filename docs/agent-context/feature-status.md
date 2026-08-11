@@ -106,8 +106,8 @@ hardens already-counted requirements rather than adding scope. The next
 recommended UI defect is notification unread-state synchronization using
 `gpt-5.6-terra` at High effort.
 
-**Delivered — dev-seed Indian mobile-number correctness (maintenance; PR
-pending):** one shared helper now generates synthetic `+91` mobile numbers
+**In progress — dev-seed Indian mobile-number correctness (maintenance):** on
+`codex/20260812-112811-yeah-create-pr-for-dev-seed`, one shared helper generates synthetic `+91` mobile numbers
 with a ten-digit local number beginning 6–9. The Agent-application and
 Telecaller dev seeds plus every affected test generator use it, and a focused
 regression test locks the format. Fresh container evidence covers 52 focused
