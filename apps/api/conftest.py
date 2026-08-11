@@ -15,6 +15,7 @@ from sqlalchemy.pool import NullPool
 
 from app.core.config import settings
 from app.main import app
+from app.scripts.seed_helpers import dev_indian_mobile
 
 # ---------------------------------------------------------------------------
 # NullPool patch — must run before any test touches the DB
@@ -134,8 +135,7 @@ PASSWORD = "Test@1234"
 
 def unique_mobile() -> str:
     """E.164 Indian mobile — unique per call, avoids cross-test DB collisions."""
-    n = uuid.uuid4().int % 900_000_000 + 100_000_000
-    return f"+91{n}"
+    return dev_indian_mobile()
 
 
 def unique_email() -> str:

@@ -20,10 +20,11 @@ from __future__ import annotations
 
 import asyncio
 import sys
-import uuid
 from datetime import UTC, datetime, timedelta
 
 from sqlalchemy import func, select, text
+
+from app.scripts.seed_helpers import dev_indian_mobile
 
 
 async def _seed(mobile: str) -> None:
@@ -69,15 +70,11 @@ async def _seed(mobile: str) -> None:
             )
             return
 
-        def _mobile() -> str:
-            n = uuid.uuid4().int % 900_000_000 + 100_000_000
-            return f"+91{n}"
-
         names = ["Amit Verma", "Sneha Reddy", "Farhan Sheikh"]
         leads = [
             Lead(
                 name=name,
-                mobile=_mobile(),
+                mobile=dev_indian_mobile(),
                 business_line=staff.business_line,
                 origin=LeadOrigin.DIRECT,
                 assigned_telecaller_profile_uuid=staff.id,
