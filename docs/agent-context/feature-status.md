@@ -58,9 +58,10 @@ non-negotiable compatibility constraints.
 
 ## Delivered implementation
 
-- **Admin operational coverage contract** (FR-2.2) is partially delivered on
-  `security/admin-operational-coverage-contract`. An explicit registry maps all
-  47 SQLAlchemy tables to FR-2.2 domains and records sensitivity, least-data
+- **Admin operational coverage contract** (FR-2.2) is partially delivered in
+  [PR #172](https://github.com/brollysolutions/client1/pull/172). An explicit
+  registry maps all 47 SQLAlchemy tables to FR-2.2 domains and records
+  sensitivity, least-data
   Admin view authority, supported workflow/status/configuration commands,
   API/UI paths, RLS and audit expectations, and covered/gap/protected status.
   Structural tests fail on unclassified future tables, unsafe full views of
