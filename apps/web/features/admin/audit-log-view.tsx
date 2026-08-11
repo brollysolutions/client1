@@ -9,6 +9,7 @@ import {
   CircleSlash,
   Eraser,
   FileCheck2,
+  FilePenLine,
   Headset,
   Home,
   IndianRupee,
@@ -186,6 +187,11 @@ const ACTION_META: Record<AuditAction, { label: string; icon: LucideIcon; tone: 
     label: "Lead assigned",
     icon: Headset,
     tone: "bg-loans-soft text-loans-accent",
+  },
+  lead_details_updated: {
+    label: "Lead details corrected",
+    icon: FilePenLine,
+    tone: "bg-warning/10 text-warning",
   },
   field_visibility_updated: {
     label: "Field visibility updated",

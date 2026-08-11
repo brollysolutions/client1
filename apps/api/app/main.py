@@ -24,6 +24,7 @@ from app.api.v1.agent_applications import router as agent_applications_router
 from app.api.v1.auth import router as auth_router
 from app.api.v1.banners import router as banners_router
 from app.api.v1.bookmarks import router as bookmarks_router
+from app.api.v1.client_lead_details import router as client_lead_details_router
 from app.api.v1.commissions import router as commissions_router
 from app.api.v1.content import router as content_router
 from app.api.v1.document_verification import router as document_verification_router
@@ -135,6 +136,11 @@ app.include_router(referrals_router, prefix="/api/v1/referrals", tags=["referral
 app.include_router(payments_router, prefix="/api/v1/payouts", tags=["payouts"])
 app.include_router(telecaller_router, prefix="/api/v1/telecaller", tags=["telecaller"])
 app.include_router(agent_router, prefix="/api/v1/agent", tags=["agent"])
+app.include_router(
+    client_lead_details_router,
+    prefix="/api/v1/client/lead-details",
+    tags=["client"],
+)
 app.include_router(employee_router, prefix="/api/v1/employee", tags=["employee"])
 app.include_router(
     employee_vehicle_arrangements_router,

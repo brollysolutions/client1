@@ -61,9 +61,7 @@ def _to_agent_lead_read(
         status="expired" if lead.agent_expired_at is not None else lead.status,
         registered=lead.client_profile_uuid is not None,
         editable=(
-            lead.assigned_telecaller_profile_uuid is None
-            and lead.agent_expired_at is None
-            and within_window
+            lead.status in {"new", "assigned"} and lead.agent_expired_at is None and within_window
         ),
         expires_at=lead.expires_at,
         expired_at=lead.agent_expired_at,
@@ -181,11 +179,18 @@ async def patch_lead(
     if lead is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Lead not found.")
     try:
-        lead = await update_lead_for_agent(db, lead, payload)
+        lead = await update_lead_for_agent(
+            db,
+            lead,
+            payload,
+            auth_user_uuid=current_user.id,
+            agent_profile_uuid=agent_profile_uuid,
+        )
     except LeadLocked as exc:
         raise HTTPException(
             status.HTTP_409_CONFLICT,
-            "This lead is assigned or its Agent window has ended and it can no longer be edited.",
+            "This lead is already being worked or its Agent window has ended "
+            "and it can no longer be edited.",
         ) from exc
     modes = await effective_modes(db, FieldTargetRole.AGENT)
     return _to_agent_lead_read(lead, modes)

@@ -44,6 +44,12 @@ class AgentLeadUpdate(BaseModel):
             raise ValueError("Provide at least one of name or requirement.")
         return self
 
+    @model_validator(mode="after")
+    def _only_owned_requirement_notes(self) -> AgentLeadUpdate:
+        if self.requirement is not None and set(self.requirement) != {"notes"}:
+            raise ValueError("Only requirement.notes can be edited from the Agent workspace.")
+        return self
+
 
 class AgentLeadRead(BaseModel):
     id: UUID

@@ -38,6 +38,7 @@ from app.models.notification import NotificationType
 from app.models.profile import ClientProfile, ProfileStatus, StaffProfile, StaffRole
 from app.models.user import User
 from app.services.audit_log import record as record_audit
+from app.services.lead_details import initial_ownership, owner, transfer_unclaimed_to_client
 from app.services.notifications import emit_notification
 
 logger = logging.getLogger(__name__)
@@ -112,16 +113,6 @@ async def lock_assignment_lines(db: AsyncSession, business_lines: set[str]) -> N
     """Acquire automatic-assignment locks in one canonical order."""
     for business_line in sorted(business_lines & _VALID_LINES):
         await _lock_assignment_line(db, business_line)
-
-
-def _merge_requirement(
-    existing: dict[str, Any] | None, incoming: dict[str, Any] | None
-) -> dict[str, Any] | None:
-    if incoming is None:
-        return existing
-    merged = dict(existing) if isinstance(existing, dict) else {}
-    merged.update(incoming)
-    return merged
 
 
 async def _select_round_robin_telecaller(
@@ -300,6 +291,11 @@ async def capture_lead(
                     origin=LeadOrigin.DIRECT,
                     status=LeadStatus.NEW,
                     requirement=requirement,
+                    detail_ownership=initial_ownership(
+                        name=name,
+                        requirement=requirement,
+                        creator_role="unclaimed",
+                    ),
                 )
                 session.add(candidate)
             else:
@@ -309,9 +305,33 @@ async def capture_lead(
                     candidate.assigned_telecaller_profile_uuid is None
                     and candidate.status in _ASSIGNABLE_STATUSES
                 ):
-                    if name is not None:
+                    additions = initial_ownership(
+                        name=name,
+                        requirement=requirement,
+                        creator_role="unclaimed",
+                    )
+                    ownership = dict(candidate.detail_ownership or {})
+                    name_owner = ownership.get("name")
+                    if name is not None and (
+                        name_owner is None
+                        or (isinstance(name_owner, dict) and name_owner.get("role") == "unclaimed")
+                    ):
                         candidate.name = name
-                    candidate.requirement = _merge_requirement(candidate.requirement, requirement)
+                        ownership.setdefault("name", additions["name"])
+
+                    merged_requirement = dict(candidate.requirement or {})
+                    for key, value in (requirement or {}).items():
+                        path = f"requirement.{key}"
+                        descriptor = ownership.get(path)
+                        if descriptor is not None and not (
+                            isinstance(descriptor, dict) and descriptor.get("role") == "unclaimed"
+                        ):
+                            continue
+                        merged_requirement[key] = value
+                        ownership.setdefault(path, additions[path])
+                    if requirement is not None:
+                        candidate.requirement = merged_requirement
+                    candidate.detail_ownership = ownership
                 candidate.updated_at = datetime.now(UTC)
             await session.flush()
             notice = await auto_assign_locked_lead(session, candidate)
@@ -390,6 +410,12 @@ async def capture_agent_lead(
                     requirement=requirement,
                     status=LeadStatus.NEW,
                     expires_at=datetime.now(UTC) + timedelta(days=settings.AGENT_LEAD_EXPIRY_DAYS),
+                    detail_ownership=initial_ownership(
+                        name=name,
+                        requirement=requirement,
+                        creator_role="agent",
+                        creator_subject_uuid=agent_profile_uuid,
+                    ),
                 )
                 session.add(lead)
                 await session.flush()
@@ -400,9 +426,40 @@ async def capture_agent_lead(
                     lead.assigned_telecaller_profile_uuid is None
                     and lead.status in _ASSIGNABLE_STATUSES
                 ):
-                    if name is not None:
+                    ownership = dict(lead.detail_ownership or {})
+                    name_owner = ownership.get("name")
+                    agent_subject = str(agent_profile_uuid)
+                    if name is not None and (
+                        name_owner is None
+                        or (
+                            isinstance(name_owner, dict)
+                            and name_owner.get("role") == "agent"
+                            and name_owner.get("subject_uuid") == agent_subject
+                        )
+                    ):
                         lead.name = name
-                    lead.requirement = _merge_requirement(lead.requirement, requirement)
+                        ownership.setdefault("name", owner("agent", agent_profile_uuid))
+                    additions = initial_ownership(
+                        name=name,
+                        requirement=requirement,
+                        creator_role="agent",
+                        creator_subject_uuid=agent_profile_uuid,
+                    )
+                    merged_requirement = dict(lead.requirement or {})
+                    for key, value in (requirement or {}).items():
+                        path = f"requirement.{key}"
+                        descriptor = ownership.get(path)
+                        if descriptor is not None and not (
+                            isinstance(descriptor, dict)
+                            and descriptor.get("role") == "agent"
+                            and descriptor.get("subject_uuid") == agent_subject
+                        ):
+                            continue
+                        merged_requirement[key] = value
+                        ownership.setdefault(path, additions[path])
+                    if requirement is not None:
+                        lead.requirement = merged_requirement
+                    lead.detail_ownership = ownership
             else:
                 if (
                     lead.assigned_telecaller_profile_uuid is not None
@@ -415,9 +472,34 @@ async def capture_agent_lead(
                 lead.expires_at = datetime.now(UTC) + timedelta(
                     days=settings.AGENT_LEAD_EXPIRY_DAYS
                 )
-                if name is not None:
+                additions = initial_ownership(
+                    name=name,
+                    requirement=requirement,
+                    creator_role="agent",
+                    creator_subject_uuid=agent_profile_uuid,
+                )
+                ownership = dict(lead.detail_ownership or {})
+                name_owner = ownership.get("name")
+                if name is not None and (
+                    name_owner is None
+                    or (isinstance(name_owner, dict) and name_owner.get("role") == "unclaimed")
+                ):
                     lead.name = name
-                lead.requirement = _merge_requirement(lead.requirement, requirement)
+                    ownership["name"] = additions["name"]
+
+                merged_requirement = dict(lead.requirement or {})
+                for key, value in (requirement or {}).items():
+                    path = f"requirement.{key}"
+                    descriptor = ownership.get(path)
+                    if descriptor is not None and not (
+                        isinstance(descriptor, dict) and descriptor.get("role") == "unclaimed"
+                    ):
+                        continue
+                    merged_requirement[key] = value
+                    ownership[path] = additions[path]
+                if requirement is not None:
+                    lead.requirement = merged_requirement
+                lead.detail_ownership = ownership
 
             notice = await auto_assign_locked_lead(session, lead)
             await session.commit()
@@ -462,6 +544,12 @@ async def _ensure_client_line_lead(
             origin=LeadOrigin.DIRECT,
             status=LeadStatus.NEW,
             name=name,
+            detail_ownership=initial_ownership(
+                name=name,
+                requirement=None,
+                creator_role="client",
+                creator_subject_uuid=client_profile_uuid,
+            ),
         )
         db.add(lead)
         await db.flush()
@@ -469,8 +557,12 @@ async def _ensure_client_line_lead(
         if lead.client_profile_uuid not in (None, client_profile_uuid):
             raise ValueError("Lead is already claimed by a different Client profile.")
         lead.client_profile_uuid = client_profile_uuid
+        transfer_unclaimed_to_client(lead, client_profile_uuid)
         if lead.name is None and name is not None:
             lead.name = name
+            ownership = dict(lead.detail_ownership or {})
+            ownership.setdefault("name", owner("client", client_profile_uuid))
+            lead.detail_ownership = ownership
         lead.updated_at = datetime.now(UTC)
 
     return lead, await auto_assign_locked_lead(db, lead)
