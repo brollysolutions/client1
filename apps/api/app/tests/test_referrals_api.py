@@ -12,6 +12,7 @@ import pytest
 from httpx import AsyncClient
 from sqlalchemy import text
 
+from app.scripts.seed_helpers import dev_indian_mobile
 from conftest import full_registration
 
 _CODE_RE = re.compile(r"^[0-9A-HJKMNP-TV-Z]{8}$")
@@ -139,7 +140,7 @@ async def test_list_returns_only_own_rows_and_masks_mobile(client: AsyncClient) 
     uid_a = await _auth_user_uuid(mobile_a)
     token_b, mobile_b = await full_registration(client, lines=["loans"])
     uid_b = await _auth_user_uuid(mobile_b)
-    referred_mobile = f"+91{uuid.uuid4().int % 900_000_000 + 100_000_000}"
+    referred_mobile = dev_indian_mobile()
     ref_id = await _seed_referral(uid_a, uid_b, referred_mobile)
 
     res_a = await client.get("/api/v1/referrals", headers={"Authorization": f"Bearer {token_a}"})
