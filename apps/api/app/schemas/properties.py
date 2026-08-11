@@ -54,6 +54,11 @@ class PropertyListResponse(BaseModel):
     properties: list[PropertyRead]
 
 
+class AdminPropertyStatusUpdate(BaseModel):
+    active: bool
+    reason: str = Field(min_length=1, max_length=1000)
+
+
 class PublicPropertyRead(BaseModel):
     """Anonymous-read shape (docs/specs/public-property-catalog.md).
 

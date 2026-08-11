@@ -17,7 +17,7 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from uuid import UUID
 
-from sqlalchemy import delete, func, select, text
+from sqlalchemy import delete, func, select, text, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -27,6 +27,7 @@ from app.models.notification import NotificationType
 from app.models.profile import (
     AgentApplication,
     AgentProfile,
+    ClientProfile,
     ProfileScope,
     ProfileStatus,
     StaffFeatureGrant,
@@ -58,6 +59,14 @@ class InvalidStaffFeatureTarget(Exception):
     """Raised when a grant targets anyone except an active Sub Admin."""
 
 
+class AdminUserUpdateForbidden(Exception):
+    """Raised for self, immutable-Main-Admin, or non-operational status changes."""
+
+
+class AdminUserNotFound(Exception):
+    """Raised when an Admin targets a missing or deleted identity."""
+
+
 ADDITIONAL_ADMIN_LIMIT = 3
 SUPPORTED_STAFF_FEATURES = {"payout_requests"}
 
@@ -81,6 +90,111 @@ async def is_primary_admin(
             )
         )
     )
+
+
+async def list_operational_users(
+    db: AsyncSession, *, limit: int, offset: int
+) -> tuple[list[tuple[User, list[str]]], int]:
+    total = await db.scalar(select(func.count()).select_from(User)) or 0
+    users = (
+        await db.scalars(
+            select(User)
+            .order_by(User.created_at.desc(), User.id.desc())
+            .limit(limit)
+            .offset(offset)
+        )
+    ).all()
+    user_ids = [user.id for user in users]
+    if not user_ids:
+        return [], total
+    roles: dict[UUID, set[str]] = {user_id: set() for user_id in user_ids}
+    staff_rows = await db.execute(
+        select(StaffProfile.auth_user_uuid, StaffProfile.role).where(
+            StaffProfile.auth_user_uuid.in_(user_ids)
+        )
+    )
+    for user_id, role in staff_rows.all():
+        roles[user_id].add(role.value)
+    agent_ids = await db.scalars(
+        select(AgentProfile.auth_user_uuid).where(AgentProfile.auth_user_uuid.in_(user_ids))
+    )
+    for user_id in agent_ids.all():
+        roles[user_id].add("agent")
+    client_ids = await db.scalars(
+        select(ClientProfile.auth_user_uuid).where(ClientProfile.auth_user_uuid.in_(user_ids))
+    )
+    for user_id in client_ids.all():
+        roles[user_id].add("client")
+    return [(user, sorted(roles[user.id])) for user in users], total
+
+
+async def set_operational_user_status(
+    db: AsyncSession,
+    *,
+    target_user_uuid: UUID,
+    target_status: UserStatus,
+    reason: str,
+    actor_uuid: UUID,
+    actor_role: str,
+) -> User:
+    target = await db.get(User, target_user_uuid, with_for_update=True)
+    if target is None or target.status == UserStatus.SOFT_DELETED:
+        raise AdminUserNotFound
+    if target.id == actor_uuid or target.status not in (UserStatus.ACTIVE, UserStatus.SUSPENDED):
+        raise AdminUserUpdateForbidden
+    primary_admin = await db.scalar(
+        select(StaffProfile.id).where(
+            StaffProfile.auth_user_uuid == target.id, StaffProfile.is_primary_admin.is_(True)
+        )
+    )
+    if primary_admin:
+        raise AdminUserUpdateForbidden
+    if target.status == target_status:
+        return target
+    previous_status = target.status
+    target.status = target_status
+    profile_status = (
+        ProfileStatus.SUSPENDED if target_status == UserStatus.SUSPENDED else ProfileStatus.ACTIVE
+    )
+    for profile_model in (StaffProfile, AgentProfile, ClientProfile):
+        await db.execute(
+            update(profile_model)
+            .where(profile_model.auth_user_uuid == target.id)
+            .values(status=profile_status)
+        )
+    target.session_version += 1
+    from app.services.auth_service import _revoke_all_refresh_tokens
+
+    await _revoke_all_refresh_tokens(db, target.id, commit=False)
+    await record_audit(
+        db,
+        action=AuditAction.ACCOUNT_STATUS_UPDATED,
+        entity_type="auth_user",
+        entity_uuid=target.id,
+        actor_uuid=actor_uuid,
+        actor_role=actor_role,
+        detail={
+            "previous_status": previous_status.value,
+            "status": target_status.value,
+            "reason": reason,
+        },
+    )
+    await db.commit()
+    await db.refresh(target)
+    return target
+
+
+async def operational_roles_for(db: AsyncSession, user_id: UUID) -> list[str]:
+    roles: set[str] = set()
+    for role in (
+        await db.scalars(select(StaffProfile.role).where(StaffProfile.auth_user_uuid == user_id))
+    ).all():
+        roles.add(role.value)
+    if await db.scalar(select(AgentProfile.id).where(AgentProfile.auth_user_uuid == user_id)):
+        roles.add("agent")
+    if await db.scalar(select(ClientProfile.id).where(ClientProfile.auth_user_uuid == user_id)):
+        roles.add("client")
+    return sorted(roles)
 
 
 class AgentApplicationAlreadyReviewed(Exception):
