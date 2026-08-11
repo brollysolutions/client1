@@ -73,7 +73,7 @@ included in completion coverage.
 | 3 | Role-aware dashboard navigation (FR-2.1–FR-2.7, FR-17.1) | **Done** in [PR #162](https://github.com/brollysolutions/client1/pull/162): one typed capability catalogue now drives grouped navigation and direct-route UX for all 52 dashboard page entry points; 9 focused unit tests, all 310 web tests, an 8-case live-stack Playwright role/mobile matrix, and the canonical Linux production build pass. | `gpt-5.6-sol` / Extra High | `gpt-5.6-sol` / Extra High | Preserve the single capability source, explicit route inventory, Client held-line checks, single-line staff scope, fixed local redirects, and server-side dependency/RLS authority whenever dashboard routes change. |
 | 4 | Round-robin Telecaller assignment (FR-4.2, FR-4.3) | **Done** in [PR #163](https://github.com/brollysolutions/client1/pull/163): workload-sensitive selection is replaced by the explicitly requested durable rotation while preserving the delivered assignment lifecycle. | `gpt-5.6-sol` / High | `gpt-5.6-sol` / Extra High | Each business line advances independently through active same-line Telecallers in stable creation order; concurrent automatic assignments cannot duplicate or skip a turn; inactive staff, no-capacity retry, manual Admin assignment, RLS, audit, and notification behavior remain safe. |
 | 5 | Provenance-based edit ownership (FR-2.8) | **Done** in [PR #169](https://github.com/brollysolutions/client1/pull/169): lead name and journey notes retain their Agent/Client creator, Agent edits remain open through assignment until work begins, Client edits remain open until terminal state, Admin corrections require an audited reason, and Telecaller qualification data stays in activities. | `gpt-5.6-sol` / High | `gpt-5.6-sol` / Extra High | Preserve immutable ownership, row locking, lifecycle cutoffs, no-store least-data responses, and service plus RLS/trigger denial coverage. |
-| 6 | Admin operational coverage audit (FR-2.2) | **Partially delivered** in [PR #172](https://github.com/brollysolutions/client1/pull/172): all 47 mapped tables now have a test-enforced, least-privilege Admin view/update/audit decision; fresh PostgreSQL evidence passes for account status, notification audit, listing availability, and all 68 current platform-scope policies. The contract identifies 16 gap-bearing tables without claiming generic CRUD. | `gpt-5.6-sol` / Extra High | `gpt-5.6-sol` / Extra High | Next, repair the soft-deleted-account list projection and add minimized operational visibility for the seven other view gaps; then add typed correction commands and missing append-only audit events. Preserve protected secret/location/media tables, command-bound mutation, RLS, and FR-2.2 Partial status until later API/UI remediation is complete. |
+| 6 | Admin operational coverage audit (FR-2.2) | **Visibility remediation delivered; follow-up queued** in [PR #173](https://github.com/brollysolutions/client1/pull/173): [PR #172](https://github.com/brollysolutions/client1/pull/172) delivered the exhaustive 47-table/68-policy contract, and this slice closes all eight confirmed read gaps without adding generic CRUD. | `gpt-5.6-sol` / Extra High | `gpt-5.6-sol` / Extra High | Next, add the typed approved-listing correction command and seven missing append-only audit-event families. Preserve protected secret/location/media fields, immutable ledgers, command-bound mutation, RLS, and FR-2.2 Partial status until those eight remaining gaps are closed. |
 | 7 | Business-line classification hardening (FR-1.1) | **Done** in [PR #160](https://github.com/brollysolutions/client1/pull/160): every mapped table and managed-media purpose has an explicit classification mode; operational rows, fixed domains, staged referrals, global content, staff scope, and audit exceptions are database-constrained. | `gpt-5.6-sol` / High | `gpt-5.6-sol` / Extra High | Preserve the exhaustive classification ledger, exact-line lead intent, count-only deployment preflight, immutable tags, and parent/provenance checks as schemas evolve. |
 
 ### Delivered feature brief - Admin operational coverage contract
@@ -117,6 +117,46 @@ included in completion coverage.
 - **Non-goals:** generic Admin CRUD, arbitrary identity/financial/ownership
   edits, new endpoints or screens, exposing protected values, changing payout
   or document authority, or claiming FR-2.2 complete from an inventory alone.
+
+### Delivered feature brief - Admin operational visibility remediation
+
+- **Branch / PR:** `security/admin-operational-coverage-contract` /
+  [PR #173](https://github.com/brollysolutions/client1/pull/173).
+- **Success:** the platform-Admin Users & staff surface lists soft-deleted
+  accounts safely and shows minimized per-line Client profile context. A
+  dedicated Operational records workspace pages through authentication events,
+  enquiries, lead activities, loan transaction history, site visits, and the
+  transaction ledger using generated response contracts.
+- **Authorization and privacy:** every new route requires `role=admin` and
+  `platform_scope=true` before querying through the request's RLS-bound async
+  session. Projections exclude IP addresses, user agents, authentication detail,
+  enquiry/visit contact fields and messages, vehicle pickup locations, external
+  or retained transaction references, and deleted-account tombstone emails.
+- **Compatibility:** no migration, grant, RLS-policy, producer, workflow-state,
+  or mutation-authority change. Existing owner/staff endpoints and account
+  status commands retain their contracts except for additive Client profile
+  context and nullable redacted mobile/email values on deleted accounts.
+- **Acceptance evidence:** focused API tests cover platform-Admin reads,
+  pagination, exact minimized keys, and Client/Sub Admin/line-Admin denial;
+  account-deletion regression coverage proves the user list remains valid.
+  Generated OpenAPI/TypeScript contracts, explicit Admin navigation/route rules,
+  accessible loading/error/empty states, and the applicable API/web/repository
+  gates must pass before shipping.
+- **Non-goals:** generic record CRUD, exports, raw authentication metadata,
+  reusable secrets, exact pickup locations, private media/storage keys,
+  arbitrary identity or financial edits, and the later approved-listing
+  correction or seven missing audit-event families.
+- **Fresh evidence:** Ruff and formatting pass across 440 API files; 29 focused
+  API, authorization, lifecycle, and exhaustive platform-scope RLS tests pass;
+  generated OpenAPI/TypeScript contracts are current; web ESLint, strict
+  TypeScript, and all 321 Vitest tests pass; and the canonical Linux production
+  image build packages all 93 routes. Security and PR self-review remediated a
+  missing valid `pending` Client-profile state, missing sensitive-response
+  no-store headers, and tab-panel semantics; no reachable finding remains. The
+  Windows host build exceeded its command bound without a report, while the
+  Linux build passed. The repository-wide verifier likewise reached its
+  30-minute command bound without emitting a report, so that aggregate run is
+  inconclusive.
 
 ### Delivered feature brief - provenance-based edit ownership
 
@@ -1152,14 +1192,12 @@ merged. Payment-method completion is merged in
 
 ## Delivery sequence
 
-The next active item is the **Admin operational visibility remediation**
-(FR-2.2): first repair the soft-deleted-account list projection, then add
-paginated, minimized Admin views for authentication events, Client profile
-context, enquiries, lead activity, loan transaction history, site visits, and
-the transaction ledger. The delivered 47-table contract and 68-policy ledger
-must stay exhaustive. A later controlled-update slice will add the approved
-listing correction command and seven missing audit-event families without
-expanding document, payout, secret, precise-location, or cross-line access.
+The next active item is the **Admin controlled-correction and audit remediation**
+(FR-2.2): add the typed approved-listing correction command and seven missing
+append-only audit-event families. The delivered 47-table contract, 68-policy
+ledger, and eight newly covered view decisions must stay exhaustive. The next
+slice must not expand document, payout, secret, precise-location, immutable
+ledger, or cross-line access.
 Provenance-based edit ownership (FR-2.8) is delivered in
 [PR #169](https://github.com/brollysolutions/client1/pull/169).
 
@@ -1195,6 +1233,7 @@ The backlog builds on these delivered foundations:
 
 | Date | Change | Evidence |
 | --- | --- | --- |
+| 2026-08-11 | Delivered Admin operational visibility remediation (FR-2.2), closing all eight confirmed read gaps and leaving one controlled-correction plus seven audit gaps. | [PR #173](https://github.com/brollysolutions/client1/pull/173); minimized paginated API/UI, deleted-contact redaction, per-line Client profile context, generated contracts, 29 focused API/RLS tests, 321 web tests, strict checks, Linux 93-route build, and security/PR self-review. |
 | 2026-08-11 | Delivered the first Admin operational coverage-audit slice (FR-2.2): exhaustive table and platform-scope policy contracts, fresh PostgreSQL authorization evidence, and an actionable 16-table remediation ledger. | [PR #172](https://github.com/brollysolutions/client1/pull/172); 47 mapped tables, 68 current platform-scope policies, 20 focused PostgreSQL/Redis tests, and the observed soft-deleted-account list defect recorded as a gap. |
 | 2026-08-11 | Completed provenance-based lead-detail ownership (FR-2.8) and promoted the remaining Admin operational coverage audit (FR-2.2). | [PR #169](https://github.com/brollysolutions/client1/pull/169); additive ownership migration/trigger/RLS, Agent/Client/Admin APIs, Client/Admin UI, generated contracts, migration round-trip/one-head, focused API/RLS/static/web tests, and security review. |
 | 2026-08-10 | Replaced least-loaded automatic Telecaller selection with durable per-line round-robin assignment while preserving FR-4.2/FR-4.3 completion. | [PR #163](https://github.com/brollysolutions/client1/pull/163); exact 1-2-3 wraparound, inactive/reactivated staff, separate line cursors, manual isolation, no-capacity retry, concurrent turn consumption, migration round-trip/one-head, 188 affected tests, Ruff, RLS/grant and cross-line cursor denial, security review. The monolithic API suite exceeded 30 minutes without a final report. |

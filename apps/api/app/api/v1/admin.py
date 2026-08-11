@@ -34,6 +34,7 @@ from app.models.task import Task, TaskStatus, TaskType
 from app.schemas.admin import (
     AdminAccountDeleteRequest,
     AdminAssignedLeadRead,
+    AdminClientProfileRead,
     AdminEmployeeRead,
     AdminHomeResponse,
     AdminLeadRead,
@@ -113,6 +114,9 @@ from app.services.admin import (
     is_primary_admin,
     list_operational_users,
     list_staff_access,
+    operational_client_profiles_for,
+    operational_email_for,
+    operational_mobile_for,
     operational_roles_for,
     reject_agent_application,
     set_operational_user_status,
@@ -496,11 +500,13 @@ async def delete_user(
 
 @router.get("/users", response_model=AdminUserListResponse)
 async def list_users(
+    response: Response,
     limit: int = Query(default=50, ge=1, le=200),
     offset: int = Query(default=0, ge=0),
     current_user: CurrentUser = Depends(require_platform_admin),  # noqa: ARG001
     db: AsyncSession = Depends(get_db),
 ) -> AdminUserListResponse:
+    response.headers["Cache-Control"] = "private, no-store"
     users, total = await list_operational_users(db, limit=limit, offset=offset)
     return AdminUserListResponse(
         users=[
@@ -508,14 +514,18 @@ async def list_users(
                 id=user.id,
                 first_name=user.first_name,
                 last_name=user.last_name,
-                mobile=user.mobile,
-                email=user.email,
+                mobile=operational_mobile_for(user),
+                email=operational_email_for(user),
                 status=user.status.value,
                 roles=roles,
+                client_profiles=[
+                    AdminClientProfileRead.model_validate(profile, from_attributes=True)
+                    for profile in client_profiles
+                ],
                 created_at=user.created_at,
                 last_login_at=user.last_login_at,
             )
-            for user, roles in users
+            for user, roles, client_profiles in users
         ],
         total=total,
     )
@@ -549,14 +559,19 @@ async def update_user_status(
             detail="This account cannot be updated through the Admin status control.",
         ) from exc
     roles = await operational_roles_for(db, user.id)
+    client_profiles = await operational_client_profiles_for(db, user.id)
     return AdminUserRead(
         id=user.id,
         first_name=user.first_name,
         last_name=user.last_name,
-        mobile=user.mobile,
-        email=user.email,
+        mobile=operational_mobile_for(user),
+        email=operational_email_for(user),
         status=user.status.value,
         roles=roles,
+        client_profiles=[
+            AdminClientProfileRead.model_validate(profile, from_attributes=True)
+            for profile in client_profiles
+        ],
         created_at=user.created_at,
         last_login_at=user.last_login_at,
     )

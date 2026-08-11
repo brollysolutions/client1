@@ -315,6 +315,14 @@ export const NAV_ITEMS: readonly NavItem[] = [
 
   // Admin operations.
   {
+    key: "admin-operational-records",
+    label: "Operational records",
+    href: "/dashboard/operations",
+    icon: DASHBOARD_ICONS.operationalRecords,
+    capability: "admin",
+    section: "operations",
+  },
+  {
     key: "admin-leads",
     label: "Lead assignments",
     href: "/dashboard/admin-leads",
@@ -492,6 +500,7 @@ export const DASHBOARD_ROUTE_RULES: readonly DashboardRouteRule[] = [
   { path: "/dashboard/content/new", exact: true, capabilities: ["subAdmin"] },
   { path: "/dashboard/leads/new", exact: true, capabilities: ["agent"] },
   { path: "/dashboard/offers/new", exact: true, capabilities: ["subAdmin"] },
+  { path: "/dashboard/operations", exact: true, capabilities: ["admin"] },
   { path: "/dashboard/access-control", exact: true, capabilities: ["admin"] },
   { path: "/dashboard/admin-leads", exact: true, capabilities: ["admin"] },
   { path: "/dashboard/admin-tasks", exact: true, capabilities: ["admin"] },
