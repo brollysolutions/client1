@@ -140,6 +140,70 @@
         "title": "AdminAssignedLeadRead",
         "type": "object"
       },
+      "AdminAuthEventListResponse": {
+        "properties": {
+          "events": {
+            "items": {
+              "$ref": "#/components/schemas/AdminAuthEventRead"
+            },
+            "title": "Events",
+            "type": "array"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "events",
+          "total"
+        ],
+        "title": "AdminAuthEventListResponse",
+        "type": "object"
+      },
+      "AdminAuthEventRead": {
+        "properties": {
+          "auth_user_uuid": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Auth User Uuid"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "event_type": {
+            "title": "Event Type",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "success": {
+            "title": "Success",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "auth_user_uuid",
+          "event_type",
+          "success",
+          "created_at"
+        ],
+        "title": "AdminAuthEventRead",
+        "type": "object"
+      },
       "AdminBankListResponse": {
         "properties": {
           "banks": {
@@ -209,6 +273,57 @@
         "title": "AdminBankRead",
         "type": "object"
       },
+      "AdminClientProfileRead": {
+        "properties": {
+          "business_line": {
+            "enum": [
+              "loans",
+              "real_estate"
+            ],
+            "title": "Business Line",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "customer_code": {
+            "title": "Customer Code",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "active",
+              "inactive",
+              "pending",
+              "suspended"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "business_line",
+          "customer_code",
+          "status",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "AdminClientProfileRead",
+        "type": "object"
+      },
       "AdminEmployeeRead": {
         "properties": {
           "business_line": {
@@ -246,6 +361,83 @@
           "last_name"
         ],
         "title": "AdminEmployeeRead",
+        "type": "object"
+      },
+      "AdminEnquiryListResponse": {
+        "properties": {
+          "enquiries": {
+            "items": {
+              "$ref": "#/components/schemas/AdminEnquiryRead"
+            },
+            "title": "Enquiries",
+            "type": "array"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "enquiries",
+          "total"
+        ],
+        "title": "AdminEnquiryListResponse",
+        "type": "object"
+      },
+      "AdminEnquiryRead": {
+        "properties": {
+          "city": {
+            "title": "City",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "locality": {
+            "title": "Locality",
+            "type": "string"
+          },
+          "property_ref": {
+            "title": "Property Ref",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/EnquiryStatus"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          },
+          "user_uuid": {
+            "format": "uuid",
+            "title": "User Uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "user_uuid",
+          "property_ref",
+          "title",
+          "locality",
+          "city",
+          "status",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "AdminEnquiryRead",
         "type": "object"
       },
       "AdminHomeResponse": {
@@ -307,6 +499,96 @@
           "referrals_awaiting_payout_count"
         ],
         "title": "AdminHomeResponse",
+        "type": "object"
+      },
+      "AdminLeadActivityListResponse": {
+        "properties": {
+          "activities": {
+            "items": {
+              "$ref": "#/components/schemas/AdminLeadActivityRead"
+            },
+            "title": "Activities",
+            "type": "array"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "activities",
+          "total"
+        ],
+        "title": "AdminLeadActivityListResponse",
+        "type": "object"
+      },
+      "AdminLeadActivityRead": {
+        "properties": {
+          "business_line": {
+            "enum": [
+              "loans",
+              "real_estate"
+            ],
+            "title": "Business Line",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "disposition": {
+            "$ref": "#/components/schemas/CallDisposition"
+          },
+          "follow_up_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Follow Up At"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "interest_level": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/InterestLevel"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "lead_uuid": {
+            "format": "uuid",
+            "title": "Lead Uuid",
+            "type": "string"
+          },
+          "telecaller_staff_profile_uuid": {
+            "format": "uuid",
+            "title": "Telecaller Staff Profile Uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "lead_uuid",
+          "telecaller_staff_profile_uuid",
+          "business_line",
+          "disposition",
+          "interest_level",
+          "follow_up_at",
+          "created_at"
+        ],
+        "title": "AdminLeadActivityRead",
         "type": "object"
       },
       "AdminLeadDetailsPatch": {
@@ -604,6 +886,126 @@
           "closed_at"
         ],
         "title": "AdminLoanApplicationRead",
+        "type": "object"
+      },
+      "AdminLoanTransactionHistoryListResponse": {
+        "properties": {
+          "entries": {
+            "items": {
+              "$ref": "#/components/schemas/AdminLoanTransactionHistoryRead"
+            },
+            "title": "Entries",
+            "type": "array"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "entries",
+          "total"
+        ],
+        "title": "AdminLoanTransactionHistoryListResponse",
+        "type": "object"
+      },
+      "AdminLoanTransactionHistoryRead": {
+        "properties": {
+          "amount": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Amount"
+          },
+          "bank_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bank Name"
+          },
+          "business_line": {
+            "enum": [
+              "loans",
+              "real_estate"
+            ],
+            "title": "Business Line",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "entered_by_staff_profile_uuid": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Entered By Staff Profile Uuid"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "interest_rate": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Interest Rate"
+          },
+          "loan_application_uuid": {
+            "format": "uuid",
+            "title": "Loan Application Uuid",
+            "type": "string"
+          },
+          "txn_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Txn Date"
+          }
+        },
+        "required": [
+          "id",
+          "loan_application_uuid",
+          "business_line",
+          "bank_name",
+          "amount",
+          "interest_rate",
+          "txn_date",
+          "entered_by_staff_profile_uuid",
+          "created_at"
+        ],
+        "title": "AdminLoanTransactionHistoryRead",
         "type": "object"
       },
       "AdminLoanTypeListResponse": {
@@ -1129,6 +1531,106 @@
         "title": "AdminReferralRead",
         "type": "object"
       },
+      "AdminSiteVisitListResponse": {
+        "properties": {
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          },
+          "visits": {
+            "items": {
+              "$ref": "#/components/schemas/AdminSiteVisitRead"
+            },
+            "title": "Visits",
+            "type": "array"
+          }
+        },
+        "required": [
+          "visits",
+          "total"
+        ],
+        "title": "AdminSiteVisitListResponse",
+        "type": "object"
+      },
+      "AdminSiteVisitRead": {
+        "properties": {
+          "cancelled_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cancelled At"
+          },
+          "city": {
+            "title": "City",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "locality": {
+            "title": "Locality",
+            "type": "string"
+          },
+          "preferred_date": {
+            "format": "date",
+            "title": "Preferred Date",
+            "type": "string"
+          },
+          "preferred_time_slot": {
+            "$ref": "#/components/schemas/SiteVisitTimeSlot"
+          },
+          "property_ref": {
+            "title": "Property Ref",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/SiteVisitStatus"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          },
+          "user_uuid": {
+            "format": "uuid",
+            "title": "User Uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "user_uuid",
+          "property_ref",
+          "title",
+          "locality",
+          "city",
+          "preferred_date",
+          "preferred_time_slot",
+          "status",
+          "cancelled_at",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "AdminSiteVisitRead",
+        "type": "object"
+      },
       "AdminTaskRead": {
         "properties": {
           "assigned_employee_profile_uuid": {
@@ -1254,6 +1756,92 @@
         "title": "AdminTaskRead",
         "type": "object"
       },
+      "AdminTransactionListResponse": {
+        "properties": {
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          },
+          "transactions": {
+            "items": {
+              "$ref": "#/components/schemas/AdminTransactionRead"
+            },
+            "title": "Transactions",
+            "type": "array"
+          }
+        },
+        "required": [
+          "transactions",
+          "total"
+        ],
+        "title": "AdminTransactionListResponse",
+        "type": "object"
+      },
+      "AdminTransactionRead": {
+        "properties": {
+          "amount_paise": {
+            "title": "Amount Paise",
+            "type": "integer"
+          },
+          "business_line": {
+            "enum": [
+              "loans",
+              "real_estate"
+            ],
+            "title": "Business Line",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "currency": {
+            "title": "Currency",
+            "type": "string"
+          },
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/TransactionStatus"
+          },
+          "type": {
+            "$ref": "#/components/schemas/TransactionType"
+          },
+          "user_uuid": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "User Uuid"
+          }
+        },
+        "required": [
+          "id",
+          "user_uuid",
+          "business_line",
+          "type",
+          "status",
+          "amount_paise",
+          "currency",
+          "description",
+          "created_at"
+        ],
+        "title": "AdminTransactionRead",
+        "type": "object"
+      },
       "AdminUserListResponse": {
         "properties": {
           "total": {
@@ -1277,6 +1865,13 @@
       },
       "AdminUserRead": {
         "properties": {
+          "client_profiles": {
+            "items": {
+              "$ref": "#/components/schemas/AdminClientProfileRead"
+            },
+            "title": "Client Profiles",
+            "type": "array"
+          },
           "created_at": {
             "format": "date-time",
             "title": "Created At",
@@ -1320,8 +1915,15 @@
             "type": "string"
           },
           "mobile": {
-            "title": "Mobile",
-            "type": "string"
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mobile"
           },
           "roles": {
             "items": {
@@ -1357,6 +1959,7 @@
           "email",
           "status",
           "roles",
+          "client_profiles",
           "created_at",
           "last_login_at"
         ],
@@ -3860,6 +4463,19 @@
         "title": "BroadcastResponse",
         "type": "object"
       },
+      "CallDisposition": {
+        "enum": [
+          "connected",
+          "no_answer",
+          "busy",
+          "switched_off",
+          "wrong_number",
+          "callback_requested",
+          "not_interested"
+        ],
+        "title": "CallDisposition",
+        "type": "string"
+      },
       "ChangePasswordRequest": {
         "properties": {
           "confirm_password": {
@@ -5666,6 +6282,15 @@
         },
         "title": "HTTPValidationError",
         "type": "object"
+      },
+      "InterestLevel": {
+        "enum": [
+          "hot",
+          "warm",
+          "cold"
+        ],
+        "title": "InterestLevel",
+        "type": "string"
       },
       "LeadActivityCreate": {
         "properties": {
@@ -15867,6 +16492,372 @@
         "summary": "Verify Identity",
         "tags": [
           "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/operations/auth-events": {
+      "get": {
+        "operationId": "list_auth_events_api_v1_admin_operations_auth_events_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 25,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminAuthEventListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "List Auth Events",
+        "tags": [
+          "admin-operations"
+        ]
+      }
+    },
+    "/api/v1/admin/operations/enquiries": {
+      "get": {
+        "operationId": "list_enquiries_api_v1_admin_operations_enquiries_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 25,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminEnquiryListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "List Enquiries",
+        "tags": [
+          "admin-operations"
+        ]
+      }
+    },
+    "/api/v1/admin/operations/lead-activities": {
+      "get": {
+        "operationId": "list_lead_activities_api_v1_admin_operations_lead_activities_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 25,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminLeadActivityListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "List Lead Activities",
+        "tags": [
+          "admin-operations"
+        ]
+      }
+    },
+    "/api/v1/admin/operations/loan-transaction-history": {
+      "get": {
+        "operationId": "list_loan_transaction_history_api_v1_admin_operations_loan_transaction_history_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 25,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminLoanTransactionHistoryListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "List Loan Transaction History",
+        "tags": [
+          "admin-operations"
+        ]
+      }
+    },
+    "/api/v1/admin/operations/site-visits": {
+      "get": {
+        "operationId": "list_site_visits_api_v1_admin_operations_site_visits_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 25,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminSiteVisitListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "List Site Visits",
+        "tags": [
+          "admin-operations"
+        ]
+      }
+    },
+    "/api/v1/admin/operations/transactions": {
+      "get": {
+        "operationId": "list_transactions_api_v1_admin_operations_transactions_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 25,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminTransactionListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "List Transactions",
+        "tags": [
+          "admin-operations"
         ]
       }
     },

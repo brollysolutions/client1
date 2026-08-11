@@ -671,6 +671,108 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/operations/auth-events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Auth Events */
+        get: operations["list_auth_events_api_v1_admin_operations_auth_events_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/operations/enquiries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Enquiries */
+        get: operations["list_enquiries_api_v1_admin_operations_enquiries_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/operations/lead-activities": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Lead Activities */
+        get: operations["list_lead_activities_api_v1_admin_operations_lead_activities_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/operations/loan-transaction-history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Loan Transaction History */
+        get: operations["list_loan_transaction_history_api_v1_admin_operations_loan_transaction_history_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/operations/site-visits": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Site Visits */
+        get: operations["list_site_visits_api_v1_admin_operations_site_visits_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/operations/transactions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Transactions */
+        get: operations["list_transactions_api_v1_admin_operations_transactions_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/property-deals": {
         parameters: {
             query?: never;
@@ -3544,6 +3646,32 @@ export interface components {
              */
             updated_at: string;
         };
+        /** AdminAuthEventListResponse */
+        AdminAuthEventListResponse: {
+            /** Events */
+            events: components["schemas"]["AdminAuthEventRead"][];
+            /** Total */
+            total: number;
+        };
+        /** AdminAuthEventRead */
+        AdminAuthEventRead: {
+            /** Auth User Uuid */
+            auth_user_uuid: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Event Type */
+            event_type: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Success */
+            success: boolean;
+        };
         /** AdminBankListResponse */
         AdminBankListResponse: {
             /** Banks */
@@ -3575,6 +3703,36 @@ export interface components {
              */
             updated_at: string;
         };
+        /** AdminClientProfileRead */
+        AdminClientProfileRead: {
+            /**
+             * Business Line
+             * @enum {string}
+             */
+            business_line: "loans" | "real_estate";
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Customer Code */
+            customer_code: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "active" | "inactive" | "pending" | "suspended";
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
         /** AdminEmployeeRead */
         AdminEmployeeRead: {
             /**
@@ -3593,6 +3751,45 @@ export interface components {
             last_name: string;
             /** Staff Code */
             staff_code: string;
+        };
+        /** AdminEnquiryListResponse */
+        AdminEnquiryListResponse: {
+            /** Enquiries */
+            enquiries: components["schemas"]["AdminEnquiryRead"][];
+            /** Total */
+            total: number;
+        };
+        /** AdminEnquiryRead */
+        AdminEnquiryRead: {
+            /** City */
+            city: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Locality */
+            locality: string;
+            /** Property Ref */
+            property_ref: string;
+            status: components["schemas"]["EnquiryStatus"];
+            /** Title */
+            title: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /**
+             * User Uuid
+             * Format: uuid
+             */
+            user_uuid: string;
         };
         /** AdminHomeResponse */
         AdminHomeResponse: {
@@ -3616,6 +3813,45 @@ export interface components {
             unassigned_leads_count: number;
             /** Unassigned Tasks Count */
             unassigned_tasks_count: number;
+        };
+        /** AdminLeadActivityListResponse */
+        AdminLeadActivityListResponse: {
+            /** Activities */
+            activities: components["schemas"]["AdminLeadActivityRead"][];
+            /** Total */
+            total: number;
+        };
+        /** AdminLeadActivityRead */
+        AdminLeadActivityRead: {
+            /**
+             * Business Line
+             * @enum {string}
+             */
+            business_line: "loans" | "real_estate";
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            disposition: components["schemas"]["CallDisposition"];
+            /** Follow Up At */
+            follow_up_at: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            interest_level: components["schemas"]["InterestLevel"] | null;
+            /**
+             * Lead Uuid
+             * Format: uuid
+             */
+            lead_uuid: string;
+            /**
+             * Telecaller Staff Profile Uuid
+             * Format: uuid
+             */
+            telecaller_staff_profile_uuid: string;
         };
         /** AdminLeadDetailsPatch */
         AdminLeadDetailsPatch: {
@@ -3712,6 +3948,46 @@ export interface components {
             status: "new" | "assigned" | "contacted" | "docs_collected" | "submitted_to_bank" | "sanctioned" | "disbursed" | "closed" | "rejected" | "on_hold";
             /** Status Reason */
             status_reason: string | null;
+        };
+        /** AdminLoanTransactionHistoryListResponse */
+        AdminLoanTransactionHistoryListResponse: {
+            /** Entries */
+            entries: components["schemas"]["AdminLoanTransactionHistoryRead"][];
+            /** Total */
+            total: number;
+        };
+        /** AdminLoanTransactionHistoryRead */
+        AdminLoanTransactionHistoryRead: {
+            /** Amount */
+            amount: string | null;
+            /** Bank Name */
+            bank_name: string | null;
+            /**
+             * Business Line
+             * @enum {string}
+             */
+            business_line: "loans" | "real_estate";
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Entered By Staff Profile Uuid */
+            entered_by_staff_profile_uuid: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Interest Rate */
+            interest_rate: string | null;
+            /**
+             * Loan Application Uuid
+             * Format: uuid
+             */
+            loan_application_uuid: string;
+            /** Txn Date */
+            txn_date: string | null;
         };
         /** AdminLoanTypeListResponse */
         AdminLoanTypeListResponse: {
@@ -3917,6 +4193,53 @@ export interface components {
             /** Reward Txn Uuid */
             reward_txn_uuid: string | null;
         };
+        /** AdminSiteVisitListResponse */
+        AdminSiteVisitListResponse: {
+            /** Total */
+            total: number;
+            /** Visits */
+            visits: components["schemas"]["AdminSiteVisitRead"][];
+        };
+        /** AdminSiteVisitRead */
+        AdminSiteVisitRead: {
+            /** Cancelled At */
+            cancelled_at: string | null;
+            /** City */
+            city: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Locality */
+            locality: string;
+            /**
+             * Preferred Date
+             * Format: date
+             */
+            preferred_date: string;
+            preferred_time_slot: components["schemas"]["SiteVisitTimeSlot"];
+            /** Property Ref */
+            property_ref: string;
+            status: components["schemas"]["SiteVisitStatus"];
+            /** Title */
+            title: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /**
+             * User Uuid
+             * Format: uuid
+             */
+            user_uuid: string;
+        };
         /** AdminTaskRead */
         AdminTaskRead: {
             /** Assigned Employee Profile Uuid */
@@ -3968,6 +4291,41 @@ export interface components {
              */
             updated_at: string;
         };
+        /** AdminTransactionListResponse */
+        AdminTransactionListResponse: {
+            /** Total */
+            total: number;
+            /** Transactions */
+            transactions: components["schemas"]["AdminTransactionRead"][];
+        };
+        /** AdminTransactionRead */
+        AdminTransactionRead: {
+            /** Amount Paise */
+            amount_paise: number;
+            /**
+             * Business Line
+             * @enum {string}
+             */
+            business_line: "loans" | "real_estate";
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Currency */
+            currency: string;
+            /** Description */
+            description: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            status: components["schemas"]["TransactionStatus"];
+            type: components["schemas"]["TransactionType"];
+            /** User Uuid */
+            user_uuid: string | null;
+        };
         /** AdminUserListResponse */
         AdminUserListResponse: {
             /** Total */
@@ -3977,6 +4335,8 @@ export interface components {
         };
         /** AdminUserRead */
         AdminUserRead: {
+            /** Client Profiles */
+            client_profiles: components["schemas"]["AdminClientProfileRead"][];
             /**
              * Created At
              * Format: date-time
@@ -3996,7 +4356,7 @@ export interface components {
             /** Last Name */
             last_name: string;
             /** Mobile */
-            mobile: string;
+            mobile: string | null;
             /** Roles */
             roles: ("admin" | "sub_admin" | "agent" | "telecaller" | "employee" | "client")[];
             /**
@@ -4880,6 +5240,11 @@ export interface components {
             /** Recipients */
             recipients: number;
         };
+        /**
+         * CallDisposition
+         * @enum {string}
+         */
+        CallDisposition: "connected" | "no_answer" | "busy" | "switched_off" | "wrong_number" | "callback_requested" | "not_interested";
         /** ChangePasswordRequest */
         ChangePasswordRequest: {
             /** Confirm Password */
@@ -5596,6 +5961,11 @@ export interface components {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
         };
+        /**
+         * InterestLevel
+         * @enum {string}
+         */
+        InterestLevel: "hot" | "warm" | "cold";
         /** LeadActivityCreate */
         LeadActivityCreate: {
             /**
@@ -9727,6 +10097,198 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MessageResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_auth_events_api_v1_admin_operations_auth_events_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminAuthEventListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_enquiries_api_v1_admin_operations_enquiries_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminEnquiryListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_lead_activities_api_v1_admin_operations_lead_activities_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminLeadActivityListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_loan_transaction_history_api_v1_admin_operations_loan_transaction_history_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminLoanTransactionHistoryListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_site_visits_api_v1_admin_operations_site_visits_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminSiteVisitListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_transactions_api_v1_admin_operations_transactions_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminTransactionListResponse"];
                 };
             };
             /** @description Validation Error */

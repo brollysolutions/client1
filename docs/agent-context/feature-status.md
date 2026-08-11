@@ -4,8 +4,11 @@ Status: **Derived living implementation ledger**
 
 As of: **2026-08-11**
 
-Evidence baseline: `dc1b8e7`
-([PR #169](https://github.com/brollysolutions/client1/pull/169)).
+Evidence baseline: `466b5e3`
+([PR #172](https://github.com/brollysolutions/client1/pull/172)), plus the
+verified Admin operational-visibility work on
+`security/admin-operational-coverage-contract`
+([PR #173](https://github.com/brollysolutions/client1/pull/173)).
 
 ## Purpose and authority
 
@@ -46,17 +49,42 @@ work than several completed UI requirements.
 
 ## Current work
 
-The remaining **FR-2.2 Admin operational coverage audit** now has an exhaustive,
-test-enforced baseline: 47 mapped tables and all 68 current platform-scope RLS
-policies are inventoried. Fresh PostgreSQL evidence passes for account status,
-read-only notification oversight, and approved-listing availability, while 16
-tables retain a proven view, correction, or audit gap. The next slice starts
-with the observed soft-deleted-account list failure and the seven other
-minimized operational-view gaps. Payout controls, private-document access,
-secret/location minimization, and business-line segregation remain
-non-negotiable compatibility constraints.
+The remaining **FR-2.2 Admin operational coverage audit** has an exhaustive,
+test-enforced baseline across 47 mapped tables and all 68 current
+platform-scope RLS policies. The visibility-remediation slice closes all eight
+confirmed read gaps: soft-deleted accounts serialize with tombstone contact
+values redacted, Users & staff includes per-line Client profile context, and a
+dedicated paginated Admin workspace exposes minimized authentication events,
+enquiries, lead activities, loan transaction history, site visits, and
+transactions. Eight confirmed gaps remain: one typed approved-listing
+correction and seven append-only audit-event families. Payout controls,
+private-document access, secret/location minimization, immutable ledgers, and
+business-line segregation remain non-negotiable compatibility constraints.
 
 ## Delivered implementation
+
+- **Admin operational visibility remediation** (FR-2.2) is delivered in
+  [PR #173](https://github.com/brollysolutions/client1/pull/173). Six dedicated,
+  read-only, paginated routes require both the Admin role and platform scope
+  before querying through the request's RLS-bound async session. Their explicit
+  projections omit authentication IP/user-agent/detail, enquiry and visit
+  contacts/messages, pickup locations, call notes, and transaction references.
+  Sensitive responses are `private, no-store`. The Admin Operational records
+  workspace adds lazy tabs, pagination, refresh/retry, and accessible
+  loading/error/empty states; Users & staff now renders Loans/Real Estate
+  profile identifiers and every valid profile lifecycle state. Deleted account
+  mobile/email tombstones are returned as null while retained profiles remain
+  visible as inactive history. Generated OpenAPI/TypeScript contracts are
+  current. Fresh evidence passes Ruff and formatting across 440 API files, 29
+  focused API/authorization/RLS tests, web ESLint, strict TypeScript, all 321
+  Vitest tests, and a Linux production image build packaging all 93 routes.
+  Security/self-review added the missing `pending` profile state and no-store
+  headers; no reachable finding remains. The Windows host build exceeded its
+  command bound without a report, while the canonical Linux build passed. The
+  repository-wide verifier likewise reached its 30-minute command bound without
+  emitting a report, so that aggregate run is inconclusive.
+  FR-2.2 remains Partial because one controlled listing-correction gap and seven
+  append-only audit gaps remain.
 
 - **Admin operational coverage contract** (FR-2.2) is partially delivered in
   [PR #172](https://github.com/brollysolutions/client1/pull/172). An explicit
@@ -454,7 +482,7 @@ The following requirements are complete on the evidence baseline:
 | Requirement | Status | Implemented slice | Remaining work |
 | --- | --- | --- | --- |
 | FR-1.1 | Complete | Every mapped table and managed-media purpose is inventoried; operational rows require one immutable Loans/Real Estate tag, parent/source copies must match, and only reviewed staged/global/identity exceptions remain nullable or allow `both`. | Preserve the exhaustive ledger and migration/negative tests for every future table, relation, content audience, and media purpose. |
-| FR-2.2 | Partial | Admin dashboards cover users, leads, tasks, agents, loans, deals, payouts, content, audit, and reports. The test-enforced contract classifies all 47 mapped tables and all 68 current platform-scope policies; fresh PostgreSQL evidence covers account status, notification audit, listing availability, safe audit details, session invalidation, and negative roles. | Remediate 16 confirmed tables: eight minimized-view gaps (`auth_events`, `auth_users`, `client_profiles`, `enquiries`, `lead_activities`, `loan_txn_history`, `site_visits`, `transactions`), one typed approved-listing correction gap (`properties`), and seven append-only audit gaps (`banners`, `content_blocks`, `loan_applications`, `offers`, `property_deals`, `referral_bonus_config`, `tasks`); add accessible UI and PostgreSQL evidence while preserving protected secrets/location/media and command-bound updates. |
+| FR-2.2 | Partial | Admin dashboards cover users, leads, tasks, agents, loans, deals, payouts, content, audit, reports, and a new paginated Operational records workspace. The test-enforced contract classifies all 47 mapped tables and all 68 current platform-scope policies. All eight view gaps are closed with minimized generated contracts, soft-deleted contact redaction, per-line Client profile context, `private, no-store`, accessible UI, and fresh platform-Admin/negative-role PostgreSQL evidence. | Remediate the eight remaining tables: one typed approved-listing correction gap (`properties`) and seven append-only audit gaps (`banners`, `content_blocks`, `loan_applications`, `offers`, `property_deals`, `referral_bonus_config`, `tasks`). Preserve protected secrets/location/media, immutable ledgers, command-bound updates, RLS, and safe audit details. |
 | FR-2.8 | Complete | Lead name and journey notes carry immutable creator descriptors; Agent and Client edits follow explicit lifecycle cutoffs, Admin corrections preserve ownership and require an audited reason, and Telecaller notes remain append-only activities. Service checks, row locks, command-specific RLS, and a database trigger deny cross-owner, cross-role, cross-line, lifecycle, allowed-column, and descriptor-planting bypasses. | Preserve the ownership initializer/backfill, least-data no-store response, audit-value minimization, and direct SQL denial tests when adding future editable lead-detail paths. |
 | FR-4.2 | Complete | Agent-introduced leads are atomically attributed and assigned through a durable, active-only same-line round-robin cursor, queued for bounded retry without capacity, and bound to a same-mobile Client only after OTP-proven registration. | Preserve global Agent ownership, expiry deadlines, generic-link authority boundaries, stable Telecaller order, cursor isolation, and concurrency tests as the workflow evolves. |
 | FR-4.3 | Complete | Registration captures explicit one/both-line intent while retaining both Client profiles; each requested journey is independently bound and assigned through its line's separate round-robin cursor without cross-line leakage. | Preserve explicit intent, per-line uniqueness, deterministic assignment ordering, and account-deletion closure. |

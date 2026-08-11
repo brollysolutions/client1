@@ -94,7 +94,7 @@ async def is_primary_admin(
 
 async def list_operational_users(
     db: AsyncSession, *, limit: int, offset: int
-) -> tuple[list[tuple[User, list[str]]], int]:
+) -> tuple[list[tuple[User, list[str], list[ClientProfile]]], int]:
     total = await db.scalar(select(func.count()).select_from(User)) or 0
     users = (
         await db.scalars(
@@ -120,12 +120,16 @@ async def list_operational_users(
     )
     for user_id in agent_ids.all():
         roles[user_id].add("agent")
-    client_ids = await db.scalars(
-        select(ClientProfile.auth_user_uuid).where(ClientProfile.auth_user_uuid.in_(user_ids))
+    profiles: dict[UUID, list[ClientProfile]] = {user_id: [] for user_id in user_ids}
+    client_profiles = await db.scalars(
+        select(ClientProfile)
+        .where(ClientProfile.auth_user_uuid.in_(user_ids))
+        .order_by(ClientProfile.business_line.asc(), ClientProfile.id.asc())
     )
-    for user_id in client_ids.all():
-        roles[user_id].add("client")
-    return [(user, sorted(roles[user.id])) for user in users], total
+    for profile in client_profiles.all():
+        roles[profile.auth_user_uuid].add("client")
+        profiles[profile.auth_user_uuid].append(profile)
+    return [(user, sorted(roles[user.id]), profiles[user.id]) for user in users], total
 
 
 async def set_operational_user_status(
@@ -195,6 +199,28 @@ async def operational_roles_for(db: AsyncSession, user_id: UUID) -> list[str]:
     if await db.scalar(select(ClientProfile.id).where(ClientProfile.auth_user_uuid == user_id)):
         roles.add("client")
     return sorted(roles)
+
+
+async def operational_client_profiles_for(db: AsyncSession, user_id: UUID) -> list[ClientProfile]:
+    return list(
+        (
+            await db.scalars(
+                select(ClientProfile)
+                .where(ClientProfile.auth_user_uuid == user_id)
+                .order_by(ClientProfile.business_line.asc(), ClientProfile.id.asc())
+            )
+        ).all()
+    )
+
+
+def operational_email_for(user: User) -> str | None:
+    """Never return the internal deleted.invalid account-deletion tombstone."""
+    return None if user.status == UserStatus.SOFT_DELETED else user.email
+
+
+def operational_mobile_for(user: User) -> str | None:
+    """Never return the internal deleted-{uuid} account-deletion tombstone."""
+    return None if user.status == UserStatus.SOFT_DELETED else user.mobile
 
 
 class AgentApplicationAlreadyReviewed(Exception):
