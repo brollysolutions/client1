@@ -1028,6 +1028,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/users": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Users */
+        get: operations["list_users_api_v1_admin_users_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/users/create": {
         parameters: {
             query?: never;
@@ -1065,6 +1082,23 @@ export interface paths {
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/users/{auth_user_uuid}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update User Status */
+        patch: operations["update_user_status_api_v1_admin_users__auth_user_uuid__status_patch"];
         trace?: never;
     };
     "/api/v1/admin/vehicle-arrangements": {
@@ -2257,6 +2291,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/notifications/admin/audit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Notifications For Admin
+         * @description Read-only event oversight.  This deliberately does not reuse the own-feed
+         *     route or expose a way to mark another recipient's notification as read.
+         */
+        get: operations["list_notifications_for_admin_api_v1_notifications_admin_audit_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/notifications/broadcast": {
         parameters: {
             query?: never;
@@ -2708,6 +2763,23 @@ export interface paths {
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/api/v1/properties/{property_id}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Property Status */
+        patch: operations["update_property_status_api_v1_properties__property_id__status_patch"];
         trace?: never;
     };
     "/api/v1/property-deals": {
@@ -3676,6 +3748,47 @@ export interface components {
              */
             updated_at: string;
         };
+        /** AdminNotificationListResponse */
+        AdminNotificationListResponse: {
+            /** Notifications */
+            notifications: components["schemas"]["AdminNotificationRead"][];
+            /** Total */
+            total: number;
+        };
+        /**
+         * AdminNotificationRead
+         * @description Read-only oversight projection.  Recipient contact data is intentionally
+         *     excluded; the UUID and display name let a platform Admin correlate the event
+         *     with the operational record without creating a contact-export surface.
+         */
+        AdminNotificationRead: {
+            /** Body */
+            body: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Href */
+            href: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Read At */
+            read_at: string | null;
+            /**
+             * Recipient Auth User Uuid
+             * Format: uuid
+             */
+            recipient_auth_user_uuid: string;
+            /** Recipient Name */
+            recipient_name: string;
+            /** Title */
+            title: string;
+            type: components["schemas"]["NotificationType"];
+        };
         /**
          * AdminPendingItem
          * @description An agent application, banner, or property listing awaiting Admin review.
@@ -3747,6 +3860,13 @@ export interface components {
             status: "new" | "contacted" | "site_visit_done" | "negotiation" | "booked" | "agreement_signed" | "closed" | "rejected" | "on_hold";
             /** Status Reason */
             status_reason: string | null;
+        };
+        /** AdminPropertyStatusUpdate */
+        AdminPropertyStatusUpdate: {
+            /** Active */
+            active: boolean;
+            /** Reason */
+            reason: string;
         };
         /** AdminReferralListResponse */
         AdminReferralListResponse: {
@@ -3847,6 +3967,53 @@ export interface components {
              * Format: date-time
              */
             updated_at: string;
+        };
+        /** AdminUserListResponse */
+        AdminUserListResponse: {
+            /** Total */
+            total: number;
+            /** Users */
+            users: components["schemas"]["AdminUserRead"][];
+        };
+        /** AdminUserRead */
+        AdminUserRead: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Email */
+            email: string | null;
+            /** First Name */
+            first_name: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Last Login At */
+            last_login_at: string | null;
+            /** Last Name */
+            last_name: string;
+            /** Mobile */
+            mobile: string;
+            /** Roles */
+            roles: ("admin" | "sub_admin" | "agent" | "telecaller" | "employee" | "client")[];
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "active" | "suspended" | "pending_password_reset" | "soft_deleted";
+        };
+        /** AdminUserStatusUpdateRequest */
+        AdminUserStatusUpdateRequest: {
+            /** Reason */
+            reason: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "active" | "suspended";
         };
         /** AgentApplicationDetailRead */
         AgentApplicationDetailRead: {
@@ -4306,7 +4473,7 @@ export interface components {
          *     `services/fee_cashbacks.py` (FR-6.6 processing-fee cashback).
          * @enum {string}
          */
-        AuditAction: "agent_approved" | "agent_rejected" | "staff_created" | "staff_feature_granted" | "staff_feature_revoked" | "account_removed" | "payout_approved" | "payout_rejected" | "payout_manual_issued" | "payout_manual_cleared" | "payout_manual_failed" | "payout_manual_reversed" | "property_submission_approved" | "property_submission_rejected" | "support_ticket_advanced" | "retention_purged" | "loan_type_created" | "loan_type_updated" | "bank_created" | "bank_updated" | "bank_availability_updated" | "commission_entered" | "commission_cancelled" | "fee_cashback_entered" | "fee_cashback_cancelled" | "document_verified" | "document_unverified" | "payout_link_reconciled" | "notification_broadcast" | "agent_lead_expired" | "lead_assigned" | "lead_details_updated" | "field_visibility_updated" | "mobile_change_verified" | "mobile_changed" | "mobile_change_rejected" | "vehicle_arrangement_updated";
+        AuditAction: "agent_approved" | "agent_rejected" | "staff_created" | "staff_feature_granted" | "staff_feature_revoked" | "account_removed" | "account_status_updated" | "payout_approved" | "payout_rejected" | "payout_manual_issued" | "payout_manual_cleared" | "payout_manual_failed" | "payout_manual_reversed" | "property_submission_approved" | "property_submission_rejected" | "property_listing_updated" | "support_ticket_advanced" | "retention_purged" | "loan_type_created" | "loan_type_updated" | "bank_created" | "bank_updated" | "bank_availability_updated" | "commission_entered" | "commission_cancelled" | "fee_cashback_entered" | "fee_cashback_cancelled" | "document_verified" | "document_unverified" | "payout_link_reconciled" | "notification_broadcast" | "agent_lead_expired" | "lead_assigned" | "lead_details_updated" | "field_visibility_updated" | "mobile_change_verified" | "mobile_changed" | "mobile_change_rejected" | "vehicle_arrangement_updated";
         /** AuditLogListResponse */
         AuditLogListResponse: {
             /** Entries */
@@ -10292,6 +10459,38 @@ export interface operations {
             };
         };
     };
+    list_users_api_v1_admin_users_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminUserListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     create_staff_user_api_v1_admin_users_create_post: {
         parameters: {
             query?: never;
@@ -10347,6 +10546,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MessageResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_user_status_api_v1_admin_users__auth_user_uuid__status_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                auth_user_uuid: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminUserStatusUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminUserRead"];
                 };
             };
             /** @description Validation Error */
@@ -12929,6 +13163,38 @@ export interface operations {
             };
         };
     };
+    list_notifications_for_admin_api_v1_notifications_admin_audit_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminNotificationListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     send_broadcast_api_v1_notifications_broadcast_post: {
         parameters: {
             query?: never;
@@ -13793,6 +14059,41 @@ export interface operations {
             cookie?: never;
         };
         requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PropertyRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_property_status_api_v1_properties__property_id__status_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                property_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminPropertyStatusUpdate"];
+            };
+        };
         responses: {
             /** @description Successful Response */
             200: {

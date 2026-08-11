@@ -73,7 +73,7 @@ included in completion coverage.
 | 3 | Role-aware dashboard navigation (FR-2.1–FR-2.7, FR-17.1) | **Done** in [PR #162](https://github.com/brollysolutions/client1/pull/162): one typed capability catalogue now drives grouped navigation and direct-route UX for all 52 dashboard page entry points; 9 focused unit tests, all 310 web tests, an 8-case live-stack Playwright role/mobile matrix, and the canonical Linux production build pass. | `gpt-5.6-sol` / Extra High | `gpt-5.6-sol` / Extra High | Preserve the single capability source, explicit route inventory, Client held-line checks, single-line staff scope, fixed local redirects, and server-side dependency/RLS authority whenever dashboard routes change. |
 | 4 | Round-robin Telecaller assignment (FR-4.2, FR-4.3) | **Done** in [PR #163](https://github.com/brollysolutions/client1/pull/163): workload-sensitive selection is replaced by the explicitly requested durable rotation while preserving the delivered assignment lifecycle. | `gpt-5.6-sol` / High | `gpt-5.6-sol` / Extra High | Each business line advances independently through active same-line Telecallers in stable creation order; concurrent automatic assignments cannot duplicate or skip a turn; inactive staff, no-capacity retry, manual Admin assignment, RLS, audit, and notification behavior remain safe. |
 | 5 | Provenance-based edit ownership (FR-2.8) | **Done** in [PR #169](https://github.com/brollysolutions/client1/pull/169): lead name and journey notes retain their Agent/Client creator, Agent edits remain open through assignment until work begins, Client edits remain open until terminal state, Admin corrections require an audited reason, and Telecaller qualification data stays in activities. | `gpt-5.6-sol` / High | `gpt-5.6-sol` / Extra High | Preserve immutable ownership, row locking, lifecycle cutoffs, no-store least-data responses, and service plus RLS/trigger denial coverage. |
-| 6 | Admin operational coverage audit (FR-2.2) | **Partially delivered** in [PR #168](https://github.com/brollysolutions/client1/pull/168): confirmed CMS override gaps are closed for platform Admin; the next priority is the remaining domain-by-domain inventory. | `gpt-5.6-terra` / High | `gpt-5.6-terra` / High | Inventory every required Admin surface, close confirmed gaps, and add authorization plus accessible UI coverage. |
+| 6 | Admin operational coverage audit (FR-2.2) | **Partially delivered** on `codex/20260810-161623-ps-d-dhanadhara-client1-docker-compose-f`: platform-Admin account status, notification audit, and approved-listing availability gaps are closed; the next priority is the remaining exhaustive domain inventory and database-backed evidence. | `gpt-5.6-terra` / High | `gpt-5.6-terra` / High | Inventory every required Admin surface, close confirmed gaps, and add authorization plus accessible UI coverage. |
 | 7 | Business-line classification hardening (FR-1.1) | **Done** in [PR #160](https://github.com/brollysolutions/client1/pull/160): every mapped table and managed-media purpose has an explicit classification mode; operational rows, fixed domains, staged referrals, global content, staff scope, and audit exceptions are database-constrained. | `gpt-5.6-sol` / High | `gpt-5.6-sol` / Extra High | Preserve the exhaustive classification ledger, exact-line lead intent, count-only deployment preflight, immutable tags, and parent/provenance checks as schemas evolve. |
 
 ### Delivered feature brief - provenance-based edit ownership
@@ -1112,7 +1112,10 @@ merged. Payment-method completion is merged in
 
 The next active item is the remaining **Admin operational coverage audit**
 (FR-2.2): complete the domain-by-domain inventory and close only proven view or
-update gaps with server/RLS authorization and accessible UI evidence.
+update gaps with server/RLS authorization and accessible UI evidence. The latest
+slice delivers account status control, a read-only notification audit, and
+approved-listing availability control without expanding document, payout, or
+cross-line access.
 Provenance-based edit ownership (FR-2.8) is delivered in
 [PR #169](https://github.com/brollysolutions/client1/pull/169).
 

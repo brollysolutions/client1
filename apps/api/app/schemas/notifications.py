@@ -33,6 +33,20 @@ class NotificationListResponse(BaseModel):
     notifications: list[NotificationRead]
 
 
+class AdminNotificationRead(NotificationRead):
+    """Read-only oversight projection.  Recipient contact data is intentionally
+    excluded; the UUID and display name let a platform Admin correlate the event
+    with the operational record without creating a contact-export surface."""
+
+    recipient_auth_user_uuid: UUID
+    recipient_name: str
+
+
+class AdminNotificationListResponse(BaseModel):
+    notifications: list[AdminNotificationRead]
+    total: int
+
+
 class UnreadCountResponse(BaseModel):
     count: int
 

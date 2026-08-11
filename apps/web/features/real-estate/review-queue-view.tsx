@@ -25,6 +25,7 @@ import {
   type Submission,
 } from "@/lib/property-submissions-api";
 import { useSubmissionQueue } from "./use-submission-queue";
+import { ListingLifecyclePanel } from "./listing-lifecycle-panel";
 
 export function ReviewQueueView() {
   const { items, loading, error, reload } = useSubmissionQueue();
@@ -121,6 +122,14 @@ export function ReviewQueueView() {
           Review Client, Agent, and Sub Admin listings before publishing them to the catalog.
         </p>
       </div>
+
+      <section className="space-y-3 rounded-2xl border border-border bg-card p-5">
+        <div>
+          <h2 className="text-lg font-semibold text-text-primary">Published listings</h2>
+          <p className="text-sm text-text-secondary">Publish or hide an approved listing without changing its reviewed facts or media.</p>
+        </div>
+        <ListingLifecyclePanel />
+      </section>
 
       {loading ? (
         <div className="flex items-center justify-center rounded-2xl border border-border bg-card py-16">

@@ -131,6 +131,28 @@ class AdminAccountDeleteRequest(BaseModel):
     reason: Annotated[str, Field(min_length=1, max_length=1000)]
 
 
+class AdminUserRead(BaseModel):
+    id: UUID
+    first_name: str
+    last_name: str
+    mobile: str
+    email: EmailStr | None
+    status: Literal["active", "suspended", "pending_password_reset", "soft_deleted"]
+    roles: list[Literal["admin", "sub_admin", "agent", "telecaller", "employee", "client"]]
+    created_at: datetime
+    last_login_at: datetime | None
+
+
+class AdminUserListResponse(BaseModel):
+    users: list[AdminUserRead]
+    total: int
+
+
+class AdminUserStatusUpdateRequest(BaseModel):
+    status: Literal["active", "suspended"]
+    reason: Annotated[str, Field(min_length=1, max_length=1000)]
+
+
 # ---------------------------------------------------------------------------
 # Lead assignment (Telecaller Dashboard slice 1 — minimal, no admin queue UI yet)
 # ---------------------------------------------------------------------------

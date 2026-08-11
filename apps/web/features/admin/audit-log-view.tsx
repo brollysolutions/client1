@@ -71,6 +71,11 @@ const ACTION_META: Record<AuditAction, { label: string; icon: LucideIcon; tone: 
     tone: "bg-warning/10 text-warning",
   },
   account_removed: { label: "Account removed", icon: UserMinus, tone: "bg-error/10 text-error" },
+  account_status_updated: {
+    label: "Account status updated",
+    icon: ShieldCheck,
+    tone: "bg-warning/10 text-warning",
+  },
   payout_approved: { label: "Payout approved", icon: Wallet, tone: "bg-success/10 text-success" },
   payout_rejected: { label: "Payout rejected", icon: CircleSlash, tone: "bg-error/10 text-error" },
   payout_manual_issued: {
@@ -102,6 +107,11 @@ const ACTION_META: Record<AuditAction, { label: string; icon: LucideIcon; tone: 
     label: "Listing rejected",
     icon: Home,
     tone: "bg-error/10 text-error",
+  },
+  property_listing_updated: {
+    label: "Listing availability updated",
+    icon: Home,
+    tone: "bg-warning/10 text-warning",
   },
   support_ticket_advanced: {
     label: "Support ticket updated",

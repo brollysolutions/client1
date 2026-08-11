@@ -287,3 +287,43 @@ async def test_platform_admin_read_all_does_not_touch_other_users(client: AsyncC
         "/api/v1/notifications/unread-count", headers=owner_headers
     )
     assert owner_count_after.json() == {"count": 1}, "admin's read-all touched another user's row"
+
+
+@pytest.mark.asyncio
+async def test_platform_admin_can_audit_notifications_without_mutating_owner_feed(
+    client: AsyncClient,
+) -> None:
+    owner_token, owner_mobile = await full_registration(client, lines=["real_estate"])
+    owner_uid = await _auth_user_uuid(owner_mobile)
+    await client.post(
+        "/api/v1/support-tickets/tickets",
+        headers={"Authorization": f"Bearer {owner_token}"},
+        json={"category": "general", "subject": "Help", "body": "I need help."},
+    )
+    _, admin_mobile = await full_registration(client, lines=["real_estate"])
+    admin_uid = await _auth_user_uuid(admin_mobile)
+    audited = await client.get(
+        "/api/v1/notifications/admin/audit",
+        headers={"Authorization": f"Bearer {_admin_token(admin_uid)}"},
+    )
+    assert audited.status_code == 200, audited.text
+    item = next(
+        row
+        for row in audited.json()["notifications"]
+        if row["recipient_auth_user_uuid"] == owner_uid
+    )
+    assert item["type"] == "support_ticket_received"
+    assert "mobile" not in item and "email" not in item
+    owner = await client.get(
+        "/api/v1/notifications", headers={"Authorization": f"Bearer {owner_token}"}
+    )
+    assert owner.json()["notifications"][0]["read_at"] is None
+
+
+@pytest.mark.asyncio
+async def test_non_admin_cannot_audit_notifications(client: AsyncClient) -> None:
+    token, _ = await full_registration(client, lines=["real_estate"])
+    response = await client.get(
+        "/api/v1/notifications/admin/audit", headers={"Authorization": f"Bearer {token}"}
+    )
+    assert response.status_code == 403
