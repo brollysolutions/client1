@@ -20,6 +20,7 @@ from httpx import AsyncClient
 from sqlalchemy import text
 
 from app.core.security import create_access_token
+from app.scripts.seed_helpers import dev_indian_mobile
 from conftest import full_registration
 
 from .test_telecaller_api import (
@@ -529,7 +530,7 @@ async def _seed_progressing_application(business_line: str = "loans") -> tuple[s
         client_user = User(
             first_name="Test",
             last_name="Client",
-            mobile=f"+91{uuid.uuid4().int % 900000000 + 100000000}",
+            mobile=dev_indian_mobile(),
             email=f"cl_{uuid.uuid4().hex[:12]}@example.com",
             password_hash="x",
         )

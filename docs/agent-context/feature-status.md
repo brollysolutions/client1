@@ -49,6 +49,15 @@ work than several completed UI requirements.
 
 ## Current work
 
+**Delivered — dev-seed Indian mobile-number correctness (maintenance; PR
+pending):** one shared helper now generates synthetic `+91` mobile numbers
+with a ten-digit local number beginning 6–9. The Agent-application and
+Telecaller dev seeds plus every affected test generator use it, and a focused
+regression test locks the format. Fresh container evidence covers 52 focused
+API/RLS tests; public E.164 validation, production intake, authorization, and
+RLS are unchanged. The monolithic API suite exceeded the execution-host window
+without a report and is therefore inconclusive, not passing.
+
 The remaining **FR-2.2 Admin operational coverage audit** has an exhaustive,
 test-enforced baseline across 47 mapped tables and all 68 current
 platform-scope RLS policies. The visibility-remediation slice closes all eight

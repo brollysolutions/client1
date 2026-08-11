@@ -23,9 +23,10 @@ Production ships EMPTY — real applications arrive via the public form.
 from __future__ import annotations
 
 import asyncio
-import uuid
 
 from sqlalchemy import func, select
+
+from app.scripts.seed_helpers import dev_indian_mobile
 
 
 async def _seed() -> None:
@@ -44,15 +45,11 @@ async def _seed() -> None:
             )
             return
 
-        def _mobile() -> str:
-            n = uuid.uuid4().int % 900_000_000 + 100_000_000
-            return f"+91{n}"
-
         apps = [
             AgentApplication(
                 first_name="Ravi",
                 last_name="Kumar",
-                mobile=_mobile(),
+                mobile=dev_indian_mobile(),
                 email="ravi.kumar.seed@example.com",
                 business_line="real_estate",
                 rera_code="RERA/AG/2026/00041",
@@ -61,7 +58,7 @@ async def _seed() -> None:
             AgentApplication(
                 first_name="Priya",
                 last_name="Sharma",
-                mobile=_mobile(),
+                mobile=dev_indian_mobile(),
                 email="priya.sharma.seed@example.com",
                 business_line="real_estate",
                 rera_code="RERA/AG/2026/00042",

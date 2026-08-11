@@ -21,6 +21,7 @@ from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.pool import NullPool
 
 from app.core.config import settings
+from app.scripts.seed_helpers import dev_indian_mobile
 from conftest import full_registration
 
 
@@ -59,7 +60,7 @@ async def _seed_referral(referrer_uuid: str, referred_uuid: str) -> str:
     async with _session_mod.AsyncSessionLocal() as db:
         row = Referral(
             referrer_auth_user_uuid=uuid.UUID(referrer_uuid),
-            referred_mobile=f"+91{uuid.uuid4().int % 900_000_000 + 100_000_000}",
+            referred_mobile=dev_indian_mobile(),
             referred_auth_user_uuid=uuid.UUID(referred_uuid),
         )
         db.add(row)
