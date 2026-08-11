@@ -38,6 +38,12 @@ def _admin_token(uid: str) -> str:
     )
 
 
+def _line_admin_token(uid: str) -> str:
+    return create_access_token(
+        {"sub": uid, "role": "admin", "business_line": "loans", "platform_scope": "false"}
+    )
+
+
 @pytest.mark.asyncio
 async def test_list_requires_auth(client: AsyncClient) -> None:
     resp = await client.get("/api/v1/notifications")
@@ -322,8 +328,11 @@ async def test_platform_admin_can_audit_notifications_without_mutating_owner_fee
 
 @pytest.mark.asyncio
 async def test_non_admin_cannot_audit_notifications(client: AsyncClient) -> None:
-    token, _ = await full_registration(client, lines=["real_estate"])
-    response = await client.get(
-        "/api/v1/notifications/admin/audit", headers={"Authorization": f"Bearer {token}"}
-    )
-    assert response.status_code == 403
+    token, mobile = await full_registration(client, lines=["real_estate"])
+    user_uuid = await _auth_user_uuid(mobile)
+    for denied_token in (token, _line_admin_token(user_uuid)):
+        response = await client.get(
+            "/api/v1/notifications/admin/audit",
+            headers={"Authorization": f"Bearer {denied_token}"},
+        )
+        assert response.status_code == 403

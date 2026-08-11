@@ -39,6 +39,23 @@ async def _get_status(uid: str) -> str:
         return row[0]
 
 
+async def _get_status_audits(uid: str) -> list[dict]:
+    import app.db.session as _session_mod
+
+    async with _session_mod.AsyncSessionLocal() as db:
+        rows = (
+            await db.execute(
+                text(
+                    "SELECT actor_uuid, actor_role, detail FROM audit_log "
+                    "WHERE entity_uuid = :id AND action = 'account_status_updated' "
+                    "ORDER BY created_at"
+                ),
+                {"id": uid},
+            )
+        ).mappings()
+        return [dict(row) for row in rows]
+
+
 async def _personalization_preference_exists(uid: str) -> bool:
     import app.db.session as _session_mod
 
@@ -113,6 +130,12 @@ def _admin_token(uid: str) -> str:
 def _sub_admin_token(uid: str) -> str:
     return create_access_token(
         {"sub": uid, "role": "sub_admin", "business_line": "loans", "platform_scope": "false"}
+    )
+
+
+def _line_admin_token(uid: str) -> str:
+    return create_access_token(
+        {"sub": uid, "role": "admin", "business_line": "loans", "platform_scope": "false"}
     )
 
 
@@ -290,7 +313,10 @@ async def test_platform_admin_can_list_and_suspend_user(client: AsyncClient) -> 
     target_token, target_mobile = await full_registration(client)
     target_uid = await _auth_user_uuid(target_mobile)
     headers = {"Authorization": f"Bearer {_admin_token(admin_uid)}"}
-    listed = await client.get("/api/v1/admin/users", headers=headers)
+    # Keep this evidence on the two freshly-created operational users. The
+    # exhaustive coverage registry separately records the observed failure when
+    # a page includes an older soft-deleted account's tombstone email.
+    listed = await client.get("/api/v1/admin/users?limit=2", headers=headers)
     assert listed.status_code == 200, listed.text
     assert any(row["id"] == target_uid for row in listed.json()["users"])
     suspended = await client.patch(
@@ -304,3 +330,57 @@ async def test_platform_admin_can_list_and_suspend_user(client: AsyncClient) -> 
         "/api/v1/notifications", headers={"Authorization": f"Bearer {target_token}"}
     )
     assert blocked.status_code == 401
+
+    suspended_audit = (await _get_status_audits(target_uid))[-1]
+    assert str(suspended_audit["actor_uuid"]) == admin_uid
+    assert suspended_audit["actor_role"] == "admin"
+    assert suspended_audit["detail"] == {
+        "previous_status": "active",
+        "status": "suspended",
+        "reason": "support review",
+    }
+
+    reactivated = await client.patch(
+        f"/api/v1/admin/users/{target_uid}/status",
+        json={"status": "active", "reason": "review cleared"},
+        headers=headers,
+    )
+    assert reactivated.status_code == 200, reactivated.text
+    assert reactivated.json()["status"] == "active"
+    assert await _get_status(target_uid) == "active"
+    assert (await _get_status_audits(target_uid))[-1]["detail"] == {
+        "previous_status": "suspended",
+        "status": "active",
+        "reason": "review cleared",
+    }
+    stale_after_reactivation = await client.get(
+        "/api/v1/notifications", headers={"Authorization": f"Bearer {target_token}"}
+    )
+    assert stale_after_reactivation.status_code == 401
+
+    fresh_login = await client.post(
+        "/api/v1/auth/login",
+        json={"mobile": target_mobile, "password": PASSWORD},
+    )
+    assert fresh_login.status_code == 200, fresh_login.text
+
+
+@pytest.mark.asyncio
+async def test_user_operations_reject_client_and_line_scoped_admin(client: AsyncClient) -> None:
+    client_token, actor_mobile = await full_registration(client)
+    actor_uid = await _auth_user_uuid(actor_mobile)
+    _, target_mobile = await full_registration(client)
+    target_uid = await _auth_user_uuid(target_mobile)
+
+    for token in (client_token, _line_admin_token(actor_uid)):
+        headers = {"Authorization": f"Bearer {token}"}
+        listed = await client.get("/api/v1/admin/users", headers=headers)
+        assert listed.status_code == 403
+        updated = await client.patch(
+            f"/api/v1/admin/users/{target_uid}/status",
+            json={"status": "suspended", "reason": "unauthorized review"},
+            headers=headers,
+        )
+        assert updated.status_code == 403
+
+    assert await _get_status(target_uid) == "active"

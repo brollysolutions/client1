@@ -14,7 +14,9 @@ import uuid
 
 import pytest
 from httpx import AsyncClient
+from sqlalchemy import text
 
+from app.core.security import create_access_token
 from conftest import full_registration
 
 
@@ -50,6 +52,49 @@ async def _seed_property(*, active: bool, title: str) -> str:
         db.add(prop)
         await db.commit()
         return str(prop.id)
+
+
+async def _auth_user_uuid(mobile: str) -> str:
+    import app.db.session as _session_mod
+
+    async with _session_mod.AsyncSessionLocal() as db:
+        value = await db.scalar(
+            text("SELECT id FROM auth_users WHERE mobile = :mobile"), {"mobile": mobile}
+        )
+        assert value is not None
+        return str(value)
+
+
+def _admin_token(user_uuid: str, *, platform_scope: str = "true") -> str:
+    return create_access_token(
+        {
+            "sub": user_uuid,
+            "role": "admin",
+            "business_line": "",
+            "platform_scope": platform_scope,
+        }
+    )
+
+
+async def _listing_audit(property_id: str) -> dict:
+    import app.db.session as _session_mod
+
+    async with _session_mod.AsyncSessionLocal() as db:
+        row = (
+            (
+                await db.execute(
+                    text(
+                        "SELECT actor_uuid, actor_role, action, entity_type, detail "
+                        "FROM audit_log WHERE entity_uuid = :property_id "
+                        "ORDER BY created_at DESC LIMIT 1"
+                    ),
+                    {"property_id": property_id},
+                )
+            )
+            .mappings()
+            .one()
+        )
+        return dict(row)
 
 
 @pytest.mark.asyncio
@@ -114,3 +159,51 @@ async def test_get_inactive_is_404_for_client(client: AsyncClient) -> None:
         f"/api/v1/properties/{pid}", headers={"Authorization": f"Bearer {token}"}
     )
     assert resp.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_platform_admin_lists_and_publishes_inactive_listing_with_safe_audit(
+    client: AsyncClient,
+) -> None:
+    property_id = await _seed_property(active=False, title="Admin Publish Listing")
+    _, admin_mobile = await full_registration(client, lines=["real_estate"])
+    admin_uuid = await _auth_user_uuid(admin_mobile)
+    headers = {"Authorization": f"Bearer {_admin_token(admin_uuid)}"}
+
+    listed = await client.get("/api/v1/properties", headers=headers)
+    assert listed.status_code == 200, listed.text
+    assert property_id in {row["id"] for row in listed.json()["properties"]}
+
+    updated = await client.patch(
+        f"/api/v1/properties/{property_id}/status",
+        headers=headers,
+        json={"active": True, "reason": "Approved inventory release"},
+    )
+    assert updated.status_code == 200, updated.text
+    assert updated.json()["active"] is True
+
+    audit = await _listing_audit(property_id)
+    assert str(audit["actor_uuid"]) == admin_uuid
+    assert audit["actor_role"] == "admin"
+    assert audit["action"] == "property_listing_updated"
+    assert audit["entity_type"] == "property"
+    assert audit["detail"] == {
+        "previous_active": False,
+        "active": True,
+        "reason": "Approved inventory release",
+    }
+
+
+@pytest.mark.asyncio
+async def test_listing_status_rejects_client_and_line_scoped_admin(client: AsyncClient) -> None:
+    property_id = await _seed_property(active=False, title="Protected Listing")
+    client_token, client_mobile = await full_registration(client, lines=["real_estate"])
+    user_uuid = await _auth_user_uuid(client_mobile)
+
+    for token in (client_token, _admin_token(user_uuid, platform_scope="false")):
+        response = await client.patch(
+            f"/api/v1/properties/{property_id}/status",
+            headers={"Authorization": f"Bearer {token}"},
+            json={"active": True, "reason": "Unauthorized change"},
+        )
+        assert response.status_code == 403
