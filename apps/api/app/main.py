@@ -18,6 +18,7 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.v1.admin import router as admin_router
+from app.api.v1.admin_operations import router as admin_operations_router
 from app.api.v1.admin_vehicle_arrangements import router as admin_vehicle_arrangements_router
 from app.api.v1.agent import router as agent_router
 from app.api.v1.agent_applications import router as agent_applications_router
@@ -104,6 +105,11 @@ app.include_router(
     tags=["admin"],
 )
 app.include_router(admin_router, prefix="/api/v1/admin", tags=["admin"])
+app.include_router(
+    admin_operations_router,
+    prefix="/api/v1/admin/operations",
+    tags=["admin-operations"],
+)
 app.include_router(
     admin_vehicle_arrangements_router,
     prefix="/api/v1/admin/vehicle-arrangements",

@@ -172,6 +172,32 @@ async def test_admin_deletes_account_and_persists_reason(client: AsyncClient) ->
     assert reason == "duplicate account, flagged by support"
 
 
+async def test_admin_user_list_redacts_deleted_tombstone_contacts(client: AsyncClient) -> None:
+    _, admin_mobile = await full_registration(client)
+    admin_uid = await _auth_user_uuid(admin_mobile)
+    _, target_mobile = await full_registration(client, lines=["loans", "real_estate"])
+    target_uid = await _auth_user_uuid(target_mobile)
+    headers = {"Authorization": f"Bearer {_admin_token(admin_uid)}"}
+
+    deleted = await client.post(
+        f"/api/v1/admin/users/{target_uid}/delete",
+        json={"reason": "duplicate account"},
+        headers=headers,
+    )
+    assert deleted.status_code == 200, deleted.text
+
+    listed = await client.get("/api/v1/admin/users", params={"limit": 200}, headers=headers)
+    assert listed.status_code == 200, listed.text
+    account = next(user for user in listed.json()["users"] if user["id"] == target_uid)
+    assert account["status"] == "soft_deleted"
+    assert account["email"] is None
+    assert account["mobile"] is None
+    assert [profile["status"] for profile in account["client_profiles"]] == [
+        "inactive",
+        "inactive",
+    ]
+
+
 async def test_admin_delete_erases_private_personalization_preference(
     client: AsyncClient,
 ) -> None:

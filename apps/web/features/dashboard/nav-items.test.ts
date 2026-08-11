@@ -180,6 +180,7 @@ describe("role-aware dashboard navigation", () => {
   it("makes every existing Admin workspace reachable in grouped navigation", () => {
     expect(navKeys(context("admin"))).toEqual([
       "home",
+      "admin-operational-records",
       "admin-leads",
       "admin-tasks",
       "admin-loans",

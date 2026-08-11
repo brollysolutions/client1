@@ -9,6 +9,7 @@ import {
   CarFront,
   ClipboardCheck,
   ClipboardList,
+  Database,
   FileCheck2,
   FilePlus2,
   FileText,
@@ -69,4 +70,5 @@ export const DASHBOARD_ICONS = {
   broadcast: Megaphone,
   analytics: BarChart3,
   auditLog: ScrollText,
+  operationalRecords: Database,
 } as const;

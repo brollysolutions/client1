@@ -43,10 +43,21 @@ def test_gaps_are_explicit_and_actionable() -> None:
             assert entry.gap is None
 
 
-def test_observed_account_tombstone_failure_remains_a_declared_gap() -> None:
-    account = ADMIN_OPERATIONAL_COVERAGE["auth_users"]
-    assert account.view_coverage is CoverageState.GAP
-    assert account.gap is not None and "tombstone email" in account.gap
+def test_admin_operational_visibility_slice_closes_all_eight_view_gaps() -> None:
+    for table in {
+        "auth_events",
+        "auth_users",
+        "client_profiles",
+        "enquiries",
+        "lead_activities",
+        "loan_txn_history",
+        "site_visits",
+        "transactions",
+    }:
+        entry = ADMIN_OPERATIONAL_COVERAGE[table]
+        assert entry.view_coverage is CoverageState.COVERED
+        assert entry.api_surfaces
+        assert entry.ui_surfaces
 
 
 def test_protected_secrets_and_location_are_not_full_admin_views() -> None:

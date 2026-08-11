@@ -131,14 +131,24 @@ class AdminAccountDeleteRequest(BaseModel):
     reason: Annotated[str, Field(min_length=1, max_length=1000)]
 
 
+class AdminClientProfileRead(BaseModel):
+    id: UUID
+    business_line: Literal["loans", "real_estate"]
+    customer_code: str
+    status: Literal["active", "inactive", "pending", "suspended"]
+    created_at: datetime
+    updated_at: datetime
+
+
 class AdminUserRead(BaseModel):
     id: UUID
     first_name: str
     last_name: str
-    mobile: str
+    mobile: str | None
     email: EmailStr | None
     status: Literal["active", "suspended", "pending_password_reset", "soft_deleted"]
     roles: list[Literal["admin", "sub_admin", "agent", "telecaller", "employee", "client"]]
+    client_profiles: list[AdminClientProfileRead]
     created_at: datetime
     last_login_at: datetime | None
 
