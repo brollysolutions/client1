@@ -46,14 +46,42 @@ work than several completed UI requirements.
 
 ## Current work
 
-The remaining **FR-2.2 Admin operational coverage audit** continues with the
-domain-by-domain record inventory and PostgreSQL-backed evidence. The latest
-partial slice closes platform-Admin account status, read-only notification
-oversight, and approved-listing availability gaps. Payout controls,
-private-document access, PII minimization, and business-line segregation remain
+The remaining **FR-2.2 Admin operational coverage audit** now has an exhaustive,
+test-enforced baseline: 47 mapped tables and all 68 current platform-scope RLS
+policies are inventoried. Fresh PostgreSQL evidence passes for account status,
+read-only notification oversight, and approved-listing availability, while 16
+tables retain a proven view, correction, or audit gap. The next slice starts
+with the observed soft-deleted-account list failure and the seven other
+minimized operational-view gaps. Payout controls, private-document access,
+secret/location minimization, and business-line segregation remain
 non-negotiable compatibility constraints.
 
 ## Delivered implementation
+
+- **Admin operational coverage contract** (FR-2.2) is partially delivered in
+  [PR #172](https://github.com/brollysolutions/client1/pull/172). An explicit
+  registry maps all 47 SQLAlchemy tables to FR-2.2 domains and records
+  sensitivity, least-data
+  Admin view authority, supported workflow/status/configuration commands,
+  API/UI paths, RLS and audit expectations, and covered/gap/protected status.
+  Structural tests fail on unclassified future tables, unsafe full views of
+  secrets/location/storage keys, unbounded mutation claims, or incomplete
+  FR-2.2 noun mappings. Sixteen tables are confirmed gaps: eight view gaps, one
+  approved-listing correction gap, and seven missing append-only audit-event
+  families. Fresh Docker-network PostgreSQL/Redis evidence passes 20 tests for
+  the registry, platform-scope policy structure, account suspend/reactivate,
+  notification audit, listing publish/hide, safe audit details, session
+  invalidation, and Client/line-scoped Admin denial. The audit also found that
+  `/admin/users` cannot serialize a page containing a soft-deleted account's
+  `deleted.invalid` tombstone email; the contract now marks that view as a gap.
+  The platform-scope ledger was repaired to exhaustively match all 68 current
+  policies without changing any policy or grant. FR-2.2 remains Partial: this
+  evidence slice changes no route, contract, RLS behavior, migration, or UI.
+  Full Ruff and formatting checks pass across 436 API files, Alembic reports
+  one current head, and security review found no remaining reachable issue
+  after requiring session/push-secret tables to have no Admin projection. The
+  monolithic API regression reached its 30-minute command bound without a
+  pytest report and is inconclusive rather than passing.
 
 - **Admin operational coverage audit — user, notification, and listing slice**
   (FR-2.2) is partially delivered on
@@ -426,7 +454,7 @@ The following requirements are complete on the evidence baseline:
 | Requirement | Status | Implemented slice | Remaining work |
 | --- | --- | --- | --- |
 | FR-1.1 | Complete | Every mapped table and managed-media purpose is inventoried; operational rows require one immutable Loans/Real Estate tag, parent/source copies must match, and only reviewed staged/global/identity exceptions remain nullable or allow `both`. | Preserve the exhaustive ledger and migration/negative tests for every future table, relation, content audience, and media purpose. |
-| FR-2.2 | Partial | Admin dashboards cover users, leads, tasks, agents, loans, deals, payouts, content, audit, and reports; platform Admin can now create and update shared banners, offers, content blocks, and referral-bonus rules through server/RLS-enforced overrides. | Complete the remaining exhaustive inventory for user, media, listing, notification, and record-level Admin updates; execute PostgreSQL-backed authorization/RLS and accessible UI coverage. |
+| FR-2.2 | Partial | Admin dashboards cover users, leads, tasks, agents, loans, deals, payouts, content, audit, and reports. The test-enforced contract classifies all 47 mapped tables and all 68 current platform-scope policies; fresh PostgreSQL evidence covers account status, notification audit, listing availability, safe audit details, session invalidation, and negative roles. | Remediate 16 confirmed tables: eight minimized-view gaps (`auth_events`, `auth_users`, `client_profiles`, `enquiries`, `lead_activities`, `loan_txn_history`, `site_visits`, `transactions`), one typed approved-listing correction gap (`properties`), and seven append-only audit gaps (`banners`, `content_blocks`, `loan_applications`, `offers`, `property_deals`, `referral_bonus_config`, `tasks`); add accessible UI and PostgreSQL evidence while preserving protected secrets/location/media and command-bound updates. |
 | FR-2.8 | Complete | Lead name and journey notes carry immutable creator descriptors; Agent and Client edits follow explicit lifecycle cutoffs, Admin corrections preserve ownership and require an audited reason, and Telecaller notes remain append-only activities. Service checks, row locks, command-specific RLS, and a database trigger deny cross-owner, cross-role, cross-line, lifecycle, allowed-column, and descriptor-planting bypasses. | Preserve the ownership initializer/backfill, least-data no-store response, audit-value minimization, and direct SQL denial tests when adding future editable lead-detail paths. |
 | FR-4.2 | Complete | Agent-introduced leads are atomically attributed and assigned through a durable, active-only same-line round-robin cursor, queued for bounded retry without capacity, and bound to a same-mobile Client only after OTP-proven registration. | Preserve global Agent ownership, expiry deadlines, generic-link authority boundaries, stable Telecaller order, cursor isolation, and concurrency tests as the workflow evolves. |
 | FR-4.3 | Complete | Registration captures explicit one/both-line intent while retaining both Client profiles; each requested journey is independently bound and assigned through its line's separate round-robin cursor without cross-line leakage. | Preserve explicit intent, per-line uniqueness, deterministic assignment ordering, and account-deletion closure. |
