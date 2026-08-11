@@ -16,13 +16,23 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.deps import CurrentUser, get_active_user
+from app.core.deps import CurrentUser, get_active_user, require_platform_admin
 from app.db.session import get_db
+from app.models.audit_log import AuditAction
 from app.models.property import Property
-from app.schemas.properties import PropertyListResponse, PropertyRead
+from app.schemas.properties import AdminPropertyStatusUpdate, PropertyListResponse, PropertyRead
+from app.services.audit_log import record as record_audit
 from app.services.properties import media_by_property, media_urls_by_property
 
 router = APIRouter()
+
+
+async def _to_read(db: AsyncSession, prop: Property) -> PropertyRead:
+    media = await media_urls_by_property(db, [prop.id])
+    media_items = await media_by_property(db, [prop.id])
+    return PropertyRead.model_validate(prop, from_attributes=True).model_copy(
+        update={"media_urls": media[prop.id], "media": media_items[prop.id]}
+    )
 
 
 @router.get("", response_model=PropertyListResponse)
@@ -58,8 +68,36 @@ async def get_property(
         # 404, never 403: an RLS-filtered (inactive, non-admin) row must be
         # indistinguishable from one that does not exist.
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Property not found.")
-    media = await media_urls_by_property(db, [prop.id])
-    media_items = await media_by_property(db, [prop.id])
-    return PropertyRead.model_validate(prop, from_attributes=True).model_copy(
-        update={"media_urls": media[prop.id], "media": media_items[prop.id]}
-    )
+    return await _to_read(db, prop)
+
+
+@router.patch("/{property_id}/status", response_model=PropertyRead)
+async def update_property_status(
+    property_id: UUID,
+    payload: AdminPropertyStatusUpdate,
+    current_user: CurrentUser = Depends(require_platform_admin),
+    db: AsyncSession = Depends(get_db),
+) -> PropertyRead:
+    prop = await db.scalar(select(Property).where(Property.id == property_id).with_for_update())
+    if prop is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Property not found.")
+    if prop.active != payload.active:
+        previous_active = prop.active
+        prop.active = payload.active
+        await record_audit(
+            db,
+            action=AuditAction.PROPERTY_LISTING_UPDATED,
+            entity_type="property",
+            entity_uuid=prop.id,
+            actor_uuid=current_user.id,
+            actor_role=current_user.role,
+            business_line=prop.business_line,
+            detail={
+                "previous_active": previous_active,
+                "active": payload.active,
+                "reason": payload.reason,
+            },
+        )
+        await db.commit()
+        await db.refresh(prop)
+    return await _to_read(db, prop)

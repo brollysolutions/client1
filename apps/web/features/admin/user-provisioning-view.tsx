@@ -33,6 +33,7 @@ import {
 } from "@/lib/admin-api";
 
 import { TempCredentialPanel } from "./temp-credential-panel";
+import { OperationalUsersPanel } from "./operational-users-panel";
 
 type StaffRole = StaffCreateRequest["role"];
 type AccessStatus = "loading" | "ready" | "restricted" | "error";
@@ -347,6 +348,13 @@ export function UserProvisioningView() {
           />
         </DashboardPanel>
       </div>
+
+      <DashboardPanel
+        title="Operational accounts"
+        description="Platform-wide account oversight. Suspending an account immediately invalidates its sessions; deleted and Main Admin accounts are protected."
+      >
+        <OperationalUsersPanel />
+      </DashboardPanel>
     </DashboardPage>
   );
 }

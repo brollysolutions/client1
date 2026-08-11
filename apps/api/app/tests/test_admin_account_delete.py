@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import uuid
 
+import pytest
 from httpx import AsyncClient
 from sqlalchemy import text
 
@@ -280,3 +281,26 @@ async def test_admin_delete_revokes_target_refresh_token(client: AsyncClient) ->
 
     client.cookies.set("refresh_token", target_refresh_cookie)
     assert (await client.post("/api/v1/auth/refresh")).status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_platform_admin_can_list_and_suspend_user(client: AsyncClient) -> None:
+    _, admin_mobile = await full_registration(client)
+    admin_uid = await _auth_user_uuid(admin_mobile)
+    target_token, target_mobile = await full_registration(client)
+    target_uid = await _auth_user_uuid(target_mobile)
+    headers = {"Authorization": f"Bearer {_admin_token(admin_uid)}"}
+    listed = await client.get("/api/v1/admin/users", headers=headers)
+    assert listed.status_code == 200, listed.text
+    assert any(row["id"] == target_uid for row in listed.json()["users"])
+    suspended = await client.patch(
+        f"/api/v1/admin/users/{target_uid}/status",
+        json={"status": "suspended", "reason": "support review"},
+        headers=headers,
+    )
+    assert suspended.status_code == 200, suspended.text
+    assert suspended.json()["status"] == "suspended"
+    blocked = await client.get(
+        "/api/v1/notifications", headers={"Authorization": f"Bearer {target_token}"}
+    )
+    assert blocked.status_code == 401

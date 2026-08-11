@@ -21,10 +21,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.cache.redis_keys import ADMIN_BROADCAST_RATE, RedisCache
 from app.core.config import settings
-from app.core.deps import CurrentUser, get_active_user, get_cache
+from app.core.deps import CurrentUser, get_active_user, get_cache, require_platform_admin
 from app.db.session import get_db
 from app.models.notification import Notification
+from app.models.user import User
 from app.schemas.notifications import (
+    AdminNotificationListResponse,
+    AdminNotificationRead,
     BroadcastPreviewResponse,
     BroadcastRequest,
     BroadcastResponse,
@@ -56,6 +59,7 @@ def _require_admin(current_user: CurrentUser) -> None:
 # Defensive cap, not a pagination feature: keeps the unpaginated feed payload
 # bounded as an account accumulates events over time.
 _LIST_LIMIT = 100
+_ADMIN_LIST_LIMIT = 200
 
 
 @router.get("", response_model=NotificationListResponse)
@@ -91,6 +95,39 @@ async def get_unread_count(
         )
     )
     return UnreadCountResponse(count=result.scalar_one())
+
+
+@router.get("/admin/audit", response_model=AdminNotificationListResponse)
+async def list_notifications_for_admin(
+    limit: int = 50,
+    offset: int = 0,
+    current_user: CurrentUser = Depends(require_platform_admin),
+    db: AsyncSession = Depends(get_db),
+) -> AdminNotificationListResponse:
+    """Read-only event oversight.  This deliberately does not reuse the own-feed
+    route or expose a way to mark another recipient's notification as read."""
+    limit = min(max(limit, 1), _ADMIN_LIST_LIMIT)
+    total = await db.scalar(select(func.count()).select_from(Notification)) or 0
+    rows = (
+        await db.execute(
+            select(Notification, User.first_name, User.last_name)
+            .join(User, User.id == Notification.user_uuid)
+            .order_by(Notification.created_at.desc(), Notification.id.desc())
+            .limit(limit)
+            .offset(max(offset, 0))
+        )
+    ).all()
+    return AdminNotificationListResponse(
+        notifications=[
+            AdminNotificationRead(
+                **NotificationRead.model_validate(notification, from_attributes=True).model_dump(),
+                recipient_auth_user_uuid=notification.user_uuid,
+                recipient_name=f"{first_name} {last_name}".strip() or "Account",
+            )
+            for notification, first_name, last_name in rows
+        ],
+        total=total,
+    )
 
 
 @router.patch("/{notification_id}/read", response_model=NotificationRead)

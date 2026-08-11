@@ -50,3 +50,18 @@ export async function getProperty(id: string): Promise<ApiResponse<REListing>> {
   if (!res.ok) return res;
   return { ok: true, status: res.status, data: mapProperty(res.data) };
 }
+
+export type AdminProperty = Schemas["PropertyRead"];
+
+export async function getAdminProperties(): Promise<ApiResponse<AdminProperty[]>> {
+  const res = await apiRequest<Schemas["PropertyListResponse"]>("/api/v1/properties");
+  if (!res.ok) return res;
+  return { ok: true, status: res.status, data: res.data.properties };
+}
+
+export async function setPropertyActive(
+  id: string,
+  body: Schemas["AdminPropertyStatusUpdate"],
+): Promise<ApiResponse<AdminProperty>> {
+  return apiRequest<AdminProperty>(`/api/v1/properties/${id}/status`, { method: "PATCH", body });
+}

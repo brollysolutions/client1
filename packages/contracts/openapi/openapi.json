@@ -681,6 +681,98 @@
         "title": "AdminLoanTypeRead",
         "type": "object"
       },
+      "AdminNotificationListResponse": {
+        "properties": {
+          "notifications": {
+            "items": {
+              "$ref": "#/components/schemas/AdminNotificationRead"
+            },
+            "title": "Notifications",
+            "type": "array"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "notifications",
+          "total"
+        ],
+        "title": "AdminNotificationListResponse",
+        "type": "object"
+      },
+      "AdminNotificationRead": {
+        "description": "Read-only oversight projection.  Recipient contact data is intentionally\nexcluded; the UUID and display name let a platform Admin correlate the event\nwith the operational record without creating a contact-export surface.",
+        "properties": {
+          "body": {
+            "title": "Body",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "href": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Href"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "read_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Read At"
+          },
+          "recipient_auth_user_uuid": {
+            "format": "uuid",
+            "title": "Recipient Auth User Uuid",
+            "type": "string"
+          },
+          "recipient_name": {
+            "title": "Recipient Name",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "type": {
+            "$ref": "#/components/schemas/NotificationType"
+          }
+        },
+        "required": [
+          "id",
+          "type",
+          "title",
+          "body",
+          "href",
+          "read_at",
+          "created_at",
+          "recipient_auth_user_uuid",
+          "recipient_name"
+        ],
+        "title": "AdminNotificationRead",
+        "type": "object"
+      },
       "AdminPendingItem": {
         "description": "An agent application, banner, or property listing awaiting Admin review.",
         "properties": {
@@ -861,6 +953,26 @@
           "closed_at"
         ],
         "title": "AdminPropertyDealRead",
+        "type": "object"
+      },
+      "AdminPropertyStatusUpdate": {
+        "properties": {
+          "active": {
+            "title": "Active",
+            "type": "boolean"
+          },
+          "reason": {
+            "maxLength": 1000,
+            "minLength": 1,
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "active",
+          "reason"
+        ],
+        "title": "AdminPropertyStatusUpdate",
         "type": "object"
       },
       "AdminReferralListResponse": {
@@ -1140,6 +1252,139 @@
           "updated_at"
         ],
         "title": "AdminTaskRead",
+        "type": "object"
+      },
+      "AdminUserListResponse": {
+        "properties": {
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          },
+          "users": {
+            "items": {
+              "$ref": "#/components/schemas/AdminUserRead"
+            },
+            "title": "Users",
+            "type": "array"
+          }
+        },
+        "required": [
+          "users",
+          "total"
+        ],
+        "title": "AdminUserListResponse",
+        "type": "object"
+      },
+      "AdminUserRead": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "email": {
+            "anyOf": [
+              {
+                "format": "email",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
+          },
+          "first_name": {
+            "title": "First Name",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "last_login_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Login At"
+          },
+          "last_name": {
+            "title": "Last Name",
+            "type": "string"
+          },
+          "mobile": {
+            "title": "Mobile",
+            "type": "string"
+          },
+          "roles": {
+            "items": {
+              "enum": [
+                "admin",
+                "sub_admin",
+                "agent",
+                "telecaller",
+                "employee",
+                "client"
+              ],
+              "type": "string"
+            },
+            "title": "Roles",
+            "type": "array"
+          },
+          "status": {
+            "enum": [
+              "active",
+              "suspended",
+              "pending_password_reset",
+              "soft_deleted"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "first_name",
+          "last_name",
+          "mobile",
+          "email",
+          "status",
+          "roles",
+          "created_at",
+          "last_login_at"
+        ],
+        "title": "AdminUserRead",
+        "type": "object"
+      },
+      "AdminUserStatusUpdateRequest": {
+        "properties": {
+          "reason": {
+            "maxLength": 1000,
+            "minLength": 1,
+            "title": "Reason",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "active",
+              "suspended"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "reason"
+        ],
+        "title": "AdminUserStatusUpdateRequest",
         "type": "object"
       },
       "AgentApplicationDetailRead": {
@@ -2377,6 +2622,7 @@
           "staff_feature_granted",
           "staff_feature_revoked",
           "account_removed",
+          "account_status_updated",
           "payout_approved",
           "payout_rejected",
           "payout_manual_issued",
@@ -2385,6 +2631,7 @@
           "payout_manual_reversed",
           "property_submission_approved",
           "property_submission_rejected",
+          "property_listing_updated",
           "support_ticket_advanced",
           "retention_purged",
           "loan_type_created",
@@ -17625,6 +17872,67 @@
         ]
       }
     },
+    "/api/v1/admin/users": {
+      "get": {
+        "operationId": "list_users_api_v1_admin_users_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminUserListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "List Users",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
     "/api/v1/admin/users/create": {
       "post": {
         "operationId": "create_staff_user_api_v1_admin_users_create_post",
@@ -17725,6 +18033,64 @@
           }
         ],
         "summary": "Delete User",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/users/{auth_user_uuid}/status": {
+      "patch": {
+        "operationId": "update_user_status_api_v1_admin_users__auth_user_uuid__status_patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "auth_user_uuid",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Auth User Uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminUserStatusUpdateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminUserRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Update User Status",
         "tags": [
           "admin"
         ]
@@ -21539,6 +21905,65 @@
         ]
       }
     },
+    "/api/v1/notifications/admin/audit": {
+      "get": {
+        "description": "Read-only event oversight.  This deliberately does not reuse the own-feed\nroute or expose a way to mark another recipient's notification as read.",
+        "operationId": "list_notifications_for_admin_api_v1_notifications_admin_audit_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminNotificationListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "List Notifications For Admin",
+        "tags": [
+          "notifications"
+        ]
+      }
+    },
     "/api/v1/notifications/broadcast": {
       "post": {
         "operationId": "send_broadcast_api_v1_notifications_broadcast_post",
@@ -22908,6 +23333,64 @@
           }
         ],
         "summary": "Get Property",
+        "tags": [
+          "properties"
+        ]
+      }
+    },
+    "/api/v1/properties/{property_id}/status": {
+      "patch": {
+        "operationId": "update_property_status_api_v1_properties__property_id__status_patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "property_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Property Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminPropertyStatusUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PropertyRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Update Property Status",
         "tags": [
           "properties"
         ]

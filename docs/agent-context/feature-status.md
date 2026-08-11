@@ -44,7 +44,30 @@ points: `(78 + 1 x 0.5) / 79 = 99.37%`, rounded to **99.4%**. The weighting is a
 an estimate of calendar time: a single security-sensitive gap can require more
 work than several completed UI requirements.
 
+## Current work
+
+The remaining **FR-2.2 Admin operational coverage audit** continues with the
+domain-by-domain record inventory and PostgreSQL-backed evidence. The latest
+partial slice closes platform-Admin account status, read-only notification
+oversight, and approved-listing availability gaps. Payout controls,
+private-document access, PII minimization, and business-line segregation remain
+non-negotiable compatibility constraints.
+
 ## Delivered implementation
+
+- **Admin operational coverage audit — user, notification, and listing slice**
+  (FR-2.2) is partially delivered on
+  `codex/20260810-161623-ps-d-dhanadhara-client1-docker-compose-f`. Platform
+  Admin can now list operational identities and suspend/reactivate eligible
+  accounts with a reason, atomic session/profile invalidation, and a safe audit
+  record; no caller can change itself or the immutable Main Admin. A separate
+  read-only notification-audit projection preserves recipient read state and
+  excludes mobile/email. Admin can also publish or hide an approved property
+  listing through a reasoned, status-only RLS action without rewriting reviewed
+  facts or media. Generated contracts, API focused tests, Web TypeScript, and
+  API Ruff pass; the Docker-backed focused suite exceeded its two-minute bound
+  before returning a report. FR-2.2 remains Partial until the exhaustive
+  user/media/listing/notification/record inventory and database evidence finish.
 
 - **Provenance-based edit ownership** (FR-2.8) is complete in
   [PR #169](https://github.com/brollysolutions/client1/pull/169). Lead names and journey notes now retain immutable

@@ -42,6 +42,9 @@ from app.schemas.admin import (
     AdminPropertyDealListResponse,
     AdminPropertyDealRead,
     AdminTaskRead,
+    AdminUserListResponse,
+    AdminUserRead,
+    AdminUserStatusUpdateRequest,
     AgentApplicationDetailRead,
     AgentApplicationDocument,
     AgentApplicationListResponse,
@@ -98,6 +101,8 @@ from app.services.account_deletion import (
 from app.services.admin import (
     ADDITIONAL_ADMIN_LIMIT,
     AdditionalAdminLimitReached,
+    AdminUserNotFound,
+    AdminUserUpdateForbidden,
     AgentApplicationAlreadyReviewed,
     AgentApplicationEmailConflict,
     InvalidStaffFeatureTarget,
@@ -106,8 +111,11 @@ from app.services.admin import (
     approve_agent_application,
     create_staff,
     is_primary_admin,
+    list_operational_users,
     list_staff_access,
+    operational_roles_for,
     reject_agent_application,
+    set_operational_user_status,
     set_staff_feature,
 )
 from app.services.admin_home import get_admin_home
@@ -484,6 +492,74 @@ async def delete_user(
             detail="The Main Admin cannot be deleted without an explicit ownership transfer.",
         ) from exc
     return MessageResponse(message="Account deleted.")
+
+
+@router.get("/users", response_model=AdminUserListResponse)
+async def list_users(
+    limit: int = Query(default=50, ge=1, le=200),
+    offset: int = Query(default=0, ge=0),
+    current_user: CurrentUser = Depends(require_platform_admin),  # noqa: ARG001
+    db: AsyncSession = Depends(get_db),
+) -> AdminUserListResponse:
+    users, total = await list_operational_users(db, limit=limit, offset=offset)
+    return AdminUserListResponse(
+        users=[
+            AdminUserRead(
+                id=user.id,
+                first_name=user.first_name,
+                last_name=user.last_name,
+                mobile=user.mobile,
+                email=user.email,
+                status=user.status.value,
+                roles=roles,
+                created_at=user.created_at,
+                last_login_at=user.last_login_at,
+            )
+            for user, roles in users
+        ],
+        total=total,
+    )
+
+
+@router.patch("/users/{auth_user_uuid}/status", response_model=AdminUserRead)
+async def update_user_status(
+    auth_user_uuid: UUID,
+    payload: AdminUserStatusUpdateRequest,
+    current_user: CurrentUser = Depends(require_platform_admin),
+    db: AsyncSession = Depends(get_db),
+) -> AdminUserRead:
+    from app.models.user import UserStatus
+
+    try:
+        user = await set_operational_user_status(
+            db,
+            target_user_uuid=auth_user_uuid,
+            target_status=UserStatus(payload.status),
+            reason=payload.reason,
+            actor_uuid=current_user.id,
+            actor_role=current_user.role,
+        )
+    except AdminUserNotFound as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Account not found."
+        ) from exc
+    except AdminUserUpdateForbidden as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="This account cannot be updated through the Admin status control.",
+        ) from exc
+    roles = await operational_roles_for(db, user.id)
+    return AdminUserRead(
+        id=user.id,
+        first_name=user.first_name,
+        last_name=user.last_name,
+        mobile=user.mobile,
+        email=user.email,
+        status=user.status.value,
+        roles=roles,
+        created_at=user.created_at,
+        last_login_at=user.last_login_at,
+    )
 
 
 @router.get("/agents", response_model=AgentApplicationListResponse)
