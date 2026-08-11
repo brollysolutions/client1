@@ -18,26 +18,34 @@ import app.db.session as _session_mod
 
 # Policies whose predicate mentions BOTH app.platform_scope and 'sub_admin'
 # somewhere in the same USING/WITH CHECK string — a coarse substring check, so
-# it also catches the seven line-scoped `role IN (..., 'sub_admin')'
-# sub-branches that share a predicate with an (unrelated) platform_scope
-# disjunct. Any new entry here must be a deliberate, reviewed widening.
+# it also catches owner/line-scoped Sub Admin branches that share a policy
+# with an independent platform-Admin disjunct. Any new entry here must be a
+# deliberate, reviewed policy change.
 _DOCUMENTED_SUB_ADMIN_EXCEPTIONS = {
     # Live: sub_admin actually reads through the platform_scope branch itself.
     ("transactions", "transactions_rls"),
     ("payouts", "payouts_rls"),
     ("properties", "properties_rls"),
     # Dead-but-retained (a0b1c2d3e4f5 §Risks): pre-existing line-scoped
-    # `role IN (..., 'sub_admin')` branches that never match a platform
-    # sub_admin (business_line claim is always ""), kept because a
-    # line-scoped sub_admin is DB-legal and covered by existing tests.
+    # Owner/line-scoped branches never match a platform Sub Admin
+    # (business_line claim is always "") but are DB-legal and tested.
     ("client_profiles", "client_profiles_rls"),
     ("agent_profiles", "agent_profiles_rls"),
-    ("leads", "leads_rls"),
+    ("leads", "leads_select"),
+    ("leads", "leads_update"),
     ("loan_applications", "loan_applications_rls"),
     ("loan_documents", "loan_documents_select"),
     ("property_deals", "property_deals_rls"),
     ("site_visits", "site_visits_rls"),
     ("enquiries", "enquiries_rls"),
+    ("banners", "banners_insert"),
+    ("banners", "banners_update"),
+    ("offers", "offers_insert"),
+    ("offers", "offers_update"),
+    ("content_blocks", "content_blocks_insert"),
+    ("content_blocks", "content_blocks_update"),
+    ("referral_bonus_config", "referral_bonus_config_insert"),
+    ("referral_bonus_config", "referral_bonus_config_update"),
 }
 
 # Every current policy carrying a platform_scope branch. The original
@@ -46,6 +54,7 @@ _DOCUMENTED_SUB_ADMIN_EXCEPTIONS = {
 # with those additive migrations rather than the earlier policy names.
 _ALL_PLATFORM_SCOPE_POLICIES = {
     ("auth_users", "auth_users_rls"),
+    ("audit_log", "audit_log_select"),
     ("agent_applications", "agent_applications_rls"),
     ("auth_events", "auth_events_rls"),
     ("refresh_tokens", "refresh_tokens_rls"),
@@ -61,6 +70,7 @@ _ALL_PLATFORM_SCOPE_POLICIES = {
     ("task_documents", "task_documents_insert"),
     ("task_documents", "task_documents_delete"),
     ("task_documents", "task_documents_update"),
+    ("task_feedback_media", "task_feedback_media_select"),
     ("loan_documents", "loan_documents_select"),
     ("loan_documents", "loan_documents_update"),
     ("loan_applications", "loan_applications_rls"),
@@ -69,8 +79,12 @@ _ALL_PLATFORM_SCOPE_POLICIES = {
     ("client_profiles", "client_profiles_rls"),
     ("agent_profiles", "agent_profiles_rls"),
     ("staff_profiles", "staff_profiles_rls"),
-    ("leads", "leads_rls"),
+    ("leads", "leads_select"),
+    ("leads", "leads_update"),
+    ("leads", "leads_insert"),
+    ("leads", "leads_delete"),
     ("properties", "properties_rls"),
+    ("properties", "properties_admin_update"),
     ("property_submissions", "property_submissions_select"),
     ("property_submission_media", "property_submission_media_select"),
     ("property_media", "property_media_select"),
@@ -80,6 +94,34 @@ _ALL_PLATFORM_SCOPE_POLICIES = {
     # are NOT in _DOCUMENTED_SUB_ADMIN_EXCEPTIONS above.
     ("referral_codes", "referral_codes_rls"),
     ("referrals", "referrals_rls"),
+    ("banks", "banks_insert"),
+    ("banks", "banks_update"),
+    ("loan_types", "loan_types_insert"),
+    ("loan_types", "loan_types_update"),
+    ("bank_loan_type_availability", "bank_loan_type_availability_insert"),
+    ("bank_loan_type_availability", "bank_loan_type_availability_update"),
+    ("commissions", "commissions_select"),
+    ("commissions", "commissions_insert"),
+    ("commissions", "commissions_update"),
+    ("fee_cashbacks", "fee_cashbacks_select"),
+    ("fee_cashbacks", "fee_cashbacks_insert"),
+    ("fee_cashbacks", "fee_cashbacks_update"),
+    ("field_visibility_config", "field_visibility_config_select"),
+    ("field_visibility_config", "field_visibility_config_insert"),
+    ("field_visibility_config", "field_visibility_config_update"),
+    ("contact_share_links", "contact_share_links_select"),
+    ("contact_share_links", "contact_share_links_update"),
+    ("vehicle_arrangements", "vehicle_arrangements_select"),
+    ("vehicle_arrangements", "vehicle_arrangements_insert"),
+    ("vehicle_arrangements", "vehicle_arrangements_update"),
+    ("banners", "banners_insert"),
+    ("banners", "banners_update"),
+    ("offers", "offers_insert"),
+    ("offers", "offers_update"),
+    ("content_blocks", "content_blocks_insert"),
+    ("content_blocks", "content_blocks_update"),
+    ("referral_bonus_config", "referral_bonus_config_insert"),
+    ("referral_bonus_config", "referral_bonus_config_update"),
 }
 
 
@@ -142,8 +184,11 @@ async def test_sub_admin_platform_exceptions_are_the_documented_allowlist() -> N
 
 
 async def test_all_platform_scope_policies_still_exist() -> None:
-    """Guards a DROP POLICY that never got its matching CREATE."""
+    """Keep the platform-scope policy ledger exhaustive in both directions."""
     policies = await _fetch_policies()
-    existing = {(p["tablename"], p["policyname"]) for p in policies}
-    missing = _ALL_PLATFORM_SCOPE_POLICIES - existing
-    assert missing == set(), f"expected platform_scope policies missing: {missing}"
+    actual = {
+        (p["tablename"], p["policyname"])
+        for p in policies
+        if _mentions_platform_scope(p["qual"]) or _mentions_platform_scope(p["with_check"])
+    }
+    assert actual == _ALL_PLATFORM_SCOPE_POLICIES
