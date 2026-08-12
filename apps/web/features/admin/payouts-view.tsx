@@ -30,6 +30,7 @@ import { formatPaise } from "@/lib/format";
 import type { Payout, PayoutStatus } from "@/lib/payouts-api";
 
 import { PayoutCreateDialog } from "./payout-create-dialog";
+import { AdminPagination, ADMIN_PAGE_SIZE, isInDateRange } from "./admin-list-tools";
 import { useAdminPayouts } from "./use-admin-payouts";
 
 const TYPE_LABEL: Record<string, string> = {
@@ -112,6 +113,18 @@ export function PayoutsView() {
   const [manualActive, setManualActive] = React.useState<Payout | null>(null);
   const [manualFailure, setManualFailure] = React.useState(false);
   const [manualValue, setManualValue] = React.useState("");
+  const [search, setSearch] = React.useState("");
+  const [typeFilter, setTypeFilter] = React.useState("all");
+  const [dateFrom, setDateFrom] = React.useState("");
+  const [dateTo, setDateTo] = React.useState("");
+  const [page, setPage] = React.useState(0);
+  const filteredPayouts = React.useMemo(() => payouts.filter((payout) => (
+    (typeFilter === "all" || payout.type === typeFilter) &&
+    isInDateRange(payout.created_at, dateFrom, dateTo) &&
+    `${payout.recipient_name ?? ""} ${payout.recipient_code ?? ""} ${payout.maker_name ?? ""}`.toLowerCase().includes(search.toLowerCase())
+  )), [dateFrom, dateTo, payouts, search, typeFilter]);
+  React.useEffect(() => setPage(0), [dateFrom, dateTo, search, statusFilter, typeFilter]);
+  const pagePayouts = filteredPayouts.slice(page * ADMIN_PAGE_SIZE, (page + 1) * ADMIN_PAGE_SIZE);
 
   function openDecision(payout: Payout) {
     setActive(payout);
@@ -207,7 +220,8 @@ export function PayoutsView() {
             Approve or reject cashback, referral, and commission disbursements.
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="grid w-full gap-2 sm:grid-cols-2 lg:w-auto lg:grid-cols-5">
+          <Input aria-label="Search payouts" placeholder="Recipient or maker" value={search} onChange={(event) => setSearch(event.target.value)} />
           <Select value={statusFilter || "all"} onValueChange={(v) => setStatusFilter(v === "all" ? "" : v)}>
             <SelectTrigger className="w-48">
               <SelectValue placeholder="Awaiting approval" />
@@ -220,6 +234,9 @@ export function PayoutsView() {
               ))}
             </SelectContent>
           </Select>
+          <Select value={typeFilter} onValueChange={setTypeFilter}><SelectTrigger aria-label="Filter payouts by type"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All payout types</SelectItem>{Object.entries(TYPE_LABEL).map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent></Select>
+          <Input aria-label="Payouts from date" type="date" value={dateFrom} onChange={(event) => setDateFrom(event.target.value)} />
+          <Input aria-label="Payouts to date" type="date" min={dateFrom || undefined} value={dateTo} onChange={(event) => setDateTo(event.target.value)} />
           <Button onClick={() => setCreateOpen(true)}>Raise a payout</Button>
         </div>
       </div>
@@ -232,7 +249,7 @@ export function PayoutsView() {
         </div>
       ) : status === "error" ? (
         <FetchError status={errorStatus} message={error} onRetry={retry} />
-      ) : payouts.length === 0 ? (
+      ) : filteredPayouts.length === 0 ? (
         <div className="flex flex-col items-center rounded-2xl border border-border bg-card p-12 text-center">
           <Wallet className="h-8 w-8 text-text-secondary" aria-hidden="true" />
           <p className="mt-3 font-medium text-text-primary">
@@ -244,7 +261,7 @@ export function PayoutsView() {
       ) : (
         <>
           <ul className="space-y-3">
-            {payouts.map((p) => {
+            {pagePayouts.map((p) => {
               const approvalAction = canReview && p.status === "pending_approval";
               const manualAction =
                 canReview &&
@@ -313,6 +330,7 @@ export function PayoutsView() {
               Showing the 100 most recent. Filter by status to narrow this down.
             </p>
           ) : null}
+          <AdminPagination page={page} total={filteredPayouts.length} onPageChange={setPage} />
         </>
       )}
 

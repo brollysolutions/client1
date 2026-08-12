@@ -371,6 +371,24 @@ async def test_filter_by_action_excludes_other_actions(client: AsyncClient) -> N
     assert body["entries"][0]["action"] == "agent_approved"
 
 
+async def test_filter_by_business_line_excludes_other_lines(client: AsyncClient) -> None:
+    admin_token, admin_uid = await _make_staff(client)
+    marker = str(uuid.uuid4())
+    await _seed_entry(actor_uuid=admin_uid, entity_uuid=marker, business_line="loans")
+    await _seed_entry(actor_uuid=admin_uid, entity_uuid=marker, business_line="real_estate")
+
+    resp = await client.get(
+        "/api/v1/admin/audit-log",
+        params={"entity_uuid": marker, "business_line": "loans"},
+        headers=_headers(admin_token),
+    )
+
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["total"] == 1
+    assert body["entries"][0]["business_line"] == "loans"
+
+
 async def test_filter_by_actor(client: AsyncClient) -> None:
     admin_token, admin_uid = await _make_staff(client)
     _, other_uid = await _make_staff(client)

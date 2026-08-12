@@ -4,25 +4,56 @@ import { listAuditLog, type AuditAction, type AuditLogEntry } from "@/lib/admin-
 
 const PAGE_SIZE = 50;
 
-// Same plain useState + useCallback shape as use-support-tickets-admin.ts, with
-// one addition: this feed is append-paginated, so `loadMore` keeps the entries
-// already on screen and appends the next page rather than replacing them.
-// `total` comes from the server and ignores pagination, so "showing N of M" is
-// honest even when the table has grown past the first page.
-export function useAuditLog(action: AuditAction | "all") {
+export type AuditLogFilters = {
+  action: AuditAction | "all";
+  businessLine: "all" | "loans" | "real_estate";
+  entityType: string;
+  dateFrom: string;
+  dateTo: string;
+};
+
+function startOfDay(value: string): string | undefined {
+  return value ? new Date(`${value}T00:00:00`).toISOString() : undefined;
+}
+
+function endOfDay(value: string): string | undefined {
+  return value ? new Date(`${value}T23:59:59.999`).toISOString() : undefined;
+}
+
+// The audit history is append-only, but its UI is intentionally page-based.
+// Offset pagination makes the current result count and previous/next controls
+// honest, and prevents a potentially unbounded DOM from accumulating in one tab.
+export function useAuditLog(filters: AuditLogFilters) {
+  const { action, businessLine, entityType, dateFrom, dateTo } = filters;
   const [entries, setEntries] = React.useState<AuditLogEntry[]>([]);
   const [total, setTotal] = React.useState(0);
+  const [offset, setOffset] = React.useState(0);
   const [loading, setLoading] = React.useState(true);
-  const [loadingMore, setLoadingMore] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+
+  const filterKey = [
+    action,
+    businessLine,
+    entityType.trim(),
+    dateFrom,
+    dateTo,
+  ].join("|");
+
+  React.useEffect(() => {
+    setOffset(0);
+  }, [filterKey]);
 
   const load = React.useCallback(async () => {
     setLoading(true);
     setError(null);
     const res = await listAuditLog({
       action: action === "all" ? undefined : action,
+      businessLine: businessLine === "all" ? undefined : businessLine,
+      entityType: entityType.trim() || undefined,
+      since: startOfDay(dateFrom),
+      until: endOfDay(dateTo),
       limit: PAGE_SIZE,
-      offset: 0,
+      offset,
     });
     if (res.ok) {
       setEntries(res.data.entries);
@@ -31,42 +62,22 @@ export function useAuditLog(action: AuditAction | "all") {
       setError(res.error);
     }
     setLoading(false);
-  }, [action]);
+  }, [action, businessLine, dateFrom, dateTo, entityType, offset]);
 
   React.useEffect(() => {
     void load();
   }, [load]);
 
-  const loadMore = React.useCallback(async () => {
-    setLoadingMore(true);
-    const res = await listAuditLog({
-      action: action === "all" ? undefined : action,
-      limit: PAGE_SIZE,
-      offset: entries.length,
-    });
-    if (res.ok) {
-      // Concatenate by id rather than blindly appending: entries written between
-      // the first request and this one shift the offset window, which would
-      // otherwise duplicate a row on screen.
-      setEntries((prev) => {
-        const seen = new Set(prev.map((e) => e.id));
-        return [...prev, ...res.data.entries.filter((e) => !seen.has(e.id))];
-      });
-      setTotal(res.data.total);
-    } else {
-      setError(res.error);
-    }
-    setLoadingMore(false);
-  }, [action, entries.length]);
-
   return {
     entries,
     total,
+    offset,
     loading,
-    loadingMore,
     error,
     reload: load,
-    loadMore,
-    hasMore: entries.length < total,
+    hasNextPage: offset + entries.length < total,
+    hasPrevPage: offset > 0,
+    nextPage: () => setOffset((current) => current + PAGE_SIZE),
+    prevPage: () => setOffset((current) => Math.max(0, current - PAGE_SIZE)),
   };
 }

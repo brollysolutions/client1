@@ -37,6 +37,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -304,8 +305,12 @@ function DetailRows({ detail }: { detail: Record<string, unknown> }) {
 
 export function AuditLogView() {
   const [action, setAction] = React.useState<AuditAction | "all">("all");
-  const { entries, total, loading, loadingMore, error, reload, loadMore, hasMore } =
-    useAuditLog(action);
+  const [businessLine, setBusinessLine] = React.useState<"all" | "loans" | "real_estate">("all");
+  const [entityType, setEntityType] = React.useState("");
+  const [dateFrom, setDateFrom] = React.useState("");
+  const [dateTo, setDateTo] = React.useState("");
+  const { entries, total, offset, loading, error, reload, hasNextPage, hasPrevPage, nextPage, prevPage } =
+    useAuditLog({ action, businessLine, entityType, dateFrom, dateTo });
   const [active, setActive] = React.useState<AuditLogEntry | null>(null);
 
   return (
@@ -318,18 +323,31 @@ export function AuditLogView() {
             edited or removed.
           </p>
         </div>
-        <Select value={action} onValueChange={(v) => setAction(v as AuditAction | "all")}>
-          <SelectTrigger className="w-56">
-            <SelectValue placeholder="All activity" />
-          </SelectTrigger>
-          <SelectContent>
-            {FILTER_OPTIONS.map((o) => (
-              <SelectItem key={o.value} value={o.value}>
-                {o.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <div className="grid w-full gap-2 sm:grid-cols-2 xl:w-auto xl:grid-cols-5">
+          <Select value={action} onValueChange={(v) => setAction(v as AuditAction | "all")}>
+            <SelectTrigger aria-label="Filter activity by action">
+              <SelectValue placeholder="All activity" />
+            </SelectTrigger>
+            <SelectContent>
+              {FILTER_OPTIONS.map((o) => (
+                <SelectItem key={o.value} value={o.value}>
+                  {o.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={businessLine} onValueChange={(value) => setBusinessLine(value as typeof businessLine)}>
+            <SelectTrigger aria-label="Filter activity by business line"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All lines</SelectItem>
+              <SelectItem value="loans">Loans</SelectItem>
+              <SelectItem value="real_estate">Real Estate</SelectItem>
+            </SelectContent>
+          </Select>
+          <Input aria-label="Filter activity by record type" placeholder="Record type" value={entityType} onChange={(event) => setEntityType(event.target.value)} />
+          <Input aria-label="Filter activity from date" type="date" value={dateFrom} onChange={(event) => setDateFrom(event.target.value)} />
+          <Input aria-label="Filter activity to date" type="date" min={dateFrom || undefined} value={dateTo} onChange={(event) => setDateTo(event.target.value)} />
+        </div>
       </div>
 
       {loading ? (
@@ -357,7 +375,7 @@ export function AuditLogView() {
         </div>
       ) : (
         <>
-          <ul className="space-y-3">
+          <ul className="overflow-hidden rounded-2xl border border-border bg-card divide-y divide-border">
             {entries.map((e) => {
               const meta = ACTION_META[e.action];
               const Icon = meta.icon;
@@ -366,7 +384,7 @@ export function AuditLogView() {
                   <button
                     type="button"
                     onClick={() => setActive(e)}
-                    className="flex w-full items-start gap-4 rounded-2xl border border-border bg-card p-4 text-left transition-colors hover:border-brand-cta"
+                    className="flex w-full items-start gap-4 p-4 text-left transition-colors hover:bg-muted/30"
                   >
                     <span
                       className={cn(
@@ -396,16 +414,14 @@ export function AuditLogView() {
             })}
           </ul>
 
-          <div className="flex flex-col items-center gap-2">
+          <div className="flex flex-wrap items-center justify-between gap-3">
             <p className="text-xs text-text-secondary">
-              Showing {entries.length} of {total}
+              Showing {offset + 1}-{offset + entries.length} of {total}
             </p>
-            {hasMore ? (
-              <Button variant="outline" onClick={() => void loadMore()} disabled={loadingMore}>
-                {loadingMore ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-                Load more
-              </Button>
-            ) : null}
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={prevPage} disabled={!hasPrevPage}>Previous</Button>
+              <Button variant="outline" size="sm" onClick={nextPage} disabled={!hasNextPage}>Next</Button>
+            </div>
           </div>
         </>
       )}
