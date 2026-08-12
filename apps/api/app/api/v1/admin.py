@@ -52,16 +52,11 @@ from app.schemas.admin import (
     AgentApplicationRead,
     AgentApproveResponse,
     AgentRejectRequest,
-    LeadAssignRequest,
-    LeadAssignResponse,
-    LeadReleaseRequest,
-    LeadReleaseResponse,
     StaffAccessEntry,
     StaffAccessListResponse,
     StaffCreateRequest,
     StaffCreateResponse,
     StaffFeatureUpdateRequest,
-    TaskAssignRequest,
 )
 from app.schemas.audit_log import AuditLogListResponse, AuditLogRead
 from app.schemas.auth import MessageResponse
@@ -149,18 +144,7 @@ from app.services.lead_details import (
 from app.services.lead_details import (
     to_read as to_lead_details_read,
 )
-from app.services.leads import (
-    InvalidTelecaller,
-    LeadAlreadyAssigned,
-    LeadHasNoBusinessLine,
-    LeadNotAssignable,
-    LeadNotFound,
-    LeadNotReleasable,
-    assign_lead_to_telecaller,
-    list_assigned_leads,
-    list_unassigned_leads,
-    release_lead_from_telecaller,
-)
+from app.services.leads import list_assigned_leads, list_unassigned_leads
 from app.services.loan_applications import (
     BankNotAvailableForLoanType,
     StatusReasonRequired,
@@ -218,14 +202,7 @@ from app.services.support_tickets import (
     view_for_admin as view_support_ticket_for_admin,
 )
 from app.services.task_feedback import list_feedback_media
-from app.services.tasks import (
-    InvalidEmployee,
-    TaskNotAssignable,
-    TaskNotFound,
-    assign_task_to_employee,
-    list_active_employees,
-    list_unassigned_tasks,
-)
+from app.services.tasks import list_active_employees, list_tasks_for_admin
 
 router = APIRouter()
 
@@ -695,87 +672,6 @@ async def reject_agent(
     return AgentApplicationRead.model_validate(application, from_attributes=True)
 
 
-@router.post("/leads/{lead_id}/assign", response_model=LeadAssignResponse)
-async def assign_lead(
-    lead_id: UUID,
-    payload: LeadAssignRequest,
-    current_user: CurrentUser = Depends(require_platform_admin),
-    db: AsyncSession = Depends(get_db),
-) -> LeadAssignResponse:
-    try:
-        lead = await assign_lead_to_telecaller(
-            db,
-            lead_id,
-            payload.telecaller_staff_profile_uuid,
-            actor_uuid=current_user.id,
-            actor_role=current_user.role,
-        )
-    except LeadNotFound as exc:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Lead not found.") from exc
-    except LeadAlreadyAssigned as exc:
-        raise HTTPException(
-            status.HTTP_409_CONFLICT, "This lead already has a telecaller assigned."
-        ) from exc
-    except LeadHasNoBusinessLine as exc:
-        raise HTTPException(
-            status.HTTP_422_UNPROCESSABLE_ENTITY,
-            "This lead has no business line yet and cannot be assigned.",
-        ) from exc
-    except LeadNotAssignable as exc:
-        raise HTTPException(
-            status.HTTP_409_CONFLICT, "This lead is not in an assignable state."
-        ) from exc
-    except InvalidTelecaller as exc:
-        raise HTTPException(
-            status.HTTP_422_UNPROCESSABLE_ENTITY,
-            "Target account is not an active telecaller on this lead's business line.",
-        ) from exc
-    return LeadAssignResponse(
-        lead_id=lead.id,
-        telecaller_staff_profile_uuid=lead.assigned_telecaller_profile_uuid,
-        business_line=lead.business_line,
-        status=lead.status,
-    )
-
-
-@router.post("/leads/{lead_id}/release", response_model=LeadReleaseResponse)
-async def release_lead(
-    lead_id: UUID,
-    payload: LeadReleaseRequest,
-    current_user: CurrentUser = Depends(require_platform_admin),
-    db: AsyncSession = Depends(get_db),
-) -> LeadReleaseResponse:
-    try:
-        lead, previous_telecaller_uuid = await release_lead_from_telecaller(
-            db,
-            lead_id,
-            telecaller_staff_profile_uuid=payload.telecaller_staff_profile_uuid,
-            release_reason=payload.release_reason,
-            actor_uuid=current_user.id,
-            actor_role=current_user.role,
-        )
-    except LeadNotFound as exc:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Lead not found.") from exc
-    except LeadNotReleasable as exc:
-        raise HTTPException(
-            status.HTTP_409_CONFLICT, "This lead is not in a releasable state."
-        ) from exc
-    except InvalidTelecaller as exc:
-        raise HTTPException(
-            status.HTTP_422_UNPROCESSABLE_ENTITY,
-            "Target account is not an active telecaller on this lead's business line.",
-        ) from exc
-    return LeadReleaseResponse(
-        lead_id=lead.id,
-        business_line=lead.business_line,
-        status=lead.status,
-        previous_telecaller_staff_profile_uuid=previous_telecaller_uuid,
-        telecaller_staff_profile_uuid=lead.assigned_telecaller_profile_uuid,
-        released_at=lead.released_at,
-        release_reason=lead.release_reason,
-    )
-
-
 @router.get("/employees", response_model=list[AdminEmployeeRead])
 async def list_employees(
     business_line: str | None = None,
@@ -891,13 +787,33 @@ async def list_tasks(
     current_user: CurrentUser = Depends(require_platform_admin),
     db: AsyncSession = Depends(get_db),
 ) -> list[AdminTaskRead]:
-    tasks = await list_unassigned_tasks(
+    tasks = await list_tasks_for_admin(
         db,
         status_filter,
         task_type_filter,
         limit=limit,
     )
-    return [AdminTaskRead.model_validate(t, from_attributes=True) for t in tasks]
+    return [
+        AdminTaskRead(
+            id=view.task.id,
+            lead_uuid=view.task.lead_uuid,
+            raised_by_staff_profile_uuid=view.task.raised_by_staff_profile_uuid,
+            assigned_employee_profile_uuid=view.task.assigned_employee_profile_uuid,
+            lead_name=view.lead_name,
+            lead_mobile=view.lead_mobile,
+            raised_by_telecaller_name=view.raised_by_telecaller_name,
+            assigned_employee_name=view.assigned_employee_name,
+            business_line=view.task.business_line,
+            task_type=view.task.task_type,
+            status=view.task.status,
+            outcome=view.task.outcome,
+            notes=view.task.notes,
+            due_at=view.task.due_at,
+            created_at=view.task.created_at,
+            updated_at=view.task.updated_at,
+        )
+        for view in tasks
+    ]
 
 
 @router.get(
@@ -929,29 +845,6 @@ async def list_task_feedback_for_admin(
         )
         for item in await list_feedback_media(db, task_id)
     ]
-
-
-@router.post("/tasks/{task_id}/assign", response_model=AdminTaskRead)
-async def assign_task(
-    task_id: UUID,
-    payload: TaskAssignRequest,
-    current_user: CurrentUser = Depends(require_platform_admin),
-    db: AsyncSession = Depends(get_db),
-) -> AdminTaskRead:
-    try:
-        task = await assign_task_to_employee(db, task_id, payload.employee_profile_uuid)
-    except TaskNotFound as exc:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Task not found.") from exc
-    except TaskNotAssignable as exc:
-        raise HTTPException(
-            status.HTTP_409_CONFLICT, "This task is not in an unassigned state."
-        ) from exc
-    except InvalidEmployee as exc:
-        raise HTTPException(
-            status.HTTP_422_UNPROCESSABLE_ENTITY,
-            "Target account is not an active employee on this task's business line.",
-        ) from exc
-    return AdminTaskRead.model_validate(task, from_attributes=True)
 
 
 @router.get("/loans", response_model=AdminLoanApplicationListResponse)

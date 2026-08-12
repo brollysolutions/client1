@@ -13,7 +13,8 @@ export default function VehicleArrangementsPage() {
   const { session, isLoading } = useAuth();
   const allowed =
     session?.role === "admin" ||
-    (session?.role === "employee" && session.businessLine === "real_estate");
+    (session?.role === "employee" &&
+      (session.businessLine === "real_estate" || session.businessLine === "both"));
 
   React.useEffect(() => {
     if (!isLoading && !allowed) router.replace("/dashboard");

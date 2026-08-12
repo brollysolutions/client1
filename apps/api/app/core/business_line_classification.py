@@ -48,6 +48,7 @@ TABLE_CLASSIFICATION: dict[str, ClassificationMode] = {
     "field_visibility_config": ClassificationMode.PLATFORM_CONFIG,
     "lead_activities": ClassificationMode.OPERATIONAL,
     "lead_assignment_cursors": ClassificationMode.OPERATIONAL,
+    "employee_assignment_cursors": ClassificationMode.OPERATIONAL,
     "leads": ClassificationMode.OPERATIONAL,
     "loan_applications": ClassificationMode.FIXED_LOANS,
     "loan_documents": ClassificationMode.FIXED_LOANS,

@@ -401,6 +401,37 @@ async def test_retry_job_assigns_a_previously_queued_lead() -> None:
 
 
 @pytest.mark.asyncio
+async def test_retry_job_repairs_an_inactive_telecaller_assignment() -> None:
+    first = await _seed_telecaller("loans")
+    agent = await _seed_agent("loans")
+    lead = await capture_agent_lead(
+        mobile=unique_mobile(),
+        name=None,
+        business_line="loans",
+        agent_profile_uuid=agent.id,
+        requirement=None,
+    )
+    assert lead.assigned_telecaller_profile_uuid == first.id
+
+    async with db_session.AsyncSessionLocal() as db:
+        stored_first = await db.get(StaffProfile, first.id)
+        stored_first.status = ProfileStatus.INACTIVE
+        stored_lead = await db.get(Lead, lead.id)
+        stored_lead.created_at = datetime(1999, 1, 1, tzinfo=UTC)
+        await db.commit()
+    replacement = await _seed_telecaller("loans")
+
+    async with db_session.AsyncSessionLocal() as db:
+        _, notices = await _assign_batch(db)
+
+    assert any(notice.lead_id == lead.id for notice in notices)
+    async with db_session.AsyncSessionLocal() as db:
+        repaired = await db.get(Lead, lead.id)
+        assert repaired.status == LeadStatus.ASSIGNED
+        assert repaired.assigned_telecaller_profile_uuid == replacement.id
+
+
+@pytest.mark.asyncio
 async def test_registration_binds_agent_lead_after_mobile_otp(client: AsyncClient) -> None:
     agent = await _seed_agent("loans")
     await _seed_telecaller("loans")

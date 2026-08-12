@@ -28,6 +28,7 @@ from uuid import UUID
 from sqlalchemy import and_, func, or_, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import aliased
 
 from app.core.config import settings
 from app.core.masking import mask_mobile
@@ -35,7 +36,13 @@ from app.db.session import AsyncSessionLocal
 from app.models.audit_log import AuditAction
 from app.models.lead import Lead, LeadAssignmentCursor, LeadOrigin, LeadStatus
 from app.models.notification import NotificationType
-from app.models.profile import ClientProfile, ProfileStatus, StaffProfile, StaffRole
+from app.models.profile import (
+    AgentProfile,
+    ClientProfile,
+    ProfileStatus,
+    StaffProfile,
+    StaffRole,
+)
 from app.models.user import User
 from app.services.audit_log import record as record_audit
 from app.services.lead_details import initial_ownership, owner, transfer_unclaimed_to_client
@@ -63,11 +70,11 @@ class LeadNotFound(Exception):
 
 
 class LeadAlreadyAssigned(Exception):
-    """Raised when the lead already has a telecaller (no reassignment this slice)."""
+    """Raised when the lead already has a telecaller."""
 
 
 class LeadHasNoBusinessLine(Exception):
-    """Raised when the lead's line hasn't been triaged yet (business_line NULL)."""
+    """Raised when the lead's line has not been resolved."""
 
 
 class LeadNotAssignable(Exception):
@@ -99,6 +106,63 @@ class InvalidTelecaller(Exception):
 async def lock_lead_mobile(db: AsyncSession, mobile: str) -> None:
     """Serialize identity/lead decisions for one mobile across registration and Agents."""
     await db.scalar(select(func.pg_advisory_xact_lock(func.hashtextextended(mobile, 0))))
+
+
+async def _has_active_operational_identity(db: AsyncSession, mobile: str) -> bool:
+    """Active staff and Agents are identities, never customer sales leads."""
+    user_id = await db.scalar(select(User.id).where(User.mobile == mobile).limit(1))
+    if user_id is None:
+        return False
+    staff_id = await db.scalar(
+        select(StaffProfile.id)
+        .where(
+            StaffProfile.auth_user_uuid == user_id,
+            StaffProfile.status == ProfileStatus.ACTIVE,
+        )
+        .limit(1)
+    )
+    if staff_id is not None:
+        return True
+    return (
+        await db.scalar(
+            select(AgentProfile.id)
+            .where(
+                AgentProfile.auth_user_uuid == user_id,
+                AgentProfile.status == ProfileStatus.ACTIVE,
+            )
+            .limit(1)
+        )
+        is not None
+    )
+
+
+def customer_lead_predicates():  # noqa: ANN201
+    """Defense-in-depth filters for historical operational-identity rows."""
+    staff_user = aliased(User)
+    staff_profile = aliased(StaffProfile)
+    agent_user = aliased(User)
+    agent_profile = aliased(AgentProfile)
+    active_staff = (
+        select(staff_profile.id)
+        .join(staff_user, staff_user.id == staff_profile.auth_user_uuid)
+        .where(
+            staff_user.mobile == Lead.mobile,
+            staff_profile.status == ProfileStatus.ACTIVE,
+        )
+        .correlate(Lead)
+        .exists()
+    )
+    active_agent = (
+        select(agent_profile.id)
+        .join(agent_user, agent_user.id == agent_profile.auth_user_uuid)
+        .where(
+            agent_user.mobile == Lead.mobile,
+            agent_profile.status == ProfileStatus.ACTIVE,
+        )
+        .correlate(Lead)
+        .exists()
+    )
+    return (~active_staff, ~active_agent)
 
 
 async def _lock_assignment_line(db: AsyncSession, business_line: str) -> None:
@@ -269,6 +333,9 @@ async def capture_lead(
                 raise ValueError("Agent lead capture must use capture_agent_lead().")
 
             await lock_lead_mobile(session, mobile)
+            if await _has_active_operational_identity(session, mobile):
+                await session.rollback()
+                return True
             await _lock_assignment_line(session, business_line)
             live = Lead.status != LeadStatus.CLOSED
             candidate = await session.scalar(
@@ -870,19 +937,18 @@ async def release_lead_from_telecaller(
 
 
 async def list_unassigned_leads(db: AsyncSession, limit: int = 100, offset: int = 0) -> list[Lead]:
-    """Leads eligible for assignment right now: same predicate assign_lead_to_telecaller
-    itself validates against (unassigned + triaged + status new/released), so the
-    queue never lists a lead that would then 409/422 on assign. The status filter
-    also excludes the orphaned-FK edge case: a lead whose
-    assigned_telecaller_profile_uuid went NULL (ondelete="SET NULL") while it
-    stayed assigned/working/converted/closed is not "unassigned" — it must not be
-    listed here nor be assignable via assign_lead_to_telecaller."""
+    """Customer leads currently awaiting automatic Telecaller capacity.
+
+    Assigned/working orphan rows stay in the relationship view until the
+    scheduled repair releases and reassigns them.
+    """
     stmt = (
         select(Lead)
         .where(
             Lead.assigned_telecaller_profile_uuid.is_(None),
             Lead.business_line.is_not(None),
             Lead.status.in_((LeadStatus.NEW, LeadStatus.RELEASED)),
+            *customer_lead_predicates(),
         )
         .order_by(Lead.created_at.desc())
         .limit(limit)
@@ -894,17 +960,19 @@ async def list_unassigned_leads(db: AsyncSession, limit: int = 100, offset: int 
 async def list_assigned_leads(
     db: AsyncSession, limit: int = 100, offset: int = 0
 ) -> list[tuple[Lead, StaffProfile | None, User | None]]:
-    """Leads currently ASSIGNED/WORKING, joined to their telecaller. Uses an
-    OUTER join (not inner) so a lead whose assigned_telecaller_profile_uuid went
-    NULL via ondelete="SET NULL" while status stayed assigned/working (the
-    orphaned-FK edge case LeadNotAssignable/LeadNotReleasable guard against)
-    still surfaces here with staff/user None — giving admin the one place to
-    find and repair it via release_lead_from_telecaller (no target)."""
+    """Read-only assigned/working customer relationships for Admin oversight.
+
+    The outer joins keep stale assignee relationships visible while the
+    scheduled automatic repair moves them to an eligible Telecaller.
+    """
     stmt = (
         select(Lead, StaffProfile, User)
         .outerjoin(StaffProfile, StaffProfile.id == Lead.assigned_telecaller_profile_uuid)
         .outerjoin(User, User.id == StaffProfile.auth_user_uuid)
-        .where(Lead.status.in_((LeadStatus.ASSIGNED, LeadStatus.WORKING)))
+        .where(
+            Lead.status.in_((LeadStatus.ASSIGNED, LeadStatus.WORKING)),
+            *customer_lead_predicates(),
+        )
         .order_by(Lead.updated_at.desc())
         .limit(limit)
         .offset(offset)

@@ -79,6 +79,42 @@ async def test_capture_keeps_independent_line_journeys(client: AsyncClient) -> N
     assert sorted(lead.business_line for lead in after) == ["loans", "real_estate"]
 
 
+async def test_direct_capture_ignores_active_operational_identity(client: AsyncClient) -> None:
+    """Staff and Agents are identities, not customer sales leads."""
+    import uuid
+
+    import app.db.session as _session_mod
+    from app.models.profile import ProfileScope, ProfileStatus, StaffProfile, StaffRole
+    from app.models.user import User
+    from app.services.leads import capture_lead
+
+    mobile = unique_mobile()
+    async with _session_mod.AsyncSessionLocal() as session:
+        user = User(
+            first_name="Operations",
+            last_name="User",
+            mobile=mobile,
+            email=unique_email(),
+            password_hash="x",
+        )
+        session.add(user)
+        await session.flush()
+        session.add(
+            StaffProfile(
+                auth_user_uuid=user.id,
+                role=StaffRole.EMPLOYEE,
+                scope=ProfileScope.LINE,
+                business_line="loans",
+                staff_code=f"EMP-{uuid.uuid4().hex[:8]}",
+                status=ProfileStatus.ACTIVE,
+            )
+        )
+        await session.commit()
+
+    assert await capture_lead(mobile, business_line="loans") is True
+    assert await _leads_for(mobile) == []
+
+
 async def test_capture_sets_agent_attribution_on_insert(client: AsyncClient) -> None:
     import uuid
 

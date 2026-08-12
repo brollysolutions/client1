@@ -16,9 +16,9 @@ import pytest_asyncio
 from httpx import AsyncClient
 from sqlalchemy import select, update
 
-from app.core.security import create_access_token
+from app.core.security import create_access_token, decode_access_token
 from app.models.profile import ProfileStatus, StaffProfile, StaffRole
-from conftest import full_registration, unique_mobile
+from conftest import do_login, full_registration, unique_mobile
 
 
 @pytest_asyncio.fixture(autouse=True)
@@ -144,9 +144,7 @@ async def _seed_telecaller_staff_profile(business_line: str = "loans") -> str:
 
 
 async def _assign_to_telecaller(lead_id: str) -> None:
-    """Simulate a telecaller pickup via the bypass session (mirrors what
-    services.leads.assign_lead_to_telecaller does), using a real StaffProfile
-    since assigned_telecaller_profile_uuid has a real FK to staff_profiles.id."""
+    """Seed an assigned relationship with a real Telecaller foreign key."""
     from sqlalchemy import text
 
     import app.db.session as _session_mod
@@ -198,6 +196,31 @@ async def test_introduce_lead_success(client: AsyncClient) -> None:
     deadline = datetime.fromisoformat(body["expires_at"])
     expected = datetime.now(UTC) + timedelta(days=30)
     assert abs((deadline - expected).total_seconds()) < 10
+
+
+@pytest.mark.asyncio
+async def test_agent_introduced_lead_registers_and_logs_in_as_client(
+    client: AsyncClient,
+) -> None:
+    auth_uuid, agent_uuid = await _seed_agent("loans")
+    agent_headers = {"Authorization": f"Bearer {_agent_token(auth_uuid, agent_uuid)}"}
+    mobile = unique_mobile()
+    introduced = await client.post(
+        "/api/v1/agent/leads",
+        json={"mobile": mobile, "name": "Introduced Client"},
+        headers=agent_headers,
+    )
+    assert introduced.status_code == 201, introduced.text
+
+    await full_registration(client, mobile=mobile, lines=["loans"])
+    claims = decode_access_token(await do_login(client, mobile))
+    listed = await client.get("/api/v1/agent/leads", headers=agent_headers)
+    registered_lead = next(row for row in listed.json() if row["mobile"] == mobile)
+
+    assert claims["role"] == "client"
+    assert claims["business_line"] == "both"
+    assert registered_lead["registered"] is True
+    assert registered_lead["id"] == introduced.json()["id"]
 
 
 @pytest.mark.asyncio

@@ -13,8 +13,7 @@ Security invariants (see also the security-review checklist in the spec):
     unverified input; falling back to it would let someone who cannot answer
     the victim's phone still receive the code.
   * The write runs on its own AsyncSessionLocal() session (the `app`
-    superuser), the same bypass services.leads.capture_lead uses, for the
-    same reason: a public route never runs SET LOCAL ROLE api_user, so RLS
+    superuser). A public route never runs SET LOCAL ROLE api_user, so RLS
     never engages for it regardless.
 """
 
@@ -53,7 +52,6 @@ from app.schemas.agent_applications import (
     AgentApplyUploadPresignResponse,
 )
 from app.services import storage
-from app.services.leads import capture_lead
 from app.services.otp import check_otp_rate_ip, generate_and_store_otp, resend_otp, verify_otp
 from app.services.otp_delivery import deliver_otp
 
@@ -330,16 +328,6 @@ async def submit(
         await session.execute(stmt)
         await session.commit()
 
-    # Best-effort — capture_lead swallows its own errors and never raises, so
-    # the application write above is never at risk from this. Finally tags
-    # the lead with topic="agent" (the pre-slice stub dropped this).
-    await capture_lead(
-        mobile,
-        name=f"{payload.first_name} {payload.last_name}".strip(),
-        business_line=payload.business_line,
-        origin="direct",
-        requirement={"page": "apply-as-agent", "topic": "agent", "email": payload.email},
-    )
     logger.info("agent_application.submitted mobile=%s", mask_mobile(mobile))
 
 

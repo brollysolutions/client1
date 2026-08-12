@@ -10,6 +10,7 @@ only wall.
 
 from __future__ import annotations
 
+import logging
 from datetime import UTC, datetime
 from uuid import UUID
 
@@ -28,8 +29,10 @@ from app.schemas.telecaller import (
     TaskCreate,
     TelecallerLeadUpdate,
 )
+from app.services.employee_assignment import assign_task_if_possible
 
 _TERMINAL_STATUSES = {LeadStatus.CONVERTED, LeadStatus.CLOSED, LeadStatus.RELEASED}
+logger = logging.getLogger(__name__)
 
 
 class LoanApplicationNotFound(Exception):
@@ -269,8 +272,7 @@ async def get_deal_for_telecaller(
 async def raise_task(
     db: AsyncSession, lead: Lead, staff_profile_uuid: UUID, payload: TaskCreate
 ) -> Task:
-    """Raise an unassigned document_collection task against an assigned lead
-    (Open Item A). Lands in the pool; Admin hands it to an employee."""
+    """Raise a document-collection task and try automatic assignment."""
     task = Task(
         raised_by_staff_profile_uuid=staff_profile_uuid,
         business_line=lead.business_line,
@@ -283,6 +285,12 @@ async def raise_task(
     db.add(task)
     await db.commit()
     await db.refresh(task)
+    try:
+        await assign_task_if_possible(task.id)
+        await db.refresh(task)
+    except Exception:
+        # The committed task remains in the durable scheduler retry pool.
+        logger.warning("task.immediate_assignment_failed task_id=%s", task.id, exc_info=True)
     return task
 
 

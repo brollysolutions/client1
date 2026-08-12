@@ -19,6 +19,7 @@ from sqlalchemy import delete, func
 
 import app.db.session as db_session
 from app.core.config import settings
+from app.jobs.assign_unassigned_employee_work import assign_unassigned_employee_work
 from app.jobs.assign_unassigned_leads import assign_unassigned_leads
 from app.jobs.audit_paid_payouts import audit_paid_payouts
 from app.jobs.backfill_customer_codes import backfill_customer_codes
@@ -252,6 +253,15 @@ def build_scheduler() -> AsyncIOScheduler:
         trigger="interval",
         minutes=15,
         id="assign_unassigned_leads",
+        max_instances=1,
+        coalesce=True,
+        replace_existing=True,
+    )
+    scheduler.add_job(
+        assign_unassigned_employee_work,
+        trigger="interval",
+        minutes=15,
+        id="assign_unassigned_employee_work",
         max_instances=1,
         coalesce=True,
         replace_existing=True,
