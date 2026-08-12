@@ -3,7 +3,6 @@
 import * as React from "react";
 import { Clock } from "lucide-react";
 
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { FetchError } from "@/features/dashboard/fetch-error";
 import { DASHBOARD_ICONS } from "@/features/dashboard/dashboard-icons";
@@ -19,24 +18,8 @@ import {
 } from "@/features/dashboard/dashboard-ui";
 import { formatPaiseCompact } from "@/lib/format";
 import { getSubAdminHome, type SubAdminHome as SubAdminHomeData } from "@/lib/sub-admin-api";
-
-const KIND_LABEL: Record<string, string> = {
-  banner: "Banner",
-  property_submission: "Property listing",
-};
-
-const LINE_LABEL: Record<string, string> = {
-  loans: "Loans",
-  real_estate: "Real Estate",
-  both: "Both lines",
-};
-
-function formatDate(iso: string): string {
-  const d = new Date(iso);
-  return Number.isNaN(d.getTime())
-    ? "-"
-    : d.toLocaleDateString("en-IN", { day: "numeric", month: "short" });
-}
+import { PendingApprovalDialog } from "./pending-approval-dialog";
+import { PendingApprovalList } from "./pending-approval-list";
 
 type Status = "loading" | "ready" | "error";
 
@@ -118,37 +101,18 @@ export function SubAdminHome() {
       </MetricGrid>
 
       <div className="grid gap-4 xl:grid-cols-[1.4fr_1fr]">
-        <DashboardPanel title="Awaiting Admin approval" description="Your latest submitted work">
-        {home.pending_approval.length === 0 ? (
-          <p className="text-sm text-text-secondary">
-            Nothing of yours is waiting on Admin right now.
-          </p>
-        ) : (
-          <ul className="space-y-2">
-            {home.pending_approval.map((item) => (
-              <li
-                key={item.id}
-                className="flex items-center justify-between gap-3 rounded-xl border border-border p-3 text-sm"
-              >
-                <span className="flex items-center gap-2 font-medium text-text-primary">
-                  <Clock className="h-4 w-4 text-brand-cta" aria-hidden="true" />
-                  {item.title}
-                </span>
-                <span className="flex shrink-0 items-center gap-2 text-xs text-text-secondary">
-                  <Badge variant="outline">{KIND_LABEL[item.kind] ?? item.kind}</Badge>
-                  {LINE_LABEL[item.business_line] ?? item.business_line}
-                  {formatDate(item.submitted_at)}
-                </span>
-              </li>
-            ))}
-          </ul>
-        )}
+        <DashboardPanel title="Waiting on Admin" description="Your latest submitted work" action={<PendingApprovalDialog items={home.pending_approval} />} className="flex h-[310px] flex-col" bodyClassName="min-h-0 flex-1">
+          <div className="h-full overflow-y-auto pr-1">
+            <PendingApprovalList items={home.pending_approval} emptyMessage="Nothing of yours is waiting on Admin right now." />
+          </div>
         </DashboardPanel>
 
         <DashboardPanel
           title="Recent referral payouts"
           description="Latest activity under the configured rules"
           action={<DashboardTextLink href="/dashboard/referral-rules">View rules</DashboardTextLink>}
+          className="flex h-[310px] flex-col"
+          bodyClassName="min-h-0 flex-1 overflow-y-auto"
         >
         {home.recent_referral_payouts.length === 0 ? (
           <p className="text-sm text-text-secondary">No referral payouts yet.</p>

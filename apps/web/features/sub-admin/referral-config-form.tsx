@@ -23,7 +23,7 @@ const LINE_OPTIONS = [
   { value: "both", label: "Both lines" },
 ] as const;
 
-export function ReferralConfigForm({ onCreated }: { onCreated: () => void }) {
+export function ReferralConfigForm({ onCreated, onDirtyChange }: { onCreated: () => void; onDirtyChange?: (dirty: boolean) => void }) {
   const [businessLine, setBusinessLine] = React.useState<(typeof LINE_OPTIONS)[number]["value"]>(
     "loans",
   );
@@ -33,6 +33,8 @@ export function ReferralConfigForm({ onCreated }: { onCreated: () => void }) {
   const [active, setActive] = React.useState(false);
   const [bonusError, setBonusError] = React.useState<string | undefined>();
   const [submitting, setSubmitting] = React.useState(false);
+  const dirty = Boolean(bonusAmount || minConversion !== "1" || cap || active || businessLine !== "loans");
+  React.useEffect(() => onDirtyChange?.(dirty), [dirty, onDirtyChange]);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();

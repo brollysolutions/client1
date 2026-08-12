@@ -298,6 +298,35 @@ test.describe("role-aware dashboard navigation", () => {
     }
   });
 
+  test("Sub Admin CMS pages open accessible floating authoring workspaces", async ({ page, request }) => {
+    const account = await registerClient(request, 250);
+    try {
+      promoteAccount(account, scenarios[4]);
+      await logIn(page, account);
+
+      for (const workspace of [
+        { path: "/dashboard/banners", button: "New banner", heading: "New banner" },
+        { path: "/dashboard/offers", button: "New offer", heading: "New offer" },
+        { path: "/dashboard/content", button: "New block", heading: "New content block" },
+        { path: "/dashboard/referral-rules", button: "New rule", heading: "New bonus rule" },
+      ]) {
+        await page.goto(workspace.path);
+        await page.getByRole("button", { name: workspace.button, exact: true }).click();
+        const dialog = page.getByRole("dialog");
+        await expect(dialog.getByRole("heading", { name: workspace.heading, exact: true }).first()).toBeVisible();
+        await expect(dialog.locator("form")).toBeVisible();
+        await dialog.getByRole("button", { name: "Close workspace" }).first().click();
+        await expect(dialog).toBeHidden();
+      }
+
+      await page.goto("/dashboard/content");
+      await page.getByRole("button", { name: "Content guide", exact: true }).click();
+      await expect(page.getByRole("heading", { name: "Website content guide", exact: true })).toBeVisible();
+    } finally {
+      await deleteAccount(request, account);
+    }
+  });
+
   test("Client mobile drawer keeps staff capabilities hidden", async ({ page, request }) => {
     const account = await registerClient(request, 300);
     try {

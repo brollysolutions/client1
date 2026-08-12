@@ -25,6 +25,8 @@ import {
   AudienceRuleFields,
   emptyAudienceRules,
 } from "./audience-rule-fields";
+import { BannerPreview } from "./cms-previews";
+import { CmsPreviewFrame, type PreviewDevice } from "./cms-workspace";
 
 type Schemas = components["schemas"];
 
@@ -43,7 +45,7 @@ const TYPE_OPTIONS = [
   { value: "action", label: "Action" },
 ] as const;
 
-export function BannerForm() {
+export function BannerForm({ embedded = false, onCreated, onDirtyChange }: { embedded?: boolean; onCreated?: () => void; onDirtyChange?: (dirty: boolean) => void } = {}) {
   const router = useRouter();
   const [businessLine, setBusinessLine] = React.useState<(typeof LINE_OPTIONS)[number]["value"]>(
     "loans",
@@ -65,6 +67,10 @@ export function BannerForm() {
   const [titleError, setTitleError] = React.useState<string | undefined>();
   const [scheduleError, setScheduleError] = React.useState<string | undefined>();
   const [submitting, setSubmitting] = React.useState(false);
+  const [previewContext, setPreviewContext] = React.useState("public");
+  const [previewDevice, setPreviewDevice] = React.useState<PreviewDevice>("desktop");
+  const dirty = Boolean(title || subtitle || ctaLabel || imageFile || deepLink || priority !== "0" || startsAt || endsAt || businessLine !== "loans" || bannerType !== "default");
+  React.useEffect(() => onDirtyChange?.(dirty), [dirty, onDirtyChange]);
 
   // Uploads immediately on pick (presign -> direct-to-storage POST), not
   // deferred to form submit: the banner row is saved with whatever image_key
@@ -133,7 +139,8 @@ export function BannerForm() {
       toast.success("Banner draft created", {
         description: "Submit it for Admin approval when you're ready.",
       });
-      router.push("/dashboard/banners");
+      if (onCreated) onCreated();
+      else router.push("/dashboard/banners");
     } else {
       toast.error("Could not create banner", { description: res.error });
     }
@@ -148,6 +155,23 @@ export function BannerForm() {
       backLabel="Back to banners"
       formTitle="Banner configuration"
       formDescription="Admin approval is required before this banner can go live."
+      embedded={embedded}
+      aside={
+        <CmsPreviewFrame
+          title="Live banner preview"
+          description="Compare the public hero and authenticated dashboard presentation while drafting."
+          contexts={[{ value: "public", label: "Public hero" }, { value: "dashboard", label: "Dashboard" }]}
+          context={previewContext}
+          onContextChange={setPreviewContext}
+          device={previewDevice}
+          onDeviceChange={setPreviewDevice}
+        >
+          <BannerPreview
+            context={previewContext as "public" | "dashboard"}
+            banner={{ banner_type: bannerType, title, subtitle: subtitle || null, cta_label: ctaLabel || null, deep_link: deepLink || null }}
+          />
+        </CmsPreviewFrame>
+      }
     >
       <form className="space-y-6" onSubmit={onSubmit}>
         <div>
