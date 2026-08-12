@@ -5,6 +5,7 @@ import { ChevronDown, ChevronUp, Home, Loader2 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -19,6 +20,7 @@ import {
 } from "@/features/property-deals/property-deal-progress-controls";
 
 import { useAdminPropertyDeals } from "./use-admin-property-deals";
+import { AdminPagination, ADMIN_PAGE_SIZE, isInDateRange } from "./admin-list-tools";
 
 const FILTER_OPTIONS: { value: PropertyDealStatus | "all"; label: string }[] = [
   { value: "all", label: "All statuses" },
@@ -34,6 +36,16 @@ export function PropertyDealsView() {
     statusFilter === "all" ? undefined : statusFilter,
   );
   const [expandedId, setExpandedId] = React.useState<string | null>(null);
+  const [search, setSearch] = React.useState("");
+  const [dateFrom, setDateFrom] = React.useState("");
+  const [dateTo, setDateTo] = React.useState("");
+  const [page, setPage] = React.useState(0);
+  const filteredDeals = React.useMemo(() => deals.filter((deal) => (
+    isInDateRange(deal.opened_at, dateFrom, dateTo) &&
+    `${deal.property_title} ${deal.customer_code}`.toLowerCase().includes(search.toLowerCase())
+  )), [dateFrom, dateTo, deals, search]);
+  React.useEffect(() => setPage(0), [dateFrom, dateTo, search, statusFilter]);
+  const pageDeals = filteredDeals.slice(page * ADMIN_PAGE_SIZE, (page + 1) * ADMIN_PAGE_SIZE);
 
   return (
     <div className="mx-auto w-full max-w-5xl space-y-6 px-4 sm:px-6 lg:px-10">
@@ -44,6 +56,8 @@ export function PropertyDealsView() {
             Track every real-estate deal through site visit, negotiation, and booking.
           </p>
         </div>
+        <div className="grid w-full gap-2 sm:grid-cols-2 lg:w-auto lg:grid-cols-4">
+          <Input aria-label="Search property deals" placeholder="Property or customer" value={search} onChange={(event) => setSearch(event.target.value)} />
         <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as typeof statusFilter)}>
           <SelectTrigger className="w-48">
             <SelectValue />
@@ -56,6 +70,9 @@ export function PropertyDealsView() {
             ))}
           </SelectContent>
         </Select>
+          <Input aria-label="Property deals from date" type="date" value={dateFrom} onChange={(event) => setDateFrom(event.target.value)} />
+          <Input aria-label="Property deals to date" type="date" min={dateFrom || undefined} value={dateTo} onChange={(event) => setDateTo(event.target.value)} />
+        </div>
       </div>
 
       {loading ? (
@@ -69,7 +86,7 @@ export function PropertyDealsView() {
             Try again
           </Button>
         </div>
-      ) : deals.length === 0 ? (
+      ) : filteredDeals.length === 0 ? (
         <div className="flex flex-col items-center rounded-2xl border border-border bg-card p-12 text-center">
           <Home className="h-8 w-8 text-text-secondary" aria-hidden="true" />
           <p className="mt-3 font-medium text-text-primary">No property deals yet</p>
@@ -79,7 +96,7 @@ export function PropertyDealsView() {
         </div>
       ) : (
         <ul className="space-y-3">
-          {deals.map((deal) => {
+          {pageDeals.map((deal) => {
             const expanded = expandedId === deal.id;
             return (
               <li key={deal.id} className="rounded-2xl border border-border bg-card">
@@ -117,6 +134,7 @@ export function PropertyDealsView() {
           })}
         </ul>
       )}
+      {!loading && !error && filteredDeals.length > 0 ? <AdminPagination page={page} total={filteredDeals.length} onPageChange={setPage} /> : null}
     </div>
   );
 }

@@ -169,6 +169,7 @@ async def list_for_admin(
     actor_uuid: uuid.UUID | None = None,
     entity_type: str | None = None,
     entity_uuid: uuid.UUID | None = None,
+    business_line: str | None = None,
     since: datetime | None = None,
     until: datetime | None = None,
     limit: int = 50,
@@ -191,6 +192,8 @@ async def list_for_admin(
         filters.append(AuditLog.entity_type == entity_type)
     if entity_uuid is not None:
         filters.append(AuditLog.entity_uuid == entity_uuid)
+    if business_line is not None:
+        filters.append(AuditLog.business_line == business_line)
     if since is not None:
         filters.append(AuditLog.created_at >= since)
     if until is not None:

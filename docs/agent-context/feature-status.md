@@ -48,6 +48,8 @@ work than several completed UI requirements.
 
 ## Current work
 
+**Delivered in [PR #180](https://github.com/brollysolutions/client1/pull/180) — Admin operations filters and table experience:** Audit now has server-authorized action, line, record-type, and date filtering with generated contracts and explicit page navigation; Operational Records also uses bounded pages rather than append-only loading. Lead assignments, field tasks, loan applications, property deals, vehicle arrangements, listing approvals, agent applications, content pages, and payouts use date-range and contextual filters with bounded UI pages over their existing authorized queue results. The broadcast composer is visually refreshed without changing its server-validated recipient preview, rate limit, same-origin link, or irreversible-send controls. Users & staff now uses equally tall provisioning/access cards, a thin inner Staff Access scrollbar, and a compact paginated operational-account table; account suspension/reactivation requires a reasoned confirmation dialog and still calls the existing audited server mutation. No client-side authorization, scheduling, recipient authority, generic CRUD, RLS, or PII-projection boundary was added. Fresh evidence: API Ruff/format and generated contracts; web lint, strict typecheck, and 327 Vitest tests passed. The local API database suite is blocked by the unavailable native `greenlet` DLL; the Windows production build exceeded the three-minute cap.
+
 **Done in [PR #177](https://github.com/brollysolutions/client1/pull/177) â€” UI-only Settings, Operational Records, filters, and form
 navigation:** on `fix/ui-settings-records-navigation`, Client Settings will
 retain personal-profile fields while Agent/staff Settings limits the form to

@@ -7,6 +7,7 @@ import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Dialog,
   DialogContent,
@@ -26,9 +27,20 @@ import {
 } from "@/lib/property-submissions-api";
 import { useSubmissionQueue } from "./use-submission-queue";
 import { ListingLifecyclePanel } from "./listing-lifecycle-panel";
+import { AdminPagination, ADMIN_PAGE_SIZE, isInDateRange } from "../admin/admin-list-tools";
 
 export function ReviewQueueView() {
   const { items, loading, error, reload } = useSubmissionQueue();
+  const [search, setSearch] = React.useState("");
+  const [dateFrom, setDateFrom] = React.useState("");
+  const [dateTo, setDateTo] = React.useState("");
+  const [page, setPage] = React.useState(0);
+  const filtered = React.useMemo(() => items.filter((submission) => (
+    isInDateRange(submission.created_at, dateFrom, dateTo) &&
+    `${submission.title} ${submission.location}`.toLowerCase().includes(search.toLowerCase())
+  )), [dateFrom, dateTo, items, search]);
+  React.useEffect(() => setPage(0), [dateFrom, dateTo, search]);
+  const pageItems = filtered.slice(page * ADMIN_PAGE_SIZE, (page + 1) * ADMIN_PAGE_SIZE);
   const [active, setActive] = React.useState<Submission | null>(null);
   const [rejecting, setRejecting] = React.useState(false);
   const [note, setNote] = React.useState("");
@@ -131,6 +143,12 @@ export function ReviewQueueView() {
         <ListingLifecyclePanel />
       </section>
 
+      <div className="grid gap-2 rounded-xl border border-border bg-card p-3 sm:grid-cols-3">
+        <Input aria-label="Search property approvals" placeholder="Listing or location" value={search} onChange={(event) => setSearch(event.target.value)} />
+        <Input aria-label="Property approvals from date" type="date" value={dateFrom} onChange={(event) => setDateFrom(event.target.value)} />
+        <Input aria-label="Property approvals to date" type="date" min={dateFrom || undefined} value={dateTo} onChange={(event) => setDateTo(event.target.value)} />
+      </div>
+
       {loading ? (
         <div className="flex items-center justify-center rounded-2xl border border-border bg-card py-16">
           <Loader2 className="h-6 w-6 animate-spin text-brand-navy" aria-hidden="true" />
@@ -142,7 +160,7 @@ export function ReviewQueueView() {
             Try again
           </Button>
         </div>
-      ) : items.length === 0 ? (
+      ) : filtered.length === 0 ? (
         <div className="flex flex-col items-center rounded-2xl border border-border bg-card p-12 text-center">
           <Inbox className="h-8 w-8 text-text-secondary" aria-hidden="true" />
           <p className="mt-3 font-medium text-text-primary">No submissions awaiting review</p>
@@ -152,7 +170,7 @@ export function ReviewQueueView() {
         </div>
       ) : (
         <ul className="space-y-3">
-          {items.map((sub) => (
+          {pageItems.map((sub) => (
             <li key={sub.id}>
               <button
                 type="button"
@@ -178,6 +196,7 @@ export function ReviewQueueView() {
           ))}
         </ul>
       )}
+      {!loading && !error && filtered.length > 0 ? <AdminPagination page={page} total={filtered.length} onPageChange={setPage} /> : null}
 
       <Dialog open={active !== null} onOpenChange={(o) => !o && setActive(null)}>
         <DialogContent className="max-w-lg">

@@ -6,6 +6,8 @@ import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -24,6 +26,7 @@ import {
 import { TempCredentialPanel } from "./temp-credential-panel";
 import { useAgentApplicationDetail } from "./use-agent-application-detail";
 import { useAgentQueue } from "./use-agent-queue";
+import { AdminPagination, ADMIN_PAGE_SIZE, isInDateRange } from "./admin-list-tools";
 
 const DOC_LABELS: Record<AgentApplicationDocument["doc_type"], string> = {
   aadhaar_front: "Aadhaar (front)",
@@ -34,6 +37,18 @@ const DOC_LABELS: Record<AgentApplicationDocument["doc_type"], string> = {
 
 export function AgentQueueView() {
   const { items, loading, error, reload } = useAgentQueue();
+  const [line, setLine] = React.useState("all");
+  const [dateFrom, setDateFrom] = React.useState("");
+  const [dateTo, setDateTo] = React.useState("");
+  const [search, setSearch] = React.useState("");
+  const [page, setPage] = React.useState(0);
+  const filtered = React.useMemo(() => items.filter((app) => (
+    (line === "all" || app.business_line === line) &&
+    isInDateRange(app.created_at, dateFrom, dateTo) &&
+    `${app.first_name ?? ""} ${app.last_name ?? ""} ${app.rera_code ?? ""}`.toLowerCase().includes(search.toLowerCase())
+  )), [dateFrom, dateTo, items, line, search]);
+  React.useEffect(() => setPage(0), [dateFrom, dateTo, line, search]);
+  const pageItems = filtered.slice(page * ADMIN_PAGE_SIZE, (page + 1) * ADMIN_PAGE_SIZE);
   const [active, setActive] = React.useState<AgentApplication | null>(null);
   const {
     detail,
@@ -95,6 +110,12 @@ export function AgentQueueView() {
           Approve a pending application into a live agent account, or reject it with a reason.
         </p>
       </div>
+      <div className="grid gap-2 rounded-xl border border-border bg-card p-3 sm:grid-cols-2 lg:grid-cols-4">
+        <Input aria-label="Search agent applications" placeholder="Name or RERA code" value={search} onChange={(event) => setSearch(event.target.value)} />
+        <Select value={line} onValueChange={setLine}><SelectTrigger aria-label="Filter agent applications by line"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All lines</SelectItem><SelectItem value="loans">Loans</SelectItem><SelectItem value="real_estate">Real Estate</SelectItem></SelectContent></Select>
+        <Input aria-label="Agent applications from date" type="date" value={dateFrom} onChange={(event) => setDateFrom(event.target.value)} />
+        <Input aria-label="Agent applications to date" type="date" min={dateFrom || undefined} value={dateTo} onChange={(event) => setDateTo(event.target.value)} />
+      </div>
 
       {approved ? (
         <div className="space-y-3">
@@ -123,7 +144,7 @@ export function AgentQueueView() {
             Try again
           </Button>
         </div>
-      ) : items.length === 0 ? (
+      ) : filtered.length === 0 ? (
         <div className="flex flex-col items-center rounded-2xl border border-border bg-card p-12 text-center">
           <Inbox className="h-8 w-8 text-text-secondary" aria-hidden="true" />
           <p className="mt-3 font-medium text-text-primary">No applications awaiting review</p>
@@ -133,7 +154,7 @@ export function AgentQueueView() {
         </div>
       ) : (
         <ul className="space-y-3">
-          {items.map((app) => (
+          {pageItems.map((app) => (
             <li key={app.id}>
               <button
                 type="button"
@@ -161,6 +182,7 @@ export function AgentQueueView() {
           ))}
         </ul>
       )}
+      {!loading && !error && filtered.length > 0 ? <AdminPagination page={page} total={filtered.length} onPageChange={setPage} /> : null}
 
       <Dialog open={active !== null} onOpenChange={(o) => !o && setActive(null)}>
         <DialogContent className="max-w-lg">
