@@ -15,6 +15,7 @@ import { LineProvider } from "./line-provider";
 import { LineSwitcher } from "./line-switcher";
 import { MeProvider } from "./me-provider";
 import { NotificationBell } from "./notification-bell";
+import { NotificationsProvider } from "./notifications-provider";
 import { ProfileMenu } from "./profile-menu";
 import { hasFixedDesktopSidebar, isDesktopSidebarExpanded } from "./shell-state";
 
@@ -53,7 +54,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <LineProvider>
         <RealEstateProvider>
           <LoanCompareProvider>
-            <div className="font-geist min-h-screen bg-background">
+            <NotificationsProvider>
+              <div className="font-geist min-h-screen bg-background">
               {/* Desktop rail — collapses to an icon strip, expands to a labeled list. */}
               <aside
                 className={cn(
@@ -101,7 +103,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   <DashboardRouteGuard>{children}</DashboardRouteGuard>
                 </main>
               </div>
-            </div>
+              </div>
+            </NotificationsProvider>
           </LoanCompareProvider>
         </RealEstateProvider>
       </LineProvider>
