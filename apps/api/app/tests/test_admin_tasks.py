@@ -1,4 +1,4 @@
-"""Admin task queue — GET /api/v1/admin/tasks, POST /api/v1/admin/tasks/{id}/assign.
+"""Read-only Admin task oversight and active operational-staff lookup.
 
 Mints role-specific access tokens for an already-registered auth_user, same
 pattern as test_admin_leads_assign.py. Tasks/staff profiles are seeded directly
@@ -165,7 +165,7 @@ async def test_non_admin_cannot_list_tasks(client: AsyncClient) -> None:
 
 
 @pytest.mark.asyncio
-async def test_admin_assigns_task_to_employee(client: AsyncClient) -> None:
+async def test_admin_task_assignment_endpoint_is_removed(client: AsyncClient) -> None:
     _, mobile = await full_registration(client)
     uid = await _auth_user_uuid(mobile)
     raiser_uuid = await _seed_staff_profile("telecaller", "loans")
@@ -177,133 +177,7 @@ async def test_admin_assigns_task_to_employee(client: AsyncClient) -> None:
         json={"employee_profile_uuid": employee_uuid},
         headers={"Authorization": f"Bearer {_admin_token(uid)}"},
     )
-    assert res.status_code == 200, res.text
-    body = res.json()
-    assert body["status"] == "assigned"
-    assert body["assigned_employee_profile_uuid"] == employee_uuid
-    assert body["outcome"] is None
-
-
-@pytest.mark.asyncio
-async def test_admin_assigns_each_line_to_dual_line_employee(client: AsyncClient) -> None:
-    _, mobile = await full_registration(client)
-    uid = await _auth_user_uuid(mobile)
-    employee_uuid = await _seed_staff_profile("employee", "both")
-
-    for line in ("loans", "real_estate"):
-        raiser_uuid = await _seed_staff_profile("telecaller", line)
-        task_id = await _seed_task(line, raiser_uuid)
-        res = await client.post(
-            f"/api/v1/admin/tasks/{task_id}/assign",
-            json={"employee_profile_uuid": employee_uuid},
-            headers={"Authorization": f"Bearer {_admin_token(uid)}"},
-        )
-        assert res.status_code == 200, res.text
-        assert res.json()["assigned_employee_profile_uuid"] == employee_uuid
-
-
-@pytest.mark.asyncio
-async def test_assign_already_assigned_task_conflicts(client: AsyncClient) -> None:
-    _, mobile = await full_registration(client)
-    uid = await _auth_user_uuid(mobile)
-    raiser_uuid = await _seed_staff_profile("telecaller", "loans")
-    task_id = await _seed_task("loans", raiser_uuid)
-    employee_uuid = await _seed_staff_profile("employee", "loans")
-    headers = {"Authorization": f"Bearer {_admin_token(uid)}"}
-
-    first = await client.post(
-        f"/api/v1/admin/tasks/{task_id}/assign",
-        json={"employee_profile_uuid": employee_uuid},
-        headers=headers,
-    )
-    assert first.status_code == 200, first.text
-
-    other_employee_uuid = await _seed_staff_profile("employee", "loans")
-    second = await client.post(
-        f"/api/v1/admin/tasks/{task_id}/assign",
-        json={"employee_profile_uuid": other_employee_uuid},
-        headers=headers,
-    )
-    assert second.status_code == 409
-
-
-@pytest.mark.asyncio
-async def test_assign_to_wrong_role_rejected(client: AsyncClient) -> None:
-    _, mobile = await full_registration(client)
-    uid = await _auth_user_uuid(mobile)
-    raiser_uuid = await _seed_staff_profile("telecaller", "loans")
-    task_id = await _seed_task("loans", raiser_uuid)
-    # A telecaller profile is not a valid assignee — must be an employee.
-    non_employee_uuid = await _seed_staff_profile("telecaller", "loans")
-
-    res = await client.post(
-        f"/api/v1/admin/tasks/{task_id}/assign",
-        json={"employee_profile_uuid": non_employee_uuid},
-        headers={"Authorization": f"Bearer {_admin_token(uid)}"},
-    )
-    assert res.status_code == 422
-
-
-@pytest.mark.asyncio
-async def test_assign_line_mismatch_rejected(client: AsyncClient) -> None:
-    _, mobile = await full_registration(client)
-    uid = await _auth_user_uuid(mobile)
-    raiser_uuid = await _seed_staff_profile("telecaller", "loans")
-    task_id = await _seed_task("loans", raiser_uuid)
-    re_employee_uuid = await _seed_staff_profile("employee", "real_estate")
-
-    res = await client.post(
-        f"/api/v1/admin/tasks/{task_id}/assign",
-        json={"employee_profile_uuid": re_employee_uuid},
-        headers={"Authorization": f"Bearer {_admin_token(uid)}"},
-    )
-    assert res.status_code == 422
-
-
-@pytest.mark.asyncio
-async def test_assign_inactive_employee_rejected(client: AsyncClient) -> None:
-    _, mobile = await full_registration(client)
-    uid = await _auth_user_uuid(mobile)
-    raiser_uuid = await _seed_staff_profile("telecaller", "loans")
-    task_id = await _seed_task("loans", raiser_uuid)
-    inactive_employee_uuid = await _seed_staff_profile("employee", "loans", active=False)
-
-    res = await client.post(
-        f"/api/v1/admin/tasks/{task_id}/assign",
-        json={"employee_profile_uuid": inactive_employee_uuid},
-        headers={"Authorization": f"Bearer {_admin_token(uid)}"},
-    )
-    assert res.status_code == 422
-
-
-@pytest.mark.asyncio
-async def test_assign_missing_task_is_404(client: AsyncClient) -> None:
-    _, mobile = await full_registration(client)
-    uid = await _auth_user_uuid(mobile)
-    employee_uuid = await _seed_staff_profile("employee", "loans")
-
-    res = await client.post(
-        f"/api/v1/admin/tasks/{uuid.uuid4()}/assign",
-        json={"employee_profile_uuid": employee_uuid},
-        headers={"Authorization": f"Bearer {_admin_token(uid)}"},
-    )
-    assert res.status_code == 404
-
-
-@pytest.mark.asyncio
-async def test_non_admin_cannot_assign(client: AsyncClient) -> None:
-    _, mobile = await full_registration(client)
-    uid = await _auth_user_uuid(mobile)
-    raiser_uuid = await _seed_staff_profile("telecaller", "loans")
-    task_id = await _seed_task("loans", raiser_uuid)
-    employee_uuid = await _seed_staff_profile("employee", "loans")
-
-    res = await client.post(
-        f"/api/v1/admin/tasks/{task_id}/assign",
-        json={"employee_profile_uuid": employee_uuid},
-        headers={"Authorization": f"Bearer {_sub_admin_token(uid)}"},
-    )
-    assert res.status_code == 403
+    assert res.status_code == 404, res.text
 
 
 @pytest.mark.asyncio

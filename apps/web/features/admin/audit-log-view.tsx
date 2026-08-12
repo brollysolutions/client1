@@ -7,6 +7,7 @@ import {
   Banknote,
   CarFront,
   CircleSlash,
+  ClipboardList,
   Eraser,
   FileCheck2,
   FilePenLine,
@@ -197,6 +198,11 @@ const ACTION_META: Record<AuditAction, { label: string; icon: LucideIcon; tone: 
     label: "Lead assigned",
     icon: Headset,
     tone: "bg-loans-soft text-loans-accent",
+  },
+  employee_work_assigned: {
+    label: "Employee work assigned",
+    icon: ClipboardList,
+    tone: "bg-realestate-soft text-realestate-accent",
   },
   lead_details_updated: {
     label: "Lead details corrected",

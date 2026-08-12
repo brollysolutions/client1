@@ -1633,6 +1633,17 @@
       },
       "AdminTaskRead": {
         "properties": {
+          "assigned_employee_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Assigned Employee Name"
+          },
           "assigned_employee_profile_uuid": {
             "anyOf": [
               {
@@ -1675,6 +1686,21 @@
             "title": "Id",
             "type": "string"
           },
+          "lead_mobile": {
+            "title": "Lead Mobile",
+            "type": "string"
+          },
+          "lead_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lead Name"
+          },
           "lead_uuid": {
             "format": "uuid",
             "title": "Lead Uuid",
@@ -1712,6 +1738,17 @@
             "title": "Raised By Staff Profile Uuid",
             "type": "string"
           },
+          "raised_by_telecaller_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Raised By Telecaller Name"
+          },
           "status": {
             "enum": [
               "unassigned",
@@ -1744,6 +1781,10 @@
           "lead_uuid",
           "raised_by_staff_profile_uuid",
           "assigned_employee_profile_uuid",
+          "lead_name",
+          "lead_mobile",
+          "raised_by_telecaller_name",
+          "assigned_employee_name",
           "business_line",
           "task_type",
           "status",
@@ -3252,6 +3293,7 @@
           "notification_broadcast",
           "agent_lead_expired",
           "lead_assigned",
+          "employee_work_assigned",
           "lead_details_updated",
           "field_visibility_updated",
           "mobile_change_verified",
@@ -6436,62 +6478,6 @@
         "title": "LeadActivityRead",
         "type": "object"
       },
-      "LeadAssignRequest": {
-        "properties": {
-          "telecaller_staff_profile_uuid": {
-            "format": "uuid",
-            "title": "Telecaller Staff Profile Uuid",
-            "type": "string"
-          }
-        },
-        "required": [
-          "telecaller_staff_profile_uuid"
-        ],
-        "title": "LeadAssignRequest",
-        "type": "object"
-      },
-      "LeadAssignResponse": {
-        "properties": {
-          "business_line": {
-            "enum": [
-              "loans",
-              "real_estate"
-            ],
-            "title": "Business Line",
-            "type": "string"
-          },
-          "lead_id": {
-            "format": "uuid",
-            "title": "Lead Id",
-            "type": "string"
-          },
-          "status": {
-            "enum": [
-              "new",
-              "assigned",
-              "working",
-              "converted",
-              "closed",
-              "released"
-            ],
-            "title": "Status",
-            "type": "string"
-          },
-          "telecaller_staff_profile_uuid": {
-            "format": "uuid",
-            "title": "Telecaller Staff Profile Uuid",
-            "type": "string"
-          }
-        },
-        "required": [
-          "lead_id",
-          "telecaller_staff_profile_uuid",
-          "business_line",
-          "status"
-        ],
-        "title": "LeadAssignResponse",
-        "type": "object"
-      },
       "LeadDetailsPatch": {
         "properties": {
           "name": {
@@ -6616,112 +6602,6 @@
           "updated_at"
         ],
         "title": "LeadDetailsRead",
-        "type": "object"
-      },
-      "LeadReleaseRequest": {
-        "properties": {
-          "release_reason": {
-            "anyOf": [
-              {
-                "maxLength": 1000,
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Release Reason"
-          },
-          "telecaller_staff_profile_uuid": {
-            "anyOf": [
-              {
-                "format": "uuid",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Telecaller Staff Profile Uuid"
-          }
-        },
-        "title": "LeadReleaseRequest",
-        "type": "object"
-      },
-      "LeadReleaseResponse": {
-        "properties": {
-          "business_line": {
-            "enum": [
-              "loans",
-              "real_estate"
-            ],
-            "title": "Business Line",
-            "type": "string"
-          },
-          "lead_id": {
-            "format": "uuid",
-            "title": "Lead Id",
-            "type": "string"
-          },
-          "previous_telecaller_staff_profile_uuid": {
-            "anyOf": [
-              {
-                "format": "uuid",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Previous Telecaller Staff Profile Uuid"
-          },
-          "release_reason": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Release Reason"
-          },
-          "released_at": {
-            "format": "date-time",
-            "title": "Released At",
-            "type": "string"
-          },
-          "status": {
-            "enum": [
-              "assigned",
-              "released"
-            ],
-            "title": "Status",
-            "type": "string"
-          },
-          "telecaller_staff_profile_uuid": {
-            "anyOf": [
-              {
-                "format": "uuid",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Telecaller Staff Profile Uuid"
-          }
-        },
-        "required": [
-          "lead_id",
-          "business_line",
-          "status",
-          "previous_telecaller_staff_profile_uuid",
-          "telecaller_staff_profile_uuid",
-          "released_at",
-          "release_reason"
-        ],
-        "title": "LeadReleaseResponse",
         "type": "object"
       },
       "LeadsReportResponse": {
@@ -12307,20 +12187,6 @@
         "title": "SupportTicketRead",
         "type": "object"
       },
-      "TaskAssignRequest": {
-        "properties": {
-          "employee_profile_uuid": {
-            "format": "uuid",
-            "title": "Employee Profile Uuid",
-            "type": "string"
-          }
-        },
-        "required": [
-          "employee_profile_uuid"
-        ],
-        "title": "TaskAssignRequest",
-        "type": "object"
-      },
       "TaskCreate": {
         "properties": {
           "due_at": {
@@ -13562,18 +13428,6 @@
               }
             ],
             "title": "Driver Name"
-          },
-          "employee_profile_uuid": {
-            "anyOf": [
-              {
-                "format": "uuid",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Employee Profile Uuid"
           },
           "status": {
             "anyOf": [
@@ -15835,64 +15689,6 @@
         ]
       }
     },
-    "/api/v1/admin/leads/{lead_id}/assign": {
-      "post": {
-        "operationId": "assign_lead_api_v1_admin_leads__lead_id__assign_post",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "lead_id",
-            "required": true,
-            "schema": {
-              "format": "uuid",
-              "title": "Lead Id",
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/LeadAssignRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/LeadAssignResponse"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "security": [
-          {
-            "OAuth2PasswordBearer": []
-          }
-        ],
-        "summary": "Assign Lead",
-        "tags": [
-          "admin"
-        ]
-      }
-    },
     "/api/v1/admin/leads/{lead_id}/details": {
       "get": {
         "operationId": "get_lead_details_api_v1_admin_leads__lead_id__details_get",
@@ -15992,64 +15788,6 @@
           }
         ],
         "summary": "Update Lead Details",
-        "tags": [
-          "admin"
-        ]
-      }
-    },
-    "/api/v1/admin/leads/{lead_id}/release": {
-      "post": {
-        "operationId": "release_lead_api_v1_admin_leads__lead_id__release_post",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "lead_id",
-            "required": true,
-            "schema": {
-              "format": "uuid",
-              "title": "Lead Id",
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/LeadReleaseRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/LeadReleaseResponse"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "security": [
-          {
-            "OAuth2PasswordBearer": []
-          }
-        ],
-        "summary": "Release Lead",
         "tags": [
           "admin"
         ]
@@ -18748,64 +18486,6 @@
           }
         ],
         "summary": "List Tasks",
-        "tags": [
-          "admin"
-        ]
-      }
-    },
-    "/api/v1/admin/tasks/{task_id}/assign": {
-      "post": {
-        "operationId": "assign_task_api_v1_admin_tasks__task_id__assign_post",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "task_id",
-            "required": true,
-            "schema": {
-              "format": "uuid",
-              "title": "Task Id",
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/TaskAssignRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AdminTaskRead"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "security": [
-          {
-            "OAuth2PasswordBearer": []
-          }
-        ],
-        "summary": "Assign Task",
         "tags": [
           "admin"
         ]

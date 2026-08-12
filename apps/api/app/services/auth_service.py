@@ -90,6 +90,10 @@ logger = logging.getLogger(__name__)
 _GENERIC_LOGIN_ERROR = "Invalid mobile number or password."
 
 
+class NoActiveAccessProfile(Exception):
+    """The auth identity has no active staff, Agent, or Client authority."""
+
+
 def _is_mock_env() -> bool:
     # Fail-closed OTP-hint gate (audit L3). The old check was `ENV != "production"`,
     # which fails OPEN: any misread ENV (staging / "prod" / unset) leaked a live
@@ -120,9 +124,10 @@ def _build_tokens_response(access_token: str, user: User | None = None) -> AuthT
 async def _issue_tokens(
     db: AsyncSession,
     user: User,
+    payload: dict | None = None,
 ) -> tuple[AuthTokensResponse, str]:
     """Issue access + refresh tokens. Returns (response, raw_refresh_token)."""
-    payload = await _build_access_claims(db, user)
+    payload = payload or await _build_access_claims(db, user)
     access_token = create_access_token(payload)
     raw_refresh, refresh_hash = create_refresh_token()
 
@@ -227,17 +232,16 @@ async def _build_access_claims(db: AsyncSession, user: User) -> dict:
             .order_by(ClientProfile.business_line)
         )
     ).all()
+    if not clients:
+        raise NoActiveAccessProfile
     claims["role"] = "client"
     claims["platform_scope"] = "false"
-    if clients:
-        lines = {c.business_line for c in clients}
-        # A client holding both lines carries "both"; the client policy filters
-        # on own auth_user_uuid regardless, so this is only informational. The
-        # ORDER BY makes the acting profile uuid deterministic (loans first).
-        claims["business_line"] = "both" if len(lines) > 1 else next(iter(lines))
-        claims["client_profile_uuid"] = str(clients[0].id)
-    else:
-        claims["business_line"] = ""
+    lines = {c.business_line for c in clients}
+    # A client holding both lines carries "both"; the client policy filters
+    # on own auth_user_uuid regardless, so this is only informational. The
+    # ORDER BY makes the acting profile uuid deterministic (loans first).
+    claims["business_line"] = "both" if len(lines) > 1 else next(iter(lines))
+    claims["client_profile_uuid"] = str(clients[0].id)
     return claims
 
 
@@ -278,12 +282,17 @@ async def register_initiate(
     ip: str | None = None,
     user_agent: str | None = None,
 ) -> RegisterInitiateResponse:
-    # Per-IP cap first — stop one host iterating numbers before any DB / OTP work.
     await check_otp_rate_ip(cache, ip)
-    # Capture the number first, IN-LINE (not deferred): the duplicate-mobile
-    # (400) and rate-limit (429) branches below raise HTTPException, and FastAPI
-    # never runs a BackgroundTask on a raised response — a deferred capture would be
-    # dropped there, losing a genuinely new number that is already registered.
+    existing = await db.scalar(select(User).where(User.mobile == req.mobile))
+    if existing:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Mobile number already registered.",
+        )
+    # Capture the number IN-LINE (not deferred): later rate-limit failures raise
+    # HTTPException, and FastAPI never runs a BackgroundTask on a raised response.
+    # The existing-user check above prevents operational identities from being
+    # captured as customer leads through registration.
     # Profiles remain dual-line under CS-001; only explicitly requested service
     # journeys are captured for follow-up.
     for business_line in req.service_lines:
@@ -291,13 +300,6 @@ async def register_initiate(
             req.mobile,
             name=f"{req.first_name} {req.last_name}".strip(),
             business_line=business_line,
-        )
-
-    existing = await db.scalar(select(User).where(User.mobile == req.mobile))
-    if existing:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Mobile number already registered.",
         )
 
     otp = await generate_and_store_otp(cache, req.mobile, "register")
@@ -659,6 +661,17 @@ async def login(
             detail="Account is not active.",
         )
 
+    claims: dict | None = None
+    if user.status == UserStatus.ACTIVE:
+        try:
+            claims = await _build_access_claims(db, user)
+        except NoActiveAccessProfile as exc:
+            await _revoke_all_refresh_tokens(db, user.id)
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Account is not active.",
+            ) from exc
+
     await clear_login_failures(cache, req.mobile)
 
     # Update last_login_at
@@ -691,7 +704,7 @@ async def login(
         )
         return _build_tokens_response(access_token, user), ""
 
-    return await _issue_tokens(db, user)
+    return await _issue_tokens(db, user, claims)
 
 
 # ---------------------------------------------------------------------------
@@ -748,6 +761,15 @@ async def refresh_token(
             detail="Session is no longer valid. Please log in again.",
         )
 
+    try:
+        payload = await _build_access_claims(db, user)
+    except NoActiveAccessProfile as exc:
+        await _revoke_all_refresh_tokens(db, user.id)
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Session is no longer valid. Please log in again.",
+        ) from exc
+
     # Rotate: revoke old, issue new
     new_raw, new_hash = create_refresh_token()
     now = datetime.now(UTC)
@@ -786,7 +808,6 @@ async def refresh_token(
         )
     await db.commit()
 
-    payload = await _build_access_claims(db, user)
     access_token = create_access_token(payload)
     return _build_tokens_response(access_token, user), new_raw
 

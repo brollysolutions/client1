@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from uuid import UUID
@@ -22,7 +23,10 @@ from app.schemas.vehicle_arrangements import (
     VehicleArrangementEmployeeUpdate,
 )
 from app.services.audit_log import record
+from app.services.employee_assignment import assign_vehicle_if_possible
 from app.services.notifications import emit_notification
+
+logger = logging.getLogger(__name__)
 
 
 class ArrangementNotFound(Exception):
@@ -230,15 +234,6 @@ async def update_for_admin(
         if field_name in payload.model_fields_set:
             setattr(arrangement, field_name, getattr(payload, field_name))
 
-    if payload.employee_profile_uuid is not None:
-        if old_status not in {
-            VehicleArrangementStatus.ARRANGED,
-            VehicleArrangementStatus.ASSIGNED,
-        }:
-            raise InvalidArrangementTransition
-        employee = await _active_real_estate_employee(db, payload.employee_profile_uuid)
-        arrangement.assigned_employee_profile_uuid = employee.id
-
     if payload.status is not None:
         _apply_transition(arrangement, payload.status)
     else:
@@ -267,6 +262,17 @@ async def update_for_admin(
     visit = await db.get(SiteVisit, arrangement.site_visit_uuid)
     await db.commit()
     await db.refresh(arrangement)
+    if arrangement.status == VehicleArrangementStatus.ARRANGED:
+        try:
+            await assign_vehicle_if_possible(arrangement.id)
+            await db.refresh(arrangement)
+        except Exception:
+            # The arranged row remains in the durable scheduler retry pool.
+            logger.warning(
+                "vehicle_arrangement.immediate_assignment_failed arrangement_id=%s",
+                arrangement.id,
+                exc_info=True,
+            )
     await _notify_client(arrangement, visit, old_status)
     rows = (await db.execute(_view_stmt().where(VehicleArrangement.id == arrangement.id))).first()
     return _to_view(rows)

@@ -66,7 +66,7 @@ export function TelecallerTasksSection({
     <div className="rounded-2xl border border-border bg-card p-5">
       <h2 className="text-lg font-semibold text-text-primary">Field tasks</h2>
       <p className="mt-1 text-sm text-text-secondary">
-        Raise a document-collection visit. Admin assigns it to an employee.
+        Raise a document-collection visit for automatic Employee assignment.
       </p>
 
       <form className="mt-4 space-y-3" onSubmit={(e) => void onSubmit(e)}>
