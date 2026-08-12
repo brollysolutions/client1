@@ -269,6 +269,9 @@ export type AuditLogFilters = {
   actorUuid?: string;
   entityType?: string;
   entityUuid?: string;
+  businessLine?: "loans" | "real_estate";
+  since?: string;
+  until?: string;
   limit?: number;
   offset?: number;
 };
@@ -281,6 +284,9 @@ export async function listAuditLog(
   if (filters.actorUuid) params.set("actor_uuid", filters.actorUuid);
   if (filters.entityType) params.set("entity_type", filters.entityType);
   if (filters.entityUuid) params.set("entity_uuid", filters.entityUuid);
+  if (filters.businessLine) params.set("business_line", filters.businessLine);
+  if (filters.since) params.set("since", filters.since);
+  if (filters.until) params.set("until", filters.until);
   if (filters.limit !== undefined) params.set("limit", String(filters.limit));
   if (filters.offset !== undefined) params.set("offset", String(filters.offset));
   const query = params.size > 0 ? `?${params.toString()}` : "";

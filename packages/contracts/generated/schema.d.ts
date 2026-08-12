@@ -8794,6 +8794,7 @@ export interface operations {
                 actor_uuid?: string | null;
                 entity_type?: string | null;
                 entity_uuid?: string | null;
+                business_line?: ("loans" | "real_estate") | null;
                 since?: string | null;
                 until?: string | null;
                 limit?: number;

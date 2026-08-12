@@ -29,6 +29,7 @@ import {
   type VehicleArrangement,
   type VehicleArrangementStatus,
 } from "@/lib/admin-api";
+import { AdminPagination, ADMIN_PAGE_SIZE, isInDateRange } from "./admin-list-tools";
 
 const STATUS_LABEL: Record<VehicleArrangementStatus, string> = {
   requested: "Requested",
@@ -54,6 +55,10 @@ function formatDateTime(value: string): string {
 export function AdminVehicleArrangementsView() {
   const [items, setItems] = React.useState<VehicleArrangement[]>([]);
   const [filter, setFilter] = React.useState<VehicleArrangementStatus | "all">("all");
+  const [search, setSearch] = React.useState("");
+  const [dateFrom, setDateFrom] = React.useState("");
+  const [dateTo, setDateTo] = React.useState("");
+  const [page, setPage] = React.useState(0);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
   const [active, setActive] = React.useState<VehicleArrangement | null>(null);
@@ -81,6 +86,13 @@ export function AdminVehicleArrangementsView() {
   React.useEffect(() => {
     void load();
   }, [load]);
+
+  const filteredItems = React.useMemo(() => items.filter((item) => (
+    isInDateRange(item.pickup_at, dateFrom, dateTo) &&
+    `${item.property_title} ${item.property_city} ${item.assigned_employee_name ?? ""}`.toLowerCase().includes(search.toLowerCase())
+  )), [dateFrom, dateTo, items, search]);
+  React.useEffect(() => setPage(0), [dateFrom, dateTo, filter, search]);
+  const pageItems = filteredItems.slice(page * ADMIN_PAGE_SIZE, (page + 1) * ADMIN_PAGE_SIZE);
 
   function openArrange(item: VehicleArrangement) {
     setActive(item);
@@ -138,19 +150,12 @@ export function AdminVehicleArrangementsView() {
         </p>
       </div>
 
-      <Select value={filter} onValueChange={(value) => setFilter(value as typeof filter)}>
-        <SelectTrigger className="w-48" aria-label="Filter by status">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">All statuses</SelectItem>
-          {Object.entries(STATUS_LABEL).map(([value, label]) => (
-            <SelectItem key={value} value={value}>
-              {label}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+      <div className="grid gap-2 rounded-xl border border-border bg-card p-3 sm:grid-cols-2 lg:grid-cols-4">
+        <Input aria-label="Search vehicle arrangements" placeholder="Property, city, or Employee" value={search} onChange={(event) => setSearch(event.target.value)} />
+        <Select value={filter} onValueChange={(value) => setFilter(value as typeof filter)}><SelectTrigger aria-label="Filter vehicle arrangements by status"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All statuses</SelectItem>{Object.entries(STATUS_LABEL).map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent></Select>
+        <Input aria-label="Vehicle arrangements from pickup date" type="date" value={dateFrom} onChange={(event) => setDateFrom(event.target.value)} />
+        <Input aria-label="Vehicle arrangements to pickup date" type="date" min={dateFrom || undefined} value={dateTo} onChange={(event) => setDateTo(event.target.value)} />
+      </div>
 
       {loading ? (
         <div className="flex justify-center rounded-2xl border border-border bg-card py-16">
@@ -163,14 +168,14 @@ export function AdminVehicleArrangementsView() {
             Try again
           </Button>
         </div>
-      ) : items.length === 0 ? (
+      ) : filteredItems.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-border bg-card p-12 text-center">
           <CarFront className="mx-auto h-8 w-8 text-text-secondary" aria-hidden="true" />
           <p className="mt-3 font-medium">No vehicle arrangements</p>
         </div>
       ) : (
         <ul className="space-y-4">
-          {items.map((item) => (
+          {pageItems.map((item) => (
             <li key={item.id} className="rounded-2xl border border-border bg-card p-5">
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div className="space-y-1">
@@ -211,6 +216,7 @@ export function AdminVehicleArrangementsView() {
           ))}
         </ul>
       )}
+      {!loading && !error && filteredItems.length > 0 ? <AdminPagination page={page} total={filteredItems.length} onPageChange={setPage} /> : null}
 
       <Dialog open={active !== null} onOpenChange={(open) => !open && setActive(null)}>
         <DialogContent>

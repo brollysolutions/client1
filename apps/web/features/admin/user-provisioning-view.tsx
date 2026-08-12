@@ -186,7 +186,7 @@ export function UserProvisioningView() {
               ? "Review the new account details and securely hand off any one-time credential."
               : "New accounts receive the selected role and the narrowest applicable line scope."
           }
-          className="scroll-mt-24"
+          className="min-h-[540px] scroll-mt-24"
         >
           <div id="create-staff" className="scroll-mt-24">
             {result ? (
@@ -325,6 +325,7 @@ export function UserProvisioningView() {
         <DashboardPanel
           title="Staff access"
           description="Admin hierarchy and delegated operational capabilities"
+          className="min-h-[540px]"
         >
           <StaffAccessContent
             access={access}
@@ -468,7 +469,7 @@ function StaffAccessContent({
         </Badge>
       </div>
 
-      <div className="overflow-x-auto rounded-xl border border-border">
+      <div className="max-h-[340px] overflow-auto rounded-xl border border-border [scrollbar-width:thin] [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-border">
         <table className="w-full min-w-[640px] text-left text-sm">
           <thead className="border-b border-border bg-muted/30 text-xs uppercase tracking-wide text-text-secondary">
             <tr>

@@ -48,7 +48,7 @@ type OperationalPage = { records: OperationalRecord[]; total: number };
 type ViewState = OperationalPage & {
   loaded: boolean;
   loading: boolean;
-  loadingMore: boolean;
+  offset: number;
   error: string | null;
 };
 
@@ -58,7 +58,7 @@ function initialState(): Record<OperationKind, ViewState> {
     total: 0,
     loaded: false,
     loading: false,
-    loadingMore: false,
+    offset: 0,
     error: null,
   });
   return {
@@ -301,8 +301,7 @@ export function OperationalRecordsView() {
       ...current,
       [kind]: {
         ...current[kind],
-        loading: offset === 0,
-        loadingMore: offset > 0,
+        loading: true,
         error: null,
       },
     }));
@@ -316,21 +315,18 @@ export function OperationalRecordsView() {
             ...previous,
             loaded: true,
             loading: false,
-            loadingMore: false,
             error: response.error,
           },
         };
       }
-      const seen = new Set(offset === 0 ? [] : previous.records.map((record) => record.id));
-      const nextRecords = response.data.records.filter((record) => !seen.has(record.id));
       return {
         ...current,
         [kind]: {
-          records: offset === 0 ? nextRecords : [...previous.records, ...nextRecords],
+          records: response.data.records,
           total: response.data.total,
+          offset,
           loaded: true,
           loading: false,
-          loadingMore: false,
           error: null,
         },
       };
@@ -406,8 +402,7 @@ export function OperationalRecordsView() {
             <div className="space-y-4">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <p className="text-sm text-text-secondary" aria-live="polite">
-                  Showing {visibleRecords.length} of {state.records.length} loaded records
-                  {state.records.length < state.total ? ` (${state.total} total)` : ""}
+                  Showing {state.total === 0 ? 0 : state.offset + 1}-{state.offset + state.records.length} of {state.total}
                 </p>
                 <Button variant="outline" size="sm" onClick={() => void load(active, 0)}>
                   <RefreshCw className="h-4 w-4" aria-hidden="true" />
@@ -425,13 +420,13 @@ export function OperationalRecordsView() {
               <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_12rem]">
                 <Input
                   type="search"
-                  aria-label="Search loaded operational records"
-                  placeholder="Search loaded records"
+                  aria-label="Search operational records on this page"
+                  placeholder="Search this page"
                   value={search}
                   onChange={(event) => setSearch(event.target.value)}
                 />
                 <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger aria-label="Filter loaded operational records by status" className="w-full">
+                  <SelectTrigger aria-label="Filter operational records by status" className="w-full">
                     <SelectValue placeholder="All statuses" />
                   </SelectTrigger>
                   <SelectContent>
@@ -444,25 +439,15 @@ export function OperationalRecordsView() {
               </div>
               {visibleRecords.length === 0 ? (
                 <p className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-text-secondary">
-                  No loaded records match these filters.
+                  No records on this page match these filters.
                 </p>
               ) : (
                 <RecordCards records={visibleRecords} />
               )}
-              {state.records.length < state.total ? (
-                <div className="flex justify-center">
-                  <Button
-                    variant="outline"
-                    disabled={state.loadingMore}
-                    onClick={() => void load(active, state.records.length)}
-                  >
-                    {state.loadingMore ? (
-                      <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
-                    ) : null}
-                    Load more
-                  </Button>
-                </div>
-              ) : null}
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" size="sm" disabled={state.offset === 0} onClick={() => void load(active, Math.max(0, state.offset - PAGE_SIZE))}>Previous</Button>
+                <Button variant="outline" size="sm" disabled={state.offset + state.records.length >= state.total} onClick={() => void load(active, state.offset + PAGE_SIZE)}>Next</Button>
+              </div>
             </div>
           )}
         </TabsContent>

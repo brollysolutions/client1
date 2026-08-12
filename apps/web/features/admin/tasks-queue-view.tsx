@@ -7,6 +7,8 @@ import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -20,6 +22,7 @@ import {
   type TaskFeedbackMedia,
 } from "@/lib/admin-api";
 import { useAdminTasksQueue } from "./use-admin-tasks";
+import { AdminPagination, ADMIN_PAGE_SIZE, isInDateRange } from "./admin-list-tools";
 
 const TASK_TYPE_LABEL: Record<string, string> = {
   document_collection: "Document collection",
@@ -38,6 +41,22 @@ function formatDate(iso: string | null): string {
 
 export function TasksQueueView() {
   const { tasks, loading, error, reload } = useAdminTasksQueue();
+  const [line, setLine] = React.useState("all");
+  const [status, setStatus] = React.useState("all");
+  const [taskType, setTaskType] = React.useState("all");
+  const [dateFrom, setDateFrom] = React.useState("");
+  const [dateTo, setDateTo] = React.useState("");
+  const [search, setSearch] = React.useState("");
+  const [page, setPage] = React.useState(0);
+  const filtered = React.useMemo(() => tasks.filter((task) => (
+    (line === "all" || task.business_line === line) &&
+    (status === "all" || task.status === status) &&
+    (taskType === "all" || task.task_type === taskType) &&
+    isInDateRange(task.due_at ?? task.created_at, dateFrom, dateTo) &&
+    `${task.lead_name ?? ""} ${task.raised_by_telecaller_name ?? ""} ${task.assigned_employee_name ?? ""}`.toLowerCase().includes(search.toLowerCase())
+  )), [dateFrom, dateTo, line, search, status, taskType, tasks]);
+  React.useEffect(() => setPage(0), [dateFrom, dateTo, line, search, status, taskType]);
+  const pageTasks = filtered.slice(page * ADMIN_PAGE_SIZE, (page + 1) * ADMIN_PAGE_SIZE);
   const [feedbackTask, setFeedbackTask] = React.useState<AdminTask | null>(null);
   const [feedback, setFeedback] = React.useState<TaskFeedbackMedia[]>([]);
   const [feedbackLoading, setFeedbackLoading] = React.useState(false);
@@ -69,6 +88,15 @@ export function TasksQueueView() {
         </p>
       </div>
 
+      <div className="grid gap-2 rounded-xl border border-border bg-card p-3 sm:grid-cols-2 lg:grid-cols-3">
+        <Input aria-label="Search field assignments" placeholder="Lead, Telecaller, or Employee" value={search} onChange={(event) => setSearch(event.target.value)} />
+        <Select value={line} onValueChange={setLine}><SelectTrigger aria-label="Filter field assignments by line"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All lines</SelectItem><SelectItem value="loans">Loans</SelectItem><SelectItem value="real_estate">Real Estate</SelectItem></SelectContent></Select>
+        <Select value={taskType} onValueChange={setTaskType}><SelectTrigger aria-label="Filter field assignments by type"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All task types</SelectItem>{Object.entries(TASK_TYPE_LABEL).map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent></Select>
+        <Select value={status} onValueChange={setStatus}><SelectTrigger aria-label="Filter field assignments by status"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All statuses</SelectItem><SelectItem value="unassigned">Unassigned</SelectItem><SelectItem value="assigned">Assigned</SelectItem><SelectItem value="in_progress">In progress</SelectItem><SelectItem value="blocked">Blocked</SelectItem><SelectItem value="completed">Completed</SelectItem><SelectItem value="cancelled">Cancelled</SelectItem></SelectContent></Select>
+        <Input aria-label="Field assignments from date" type="date" value={dateFrom} onChange={(event) => setDateFrom(event.target.value)} />
+        <Input aria-label="Field assignments to date" type="date" min={dateFrom || undefined} value={dateTo} onChange={(event) => setDateTo(event.target.value)} />
+      </div>
+
       {loading ? (
         <div className="flex items-center justify-center rounded-2xl border border-border bg-card py-16">
           <Loader2 className="h-6 w-6 animate-spin text-brand-navy" aria-label="Loading field tasks" />
@@ -80,14 +108,14 @@ export function TasksQueueView() {
             Try again
           </Button>
         </div>
-      ) : tasks.length === 0 ? (
+      ) : filtered.length === 0 ? (
         <div className="flex flex-col items-center rounded-2xl border border-border bg-card p-12 text-center">
           <ClipboardList className="h-8 w-8 text-text-secondary" aria-hidden="true" />
           <p className="mt-3 font-medium text-text-primary">No field tasks</p>
         </div>
       ) : (
         <ul className="space-y-3">
-          {tasks.map((task) => (
+          {pageTasks.map((task) => (
             <li
               key={task.id}
               className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-border bg-card p-4"
@@ -117,6 +145,7 @@ export function TasksQueueView() {
           ))}
         </ul>
       )}
+      {!loading && !error && filtered.length > 0 ? <AdminPagination page={page} total={filtered.length} onPageChange={setPage} /> : null}
 
       <Dialog open={feedbackTask !== null} onOpenChange={(open) => !open && setFeedbackTask(null)}>
         <DialogContent className="max-w-2xl">

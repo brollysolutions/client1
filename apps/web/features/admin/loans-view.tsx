@@ -5,6 +5,7 @@ import { Inbox, Loader2 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -16,6 +17,7 @@ import { LoanProgressForm } from "@/features/loans/loan-progress-form";
 import { formatINR } from "@/lib/format";
 
 import { useAdminLoans } from "./use-admin-loans";
+import { AdminPagination, ADMIN_PAGE_SIZE, isInDateRange } from "./admin-list-tools";
 
 const STATUS_LABEL: Record<string, string> = {
   new: "New",
@@ -46,6 +48,16 @@ function formatDate(iso: string | null | undefined): string {
 export function AdminLoansView() {
   const { items, loading, error, statusFilter, setStatusFilter, reload, updateApp } =
     useAdminLoans();
+  const [search, setSearch] = React.useState("");
+  const [dateFrom, setDateFrom] = React.useState("");
+  const [dateTo, setDateTo] = React.useState("");
+  const [page, setPage] = React.useState(0);
+  const filteredItems = React.useMemo(() => items.filter((application) => (
+    isInDateRange(application.opened_at, dateFrom, dateTo) &&
+    `${application.customer_code} ${application.loan_type_label} ${application.bank_name ?? ""}`.toLowerCase().includes(search.toLowerCase())
+  )), [dateFrom, dateTo, items, search]);
+  React.useEffect(() => setPage(0), [dateFrom, dateTo, search, statusFilter]);
+  const pageItems = filteredItems.slice(page * ADMIN_PAGE_SIZE, (page + 1) * ADMIN_PAGE_SIZE);
   const [expandedId, setExpandedId] = React.useState<string | null>(null);
 
   return (
@@ -57,6 +69,8 @@ export function AdminLoansView() {
             Review and progress any loan application across the platform.
           </p>
         </div>
+        <div className="grid w-full gap-2 sm:grid-cols-2 lg:w-auto lg:grid-cols-4">
+          <Input aria-label="Search loan applications" placeholder="Customer, loan type, or bank" value={search} onChange={(event) => setSearch(event.target.value)} />
         <Select
           value={statusFilter || "all"}
           onValueChange={(v) => setStatusFilter(v === "all" ? "" : v)}
@@ -72,6 +86,9 @@ export function AdminLoansView() {
             ))}
           </SelectContent>
         </Select>
+          <Input aria-label="Loan applications from date" type="date" value={dateFrom} onChange={(event) => setDateFrom(event.target.value)} />
+          <Input aria-label="Loan applications to date" type="date" min={dateFrom || undefined} value={dateTo} onChange={(event) => setDateTo(event.target.value)} />
+        </div>
       </div>
 
       {loading ? (
@@ -85,7 +102,7 @@ export function AdminLoansView() {
             Try again
           </Button>
         </div>
-      ) : items.length === 0 ? (
+      ) : filteredItems.length === 0 ? (
         <div className="flex flex-col items-center rounded-2xl border border-border bg-card p-12 text-center">
           <Inbox className="h-8 w-8 text-text-secondary" aria-hidden="true" />
           <p className="mt-3 font-medium text-text-primary">No loan applications</p>
@@ -95,7 +112,7 @@ export function AdminLoansView() {
         </div>
       ) : (
         <ul className="space-y-3">
-          {items.map((application) => {
+          {pageItems.map((application) => {
             const expanded = expandedId === application.id;
             return (
               <li key={application.id} className="rounded-2xl border border-border bg-card p-4">
@@ -146,6 +163,7 @@ export function AdminLoansView() {
           })}
         </ul>
       )}
+      {!loading && !error && filteredItems.length > 0 ? <AdminPagination page={page} total={filteredItems.length} onPageChange={setPage} /> : null}
     </div>
   );
 }
