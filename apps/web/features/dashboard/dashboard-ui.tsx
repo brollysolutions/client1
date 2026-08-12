@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { ArrowRight, type LucideIcon } from "lucide-react";
+import { ArrowLeft, ArrowRight, type LucideIcon } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
@@ -180,7 +180,7 @@ export function DashboardFormPage({
         eyebrow={eyebrow}
         title={title}
         description={description}
-        actions={<DashboardTextLink href={backHref}>{backLabel}</DashboardTextLink>}
+        actions={<DashboardBackLink href={backHref}>{backLabel}</DashboardBackLink>}
       />
       <div
         className={cn(
@@ -262,6 +262,18 @@ export function DashboardTextLink({ href, children }: { href: string; children: 
     >
       {children}
       <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
+    </Link>
+  );
+}
+
+export function DashboardBackLink({ href, children }: { href: string; children: ReactNode }) {
+  return (
+    <Link
+      href={href}
+      className="inline-flex items-center gap-1.5 text-sm font-medium text-brand-cta hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue"
+    >
+      <ArrowLeft className="h-3.5 w-3.5" aria-hidden="true" />
+      {children}
     </Link>
   );
 }

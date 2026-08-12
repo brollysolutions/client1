@@ -180,7 +180,6 @@ describe("role-aware dashboard navigation", () => {
   it("makes every existing Admin workspace reachable in grouped navigation", () => {
     expect(navKeys(context("admin"))).toEqual([
       "home",
-      "admin-operational-records",
       "admin-leads",
       "admin-tasks",
       "admin-loans",
@@ -296,5 +295,11 @@ describe("dashboard direct-route UX access", () => {
     }
     expect(isDashboardPathAllowed("/dashboard/not-a-real-page", context("admin"))).toBe(false);
     expect(isDashboardPathAllowed("/contact", context("client"))).toBe(true);
+  });
+
+  it("keeps the Admin-only Operational Records route guarded but out of navigation", () => {
+    expect(navKeys(context("admin"))).not.toContain("admin-operational-records");
+    expect(isDashboardPathAllowed("/dashboard/operations", context("admin"))).toBe(true);
+    expect(isDashboardPathAllowed("/dashboard/operations", context("sub_admin"))).toBe(false);
   });
 });

@@ -5,6 +5,14 @@ import { Database, Loader2, RefreshCw } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   listAdminAuthEvents,
@@ -22,6 +30,8 @@ import {
 } from "@/lib/admin-operations-api";
 import type { ApiResponse } from "@/lib/api/client";
 
+import { filterOperationalRecords, type OperationalRecord } from "./operational-records-filter";
+
 const PAGE_SIZE = 25;
 
 const OPERATION_TABS = [
@@ -34,14 +44,6 @@ const OPERATION_TABS = [
 ] as const;
 
 type OperationKind = (typeof OPERATION_TABS)[number]["key"];
-type RecordField = { label: string; value: string };
-type OperationalRecord = {
-  id: string;
-  title: string;
-  subtitle: string;
-  status?: string;
-  fields: RecordField[];
-};
 type OperationalPage = { records: OperationalRecord[]; total: number };
 type ViewState = OperationalPage & {
   loaded: boolean;
@@ -291,6 +293,8 @@ function RecordCards({ records }: { records: OperationalRecord[] }) {
 export function OperationalRecordsView() {
   const [active, setActive] = React.useState<OperationKind>("auth-events");
   const [states, setStates] = React.useState(initialState);
+  const [search, setSearch] = React.useState("");
+  const [statusFilter, setStatusFilter] = React.useState("all");
 
   const load = React.useCallback(async (kind: OperationKind, offset: number) => {
     setStates((current) => ({
@@ -334,6 +338,14 @@ export function OperationalRecordsView() {
   }, []);
 
   const state = states[active];
+  const statusOptions = React.useMemo(
+    () => [...new Set(state.records.flatMap((record) => (record.status ? [record.status] : [])))],
+    [state.records],
+  );
+  const visibleRecords = React.useMemo(
+    () => filterOperationalRecords(state.records, search, statusFilter),
+    [search, state.records, statusFilter],
+  );
   React.useEffect(() => {
     if (!state.loaded && !state.loading) void load(active, 0);
   }, [active, load, state.loaded, state.loading]);
@@ -348,7 +360,14 @@ export function OperationalRecordsView() {
         </p>
       </div>
 
-      <Tabs value={active} onValueChange={(value) => setActive(value as OperationKind)}>
+      <Tabs
+        value={active}
+        onValueChange={(value) => {
+          setActive(value as OperationKind);
+          setSearch("");
+          setStatusFilter("all");
+        }}
+      >
         <div className="overflow-x-auto pb-1">
           <TabsList aria-label="Operational record category" className="min-w-max">
             {OPERATION_TABS.map((tab) => (
@@ -387,7 +406,8 @@ export function OperationalRecordsView() {
             <div className="space-y-4">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <p className="text-sm text-text-secondary" aria-live="polite">
-                  Showing {state.records.length} of {state.total} records
+                  Showing {visibleRecords.length} of {state.records.length} loaded records
+                  {state.records.length < state.total ? ` (${state.total} total)` : ""}
                 </p>
                 <Button variant="outline" size="sm" onClick={() => void load(active, 0)}>
                   <RefreshCw className="h-4 w-4" aria-hidden="true" />
@@ -402,7 +422,33 @@ export function OperationalRecordsView() {
                   {state.error}
                 </p>
               ) : null}
-              <RecordCards records={state.records} />
+              <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_12rem]">
+                <Input
+                  type="search"
+                  aria-label="Search loaded operational records"
+                  placeholder="Search loaded records"
+                  value={search}
+                  onChange={(event) => setSearch(event.target.value)}
+                />
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger aria-label="Filter loaded operational records by status" className="w-full">
+                    <SelectValue placeholder="All statuses" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All statuses</SelectItem>
+                    {statusOptions.map((status) => (
+                      <SelectItem key={status} value={status}>{status}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              {visibleRecords.length === 0 ? (
+                <p className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-text-secondary">
+                  No loaded records match these filters.
+                </p>
+              ) : (
+                <RecordCards records={visibleRecords} />
+              )}
               {state.records.length < state.total ? (
                 <div className="flex justify-center">
                   <Button

@@ -315,14 +315,6 @@ export const NAV_ITEMS: readonly NavItem[] = [
 
   // Admin operations.
   {
-    key: "admin-operational-records",
-    label: "Operational records",
-    href: "/dashboard/operations",
-    icon: DASHBOARD_ICONS.operationalRecords,
-    capability: "admin",
-    section: "operations",
-  },
-  {
     key: "admin-leads",
     label: "Lead assignments",
     href: "/dashboard/admin-leads",
