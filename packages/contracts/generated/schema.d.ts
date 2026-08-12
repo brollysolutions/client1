@@ -482,23 +482,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/admin/leads/{lead_id}/assign": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Assign Lead */
-        post: operations["assign_lead_api_v1_admin_leads__lead_id__assign_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/v1/admin/leads/{lead_id}/details": {
         parameters: {
             query?: never;
@@ -515,23 +498,6 @@ export interface paths {
         head?: never;
         /** Update Lead Details */
         patch: operations["update_lead_details_api_v1_admin_leads__lead_id__details_patch"];
-        trace?: never;
-    };
-    "/api/v1/admin/leads/{lead_id}/release": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Release Lead */
-        post: operations["release_lead_api_v1_admin_leads__lead_id__release_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
         trace?: never;
     };
     "/api/v1/admin/loan-applications/{application_id}": {
@@ -1090,23 +1056,6 @@ export interface paths {
         get: operations["list_tasks_api_v1_admin_tasks_get"];
         put?: never;
         post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/admin/tasks/{task_id}/assign": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Assign Task */
-        post: operations["assign_task_api_v1_admin_tasks__task_id__assign_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -4242,6 +4191,8 @@ export interface components {
         };
         /** AdminTaskRead */
         AdminTaskRead: {
+            /** Assigned Employee Name */
+            assigned_employee_name: string | null;
             /** Assigned Employee Profile Uuid */
             assigned_employee_profile_uuid: string | null;
             /**
@@ -4261,6 +4212,10 @@ export interface components {
              * Format: uuid
              */
             id: string;
+            /** Lead Mobile */
+            lead_mobile: string;
+            /** Lead Name */
+            lead_name: string | null;
             /**
              * Lead Uuid
              * Format: uuid
@@ -4275,6 +4230,8 @@ export interface components {
              * Format: uuid
              */
             raised_by_staff_profile_uuid: string;
+            /** Raised By Telecaller Name */
+            raised_by_telecaller_name: string | null;
             /**
              * Status
              * @enum {string}
@@ -4833,7 +4790,7 @@ export interface components {
          *     `services/fee_cashbacks.py` (FR-6.6 processing-fee cashback).
          * @enum {string}
          */
-        AuditAction: "agent_approved" | "agent_rejected" | "staff_created" | "staff_feature_granted" | "staff_feature_revoked" | "account_removed" | "account_status_updated" | "payout_approved" | "payout_rejected" | "payout_manual_issued" | "payout_manual_cleared" | "payout_manual_failed" | "payout_manual_reversed" | "property_submission_approved" | "property_submission_rejected" | "property_listing_updated" | "support_ticket_advanced" | "retention_purged" | "loan_type_created" | "loan_type_updated" | "bank_created" | "bank_updated" | "bank_availability_updated" | "commission_entered" | "commission_cancelled" | "fee_cashback_entered" | "fee_cashback_cancelled" | "document_verified" | "document_unverified" | "payout_link_reconciled" | "notification_broadcast" | "agent_lead_expired" | "lead_assigned" | "lead_details_updated" | "field_visibility_updated" | "mobile_change_verified" | "mobile_changed" | "mobile_change_rejected" | "vehicle_arrangement_updated";
+        AuditAction: "agent_approved" | "agent_rejected" | "staff_created" | "staff_feature_granted" | "staff_feature_revoked" | "account_removed" | "account_status_updated" | "payout_approved" | "payout_rejected" | "payout_manual_issued" | "payout_manual_cleared" | "payout_manual_failed" | "payout_manual_reversed" | "property_submission_approved" | "property_submission_rejected" | "property_listing_updated" | "support_ticket_advanced" | "retention_purged" | "loan_type_created" | "loan_type_updated" | "bank_created" | "bank_updated" | "bank_availability_updated" | "commission_entered" | "commission_cancelled" | "fee_cashback_entered" | "fee_cashback_cancelled" | "document_verified" | "document_unverified" | "payout_link_reconciled" | "notification_broadcast" | "agent_lead_expired" | "lead_assigned" | "employee_work_assigned" | "lead_details_updated" | "field_visibility_updated" | "mobile_change_verified" | "mobile_changed" | "mobile_change_rejected" | "vehicle_arrangement_updated";
         /** AuditLogListResponse */
         AuditLogListResponse: {
             /** Entries */
@@ -6009,37 +5966,6 @@ export interface components {
             /** Notes */
             notes: string | null;
         };
-        /** LeadAssignRequest */
-        LeadAssignRequest: {
-            /**
-             * Telecaller Staff Profile Uuid
-             * Format: uuid
-             */
-            telecaller_staff_profile_uuid: string;
-        };
-        /** LeadAssignResponse */
-        LeadAssignResponse: {
-            /**
-             * Business Line
-             * @enum {string}
-             */
-            business_line: "loans" | "real_estate";
-            /**
-             * Lead Id
-             * Format: uuid
-             */
-            lead_id: string;
-            /**
-             * Status
-             * @enum {string}
-             */
-            status: "new" | "assigned" | "working" | "converted" | "closed" | "released";
-            /**
-             * Telecaller Staff Profile Uuid
-             * Format: uuid
-             */
-            telecaller_staff_profile_uuid: string;
-        };
         /** LeadDetailsPatch */
         LeadDetailsPatch: {
             /** Name */
@@ -6081,42 +6007,6 @@ export interface components {
              * Format: date-time
              */
             updated_at: string;
-        };
-        /** LeadReleaseRequest */
-        LeadReleaseRequest: {
-            /** Release Reason */
-            release_reason?: string | null;
-            /** Telecaller Staff Profile Uuid */
-            telecaller_staff_profile_uuid?: string | null;
-        };
-        /** LeadReleaseResponse */
-        LeadReleaseResponse: {
-            /**
-             * Business Line
-             * @enum {string}
-             */
-            business_line: "loans" | "real_estate";
-            /**
-             * Lead Id
-             * Format: uuid
-             */
-            lead_id: string;
-            /** Previous Telecaller Staff Profile Uuid */
-            previous_telecaller_staff_profile_uuid: string | null;
-            /** Release Reason */
-            release_reason: string | null;
-            /**
-             * Released At
-             * Format: date-time
-             */
-            released_at: string;
-            /**
-             * Status
-             * @enum {string}
-             */
-            status: "assigned" | "released";
-            /** Telecaller Staff Profile Uuid */
-            telecaller_staff_profile_uuid: string | null;
         };
         /** LeadsReportResponse */
         LeadsReportResponse: {
@@ -8130,14 +8020,6 @@ export interface components {
              */
             updated_at: string;
         };
-        /** TaskAssignRequest */
-        TaskAssignRequest: {
-            /**
-             * Employee Profile Uuid
-             * Format: uuid
-             */
-            employee_profile_uuid: string;
-        };
         /** TaskCreate */
         TaskCreate: {
             /** Due At */
@@ -8593,8 +8475,6 @@ export interface components {
             driver_mobile?: string | null;
             /** Driver Name */
             driver_name?: string | null;
-            /** Employee Profile Uuid */
-            employee_profile_uuid?: string | null;
             status?: components["schemas"]["VehicleArrangementStatus"] | null;
             /** Vehicle Make Model */
             vehicle_make_model?: string | null;
@@ -9695,41 +9575,6 @@ export interface operations {
             };
         };
     };
-    assign_lead_api_v1_admin_leads__lead_id__assign_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                lead_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["LeadAssignRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["LeadAssignResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
     get_lead_details_api_v1_admin_leads__lead_id__details_get: {
         parameters: {
             query?: never;
@@ -9783,41 +9628,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["LeadDetailsRead"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    release_lead_api_v1_admin_leads__lead_id__release_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                lead_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["LeadReleaseRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["LeadReleaseResponse"];
                 };
             };
             /** @description Validation Error */
@@ -10942,41 +10752,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AdminTaskRead"][];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    assign_task_api_v1_admin_tasks__task_id__assign_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                task_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["TaskAssignRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AdminTaskRead"];
                 };
             };
             /** @description Validation Error */

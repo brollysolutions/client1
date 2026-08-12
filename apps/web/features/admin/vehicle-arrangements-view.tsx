@@ -24,10 +24,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  listAdminEmployees,
   listAdminVehicleArrangements,
   updateAdminVehicleArrangement,
-  type AdminEmployee,
   type VehicleArrangement,
   type VehicleArrangementStatus,
 } from "@/lib/admin-api";
@@ -55,7 +53,6 @@ function formatDateTime(value: string): string {
 
 export function AdminVehicleArrangementsView() {
   const [items, setItems] = React.useState<VehicleArrangement[]>([]);
-  const [employees, setEmployees] = React.useState<AdminEmployee[]>([]);
   const [filter, setFilter] = React.useState<VehicleArrangementStatus | "all">("all");
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
@@ -64,23 +61,20 @@ export function AdminVehicleArrangementsView() {
   const [registration, setRegistration] = React.useState("");
   const [driver, setDriver] = React.useState("");
   const [driverMobile, setDriverMobile] = React.useState("");
-  const [selectedEmployee, setSelectedEmployee] = React.useState<Record<string, string>>({});
   const [busyId, setBusyId] = React.useState<string | null>(null);
 
   const load = React.useCallback(async () => {
     setLoading(true);
     setError(null);
-    const [arrangements, employeeResult] = await Promise.all([
-      listAdminVehicleArrangements(filter === "all" ? undefined : filter),
-      listAdminEmployees("real_estate", "employee"),
-    ]);
+    const arrangements = await listAdminVehicleArrangements(
+      filter === "all" ? undefined : filter,
+    );
     if (!arrangements.ok) {
       setError(arrangements.error);
       setLoading(false);
       return;
     }
     setItems(arrangements.data);
-    if (employeeResult.ok) setEmployees(employeeResult.data);
     setLoading(false);
   }, [filter]);
 
@@ -140,7 +134,7 @@ export function AdminVehicleArrangementsView() {
       <div>
         <h1 className="text-2xl font-semibold text-text-primary">Vehicle arrangements</h1>
         <p className="text-sm text-text-secondary">
-          Arrange site-visit pickups and assign them to real-estate Employees.
+          Confirm transport details; the platform assigns an eligible Employee automatically.
         </p>
       </div>
 
@@ -201,52 +195,6 @@ export function AdminVehicleArrangementsView() {
                 <div className="flex flex-wrap items-center gap-2">
                   {item.status === "requested" ? (
                     <Button onClick={() => openArrange(item)}>Enter transport details</Button>
-                  ) : null}
-                  {item.status === "arranged" || item.status === "assigned" ? (
-                    <>
-                      <Select
-                        value={selectedEmployee[item.id] ?? ""}
-                        onValueChange={(value) =>
-                          setSelectedEmployee((current) => ({ ...current, [item.id]: value }))
-                        }
-                      >
-                        <SelectTrigger className="w-52" aria-label="Assign Employee">
-                          <SelectValue placeholder="Choose Employee" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {employees.map((employee) => (
-                            <SelectItem key={employee.id} value={employee.id}>
-                              {employee.first_name} {employee.last_name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <Button
-                        disabled={!selectedEmployee[item.id] || busyId === item.id}
-                        onClick={() =>
-                          void update(
-                            item,
-                            {
-                              ...(item.status === "arranged" ? { status: "assigned" as const } : {}),
-                              employee_profile_uuid: selectedEmployee[item.id],
-                            },
-                            item.status === "arranged"
-                              ? "Arrangement assigned"
-                              : "Arrangement reassigned",
-                          )
-                        }
-                      >
-                        {item.status === "arranged" ? "Assign" : "Reassign"}
-                      </Button>
-                    </>
-                  ) : null}
-                  {item.status === "assigned" ? (
-                    <Button
-                      disabled={busyId === item.id}
-                      onClick={() => void update(item, { status: "completed" }, "Pickup completed")}
-                    >
-                      Complete
-                    </Button>
                   ) : null}
                   {!(["completed", "cancelled"] as string[]).includes(item.status) ? (
                     <Button

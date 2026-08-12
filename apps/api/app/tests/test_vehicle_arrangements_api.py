@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 import uuid
+from collections.abc import AsyncIterator
 from datetime import UTC, date, datetime, timedelta
 
 import pytest
+import pytest_asyncio
 from httpx import AsyncClient
-from sqlalchemy import select
+from sqlalchemy import select, update
 
 from app.core.security import create_access_token
 from app.models.audit_log import AuditAction, AuditLog
@@ -15,6 +17,45 @@ from app.models.profile import ProfileScope, ProfileStatus, StaffProfile, StaffR
 from app.models.user import User
 from app.models.vehicle_arrangement import VehicleArrangement, VehicleArrangementStatus
 from conftest import full_registration, unique_mobile
+
+
+@pytest_asyncio.fixture(autouse=True)
+async def _isolate_eligible_employees() -> AsyncIterator[None]:
+    import app.db.session as session_module
+
+    async with session_module.AsyncSessionLocal() as db:
+        previously_active = set(
+            (
+                await db.scalars(
+                    select(StaffProfile.id).where(
+                        StaffProfile.role == StaffRole.EMPLOYEE,
+                        StaffProfile.status == ProfileStatus.ACTIVE,
+                    )
+                )
+            ).all()
+        )
+        await db.execute(
+            update(StaffProfile)
+            .where(StaffProfile.role == StaffRole.EMPLOYEE)
+            .values(status=ProfileStatus.INACTIVE)
+        )
+        await db.commit()
+    try:
+        yield
+    finally:
+        async with session_module.AsyncSessionLocal() as db:
+            await db.execute(
+                update(StaffProfile)
+                .where(StaffProfile.role == StaffRole.EMPLOYEE)
+                .values(status=ProfileStatus.INACTIVE)
+            )
+            if previously_active:
+                await db.execute(
+                    update(StaffProfile)
+                    .where(StaffProfile.id.in_(previously_active))
+                    .values(status=ProfileStatus.ACTIVE)
+                )
+            await db.commit()
 
 
 def _visit_payload(*, pickup: bool = True) -> dict:
@@ -96,6 +137,43 @@ async def test_client_pickup_create_and_visit_cancel_are_atomic(client: AsyncCli
 
 
 @pytest.mark.asyncio
+async def test_arranged_update_survives_immediate_assignment_failure(
+    client: AsyncClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    client_token, _ = await full_registration(client, lines=["real_estate"])
+    created = await client.post(
+        "/api/v1/site-visits",
+        headers={"Authorization": f"Bearer {client_token}"},
+        json=_visit_payload(),
+    )
+    arrangement_id = created.json()["vehicle_arrangement"]["id"]
+    admin_token, _ = await _seed_staff(StaffRole.ADMIN, None)
+
+    async def _assignment_unavailable(_arrangement_id: uuid.UUID) -> bool:
+        raise RuntimeError("scheduler will retry")
+
+    monkeypatch.setattr(
+        "app.services.vehicle_arrangements.assign_vehicle_if_possible",
+        _assignment_unavailable,
+    )
+    response = await client.patch(
+        f"/api/v1/admin/vehicle-arrangements/{arrangement_id}",
+        headers={"Authorization": f"Bearer {admin_token}"},
+        json={
+            "status": "arranged",
+            "vehicle_make_model": "Toyota Innova",
+            "vehicle_registration": "KA01AB1234",
+            "driver_name": "Ravi Kumar",
+            "driver_mobile": "+919876543210",
+        },
+    )
+
+    assert response.status_code == 200, response.text
+    assert response.json()["status"] == "arranged"
+    assert response.json()["assigned_employee_profile_uuid"] is None
+
+
+@pytest.mark.asyncio
 async def test_admin_arranges_assigns_and_employee_completes(client: AsyncClient) -> None:
     client_token, _ = await full_registration(client, lines=["real_estate"])
     client_headers = {"Authorization": f"Bearer {client_token}"}
@@ -125,14 +203,8 @@ async def test_admin_arranges_assigns_and_employee_completes(client: AsyncClient
         },
     )
     assert arranged.status_code == 200, arranged.text
-
-    assigned = await client.patch(
-        f"/api/v1/admin/vehicle-arrangements/{arrangement_id}",
-        headers=admin_headers,
-        json={"status": "assigned", "employee_profile_uuid": employee_profile_id},
-    )
-    assert assigned.status_code == 200, assigned.text
-    assert assigned.json()["assigned_employee_profile_uuid"] == employee_profile_id
+    assert arranged.json()["status"] == "assigned"
+    assert arranged.json()["assigned_employee_profile_uuid"] == employee_profile_id
 
     owner_view = await client.get("/api/v1/site-visits", headers=client_headers)
     assert owner_view.json()["visits"][0]["vehicle_arrangement"]["driver_mobile"]
@@ -169,7 +241,15 @@ async def test_admin_arranges_assigns_and_employee_completes(client: AsyncClient
                 )
             )
         )
-        assert audit_count == 3
+        assert audit_count == 2
+        assignment_audit = await db.scalar(
+            select(AuditLog).where(
+                AuditLog.entity_uuid == uuid.UUID(arrangement_id),
+                AuditLog.action == AuditAction.EMPLOYEE_WORK_ASSIGNED,
+            )
+        )
+        assert assignment_audit is not None
+        assert assignment_audit.actor_uuid is None
 
 
 @pytest.mark.asyncio

@@ -1,17 +1,16 @@
-"""Field-task assignment spine — raised by a telecaller against an assigned
-lead, landed in an unassigned pool, handed to an employee by Admin.
+"""Field-task assignment spine — raised by a Telecaller and assigned
+automatically to an eligible Employee on the matching business line.
 
 Telecaller_Dashboard_System_Design.md Open Item A (decided yes) +
-Employee_Dashboard_System_Design.md §5.1. This slice only exercises
-task_type='document_collection'; property_visit/background_check are created
-now so a later Employee-dashboard slice extends this table, not re-migrates it.
+Employee_Dashboard_System_Design.md §5.1. Every task type shares this durable
+assignment lifecycle; workflow-specific services own task creation and outcome.
 """
 
 import enum
 import uuid
 from datetime import datetime
 
-from sqlalchemy import BigInteger, Boolean, DateTime, ForeignKey, String, Text
+from sqlalchemy import BigInteger, Boolean, CheckConstraint, DateTime, ForeignKey, String, Text
 from sqlalchemy.dialects.postgresql import ENUM, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -76,6 +75,31 @@ class Task(Base):
     )
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow
+    )
+
+
+class EmployeeAssignmentCursor(Base):
+    """Internal per-line cursor shared by tasks and vehicle pickups."""
+
+    __tablename__ = "employee_assignment_cursors"
+    __table_args__ = (
+        CheckConstraint(
+            "business_line::text IN ('loans', 'real_estate')",
+            name="business_line_operational",
+        ),
+    )
+
+    business_line: Mapped[str] = mapped_column(business_line_enum, primary_key=True)
+    last_employee_profile_uuid: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("staff_profiles.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=datetime.utcnow,
+        onupdate=datetime.utcnow,
     )
 
 

@@ -2,7 +2,7 @@
 
 Status: **Derived living implementation ledger**
 
-As of: **2026-08-11**
+As of: **2026-08-12**
 
 Evidence baseline: `466b5e3`
 ([PR #172](https://github.com/brollysolutions/client1/pull/172)), plus the
@@ -48,6 +48,32 @@ an estimate of calendar time: a single security-sensitive gap can require more
 work than several completed UI requirements.
 
 ## Current work
+
+**Focused verification complete; PR pending — fail-closed operational identity and automatic Employee
+assignment:** the `security/operational-identity-auto-assignment` branch now
+prevents profile-less identities from receiving Client claims, terminates
+deleted/orphaned sessions at the landing page, excludes active staff and Agents
+from customer-lead queues, and preserves the normal OTP registration/login path
+for Agent-introduced customers. Lead and field-work assignment are service-owned
+per-line round robin workflows with durable no-capacity retry, inactive-assignee
+repair, system audit events, and dual-line eligibility. Admin assignment routes
+and controls are removed in favor of read-only lead/Telecaller/Employee
+relationships; Admin still supplies vehicle logistics while Employees complete
+their own assigned pickups. The new Employee cursor is RLS-forced, unavailable
+to `api_user`, and constrained to active same-line or dual-line Employees. Fresh
+focused evidence currently includes 75 auth/session/deletion/lead tests, 20
+Admin lead/task tests, 27 lead/Employee/vehicle assignment tests, 12 operational
+coverage tests, the Agent-introduced Client login regression, repeated migration
+downgrade/upgrade with one head, API Ruff/format across 446 files, web lint,
+strict TypeScript, and all 321 Vitest tests. The Windows production build
+compiled, typechecked, and generated all 93 pages before the known standalone
+symlink `EPERM`; Docker Desktop became unavailable during the Linux packaging
+retry, so that command is unverified. The repository verifier spent 50 minutes
+in its monolithic API pytest phase without emitting a report and is therefore
+inconclusive, not passing. Security and diff review found no remaining reachable
+authorization, cross-line, RLS, PII, concurrency, or audit defect. The
+79-requirement completion score is unchanged because this work corrects and
+hardens already-counted requirements rather than adding scope.
 
 **Delivered — dev-seed Indian mobile-number correctness (maintenance; PR
 pending):** one shared helper now generates synthetic `+91` mobile numbers

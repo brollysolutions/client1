@@ -43,7 +43,6 @@ class VehicleArrangementAdminUpdate(BaseModel):
     vehicle_registration: Annotated[str | None, Field(default=None, min_length=1, max_length=40)]
     driver_name: Annotated[str | None, Field(default=None, min_length=1, max_length=120)]
     driver_mobile: Annotated[str | None, Field(default=None, pattern=r"^\+[1-9]\d{6,14}$")]
-    employee_profile_uuid: UUID | None = None
     cancellation_reason: Annotated[str | None, Field(default=None, max_length=500)] = None
 
     @model_validator(mode="after")

@@ -55,7 +55,7 @@ export function DeleteAccountDialog() {
     // drop the local state and leave.
     clear();
     toast.success("Your account has been deleted.");
-    router.replace("/login");
+    router.replace("/");
   }
 
   return (

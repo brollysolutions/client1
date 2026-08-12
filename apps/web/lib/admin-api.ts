@@ -106,16 +106,6 @@ export async function listAdminTasks(
   return apiRequest<AdminTask[]>(`/api/v1/admin/tasks${suffix}`);
 }
 
-export async function assignTask(
-  taskId: string,
-  employeeProfileUuid: string,
-): Promise<ApiResponse<AdminTask>> {
-  return apiRequest<AdminTask>(`/api/v1/admin/tasks/${taskId}/assign`, {
-    method: "POST",
-    body: { employee_profile_uuid: employeeProfileUuid },
-  });
-}
-
 export async function listAdminTaskFeedbackMedia(
   taskId: string,
 ): Promise<ApiResponse<TaskFeedbackMedia[]>> {
@@ -126,32 +116,8 @@ export async function listAdminLeads(): Promise<ApiResponse<AdminLead[]>> {
   return apiRequest<AdminLead[]>("/api/v1/admin/leads");
 }
 
-export async function assignLead(
-  leadId: string,
-  telecallerProfileUuid: string,
-): Promise<ApiResponse<Schemas["LeadAssignResponse"]>> {
-  return apiRequest<Schemas["LeadAssignResponse"]>(`/api/v1/admin/leads/${leadId}/assign`, {
-    method: "POST",
-    body: { telecaller_staff_profile_uuid: telecallerProfileUuid },
-  });
-}
-
 export async function listAdminAssignedLeads(): Promise<ApiResponse<AdminAssignedLead[]>> {
   return apiRequest<AdminAssignedLead[]>("/api/v1/admin/leads/assigned");
-}
-
-export async function releaseLead(
-  leadId: string,
-  telecallerProfileUuid: string | null,
-  releaseReason: string | null,
-): Promise<ApiResponse<Schemas["LeadReleaseResponse"]>> {
-  return apiRequest<Schemas["LeadReleaseResponse"]>(`/api/v1/admin/leads/${leadId}/release`, {
-    method: "POST",
-    body: {
-      telecaller_staff_profile_uuid: telecallerProfileUuid,
-      release_reason: releaseReason,
-    },
-  });
 }
 
 export async function listAdminEmployees(

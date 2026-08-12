@@ -168,17 +168,6 @@ class AdminUserStatusUpdateRequest(BaseModel):
 # ---------------------------------------------------------------------------
 
 
-class LeadAssignRequest(BaseModel):
-    telecaller_staff_profile_uuid: UUID
-
-
-class LeadAssignResponse(BaseModel):
-    lead_id: UUID
-    telecaller_staff_profile_uuid: UUID
-    business_line: Literal["loans", "real_estate"]
-    status: Literal["new", "assigned", "working", "converted", "closed", "released"]
-
-
 class AdminLeadRead(BaseModel):
     id: UUID
     name: str | None
@@ -186,25 +175,6 @@ class AdminLeadRead(BaseModel):
     business_line: Literal["loans", "real_estate"]
     origin: Literal["direct", "agent"]
     created_at: datetime
-
-
-class LeadReleaseRequest(BaseModel):
-    # None = release to queue (status becomes "released"). Set = release + assign
-    # to this telecaller in one step (status becomes "assigned"), no intermediate
-    # unassigned window.
-    telecaller_staff_profile_uuid: UUID | None = None
-    release_reason: Annotated[str, Field(max_length=1000)] | None = None
-
-
-class LeadReleaseResponse(BaseModel):
-    lead_id: UUID
-    business_line: Literal["loans", "real_estate"]
-    # Only two outcomes are reachable from release_lead_from_telecaller.
-    status: Literal["assigned", "released"]
-    previous_telecaller_staff_profile_uuid: UUID | None
-    telecaller_staff_profile_uuid: UUID | None
-    released_at: datetime
-    release_reason: str | None
 
 
 class AdminAssignedLeadRead(BaseModel):
@@ -236,6 +206,10 @@ class AdminTaskRead(BaseModel):
     lead_uuid: UUID
     raised_by_staff_profile_uuid: UUID
     assigned_employee_profile_uuid: UUID | None
+    lead_name: str | None
+    lead_mobile: str
+    raised_by_telecaller_name: str | None
+    assigned_employee_name: str | None
     business_line: Literal["loans", "real_estate"]
     task_type: Literal["document_collection", "property_visit", "background_check"]
     status: TaskStatusLiteral
@@ -244,10 +218,6 @@ class AdminTaskRead(BaseModel):
     due_at: datetime | None
     created_at: datetime
     updated_at: datetime
-
-
-class TaskAssignRequest(BaseModel):
-    employee_profile_uuid: UUID
 
 
 class AdminEmployeeRead(BaseModel):

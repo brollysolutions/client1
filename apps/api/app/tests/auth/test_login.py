@@ -133,6 +133,33 @@ async def test_login_real_estate_user_can_login(client: AsyncClient) -> None:
     assert resp.status_code == 200
 
 
+async def test_login_fails_closed_when_active_user_has_no_active_access_profile(
+    client: AsyncClient,
+) -> None:
+    """An orphaned identity must never be issued an implicit Client session."""
+    import app.db.session as _session_mod
+    from app.models.profile import ClientProfile, ProfileStatus
+    from app.models.user import User
+
+    _, mobile = await full_registration(client)
+    async with _session_mod.AsyncSessionLocal() as session:
+        user = await session.scalar(select(User).where(User.mobile == mobile))
+        profiles = list(
+            (
+                await session.scalars(
+                    select(ClientProfile).where(ClientProfile.auth_user_uuid == user.id)
+                )
+            ).all()
+        )
+        for profile in profiles:
+            profile.status = ProfileStatus.INACTIVE
+        await session.commit()
+
+    resp = await client.post("/api/v1/auth/login", json={"mobile": mobile, "password": PASSWORD})
+    assert resp.status_code == 403
+    assert resp.json()["detail"] == "Account is not active."
+
+
 async def test_login_response_includes_verification_flags(client: AsyncClient) -> None:
     """Login carries phone_verified/email_verified so the frontend can show the banner."""
     _, mobile = await full_registration(client)

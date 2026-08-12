@@ -578,7 +578,7 @@ async def test_submit_same_mobile_different_line_creates_second_row(
     assert loans_app.id != re_app.id
 
 
-async def test_submit_captures_lead_with_agent_topic(
+async def test_submit_does_not_capture_agent_applicant_as_customer_lead(
     client: AsyncClient, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     _mock_uploads_ok(monkeypatch)
@@ -587,10 +587,7 @@ async def test_submit_captures_lead_with_agent_topic(
     resp = await client.post(_APPLY_URL, json=_submit_payload(ticket, keys))
     assert resp.status_code == 202, resp.text
 
-    lead = await _get_lead(mobile)
-    assert lead is not None
-    assert lead.requirement["topic"] == "agent"
-    assert lead.requirement["page"] == "apply-as-agent"
+    assert await _get_lead(mobile) is None
 
 
 async def test_submit_real_estate_without_rera_returns_422(

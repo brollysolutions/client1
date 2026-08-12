@@ -10,8 +10,7 @@ from pydantic import BaseModel, Field, model_validator
 
 TaskTypeLiteral = Literal["document_collection", "property_visit", "background_check"]
 # 'unassigned' intentionally excluded: tasks_rls never surfaces an unassigned
-# task to an employee (assigned_employee_profile_uuid is NULL until Admin
-# assigns it).
+# task to an Employee before the automatic assignment service selects them.
 TaskStatusLiteral = Literal["assigned", "in_progress", "completed", "cancelled", "blocked"]
 BgCheckOutcomeLiteral = Literal["clear", "flagged", "inconclusive"]
 

@@ -4,15 +4,18 @@ from __future__ import annotations
 
 import logging
 import time
+from datetime import UTC, datetime
 
-from sqlalchemy import select
+from sqlalchemy import and_, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 import app.db.session as db_session
 from app.models.lead import Lead, LeadStatus
+from app.models.profile import ProfileStatus, StaffProfile, StaffRole
 from app.services.leads import (
     LeadAssignmentNotice,
     auto_assign_locked_lead,
+    customer_lead_predicates,
     lock_assignment_lines,
     notify_lead_assignments,
 )
@@ -30,6 +33,40 @@ async def _assign_batch(
     # preventing a registration/retry deadlock while retaining SKIP LOCKED for
     # unrelated manual lead work.
     await lock_assignment_lines(session, {"loans", "real_estate"})
+    stale = list(
+        (
+            await session.scalars(
+                select(Lead)
+                .outerjoin(
+                    StaffProfile,
+                    StaffProfile.id == Lead.assigned_telecaller_profile_uuid,
+                )
+                .where(
+                    Lead.status.in_((LeadStatus.ASSIGNED, LeadStatus.WORKING)),
+                    or_(
+                        StaffProfile.id.is_(None),
+                        StaffProfile.status != ProfileStatus.ACTIVE,
+                        StaffProfile.role != StaffRole.TELECALLER,
+                        and_(
+                            StaffProfile.business_line != "both",
+                            StaffProfile.business_line != Lead.business_line,
+                        ),
+                    ),
+                    *customer_lead_predicates(),
+                )
+                .order_by(Lead.created_at, Lead.id)
+                .limit(_BATCH_SIZE)
+                .with_for_update(of=Lead, skip_locked=True)
+            )
+        ).all()
+    )
+    for lead in stale:
+        lead.assigned_telecaller_profile_uuid = None
+        lead.status = LeadStatus.RELEASED
+        lead.released_at = datetime.now(UTC)
+        lead.release_reason = "Previous Telecaller is no longer eligible."
+    if stale:
+        await session.flush()
     leads = list(
         (
             await session.scalars(
@@ -38,6 +75,7 @@ async def _assign_batch(
                     Lead.business_line.in_(("loans", "real_estate")),
                     Lead.assigned_telecaller_profile_uuid.is_(None),
                     Lead.status.in_((LeadStatus.NEW, LeadStatus.RELEASED)),
+                    *customer_lead_predicates(),
                 )
                 .order_by(Lead.created_at, Lead.id)
                 .limit(_BATCH_SIZE)

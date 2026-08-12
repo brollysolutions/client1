@@ -1,7 +1,7 @@
 """Expire overdue Agent attribution and return leads to the open pool (FR-4.6).
 
 The operational Lead.status axis is intentionally preserved: expiry writes
-RELEASED so the existing Admin queue can assign the lead normally, while
+RELEASED so automatic Telecaller assignment can reclaim the lead, while
 agent_expired_at permanently records that the originating Agent's protection
 window ended. Later assignment does not restart or re-run expiry.
 
