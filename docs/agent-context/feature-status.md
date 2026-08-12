@@ -48,6 +48,20 @@ work than several completed UI requirements.
 
 ## Current work
 
+**Done; PR pending â€” UI-only Settings, Operational Records, filters, and form
+navigation:** on `fix/ui-settings-records-navigation`, Client Settings will
+retain personal-profile fields while Agent/staff Settings limits the form to
+account contact details and relevant existing controls. Operational Records
+will remain protected by the existing Admin-only route/API/RLS path but be
+removed from the visible sidebar; its existing authorized result set gains only
+local search/status filtering. Dashboard form return links will use the
+established accessible link behavior with a consistent back affordance. This
+slice adds no endpoint, generated contract, data, RLS, or authorization
+behavior; it must preserve minimized operational-record projections and safe
+route guards. Fresh evidence: 327 web unit tests, lint, strict typecheck, focused
+Admin/Employee/Sub Admin Playwright coverage, and `git diff --check`; the local
+production build exceeded the five-minute execution cap without a result.
+
 **Delivered in [PR #176](https://github.com/brollysolutions/client1/pull/176)
 â€” notification unread-state synchronization (FR-17.1):** on
 `security/operational-identity-auto-assignment`, one
