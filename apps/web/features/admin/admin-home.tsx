@@ -20,6 +20,7 @@ import { FetchError } from "@/features/dashboard/fetch-error";
 
 import { PendingReviewDialog } from "./pending-review-dialog";
 import { PendingReviewList } from "./pending-review-list";
+import { STAFF_CAPACITY_HINT, STAFF_CAPACITY_HREF } from "./admin-capacity-routing";
 import { useAdminHome } from "./use-admin-home";
 
 // Cross-line operational overview. The sidebar owns exhaustive navigation;
@@ -68,10 +69,11 @@ export function AdminHome() {
           attention={pendingTotal > 0}
         />
         <MetricCard
-          label="Unassigned leads"
+          label="Leads awaiting capacity"
           value={home.unassigned_leads_count}
           icon={DASHBOARD_ICONS.leads}
-          href="/dashboard/admin-leads"
+          href={STAFF_CAPACITY_HREF}
+          hint={STAFF_CAPACITY_HINT}
           attention={home.unassigned_leads_count > 0}
         />
         <MetricCard
