@@ -4,11 +4,10 @@ Status: **Derived living implementation ledger**
 
 As of: **2026-08-12**
 
-Evidence baseline: `466b5e3`
-([PR #172](https://github.com/brollysolutions/client1/pull/172)), plus the
-verified Admin operational-visibility work on
-`security/admin-operational-coverage-contract`
-([PR #173](https://github.com/brollysolutions/client1/pull/173)).
+Evidence baseline: `abcc1fd`
+([PR #175](https://github.com/brollysolutions/client1/pull/175)), plus the
+verified Admin operational-visibility work in
+[PR #173](https://github.com/brollysolutions/client1/pull/173).
 
 ## Purpose and authority
 
@@ -49,8 +48,9 @@ work than several completed UI requirements.
 
 ## Current work
 
-**Focused verification complete; PR pending — fail-closed operational identity and automatic Employee
-assignment:** the `security/operational-identity-auto-assignment` branch now
+**Delivered in [PR #175](https://github.com/brollysolutions/client1/pull/175)
+— fail-closed operational identity and automatic Employee assignment:** the
+`security/operational-identity-auto-assignment` branch now
 prevents profile-less identities from receiving Client claims, terminates
 deleted/orphaned sessions at the landing page, excludes active staff and Agents
 from customer-lead queues, and preserves the normal OTP registration/login path
@@ -73,7 +73,9 @@ in its monolithic API pytest phase without emitting a report and is therefore
 inconclusive, not passing. Security and diff review found no remaining reachable
 authorization, cross-line, RLS, PII, concurrency, or audit defect. The
 79-requirement completion score is unchanged because this work corrects and
-hardens already-counted requirements rather than adding scope.
+hardens already-counted requirements rather than adding scope. The next
+recommended UI defect is notification unread-state synchronization using
+`gpt-5.6-terra` at High effort.
 
 **Delivered — dev-seed Indian mobile-number correctness (maintenance; PR
 pending):** one shared helper now generates synthetic `+91` mobile numbers
