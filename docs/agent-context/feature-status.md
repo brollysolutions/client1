@@ -48,8 +48,9 @@ work than several completed UI requirements.
 
 ## Current work
 
-**Delivered; PR pending â€” notification unread-state synchronization
-(FR-17.1):** on `security/operational-identity-auto-assignment`, one
+**Delivered in [PR #176](https://github.com/brollysolutions/client1/pull/176)
+â€” notification unread-state synchronization (FR-17.1):** on
+`security/operational-identity-auto-assignment`, one
 dashboard-scoped client source now synchronizes the shared bell, preview, and
 notification page. Single-read and mark-all mutations optimistically update the
 same snapshot, then refetch the server-authoritative count; an out-of-order
