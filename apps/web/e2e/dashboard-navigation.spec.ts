@@ -235,6 +235,7 @@ test.describe("role-aware dashboard navigation", () => {
         for (const label of scenario.excluded) {
           await expect(navigation.getByRole("link", { name: label, exact: true })).toHaveCount(0);
         }
+        await expect(navigation.getByRole("link", { name: "Operational records" })).toHaveCount(0);
 
         if (scenario.name === "Employee") {
           await expect(
@@ -244,7 +245,19 @@ test.describe("role-aware dashboard navigation", () => {
           ).toBeVisible();
         }
 
+        await page.goto("/dashboard/settings");
+        await expect(
+          page.getByRole("heading", {
+            name: scenario.name === "Client" ? "Profile" : "Account settings",
+            exact: true,
+          }),
+        ).toBeVisible();
+
         if (scenario.name === "Admin") {
+          await page.goto("/dashboard/operations");
+          await expect(page.getByRole("heading", { name: "Operational records", exact: true })).toBeVisible();
+          await expect(page.getByRole("searchbox", { name: "Search loaded operational records" })).toBeVisible();
+
           await page.goto("/dashboard/users");
           await expect(page.getByRole("heading", { name: "Users & staff" })).toBeVisible();
           await expect(page.getByRole("heading", { name: "Create staff account" })).toBeVisible();
@@ -266,15 +279,18 @@ test.describe("role-aware dashboard navigation", () => {
       promoteAccount(account, scenarios[4]);
       await logIn(page, account);
       for (const authoringRoute of [
-        { path: "/dashboard/banners/new", heading: "New banner" },
-        { path: "/dashboard/offers/new", heading: "New offer" },
-        { path: "/dashboard/content/new", heading: "New content block" },
-        { path: "/dashboard/property-submit", heading: "Submit a property" },
-        { path: "/dashboard/referral-rules", heading: "Referral bonus rules" },
+        { path: "/dashboard/banners/new", heading: "New banner", hasBackLink: true },
+        { path: "/dashboard/offers/new", heading: "New offer", hasBackLink: true },
+        { path: "/dashboard/content/new", heading: "New content block", hasBackLink: true },
+        { path: "/dashboard/property-submit", heading: "Submit a property", hasBackLink: true },
+        { path: "/dashboard/referral-rules", heading: "Referral bonus rules", hasBackLink: false },
       ]) {
         await page.goto(authoringRoute.path);
         await expect(page.getByRole("heading", { name: authoringRoute.heading })).toBeVisible();
         await expect(page.locator("main form")).toBeVisible();
+        if (authoringRoute.hasBackLink) {
+          await expect(page.getByRole("link", { name: /^Back to/ })).toBeVisible();
+        }
         await expect(page).toHaveURL(new RegExp(`${authoringRoute.path}$`));
       }
     } finally {

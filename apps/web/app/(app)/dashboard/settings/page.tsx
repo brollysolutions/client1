@@ -29,12 +29,19 @@ export default function SettingsPage() {
   const [emailJustVerified, setEmailJustVerified] = React.useState(false);
   const emailVerified = me?.emailVerified ?? session?.emailVerified ?? false;
   const showEmailBanner = Boolean(me?.email) && !emailVerified && !emailJustVerified;
+  const includePersonalDetails = session?.role === "client";
 
   return (
     <div className="mx-auto w-full max-w-5xl space-y-6 px-4 sm:px-6 lg:px-10">
       <div>
-        <h1 className="text-2xl font-semibold text-text-primary">Profile</h1>
-        <p className="text-sm text-text-secondary">Your account details and how we reach you.</p>
+        <h1 className="text-2xl font-semibold text-text-primary">
+          {includePersonalDetails ? "Profile" : "Account settings"}
+        </h1>
+        <p className="text-sm text-text-secondary">
+          {includePersonalDetails
+            ? "Your account details and personal profile."
+            : "Your account details and notification preferences."}
+        </p>
       </div>
 
       {showEmailBanner && <EmailVerifyBanner onVerified={() => setEmailJustVerified(true)} />}
@@ -58,6 +65,7 @@ export default function SettingsPage() {
           incomePeriod={me.incomePeriod}
           occupation={me.occupation}
           address={me.address}
+          includePersonalDetails={includePersonalDetails}
           onSaved={(next) => {
             setMe(next);
             if (next.email !== me.email) setEmailJustVerified(false);
@@ -99,6 +107,7 @@ function ProfileForm({
   incomePeriod: initialIncomePeriod,
   occupation: initialOccupation,
   address: initialAddress,
+  includePersonalDetails,
   onSaved,
 }: {
   firstName: string;
@@ -113,6 +122,7 @@ function ProfileForm({
   incomePeriod: Me["incomePeriod"];
   occupation: Me["occupation"];
   address: Me["address"];
+  includePersonalDetails: boolean;
   onSaved: (next: Me) => void;
 }) {
   const [firstName, setFirstName] = React.useState(initialFirst);
@@ -131,7 +141,7 @@ function ProfileForm({
   const [saving, setSaving] = React.useState(false);
 
   const emailChanged = email.trim().toLowerCase() !== (initialEmail ?? "").toLowerCase();
-  const optionalChanged =
+  const optionalChanged = includePersonalDetails && (
     optionalProfile.gender !== (initialGender ?? "") ||
     optionalProfile.genderSelfDescription.trim() !== (initialGenderSelfDescription ?? "") ||
     optionalProfile.incomeSource !== (initialIncomeSource ?? "") ||
@@ -139,7 +149,7 @@ function ProfileForm({
       (initialIncomeAmountMinor === null ? "" : String(initialIncomeAmountMinor / 100)) ||
     optionalProfile.incomePeriod !== (initialIncomePeriod ?? "") ||
     optionalProfile.occupation.trim() !== (initialOccupation ?? "") ||
-    optionalProfile.address.trim() !== (initialAddress ?? "");
+    optionalProfile.address.trim() !== (initialAddress ?? ""));
   const dirty =
     firstName.trim() !== initialFirst ||
     lastName.trim() !== initialLast ||
@@ -150,18 +160,24 @@ function ProfileForm({
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!canSave) return;
-    const parsed = optionalProfilePayload(optionalProfile);
-    if (!parsed.ok) {
-      toast.error(parsed.error);
-      return;
-    }
     setSaving(true);
-    const res = await updateProfile({
+    const basePayload = {
       firstName: firstName.trim(),
       lastName: lastName.trim(),
       email: emailChanged ? email.trim().toLowerCase() || null : undefined,
-      ...parsed.data,
-    });
+    };
+    let res;
+    if (includePersonalDetails) {
+      const parsed = optionalProfilePayload(optionalProfile);
+      if (!parsed.ok) {
+        setSaving(false);
+        toast.error(parsed.error);
+        return;
+      }
+      res = await updateProfile({ ...basePayload, ...parsed.data });
+    } else {
+      res = await updateProfile(basePayload);
+    }
     setSaving(false);
     if (res.ok) {
       onSaved(res.data);
@@ -238,20 +254,22 @@ function ProfileForm({
           </p>
         </div>
 
-        <div className="border-t border-border pt-5 sm:col-span-2">
-          <div className="mb-4">
-            <h2 className="text-sm font-semibold text-text-primary">Additional details</h2>
-            <p className="text-xs text-text-secondary">
-              These details are optional and can be removed at any time.
-            </p>
+        {includePersonalDetails ? (
+          <div className="border-t border-border pt-5 sm:col-span-2">
+            <div className="mb-4">
+              <h2 className="text-sm font-semibold text-text-primary">Additional details</h2>
+              <p className="text-xs text-text-secondary">
+                These details are optional and can be removed at any time.
+              </p>
+            </div>
+            <OptionalProfileFields
+              idPrefix="settings-profile"
+              value={optionalProfile}
+              onChange={setOptionalProfile}
+              disabled={saving}
+            />
           </div>
-          <OptionalProfileFields
-            idPrefix="settings-profile"
-            value={optionalProfile}
-            onChange={setOptionalProfile}
-            disabled={saving}
-          />
-        </div>
+        ) : null}
       </div>
 
       <div className="flex justify-end">
