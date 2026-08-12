@@ -48,7 +48,7 @@ work than several completed UI requirements.
 
 ## Current work
 
-**Done; PR pending â€” UI-only Settings, Operational Records, filters, and form
+**Done in [PR #177](https://github.com/brollysolutions/client1/pull/177) â€” UI-only Settings, Operational Records, filters, and form
 navigation:** on `fix/ui-settings-records-navigation`, Client Settings will
 retain personal-profile fields while Agent/staff Settings limits the form to
 account contact details and relevant existing controls. Operational Records
