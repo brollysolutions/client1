@@ -17,6 +17,7 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from uuid import UUID
 
+from pydantic import EmailStr, TypeAdapter, ValidationError
 from sqlalchemy import delete, func, select, text, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -69,6 +70,7 @@ class AdminUserNotFound(Exception):
 
 ADDITIONAL_ADMIN_LIMIT = 3
 SUPPORTED_STAFF_FEATURES = {"payout_requests"}
+_email_adapter = TypeAdapter(EmailStr)
 
 
 async def is_primary_admin(
@@ -214,8 +216,13 @@ async def operational_client_profiles_for(db: AsyncSession, user_id: UUID) -> li
 
 
 def operational_email_for(user: User) -> str | None:
-    """Never return the internal deleted.invalid account-deletion tombstone."""
-    return None if user.status == UserStatus.SOFT_DELETED else user.email
+    """Return only a serializable address; redact deletion and malformed legacy values."""
+    if user.status == UserStatus.SOFT_DELETED or user.email is None:
+        return None
+    try:
+        return str(_email_adapter.validate_python(user.email))
+    except ValidationError:
+        return None
 
 
 def operational_mobile_for(user: User) -> str | None:
