@@ -21,6 +21,9 @@ import {
   DashboardFormSection,
 } from "@/features/dashboard/dashboard-ui";
 import { createContentBlock } from "@/lib/content-api";
+import { ContentGuideCard } from "./content-guide";
+import { ContentPreview } from "./cms-previews";
+import { CmsPreviewFrame, type PreviewDevice } from "./cms-workspace";
 
 // "global" is a UI-only sentinel. The API models cross-line content as a null
 // business_line, but a Select needs a non-empty string value.
@@ -43,7 +46,7 @@ function slugify(raw: string): string {
     .replace(/^-+|-+$/g, "");
 }
 
-export function ContentForm() {
+export function ContentForm({ embedded = false, onCreated, onDirtyChange }: { embedded?: boolean; onCreated?: () => void; onDirtyChange?: (dirty: boolean) => void } = {}) {
   const router = useRouter();
   const [businessLine, setBusinessLine] =
     React.useState<(typeof LINE_OPTIONS)[number]["value"]>(GLOBAL);
@@ -55,6 +58,9 @@ export function ContentForm() {
   const [sectionError, setSectionError] = React.useState<string | undefined>();
   const [titleError, setTitleError] = React.useState<string | undefined>();
   const [submitting, setSubmitting] = React.useState(false);
+  const [previewDevice, setPreviewDevice] = React.useState<PreviewDevice>("desktop");
+  const dirty = Boolean(slug || section || title || body || businessLine !== GLOBAL);
+  React.useEffect(() => onDirtyChange?.(dirty), [dirty, onDirtyChange]);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -100,7 +106,8 @@ export function ContentForm() {
       toast.success("Content draft created", {
         description: "Publish it whenever the copy is ready.",
       });
-      router.push("/dashboard/content");
+      if (onCreated) onCreated();
+      else router.push("/dashboard/content");
     } else if (res.status === 409) {
       setSlugError("That slug is already taken. Pick another one.");
       toast.error("Slug already in use");
@@ -118,6 +125,8 @@ export function ContentForm() {
       backLabel="Back to content"
       formTitle="Content configuration"
       formDescription="The block is saved as a draft until it is ready to publish."
+      embedded={embedded}
+      aside={<><ContentGuideCard /><CmsPreviewFrame title="Public content preview" description="The generic public content-section presentation for this draft." device={previewDevice} onDeviceChange={setPreviewDevice}><ContentPreview block={{ title, body: body || null }} /></CmsPreviewFrame></>}
     >
       <form className="space-y-6" onSubmit={onSubmit}>
         <DashboardFormSection
