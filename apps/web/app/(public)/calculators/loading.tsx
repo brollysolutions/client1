@@ -10,20 +10,35 @@ export default function CalculatorsHubLoading() {
       {/* Hero */}
       <section className="w-full">
         <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 sm:py-20 lg:px-8">
-          <div className="grid items-center gap-8 lg:grid-cols-[1fr_auto]">
-            <div>
-              <Skeleton className="h-12 w-full max-w-2xl sm:h-14" />
-              <Skeleton className="mt-3 h-12 w-3/4 max-w-xl sm:h-14" />
+          <div className="grid items-center gap-8 md:grid-cols-[1fr_auto]">
+            {/* Same named container as the page, so the heading, intro, and
+                link row all switch tiers on the same measurements. The heading
+                skeletons reserve line-height, not font-size, at each of the
+                page's tiers: 36 / 40 / 48 / 60px. */}
+            <div className="@container/hero-copy">
+              <Skeleton className="h-9 w-full max-w-2xl @min-[340px]/hero-copy:h-10 @min-[440px]/hero-copy:h-12 @min-[700px]/hero-copy:h-15" />
+              <Skeleton className="mt-3 h-9 w-3/4 max-w-xl @min-[340px]/hero-copy:h-10 @min-[440px]/hero-copy:h-12 @min-[700px]/hero-copy:h-15" />
               <Skeleton className="mt-5 h-5 w-full max-w-2xl" />
               <Skeleton className="mt-2 h-5 w-5/6 max-w-xl" />
-              {/* Category jump-link row */}
-              <div className="mt-8 flex flex-wrap gap-3">
+              {/* Category jump-link row, one line at every width like the page.
+                  flex-1 under a max-width cap gets there without restating the
+                  page's tiers: the cells share the row when it is narrow and
+                  stop at pill size once there is room, so they can never wrap
+                  into a second line and shift the hero on hydration. */}
+              <div className="mt-8 flex gap-1.5 @min-[340px]/hero-copy:gap-2 @min-[470px]/hero-copy:gap-3">
                 {Array.from({ length: 4 }).map((_, i) => (
-                  <Skeleton key={i} className="h-11 w-44 rounded-lg" />
+                  <Skeleton
+                    key={i}
+                    className="h-[38px] min-w-0 flex-1 rounded-lg @min-[400px]/hero-copy:h-[45px] @min-[400px]/hero-copy:max-w-[124px]"
+                  />
                 ))}
               </div>
             </div>
-            <Skeleton className="hidden h-[280px] w-[380px] rounded-2xl lg:block" />
+            {/* Tracks CalculatorHeroArt's width ladder exactly; hub.svg is 1:1,
+                so aspect-square reserves the real footprint at every step. */}
+            <div className="flex w-full items-center justify-center md:w-[260px] lg:w-[460px]">
+              <Skeleton className="aspect-square w-full max-w-[220px] rounded-2xl sm:max-w-[300px] md:max-w-none" />
+            </div>
           </div>
         </div>
       </section>

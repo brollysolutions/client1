@@ -9,8 +9,14 @@ import { cn } from "@/lib/utils";
 // Decorative hero illustration for a calculator. Prefers a Storyset (Rafiki)
 // SVG dropped into /public (recolored to the brand blue accent per
 // docs/design/illustration-style.md), and falls back to a hand-coded monoline
-// motif when the asset is not present yet, so pages always render. Desktop-only
-// (lg+) and aria-hidden, per the illustrations rule.
+// motif when the asset is not present yet, so pages always render. Always
+// aria-hidden.
+//
+// The real asset renders at every breakpoint, taking the same scoped exception
+// to the "illustrations render lg+, never phone/tablet" rule that EarnHero
+// documents (see components/earn-with-us/hero.tsx): the hub and all 18
+// calculator pages are otherwise text-only below lg. The coded fallback stays
+// lg+ only -- see the comment on that branch.
 //
 // Server Component: it checks the public asset on disk at build time (pages are
 // SSG'd), so no client JS. width/height are read from the SVG's own viewBox
@@ -44,23 +50,37 @@ export function CalculatorHeroArt({
   // a soft tinted card so the thin monoline motif still reads.
   if (asset) {
     return (
+      // Capped per breakpoint so the art complements the copy instead of eating
+      // the viewport. A width ladder rather than a fixed aspect box on purpose:
+      // the assets aren't uniformly square (emi.svg is 3:2), and h-auto over the
+      // viewBox-derived width/height lets each keep its own ratio while still
+      // reserving the right box before load. `sizes` is inert today -- next.config
+      // leaves dangerouslyAllowSVG off, so next/image serves these SVGs as-is
+      // with no srcset -- but it stays correct if that's ever turned on.
       <div
         aria-hidden
-        className={cn("hidden shrink-0 items-center justify-center lg:flex lg:w-[460px]", className)}
+        className={cn(
+          "flex w-full items-center justify-center md:w-[260px] lg:w-[460px]",
+          className,
+        )}
       >
         <Image
           src={asset}
           alt=""
           width={width}
           height={height}
-          sizes="460px"
-          className="h-auto w-full max-w-[460px]"
+          sizes="(min-width: 1024px) 460px, (min-width: 768px) 260px, (min-width: 640px) 300px, 220px"
+          className="h-auto w-full max-w-[220px] sm:max-w-[300px] md:max-w-none"
           priority={preload}
         />
       </div>
     );
   }
 
+  // Deliberately still lg+ only, unlike the asset branch above: this is a
+  // placeholder card standing in for art that hasn't shipped, and an empty
+  // gradient panel isn't worth the vertical space on a phone. Every one of the
+  // 19 calculator surfaces ships a real asset today, so this renders nowhere.
   return (
     <div
       aria-hidden

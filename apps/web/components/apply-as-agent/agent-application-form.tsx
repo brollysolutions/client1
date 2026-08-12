@@ -552,7 +552,7 @@ export function AgentApplicationForm({
             title="KYC documents"
             description="We verify these after you apply."
           />
-          <div className="mt-5 grid min-w-0 grid-cols-2 gap-4 sm:gap-5 lg:grid-cols-4">
+          <div className="mt-5 grid min-w-0 grid-cols-2 gap-4 sm:gap-5 md:grid-cols-4">
             <FileField
               id="apply-aadhaar-front"
               label="Aadhaar front"

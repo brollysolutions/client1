@@ -73,13 +73,24 @@ export function CalculatorShell({
 
           {/* lg:min-h keeps every calculator hero the same height: the art
               column drives the row height, and emi.svg is 3:2 (shorter) while
-              the rest are 1:1, so without a floor the EMI band collapses. */}
-          <div className="mt-6 grid items-center gap-8 lg:min-h-[460px] lg:grid-cols-[1fr_auto]">
-            <div>
-              <h1 className="font-heading text-4xl font-semibold text-[var(--nav-text)] sm:text-5xl">
+              the rest are 1:1, so without a floor the EMI band collapses. It
+              stays lg-only on purpose -- below lg the columns are narrower and
+              each hero should size to its own content rather than pad out to a
+              desktop floor. The art column itself starts at md. */}
+          <div className="mt-6 grid items-center gap-8 md:grid-cols-[1fr_auto] lg:min-h-[460px]">
+            {/* Named container so the h1 and intro scale off this copy column
+                rather than the viewport: the art column takes 260px from md and
+                460px from lg, which leaves the copy narrower at 768px (413px)
+                and 1024px (453px) than a 640px phone gets. Titles here run long
+                ("Stamp Duty & Registration Calculator"), so the ladder stops at
+                text-5xl -- no text-6xl tier, unlike the hub. */}
+            <div className="@container/hero-copy">
+              <h1 className="font-heading text-3xl font-semibold text-balance text-[var(--nav-text)] @min-[340px]/hero-copy:text-4xl @min-[440px]/hero-copy:text-5xl">
                 {def.h1}
               </h1>
-              <p className="mt-4 max-w-2xl text-lg text-[var(--nav-text)]">{def.intro}</p>
+              <p className="mt-4 max-w-2xl text-base text-pretty text-[var(--nav-text)] @min-[340px]/hero-copy:text-lg @min-[560px]/hero-copy:text-xl">
+                {def.intro}
+              </p>
             </div>
             <CalculatorHeroArt group={def.group} src={def.heroArt} />
           </div>
