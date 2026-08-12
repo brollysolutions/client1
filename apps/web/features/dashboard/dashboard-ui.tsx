@@ -165,6 +165,7 @@ export function DashboardFormPage({
   formDescription,
   children,
   aside,
+  embedded = false,
 }: {
   eyebrow: string;
   title: string;
@@ -175,7 +176,24 @@ export function DashboardFormPage({
   formDescription?: string;
   children: ReactNode;
   aside?: ReactNode;
+  embedded?: boolean;
 }) {
+  const formLayout = (
+    <div
+      className={cn(
+        "grid items-start gap-4",
+        aside ? "xl:grid-cols-[minmax(0,1fr)_20rem]" : "max-w-5xl",
+      )}
+    >
+      <DashboardPanel title={formTitle} description={formDescription}>
+        {children}
+      </DashboardPanel>
+      {aside ? <aside className="space-y-4">{aside}</aside> : null}
+    </div>
+  );
+
+  if (embedded) return formLayout;
+
   return (
     <DashboardPage>
       <DashboardHeader
@@ -184,17 +202,7 @@ export function DashboardFormPage({
         description={description}
         actions={<DashboardBackLink href={backHref}>{backLabel}</DashboardBackLink>}
       />
-      <div
-        className={cn(
-          "grid items-start gap-4",
-          aside ? "xl:grid-cols-[minmax(0,1fr)_20rem]" : "max-w-5xl",
-        )}
-      >
-        <DashboardPanel title={formTitle} description={formDescription}>
-          {children}
-        </DashboardPanel>
-        {aside ? <aside className="space-y-4">{aside}</aside> : null}
-      </div>
+      {formLayout}
     </DashboardPage>
   );
 }

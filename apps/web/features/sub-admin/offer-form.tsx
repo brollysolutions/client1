@@ -22,6 +22,8 @@ import {
 import { createOffer } from "@/lib/offers-api";
 
 import { AudienceRuleFields, emptyAudienceRules } from "./audience-rule-fields";
+import { OfferPreview } from "./cms-previews";
+import { CmsPreviewFrame, type PreviewDevice } from "./cms-workspace";
 
 const LINE_OPTIONS = [
   { value: "loans", label: "Loans" },
@@ -35,7 +37,7 @@ const DISCOUNT_TYPE_OPTIONS = [
   { value: "cashback-tie", label: "Cashback tie-in" },
 ] as const;
 
-export function OfferForm() {
+export function OfferForm({ embedded = false, onCreated, onDirtyChange }: { embedded?: boolean; onCreated?: () => void; onDirtyChange?: (dirty: boolean) => void } = {}) {
   const router = useRouter();
   const [businessLine, setBusinessLine] = React.useState<
     (typeof LINE_OPTIONS)[number]["value"]
@@ -55,6 +57,10 @@ export function OfferForm() {
   const [discountError, setDiscountError] = React.useState<string | undefined>();
   const [scheduleError, setScheduleError] = React.useState<string | undefined>();
   const [submitting, setSubmitting] = React.useState(false);
+  const [previewContext, setPreviewContext] = React.useState("public");
+  const [previewDevice, setPreviewDevice] = React.useState<PreviewDevice>("desktop");
+  const dirty = Boolean(title || description || discountValue || code || startsAt || endsAt || priority !== "0" || businessLine !== "loans" || discountType !== "percentage");
+  React.useEffect(() => onDirtyChange?.(dirty), [dirty, onDirtyChange]);
 
   async function onSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -101,7 +107,8 @@ export function OfferForm() {
       toast.success("Offer draft created", {
         description: "Schedule it whenever you're ready to go live.",
       });
-      router.push("/dashboard/offers");
+      if (onCreated) onCreated();
+      else router.push("/dashboard/offers");
     } else {
       toast.error("Could not create offer", { description: res.error });
     }
@@ -116,6 +123,20 @@ export function OfferForm() {
       backLabel="Back to offers"
       formTitle="Offer configuration"
       formDescription="The offer is saved as a draft before scheduling and activation."
+      embedded={embedded}
+      aside={
+        <CmsPreviewFrame
+          title="Offer preview"
+          description="Compare the public line-page and authenticated dashboard cards while drafting."
+          contexts={[{ value: "public", label: "Public page" }, { value: "dashboard", label: "Dashboard" }]}
+          context={previewContext}
+          onContextChange={setPreviewContext}
+          device={previewDevice}
+          onDeviceChange={setPreviewDevice}
+        >
+          <OfferPreview context={previewContext as "public" | "dashboard"} offer={{ title, description: description || null, discount_type: discountType, discount_value: discountValue || "0", code: code || null }} />
+        </CmsPreviewFrame>
+      }
     >
       <form className="space-y-6" onSubmit={(event) => void onSubmit(event)}>
         <DashboardFormSection

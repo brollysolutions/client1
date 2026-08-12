@@ -9,6 +9,8 @@ Evidence baseline: `abcc1fd`
 verified Admin operational-visibility work in
 [PR #173](https://github.com/brollysolutions/client1/pull/173).
 
+**Done — [PR #184](https://github.com/brollysolutions/client1/pull/184) — Sub Admin CMS workspace redesign:** the Sub Admin home now presents a 310px matched "Waiting on Admin"/referral-payout row and a filtered full-screen approval workspace. Referral rules, banners, offers, and website content now provide summary metrics, bounded local filters and paging over already-authorized records, full-screen create/edit lifecycle workspaces, and discard confirmation. Banners and offers preview their public and authenticated-dashboard presentations; website content has an escaped plain-text public preview plus a placement/lifecycle guide. Existing API/RLS authorization, business-line isolation, audience grammar, banner approval, offer/content lifecycle, safe-link rules, and Admin-only payout execution remain unchanged, so requirement completion stays at 99.4%. Fresh evidence: lint, strict typecheck, all 337 web unit tests, the existing five-route Sub Admin authoring browser test, and a new live-stack four-workspace/guide Playwright journey pass. The production build compiles, validates types, and generates all 93 pages before the known Windows standalone `EPERM` symlink failure; host-side public fetches cannot resolve the Docker-only `api` hostname. Security and maintainer review found no actionable defect.
+
 ## Purpose and authority
 
 This file answers what is implemented and what remains against the 79 active

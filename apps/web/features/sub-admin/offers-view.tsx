@@ -1,299 +1,68 @@
 "use client";
 
 import * as React from "react";
-import Link from "next/link";
 import { Archive, CalendarClock, Inbox, Loader2, Plus, Zap } from "lucide-react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  activateOffer,
-  archiveOffer,
-  scheduleOffer,
-  updateOffer,
-  type Offer,
-} from "@/lib/offers-api";
-import { useOfferQueue } from "./use-offer-queue";
+import { AdminPagination, ADMIN_PAGE_SIZE } from "@/features/admin/admin-list-tools";
+import { DASHBOARD_ICONS } from "@/features/dashboard/dashboard-icons";
+import { DashboardHeader, DashboardPage, MetricCard, MetricGrid } from "@/features/dashboard/dashboard-ui";
+import { activateOffer, archiveOffer, scheduleOffer, updateOffer, type Offer } from "@/lib/offers-api";
+
 import { audienceSummary } from "./audience-rule-fields";
+import { OfferForm } from "./offer-form";
+import { filterOffers, type QueueFilters } from "./cms-filters";
+import { OfferPreview } from "./cms-previews";
+import { CmsFilterBar, CmsPreviewFrame, CmsWorkspaceHeader, CmsWorkspaceLayout, CMS_WORKSPACE_DIALOG_CLASS, type PreviewDevice } from "./cms-workspace";
+import { useOfferQueue } from "./use-offer-queue";
 
-const STATUS_LABEL: Record<Offer["status"], string> = {
-  draft: "Draft",
-  scheduled: "Scheduled",
-  active: "Active",
-  expired: "Expired",
-  archived: "Archived",
-};
+const STATUS_LABEL: Record<Offer["status"], string> = { draft: "Draft", scheduled: "Scheduled", active: "Active", expired: "Expired", archived: "Archived" };
+const STATUS_VARIANT: Record<Offer["status"], "secondary" | "outline" | "destructive"> = { draft: "outline", scheduled: "secondary", active: "secondary", expired: "destructive", archived: "outline" };
+const EMPTY_FILTERS: QueueFilters = { search: "", status: "all", line: "all", kind: "all", from: "", to: "" };
+const EDITABLE = new Set<Offer["status"]>(["draft", "scheduled"]);
 
-const STATUS_VARIANT: Record<Offer["status"], "secondary" | "outline" | "destructive"> = {
-  draft: "outline",
-  scheduled: "secondary",
-  active: "secondary",
-  expired: "destructive",
-  archived: "outline",
-};
-
-const DISCOUNT_LABEL: Record<string, string> = {
-  percentage: "% off",
-  flat: "flat off",
-  "cashback-tie": "cashback",
-};
-
-const EDITABLE_STATUSES = new Set<Offer["status"]>(["draft", "scheduled"]);
-
-function discountText(offer: Offer): string {
-  const suffix = DISCOUNT_LABEL[offer.discount_type] ?? offer.discount_type;
-  return offer.discount_type === "percentage"
-    ? `${offer.discount_value}${suffix}`
-    : `₹${offer.discount_value} ${suffix}`;
-}
+function discountText(offer: Offer): string { return offer.discount_type === "percentage" ? `${offer.discount_value}% off` : offer.discount_type === "cashback-tie" ? "Cashback offer" : `₹${offer.discount_value} off`; }
 
 export function OffersView() {
   const { items, loading, error, reload } = useOfferQueue();
+  const [filters, setFilters] = React.useState(EMPTY_FILTERS);
+  const [page, setPage] = React.useState(0);
+  const filtered = React.useMemo(() => filterOffers(items, filters), [filters, items]);
+  React.useEffect(() => setPage(0), [filters]);
+  const pageItems = filtered.slice(page * ADMIN_PAGE_SIZE, (page + 1) * ADMIN_PAGE_SIZE);
   const [active, setActive] = React.useState<Offer | null>(null);
-  const [draftTitle, setDraftTitle] = React.useState("");
-  const [draftDescription, setDraftDescription] = React.useState("");
-  const [draftCode, setDraftCode] = React.useState("");
+  const [title, setTitle] = React.useState("");
+  const [description, setDescription] = React.useState("");
+  const [code, setCode] = React.useState("");
   const [busy, setBusy] = React.useState(false);
-
-  function openOffer(offer: Offer) {
-    setActive(offer);
-    setDraftTitle(offer.title);
-    setDraftDescription(offer.description ?? "");
-    setDraftCode(offer.code ?? "");
-  }
-
-  async function onSaveEdit(offer: Offer) {
-    if (draftTitle.trim().length === 0) {
-      toast.error("Title can't be empty");
-      return;
-    }
-    setBusy(true);
-    const res = await updateOffer(offer.id, {
-      title: draftTitle.trim(),
-      description: draftDescription.trim() || null,
-      code: draftCode.trim() || null,
-    });
-    setBusy(false);
-    if (res.ok) {
-      toast.success("Offer updated");
-      setActive(res.data);
-      void reload();
-    } else {
-      toast.error("Could not update offer", { description: res.error });
-    }
-  }
-
-  async function onAdvance(action: typeof scheduleOffer, offer: Offer, successMsg: string) {
-    setBusy(true);
-    const res = await action(offer.id);
-    setBusy(false);
-    if (res.ok) {
-      toast.success(successMsg);
-      setActive(null);
-      void reload();
-    } else {
-      toast.error("Could not update offer", { description: res.error });
-    }
-  }
+  const [previewContext, setPreviewContext] = React.useState("public");
+  const [device, setDevice] = React.useState<PreviewDevice>("desktop");
+  const [createOpen, setCreateOpen] = React.useState(false);
+  const [createDirty, setCreateDirty] = React.useState(false);
+  const dirty = Boolean(active && EDITABLE.has(active.status) && (title !== active.title || description !== (active.description ?? "") || code !== (active.code ?? "")));
+  function closeWorkspace(openState: boolean) { if (openState || busy) return; if (dirty && !window.confirm("Discard unsaved offer changes?")) return; setActive(null); }
+  function closeCreate(openState: boolean) { if (openState) return setCreateOpen(true); if (createDirty && !window.confirm("Discard this offer draft?")) return; setCreateOpen(false); setCreateDirty(false); }
+  function open(item: Offer) { setActive(item); setTitle(item.title); setDescription(item.description ?? ""); setCode(item.code ?? ""); }
+  async function save(item: Offer) { if (!title.trim()) return void toast.error("Title can't be empty"); setBusy(true); const result = await updateOffer(item.id, { title: title.trim(), description: description.trim() || null, code: code.trim() || null }); setBusy(false); if (result.ok) { toast.success("Offer updated"); setActive(result.data); void reload(); } else toast.error("Could not update offer", { description: result.error }); }
+  async function advance(action: typeof scheduleOffer, item: Offer, message: string) { setBusy(true); const result = await action(item.id); setBusy(false); if (result.ok) { toast.success(message); setActive(null); void reload(); } else toast.error("Could not update offer", { description: result.error }); }
 
   return (
-    <div className="mx-auto w-full max-w-5xl space-y-6 px-4 sm:px-6 lg:px-10">
-      <div className="flex items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold text-text-primary">Offers</h1>
-          <p className="text-sm text-text-secondary">
-            Create discount offers, then schedule, activate, and archive them.
-          </p>
-        </div>
-        <Link href="/dashboard/offers/new">
-          <Button>
-            <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
-            New offer
-          </Button>
-        </Link>
-      </div>
-
-      {loading ? (
-        <div className="flex items-center justify-center rounded-2xl border border-border bg-card py-16">
-          <Loader2 className="h-6 w-6 animate-spin text-brand-navy" aria-hidden="true" />
-        </div>
-      ) : error ? (
-        <div className="rounded-2xl border border-border bg-card p-8 text-center">
-          <p className="text-sm text-text-secondary">{error}</p>
-          <Button variant="outline" className="mt-4" onClick={() => void reload()}>
-            Try again
-          </Button>
-        </div>
-      ) : items.length === 0 ? (
-        <div className="flex flex-col items-center rounded-2xl border border-border bg-card p-12 text-center">
-          <Inbox className="h-8 w-8 text-text-secondary" aria-hidden="true" />
-          <p className="mt-3 font-medium text-text-primary">No offers yet</p>
-          <p className="mt-1 text-sm text-text-secondary">
-            Create your first discount offer to get started.
-          </p>
-        </div>
-      ) : (
-        <ul className="space-y-3">
-          {items.map((offer) => (
-            <li key={offer.id}>
-              <button
-                type="button"
-                onClick={() => openOffer(offer)}
-                className="flex w-full items-center justify-between gap-4 rounded-2xl border border-border bg-card p-4 text-left transition-colors hover:border-brand-cta"
-              >
-                <div className="min-w-0">
-                  <p className="truncate font-medium text-text-primary">{offer.title}</p>
-                  <p className="mt-0.5 truncate text-xs text-text-secondary">
-                    {discountText(offer)} ·{" "}
-                    {offer.business_line === "both" ? "Both lines" : offer.business_line} ·{" "}
-                    {audienceSummary(offer.audience_rules)}
-                  </p>
-                </div>
-                <Badge variant={STATUS_VARIANT[offer.status]} className="shrink-0">
-                  {STATUS_LABEL[offer.status]}
-                </Badge>
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
-
-      <Dialog open={active !== null} onOpenChange={(o) => !o && setActive(null)}>
-        <DialogContent className="max-w-lg">
-          {active ? (
-            <>
-              <DialogHeader>
-                <DialogTitle>{active.title}</DialogTitle>
-                <DialogDescription>
-                  {STATUS_LABEL[active.status]} ·{" "}
-                  {active.business_line === "both" ? "Both lines" : active.business_line}
-                </DialogDescription>
-              </DialogHeader>
-
-              <div className="space-y-4">
-                {EDITABLE_STATUSES.has(active.status) ? (
-                  <div className="space-y-3">
-                    <div>
-                      <Label htmlFor="edit-title">Title</Label>
-                      <Input
-                        id="edit-title"
-                        value={draftTitle}
-                        onChange={(e) => setDraftTitle(e.target.value)}
-                        maxLength={500}
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="edit-description">Description</Label>
-                      <Input
-                        id="edit-description"
-                        value={draftDescription}
-                        onChange={(e) => setDraftDescription(e.target.value)}
-                        maxLength={2000}
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="edit-code">Promo code</Label>
-                      <Input
-                        id="edit-code"
-                        value={draftCode}
-                        onChange={(e) => setDraftCode(e.target.value)}
-                        maxLength={100}
-                      />
-                    </div>
-                  </div>
-                ) : (
-                  <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-                    <div>
-                      <dt className="text-text-secondary">Discount</dt>
-                      <dd className="font-medium text-text-primary">{discountText(active)}</dd>
-                    </div>
-                    {active.code ? (
-                      <div>
-                        <dt className="text-text-secondary">Code</dt>
-                        <dd className="font-medium text-text-primary">{active.code}</dd>
-                      </div>
-                    ) : null}
-                    {active.description ? (
-                      <div className="col-span-2">
-                        <dt className="text-text-secondary">Description</dt>
-                        <dd className="font-medium text-text-primary">{active.description}</dd>
-                      </div>
-                    ) : null}
-                    <div className="col-span-2">
-                      <dt className="text-text-secondary">Audience</dt>
-                      <dd className="font-medium text-text-primary">
-                        {audienceSummary(active.audience_rules)}
-                      </dd>
-                    </div>
-                  </dl>
-                )}
-              </div>
-
-              <DialogFooter className="gap-2 sm:gap-2">
-                {EDITABLE_STATUSES.has(active.status) ? (
-                  <Button variant="outline" onClick={() => void onSaveEdit(active)} disabled={busy}>
-                    {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-                    Save
-                  </Button>
-                ) : null}
-                {active.status === "draft" ? (
-                  <Button
-                    onClick={() => void onAdvance(scheduleOffer, active, "Offer scheduled")}
-                    disabled={busy}
-                  >
-                    {busy ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <CalendarClock className="h-4 w-4" />
-                    )}
-                    Schedule
-                  </Button>
-                ) : null}
-                {active.status === "scheduled" ? (
-                  <>
-                    <Button
-                      variant="outline"
-                      onClick={() => void onAdvance(archiveOffer, active, "Offer archived")}
-                      disabled={busy}
-                    >
-                      <Archive className="h-4 w-4" />
-                      Archive
-                    </Button>
-                    <Button
-                      onClick={() => void onAdvance(activateOffer, active, "Offer activated")}
-                      disabled={busy}
-                    >
-                      {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />}
-                      Activate
-                    </Button>
-                  </>
-                ) : null}
-                {active.status === "active" ? (
-                  <Button
-                    variant="outline"
-                    onClick={() => void onAdvance(archiveOffer, active, "Offer archived")}
-                    disabled={busy}
-                  >
-                    {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Archive className="h-4 w-4" />}
-                    Archive
-                  </Button>
-                ) : null}
-              </DialogFooter>
-            </>
-          ) : null}
-        </DialogContent>
-      </Dialog>
-    </div>
+    <DashboardPage>
+      <DashboardHeader eyebrow="Promotions" title="Offers" description="Create, schedule, preview, and retire customer promotions." actions={<Button onClick={() => setCreateOpen(true)}><Plus className="h-4 w-4" />New offer</Button>} />
+      <MetricGrid><MetricCard label="Total offers" value={items.length} icon={DASHBOARD_ICONS.offers} /><MetricCard label="Drafts" value={items.filter((item) => item.status === "draft").length} icon={DASHBOARD_ICONS.websiteContent} /><MetricCard label="Scheduled" value={items.filter((item) => item.status === "scheduled").length} icon={CalendarClock} /><MetricCard label="Active" value={items.filter((item) => item.status === "active").length} icon={DASHBOARD_ICONS.analytics} /></MetricGrid>
+      <CmsFilterBar value={filters} onChange={setFilters} searchLabel="Search offers" statusOptions={Object.entries(STATUS_LABEL).map(([value, label]) => ({ value, label }))} kindLabel="discount types" kindOptions={[{ value: "percentage", label: "Percentage" }, { value: "flat", label: "Flat amount" }, { value: "cashback-tie", label: "Cashback tie-in" }]} />
+      {loading ? <Loading /> : error ? <ErrorState error={error} reload={reload} /> : filtered.length === 0 ? <Empty filtered={items.length > 0} /> : <><p className="text-sm text-text-secondary">{filtered.length} {filtered.length === 1 ? "offer" : "offers"} shown</p><ul className="space-y-3">{pageItems.map((item) => <li key={item.id}><button type="button" onClick={() => open(item)} className="flex w-full items-center justify-between gap-4 rounded-xl border border-border bg-card p-4 text-left transition-colors hover:border-brand-cta focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue"><div className="min-w-0"><p className="truncate font-medium">{item.title}</p><p className="mt-0.5 truncate text-xs text-text-secondary">{discountText(item)} · {item.business_line === "both" ? "Both lines" : item.business_line} · {audienceSummary(item.audience_rules)}</p></div><Badge variant={STATUS_VARIANT[item.status]}>{STATUS_LABEL[item.status]}</Badge></button></li>)}</ul><AdminPagination page={page} total={filtered.length} onPageChange={setPage} /></>}
+      <Dialog open={active !== null} onOpenChange={closeWorkspace}><DialogContent showCloseButton={false} className={CMS_WORKSPACE_DIALOG_CLASS}>{active ? <><CmsWorkspaceHeader title={active.title} description={`${STATUS_LABEL[active.status]} · ${active.business_line === "both" ? "Both lines" : active.business_line} · ${discountText(active)}`} /><CmsWorkspaceLayout editor={<div className="space-y-5"><section className="space-y-4 rounded-xl border border-border p-4"><div><Label htmlFor="offer-title">Title</Label><Input id="offer-title" value={EDITABLE.has(active.status) ? title : active.title} disabled={!EDITABLE.has(active.status)} onChange={(event) => setTitle(event.target.value)} /></div><div><Label htmlFor="offer-description">Description</Label><Input id="offer-description" value={EDITABLE.has(active.status) ? description : active.description ?? ""} disabled={!EDITABLE.has(active.status)} onChange={(event) => setDescription(event.target.value)} /></div><div><Label htmlFor="offer-code">Promo code</Label><Input id="offer-code" value={EDITABLE.has(active.status) ? code : active.code ?? ""} disabled={!EDITABLE.has(active.status)} onChange={(event) => setCode(event.target.value)} /></div><dl className="grid gap-3 text-sm sm:grid-cols-2"><div><dt className="text-text-secondary">Audience</dt><dd className="font-medium">{audienceSummary(active.audience_rules)}</dd></div><div><dt className="text-text-secondary">Priority</dt><dd className="font-medium">{active.priority}</dd></div><div><dt className="text-text-secondary">Goes live</dt><dd className="font-medium">{active.starts_at ? new Date(active.starts_at).toLocaleString("en-IN") : "When activated"}</dd></div><div><dt className="text-text-secondary">Expires</dt><dd className="font-medium">{active.ends_at ? new Date(active.ends_at).toLocaleString("en-IN") : "No automatic end"}</dd></div></dl></section><DialogFooter>{EDITABLE.has(active.status) ? <Button variant="outline" disabled={busy} onClick={() => void save(active)}>Save changes</Button> : null}{active.status === "draft" ? <Button disabled={busy} onClick={() => void advance(scheduleOffer, active, "Offer scheduled")}><CalendarClock className="h-4 w-4" />Schedule</Button> : null}{active.status === "scheduled" ? <><Button variant="outline" disabled={busy} onClick={() => void advance(archiveOffer, active, "Offer archived")}><Archive className="h-4 w-4" />Archive</Button><Button disabled={busy} onClick={() => void advance(activateOffer, active, "Offer activated")}><Zap className="h-4 w-4" />Activate</Button></> : null}{active.status === "active" ? <Button variant="outline" disabled={busy} onClick={() => void advance(archiveOffer, active, "Offer archived")}><Archive className="h-4 w-4" />Archive</Button> : null}</DialogFooter></div>} preview={<CmsPreviewFrame title="Offer appearance" description="Compare its public line-page card with the personalized dashboard card." contexts={[{ value: "public", label: "Public page" }, { value: "dashboard", label: "Dashboard" }]} context={previewContext} onContextChange={setPreviewContext} device={device} onDeviceChange={setDevice}><OfferPreview context={previewContext as "public" | "dashboard"} offer={{ ...active, title: EDITABLE.has(active.status) ? title : active.title, description: EDITABLE.has(active.status) ? description : active.description, code: EDITABLE.has(active.status) ? code : active.code }} /></CmsPreviewFrame>} /></> : null}</DialogContent></Dialog>
+      <Dialog open={createOpen} onOpenChange={closeCreate}><DialogContent showCloseButton={false} className={CMS_WORKSPACE_DIALOG_CLASS}><CmsWorkspaceHeader title="New offer" description="Create and preview a promotion before scheduling it." /><div className="min-h-0 overflow-y-auto py-2"><OfferForm embedded onDirtyChange={setCreateDirty} onCreated={() => { setCreateDirty(false); setCreateOpen(false); void reload(); }} /></div></DialogContent></Dialog>
+    </DashboardPage>
   );
 }
+
+function Loading() { return <div className="flex min-h-64 items-center justify-center rounded-xl border border-border bg-card"><Loader2 className="h-6 w-6 animate-spin text-brand-navy" /></div>; }
+function ErrorState({ error, reload }: { error: string; reload: () => Promise<void> }) { return <div className="rounded-xl border border-border bg-card p-8 text-center"><p className="text-sm text-text-secondary">{error}</p><Button variant="outline" className="mt-4" onClick={() => void reload()}>Try again</Button></div>; }
+function Empty({ filtered }: { filtered: boolean }) { return <div className="flex min-h-56 flex-col items-center justify-center rounded-xl border border-border bg-card p-8 text-center"><Inbox className="h-8 w-8 text-text-secondary" /><p className="mt-3 font-medium">{filtered ? "No offers match these filters" : "No offers yet"}</p><p className="mt-1 text-sm text-text-secondary">{filtered ? "Clear or adjust the advanced filters." : "Create the first offer to get started."}</p></div>; }
