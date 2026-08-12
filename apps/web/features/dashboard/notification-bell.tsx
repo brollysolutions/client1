@@ -6,46 +6,25 @@ import { Bell, ChevronRight, Loader2 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { getNotifications, getUnreadCount, type AppNotification } from "@/lib/notifications";
 import { isSafeLocalHref } from "@/lib/safe-local-href";
 import { cn } from "@/lib/utils";
 
 import { formatNotificationTime, NOTIFICATION_TYPE_ICON } from "./notification-presenter";
+import { useNotifications } from "./notifications-provider";
 
-type PreviewStatus = "idle" | "loading" | "ready" | "error";
 const PREVIEW_LIMIT = 5;
 
 // Shared top-bar notification control for every role. The cheap unread count
 // loads on mount; the bounded owner-scoped feed loads only when the preview is
 // first opened by hover, focus, or click. The full page remains authoritative.
 export function NotificationBell() {
-  const [count, setCount] = React.useState(0);
   const [open, setOpen] = React.useState(false);
-  const [items, setItems] = React.useState<AppNotification[]>([]);
-  const [previewStatus, setPreviewStatus] = React.useState<PreviewStatus>("idle");
+  const { items, unreadCount: count, feedStatus: previewStatus, loadNotifications } = useNotifications();
   const closeTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  React.useEffect(() => {
-    let active = true;
-    void getUnreadCount().then((res) => {
-      if (active && res.ok) setCount(res.data);
-    });
-    return () => {
-      active = false;
-    };
-  }, []);
-
   const loadPreview = React.useCallback(async () => {
-    if (previewStatus === "loading" || previewStatus === "ready") return;
-    setPreviewStatus("loading");
-    const result = await getNotifications();
-    if (!result.ok) {
-      setPreviewStatus("error");
-      return;
-    }
-    setItems(result.data.slice(0, PREVIEW_LIMIT));
-    setPreviewStatus("ready");
-  }, [previewStatus]);
+    await loadNotifications();
+  }, [loadNotifications]);
 
   const showPreview = React.useCallback(() => {
     if (closeTimer.current) clearTimeout(closeTimer.current);
@@ -124,8 +103,7 @@ export function NotificationBell() {
               type="button"
               className="mt-2 text-sm font-medium text-brand-cta hover:underline"
               onClick={() => {
-                setPreviewStatus("idle");
-                void loadPreview();
+                void loadNotifications(true);
               }}
             >
               Try again
@@ -138,7 +116,7 @@ export function NotificationBell() {
           </div>
         ) : (
           <ul className="max-h-80 divide-y divide-border overflow-y-auto">
-            {items.map((notification) => {
+            {items.slice(0, PREVIEW_LIMIT).map((notification) => {
               const Icon = NOTIFICATION_TYPE_ICON[notification.type];
               const content = (
                 <>

@@ -10,78 +10,47 @@ import { DASHBOARD_ICONS } from "@/features/dashboard/dashboard-icons";
 import { DashboardHeader, DashboardPage, DashboardPanel, MetricCard, MetricGrid } from "@/features/dashboard/dashboard-ui";
 import { FetchError } from "@/features/dashboard/fetch-error";
 import { formatNotificationTime, NOTIFICATION_TYPE_ICON } from "@/features/dashboard/notification-presenter";
-import {
-  getNotifications,
-  markAllNotificationsRead,
-  markNotificationRead,
-  type AppNotification,
-} from "@/lib/notifications";
-import { cn } from "@/lib/utils";
+import { useNotifications } from "@/features/dashboard/notifications-provider";
 import { isSafeLocalHref } from "@/lib/safe-local-href";
-
-type Status = "loading" | "ready" | "error";
+import { cn } from "@/lib/utils";
 
 // Notification feed backed by the real notifications API: site-visit
 // create/cancel and support-ticket create each emit one entry server-side.
 export default function NotificationsPage() {
-  const [items, setItems] = React.useState<AppNotification[]>([]);
-  const [status, setStatus] = React.useState<Status>("loading");
-  const [error, setError] = React.useState<string | null>(null);
-  const [errorStatus, setErrorStatus] = React.useState<number | null>(null);
-  const [reloadKey, setReloadKey] = React.useState(0);
+  const {
+    items,
+    unreadCount,
+    feedStatus: status,
+    feedError: error,
+    feedErrorStatus: errorStatus,
+    loadNotifications,
+    markRead,
+    markAllRead,
+  } = useNotifications();
   const [markingAll, setMarkingAll] = React.useState(false);
 
   const retry = React.useCallback(() => {
-    setStatus("loading");
-    setError(null);
-    setErrorStatus(null);
-    setReloadKey((k) => k + 1);
-  }, []);
+    void loadNotifications(true);
+  }, [loadNotifications]);
 
   React.useEffect(() => {
-    let active = true;
-    const run = async () => {
-      const res = await getNotifications();
-      if (!active) return;
-      if (res.ok) {
-        setItems(res.data);
-        setStatus("ready");
-        return;
-      }
-      setError(res.error);
-      setErrorStatus(res.status);
-      setStatus("error");
-    };
-    void run();
-    return () => {
-      active = false;
-    };
-  }, [reloadKey]);
+    void loadNotifications(true);
+  }, [loadNotifications]);
 
-  const hasUnread = items.some((n) => !n.readAt);
-  const unreadCount = items.filter((notification) => !notification.readAt).length;
+  const listedUnreadCount = items.filter((notification) => !notification.readAt).length;
   const linkedCount = items.filter(
     (notification) => notification.href && isSafeLocalHref(notification.href),
   ).length;
 
   async function handleMarkRead(id: string) {
-    const prevItems = items;
-    setItems((prev) =>
-      prev.map((n) => (n.id === id ? { ...n, readAt: n.readAt ?? new Date().toISOString() } : n)),
-    );
-    const res = await markNotificationRead(id);
-    if (!res.ok) setItems(prevItems);
+    await markRead(id);
   }
 
   async function handleMarkAllRead() {
-    if (markingAll || !hasUnread) return;
+    if (markingAll || unreadCount === 0) return;
     setMarkingAll(true);
-    const prevItems = items;
-    const now = new Date().toISOString();
-    setItems((prev) => prev.map((n) => (n.readAt ? n : { ...n, readAt: now })));
-    const res = await markAllNotificationsRead();
+    await markAllRead();
     setMarkingAll(false);
-    if (!res.ok) setItems(prevItems);
   }
 
   return (
@@ -94,7 +63,7 @@ export default function NotificationsPage() {
           <Button
             variant="outline"
             size="sm"
-            disabled={!hasUnread || markingAll}
+            disabled={unreadCount === 0 || markingAll}
             onClick={handleMarkAllRead}
           >
             <CheckCheck className="h-4 w-4" aria-hidden="true" />
@@ -124,9 +93,9 @@ export default function NotificationsPage() {
         <>
           <MetricGrid>
             <MetricCard label="All updates" value={items.length} icon={Bell} />
-            <MetricCard label="Unread" value={unreadCount} icon={Bell} attention={unreadCount > 0} />
+            <MetricCard label="Unread" value={listedUnreadCount} icon={Bell} attention={listedUnreadCount > 0} />
             <MetricCard label="Action links" value={linkedCount} icon={DASHBOARD_ICONS.explore} hint="Safe dashboard destinations" />
-            <MetricCard label="Read" value={items.length - unreadCount} icon={CheckCheck} />
+            <MetricCard label="Read" value={items.length - listedUnreadCount} icon={CheckCheck} />
           </MetricGrid>
 
           <DashboardPanel title="Recent updates" description="Unread items are highlighted and may link to the relevant workspace.">

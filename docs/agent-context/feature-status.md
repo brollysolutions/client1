@@ -48,6 +48,21 @@ work than several completed UI requirements.
 
 ## Current work
 
+**Delivered in [PR #176](https://github.com/brollysolutions/client1/pull/176)
+â€” notification unread-state synchronization (FR-17.1):** on
+`security/operational-identity-auto-assignment`, one
+dashboard-scoped client source now synchronizes the shared bell, preview, and
+notification page. Single-read and mark-all mutations optimistically update the
+same snapshot, then refetch the server-authoritative count; an out-of-order
+count response cannot overwrite a newer request. Mutation failures restore the
+prior snapshot and refetch. The existing owner-only API/RLS boundary and safe
+local notification links are unchanged; no producer, endpoint, contract, or
+authorization behavior was added. Fresh evidence: three focused state
+regressions, 324 web unit tests, lint, strict TypeScript, and all nine live
+role/navigation Playwright scenarios. The Windows production build compiled,
+typechecked, and generated all 93 pages, but cannot finish standalone output in
+this environment because Windows denies the required symlink (`EPERM`).
+
 **Delivered in [PR #175](https://github.com/brollysolutions/client1/pull/175)
 — fail-closed operational identity and automatic Employee assignment:** the
 `security/operational-identity-auto-assignment` branch now
