@@ -116,7 +116,7 @@ API/RLS tests; public E.164 validation, production intake, authorization, and
 RLS are unchanged. The monolithic API suite exceeded the execution-host window
 without a report and is therefore inconclusive, not passing.
 
-**Done — PR pending — Admin user-list legacy-email resilience (maintenance):** the
+**Done in [PR #181](https://github.com/brollysolutions/client1/pull/181) — Admin user-list legacy-email resilience (maintenance):** the
 platform-Admin list must retain its `private, no-store` response and email
 contract when direct local seeding has inserted a reserved-domain address that
 the current strict email validator rejects. The targeted fix redacts only
