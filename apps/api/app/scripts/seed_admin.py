@@ -22,6 +22,8 @@ import asyncio
 import sys
 from datetime import UTC, datetime
 
+from app.scripts.seed_helpers import dev_seed_email
+
 
 async def _seed(mobile: str, email: str) -> None:
     import app.db.session as session_mod
@@ -106,7 +108,12 @@ def main() -> None:
             "   e.g. +919812345678 admin@example.com"
         )
         sys.exit(1)
-    asyncio.run(_seed(sys.argv[1], sys.argv[2]))
+    try:
+        email = dev_seed_email(sys.argv[2])
+    except ValueError as exc:
+        print(f"[seed_admin] {exc}")
+        sys.exit(2)
+    asyncio.run(_seed(sys.argv[1], email))
 
 
 if __name__ == "__main__":

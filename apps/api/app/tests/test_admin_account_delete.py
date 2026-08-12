@@ -198,6 +198,30 @@ async def test_admin_user_list_redacts_deleted_tombstone_contacts(client: AsyncC
     ]
 
 
+async def test_admin_user_list_redacts_malformed_legacy_email(client: AsyncClient) -> None:
+    _, admin_mobile = await full_registration(client)
+    admin_uid = await _auth_user_uuid(admin_mobile)
+    _, target_mobile = await full_registration(client)
+    target_uid = await _auth_user_uuid(target_mobile)
+
+    import app.db.session as session_module
+
+    async with session_module.AsyncSessionLocal() as db:
+        await db.execute(
+            text("UPDATE auth_users SET email = :email WHERE id = :id"),
+            {"email": f"legacy-{uuid.uuid4().hex}@example.test", "id": target_uid},
+        )
+        await db.commit()
+
+    listed = await client.get(
+        "/api/v1/admin/users", headers={"Authorization": f"Bearer {_admin_token(admin_uid)}"}
+    )
+
+    assert listed.status_code == 200, listed.text
+    account = next(user for user in listed.json()["users"] if user["id"] == target_uid)
+    assert account["email"] is None
+
+
 async def test_admin_delete_erases_private_personalization_preference(
     client: AsyncClient,
 ) -> None:
