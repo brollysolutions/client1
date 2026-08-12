@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { Clock } from "lucide-react";
 
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DASHBOARD_ICONS } from "@/features/dashboard/dashboard-icons";
 import {
@@ -19,32 +18,9 @@ import {
 } from "@/features/dashboard/dashboard-ui";
 import { FetchError } from "@/features/dashboard/fetch-error";
 
+import { PendingReviewDialog } from "./pending-review-dialog";
+import { PendingReviewList } from "./pending-review-list";
 import { useAdminHome } from "./use-admin-home";
-
-const KIND_LABEL: Record<string, string> = {
-  agent_application: "Agent application",
-  banner: "Banner",
-  property_submission: "Property listing",
-};
-
-const KIND_HREF: Record<string, string> = {
-  agent_application: "/dashboard/agents",
-  banner: "/dashboard/banners",
-  property_submission: "/dashboard/property-review",
-};
-
-const LINE_LABEL: Record<string, string> = {
-  loans: "Loans",
-  real_estate: "Real Estate",
-  both: "Both lines",
-};
-
-function formatDate(iso: string): string {
-  const date = new Date(iso);
-  return Number.isNaN(date.getTime())
-    ? "-"
-    : date.toLocaleDateString("en-IN", { day: "numeric", month: "short" });
-}
 
 // Cross-line operational overview. The sidebar owns exhaustive navigation;
 // this page surfaces only work requiring attention, current load, and the most
@@ -115,43 +91,29 @@ export function AdminHome() {
       </MetricGrid>
 
       <div className="grid gap-4 xl:grid-cols-[1.35fr_1fr]">
-        <DashboardPanel title="Waiting on you" description="Oldest review items across the platform">
-          {home.pending_review.length === 0 ? (
-            <p className="text-sm text-text-secondary">
-              Nothing is waiting on your approval right now.
-            </p>
-          ) : (
-            <>
-              <ul className="space-y-2">
-                {home.pending_review.map((item) => (
-                  <li key={item.id}>
-                    <Link
-                      href={KIND_HREF[item.kind] ?? "/dashboard"}
-                      className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border p-3 text-sm transition-colors hover:border-brand-cta"
-                    >
-                      <span className="flex min-w-0 items-center gap-2 font-medium text-text-primary">
-                        <Clock className="h-4 w-4 shrink-0 text-brand-cta" aria-hidden="true" />
-                        <span className="truncate">{item.title}</span>
-                      </span>
-                      <span className="flex shrink-0 items-center gap-2 text-xs text-text-secondary">
-                        <Badge variant="outline">{KIND_LABEL[item.kind] ?? item.kind}</Badge>
-                        {LINE_LABEL[item.business_line] ?? item.business_line}
-                        {formatDate(item.submitted_at)}
-                      </span>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-              {pendingTotal > home.pending_review.length ? (
-                <p className="mt-3 text-xs text-text-secondary">
-                  Showing {home.pending_review.length} of {pendingTotal} pending items.
-                </p>
-              ) : null}
-            </>
-          )}
+        <DashboardPanel
+          title="Waiting on you"
+          description="Oldest review items across the platform"
+          action={<PendingReviewDialog items={home.pending_review} total={pendingTotal} />}
+          className="flex h-[270px] flex-col"
+          bodyClassName="min-h-0 flex-1"
+        >
+          <div className="flex h-full min-h-0 flex-col">
+            <div className="min-h-0 flex-1 overflow-y-auto pr-1">
+              <PendingReviewList
+                items={home.pending_review}
+                emptyMessage="Nothing is waiting on your approval right now."
+              />
+            </div>
+            {pendingTotal > home.pending_review.length ? (
+              <p className="mt-3 text-xs text-text-secondary">
+                Showing {home.pending_review.length} of {pendingTotal} pending items.
+              </p>
+            ) : null}
+          </div>
         </DashboardPanel>
 
-        <DashboardPanel title="Operational load" description="Open work and finance queues">
+        <DashboardPanel title="Operational load" description="Open work and finance queues" className="h-[270px]">
           <dl className="divide-y divide-border text-sm">
             <OperationalRow label="Open loan applications" value={home.open_loan_applications_count} href="/dashboard/loan-applications" />
             <OperationalRow label="Open property deals" value={home.open_property_deals_count} href="/dashboard/property-deals" />

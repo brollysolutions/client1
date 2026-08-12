@@ -112,12 +112,14 @@ export function DashboardPanel({
   action,
   children,
   className,
+  bodyClassName,
 }: {
   title: string;
   description?: string;
   action?: ReactNode;
   children: ReactNode;
   className?: string;
+  bodyClassName?: string;
 }) {
   return (
     <section className={cn("overflow-hidden rounded-xl border border-border bg-card shadow-sm", className)}>
@@ -128,7 +130,7 @@ export function DashboardPanel({
         </div>
         {action}
       </div>
-      <div className="p-5">{children}</div>
+      <div className={cn("p-5", bodyClassName)}>{children}</div>
     </section>
   );
 }
