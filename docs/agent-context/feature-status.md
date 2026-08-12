@@ -116,6 +116,16 @@ API/RLS tests; public E.164 validation, production intake, authorization, and
 RLS are unchanged. The monolithic API suite exceeded the execution-host window
 without a report and is therefore inconclusive, not passing.
 
+**Done in [PR #181](https://github.com/brollysolutions/client1/pull/181) — Admin user-list legacy-email resilience (maintenance):** the
+platform-Admin list must retain its `private, no-store` response and email
+contract when direct local seeding has inserted a reserved-domain address that
+the current strict email validator rejects. The targeted fix redacts only
+malformed legacy values, rejects them in the development Admin seeder, and is
+covered by 16 focused container tests plus full API Ruff/format and one Alembic
+head; the monolithic API suite reached the 30-minute local bound without a
+final report and is inconclusive. No role, RLS, account-deletion, or production
+registration behavior changes.
+
 The remaining **FR-2.2 Admin operational coverage audit** has an exhaustive,
 test-enforced baseline across 47 mapped tables and all 68 current
 platform-scope RLS policies. The visibility-remediation slice closes all eight
