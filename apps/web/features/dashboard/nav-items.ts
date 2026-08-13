@@ -309,7 +309,9 @@ export const NAV_ITEMS: readonly NavItem[] = [
     label: "Website content",
     href: "/dashboard/content",
     icon: DASHBOARD_ICONS.websiteContent,
-    capability: "cms",
+    // Admin retains its existing guarded oversight route, but this authoring
+    // workspace is intentionally not surfaced in the Admin navigation.
+    capability: "subAdmin",
     section: "content",
   },
 
@@ -465,14 +467,6 @@ export const NAV_ITEMS: readonly NavItem[] = [
     label: "Analytics",
     href: "/dashboard/analytics",
     icon: DASHBOARD_ICONS.analytics,
-    capability: "admin",
-    section: "insights",
-  },
-  {
-    key: "admin-audit-log",
-    label: "Audit log",
-    href: "/dashboard/audit-log",
-    icon: DASHBOARD_ICONS.auditLog,
     capability: "admin",
     section: "insights",
   },

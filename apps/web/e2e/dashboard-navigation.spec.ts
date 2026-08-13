@@ -63,10 +63,8 @@ const scenarios: readonly RoleScenario[] = [
       "Lead assignments",
       "Users & staff",
       "Payouts",
-      "Website content",
-      "Audit log",
     ],
-    excluded: ["Apply for a loan", "Leads", "Tasks"],
+    excluded: ["Apply for a loan", "Leads", "Tasks", "Website content", "Audit log"],
     deniedPath: "/dashboard/banners/new",
   },
 ];
