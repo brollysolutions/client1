@@ -23,6 +23,18 @@ import { PendingReviewList } from "./pending-review-list";
 import { STAFF_CAPACITY_HINT, STAFF_CAPACITY_HREF } from "./admin-capacity-routing";
 import { useAdminHome } from "./use-admin-home";
 
+export const ADMIN_FREQUENT_ACTIONS = [
+  { href: "/dashboard/users", title: "Users and staff", description: "Provision staff and manage platform access.", icon: DASHBOARD_ICONS.usersAndStaff },
+  { href: "/dashboard/agents", title: "Agent applications", description: "Review applications and agent status.", icon: DASHBOARD_ICONS.agentApplications },
+  { href: "/dashboard/document-verification", title: "Document verification", description: "Review field and client-provided documents.", icon: DASHBOARD_ICONS.documentVerification },
+  { href: "/dashboard/payouts", title: "Payouts", description: "Create, approve, and monitor payout workflows.", icon: DASHBOARD_ICONS.payouts },
+  { href: "/dashboard/support-tickets", title: "Support tickets", description: "Triage account and access requests.", icon: DASHBOARD_ICONS.supportTickets },
+  { href: "/dashboard/access-control", title: "Access control", description: "Manage supported field visibility by role.", icon: DASHBOARD_ICONS.accessControl },
+  { href: "/dashboard/analytics", title: "Analytics", description: "Review line and agent performance reports.", icon: DASHBOARD_ICONS.analytics },
+  { href: "/dashboard/loan-config", title: "Loan configuration", description: "Manage loan types and bank availability.", icon: DASHBOARD_ICONS.loanConfiguration },
+  { href: "/dashboard/admin-leads", title: "Lead assignments", description: "Review lead ownership and assignment status.", icon: DASHBOARD_ICONS.leads },
+] as const;
+
 // Cross-line operational overview. The sidebar owns exhaustive navigation;
 // this page surfaces only work requiring attention, current load, and the most
 // frequent administrative entry points.
@@ -130,15 +142,9 @@ export function AdminHome() {
         description="The most common administrative destinations; every other capability remains in the sidebar."
       >
         <QuickActionGrid>
-          <DashboardQuickAction href="/dashboard/users" title="Users and staff" description="Provision staff and manage platform access." icon={DASHBOARD_ICONS.usersAndStaff} />
-          <DashboardQuickAction href="/dashboard/agents" title="Agent applications" description="Review applications and agent status." icon={DASHBOARD_ICONS.agentApplications} />
-          <DashboardQuickAction href="/dashboard/document-verification" title="Document verification" description="Review field and client-provided documents." icon={DASHBOARD_ICONS.documentVerification} />
-          <DashboardQuickAction href="/dashboard/payouts" title="Payouts" description="Create, approve, and monitor payout workflows." icon={DASHBOARD_ICONS.payouts} />
-          <DashboardQuickAction href="/dashboard/support-tickets" title="Support tickets" description="Triage account and access requests." icon={DASHBOARD_ICONS.supportTickets} />
-          <DashboardQuickAction href="/dashboard/access-control" title="Access control" description="Manage supported field visibility by role." icon={DASHBOARD_ICONS.accessControl} />
-          <DashboardQuickAction href="/dashboard/analytics" title="Analytics" description="Review line and agent performance reports." icon={DASHBOARD_ICONS.analytics} />
-          <DashboardQuickAction href="/dashboard/loan-config" title="Loan configuration" description="Manage loan types and bank availability." icon={DASHBOARD_ICONS.loanConfiguration} />
-          <DashboardQuickAction href="/dashboard/audit-log" title="Audit log" description="Inspect recorded platform actions." icon={DASHBOARD_ICONS.auditLog} />
+          {ADMIN_FREQUENT_ACTIONS.map((action) => (
+            <DashboardQuickAction key={action.href} {...action} />
+          ))}
         </QuickActionGrid>
       </DashboardSection>
     </DashboardPage>
