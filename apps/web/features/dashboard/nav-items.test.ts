@@ -199,10 +199,8 @@ describe("role-aware dashboard navigation", () => {
       "admin-referral-rules",
       "banners",
       "offers",
-      "content",
       "admin-broadcast",
       "admin-analytics",
-      "admin-audit-log",
     ]);
   });
 });
@@ -251,6 +249,8 @@ describe("dashboard direct-route UX access", () => {
     expect(isDashboardPathAllowed("/dashboard/banners", context("admin"))).toBe(true);
     expect(isDashboardPathAllowed("/dashboard/banners/new", context("admin"))).toBe(false);
     expect(isDashboardPathAllowed("/dashboard/banners/new", context("sub_admin"))).toBe(true);
+    expect(isDashboardPathAllowed("/dashboard/content", context("admin"))).toBe(true);
+    expect(isDashboardPathAllowed("/dashboard/audit-log", context("admin"))).toBe(true);
   });
 
   it("keeps Client and cross-line features out of staff workspaces", () => {
