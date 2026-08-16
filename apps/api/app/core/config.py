@@ -99,6 +99,12 @@ class Settings(BaseSettings):
     # loan-application KYC upload path (services/loan_documents.py).
     LOAN_DOCUMENT_MAX_UPLOAD_BYTES: int = 5 * 1024 * 1024
     LOAN_DOCUMENT_MAX_PER_APPLICATION: int = 12
+    # Employee-collected task documents are equally sensitive and must use a
+    # storage-signed cap, not an uncapped PUT. The hourly presign allowance
+    # leaves room for three retries beyond a full 12-document collection.
+    TASK_DOCUMENT_MAX_UPLOAD_BYTES: int = 5 * 1024 * 1024
+    TASK_DOCUMENT_MAX_PER_TASK: int = 12
+    TASK_DOCUMENT_PRESIGN_LIMIT_PER_HOUR: int = 15
 
     # Managed-media processing. New images/PDFs are sanitized or scanned before
     # canonical acceptance. Videos are quarantined and processed by the single
@@ -235,6 +241,14 @@ class Settings(BaseSettings):
     VAPID_PUBLIC_KEY: str = ""  # not secret — served to browsers via GET /push/vapid-public-key
     VAPID_PRIVATE_KEY: str = ""  # secret
     VAPID_SUBJECT: str = ""  # RFC 8292 aud claim, e.g. "mailto:ops@yourdomain.com"
+    # Subscription endpoints are dereferenced server-side. An explicit
+    # provider list prevents authenticated SSRF, including redirect and DNS
+    # rebinding variants that a one-time public-IP check can miss. Each entry
+    # also permits its dot-boundary subdomains.
+    PUSH_ENDPOINT_ALLOWED_HOSTS: str = (
+        "fcm.googleapis.com,push.services.mozilla.com,web.push.apple.com,notify.windows.com"
+    )
+    PUSH_DELIVERY_TIMEOUT_SECONDS: float = 10.0
 
     # Object storage — S3-compatible (minio in dev, DigitalOcean Spaces in
     # prod). Unlike payments/voice-OTP, this has no mock/live toggle: every
@@ -318,6 +332,9 @@ class Settings(BaseSettings):
             "LOAN_VIDEO_MAX_PER_APPLICATION": self.LOAN_VIDEO_MAX_PER_APPLICATION,
             "TASK_FEEDBACK_MAX_UPLOAD_BYTES": self.TASK_FEEDBACK_MAX_UPLOAD_BYTES,
             "TASK_FEEDBACK_MAX_PER_TASK": self.TASK_FEEDBACK_MAX_PER_TASK,
+            "TASK_DOCUMENT_MAX_UPLOAD_BYTES": self.TASK_DOCUMENT_MAX_UPLOAD_BYTES,
+            "TASK_DOCUMENT_MAX_PER_TASK": self.TASK_DOCUMENT_MAX_PER_TASK,
+            "TASK_DOCUMENT_PRESIGN_LIMIT_PER_HOUR": self.TASK_DOCUMENT_PRESIGN_LIMIT_PER_HOUR,
             "MEDIA_TRANSCODE_TIMEOUT_SECONDS": self.MEDIA_TRANSCODE_TIMEOUT_SECONDS,
             "MEDIA_FAILED_RETENTION_DAYS": self.MEDIA_FAILED_RETENTION_DAYS,
             "MEDIA_PRIVATE_RETENTION_DAYS": self.MEDIA_PRIVATE_RETENTION_DAYS,
@@ -382,6 +399,10 @@ class Settings(BaseSettings):
                 "VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, and VAPID_SUBJECT must be set "
                 "together (all for live push, or none for mock). Only some are set."
             )
+        if not self.PUSH_ENDPOINT_ALLOWED_HOSTS.strip():
+            raise ValueError("PUSH_ENDPOINT_ALLOWED_HOSTS must not be empty.")
+        if self.PUSH_DELIVERY_TIMEOUT_SECONDS <= 0:
+            raise ValueError("PUSH_DELIVERY_TIMEOUT_SECONDS must be greater than zero.")
         return self
 
     @model_validator(mode="after")

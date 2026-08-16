@@ -17,6 +17,15 @@ from app.services import push
 from conftest import full_registration
 
 
+@pytest.fixture(autouse=True)
+def _allow_existing_test_provider(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(
+        settings,
+        "PUSH_ENDPOINT_ALLOWED_HOSTS",
+        f"{settings.PUSH_ENDPOINT_ALLOWED_HOSTS},push.example.com",
+    )
+
+
 def _go_live(monkeypatch) -> None:
     monkeypatch.setattr(settings, "VAPID_PUBLIC_KEY", "test-public-key")
     monkeypatch.setattr(settings, "VAPID_PRIVATE_KEY", "test-private-key")
@@ -121,6 +130,45 @@ async def test_send_to_user_keeps_subscription_on_other_error(
         await push.send_to_user(db, user_uuid=uuid.UUID(uid), title="Hi", body="Body", href=None)
 
     assert await _subscription_exists(subscription_id) is True
+
+
+@pytest.mark.asyncio
+async def test_send_to_user_prunes_legacy_unsafe_endpoint_without_request(
+    client: AsyncClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _go_live(monkeypatch)
+    _, mobile = await full_registration(client, lines=["real_estate"])
+    uid = await _auth_user_uuid(mobile)
+    subscription_id = await _seed_subscription(uid, "http://127.0.0.1/internal-admin")
+    calls: list[str] = []
+
+    def _unexpected_webpush(*args, **kwargs):
+        calls.append("called")
+
+    monkeypatch.setattr(push, "webpush", _unexpected_webpush)
+    import app.db.session as _session_mod
+
+    async with _session_mod.AsyncSessionLocal() as db:
+        await push.send_to_user(db, user_uuid=uuid.UUID(uid), title="Hi", body="Body", href=None)
+
+    assert calls == []
+    assert await _subscription_exists(subscription_id) is False
+
+
+def test_no_redirect_session_forces_redirects_off(monkeypatch: pytest.MonkeyPatch) -> None:
+    captured: dict[str, object] = {}
+
+    def _fake_post(self, url, **kwargs):
+        captured.update(kwargs)
+        return object()
+
+    import requests
+
+    monkeypatch.setattr(requests.Session, "post", _fake_post)
+    with push._NoRedirectSession() as session:
+        session.post("https://fcm.googleapis.com/fcm/send/test", allow_redirects=True)
+
+    assert captured["allow_redirects"] is False
 
 
 class _FakeResponse:

@@ -10261,14 +10261,20 @@
       "PushSubscribeRequest": {
         "properties": {
           "auth": {
+            "maxLength": 512,
+            "minLength": 1,
             "title": "Auth",
             "type": "string"
           },
           "endpoint": {
+            "maxLength": 2048,
+            "minLength": 1,
             "title": "Endpoint",
             "type": "string"
           },
           "p256dh": {
+            "maxLength": 512,
+            "minLength": 1,
             "title": "P256Dh",
             "type": "string"
           }
@@ -10284,6 +10290,8 @@
       "PushUnsubscribeRequest": {
         "properties": {
           "endpoint": {
+            "maxLength": 2048,
+            "minLength": 1,
             "title": "Endpoint",
             "type": "string"
           }
@@ -12234,6 +12242,7 @@
             "type": "string"
           },
           "object_key": {
+            "maxLength": 600,
             "title": "Object Key",
             "type": "string"
           }
@@ -12281,6 +12290,17 @@
       },
       "TaskDocumentPresignResponse": {
         "properties": {
+          "fields": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Fields",
+            "type": "object"
+          },
+          "max_bytes": {
+            "title": "Max Bytes",
+            "type": "integer"
+          },
           "object_key": {
             "title": "Object Key",
             "type": "string"
@@ -12292,7 +12312,9 @@
         },
         "required": [
           "object_key",
-          "upload_url"
+          "upload_url",
+          "fields",
+          "max_bytes"
         ],
         "title": "TaskDocumentPresignResponse",
         "type": "object"

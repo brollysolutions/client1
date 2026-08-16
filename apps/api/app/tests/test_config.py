@@ -67,6 +67,21 @@ def test_placeholder_storage_credentials_allowed_in_development() -> None:
     assert s.SPACES_ACCESS_KEY == "minioadmin"
 
 
+@pytest.mark.parametrize(
+    ("override", "value"),
+    [
+        ("PUSH_ENDPOINT_ALLOWED_HOSTS", ""),
+        ("PUSH_DELIVERY_TIMEOUT_SECONDS", 0),
+        ("TASK_DOCUMENT_MAX_UPLOAD_BYTES", 0),
+        ("TASK_DOCUMENT_MAX_PER_TASK", 0),
+        ("TASK_DOCUMENT_PRESIGN_LIMIT_PER_HOUR", 0),
+    ],
+)
+def test_security_limits_must_be_positive_or_nonempty(override: str, value: object) -> None:
+    with pytest.raises(ValidationError):
+        Settings(ENV="development", **{override: value})
+
+
 def test_disabled_media_scanner_rejected_outside_development() -> None:
     with pytest.raises(ValidationError):
         Settings(

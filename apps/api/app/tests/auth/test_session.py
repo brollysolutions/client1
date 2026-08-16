@@ -222,3 +222,23 @@ async def test_change_password_revokes_existing_refresh(client: AsyncClient) -> 
 
     client.cookies.set("refresh_token", live_cookie)
     assert (await client.post("/api/v1/auth/refresh")).status_code == 401
+
+
+async def test_change_password_invalidates_presented_access_token(client: AsyncClient) -> None:
+    access_token, _ = await full_registration(client)
+    changed = await client.post(
+        "/api/v1/auth/change-password",
+        headers={"Authorization": f"Bearer {access_token}"},
+        json={
+            "current_password": PASSWORD,
+            "new_password": "New@Pass1",
+            "confirm_password": "New@Pass1",
+        },
+    )
+    assert changed.status_code == 200
+
+    old_session = await client.get(
+        "/api/v1/auth/me", headers={"Authorization": f"Bearer {access_token}"}
+    )
+    assert old_session.status_code == 401
+    assert old_session.json()["detail"] == "Session is no longer valid. Please log in again."
