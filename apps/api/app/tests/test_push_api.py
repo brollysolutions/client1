@@ -15,6 +15,15 @@ from app.core.config import settings
 from conftest import full_registration
 
 
+@pytest.fixture(autouse=True)
+def _allow_existing_test_provider(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(
+        settings,
+        "PUSH_ENDPOINT_ALLOWED_HOSTS",
+        f"{settings.PUSH_ENDPOINT_ALLOWED_HOSTS},push.example.com",
+    )
+
+
 async def _auth_user_uuid(mobile: str) -> str:
     import app.db.session as _session_mod
 
@@ -71,6 +80,29 @@ async def test_subscribe_requires_auth(client: AsyncClient) -> None:
     assert resp.status_code == 401
 
 
+@pytest.mark.parametrize(
+    "endpoint",
+    [
+        "http://127.0.0.1/internal",
+        "https://127.0.0.1/internal",
+        "https://localhost/internal",
+        "https://169.254.169.254/latest/meta-data",
+        "https://fcm.googleapis.com.evil.example/push",
+        "https://example.com/push",
+    ],
+)
+async def test_subscribe_rejects_ssrf_and_unapproved_endpoints(
+    client: AsyncClient, endpoint: str
+) -> None:
+    token, _ = await full_registration(client, lines=["real_estate"])
+    resp = await client.post(
+        "/api/v1/push/subscribe",
+        headers={"Authorization": f"Bearer {token}"},
+        json={"endpoint": endpoint, "p256dh": "key", "auth": "secret"},
+    )
+    assert resp.status_code == 422
+
+
 @pytest.mark.asyncio
 async def test_unsubscribe_requires_auth(client: AsyncClient) -> None:
     resp = await client.post(
@@ -83,7 +115,7 @@ async def test_unsubscribe_requires_auth(client: AsyncClient) -> None:
 async def test_subscribe_creates_row_scoped_to_caller(client: AsyncClient) -> None:
     token, mobile = await full_registration(client, lines=["real_estate"])
     uid = await _auth_user_uuid(mobile)
-    endpoint = f"https://push.example.com/{uuid.uuid4().hex}"
+    endpoint = f"https://fcm.googleapis.com/fcm/send/{uuid.uuid4().hex}"
 
     resp = await client.post(
         "/api/v1/push/subscribe",
@@ -223,8 +255,18 @@ async def test_support_ticket_producer_calls_webpush_and_survives_its_failure(
 
     calls: list[dict] = []
 
-    def _fake_webpush(*, subscription_info, data, vapid_private_key, vapid_claims):
+    def _fake_webpush(
+        *,
+        subscription_info,
+        data,
+        vapid_private_key,
+        vapid_claims,
+        timeout,
+        requests_session,
+    ):
         calls.append({"endpoint": subscription_info["endpoint"], "data": data})
+        assert timeout == settings.PUSH_DELIVERY_TIMEOUT_SECONDS
+        assert requests_session is not None
         raise RuntimeError("simulated push-service outage")
 
     from app.services import push as push_module

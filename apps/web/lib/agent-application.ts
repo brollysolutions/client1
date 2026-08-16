@@ -70,8 +70,7 @@ export async function presignAgentApplicationDocument(
 // Direct-to-storage multipart POST against the presigned URL — a different
 // host than the API's BASE_URL, so this deliberately bypasses apiRequest (no
 // auth header, no JSON body, no auto-refresh retry; storage doesn't know
-// about any of that), same reasoning as uploadFileToPresignedUrl in
-// lib/employee-api.ts. The file part MUST be appended LAST — S3/MinIO ignore
+// about any of that). The file part MUST be appended LAST — S3/MinIO ignore
 // any field that comes after it.
 export async function uploadFileToPresignedPost(
   uploadUrl: string,

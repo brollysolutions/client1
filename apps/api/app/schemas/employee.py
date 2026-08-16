@@ -73,11 +73,13 @@ class TaskDocumentPresignRequest(BaseModel):
 class TaskDocumentPresignResponse(BaseModel):
     object_key: str
     upload_url: str
+    fields: dict[str, str]
+    max_bytes: int
 
 
 class TaskDocumentCreate(BaseModel):
     doc_type: DocTypeLiteral
-    object_key: str
+    object_key: Annotated[str, Field(max_length=600)]
 
 
 class TaskDocumentRead(BaseModel):

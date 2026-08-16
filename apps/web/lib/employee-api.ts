@@ -155,22 +155,3 @@ export async function deleteTaskFeedbackMedia(
     { method: "DELETE" },
   );
 }
-
-// Direct-to-storage PUT against the presigned URL — a different host than the
-// API's BASE_URL, so this deliberately bypasses apiRequest (no auth header,
-// no JSON body, no auto-refresh retry; storage doesn't know about any of that).
-export async function uploadFileToPresignedUrl(
-  uploadUrl: string,
-  file: File,
-): Promise<{ ok: boolean }> {
-  try {
-    const res = await fetch(uploadUrl, {
-      method: "PUT",
-      headers: { "Content-Type": file.type },
-      body: file,
-    });
-    return { ok: res.ok };
-  } catch {
-    return { ok: false };
-  }
-}

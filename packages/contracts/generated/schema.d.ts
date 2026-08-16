@@ -8052,6 +8052,12 @@ export interface components {
         };
         /** TaskDocumentPresignResponse */
         TaskDocumentPresignResponse: {
+            /** Fields */
+            fields: {
+                [key: string]: string;
+            };
+            /** Max Bytes */
+            max_bytes: number;
             /** Object Key */
             object_key: string;
             /** Upload Url */

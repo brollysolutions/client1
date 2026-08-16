@@ -881,7 +881,7 @@ async def forgot_initiate(
     # unknown-mobile challenge can never reach password mutation because the
     # reset step resolves the account again.
     otp = await generate_and_store_otp(cache, mobile, "reset")
-    if not user:
+    if not user or user.status not in (UserStatus.ACTIVE, UserStatus.PENDING_PASSWORD_RESET):
         # Don't reveal whether mobile exists
         return ForgotInitiateResponse(
             message="If this number is registered, an OTP has been sent.",
@@ -946,7 +946,12 @@ async def forgot_reset(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid reset token.")
 
     jti: str = claims.get("jti", "")
-    mobile: str = claims["mobile"]
+    mobile = claims.get("mobile")
+    if not isinstance(mobile, str):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid or expired reset token.",
+        )
     try:
         validate_password_policy(req.new_password, mobile)
     except ValueError as exc:
@@ -954,9 +959,15 @@ async def forgot_reset(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)
         ) from exc
 
-    user = await db.scalar(select(User).where(User.mobile == mobile))
+    # Serialize with Admin suspension/reactivation and refresh rotation. The
+    # status is re-checked while holding the same user-row lock those flows
+    # use, so a concurrent reset cannot undo a suspension.
+    user = await db.scalar(select(User).where(User.mobile == mobile).with_for_update())
     if not user:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="User not found.")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid or expired reset token.",
+        )
 
     if jti:
         import math
@@ -974,8 +985,18 @@ async def forgot_reset(
                 detail="Reset token already used.",
             )
 
+    if user.status not in (UserStatus.ACTIVE, UserStatus.PENDING_PASSWORD_RESET):
+        # Keep account state enumeration-safe. The single-use token is already
+        # burned above so it cannot become usable after a later reactivation.
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid or expired reset token.",
+        )
+
     user.password_hash = await hash_password(req.new_password)
-    user.status = UserStatus.ACTIVE
+    if user.status == UserStatus.PENDING_PASSWORD_RESET:
+        user.status = UserStatus.ACTIVE
+    user.session_version += 1
     # Evict any pre-existing session (e.g. an attacker's) atomically with the
     # password rotation — one transaction, so a revoke failure can't leave the new
     # password committed while old sessions stay live.
@@ -1004,8 +1025,18 @@ async def change_password(
     ip: str | None = None,
     user_agent: str | None = None,
 ) -> None:
-    user = await db.get(User, current_user_id)
+    # get_current_user already loaded this identity in the same session. Force
+    # a row-locked refresh so a suspension committed between dependency
+    # resolution and this mutation is observed rather than overwritten.
+    user = await db.scalar(
+        select(User)
+        .where(User.id == current_user_id)
+        .with_for_update()
+        .execution_options(populate_existing=True)
+    )
     if not user or not user.password_hash:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized.")
+    if user.status not in (UserStatus.ACTIVE, UserStatus.PENDING_PASSWORD_RESET):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized.")
 
     if not await verify_password(req.current_password, user.password_hash):
@@ -1021,7 +1052,9 @@ async def change_password(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)
         ) from exc
     user.password_hash = await hash_password(req.new_password)
-    user.status = UserStatus.ACTIVE
+    if user.status == UserStatus.PENDING_PASSWORD_RESET:
+        user.status = UserStatus.ACTIVE
+    user.session_version += 1
     # Password rotated → drop any other live sessions atomically with the write.
     await _revoke_all_refresh_tokens(db, user.id, commit=False)
     await db.commit()

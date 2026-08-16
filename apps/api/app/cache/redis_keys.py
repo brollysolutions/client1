@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 from typing import Any
 
 import redis.asyncio as aioredis
@@ -76,6 +77,10 @@ LOAN_MEDIA_PRESIGN = "loan_media_presign:{owner_uuid}"
 
 # Assigned-Employee private site-visit feedback uploads.
 TASK_FEEDBACK_MEDIA_PRESIGN = "task_feedback_media_presign:{owner_uuid}"
+# Employee document-collection uploads. Per-account rather than per-task so a
+# compromised Employee session cannot fan out across many assigned tasks.
+TASK_DOCUMENT_PRESIGN = "task_document_presign:{owner_uuid}"
+TASK_DOCUMENT_UPLOAD = "task_document_upload:{object_key_hash}"
 
 # Authenticated coarse-location refreshes. Every capture follows an explicit
 # settings action, while this budget bounds retries and write amplification per
@@ -99,6 +104,8 @@ TTL_MOBILE_CHANGE_OTP_DAILY = 24 * 60 * 60
 TTL_PROPERTY_MEDIA_PRESIGN = 60 * 60
 TTL_LOAN_MEDIA_PRESIGN = 60 * 60
 TTL_TASK_FEEDBACK_MEDIA_PRESIGN = 60 * 60
+TTL_TASK_DOCUMENT_PRESIGN = 60 * 60
+TTL_TASK_DOCUMENT_UPLOAD = 10 * 60
 TTL_PERSONALIZATION_LOCATION_CAPTURE = 60 * 60
 
 
@@ -115,6 +122,10 @@ class RedisCache:
 
     async def get(self, key: str) -> str | None:
         return await self._r.get(key)
+
+    async def getdel(self, key: str) -> str | None:
+        """Atomically consume a single-use value (Redis 6.2+ GETDEL)."""
+        return await self._r.getdel(key)
 
     async def set(self, key: str, value: Any, ttl: int) -> None:
         await self._r.set(key, str(value), ex=ttl)
@@ -250,6 +261,15 @@ def loan_media_presign_key(owner_uuid: str) -> str:
 
 def task_feedback_media_presign_key(owner_uuid: str) -> str:
     return TASK_FEEDBACK_MEDIA_PRESIGN.format(owner_uuid=owner_uuid)
+
+
+def task_document_presign_key(owner_uuid: str) -> str:
+    return TASK_DOCUMENT_PRESIGN.format(owner_uuid=owner_uuid)
+
+
+def task_document_upload_key(object_key: str) -> str:
+    digest = hashlib.sha256(object_key.encode("utf-8")).hexdigest()
+    return TASK_DOCUMENT_UPLOAD.format(object_key_hash=digest)
 
 
 def personalization_location_capture_key(owner_uuid: str) -> str:

@@ -42,6 +42,8 @@ from app.services.employee import (
     TaskAlreadyTerminal,
     TaskDocumentContentTypeUnrecognized,
     TaskDocumentKeyMismatch,
+    TaskDocumentLimitReached,
+    TaskDocumentRateExceeded,
     TaskDocumentStorageUnavailable,
     TaskNotDocumentCollection,
     create_task_document,
@@ -294,14 +296,21 @@ async def revoke_own_contact_share_link(
 async def presign_document(
     task_id: UUID,
     payload: TaskDocumentPresignRequest,
+    response: Response,
     current_user: CurrentUser = Depends(require_employee),
     db: AsyncSession = Depends(get_db),
+    cache: RedisCache = Depends(get_cache),
 ) -> TaskDocumentPresignResponse:
+    response.headers["Cache-Control"] = "private, no-store"
     staff_profile_uuid = _staff_profile_uuid(current_user)
     task = await _get_own_task(db, task_id, staff_profile_uuid)
     try:
-        object_key, upload_url = presign_task_document_upload(
-            task, payload.doc_type, payload.content_type
+        object_key, upload_url, fields, max_bytes = await presign_task_document_upload(
+            cache,
+            task,
+            owner_uuid=current_user.id,
+            doc_type=payload.doc_type,
+            content_type=payload.content_type,
         )
     except TaskNotDocumentCollection as exc:
         raise HTTPException(
@@ -313,20 +322,40 @@ async def presign_document(
             status.HTTP_409_CONFLICT,
             "This task is already closed; no further changes are allowed.",
         ) from exc
-    return TaskDocumentPresignResponse(object_key=object_key, upload_url=upload_url)
+    except TaskDocumentRateExceeded as exc:
+        raise HTTPException(
+            status.HTTP_429_TOO_MANY_REQUESTS,
+            "Too many upload attempts. Try again later.",
+        ) from exc
+    return TaskDocumentPresignResponse(
+        object_key=object_key,
+        upload_url=upload_url,
+        fields=fields,
+        max_bytes=max_bytes,
+    )
 
 
 @router.post("/tasks/{task_id}/documents", response_model=TaskDocumentRead)
 async def confirm_document(
     task_id: UUID,
     payload: TaskDocumentCreate,
+    response: Response,
     current_user: CurrentUser = Depends(require_employee),
     db: AsyncSession = Depends(get_db),
+    cache: RedisCache = Depends(get_cache),
 ) -> TaskDocumentRead:
+    response.headers["Cache-Control"] = "private, no-store"
     staff_profile_uuid = _staff_profile_uuid(current_user)
     task = await _get_own_task(db, task_id, staff_profile_uuid)
     try:
-        document = await create_task_document(db, task, payload.doc_type, payload.object_key)
+        document = await create_task_document(
+            db,
+            cache,
+            task,
+            owner_uuid=current_user.id,
+            doc_type=payload.doc_type,
+            object_key=payload.object_key,
+        )
     except TaskNotDocumentCollection as exc:
         raise HTTPException(
             status.HTTP_409_CONFLICT,
@@ -347,6 +376,11 @@ async def confirm_document(
             status.HTTP_422_UNPROCESSABLE_ENTITY,
             "This file isn't a supported document type.",
         ) from exc
+    except TaskDocumentLimitReached as exc:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            "This task already has the maximum number of documents.",
+        ) from exc
     except TaskDocumentStorageUnavailable as exc:
         raise HTTPException(
             status.HTTP_502_BAD_GATEWAY,
@@ -358,9 +392,11 @@ async def confirm_document(
 @router.get("/tasks/{task_id}/documents", response_model=list[TaskDocumentRead])
 async def list_documents(
     task_id: UUID,
+    response: Response,
     current_user: CurrentUser = Depends(require_employee),
     db: AsyncSession = Depends(get_db),
 ) -> list[TaskDocumentRead]:
+    response.headers["Cache-Control"] = "private, no-store"
     staff_profile_uuid = _staff_profile_uuid(current_user)
     await _get_own_task(db, task_id, staff_profile_uuid)
     documents = await list_task_documents(db, task_id, staff_profile_uuid)

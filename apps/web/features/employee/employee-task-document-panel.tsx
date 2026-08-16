@@ -78,7 +78,7 @@ export function EmployeeTaskDocumentPanel({
           <input
             ref={fileInputRef}
             type="file"
-            accept="image/jpeg,image/png,application/pdf"
+            accept="image/jpeg,image/png,image/webp,application/pdf"
             className="hidden"
             onChange={(e) => void handleFileChosen(e)}
           />
@@ -96,6 +96,7 @@ export function EmployeeTaskDocumentPanel({
             )}
             Upload file
           </Button>
+          <p className="text-xs text-text-secondary">JPEG, PNG, WebP, or PDF up to 5 MB.</p>
         </div>
       )}
 
