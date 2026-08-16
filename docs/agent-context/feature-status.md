@@ -2,7 +2,7 @@
 
 Status: **Derived living implementation ledger**
 
-As of: **2026-08-12**
+As of: **2026-08-16**
 
 Evidence baseline: `abcc1fd`
 ([PR #175](https://github.com/brollysolutions/client1/pull/175)), plus the
@@ -49,6 +49,8 @@ an estimate of calendar time: a single security-sensitive gap can require more
 work than several completed UI requirements.
 
 ## Current work
+
+**Done; PR pending — security-audit remediation:** password recovery now treats suspended/deleted identities like unknown accounts for delivery and refuses a reset-token mutation while holding the user-row lock; password reset and authenticated password change increment `session_version` and revoke refresh tokens atomically. Browser push subscriptions accept only configured HTTPS provider hosts, unsafe legacy rows are pruned without a request, redirects are disabled, and delivery is bounded to ten seconds. Employee task documents now use storage-signed 5 MiB multipart policies, an hourly per-account budget, a single-use owner/task/type-bound confirmation claim, bounded canonical bytes that cannot be replaced through the staging signature, row-locked 12-document quotas, and private no-store responses. Generated contracts and the web multipart client are current; authorization, own-task RLS, private downloads, forced-reset activation, and requirement completion remain unchanged. Fresh evidence: 128 focused API tests and final 39-, 18-, and 1-test security reruns pass; Ruff and formatting pass across 447 API files; Alembic has one head; web lint, strict typecheck, and all 338 tests pass. The production build compiles, typechecks, and generates all 93 pages before the known Windows standalone `EPERM`; host-side public fetches cannot resolve Docker-only `api`. The monolithic API suite reached its 30-minute bound without a final report and is inconclusive. Security review additionally closed confirmation-budget bypass and post-confirm object replacement; no reachable finding remains in this remediation slice.
 
 **Done — [PR #186](https://github.com/brollysolutions/client1/pull/186) — replace Admin home Audit log frequent action:** this UI-only maintenance slice replaces the stale Audit log home action with the existing Lead assignments workspace, matching the prior Admin navigation removal. Routes, APIs, contracts, data, server-side authorization, RLS, and audit history are unchanged. The focused regression, web lint, strict typecheck, and all 338 web unit tests pass. The production build compiled, typechecked, and generated all 93 pages before the known Windows standalone `EPERM` symlink failure. Requirement completion remains 99.4%; next priority is the FR-2.2 controlled-correction/audit follow-up.
 

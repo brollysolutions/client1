@@ -10,14 +10,24 @@ only wall — same posture as services/telecaller.py.
 
 from __future__ import annotations
 
+import asyncio
+import json
 import uuid
 from datetime import UTC, datetime, timedelta
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 import app.db.session as db_session
+from app.cache.redis_keys import (
+    TTL_TASK_DOCUMENT_PRESIGN,
+    TTL_TASK_DOCUMENT_UPLOAD,
+    RedisCache,
+    task_document_presign_key,
+    task_document_upload_key,
+)
+from app.core.config import settings
 from app.models.lead import Lead
 from app.models.task import BgCheckOutcome, Task, TaskDocument, TaskStatus, TaskType
 from app.schemas.employee import EmployeeTaskUpdate
@@ -72,16 +82,19 @@ class TaskDocumentKeyMismatch(Exception):
 
 
 class TaskDocumentContentTypeUnrecognized(Exception):
-    """The uploaded object's actual leading bytes don't sniff to any of the
-    accepted document content types. Security-review finding (feature-
-    status.md §2-12) — presign_task_document_upload uses the uncapped PUT
-    (no signed content-type policy the way the other two upload flows'
-    signed-POST has), so this confirm-time check is this flow's only
-    content-type enforcement at all."""
+    """The upload is absent, empty, oversize, or not an accepted document type."""
 
 
 class TaskDocumentStorageUnavailable(Exception):
     """Storage was unreachable while verifying an upload. Fail closed."""
+
+
+class TaskDocumentLimitReached(Exception):
+    """The task already has the configured maximum confirmed documents."""
+
+
+class TaskDocumentRateExceeded(Exception):
+    """The Employee exhausted the bounded hourly presign allowance."""
 
 
 def _base_stmt():
@@ -209,14 +222,41 @@ def build_document_object_key(task_id: UUID, doc_type: str) -> str:
     return f"{_document_key_prefix(task_id)}{uuid.uuid4()}-{doc_type}"
 
 
-def presign_task_document_upload(task: Task, doc_type: str, content_type: str) -> tuple[str, str]:
-    """Returns (object_key, upload_url). No DB write — the row is only
-    created once the client confirms the direct-to-storage PUT succeeded
-    (create_task_document), so a failed upload never leaves an orphan row."""
+async def presign_task_document_upload(
+    cache: RedisCache,
+    task: Task,
+    *,
+    owner_uuid: UUID,
+    doc_type: str,
+    content_type: str,
+) -> tuple[str, str, dict[str, str], int]:
+    """Return an object key and storage-enforced multipart upload policy."""
     _check_document_writable(task)
+    count = await cache.incr_with_expire(
+        task_document_presign_key(str(owner_uuid)), TTL_TASK_DOCUMENT_PRESIGN
+    )
+    if count > settings.TASK_DOCUMENT_PRESIGN_LIMIT_PER_HOUR:
+        raise TaskDocumentRateExceeded
     object_key = build_document_object_key(task.id, doc_type)
-    upload_url = storage.presign_upload(object_key, content_type)
-    return object_key, upload_url
+    upload_url, fields = storage.presign_upload_post(
+        object_key,
+        content_type,
+        max_bytes=settings.TASK_DOCUMENT_MAX_UPLOAD_BYTES,
+    )
+    await cache.set(
+        task_document_upload_key(object_key),
+        json.dumps(
+            {
+                "owner_uuid": str(owner_uuid),
+                "task_uuid": str(task.id),
+                "doc_type": doc_type,
+                "content_type": content_type,
+            },
+            separators=(",", ":"),
+        ),
+        TTL_TASK_DOCUMENT_UPLOAD,
+    )
+    return object_key, upload_url, fields, settings.TASK_DOCUMENT_MAX_UPLOAD_BYTES
 
 
 def _document_key_prefix(task_id: UUID) -> str:
@@ -224,27 +264,78 @@ def _document_key_prefix(task_id: UUID) -> str:
 
 
 async def create_task_document(
-    db: AsyncSession, task: Task, doc_type: str, object_key: str
+    db: AsyncSession,
+    cache: RedisCache,
+    task: Task,
+    *,
+    owner_uuid: UUID,
+    doc_type: str,
+    object_key: str,
 ) -> TaskDocument:
     _check_document_writable(task)
     if not object_key.startswith(_document_key_prefix(task.id)):
         raise TaskDocumentKeyMismatch
+    raw_claim = await cache.getdel(task_document_upload_key(object_key))
     try:
-        recognized = storage.content_type_is_recognized(object_key)
+        claim = json.loads(raw_claim) if raw_claim is not None else None
+    except (TypeError, ValueError):
+        claim = None
+    if (
+        not isinstance(claim, dict)
+        or set(claim) != {"owner_uuid", "task_uuid", "doc_type", "content_type"}
+        or claim["owner_uuid"] != str(owner_uuid)
+        or claim["task_uuid"] != str(task.id)
+        or claim["doc_type"] != doc_type
+        or claim["content_type"] not in {"image/jpeg", "image/png", "image/webp", "application/pdf"}
+    ):
+        raise TaskDocumentKeyMismatch
+    content_type = claim["content_type"]
+    # Serialize mutable task state and the per-task count. Concurrent confirms
+    # cannot both observe the final available quota slot.
+    locked_task = await db.scalar(
+        select(Task)
+        .where(Task.id == task.id)
+        .with_for_update()
+        .execution_options(populate_existing=True)
+    )
+    if locked_task is None:
+        raise TaskDocumentKeyMismatch
+    _check_document_writable(locked_task)
+    count = await db.scalar(
+        select(func.count()).select_from(TaskDocument).where(TaskDocument.task_uuid == task.id)
+    )
+    if (count or 0) >= settings.TASK_DOCUMENT_MAX_PER_TASK:
+        await asyncio.to_thread(storage.delete_object, object_key)
+        raise TaskDocumentLimitReached
+    canonical_key = f"{_document_key_prefix(task.id)}confirmed/{uuid.uuid4()}-{doc_type}"
+    try:
+        content = await asyncio.to_thread(
+            storage.read_object_bytes,
+            object_key,
+            max_bytes=settings.TASK_DOCUMENT_MAX_UPLOAD_BYTES,
+        )
+        if content is None or storage.sniff_content_type(content[:32]) != content_type:
+            raise TaskDocumentContentTypeUnrecognized
+        await asyncio.to_thread(storage.put_object_bytes, canonical_key, content, content_type)
+    except TaskDocumentContentTypeUnrecognized:
+        await asyncio.to_thread(storage.delete_object, object_key)
+        raise
     except Exception as exc:  # transport failure — fail closed, don't swallow
+        await asyncio.to_thread(storage.delete_object, canonical_key)
+        await asyncio.to_thread(storage.delete_object, object_key)
         raise TaskDocumentStorageUnavailable from exc
-    if not recognized:
-        # A missing object and an unrecognized/polyglot object both fail
-        # this single check (content_type_is_recognized returns False for
-        # both) — this flow has no separate existence/size verification
-        # (unlike the other two upload flows), so both cases are rejected
-        # here alike.
-        storage.delete_object(object_key)
-        raise TaskDocumentContentTypeUnrecognized
-    document = TaskDocument(task_uuid=task.id, doc_type=doc_type, object_key=object_key)
+
+    document = TaskDocument(task_uuid=task.id, doc_type=doc_type, object_key=canonical_key)
     db.add(document)
-    await db.commit()
+    try:
+        await db.commit()
+    except Exception:
+        await db.rollback()
+        await asyncio.to_thread(storage.delete_object, canonical_key)
+        await asyncio.to_thread(storage.delete_object, object_key)
+        raise
     await db.refresh(document)
+    await asyncio.to_thread(storage.delete_object, object_key)
     return document
 
 
@@ -286,10 +377,10 @@ async def delete_task_document(db: AsyncSession, document: TaskDocument) -> None
 async def purge_orphaned_task_documents(*, min_age: timedelta = _ORPHAN_MIN_AGE) -> dict[str, int]:
     """Delete objects under tasks/ that no TaskDocument row references.
 
-    presign_task_document_upload hands out a signed PUT before any
-    TaskDocument row exists (create_task_document only writes the row once
-    the client confirms the upload succeeded) — an abandoned upload leaves an
-    object nothing points at. Mirrors
+    presign_task_document_upload hands out a signed POST before any
+    TaskDocument row exists (create_task_document only writes the canonical
+    row once the client confirms the upload succeeded). An abandoned staging
+    upload therefore leaves an object nothing points at. Mirrors
     services/loan_documents.py::purge_orphaned_uploads and
     services/agent_applications.py's orphan sweep exactly; this was the one
     upload prefix in the codebase without an equivalent job

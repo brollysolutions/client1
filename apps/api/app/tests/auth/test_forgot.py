@@ -29,6 +29,21 @@ async def _full_forgot_flow(client: AsyncClient, mobile: str) -> str:
     return resp.json()["reset_token"]
 
 
+async def _set_user_status(mobile: str, user_status: str) -> None:
+    from sqlalchemy import text
+
+    import app.db.session as _session_mod
+
+    async with _session_mod.AsyncSessionLocal() as db:
+        await db.execute(
+            text(
+                "UPDATE auth_users SET status = CAST(:status AS status_enum) WHERE mobile = :mobile"
+            ),
+            {"status": user_status, "mobile": mobile},
+        )
+        await db.commit()
+
+
 # ---------------------------------------------------------------------------
 # POST /auth/forgot/initiate
 # ---------------------------------------------------------------------------
@@ -54,6 +69,28 @@ async def test_forgot_initiate_known_and_unknown_same_message(client: AsyncClien
     unknown = await client.post("/api/v1/auth/forgot/initiate", json={"mobile": unique_mobile()})
     assert known.json()["message"] == unknown.json()["message"]
     assert known.json()["delivery_channel"] == unknown.json()["delivery_channel"] == "none"
+
+
+async def test_forgot_initiate_suspended_account_is_neutral_and_sends_nothing(
+    client: AsyncClient, monkeypatch
+) -> None:
+    _, mobile = await full_registration(client)
+    await _set_user_status(mobile, "suspended")
+    deliveries: list[str] = []
+
+    async def _record_delivery(**kwargs) -> None:
+        deliveries.append(kwargs["mobile"])
+
+    from app.services import auth_service
+
+    monkeypatch.setattr(auth_service, "_deliver_reset_otp_and_log", _record_delivery)
+    suspended = await client.post("/api/v1/auth/forgot/initiate", json={"mobile": mobile})
+    unknown = await client.post("/api/v1/auth/forgot/initiate", json={"mobile": unique_mobile()})
+
+    assert suspended.status_code == unknown.status_code == 200
+    assert suspended.json()["message"] == unknown.json()["message"]
+    assert suspended.json()["delivery_channel"] == unknown.json()["delivery_channel"] == "none"
+    assert deliveries == []
 
 
 async def test_forgot_verify_known_and_unknown_fail_with_same_detail(client: AsyncClient) -> None:
@@ -243,6 +280,52 @@ async def test_forgot_reset_old_password_rejected(client: AsyncClient) -> None:
     )
     resp = await client.post("/api/v1/auth/login", json={"mobile": mobile, "password": PASSWORD})
     assert resp.status_code == 401
+
+
+async def test_forgot_reset_rejects_and_burns_token_if_account_is_suspended(
+    client: AsyncClient,
+) -> None:
+    _, mobile = await full_registration(client)
+    reset_token = await _full_forgot_flow(client, mobile)
+    await _set_user_status(mobile, "suspended")
+    payload = {
+        "reset_token": reset_token,
+        "new_password": "NewPass@5678",
+        "confirm_password": "NewPass@5678",
+    }
+
+    suspended = await client.post("/api/v1/auth/forgot/reset", json=payload)
+    assert suspended.status_code == 400
+    assert suspended.json()["detail"] == "Invalid or expired reset token."
+
+    await _set_user_status(mobile, "active")
+    reused = await client.post("/api/v1/auth/forgot/reset", json=payload)
+    assert reused.status_code == 400
+    assert reused.json()["detail"] == "Reset token already used."
+
+
+async def test_forgot_reset_invalidates_preexisting_access_token(client: AsyncClient) -> None:
+    access_token, mobile = await full_registration(client)
+    refresh_token = client.cookies.get("refresh_token")
+    reset_token = await _full_forgot_flow(client, mobile)
+    reset = await client.post(
+        "/api/v1/auth/forgot/reset",
+        json={
+            "reset_token": reset_token,
+            "new_password": "NewPass@5678",
+            "confirm_password": "NewPass@5678",
+        },
+    )
+    assert reset.status_code == 200
+
+    old_session = await client.get(
+        "/api/v1/auth/me", headers={"Authorization": f"Bearer {access_token}"}
+    )
+    assert old_session.status_code == 401
+    assert old_session.json()["detail"] == "Session is no longer valid. Please log in again."
+
+    client.cookies.set("refresh_token", refresh_token)
+    assert (await client.post("/api/v1/auth/refresh")).status_code == 401
 
 
 async def test_forgot_reset_malformed_token_returns_400(client: AsyncClient) -> None:

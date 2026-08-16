@@ -42,12 +42,14 @@ import logging
 import uuid
 
 import anyio
+import requests
 from pywebpush import WebPushException, webpush
 from sqlalchemy import delete, select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
+from app.core.push_endpoints import InvalidPushEndpoint, validate_push_endpoint
 from app.db.session import AsyncSessionLocal
 from app.models.push_subscription import PushSubscription
 
@@ -57,6 +59,14 @@ logger = logging.getLogger(__name__)
 # blocking-thread usage so a burst of notifications can't spawn unbounded
 # worker threads.
 PUSH_LIMITER = anyio.CapacityLimiter(8)
+
+
+class _NoRedirectSession(requests.Session):
+    """Web Push delivery must never follow a provider redirect to another host."""
+
+    def post(self, url: str, **kwargs):  # type: ignore[no-untyped-def]
+        kwargs["allow_redirects"] = False
+        return super().post(url, **kwargs)
 
 
 def _is_live() -> bool:
@@ -74,6 +84,7 @@ async def upsert_subscription(
     endpoint across different logged-in accounts, so re-subscribing must
     reassign ownership, not collide. Runs on the bypass session — see module
     docstring for why the caller's own RLS-scoped session cannot do this."""
+    validate_push_endpoint(endpoint)
     async with AsyncSessionLocal() as session:
         stmt = pg_insert(PushSubscription).values(
             user_uuid=user_uuid,
@@ -122,6 +133,21 @@ async def send_to_user(
     payload = json.dumps({"title": title, "body": body, "href": href})
     for subscription in subscriptions:
         try:
+            validate_push_endpoint(subscription.endpoint)
+        except InvalidPushEndpoint:
+            # Prune legacy/directly-seeded unsafe rows without making an
+            # outbound request or retrying them on every notification.
+            await session.execute(
+                delete(PushSubscription).where(PushSubscription.id == subscription.id)
+            )
+            await session.commit()
+            logger.warning(
+                "push.invalid_endpoint_pruned user_uuid=%s subscription_id=%s",
+                user_uuid,
+                subscription.id,
+            )
+            continue
+        try:
             await _send_one(session, subscription, payload)
         except Exception:
             logger.warning(
@@ -134,15 +160,22 @@ async def send_to_user(
 
 async def _send_one(session: AsyncSession, subscription: PushSubscription, payload: str) -> None:
     def _send() -> None:
-        webpush(
-            subscription_info={
-                "endpoint": subscription.endpoint,
-                "keys": {"p256dh": subscription.p256dh, "auth": subscription.auth},
-            },
-            data=payload,
-            vapid_private_key=settings.VAPID_PRIVATE_KEY,
-            vapid_claims={"sub": settings.VAPID_SUBJECT},
-        )
+        # A fresh session avoids cross-thread mutable state. Redirects are
+        # disabled so an approved provider cannot bounce this server to an
+        # arbitrary internal URL; the explicit timeout replaces pywebpush's
+        # unsafe 10,000-second default.
+        with _NoRedirectSession() as requests_session:
+            webpush(
+                subscription_info={
+                    "endpoint": subscription.endpoint,
+                    "keys": {"p256dh": subscription.p256dh, "auth": subscription.auth},
+                },
+                data=payload,
+                vapid_private_key=settings.VAPID_PRIVATE_KEY,
+                vapid_claims={"sub": settings.VAPID_SUBJECT},
+                timeout=settings.PUSH_DELIVERY_TIMEOUT_SECONDS,
+                requests_session=requests_session,
+            )
 
     try:
         await anyio.to_thread.run_sync(_send, limiter=PUSH_LIMITER)

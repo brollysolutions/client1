@@ -2,23 +2,21 @@
 
 Mints an employee access token the same way test_employee_api.py does.
 Presigning/download-url generation are pure local boto3 signing calls, so
-these tests never need a reachable minio/Spaces endpoint. delete_document's
-storage-side delete is best-effort (services/storage.py swallows failures),
-so it's also safe to exercise without live storage. confirm_document's
-magic-byte sniff (feature-status.md §2-12, services.storage.
-content_type_is_recognized) is a real ranged GET and would otherwise be the
-one exception to that "no live storage" design — module-scoped autouse
-fixture below keeps it mocked True, since none of these tests actually PUT
-real file bytes to the presigned URL.
+these tests never need a reachable minio/Spaces endpoint. Storage reads,
+canonical writes, and best-effort deletes are mocked because none of these
+tests actually POST file bytes to the signed storage policy.
 """
 
 from __future__ import annotations
 
+import base64
+import json
 import uuid
 
 import pytest
 from httpx import AsyncClient
 
+from app.core.config import settings
 from app.core.security import create_access_token
 from app.services import storage
 from conftest import unique_mobile
@@ -26,7 +24,16 @@ from conftest import unique_mobile
 
 @pytest.fixture(autouse=True)
 def _mock_content_type_sniff(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(storage, "content_type_is_recognized", lambda _key: True)
+    monkeypatch.setattr(
+        storage,
+        "read_object_bytes",
+        lambda _key, *, max_bytes: b"%PDF-1.7\nfixture",
+    )
+    monkeypatch.setattr(
+        storage,
+        "put_object_bytes",
+        lambda _key, _content, _content_type: None,
+    )
 
 
 async def _seed_employee(business_line: str = "loans") -> tuple[str, str]:
@@ -158,6 +165,25 @@ async def test_presign_happy_path(client: AsyncClient) -> None:
     body = res.json()
     assert task_id in body["object_key"]
     assert body["upload_url"].startswith("http")
+    assert body["max_bytes"] == settings.TASK_DOCUMENT_MAX_UPLOAD_BYTES
+    assert body["fields"]
+    policy = json.loads(base64.b64decode(body["fields"]["policy"]))
+    assert ["content-length-range", 1, settings.TASK_DOCUMENT_MAX_UPLOAD_BYTES] in policy[
+        "conditions"
+    ]
+    assert res.headers["cache-control"] == "private, no-store"
+
+
+@pytest.mark.asyncio
+async def test_presign_rate_limit_blocks_excess_attempt(client: AsyncClient) -> None:
+    auth_uuid, staff_uuid = await _seed_employee("loans")
+    task_id = await _seed_task("loans", staff_uuid)
+    token = _employee_token(auth_uuid, staff_uuid)
+
+    for _ in range(settings.TASK_DOCUMENT_PRESIGN_LIMIT_PER_HOUR):
+        assert (await _presign(client, token, task_id)).status_code == 200
+    limited = await _presign(client, token, task_id)
+    assert limited.status_code == 429
 
 
 @pytest.mark.asyncio
@@ -226,12 +252,13 @@ async def test_cross_employee_delete_is_404(client: AsyncClient) -> None:
 async def test_confirm_polyglot_content_rejected_and_deletes_object(
     client: AsyncClient, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """Closes feature-status.md §2-12. This flow's presign uses the uncapped
-    PUT (no signed content-type policy the way the other two flows' signed-
-    POST has), so this confirm-time sniff is its only content-type
-    enforcement at all — overrides the module's autouse True-mock to
-    simulate a real polyglot upload."""
-    monkeypatch.setattr(storage, "content_type_is_recognized", lambda _key: False)
+    """A signed upload still fails if its bounded bytes do not match the
+    content type captured in the single-use server claim."""
+    monkeypatch.setattr(
+        storage,
+        "read_object_bytes",
+        lambda _key, *, max_bytes: b"MZ\x90\x00fixture",
+    )
     deleted_keys: list[str] = []
     monkeypatch.setattr(storage, "delete_object", lambda key: deleted_keys.append(key))
 
@@ -243,6 +270,55 @@ async def test_confirm_polyglot_content_rejected_and_deletes_object(
     object_key = presign_res.json()["object_key"]
     confirm_res = await _confirm(client, token, task_id, object_key)
     assert confirm_res.status_code == 422, confirm_res.text
+    assert deleted_keys == [object_key]
+
+
+@pytest.mark.asyncio
+async def test_confirm_oversize_upload_rejected_and_deletes_object(
+    client: AsyncClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(storage, "read_object_bytes", lambda _key, *, max_bytes: None)
+    deleted_keys: list[str] = []
+    monkeypatch.setattr(storage, "delete_object", lambda key: deleted_keys.append(key))
+    auth_uuid, staff_uuid = await _seed_employee("loans")
+    task_id = await _seed_task("loans", staff_uuid)
+    token = _employee_token(auth_uuid, staff_uuid)
+
+    object_key = (await _presign(client, token, task_id)).json()["object_key"]
+    confirmed = await _confirm(client, token, task_id, object_key)
+
+    assert confirmed.status_code == 422
+    assert deleted_keys == [object_key]
+
+
+@pytest.mark.asyncio
+async def test_confirm_enforces_per_task_document_limit(
+    client: AsyncClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    auth_uuid, staff_uuid = await _seed_employee("loans")
+    task_id = await _seed_task("loans", staff_uuid)
+    token = _employee_token(auth_uuid, staff_uuid)
+    import app.db.session as _session_mod
+    from app.models.task import TaskDocument
+
+    async with _session_mod.AsyncSessionLocal() as db:
+        for index in range(settings.TASK_DOCUMENT_MAX_PER_TASK):
+            db.add(
+                TaskDocument(
+                    task_uuid=uuid.UUID(task_id),
+                    doc_type="other",
+                    object_key=f"tasks/{task_id}/existing-{index}-other",
+                )
+            )
+        await db.commit()
+
+    deleted_keys: list[str] = []
+    monkeypatch.setattr(storage, "delete_object", lambda key: deleted_keys.append(key))
+    object_key = (await _presign(client, token, task_id)).json()["object_key"]
+    confirmed = await _confirm(client, token, task_id, object_key)
+
+    assert confirmed.status_code == 409
+    assert confirmed.json()["detail"] == "This task already has the maximum number of documents."
     assert deleted_keys == [object_key]
 
 
@@ -262,6 +338,14 @@ async def test_confirm_then_list_round_trip(client: AsyncClient) -> None:
     assert created["verified"] is False
     assert created["download_url"].startswith("http")
 
+    import app.db.session as _session_mod
+    from app.models.task import TaskDocument
+
+    async with _session_mod.AsyncSessionLocal() as db:
+        row = await db.get(TaskDocument, uuid.UUID(created["id"]))
+        assert row is not None
+        assert f"tasks/{task_id}/confirmed/" in row.object_key
+
     list_res = await client.get(
         f"/api/v1/employee/tasks/{task_id}/documents",
         headers={"Authorization": f"Bearer {token}"},
@@ -269,6 +353,18 @@ async def test_confirm_then_list_round_trip(client: AsyncClient) -> None:
     assert list_res.status_code == 200, list_res.text
     doc_ids = [row["id"] for row in list_res.json()]
     assert created["id"] in doc_ids
+
+
+@pytest.mark.asyncio
+async def test_confirm_upload_claim_is_single_use(client: AsyncClient) -> None:
+    auth_uuid, staff_uuid = await _seed_employee("loans")
+    task_id = await _seed_task("loans", staff_uuid)
+    token = _employee_token(auth_uuid, staff_uuid)
+    object_key = (await _presign(client, token, task_id)).json()["object_key"]
+
+    assert (await _confirm(client, token, task_id, object_key)).status_code == 200
+    replay = await _confirm(client, token, task_id, object_key)
+    assert replay.status_code == 400
 
 
 @pytest.mark.asyncio
