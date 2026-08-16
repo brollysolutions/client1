@@ -9,7 +9,8 @@ Evidence baseline: `abcc1fd`
 verified Admin operational-visibility work in
 [PR #173](https://github.com/brollysolutions/client1/pull/173).
 
-**Done — executable coverage gates (engineering hygiene, no requirement change):**
+**Done — [PR #188](https://github.com/brollysolutions/client1/pull/188) — executable
+coverage gates (engineering hygiene, no requirement change):**
 four security invariants that previously depended on someone remembering to
 write a per-feature test are now enumerated and enforced. New route
 authorization coverage asserts that each of the 232 routes either reaches
