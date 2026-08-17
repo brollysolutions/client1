@@ -199,7 +199,17 @@ services:
     ports:
       - "3000:3000"
     depends_on:
-      - api
+      # Plain `- api` only waits for the container to start, not for
+      # `alembic upgrade head` + uvicorn bind (api's own start_period comment
+      # above: cold start runs 90 migrations before the port opens). web's
+      # Server Components fetch api over the docker network on first render,
+      # so starting before api is healthy raced Next.js SSR against a still-
+      # migrating/not-yet-listening api and produced client-timeout errors
+      # (serverFetchJson's 5s AbortSignal) on cold `docker compose up`, the
+      # same failure mode scheduler's api dependency below already guards
+      # against.
+      api:
+        condition: service_healthy
     environment:
       # Build-time-inlined, browser-resolved (apps/web/Dockerfile ARGs this in):
       # the browser is on the host network, so it reaches the api container
