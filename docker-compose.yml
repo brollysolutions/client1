@@ -153,7 +153,15 @@ services:
       interval: 15s
       timeout: 5s
       retries: 5
-      start_period: 20s
+      # Cold start runs `uv run alembic upgrade head` (90 migrations) before
+      # uvicorn ever binds the port. The old 20s start_period + 5*15s retry
+      # budget (95s total) was tight enough that a slow first boot got marked
+      # unhealthy before FastAPI came up, which aborted `scheduler` (it has a
+      # hard `api: condition: service_healthy` dependency) mid-`docker compose
+      # up` even though api recovered seconds later. 90s gives the migration
+      # + uv sync + boot path real headroom without weakening steady-state
+      # failure detection (interval/retries/timeout are unchanged).
+      start_period: 90s
 
   scheduler:
     build:
