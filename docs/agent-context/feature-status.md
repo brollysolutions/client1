@@ -9,6 +9,40 @@ Evidence baseline: `abcc1fd`
 verified Admin operational-visibility work in
 [PR #173](https://github.com/brollysolutions/client1/pull/173).
 
+**Done — dev-stack `web` cold-start SSR fetch timeouts against `api` (dev
+tooling, no requirement change):** `docker-compose.yml`'s `web` service
+depended on `api` with the plain list form (`depends_on: - api`), which only
+waits for the `api` container process to start, not for its healthcheck to
+pass. `api`'s own healthcheck carries a 90s `start_period` specifically
+because cold start runs `alembic upgrade head` (90 migrations) before
+`uvicorn` binds the port (see the healthcheck `start_period` entry below) —
+so on a full cold `docker compose up`, `web`'s Server Components began
+firing SSR fetches at `http://api:8000` (`lib/api/server.ts`'s
+`serverFetchJson`, 5s `AbortSignal.timeout`) before `api` was reachable at
+all. Some raced through while others — e.g. the homepage's
+`content-blocks/homepage-closing` lookup — hit the client-side timeout and
+logged `serverFetchJson.network_error`, reproduced live in this session's
+container logs. `scheduler` already avoided this with a hard `api:
+condition: service_healthy` dependency; `web` was the one service still
+using the start-only form. Fixed by moving `web`'s `api` dependency to
+`condition: service_healthy`, matching `scheduler`. No application code,
+route, contract, migration, or RLS change — `docker-compose.yml` only.
+Fresh evidence: `docker compose config` validates; a full cold `down` + `up
+-d` of the whole stack (`docker-compose.yml` + `docker-compose.dev.yml`, the
+documented dev-overlay invocation in `scripts/init-dev.sh`) shows `api`
+reach `Healthy` before `web`/`scheduler` begin `Starting` in the compose
+event log, and `web`'s logs contain zero `serverFetchJson` timeout/network
+errors across the cold boot (`grep -i "timeout\|error\|abort"` on the fresh
+container log: no matches). One separate, pre-existing, dev-only artifact is
+out of scope for a code fix: `next dev --turbopack`'s on-demand first
+compile of a route (observed 65.7s for `/`) can still push a single
+first-ever SSR fetch past the 5s timeout while the event loop is busy
+compiling; the page still returns `200`, the affected section simply
+doesn't render (the module's documented "never throw" contract), the very
+next request succeeds in well under a second, and `next build`'s production
+output has no on-demand compile step, so this cannot occur outside `next
+dev`.
+
 **Done — web `nanoid` audit patch (dependency security, no requirement
 change):** CI's `pnpm audit --prod --audit-level high` (`.github/workflows/security.yml`)
 failed on a high-severity `nanoid` advisory (GHSA-2v37-7h3g-55p8: custom
