@@ -18,7 +18,7 @@ describe("FOOTER_COLUMNS integrity", () => {
     expect(column("Loans").links.map((link) => link.label)).toEqual([
       "Personal Loan",
       "Business Loan",
-      "Property Loan",
+      "Home Loan",
       "Vehicle Loan",
       "Education Loan",
     ]);

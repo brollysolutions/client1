@@ -4,7 +4,7 @@ import { OfferStrip } from "@/components/offer-strip";
 import { ProductPage } from "@/components/product-page";
 import { faqPageJsonLd, LOAN_FAQ_ITEMS } from "@/lib/faq";
 import { getPublicOffers } from "@/lib/public-offers";
-import { LOAN_JOURNEY, LOAN_PRODUCTS, LOAN_TRUST } from "@/lib/products";
+import { LOAN_JOURNEY, LOAN_PRODUCT_BANDS } from "@/lib/products";
 import { SITE_NAME, SITE_URL } from "@/lib/site";
 
 // First server-side data fetch on this page. Matches /real-estate's ISR
@@ -15,22 +15,31 @@ import { SITE_NAME, SITE_URL } from "@/lib/site";
 export const revalidate = 300;
 
 export const metadata: Metadata = {
-  title: "Loans: Personal, Business, Property, Vehicle & Education",
+  title: "Loans, Credit Cards & Insurance: 16 Products, One Place",
   description:
-    "Explore personal, business, property, vehicle and education loans, plus credit cards and insurance, all matched to you by KYC-verified partners. See how applying works.",
+    "Explore personal, business, home, car, vehicle, education, and other loans, plus credit cards and life, health, property, and travel insurance, all matched to you by KYC-verified partners. See how applying works.",
   keywords: [
     "personal loan",
     "business loan",
-    "property loan",
+    "home loan",
+    "loan against property",
+    "car loan",
     "vehicle loan",
     "education loan",
+    "school funding",
+    "secured loans",
+    "overdraft loan",
+    "project funding",
     "credit cards",
-    "insurance",
+    "life insurance",
+    "health insurance",
+    "property insurance",
+    "travel insurance",
     "apply for loan",
   ],
   alternates: { canonical: "/loans" },
   openGraph: {
-    title: "Loans: Personal, Business, Property, Vehicle & Education",
+    title: "Loans, Credit Cards & Insurance: 16 Products, One Place",
     description:
       "Compare loans, credit cards, and insurance from KYC-verified partners, and see exactly what happens when you apply.",
     type: "website",
@@ -73,14 +82,7 @@ export default async function LoansPage() {
         productsHeading="Explore our services"
         productColumns={4}
         productDoodles
-        productsTrustEyebrow="Why people trust us"
-        productsTrust={LOAN_TRUST}
-        productsCta={{
-          title: "Not sure which loan fits?",
-          text: "Tell us what you need and an advisor will call you back to match you with the right lender.",
-          label: "Talk to an advisor",
-        }}
-        products={LOAN_PRODUCTS}
+        productBands={LOAN_PRODUCT_BANDS}
         beforeJourney={
           <OfferStrip
             offers={offers}

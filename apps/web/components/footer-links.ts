@@ -18,7 +18,7 @@ export type FooterColumn = { heading: string; links: FooterLink[] };
 const FOOTER_LOAN_IDS = [
   "personal-loan",
   "business-loan",
-  "property-loan",
+  "home-loan",
   "vehicle-loan",
   "education-loan",
 ] as const;
