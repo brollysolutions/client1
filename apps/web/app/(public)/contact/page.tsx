@@ -8,9 +8,9 @@ import { SITE_NAME, SITE_URL } from "@/lib/site";
 import type { LeadTopic } from "@/lib/leads";
 
 export const metadata: Metadata = {
-  title: "Contact Us: Talk to Our Loans and Real Estate Team",
+  title: "Contact Us: Talk to Our Financial Services and Real Estate Team",
   description:
-    "Get in touch with our loans and real estate team. Leave your number and we will call you back, or reach us by phone and email.",
+    "Get in touch with our financial services and real estate team. Leave your number and we will call you back, or reach us by phone and email.",
   keywords: [
     "contact",
     "get in touch",
@@ -20,9 +20,9 @@ export const metadata: Metadata = {
   ],
   alternates: { canonical: "/contact" },
   openGraph: {
-    title: "Contact Us: Talk to Our Loans and Real Estate Team",
+    title: "Contact Us: Talk to Our Financial Services and Real Estate Team",
     description:
-      "Get in touch with our loans and real estate team. Leave your number and we will call you back.",
+      "Get in touch with our financial services and real estate team. Leave your number and we will call you back.",
     type: "website",
     url: "/contact",
   },

@@ -5,7 +5,6 @@ import { FaqSection } from "@/components/faq-section";
 import { JourneyFootTrail } from "@/components/journey-foot-trail";
 import { LeadDialog } from "@/components/lead-dialog";
 import { ScrollCue } from "@/components/scroll-cue";
-import { TrustStrip } from "@/components/trust-strip";
 import {
   Card,
   CardDescription,
@@ -15,7 +14,7 @@ import {
 } from "@/components/ui/card";
 import type { FaqItem } from "@/lib/faq";
 import { contactHref, type LeadBusinessLine } from "@/lib/leads";
-import type { JourneyStep, Product, TrustPoint } from "@/lib/products";
+import type { JourneyStep, ProductBand } from "@/lib/products";
 import { cn } from "@/lib/utils";
 
 // Shared layout for the public Loans and Real Estate marketing pages
@@ -45,15 +44,11 @@ export type ProductPageProps = {
   productColumns?: 3 | 4;
   /** Faint finance line-doodles in the products section margins (lg+ only). */
   productDoodles?: boolean;
-  /** Small uppercase eyebrow above the trust strip. */
-  productsTrustEyebrow?: string;
-  /** Premium trust strip under the products grid. Omit to hide it. */
-  productsTrust?: TrustPoint[];
-  /** Solid-blue advisor CTA rendered as the final card in the grid. */
-  productsCta?: { title: string; text: string; label: string };
-  /** Product cards. Omit to skip the products grid (e.g. the Properties page,
-   *  which renders its own catalog via `beforeJourney` instead). */
-  products?: Product[];
+  /** Labeled category bands for the products grid. Omit to skip the grid
+   *  entirely (e.g. the Properties page, which renders its own catalog via
+   *  `beforeJourney` instead). Each band's own `cta`/`trust`, if set, renders
+   *  as an extra tile in that band's grid. */
+  productBands?: ProductBand[];
   /** Custom sections injected after the products grid and before the journey. */
   beforeJourney?: ReactNode;
   journeyHeading: string;
@@ -81,10 +76,7 @@ export function ProductPage({
   productsSubheading,
   productColumns = 3,
   productDoodles = false,
-  productsTrustEyebrow,
-  productsTrust,
-  productsCta,
-  products,
+  productBands,
   beforeJourney,
   journeyHeading,
   journey,
@@ -140,7 +132,7 @@ export function ProductPage({
       </section>
 
       {/* Products */}
-      {products && products.length > 0 ? (
+      {productBands && productBands.length > 0 ? (
       <section className="relative w-full overflow-hidden border-t border-[var(--nav-border)] bg-[var(--nav-bg)]">
         {productDoodles ? <ProductDoodles /> : null}
         <div className="relative z-10 mx-auto max-w-7xl px-4 py-20 sm:px-6 sm:py-24 lg:px-8">
@@ -152,128 +144,184 @@ export function ProductPage({
               {productsSubheading}
             </p>
           ) : null}
-          <div
-            className={cn(
-              "mt-10 grid gap-6 sm:grid-cols-2",
-              productColumns === 4 ? "lg:grid-cols-4" : "lg:grid-cols-3",
-            )}
-          >
-            {products.map((product) => (
-              <Card
-                key={product.id}
-                id={product.id}
+
+          {productBands.map((band, bandIndex) => (
+            <div
+              key={band.id}
+              id={band.id}
+              className={cn("scroll-mt-16", bandIndex > 0 && "mt-16")}
+            >
+              <h3 className="font-heading text-2xl font-semibold text-foreground">
+                {band.heading}
+              </h3>
+              <div
                 className={cn(
-                  "group flex h-full scroll-mt-16 flex-col overflow-hidden transition duration-200 hover:-translate-y-0.5 hover:shadow-md motion-reduce:transition-none motion-reduce:hover:translate-y-0",
-                  product.illustration && "pt-0",
+                  "mt-6 grid gap-6 sm:grid-cols-2",
+                  productColumns === 4 ? "lg:grid-cols-4" : "lg:grid-cols-3",
                 )}
               >
-                {product.illustration ? (
-                  <div className="relative aspect-[4/3] w-full bg-[var(--nav-tint)]/40">
-                    <Image
-                      src={product.illustration}
-                      alt=""
-                      aria-hidden
-                      fill
-                      sizes="(min-width:1024px) 280px, (min-width:640px) 50vw, 100vw"
-                      className="object-contain p-6"
-                    />
-                  </div>
-                ) : null}
-                <CardHeader className="flex-1">
-                  {product.illustration ? null : (
-                    <span className="flex h-11 w-11 items-center justify-center rounded-lg bg-[var(--nav-tint)] text-brand-blue">
-                      <product.icon className="h-6 w-6" aria-hidden />
-                    </span>
-                  )}
-                  <CardTitle
+                {band.products.map((product) => (
+                  <Card
+                    key={product.id}
+                    id={product.id}
                     className={cn(
-                      "font-heading text-lg text-foreground",
-                      !product.illustration && "mt-4",
+                      "group flex h-full scroll-mt-16 flex-col overflow-hidden transition duration-200 hover:-translate-y-0.5 hover:shadow-md motion-reduce:transition-none motion-reduce:hover:translate-y-0",
+                      product.illustration && "pt-0",
                     )}
                   >
-                    {product.label}
-                  </CardTitle>
-                  <CardDescription className="text-base text-text-secondary">
-                    {product.description}
-                  </CardDescription>
-                </CardHeader>
-                <CardFooter>
-                  <LeadDialog
-                    businessLine={businessLine}
-                    product={product.label}
-                    triggerLabel="Enquire now"
-                    triggerVariant="outline"
-                    href={contactHref({
-                      line: businessLine,
-                      product: product.label,
-                    })}
-                  />
-                </CardFooter>
-              </Card>
-            ))}
+                    {product.legacyAnchorId ? (
+                      <span
+                        id={product.legacyAnchorId}
+                        aria-hidden
+                        className="block scroll-mt-16"
+                      />
+                    ) : null}
+                    {product.illustration ? (
+                      <div className="relative aspect-[4/3] w-full bg-[var(--nav-tint)]/40">
+                        <Image
+                          src={product.illustration}
+                          alt=""
+                          aria-hidden
+                          fill
+                          sizes="(min-width:1024px) 280px, (min-width:640px) 50vw, 100vw"
+                          className="object-contain p-6"
+                        />
+                      </div>
+                    ) : null}
+                    <CardHeader className="flex-1">
+                      {product.illustration ? null : (
+                        <span className="flex h-11 w-11 items-center justify-center rounded-lg bg-[var(--nav-tint)] text-brand-blue">
+                          <product.icon className="h-6 w-6" aria-hidden />
+                        </span>
+                      )}
+                      <CardTitle
+                        className={cn(
+                          "font-heading text-lg text-foreground",
+                          !product.illustration && "mt-4",
+                        )}
+                      >
+                        {product.label}
+                      </CardTitle>
+                      <CardDescription className="text-base text-text-secondary">
+                        {product.description}
+                      </CardDescription>
+                    </CardHeader>
+                    <CardFooter>
+                      <LeadDialog
+                        businessLine={businessLine}
+                        product={product.label}
+                        triggerLabel="Enquire now"
+                        triggerVariant="outline"
+                        href={contactHref({
+                          line: businessLine,
+                          product: product.label,
+                        })}
+                      />
+                    </CardFooter>
+                  </Card>
+                ))}
 
-            {productsCta ? (
-              <div className="hidden h-full flex-col rounded-xl bg-[var(--nav-primary)] p-6 text-white shadow-sm sm:flex">
-                <div>
-                  <h3 className="font-heading text-lg font-semibold">
-                    {productsCta.title}
-                  </h3>
-                  <p className="mt-2 text-sm text-white/85">
-                    {productsCta.text}
-                  </p>
-                </div>
-                {/* faceless advisor + headset, white monoline on the blue card
-                    (illustration-style.md: figures faceless, never blob). Decorative
-                    and desktop-only per the illustrations lg+ rule. flex-1 wrapper
-                    centers it in the card's middle so no gap sits above the button. */}
-                <div className="flex flex-1 items-center justify-center">
-                <svg
-                  aria-hidden
-                  viewBox="0 0 240 180"
-                  className="hidden h-40 w-auto lg:block"
-                  fill="none"
-                  stroke="#FFFFFF"
-                  strokeWidth={3}
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  {/* depth dots */}
-                  <circle cx="40" cy="44" r="4" fill="#FFFFFF" stroke="none" opacity="0.3" />
-                  <circle cx="34" cy="132" r="3" fill="#FFFFFF" stroke="none" opacity="0.3" />
-                  <circle cx="208" cy="128" r="5" fill="#FFFFFF" stroke="none" opacity="0.25" />
-                  {/* bust */}
-                  <rect x="108" y="98" width="20" height="28" fill="#FFFFFF" fillOpacity="0.12" stroke="none" />
-                  <path d="M70 180 C70 138 96 124 118 124 C140 124 168 138 168 180" fill="#FFFFFF" fillOpacity="0.12" />
-                  {/* head */}
-                  <circle cx="118" cy="74" r="30" fill="#FFFFFF" fillOpacity="0.12" />
-                  {/* headset band + ear cups */}
-                  <path d="M86 72 Q118 24 150 72" strokeWidth={5} />
-                  <rect x="80" y="64" width="13" height="24" rx="6" fill="#FFFFFF" fillOpacity="0.22" />
-                  <rect x="143" y="64" width="13" height="24" rx="6" fill="#FFFFFF" fillOpacity="0.22" />
-                  {/* mic boom */}
-                  <path d="M87 86 Q90 106 108 103" />
-                  <circle cx="110" cy="103" r="4" fill="#FFFFFF" stroke="none" />
-                  {/* chat bubble with rupee */}
-                  <rect x="166" y="34" width="54" height="40" rx="11" fill="#FFFFFF" fillOpacity="0.15" />
-                  <path d="M178 72 L172 86 L188 78 Z" fill="#FFFFFF" fillOpacity="0.15" stroke="none" />
-                  <text x="193" y="61" fontSize="22" fontWeight={700} fill="#FFFFFF" stroke="none" textAnchor="middle" fontFamily="system-ui, sans-serif">&#8377;</text>
-                </svg>
-                </div>
-                <div className="pt-2">
-                  <LeadDialog
-                    businessLine={businessLine}
-                    triggerLabel={productsCta.label}
-                    triggerVariant="invert"
-                    href={contactHref({ line: businessLine })}
-                  />
-                </div>
+                {band.cta ? (
+                  <div className="hidden h-full flex-col rounded-xl bg-[var(--nav-primary)] p-6 text-white shadow-sm sm:flex">
+                    <div>
+                      <h3 className="font-heading text-lg font-semibold">
+                        {band.cta.title}
+                      </h3>
+                      <p className="mt-2 text-sm text-white/85">
+                        {band.cta.text}
+                      </p>
+                    </div>
+                    {/* faceless advisor + headset, white monoline on the blue card
+                        (illustration-style.md: figures faceless, never blob). Decorative
+                        and desktop-only per the illustrations lg+ rule. flex-1 wrapper
+                        centers it in the card's middle so no gap sits above the button. */}
+                    <div className="flex flex-1 items-center justify-center">
+                    <svg
+                      aria-hidden
+                      viewBox="0 0 240 180"
+                      className="hidden h-40 w-auto lg:block"
+                      fill="none"
+                      stroke="#FFFFFF"
+                      strokeWidth={3}
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      {/* depth dots */}
+                      <circle cx="40" cy="44" r="4" fill="#FFFFFF" stroke="none" opacity="0.3" />
+                      <circle cx="34" cy="132" r="3" fill="#FFFFFF" stroke="none" opacity="0.3" />
+                      <circle cx="208" cy="128" r="5" fill="#FFFFFF" stroke="none" opacity="0.25" />
+                      {/* bust */}
+                      <rect x="108" y="98" width="20" height="28" fill="#FFFFFF" fillOpacity="0.12" stroke="none" />
+                      <path d="M70 180 C70 138 96 124 118 124 C140 124 168 138 168 180" fill="#FFFFFF" fillOpacity="0.12" />
+                      {/* head */}
+                      <circle cx="118" cy="74" r="30" fill="#FFFFFF" fillOpacity="0.12" />
+                      {/* headset band + ear cups */}
+                      <path d="M86 72 Q118 24 150 72" strokeWidth={5} />
+                      <rect x="80" y="64" width="13" height="24" rx="6" fill="#FFFFFF" fillOpacity="0.22" />
+                      <rect x="143" y="64" width="13" height="24" rx="6" fill="#FFFFFF" fillOpacity="0.22" />
+                      {/* mic boom */}
+                      <path d="M87 86 Q90 106 108 103" />
+                      <circle cx="110" cy="103" r="4" fill="#FFFFFF" stroke="none" />
+                      {/* chat bubble with rupee */}
+                      <rect x="166" y="34" width="54" height="40" rx="11" fill="#FFFFFF" fillOpacity="0.15" />
+                      <path d="M178 72 L172 86 L188 78 Z" fill="#FFFFFF" fillOpacity="0.15" stroke="none" />
+                      <text x="193" y="61" fontSize="22" fontWeight={700} fill="#FFFFFF" stroke="none" textAnchor="middle" fontFamily="system-ui, sans-serif">&#8377;</text>
+                    </svg>
+                    </div>
+                    <div className="pt-2">
+                      <LeadDialog
+                        businessLine={businessLine}
+                        triggerLabel={band.cta.label}
+                        triggerVariant="invert"
+                        href={contactHref({ line: businessLine })}
+                      />
+                    </div>
+                  </div>
+                ) : null}
+
+                {band.trust ? (
+                  // Wide banner tile, not a product card: spans the row's
+                  // remaining columns at lg (assumes productColumns={4}, this
+                  // band's only current caller) so it sits directly beside
+                  // the preceding card instead of starting a new row alone.
+                  // `items-stretch` (the grid's default) stretches this to
+                  // match that row's tallest card; `h-full` + centered
+                  // content keep the 3 points from looking pinned to the top.
+                  <div className="relative col-span-full h-full overflow-hidden rounded-2xl border border-[var(--nav-border)] bg-[var(--nav-tint)]/40 shadow-sm sm:col-span-1 lg:col-span-3">
+                    <div
+                      aria-hidden
+                      className="absolute inset-x-0 top-0 h-[3px] bg-gradient-to-r from-transparent via-brand-blue to-transparent"
+                    />
+                    <div className="flex h-full flex-col justify-center px-6 py-8 sm:px-8">
+                      {band.trust.eyebrow ? (
+                        <p className="text-center font-geist text-xs font-semibold uppercase tracking-[0.2em] text-brand-blue">
+                          {band.trust.eyebrow}
+                        </p>
+                      ) : null}
+                      <div className="mt-5 grid gap-6 sm:grid-cols-3 sm:gap-0 sm:divide-x sm:divide-[var(--nav-border)]">
+                        {band.trust.points.map((point) => (
+                          <div
+                            key={point.label}
+                            className="flex flex-col items-center px-4 text-center"
+                          >
+                            <span className="flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-br from-white to-[var(--nav-tint)] text-brand-blue shadow-sm ring-2 ring-brand-blue/20">
+                              <point.icon className="h-5 w-5" aria-hidden />
+                            </span>
+                            <h4 className="mt-3 font-heading text-sm font-semibold text-foreground">
+                              {point.label}
+                            </h4>
+                            <p className="mt-1 text-xs text-text-secondary">
+                              {point.note}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
               </div>
-            ) : null}
-          </div>
-
-          {productsTrust && productsTrust.length > 0 ? (
-            <TrustStrip eyebrow={productsTrustEyebrow} points={productsTrust} />
-          ) : null}
+            </div>
+          ))}
         </div>
       </section>
       ) : null}

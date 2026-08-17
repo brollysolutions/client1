@@ -119,7 +119,13 @@ function NavigationMenuViewport({
   ...props
 }: React.ComponentProps<typeof NavigationMenuPrimitive.Viewport>) {
   return (
-    <div className={cn("absolute left-0 top-full isolate z-50 flex justify-center")}>
+    // Centered under the nav list rather than left-0: the nav list sits in the
+    // header's centered middle grid column (site-header.tsx), so a left-0
+    // anchor opens the panel flush with the list's left edge, not the
+    // viewport's. A wide mega-panel (Financial Services, ~820px) then clips
+    // off-screen at exactly the lg breakpoint (1024px). SiteHeader is this
+    // primitive's only consumer, so centering here is safe for every trigger.
+    <div className={cn("absolute left-1/2 top-full isolate z-50 flex -translate-x-1/2 justify-center")}>
       <NavigationMenuPrimitive.Viewport
         data-slot="navigation-menu-viewport"
         className={cn(

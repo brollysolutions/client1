@@ -18,7 +18,7 @@ import { isValidMobile, normalizeMobile } from "@/lib/phone";
 // blended-background convention: no white card, the form sits directly on the
 // cream section. Blue-only, per the public-site palette.
 const TOPICS: { value: LeadTopic; label: string }[] = [
-  { value: "loans", label: "Loans" },
+  { value: "loans", label: "Financial Services" },
   { value: "real_estate", label: "Real Estate" },
 ];
 
