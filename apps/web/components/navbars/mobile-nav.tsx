@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Menu, Phone } from "lucide-react";
+import { ArrowRight, ChevronDown, Menu, Phone } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -48,26 +48,70 @@ export function MobileNav() {
               item.href === "/"
                 ? pathname === "/"
                 : pathname === item.href || pathname.startsWith(`${item.href}/`);
-            return item.children ? (
-              <div key={item.href} className="py-1">
-                <p className="px-3 py-2 text-xs font-geist font-semibold uppercase tracking-wide text-text-secondary">
+            return item.menu ? (
+              // Native <details>/<summary>, not the (unused) shadcn Accordion:
+              // matches the house pattern in faq-section.tsx (no client JS,
+              // Enter/Space-native, .faq-details in globals.css supplies the
+              // height transition + its own reduced-motion opt-out).
+              // Collapsed by default (`open={isActive}` only) keeps the
+              // drawer at 6 top-level rows until this item is expanded.
+              <details key={item.href} className="faq-details group py-1" open={isActive}>
+                <summary
+                  aria-current={isActive ? "page" : undefined}
+                  className={cn(
+                    "flex cursor-pointer list-none items-center justify-between rounded-md px-3 py-2 text-base font-geist font-medium text-text-primary marker:content-none hover:bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nav-primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-surface",
+                    isActive && "text-[var(--nav-primary)]",
+                  )}
+                >
                   {item.label}
-                </p>
-                {item.children.map((child) => (
+                  <ChevronDown
+                    className="h-4 w-4 shrink-0 transition-transform duration-200 group-open:rotate-180 motion-reduce:transition-none"
+                    aria-hidden
+                  />
+                </summary>
+                <div className="pb-2">
+                  {/* All three groups render as a flat labeled list here,
+                      even Credit Cards (desktop's `layout: "tile"`): a
+                      full-width highlight tile adds nothing in a
+                      sm:max-w-xs drawer, so mobile intentionally ignores
+                      that distinction. */}
+                  {item.menu.groups.map((group) => (
+                    <div key={group.key} className="pt-1">
+                      <p
+                        id={`m-nav-${group.key}`}
+                        className="px-3 pb-1 pt-2 text-xs font-geist font-semibold uppercase tracking-wide text-text-secondary"
+                      >
+                        {group.heading}
+                      </p>
+                      <ul aria-labelledby={`m-nav-${group.key}`}>
+                        {group.items.map((child) => (
+                          <li key={child.href}>
+                            <Link
+                              href={child.href}
+                              onClick={close}
+                              className="group/item flex items-center gap-3 rounded-md py-2 pl-6 pr-3 text-base font-geist font-medium text-text-primary hover:bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nav-primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
+                            >
+                              <child.icon
+                                className="h-4 w-4 shrink-0 text-[var(--nav-text)] transition-colors group-hover/item:text-[var(--nav-primary)]"
+                                aria-hidden
+                              />
+                              {child.label}
+                            </Link>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ))}
                   <Link
-                    key={child.href}
-                    href={child.href}
+                    href={item.menu.overview.href}
                     onClick={close}
-                    className="group/item flex items-center gap-3 rounded-md px-3 py-2 text-base font-geist font-medium text-text-primary hover:bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nav-primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
+                    className="mt-1 flex items-center gap-1.5 rounded-md px-3 py-2 text-sm font-geist font-medium text-[var(--nav-primary)] hover:bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nav-primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
                   >
-                    <child.icon
-                      className="h-4 w-4 shrink-0 text-[var(--nav-text)] transition-colors group-hover/item:text-[var(--nav-primary)]"
-                      aria-hidden
-                    />
-                    {child.label}
+                    {item.menu.overview.label}
+                    <ArrowRight className="h-4 w-4" aria-hidden />
                   </Link>
-                ))}
-              </div>
+                </div>
+              </details>
             ) : (
               <Link
                 key={item.href}

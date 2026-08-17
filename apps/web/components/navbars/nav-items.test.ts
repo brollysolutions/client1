@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { FINANCIAL_SERVICES_MENU } from "@/components/navbars/financial-services-menu";
 import { NAV_ITEMS } from "@/components/navbars/nav-items";
 
 // The public header and mobile drawer both render from NAV_ITEMS, and neither
@@ -24,5 +25,25 @@ describe("public NAV_ITEMS integrity", () => {
   it("has no duplicate hrefs, which would break active-state matching", () => {
     const hrefs = NAV_ITEMS.map((item) => item.href);
     expect(new Set(hrefs).size).toBe(hrefs.length);
+  });
+
+  it("gives exactly one item a mega-menu, and it is Financial Services", () => {
+    const withMenu = NAV_ITEMS.filter((item) => item.menu);
+    expect(withMenu).toHaveLength(1);
+    expect(withMenu[0]?.label).toBe("Financial Services");
+  });
+
+  it("wires the Financial Services menu to FINANCIAL_SERVICES_MENU, not a hand-duplicated copy", () => {
+    const finance = NAV_ITEMS.find((item) => item.label === "Financial Services");
+    expect(finance?.menu?.groups).toBe(FINANCIAL_SERVICES_MENU);
+  });
+
+  it("gives every menu item an internal href", () => {
+    const finance = NAV_ITEMS.find((item) => item.label === "Financial Services");
+    for (const group of finance?.menu?.groups ?? []) {
+      for (const child of group.items) {
+        expect(child.href.startsWith("/")).toBe(true);
+      }
+    }
   });
 });
