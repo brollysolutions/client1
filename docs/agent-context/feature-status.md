@@ -9,6 +9,26 @@ Evidence baseline: `abcc1fd`
 verified Admin operational-visibility work in
 [PR #173](https://github.com/brollysolutions/client1/pull/173).
 
+**Done — web `nanoid` audit patch (dependency security, no requirement
+change):** CI's `pnpm audit --prod --audit-level high` (`.github/workflows/security.yml`)
+failed on a high-severity `nanoid` advisory (GHSA-2v37-7h3g-55p8: custom
+generators can loop indefinitely when size is zero; patched `>=3.3.18`),
+reached transitively via `next > postcss > nanoid` and
+`nuqs > next > postcss > nanoid`. The repo already pins `postcss` directly to
+`>=8.5.10` in `apps/web/package.json`, and `postcss@8.5.23`'s own
+`nanoid ^3.3.16` range already permitted the patched `3.3.18` — the lockfile
+simply hadn't picked it up. `pnpm update nanoid` in `apps/web` bumped the
+single deduped `nanoid` resolution `3.3.16` → `3.3.18` in
+`apps/web/pnpm-lock.yaml`; pnpm's re-resolution incidentally also picked up
+in-range `postcss` `8.5.23` → `8.5.26` and `rollup` `4.62.2` → `4.62.4` (both
+transitive, both satisfy their dependents' existing semver ranges — no
+`package.json` range changed). No application code, route, or contract
+changed. Fresh evidence: `pnpm audit --prod --audit-level high` now reports
+no known vulnerabilities; web lint and strict typecheck pass; all 347 unit
+tests pass; the production build generates all 93 pages before the known
+Windows standalone `EPERM` symlink trace-copy failure (pre-existing, present
+before this change, Docker/Linux CI-only path unaffected).
+
 **Done — [PR #190](https://github.com/brollysolutions/client1/pull/190) —
 dev-stack api healthcheck start_period widened (dev tooling, no
 requirement change):** local `docker compose up` intermittently aborted
