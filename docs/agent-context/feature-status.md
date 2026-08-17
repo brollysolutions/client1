@@ -9,7 +9,8 @@ Evidence baseline: `abcc1fd`
 verified Admin operational-visibility work in
 [PR #173](https://github.com/brollysolutions/client1/pull/173).
 
-**Done — dev-stack api healthcheck start_period widened (dev tooling, no
+**Done — [PR #190](https://github.com/brollysolutions/client1/pull/190) —
+dev-stack api healthcheck start_period widened (dev tooling, no
 requirement change):** local `docker compose up` intermittently aborted
 `scheduler` mid-startup with `dependency failed to start: container
 client1-api-1 is unhealthy`, leaving it stuck in `Created` even though `api`
