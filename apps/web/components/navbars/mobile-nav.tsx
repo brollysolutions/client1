@@ -70,12 +70,12 @@ export function MobileNav() {
                   />
                 </summary>
                 <div className="pb-2">
-                  {/* All three groups render as a flat labeled list here,
-                      even Credit Cards (desktop's `layout: "tile"`): a
-                      full-width highlight tile adds nothing in a
-                      sm:max-w-xs drawer, so mobile intentionally ignores
-                      that distinction. */}
-                  {item.menu.groups.map((group) => (
+                  {/* Desktop groups Insurance + Credit Cards into one shared
+                      column (see financial-services-menu.ts); the drawer
+                      flattens columns back into a flat list of separately
+                      headed sections instead, since a drawer has no use for
+                      that column grouping. */}
+                  {item.menu.columns.flatMap((column) => column.groups).map((group) => (
                     <div key={group.key} className="pt-1">
                       <p
                         id={`m-nav-${group.key}`}

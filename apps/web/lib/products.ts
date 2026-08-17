@@ -57,6 +57,10 @@ export type ProductBand = {
   products: Product[];
   /** Solid-blue advisor CTA rendered as the final tile of this band. */
   cta?: { title: string; text: string; label: string };
+  /** Trust points rendered as a wide banner tile (spans the row's remaining
+   *  columns at lg) as the final tile of this band. A band should set at
+   *  most one of `cta`/`trust`, not both. */
+  trust?: { eyebrow?: string; points: TrustPoint[] };
 };
 
 export type JourneyStep = {
@@ -240,6 +244,24 @@ export const LOAN_PRODUCTS: Product[] = [
   },
 ];
 
+export const LOAN_TRUST: TrustPoint[] = [
+  {
+    icon: ShieldCheck,
+    label: "KYC-verified partners",
+    note: "Every lending partner is verified before they reach you.",
+  },
+  {
+    icon: Handshake,
+    label: "We match, we don't lend",
+    note: "We connect you with banks and lenders, we are not the lender.",
+  },
+  {
+    icon: Lock,
+    label: "Private by default",
+    note: "Your details are shared only with your consent.",
+  },
+];
+
 // Band ids are namespaced ("loans"/"insurance") and deliberately distinct from
 // every product id above; financial-services-menu.test.ts and products.test.ts
 // both assert this, since a collision would emit duplicate DOM ids on /loans.
@@ -260,24 +282,12 @@ export const LOAN_PRODUCT_BANDS: ProductBand[] = [
     products: LOAN_PRODUCTS.filter(
       (p) => p.group === "insurance" || p.group === "credit-cards",
     ),
-  },
-];
-
-export const LOAN_TRUST: TrustPoint[] = [
-  {
-    icon: ShieldCheck,
-    label: "KYC-verified partners",
-    note: "Every lending partner is verified before they reach you.",
-  },
-  {
-    icon: Handshake,
-    label: "We match, we don't lend",
-    note: "We connect you with banks and lenders, we are not the lender.",
-  },
-  {
-    icon: Lock,
-    label: "Private by default",
-    note: "Your details are shared only with your consent.",
+    // Renders as a wide tile beside the Credit Cards card, spanning this
+    // band's remaining grid columns (see product-page.tsx). Replaces the
+    // standalone TrustStrip that used to sit below the whole products
+    // section — /loans is now the only ProductPage consumer of trust
+    // content, so there is no longer a separate section-level strip.
+    trust: { eyebrow: "Why people trust us", points: LOAN_TRUST },
   },
 ];
 

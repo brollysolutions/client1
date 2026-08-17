@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 
 import { describe, expect, it } from "vitest";
 
-import { LOAN_PRODUCT_BANDS, LOAN_PRODUCTS } from "@/lib/products";
+import { LOAN_PRODUCT_BANDS, LOAN_PRODUCTS, LOAN_TRUST } from "@/lib/products";
 
 // Locks the data contract that both /loans (via ProductPage) and the navbar
 // mega-menu (via components/navbars/financial-services-menu.ts) are built on.
@@ -92,5 +92,17 @@ describe("LOAN_PRODUCT_BANDS", () => {
     expect(bandedIds.length).toBe(LOAN_PRODUCTS.length);
     expect(new Set(bandedIds).size).toBe(LOAN_PRODUCTS.length);
     expect(new Set(bandedIds)).toEqual(new Set(LOAN_PRODUCTS.map((p) => p.id)));
+  });
+
+  it("sets at most one of cta/trust per band", () => {
+    for (const band of LOAN_PRODUCT_BANDS) {
+      expect(band.cta && band.trust ? "both" : "ok").toBe("ok");
+    }
+  });
+
+  it("wires the insurance band's trust content to LOAN_TRUST, not a hand-duplicated copy", () => {
+    const insurance = LOAN_PRODUCT_BANDS.find((b) => b.id === "insurance");
+    expect(insurance?.trust?.points).toBe(LOAN_TRUST);
+    expect(insurance?.trust?.eyebrow).toBe("Why people trust us");
   });
 });

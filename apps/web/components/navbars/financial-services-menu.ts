@@ -21,21 +21,27 @@ export type FinancialServiceGroup = {
   heading: string;
   /** Stable key for React and for the column heading's aria-labelledby id. */
   key: ProductGroup;
-  /** "list" = icon+label rows. "tile" = one full-height highlight tile, used
-   *  for the single-item Credit Cards column (a lone list row in a tall
-   *  column reads as a rendering bug). Desktop-only distinction: the mobile
-   *  drawer renders every group as a flat list regardless of this value. */
-  layout: "list" | "tile";
   items: FinancialServiceLink[];
 };
 
-const GROUPS: { key: ProductGroup; heading: string; layout: "list" | "tile" }[] = [
-  { key: "loans", heading: "Loans", layout: "list" },
-  { key: "insurance", heading: "Insurance", layout: "list" },
-  { key: "credit-cards", heading: "Credit Cards", layout: "tile" },
+/** One desktop mega-panel column, holding one or more stacked, separately
+ *  headed groups. Credit Cards shares a column with Insurance rather than
+ *  getting its own: a column holding a single item and nothing else read as
+ *  a rendering bug (an isolated highlight tile was tried and rejected).
+ *  Desktop-only structure — the mobile drawer renders every group as its
+ *  own flat top-level section regardless of column grouping (see
+ *  mobile-nav.tsx, which flattens columns back into a group list). */
+export type FinancialServiceColumn = {
+  groups: FinancialServiceGroup[];
+};
+
+const GROUP_DEFS: { key: ProductGroup; heading: string }[] = [
+  { key: "loans", heading: "Loans" },
+  { key: "insurance", heading: "Insurance" },
+  { key: "credit-cards", heading: "Credit Cards" },
 ];
 
-export const FINANCIAL_SERVICES_MENU: FinancialServiceGroup[] = GROUPS.map(
+const [loansGroup, insuranceGroup, creditCardsGroup] = GROUP_DEFS.map(
   (group) => ({
     ...group,
     items: LOAN_PRODUCTS.filter((product) => product.group === group.key).map(
@@ -47,6 +53,11 @@ export const FINANCIAL_SERVICES_MENU: FinancialServiceGroup[] = GROUPS.map(
     ),
   }),
 );
+
+export const FINANCIAL_SERVICES_MENU: FinancialServiceColumn[] = [
+  { groups: [loansGroup] },
+  { groups: [insuranceGroup, creditCardsGroup] },
+];
 
 export const FINANCIAL_SERVICES_OVERVIEW = {
   label: "View all financial services",

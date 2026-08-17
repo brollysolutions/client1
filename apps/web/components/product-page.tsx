@@ -5,7 +5,6 @@ import { FaqSection } from "@/components/faq-section";
 import { JourneyFootTrail } from "@/components/journey-foot-trail";
 import { LeadDialog } from "@/components/lead-dialog";
 import { ScrollCue } from "@/components/scroll-cue";
-import { TrustStrip } from "@/components/trust-strip";
 import {
   Card,
   CardDescription,
@@ -15,7 +14,7 @@ import {
 } from "@/components/ui/card";
 import type { FaqItem } from "@/lib/faq";
 import { contactHref, type LeadBusinessLine } from "@/lib/leads";
-import type { JourneyStep, ProductBand, TrustPoint } from "@/lib/products";
+import type { JourneyStep, ProductBand } from "@/lib/products";
 import { cn } from "@/lib/utils";
 
 // Shared layout for the public Loans and Real Estate marketing pages
@@ -45,14 +44,10 @@ export type ProductPageProps = {
   productColumns?: 3 | 4;
   /** Faint finance line-doodles in the products section margins (lg+ only). */
   productDoodles?: boolean;
-  /** Small uppercase eyebrow above the trust strip. */
-  productsTrustEyebrow?: string;
-  /** Premium trust strip under the products grid. Omit to hide it. */
-  productsTrust?: TrustPoint[];
   /** Labeled category bands for the products grid. Omit to skip the grid
    *  entirely (e.g. the Properties page, which renders its own catalog via
-   *  `beforeJourney` instead). Each band's own `cta`, if set, renders as the
-   *  final tile in that band's grid. */
+   *  `beforeJourney` instead). Each band's own `cta`/`trust`, if set, renders
+   *  as an extra tile in that band's grid. */
   productBands?: ProductBand[];
   /** Custom sections injected after the products grid and before the journey. */
   beforeJourney?: ReactNode;
@@ -81,8 +76,6 @@ export function ProductPage({
   productsSubheading,
   productColumns = 3,
   productDoodles = false,
-  productsTrustEyebrow,
-  productsTrust,
   productBands,
   beforeJourney,
   journeyHeading,
@@ -285,13 +278,50 @@ export function ProductPage({
                     </div>
                   </div>
                 ) : null}
+
+                {band.trust ? (
+                  // Wide banner tile, not a product card: spans the row's
+                  // remaining columns at lg (assumes productColumns={4}, this
+                  // band's only current caller) so it sits directly beside
+                  // the preceding card instead of starting a new row alone.
+                  // `items-stretch` (the grid's default) stretches this to
+                  // match that row's tallest card; `h-full` + centered
+                  // content keep the 3 points from looking pinned to the top.
+                  <div className="relative col-span-full h-full overflow-hidden rounded-2xl border border-[var(--nav-border)] bg-[var(--nav-tint)]/40 shadow-sm sm:col-span-1 lg:col-span-3">
+                    <div
+                      aria-hidden
+                      className="absolute inset-x-0 top-0 h-[3px] bg-gradient-to-r from-transparent via-brand-blue to-transparent"
+                    />
+                    <div className="flex h-full flex-col justify-center px-6 py-8 sm:px-8">
+                      {band.trust.eyebrow ? (
+                        <p className="text-center font-geist text-xs font-semibold uppercase tracking-[0.2em] text-brand-blue">
+                          {band.trust.eyebrow}
+                        </p>
+                      ) : null}
+                      <div className="mt-5 grid gap-6 sm:grid-cols-3 sm:gap-0 sm:divide-x sm:divide-[var(--nav-border)]">
+                        {band.trust.points.map((point) => (
+                          <div
+                            key={point.label}
+                            className="flex flex-col items-center px-4 text-center"
+                          >
+                            <span className="flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-br from-white to-[var(--nav-tint)] text-brand-blue shadow-sm ring-2 ring-brand-blue/20">
+                              <point.icon className="h-5 w-5" aria-hidden />
+                            </span>
+                            <h4 className="mt-3 font-heading text-sm font-semibold text-foreground">
+                              {point.label}
+                            </h4>
+                            <p className="mt-1 text-xs text-text-secondary">
+                              {point.note}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
               </div>
             </div>
           ))}
-
-          {productsTrust && productsTrust.length > 0 ? (
-            <TrustStrip eyebrow={productsTrustEyebrow} points={productsTrust} />
-          ) : null}
         </div>
       </section>
       ) : null}

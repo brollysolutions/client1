@@ -22,10 +22,14 @@ export type NavChild = {
 export type NavGroup = {
   heading: string;
   key: string;
-  /** "list" = icon+label rows. "tile" = one full-height highlight tile
-   *  (desktop only; the mobile drawer always renders a flat list). */
-  layout: "list" | "tile";
   items: NavChild[];
+};
+
+/** One desktop mega-panel column of one or more stacked, separately headed
+ *  groups (e.g. Insurance + Credit Cards share a column). Desktop-only
+ *  structure; mobile-nav.tsx flattens columns back into a flat group list. */
+export type NavColumn = {
+  groups: NavGroup[];
 };
 
 export type NavItem = {
@@ -33,7 +37,7 @@ export type NavItem = {
   href: string;
   /** Renders as a mega-menu trigger instead of a plain link. `href` still
    *  drives active-state matching and is the menu's overview destination. */
-  menu?: { groups: NavGroup[]; overview: { label: string; href: string } };
+  menu?: { columns: NavColumn[]; overview: { label: string; href: string } };
 };
 
 export const NAV_ITEMS: NavItem[] = [
@@ -47,7 +51,7 @@ export const NAV_ITEMS: NavItem[] = [
     label: "Financial Services",
     href: "/loans",
     menu: {
-      groups: FINANCIAL_SERVICES_MENU,
+      columns: FINANCIAL_SERVICES_MENU,
       overview: FINANCIAL_SERVICES_OVERVIEW,
     },
   },

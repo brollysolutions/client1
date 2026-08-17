@@ -11,9 +11,14 @@ import { LOAN_PRODUCTS } from "@/lib/products";
 // dropped link), this join filters by group, so the risk here is the
 // opposite: a product added to lib/products.ts without a group, or a group
 // this file doesn't know about, silently vanishes from the nav.
+
+function allGroups() {
+  return FINANCIAL_SERVICES_MENU.flatMap((column) => column.groups);
+}
+
 describe("FINANCIAL_SERVICES_MENU", () => {
   it("every item href resolves to a real product anchor", () => {
-    for (const group of FINANCIAL_SERVICES_MENU) {
+    for (const group of allGroups()) {
       for (const item of group.items) {
         const id = item.href.replace("/loans#", "");
         expect(item.href.startsWith("/loans#")).toBe(true);
@@ -23,7 +28,7 @@ describe("FINANCIAL_SERVICES_MENU", () => {
   });
 
   it("every product appears in the menu exactly once", () => {
-    const menuIds = FINANCIAL_SERVICES_MENU.flatMap((group) =>
+    const menuIds = allGroups().flatMap((group) =>
       group.items.map((item) => item.href.replace("/loans#", "")),
     );
     expect(menuIds.length).toBe(LOAN_PRODUCTS.length);
@@ -31,26 +36,28 @@ describe("FINANCIAL_SERVICES_MENU", () => {
     expect(new Set(menuIds)).toEqual(new Set(LOAN_PRODUCTS.map((p) => p.id)));
   });
 
-  it("has the approved heading order and 11/4/1 counts", () => {
-    expect(FINANCIAL_SERVICES_MENU.map((g) => g.heading)).toEqual([
+  it("has the approved 2-column structure: Loans alone, Insurance + Credit Cards stacked", () => {
+    expect(FINANCIAL_SERVICES_MENU).toHaveLength(2);
+    expect(FINANCIAL_SERVICES_MENU[0]?.groups.map((g) => g.heading)).toEqual([
       "Loans",
+    ]);
+    expect(FINANCIAL_SERVICES_MENU[1]?.groups.map((g) => g.heading)).toEqual([
       "Insurance",
       "Credit Cards",
     ]);
-    expect(FINANCIAL_SERVICES_MENU.map((g) => g.items.length)).toEqual([
-      11, 4, 1,
-    ]);
+  });
+
+  it("has the approved 11/4/1 group item counts", () => {
+    expect(allGroups().map((g) => g.items.length)).toEqual([11, 4, 1]);
   });
 
   it("has no duplicate hrefs across groups", () => {
-    const hrefs = FINANCIAL_SERVICES_MENU.flatMap((g) =>
-      g.items.map((i) => i.href),
-    );
+    const hrefs = allGroups().flatMap((g) => g.items.map((i) => i.href));
     expect(new Set(hrefs).size).toBe(hrefs.length);
   });
 
   it("gives every item a non-empty label and an icon", () => {
-    for (const group of FINANCIAL_SERVICES_MENU) {
+    for (const group of allGroups()) {
       for (const item of group.items) {
         expect(item.label.trim()).toBeTruthy();
         expect(item.icon).toBeDefined();
@@ -59,20 +66,13 @@ describe("FINANCIAL_SERVICES_MENU", () => {
   });
 
   it("uses each product's navLabel (falling back to label)", () => {
-    for (const group of FINANCIAL_SERVICES_MENU) {
+    for (const group of allGroups()) {
       for (const item of group.items) {
         const id = item.href.replace("/loans#", "");
         const product = LOAN_PRODUCTS.find((p) => p.id === id);
         expect(item.label).toBe(product?.navLabel ?? product?.label);
       }
     }
-  });
-
-  it("credit cards is the only tile layout group", () => {
-    const tileGroups = FINANCIAL_SERVICES_MENU.filter(
-      (g) => g.layout === "tile",
-    );
-    expect(tileGroups.map((g) => g.key)).toEqual(["credit-cards"]);
   });
 });
 

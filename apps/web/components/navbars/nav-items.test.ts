@@ -35,14 +35,16 @@ describe("public NAV_ITEMS integrity", () => {
 
   it("wires the Financial Services menu to FINANCIAL_SERVICES_MENU, not a hand-duplicated copy", () => {
     const finance = NAV_ITEMS.find((item) => item.label === "Financial Services");
-    expect(finance?.menu?.groups).toBe(FINANCIAL_SERVICES_MENU);
+    expect(finance?.menu?.columns).toBe(FINANCIAL_SERVICES_MENU);
   });
 
   it("gives every menu item an internal href", () => {
     const finance = NAV_ITEMS.find((item) => item.label === "Financial Services");
-    for (const group of finance?.menu?.groups ?? []) {
-      for (const child of group.items) {
-        expect(child.href.startsWith("/")).toBe(true);
+    for (const column of finance?.menu?.columns ?? []) {
+      for (const group of column.groups) {
+        for (const child of group.items) {
+          expect(child.href.startsWith("/")).toBe(true);
+        }
       }
     }
   });

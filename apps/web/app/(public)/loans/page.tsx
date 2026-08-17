@@ -4,7 +4,7 @@ import { OfferStrip } from "@/components/offer-strip";
 import { ProductPage } from "@/components/product-page";
 import { faqPageJsonLd, LOAN_FAQ_ITEMS } from "@/lib/faq";
 import { getPublicOffers } from "@/lib/public-offers";
-import { LOAN_JOURNEY, LOAN_PRODUCT_BANDS, LOAN_TRUST } from "@/lib/products";
+import { LOAN_JOURNEY, LOAN_PRODUCT_BANDS } from "@/lib/products";
 import { SITE_NAME, SITE_URL } from "@/lib/site";
 
 // First server-side data fetch on this page. Matches /real-estate's ISR
@@ -82,8 +82,6 @@ export default async function LoansPage() {
         productsHeading="Explore our services"
         productColumns={4}
         productDoodles
-        productsTrustEyebrow="Why people trust us"
-        productsTrust={LOAN_TRUST}
         productBands={LOAN_PRODUCT_BANDS}
         beforeJourney={
           <OfferStrip

@@ -82,76 +82,68 @@ export function SiteHeader() {
                     </span>
                   </NavigationMenuTrigger>
                   <NavigationMenuContent>
-                    {/* Fixed 3-track grid matching FINANCIAL_SERVICES_MENU's
-                        order (loans, insurance, credit-cards). 27rem/9rem/1fr
-                        is sized so "Loan Against Property" (the longest label)
-                        fits a 208px sub-column without wrapping — see
-                        .agent-workflow/DECISIONS.md for the full width math. */}
-                    <div className="w-[min(820px,calc(100vw-2rem))]">
-                      <div className="grid grid-cols-[27rem_9rem_1fr] gap-x-6">
-                        {item.menu.groups.map((group) => (
-                          <div key={group.key} className="min-w-0">
-                            <p
-                              id={`fs-${group.key}`}
-                              className="px-2 pb-1 font-geist text-xs font-semibold uppercase tracking-wide text-text-secondary"
-                            >
-                              {group.heading}
-                            </p>
-                            {group.layout === "tile" ? (
-                              <div className="mt-1 h-[calc(100%-2rem)]">
-                                {group.items.map((child) => (
-                                  <NavigationMenuLink
-                                    key={child.href}
-                                    asChild
-                                    className="group/item flex h-full flex-col items-center justify-center gap-2 rounded-lg bg-[var(--nav-tint)]/60 p-3 text-center transition-colors hover:bg-[var(--nav-tint)]"
-                                  >
-                                    <Link href={child.href}>
-                                      <span className="flex h-9 w-9 items-center justify-center rounded-md bg-white text-[var(--nav-primary)]">
-                                        <child.icon className="h-5 w-5" aria-hidden />
-                                      </span>
-                                      <span className="text-sm font-medium text-[var(--nav-text)] transition-colors group-hover/item:text-[var(--nav-primary)]">
-                                        {child.label}
-                                      </span>
-                                    </Link>
-                                  </NavigationMenuLink>
-                                ))}
-                              </div>
-                            ) : (
-                              // grid-flow-col + grid-rows-6 makes an 11-item
-                              // list (Loans) read DOWN two sub-columns (1-6,
-                              // then 7-11) instead of one 11-row column, so the
-                              // panel is ~230px tall instead of ~420px. DOM
-                              // order stays 1->11, so tab/screen-reader order
-                              // is unaffected. Shorter lists (Insurance, 4
-                              // items) fall through to a single column.
-                              <ul
-                                aria-labelledby={`fs-${group.key}`}
+                    {/* 2-track grid: Loans | (Insurance + Credit Cards
+                        stacked). Credit Cards previously had its own 3rd
+                        column as a single-item highlight tile; a column
+                        holding one lone item and nothing else read as a
+                        rendering bug, so it now shares the Insurance column
+                        as a second headed section instead. 27rem is sized so
+                        "Loan Against Property" (the longest label) fits a
+                        208px sub-column without wrapping. */}
+                    <div className="w-[min(700px,calc(100vw-2rem))]">
+                      <div className="grid grid-cols-[27rem_1fr] gap-x-6">
+                        {item.menu.columns.map((column, columnIndex) => (
+                          <div key={columnIndex} className="min-w-0">
+                            {column.groups.map((group, groupIndex) => (
+                              <div
+                                key={group.key}
                                 className={cn(
-                                  "mt-1",
-                                  group.items.length > 6 &&
-                                    "grid grid-flow-col grid-rows-6 grid-cols-2 gap-x-2",
+                                  groupIndex > 0 &&
+                                    "mt-3 border-t border-[var(--nav-border)] pt-3",
                                 )}
                               >
-                                {group.items.map((child) => (
-                                  <li key={child.href}>
-                                    <NavigationMenuLink
-                                      asChild
-                                      className="group/item flex-row items-center gap-2 px-2 py-2 transition-colors hover:bg-[var(--nav-tint)]/60"
-                                    >
-                                      <Link href={child.href}>
-                                        <child.icon
-                                          className="h-4 w-4 shrink-0 text-text-secondary transition-colors group-hover/item:text-[var(--nav-primary)]"
-                                          aria-hidden
-                                        />
-                                        <span className="truncate text-sm font-medium text-[var(--nav-text)] transition-colors group-hover/item:text-[var(--nav-primary)]">
-                                          {child.label}
-                                        </span>
-                                      </Link>
-                                    </NavigationMenuLink>
-                                  </li>
-                                ))}
-                              </ul>
-                            )}
+                                <p
+                                  id={`fs-${group.key}`}
+                                  className="px-2 pb-1 font-geist text-xs font-semibold uppercase tracking-wide text-text-secondary"
+                                >
+                                  {group.heading}
+                                </p>
+                                {/* grid-flow-col + grid-rows-6 makes an
+                                    11-item list (Loans) read DOWN two
+                                    sub-columns (1-6, then 7-11) instead of one
+                                    11-row column, so the panel is ~230px tall
+                                    instead of ~420px. DOM order stays 1->11,
+                                    so tab/screen-reader order is unaffected.
+                                    Shorter lists fall through to one column. */}
+                                <ul
+                                  aria-labelledby={`fs-${group.key}`}
+                                  className={cn(
+                                    "mt-1",
+                                    group.items.length > 6 &&
+                                      "grid grid-flow-col grid-rows-6 grid-cols-2 gap-x-2",
+                                  )}
+                                >
+                                  {group.items.map((child) => (
+                                    <li key={child.href}>
+                                      <NavigationMenuLink
+                                        asChild
+                                        className="group/item flex-row items-center gap-2 px-2 py-2 transition-colors hover:bg-[var(--nav-tint)]/60"
+                                      >
+                                        <Link href={child.href}>
+                                          <child.icon
+                                            className="h-4 w-4 shrink-0 text-text-secondary transition-colors group-hover/item:text-[var(--nav-primary)]"
+                                            aria-hidden
+                                          />
+                                          <span className="truncate text-sm font-medium text-[var(--nav-text)] transition-colors group-hover/item:text-[var(--nav-primary)]">
+                                            {child.label}
+                                          </span>
+                                        </Link>
+                                      </NavigationMenuLink>
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            ))}
                           </div>
                         ))}
                       </div>
