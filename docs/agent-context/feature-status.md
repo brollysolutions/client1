@@ -9,6 +9,39 @@ Evidence baseline: `abcc1fd`
 verified Admin operational-visibility work in
 [PR #173](https://github.com/brollysolutions/client1/pull/173).
 
+**Done — [PR #188](https://github.com/brollysolutions/client1/pull/188) — executable
+coverage gates (engineering hygiene, no requirement change):**
+four security invariants that previously depended on someone remembering to
+write a per-feature test are now enumerated and enforced. New route
+authorization coverage asserts that each of the 232 routes either reaches
+`get_current_user` — the only thing that runs `SET LOCAL ROLE api_user` and
+turns RLS on — or appears in a 28-entry reviewed public allowlist. New schema
+coverage asserts RLS is enabled on all 49 tables, declares the two zero-policy
+deny-all cursor tables, and asserts `api_user` holds neither SUPERUSER nor
+BYPASSRLS. On the web side, middleware-matcher coverage checks all 53 `(app)`
+pages against the real `config.matcher`, and a client-env test rejects
+secret-shaped `NEXT_PUBLIC_*` names and server-only env reads inside
+`"use client"` modules. `scripts/check_migration_rls.py` fails a staged or
+pull-request migration that creates a table without RLS. No route, contract,
+migration, policy, or user-visible behavior changed, so requirement completion
+stays at 99.4%. Fresh evidence: 8 new API tests pass in the API container
+against the live schema, 6 new web tests and all 338 existing web unit tests
+pass, 11 new plus 6 existing script unit tests pass, and every new assertion was
+mutation-tested red before acceptance. The API integration suite cannot run on
+this Windows host at all (the `greenlet` DLL fails to load and the database
+hostname is Docker-internal), so API tests were executed inside
+`client1-api-1`. The full API suite completed there at **13 failed, 1665
+passed** in 38 minutes. Six of those failures pass when their file is run alone
+(cross-test ordering and the shared Redis that `conftest.py` documents as never
+flushed). The other seven also reproduce alone — a run in which pytest collects
+only that one file and never imports the two test files added here, which is
+what rules this change out as the cause; they trace to accumulated rows in this
+long-lived dev container's database, such as
+`test_loan_types_returns_seeded_labels` expecting the seeded `Personal Loan`
+label that test-created loan types have displaced. CI provisions a fresh
+database, so these are not expected to reproduce there, but that is a
+prediction rather than evidence and needs confirming on the pull request.
+
 **Done — [PR #184](https://github.com/brollysolutions/client1/pull/184) — Sub Admin CMS workspace redesign:** the Sub Admin home now presents a 310px matched "Waiting on Admin"/referral-payout row and a filtered full-screen approval workspace. Referral rules, banners, offers, and website content now provide summary metrics, bounded local filters and paging over already-authorized records, full-screen create/edit lifecycle workspaces, and discard confirmation. Banners and offers preview their public and authenticated-dashboard presentations; website content has an escaped plain-text public preview plus a placement/lifecycle guide. Existing API/RLS authorization, business-line isolation, audience grammar, banner approval, offer/content lifecycle, safe-link rules, and Admin-only payout execution remain unchanged, so requirement completion stays at 99.4%. Fresh evidence: lint, strict typecheck, all 337 web unit tests, the existing five-route Sub Admin authoring browser test, and a new live-stack four-workspace/guide Playwright journey pass. The production build compiles, validates types, and generates all 93 pages before the known Windows standalone `EPERM` symlink failure; host-side public fetches cannot resolve the Docker-only `api` hostname. Security and maintainer review found no actionable defect.
 
 ## Purpose and authority

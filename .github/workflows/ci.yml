@@ -65,6 +65,12 @@ jobs:
         if: github.event_name == 'pull_request'
         run: python scripts/check_feature_tracking.py --base-ref "${{ github.event.pull_request.base.sha }}"
 
+      # A table that ships without RLS is invisible until someone reads across a
+      # business line. Catch it in the migration diff, before it reaches a database.
+      - name: Require RLS on new tables
+        if: github.event_name == 'pull_request'
+        run: python scripts/check_migration_rls.py --base-ref "${{ github.event.pull_request.base.sha }}"
+
       # Apply migrations before the test suite so the RLS policies, api_user role,
       # and constraints the integration tests depend on actually exist.
       - name: Apply migrations
