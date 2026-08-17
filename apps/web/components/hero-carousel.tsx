@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { Pause, Play } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -22,10 +23,29 @@ import { cn } from "@/lib/utils";
 // no default so tsc catches a call site that forgot to fetch; the caller is
 // also responsible for falling back to lib/banners.ts's
 // FALLBACK_HERO_BANNERS when the CMS has nothing live.
-export function HeroCarousel({ banners }: { banners: HeroBanner[] }) {
+export function HeroCarousel({
+  banners,
+  variant = "hero",
+  label = "Highlights",
+}: {
+  banners: HeroBanner[];
+  variant?: "hero" | "section";
+  label?: string;
+}) {
   const [api, setApi] = useState<CarouselApi>();
   const [selected, setSelected] = useState(0);
   const [count, setCount] = useState(0);
+  const [userPaused, setUserPaused] = useState(false);
+  const [interactionPaused, setInteractionPaused] = useState(false);
+  const [reducedMotion, setReducedMotion] = useState(false);
+
+  useEffect(() => {
+    const media = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const sync = () => setReducedMotion(media.matches);
+    sync();
+    media.addEventListener("change", sync);
+    return () => media.removeEventListener("change", sync);
+  }, []);
 
   // Drive the dot indicators.
   useEffect(() => {
@@ -68,10 +88,9 @@ export function HeroCarousel({ banners }: { banners: HeroBanner[] }) {
   // a manual navigation always buys a fresh 5s before the next autoplay advance
   // instead of colliding with whatever was already pending.
   useEffect(() => {
-    if (!api) return;
+    if (!api || banners.length <= 1) return;
 
-    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (reduce) return;
+    if (reducedMotion || userPaused || interactionPaused) return;
 
     let timeoutId: ReturnType<typeof setTimeout>;
 
@@ -92,7 +111,7 @@ export function HeroCarousel({ banners }: { banners: HeroBanner[] }) {
       clearTimeout(timeoutId);
       api.off("select", schedule);
     };
-  }, [api]);
+  }, [api, banners.length, interactionPaused, reducedMotion, userPaused]);
 
   // Embla with zero slides is undefined behavior; the page never intends to
   // pass zero (it falls back to FALLBACK_HERO_BANNERS), but this is
@@ -103,7 +122,21 @@ export function HeroCarousel({ banners }: { banners: HeroBanner[] }) {
     // Cream section spans edge to edge, flush against the sticky NavBar above
     // it (no top padding); the carousel itself is a centered, fixed-size
     // peek-coverflow box (see docs/ai/plans for the sizing math).
-    <section aria-label="Highlights" className="relative w-full bg-[var(--nav-bg)] pb-24 sm:pb-32 lg:pb-40">
+    <section
+      aria-label={label}
+      onMouseEnter={() => setInteractionPaused(true)}
+      onMouseLeave={() => setInteractionPaused(false)}
+      onFocusCapture={() => setInteractionPaused(true)}
+      onBlurCapture={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget)) setInteractionPaused(false);
+      }}
+      className={cn(
+        "relative w-full bg-[var(--nav-bg)]",
+        variant === "hero"
+          ? "pb-24 sm:pb-32 lg:pb-40"
+          : "border-y border-[var(--nav-border)] py-6 sm:py-8",
+      )}
+    >
       <Carousel
         setApi={setApi}
         opts={{ loop: true, align: "center", containScroll: false, duration: 40 }}
@@ -120,7 +153,12 @@ export function HeroCarousel({ banners }: { banners: HeroBanner[] }) {
                 key={banner.id}
                 aria-hidden={!isSelected}
                 inert={!isSelected || undefined}
-                className="basis-[90vw] pl-0 sm:basis-[720px] lg:basis-[1200px]"
+                className={cn(
+                  "pl-0",
+                  variant === "hero"
+                    ? "basis-[90vw] sm:basis-[720px] lg:basis-[1200px]"
+                    : "basis-[90vw] sm:basis-[680px] lg:basis-[1040px]",
+                )}
               >
                 {/* Peek scale/opacity/blur lives on this INNER wrapper, not on
                     CarouselItem itself: CarouselItem is the exact node Embla
@@ -138,23 +176,32 @@ export function HeroCarousel({ banners }: { banners: HeroBanner[] }) {
                     smooth. */}
                 <div
                   className={cn(
-                    "transition-[transform,opacity] duration-500 ease-out transform-gpu [will-change:transform,opacity]",
+                    "transition-[transform,opacity] duration-500 ease-out transform-gpu motion-reduce:transition-none [will-change:transform,opacity]",
                     isSelected
                       ? "opacity-100 blur-0 scale-100"
                       : "pointer-events-none scale-90 opacity-45 blur-[4px]"
                   )}
                 >
-                <div className="relative aspect-[9/5] w-full overflow-hidden rounded-2xl shadow-lg ring-1 ring-black/5">
+                <div
+                  className={cn(
+                    "relative w-full overflow-hidden rounded-2xl bg-[var(--nav-bg)] shadow-lg ring-1 ring-black/5",
+                    variant === "hero" ? "aspect-[9/5]" : "aspect-[5/2]",
+                  )}
+                >
                   {/* Media layer: real landscape image fills the card; otherwise
                       a cream placeholder that matches the NavBar (no gray seam). */}
                   {banner.image ? (
                     <Image
                       src={banner.image}
-                      alt={banner.title}
+                      alt=""
                       fill
                       priority={i === 0}
                       sizes="(min-width: 1024px) 1200px, (min-width: 640px) 720px, 90vw"
-                      className="object-cover"
+                      className={cn(
+                        "object-cover",
+                        variant === "section" &&
+                          "[-webkit-mask-image:linear-gradient(to_right,transparent_0%,transparent_24%,black_62%,black_100%)] [mask-image:linear-gradient(to_right,transparent_0%,transparent_24%,black_62%,black_100%)]",
+                      )}
                       // next/image's default loader proxies through /_next/image,
                       // fetched SERVER-SIDE by the web process -- not the same
                       // reachability as the browser's direct request this URL is
@@ -169,21 +216,34 @@ export function HeroCarousel({ banners }: { banners: HeroBanner[] }) {
                       unoptimized
                     />
                   ) : (
-                    <>
-                      <div className="absolute inset-0 bg-[var(--nav-bg)]" />
-                      <span className="pointer-events-none absolute right-4 top-3 z-10 rounded border border-dashed border-border px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
-                        Sample
-                      </span>
-                    </>
+                    <div className="absolute inset-0 bg-[var(--nav-bg)]" />
                   )}
 
                   {/* Scrim: keeps the left-aligned copy legible over cream placeholders
                       and (future) photos alike. */}
-                  <div className="absolute inset-0 bg-gradient-to-r from-[var(--nav-bg)]/90 via-[var(--nav-bg)]/50 to-transparent" />
+                  {variant === "hero" ? (
+                    <div className="absolute inset-0 bg-gradient-to-r from-[var(--nav-bg)]/90 via-[var(--nav-bg)]/50 to-transparent" />
+                  ) : null}
 
                   {/* Copy overlay — sized to the card itself, not the page container. */}
-                  <div className="relative flex h-full items-center p-3 sm:p-8 lg:p-10">
-                    <div className="max-w-[80%] sm:max-w-sm">
+                  <div
+                    className={cn(
+                      "relative flex h-full items-center",
+                      variant === "hero" ? "p-3 sm:p-8 lg:p-10" : "p-3 sm:p-6 lg:p-8",
+                    )}
+                  >
+                    <div
+                      className={cn(
+                        variant === "hero"
+                          ? "max-w-[80%] sm:max-w-sm"
+                          : "max-w-[60%] sm:max-w-[46%] lg:max-w-[42%]",
+                      )}
+                    >
+                      {banner.offerBadge ? (
+                        <span className="mb-3 inline-flex rounded-full bg-white/85 px-3 py-1 text-xs font-semibold text-brand-navy shadow-sm backdrop-blur-sm">
+                          {banner.offerBadge}
+                        </span>
+                      ) : null}
                       <h2 className="font-heading text-base font-semibold text-[var(--nav-text)] sm:text-2xl lg:text-4xl">
                         {banner.title}
                       </h2>
@@ -230,12 +290,22 @@ export function HeroCarousel({ banners }: { banners: HeroBanner[] }) {
             <CarouselPrevious
               variant="ghost"
               onClick={goPrev}
-              className="left-[calc(50%-45vw-2.75rem)] h-12 w-12 cursor-pointer rounded-full border-none bg-transparent text-brand-blue drop-shadow-sm transition-all duration-300 hover:bg-white/40 hover:text-brand-blue hover:backdrop-blur-md hover:shadow-md [&_svg]:size-7 sm:left-[calc(50%-360px-3rem)] sm:h-14 sm:w-14 sm:[&_svg]:size-8 lg:left-[calc(50%-600px-3rem)]"
+              className={cn(
+                "left-[calc(50%-45vw-2.75rem)] h-12 w-12 cursor-pointer rounded-full border-none bg-transparent text-brand-blue drop-shadow-sm transition-[background-color,color,box-shadow] duration-300 hover:bg-white/40 hover:text-brand-blue hover:backdrop-blur-md hover:shadow-md [&_svg]:size-7 sm:h-14 sm:w-14 sm:[&_svg]:size-8",
+                variant === "hero"
+                  ? "sm:left-[calc(50%-360px-3rem)] lg:left-[calc(50%-600px-3rem)]"
+                  : "sm:left-[calc(50%-340px-3rem)] lg:left-[calc(50%-520px-3rem)]",
+              )}
             />
             <CarouselNext
               variant="ghost"
               onClick={goNext}
-              className="right-[calc(50%-45vw-0.75rem)] h-12 w-12 cursor-pointer rounded-full border-none bg-transparent text-brand-blue drop-shadow-sm transition-all duration-300 hover:bg-white/40 hover:text-brand-blue hover:backdrop-blur-md hover:shadow-md [&_svg]:size-7 sm:right-[calc(50%-360px-0.75rem)] sm:h-14 sm:w-14 sm:[&_svg]:size-8 lg:right-[calc(50%-600px-0.75rem)]"
+              className={cn(
+                "right-[calc(50%-45vw-0.75rem)] h-12 w-12 cursor-pointer rounded-full border-none bg-transparent text-brand-blue drop-shadow-sm transition-[background-color,color,box-shadow] duration-300 hover:bg-white/40 hover:text-brand-blue hover:backdrop-blur-md hover:shadow-md [&_svg]:size-7 sm:h-14 sm:w-14 sm:[&_svg]:size-8",
+                variant === "hero"
+                  ? "sm:right-[calc(50%-360px-0.75rem)] lg:right-[calc(50%-600px-0.75rem)]"
+                  : "sm:right-[calc(50%-340px-0.75rem)] lg:right-[calc(50%-520px-0.75rem)]",
+              )}
             />
           </>
         )}
@@ -252,11 +322,30 @@ export function HeroCarousel({ banners }: { banners: HeroBanner[] }) {
               aria-label={`Go to slide ${i + 1}`}
               aria-current={i === selected}
               className={cn(
-                "h-2 rounded-full transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue focus-visible:ring-offset-2",
+                "h-2 rounded-full transition-[width,background-color] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue focus-visible:ring-offset-2",
                 i === selected ? "w-6 bg-brand-navy" : "w-2 bg-border hover:bg-brand-sky"
               )}
             />
           ))}
+          <button
+            type="button"
+            disabled={reducedMotion}
+            onClick={() => setUserPaused((paused) => !paused)}
+            aria-label={
+              reducedMotion
+                ? "Autoplay disabled by reduced motion preference"
+                : userPaused
+                  ? "Resume banner autoplay"
+                  : "Pause banner autoplay"
+            }
+            className="ml-2 inline-flex h-8 w-8 items-center justify-center rounded-full text-brand-navy transition-colors hover:bg-white/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue disabled:opacity-50"
+          >
+            {userPaused || reducedMotion ? (
+              <Play className="h-4 w-4" aria-hidden />
+            ) : (
+              <Pause className="h-4 w-4" aria-hidden />
+            )}
+          </button>
         </div>
       )}
     </section>

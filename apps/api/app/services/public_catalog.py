@@ -31,19 +31,24 @@ from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import aliased
 
-from app.models.banner import Banner, BannerStatus, BannerType
+from app.models.banner import Banner, BannerPlacement, BannerStatus, BannerTemplate, BannerType
 from app.models.content_block import ContentBlock, ContentStatus
 from app.models.offer import Offer, OfferStatus
 from app.models.property import Property
 
 PUBLIC_CATALOG_PER_CATEGORY = 12
 
-# Flat cap, not a row_number() window like properties: there is no partition
-# axis here (business_line is deliberately NOT filtered/exposed on this path,
-# see list_public_banners), so PR A's per-category crowd-out problem has no
-# analogue. Doubles as a product cap (a hero nobody clicks through past ~8
-# slides is already a broken hero) and the endpoint's only DoS backstop.
-PUBLIC_BANNERS_LIMIT = 8
+# Flat per-placement caps, not a row_number() window like properties. Homepage
+# is deliberately kept to seven slides; the closed Financial Services
+# catalogue needs room for one live campaign per each of its 16 categories.
+# These server-owned ceilings are both product rules and the endpoint's DoS
+# backstop; clients cannot raise them.
+PUBLIC_BANNERS_LIMIT = 7
+PUBLIC_BANNERS_LIMIT_BY_PLACEMENT = {
+    BannerPlacement.HOMEPAGE: PUBLIC_BANNERS_LIMIT,
+    BannerPlacement.FINANCIAL_SERVICES: 16,
+    BannerPlacement.PROPERTIES: 7,
+}
 
 
 async def list_public_properties(db: AsyncSession) -> Sequence[Property]:
@@ -71,7 +76,9 @@ async def list_public_properties(db: AsyncSession) -> Sequence[Property]:
     return result.scalars().all()
 
 
-async def list_public_banners(db: AsyncSession) -> Sequence[Banner]:
+async def list_public_banners(
+    db: AsyncSession, placement: BannerPlacement = BannerPlacement.HOMEPAGE
+) -> Sequence[tuple[Banner, BannerTemplate | None, Offer | None]]:
     """The banner analogue of list_public_properties -- same no-RLS reasoning
     (module docstring above), different predicate shape. Three things this
     WHERE clause does beyond "status == live":
@@ -105,20 +112,31 @@ async def list_public_banners(db: AsyncSession) -> Sequence[Banner]:
        that doesn't exist.
     """
     stmt = (
-        select(Banner)
+        select(Banner, BannerTemplate, Offer)
+        .outerjoin(BannerTemplate, BannerTemplate.id == Banner.template_id)
+        .outerjoin(Offer, Offer.id == Banner.offer_id)
         .where(
             # This predicate IS the access control on this route. No RLS runs here.
             Banner.status == BannerStatus.LIVE,
             Banner.banner_type.in_((BannerType.DEFAULT, BannerType.ACTION)),
             Banner.audience_rules == {},
+            Banner.placement == placement,
             or_(Banner.starts_at.is_(None), Banner.starts_at <= func.now()),
             or_(Banner.ends_at.is_(None), Banner.ends_at > func.now()),
+            or_(
+                Banner.offer_id.is_(None),
+                (
+                    (Offer.status == OfferStatus.ACTIVE)
+                    & or_(Offer.starts_at.is_(None), Offer.starts_at <= func.now())
+                    & or_(Offer.ends_at.is_(None), Offer.ends_at > func.now())
+                ),
+            ),
         )
         .order_by(Banner.priority.desc(), Banner.created_at.asc(), Banner.id.asc())
-        .limit(PUBLIC_BANNERS_LIMIT)
+        .limit(PUBLIC_BANNERS_LIMIT_BY_PLACEMENT[placement])
     )
     result = await db.execute(stmt)
-    return result.scalars().all()
+    return result.all()
 
 
 # Capped PER business_line (not a flat LIMIT) via a row_number() window, same

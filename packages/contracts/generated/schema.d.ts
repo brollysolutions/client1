@@ -1621,6 +1621,41 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/banners/templates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Banner Templates */
+        get: operations["list_banner_templates_api_v1_banners_templates_get"];
+        put?: never;
+        /** Add Banner Template Version */
+        post: operations["add_banner_template_version_api_v1_banners_templates_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/banners/templates/image-upload-url": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Get Template Image Upload Url */
+        post: operations["get_template_image_upload_url_api_v1_banners_templates_image_upload_url_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/banners/{banner_id}": {
         parameters: {
             query?: never;
@@ -1632,7 +1667,8 @@ export interface paths {
         get: operations["get_banner_api_v1_banners__banner_id__get"];
         put?: never;
         post?: never;
-        delete?: never;
+        /** Delete Banner Draft */
+        delete: operations["delete_banner_draft_api_v1_banners__banner_id__delete"];
         options?: never;
         head?: never;
         /** Update Banner */
@@ -1656,6 +1692,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/banners/{banner_id}/archive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Archive */
+        post: operations["archive_api_v1_banners__banner_id__archive_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/banners/{banner_id}/reject": {
         parameters: {
             query?: never;
@@ -1667,6 +1720,23 @@ export interface paths {
         put?: never;
         /** Reject */
         post: operations["reject_api_v1_banners__banner_id__reject_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/banners/{banner_id}/replacement": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create Replacement */
+        post: operations["create_replacement_api_v1_banners__banner_id__replacement_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -4790,7 +4860,7 @@ export interface components {
          *     `services/fee_cashbacks.py` (FR-6.6 processing-fee cashback).
          * @enum {string}
          */
-        AuditAction: "agent_approved" | "agent_rejected" | "staff_created" | "staff_feature_granted" | "staff_feature_revoked" | "account_removed" | "account_status_updated" | "payout_approved" | "payout_rejected" | "payout_manual_issued" | "payout_manual_cleared" | "payout_manual_failed" | "payout_manual_reversed" | "property_submission_approved" | "property_submission_rejected" | "property_listing_updated" | "support_ticket_advanced" | "retention_purged" | "loan_type_created" | "loan_type_updated" | "bank_created" | "bank_updated" | "bank_availability_updated" | "commission_entered" | "commission_cancelled" | "fee_cashback_entered" | "fee_cashback_cancelled" | "document_verified" | "document_unverified" | "payout_link_reconciled" | "notification_broadcast" | "agent_lead_expired" | "lead_assigned" | "employee_work_assigned" | "lead_details_updated" | "field_visibility_updated" | "mobile_change_verified" | "mobile_changed" | "mobile_change_rejected" | "vehicle_arrangement_updated";
+        AuditAction: "agent_approved" | "agent_rejected" | "staff_created" | "staff_feature_granted" | "staff_feature_revoked" | "account_removed" | "account_status_updated" | "payout_approved" | "payout_rejected" | "payout_manual_issued" | "payout_manual_cleared" | "payout_manual_failed" | "payout_manual_reversed" | "property_submission_approved" | "property_submission_rejected" | "property_listing_updated" | "support_ticket_advanced" | "retention_purged" | "loan_type_created" | "loan_type_updated" | "bank_created" | "bank_updated" | "bank_availability_updated" | "commission_entered" | "commission_cancelled" | "fee_cashback_entered" | "fee_cashback_cancelled" | "document_verified" | "document_unverified" | "payout_link_reconciled" | "notification_broadcast" | "agent_lead_expired" | "lead_assigned" | "employee_work_assigned" | "lead_details_updated" | "field_visibility_updated" | "mobile_change_verified" | "mobile_changed" | "mobile_change_rejected" | "vehicle_arrangement_updated" | "banner_created" | "banner_updated" | "banner_submitted" | "banner_approved" | "banner_rejected" | "banner_archived" | "banner_activated" | "banner_deleted" | "banner_template_versioned";
         /** AuditLogListResponse */
         AuditLogListResponse: {
             /** Entries */
@@ -5015,6 +5085,10 @@ export interface components {
             ends_at?: string | null;
             /** Image Key */
             image_key?: string | null;
+            /** Offer Id */
+            offer_id?: string | null;
+            /** @default homepage */
+            placement: components["schemas"]["BannerPlacement"];
             /**
              * Priority
              * @default 0
@@ -5024,6 +5098,8 @@ export interface components {
             starts_at?: string | null;
             /** Subtitle */
             subtitle?: string | null;
+            /** Template Id */
+            template_id?: string | null;
             /** Title */
             title: string;
         };
@@ -5055,6 +5131,11 @@ export interface components {
             /** Banners */
             banners: components["schemas"]["BannerRead"][];
         };
+        /**
+         * BannerPlacement
+         * @enum {string}
+         */
+        BannerPlacement: "homepage" | "financial_services" | "properties" | "dashboard";
         /** BannerRead */
         BannerRead: {
             /** Approved By Uuid */
@@ -5063,6 +5144,8 @@ export interface components {
             banner_type: components["schemas"]["BannerType"];
             /** Business Line */
             business_line: string;
+            /** Category Key */
+            category_key: string | null;
             /**
              * Created At
              * Format: date-time
@@ -5086,8 +5169,13 @@ export interface components {
             id: string;
             /** Image Key */
             image_key: string | null;
+            /** Offer Id */
+            offer_id: string | null;
+            placement: components["schemas"]["BannerPlacement"];
             /** Priority */
             priority: number;
+            /** Replaces Banner Id */
+            replaces_banner_id: string | null;
             /** Review Note */
             review_note: string | null;
             /** Starts At */
@@ -5095,6 +5183,8 @@ export interface components {
             status: components["schemas"]["BannerStatus"];
             /** Subtitle */
             subtitle: string | null;
+            /** Template Id */
+            template_id: string | null;
             /** Title */
             title: string;
             /**
@@ -5108,6 +5198,45 @@ export interface components {
          * @enum {string}
          */
         BannerStatus: "draft" | "pending_approval" | "approved" | "live" | "rejected" | "archived";
+        /** BannerTemplateCreate */
+        BannerTemplateCreate: {
+            /** Category Key */
+            category_key: string;
+            /** Content Type */
+            content_type?: ("image/jpeg" | "image/png" | "image/webp") | null;
+            /** Image Ref */
+            image_ref: string;
+            placement: components["schemas"]["BannerPlacement"];
+        };
+        /** BannerTemplateListResponse */
+        BannerTemplateListResponse: {
+            /** Templates */
+            templates: components["schemas"]["BannerTemplateRead"][];
+        };
+        /** BannerTemplateRead */
+        BannerTemplateRead: {
+            /** Active */
+            active: boolean;
+            /** Category Key */
+            category_key: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Image Url */
+            image_url: string;
+            /** Label */
+            label: string;
+            placement: components["schemas"]["BannerPlacement"];
+            /** Version */
+            version: number;
+        };
         /**
          * BannerType
          * @enum {string}
@@ -5124,12 +5253,16 @@ export interface components {
             ends_at?: string | null;
             /** Image Key */
             image_key?: string | null;
+            /** Offer Id */
+            offer_id?: string | null;
             /** Priority */
             priority?: number | null;
             /** Starts At */
             starts_at?: string | null;
             /** Subtitle */
             subtitle?: string | null;
+            /** Template Id */
+            template_id?: string | null;
             /** Title */
             title?: string | null;
         };
@@ -7099,6 +7232,8 @@ export interface components {
             id: string;
             /** Image Url */
             image_url: string | null;
+            /** Offer Badge */
+            offer_badge?: string | null;
             /** Subtitle */
             subtitle: string | null;
             /** Title */
@@ -11923,6 +12058,103 @@ export interface operations {
             };
         };
     };
+    list_banner_templates_api_v1_banners_templates_get: {
+        parameters: {
+            query?: {
+                active_only?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BannerTemplateListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    add_banner_template_version_api_v1_banners_templates_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BannerTemplateCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BannerTemplateRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_template_image_upload_url_api_v1_banners_templates_image_upload_url_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BannerImageUploadRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BannerImageUploadResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_banner_api_v1_banners__banner_id__get: {
         parameters: {
             query?: never;
@@ -11942,6 +12174,35 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["BannerRead"];
                 };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_banner_draft_api_v1_banners__banner_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                banner_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {
@@ -12020,6 +12281,37 @@ export interface operations {
             };
         };
     };
+    archive_api_v1_banners__banner_id__archive_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                banner_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BannerRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     reject_api_v1_banners__banner_id__reject_post: {
         parameters: {
             query?: never;
@@ -12037,6 +12329,37 @@ export interface operations {
         responses: {
             /** @description Successful Response */
             200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BannerRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_replacement_api_v1_banners__banner_id__replacement_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                banner_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            201: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -14758,7 +15081,9 @@ export interface operations {
     };
     list_banners_public_api_v1_public_banners_get: {
         parameters: {
-            query?: never;
+            query?: {
+                placement?: "homepage" | "financial_services" | "properties";
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -14772,6 +15097,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PublicBannerListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

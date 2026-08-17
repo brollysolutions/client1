@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import {
+  Archive,
   Ban,
   BadgeCheck,
   Banknote,
@@ -229,6 +230,51 @@ const ACTION_META: Record<AuditAction, { label: string; icon: LucideIcon; tone: 
     label: "Mobile change rejected",
     icon: Ban,
     tone: "bg-error/10 text-error",
+  },
+  banner_created: {
+    label: "Banner created",
+    icon: Megaphone,
+    tone: "bg-loans-soft text-loans-accent",
+  },
+  banner_updated: {
+    label: "Banner updated",
+    icon: FilePenLine,
+    tone: "bg-loans-soft text-loans-accent",
+  },
+  banner_submitted: {
+    label: "Banner submitted",
+    icon: ScrollText,
+    tone: "bg-warning/10 text-warning",
+  },
+  banner_approved: {
+    label: "Banner approved",
+    icon: BadgeCheck,
+    tone: "bg-success/10 text-success",
+  },
+  banner_rejected: {
+    label: "Banner rejected",
+    icon: Ban,
+    tone: "bg-error/10 text-error",
+  },
+  banner_archived: {
+    label: "Banner archived",
+    icon: Archive,
+    tone: "bg-muted text-text-secondary",
+  },
+  banner_activated: {
+    label: "Banner activated",
+    icon: Megaphone,
+    tone: "bg-success/10 text-success",
+  },
+  banner_deleted: {
+    label: "Banner draft deleted",
+    icon: Eraser,
+    tone: "bg-muted text-text-secondary",
+  },
+  banner_template_versioned: {
+    label: "Banner artwork versioned",
+    icon: RefreshCw,
+    tone: "bg-loans-soft text-loans-accent",
   },
   vehicle_arrangement_updated: {
     label: "Vehicle arrangement updated",

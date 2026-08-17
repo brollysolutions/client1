@@ -94,6 +94,15 @@ class AuditAction(enum.StrEnum):
     MOBILE_CHANGED = "mobile_changed"
     MOBILE_CHANGE_REJECTED = "mobile_change_rejected"
     VEHICLE_ARRANGEMENT_UPDATED = "vehicle_arrangement_updated"
+    BANNER_CREATED = "banner_created"
+    BANNER_UPDATED = "banner_updated"
+    BANNER_SUBMITTED = "banner_submitted"
+    BANNER_APPROVED = "banner_approved"
+    BANNER_REJECTED = "banner_rejected"
+    BANNER_ARCHIVED = "banner_archived"
+    BANNER_ACTIVATED = "banner_activated"
+    BANNER_DELETED = "banner_deleted"
+    BANNER_TEMPLATE_VERSIONED = "banner_template_versioned"
 
 
 _ev = lambda x: [e.value for e in x]  # noqa: E731

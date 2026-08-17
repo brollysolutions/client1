@@ -49,6 +49,9 @@ async def _seed_banner(
     starts_at: datetime | None = None,
     ends_at: datetime | None = None,
     banner_type: BannerType = BannerType.DEFAULT,
+    category_key: str | None = None,
+    replaces_banner_id: str | None = None,
+    offer_id: str | None = None,
 ) -> str:
     import app.db.session as _session_mod
 
@@ -56,6 +59,9 @@ async def _seed_banner(
         banner = Banner(
             business_line="loans",
             banner_type=banner_type,
+            category_key=category_key,
+            replaces_banner_id=uuid.UUID(replaces_banner_id) if replaces_banner_id else None,
+            offer_id=uuid.UUID(offer_id) if offer_id else None,
             title=f"CMS activation test {uuid.uuid4()}",
             status=status,
             created_by_uuid=uuid.UUID(author),
@@ -336,6 +342,71 @@ async def test_draft_expired_archived_offers_untouched(client: AsyncClient) -> N
         assert await _offer_status(archived_id) == "archived"
     finally:
         await _delete_offers(draft_id, expired_id, archived_id)
+
+
+@pytest.mark.asyncio
+async def test_category_replacement_archives_current_atomically(client: AsyncClient) -> None:
+    author = await _author_uuid(client)
+    current_id = await _seed_banner(
+        author=author,
+        status=BannerStatus.LIVE,
+        category_key="general",
+    )
+    unrelated_id = await _seed_banner(
+        author=author,
+        status=BannerStatus.APPROVED,
+        starts_at=_PAST,
+        category_key="general",
+    )
+    try:
+        await cms_activation()
+        assert await _banner_status(current_id) == "live"
+        assert await _banner_status(unrelated_id) == "approved"
+
+        replacement_id = await _seed_banner(
+            author=author,
+            status=BannerStatus.APPROVED,
+            starts_at=_PAST,
+            category_key="general",
+            replaces_banner_id=current_id,
+        )
+        try:
+            await cms_activation()
+            assert await _banner_status(current_id) == "archived"
+            assert await _banner_status(replacement_id) == "live"
+        finally:
+            await _delete_banners(replacement_id)
+    finally:
+        await _delete_banners(unrelated_id, current_id)
+
+
+@pytest.mark.asyncio
+async def test_offer_campaign_waits_for_linked_offer_to_be_active(client: AsyncClient) -> None:
+    author = await _author_uuid(client)
+    offer_id = await _seed_offer(author=author, status=OfferStatus.DRAFT)
+    banner_id = await _seed_banner(
+        author=author,
+        status=BannerStatus.APPROVED,
+        starts_at=_PAST,
+        category_key="offers",
+        offer_id=offer_id,
+    )
+    try:
+        await cms_activation()
+        assert await _banner_status(banner_id) == "approved"
+
+        import app.db.session as _session_mod
+
+        async with _session_mod.AsyncSessionLocal() as db:
+            offer = await db.get(Offer, uuid.UUID(offer_id))
+            assert offer is not None
+            offer.status = OfferStatus.ACTIVE
+            await db.commit()
+        await cms_activation()
+        assert await _banner_status(banner_id) == "live"
+    finally:
+        await _delete_banners(banner_id)
+        await _delete_offers(offer_id)
 
 
 @pytest.mark.asyncio

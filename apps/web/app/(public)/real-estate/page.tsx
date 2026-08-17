@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
 import { OfferStrip } from "@/components/offer-strip";
+import { HeroCarousel } from "@/components/hero-carousel";
 import { PropertyCatalogEmpty } from "@/components/property-catalog-empty";
 import { ProductPage, PropertyDoodles } from "@/components/product-page";
 import { PropertyRow } from "@/components/property-row";
@@ -8,6 +9,7 @@ import { TrustStrip } from "@/components/trust-strip";
 import { faqPageJsonLd, REAL_ESTATE_FAQ_ITEMS } from "@/lib/faq";
 import { RE_TRUST, REAL_ESTATE_JOURNEY } from "@/lib/products";
 import { getPublicOffers } from "@/lib/public-offers";
+import { getHeroBanners } from "@/lib/public-banners";
 import { getPublicListings } from "@/lib/public-properties";
 import { groupByCategory, PROPERTY_CATEGORIES } from "@/lib/properties";
 import { SITE_NAME, SITE_URL } from "@/lib/site";
@@ -63,7 +65,11 @@ const realEstateJsonLd = {
 export default async function RealEstatePage() {
   // Parallel, not sequential: two independent 5s serverFetchJson timeouts
   // should not stack on a single page render.
-  const [listings, offers] = await Promise.all([getPublicListings(), getPublicOffers()]);
+  const [listings, offers, banners] = await Promise.all([
+    getPublicListings(),
+    getPublicOffers(),
+    getHeroBanners("properties"),
+  ]);
   const grouped = groupByCategory(listings);
   // Only render category rows that actually have listings (empty-state guard,
   // so a category with nothing to show does not render an empty scroller).
@@ -82,6 +88,11 @@ export default async function RealEstatePage() {
         intro="From flats and plots to offices and shops, we bring only verified listings and trusted partners together in one place. We stay with you at every step, from the first visit until you hold the keys."
         heroDoodles
         heroPlant="/illustrations/heroes/real-estate.svg"
+        beforeHero={
+          banners.length > 0 ? (
+            <HeroCarousel banners={banners} variant="section" label="Property campaigns" />
+          ) : null
+        }
         beforeJourney={
           <>
             <div className="relative w-full border-t border-[var(--nav-border)] bg-[var(--nav-bg)] py-20 sm:py-24 lg:py-28">

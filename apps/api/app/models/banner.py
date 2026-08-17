@@ -22,7 +22,7 @@ import enum
 import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, Integer, Text
+from sqlalchemy import Boolean, DateTime, ForeignKey, Index, Integer, Text, text
 from sqlalchemy.dialects.postgresql import ENUM, JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -45,11 +45,52 @@ class BannerStatus(enum.StrEnum):
     ARCHIVED = "archived"
 
 
+class BannerPlacement(enum.StrEnum):
+    HOMEPAGE = "homepage"
+    FINANCIAL_SERVICES = "financial_services"
+    PROPERTIES = "properties"
+    DASHBOARD = "dashboard"
+
+
 _ev = lambda x: [e.value for e in x]  # noqa: E731
 banner_type_enum = ENUM(BannerType, name="banner_type", create_type=False, values_callable=_ev)
 banner_status_enum = ENUM(
     BannerStatus, name="banner_status", create_type=False, values_callable=_ev
 )
+banner_placement_enum = ENUM(
+    BannerPlacement, name="banner_placement", create_type=False, values_callable=_ev
+)
+
+
+class BannerTemplate(Base):
+    """Immutable artwork version for one fixed public category."""
+
+    __tablename__ = "banner_templates"
+    __table_args__ = (
+        Index(
+            "uq_banner_templates_active_category",
+            "placement",
+            "category_key",
+            unique=True,
+            postgresql_where=text("active"),
+        ),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    placement: Mapped[BannerPlacement] = mapped_column(banner_placement_enum, nullable=False)
+    category_key: Mapped[str] = mapped_column(Text, nullable=False)
+    label: Mapped[str] = mapped_column(Text, nullable=False)
+    version: Mapped[int] = mapped_column(Integer, nullable=False)
+    # Bundled assets are safe local paths; replacements are controlled
+    # public/banner-templates object keys resolved by the response mapper.
+    image_ref: Mapped[str] = mapped_column(Text, nullable=False)
+    active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    created_by_uuid: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("auth_users.id", ondelete="SET NULL"), nullable=True
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=datetime.utcnow
+    )
 
 
 class Banner(Base):
@@ -58,6 +99,19 @@ class Banner(Base):
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     # Line-tag for the customer-facing surface; immutable (shared trigger).
     business_line: Mapped[str] = mapped_column(business_line_enum, nullable=False)
+    placement: Mapped[BannerPlacement] = mapped_column(
+        banner_placement_enum, nullable=False, default=BannerPlacement.HOMEPAGE
+    )
+    category_key: Mapped[str | None] = mapped_column(Text, nullable=True)
+    template_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("banner_templates.id", ondelete="RESTRICT"), nullable=True
+    )
+    offer_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("offers.id", ondelete="RESTRICT"), nullable=True
+    )
+    replaces_banner_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("banners.id", ondelete="SET NULL"), nullable=True
+    )
     banner_type: Mapped[BannerType] = mapped_column(banner_type_enum, nullable=False)
     title: Mapped[str] = mapped_column(Text, nullable=False)
     subtitle: Mapped[str | None] = mapped_column(Text, nullable=True)

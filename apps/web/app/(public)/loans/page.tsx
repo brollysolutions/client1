@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
 
 import { OfferStrip } from "@/components/offer-strip";
+import { HeroCarousel } from "@/components/hero-carousel";
 import { ProductPage } from "@/components/product-page";
 import { faqPageJsonLd, LOAN_FAQ_ITEMS } from "@/lib/faq";
 import { getPublicOffers } from "@/lib/public-offers";
+import { getHeroBanners } from "@/lib/public-banners";
 import { LOAN_JOURNEY, LOAN_PRODUCT_BANDS } from "@/lib/products";
 import { SITE_NAME, SITE_URL } from "@/lib/site";
 
@@ -67,7 +69,10 @@ const loansJsonLd = {
 };
 
 export default async function LoansPage() {
-  const offers = await getPublicOffers();
+  const [offers, banners] = await Promise.all([
+    getPublicOffers(),
+    getHeroBanners("financial_services"),
+  ]);
 
   return (
     <>
@@ -79,6 +84,15 @@ export default async function LoansPage() {
         title="Loans, cards, and insurance that fit you"
         intro="From personal and business loans to property, vehicle, and education finance, we bring the options together and help you until the money reaches your account."
         heroDoodles
+        beforeHero={
+          banners.length > 0 ? (
+            <HeroCarousel
+              banners={banners}
+              variant="section"
+              label="Financial services campaigns"
+            />
+          ) : null
+        }
         productsHeading="Explore our services"
         productColumns={4}
         productDoodles
