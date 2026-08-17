@@ -5,6 +5,9 @@ set -euo pipefail
 echo "==> Feature tracking"
 uv run --no-project python scripts/check_feature_tracking.py --staged
 
+echo "==> Migration RLS"
+uv run --no-project python scripts/check_migration_rls.py --staged
+
 if [[ -f apps/api/pyproject.toml ]]; then
   echo "==> API lint"
   (cd apps/api && uv run ruff check . && uv run ruff format --check .)

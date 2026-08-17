@@ -10,6 +10,11 @@ if [[ -f scripts/tests/test_feature_tracking.py ]]; then
   uv run --no-project python scripts/tests/test_feature_tracking.py
 fi
 
+if [[ -f scripts/tests/test_migration_rls.py ]]; then
+  echo "==> Migration RLS tests"
+  uv run --no-project python scripts/tests/test_migration_rls.py
+fi
+
 if [[ -x ./scripts/verify-api.sh ]]; then
   ./scripts/verify-api.sh "$MODE"
 fi
