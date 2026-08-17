@@ -2,12 +2,31 @@
 
 Status: **Derived living implementation ledger**
 
-As of: **2026-08-16**
+As of: **2026-08-17**
 
 Evidence baseline: `abcc1fd`
 ([PR #175](https://github.com/brollysolutions/client1/pull/175)), plus the
 verified Admin operational-visibility work in
 [PR #173](https://github.com/brollysolutions/client1/pull/173).
+
+**Done — public navbar label broadened (copy change, no requirement change):**
+the public header's `Loans` entry is now `Financial Services`. The `/loans` page
+already carries the whole consumer-finance line — the five loan products plus
+the `credit-cards` and `insurance` cards in `apps/web/lib/products.ts`, both
+live anchor targets — so the old label under-described the destination. Only
+`apps/web/components/navbars/nav-items.ts` changed; the desktop header and
+mobile drawer both read that single config, and active-state matching keys off
+`href`, which is unchanged. The route, sitemap entry, canonical URL, breadcrumb
+JSON-LD, page metadata, and footer `Loans` column were deliberately left alone:
+renaming an indexed public path costs SEO for no user-facing gain. Requirement
+completion stays at 99.4%. Fresh evidence: a new
+`components/navbars/nav-items.test.ts` (3 assertions, including that the
+broadened label still resolves to the live `/loans` route — the drift a later
+"consistency" edit would introduce), plus web lint, strict typecheck, and all
+341 web unit tests pass. The production build compiles and generates all 93
+pages before the known Windows standalone `EPERM` symlink failure. No Playwright
+run: the public header has no e2e coverage today and this change adds no user
+journey to cover.
 
 **Done — [PR #184](https://github.com/brollysolutions/client1/pull/184) — Sub Admin CMS workspace redesign:** the Sub Admin home now presents a 310px matched "Waiting on Admin"/referral-payout row and a filtered full-screen approval workspace. Referral rules, banners, offers, and website content now provide summary metrics, bounded local filters and paging over already-authorized records, full-screen create/edit lifecycle workspaces, and discard confirmation. Banners and offers preview their public and authenticated-dashboard presentations; website content has an escaped plain-text public preview plus a placement/lifecycle guide. Existing API/RLS authorization, business-line isolation, audience grammar, banner approval, offer/content lifecycle, safe-link rules, and Admin-only payout execution remain unchanged, so requirement completion stays at 99.4%. Fresh evidence: lint, strict typecheck, all 337 web unit tests, the existing five-route Sub Admin authoring browser test, and a new live-stack four-workspace/guide Playwright journey pass. The production build compiles, validates types, and generates all 93 pages before the known Windows standalone `EPERM` symlink failure; host-side public fetches cannot resolve the Docker-only `api` hostname. Security and maintainer review found no actionable defect.
 
