@@ -9,6 +9,27 @@ Evidence baseline: `abcc1fd`
 verified Admin operational-visibility work in
 [PR #173](https://github.com/brollysolutions/client1/pull/173).
 
+**Done — [PR #190](https://github.com/brollysolutions/client1/pull/190) —
+dev-stack api healthcheck start_period widened (dev tooling, no
+requirement change):** local `docker compose up` intermittently aborted
+`scheduler` mid-startup with `dependency failed to start: container
+client1-api-1 is unhealthy`, leaving it stuck in `Created` even though `api`
+recovered seconds later. Root cause: `api`'s healthcheck window (20s
+`start_period` + 5 retries × 15s `interval` = 95s total grace) was tighter
+than the cold-start path — `uv run alembic upgrade head` against 90
+migrations, then FastAPI boot — regularly takes; `api` got marked unhealthy
+once during that window, and `scheduler` (which has a hard `api: condition:
+service_healthy` dependency) evaluates that condition only once during
+`docker compose up` and does not retry after the dependency later recovers.
+Only `docker-compose.yml`'s `api.healthcheck.start_period` changed, 20s →
+90s; `interval`/`timeout`/`retries` (steady-state failure detection) are
+unchanged. No application code, route, contract, migration, or RLS change.
+Fresh evidence: `docker compose config` validates; a full cold
+`down` + `up -d` of the whole stack (`postgres`, `pgbouncer`, `redis`,
+`minio`, `clamav`, `api`, `scheduler`, `web`) completed in ~4m41s with every
+service, including `scheduler`, reaching `healthy`/`Started` — the prior
+failure mode did not reproduce.
+
 **Done — public navbar label broadened (copy change, no requirement change):**
 the public header's `Loans` entry is now `Financial Services`. The `/loans` page
 already carries the whole consumer-finance line — the five loan products plus
