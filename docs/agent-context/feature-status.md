@@ -2,12 +2,31 @@
 
 Status: **Derived living implementation ledger**
 
-As of: **2026-08-16**
+As of: **2026-08-17**
 
 Evidence baseline: `abcc1fd`
 ([PR #175](https://github.com/brollysolutions/client1/pull/175)), plus the
 verified Admin operational-visibility work in
 [PR #173](https://github.com/brollysolutions/client1/pull/173).
+
+**Done — public navbar label broadened (copy change, no requirement change):**
+the public header's `Loans` entry is now `Financial Services`. The `/loans` page
+already carries the whole consumer-finance line — the five loan products plus
+the `credit-cards` and `insurance` cards in `apps/web/lib/products.ts`, both
+live anchor targets — so the old label under-described the destination. Only
+`apps/web/components/navbars/nav-items.ts` changed; the desktop header and
+mobile drawer both read that single config, and active-state matching keys off
+`href`, which is unchanged. The route, sitemap entry, canonical URL, breadcrumb
+JSON-LD, page metadata, and footer `Loans` column were deliberately left alone:
+renaming an indexed public path costs SEO for no user-facing gain. Requirement
+completion stays at 99.4%. Fresh evidence: a new
+`components/navbars/nav-items.test.ts` (3 assertions, including that the
+broadened label still resolves to the live `/loans` route — the drift a later
+"consistency" edit would introduce), plus web lint, strict typecheck, and all
+347 web unit tests pass after merging the PR #188 coverage gates from `main`.
+The production build compiles and generates all 93 pages before the known
+Windows standalone `EPERM` symlink failure. No Playwright run: the public header
+has no e2e coverage today and this change adds no user journey to cover.
 
 **Done — [PR #188](https://github.com/brollysolutions/client1/pull/188) — executable
 coverage gates (engineering hygiene, no requirement change):**
