@@ -10,7 +10,8 @@ verified Admin operational-visibility work in
 [PR #173](https://github.com/brollysolutions/client1/pull/173).
 
 **Done — property-backed public banners, property taxonomy, and full-bleed
-carousel polish:** `feat/starter-banner-ctas` (PR pending) preserves the
+carousel polish:** `feat/starter-banner-ctas`
+([PR #195](https://github.com/brollysolutions/client1/pull/195)) preserves the
 completed FR-12 authoring/Admin-approval lifecycle while adding a validated
 active-property relationship for public Homepage/Properties campaigns. Public
 projection now derives the same-origin enquiry destination, managed media, and
