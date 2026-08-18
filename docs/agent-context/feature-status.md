@@ -30,13 +30,24 @@ matching live offers — behavior confirmed and locked by a new
 `components/offer-strip.test.tsx` (the explicit namespace React imports added
 to `offer-strip.tsx`/`lead-dialog.tsx` only serve the vitest classic-JSX
 setup, matching `hero-carousel.tsx`). No route, API, contract, migration, or
-RLS change. Fresh evidence: web ESLint, strict typecheck, and all 390 unit
-tests pass; the production build compiles, typechecks, and generates all 93
-pages before the known Windows standalone `EPERM` symlink failure. Live
-browser checks at 1440px and 390px against the running dev stack verified
-band layout, illustration fidelity and alignment, spotlight/stacked
-credit-card behavior, anchors, trust strip placement, and the live offers
-strip with no console errors.
+RLS change. A same-PR follow-up brings the same visual language into both
+desktop mega-menus: Financial Services dropdown items reuse their product's
+spot illustration as a 48x36 tint-tile thumbnail (one art source for menu and
+page), and the Properties dropdown gets nine purpose-drawn 96x72 subtype
+miniatures under `public/illustrations/menu/properties/` because the catalog
+landscape scenes are unreadable at thumbnail size. The `NavChild`/
+`FinancialServiceLink` types gain an optional `illustration`; the mega-menu
+renderer falls back to the Lucide icon when it is absent, and the mobile
+drawer deliberately keeps Lucide icons (illustrations stay lg+ only). Menu
+tests now assert every dropdown item's thumbnail exists on disk. Fresh
+evidence: web ESLint, strict typecheck, and all 392 unit tests pass; the
+production build compiles, typechecks, and generates all 93 pages before the
+known Windows standalone `EPERM` symlink failure. Live browser checks at
+1440px and 390px against the running dev stack verified band layout,
+illustration fidelity and alignment, spotlight/stacked credit-card behavior,
+anchors, trust strip placement, the live offers strip, and both mega-menus
+rendering all 25 thumbnails; the only console error is the pre-existing
+missing `homepage-closing` content block 404 in the local dev database.
 
 **Done — property-backed public banners, property taxonomy, and full-bleed
 carousel polish:** `feat/starter-banner-ctas`

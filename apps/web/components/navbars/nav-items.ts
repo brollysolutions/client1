@@ -18,6 +18,9 @@ export type NavChild = {
   label: string;
   href: string;
   icon: LucideIcon;
+  /** Miniature illustration thumbnail for the desktop mega-menu. The Lucide
+   *  `icon` stays the mobile-drawer glyph (illustrations are lg+ only). */
+  illustration?: string;
 };
 
 export type NavGroup = {

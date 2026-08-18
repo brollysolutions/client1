@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ArrowRight, Phone } from "lucide-react";
@@ -135,13 +136,29 @@ export function SiteHeader() {
                                     <li key={child.href}>
                                       <NavigationMenuLink
                                         asChild
-                                        className="group/item flex-row items-center gap-2 px-2 py-2 transition-colors hover:bg-[var(--nav-tint)]/60"
+                                        className="group/item flex-row items-center gap-2.5 px-2 py-1.5 transition-colors hover:bg-[var(--nav-tint)]/60"
                                       >
                                         <Link href={child.href}>
-                                          <child.icon
-                                            className="h-4 w-4 shrink-0 text-text-secondary transition-colors group-hover/item:text-[var(--nav-primary)]"
-                                            aria-hidden
-                                          />
+                                          {child.illustration ? (
+                                            // Miniature spot illustration in a
+                                            // tint tile; decorative, the label
+                                            // carries the meaning.
+                                            <span className="flex h-9 w-12 shrink-0 items-center justify-center overflow-hidden rounded-md bg-[var(--nav-tint)]/50 ring-1 ring-inset ring-[var(--nav-border)] transition-shadow group-hover/item:ring-[var(--nav-primary)]/40">
+                                              <Image
+                                                src={child.illustration}
+                                                alt=""
+                                                aria-hidden
+                                                width={48}
+                                                height={36}
+                                                className="h-full w-full object-contain p-0.5"
+                                              />
+                                            </span>
+                                          ) : (
+                                            <child.icon
+                                              className="h-4 w-4 shrink-0 text-text-secondary transition-colors group-hover/item:text-[var(--nav-primary)]"
+                                              aria-hidden
+                                            />
+                                          )}
                                           <span className="truncate text-sm font-medium text-[var(--nav-text)] transition-colors group-hover/item:text-[var(--nav-primary)]">
                                             {child.label}
                                           </span>

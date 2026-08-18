@@ -1,10 +1,17 @@
+import { existsSync } from "node:fs";
+import { join } from "node:path";
+import { fileURLToPath } from "node:url";
+
 import { describe, expect, it } from "vitest";
 
 import {
   FINANCIAL_SERVICES_MENU,
   FINANCIAL_SERVICES_OVERVIEW,
 } from "@/components/navbars/financial-services-menu";
+import { PROPERTIES_MENU } from "@/components/navbars/properties-menu";
 import { LOAN_PRODUCTS } from "@/lib/products";
+
+const PUBLIC_DIR = join(fileURLToPath(new URL("../..", import.meta.url)), "public");
 
 // Regression coverage for the navbar mega-menu join in
 // financial-services-menu.ts. Unlike footer-links.ts's id-lookup risk (a
@@ -65,6 +72,16 @@ describe("FINANCIAL_SERVICES_MENU", () => {
     }
   });
 
+  it("gives every item a miniature illustration that exists on disk", () => {
+    for (const group of allGroups()) {
+      for (const item of group.items) {
+        expect(item.illustration, `${item.label} has no illustration`).toBeTruthy();
+        const path = join(PUBLIC_DIR, item.illustration!.replace(/^\//, ""));
+        expect(existsSync(path), `missing thumbnail: ${item.illustration}`).toBe(true);
+      }
+    }
+  });
+
   it("uses each product's navLabel (falling back to label)", () => {
     for (const group of allGroups()) {
       for (const item of group.items) {
@@ -72,6 +89,20 @@ describe("FINANCIAL_SERVICES_MENU", () => {
         const product = LOAN_PRODUCTS.find((p) => p.id === id);
         expect(item.label).toBe(product?.navLabel ?? product?.label);
       }
+    }
+  });
+});
+
+describe("PROPERTIES_MENU", () => {
+  it("gives every subtype item a miniature illustration that exists on disk", () => {
+    const items = PROPERTIES_MENU.flatMap((column) =>
+      column.groups.flatMap((group) => group.items),
+    );
+    expect(items.length).toBe(9);
+    for (const item of items) {
+      expect(item.illustration, `${item.label} has no illustration`).toBeTruthy();
+      const path = join(PUBLIC_DIR, item.illustration!.replace(/^\//, ""));
+      expect(existsSync(path), `missing thumbnail: ${item.illustration}`).toBe(true);
     }
   });
 });
