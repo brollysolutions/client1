@@ -37,6 +37,12 @@ TABLE_CLASSIFICATION: dict[str, ClassificationMode] = {
     "auth_users": ClassificationMode.IDENTITY,
     "bank_loan_type_availability": ClassificationMode.PLATFORM_CONFIG,
     "banks": ClassificationMode.PLATFORM_CONFIG,
+    # The banner artwork catalogue itself is line-neutral: a template is a
+    # reusable, text-free image plus its category label, and the line-tag lives
+    # on the banner row that references it (banners is GLOBAL_CONTENT above).
+    # Classifying it OPERATIONAL/GLOBAL_CONTENT would demand a business_line
+    # column that carries no meaning for a shared asset.
+    "banner_templates": ClassificationMode.PLATFORM_CONFIG,
     "banners": ClassificationMode.GLOBAL_CONTENT,
     "bookmarks": ClassificationMode.FIXED_REAL_ESTATE,
     "client_profiles": ClassificationMode.OPERATIONAL,

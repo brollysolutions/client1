@@ -12,7 +12,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field, model_validator
 
-from app.models.banner import BannerStatus, BannerType
+from app.models.banner import BannerPlacement, BannerStatus, BannerType
 from app.schemas.personalization import AudienceRules, audience_rules_valid_for_banner
 
 # Matches services/banners.py::build_image_key's `public/banners/{uuid4}/{name}`
@@ -36,6 +36,9 @@ BannerImageContentTypeLiteral = Literal["image/jpeg", "image/png", "image/webp"]
 
 class BannerCreate(BaseModel):
     business_line: str = Field(pattern="^(loans|real_estate|both)$")
+    placement: BannerPlacement = BannerPlacement.HOMEPAGE
+    template_id: UUID | None = None
+    offer_id: UUID | None = None
     banner_type: BannerType
     title: str = Field(min_length=1, max_length=500)
     subtitle: str | None = Field(default=None, max_length=300)
@@ -53,6 +56,21 @@ class BannerCreate(BaseModel):
             if self.banner_type == BannerType.PERSONALIZED:
                 raise ValueError("Personalized banners require at least one user type.")
             raise ValueError("Default and action banners cannot carry audience rules.")
+        if self.banner_type == BannerType.PERSONALIZED and "placement" not in self.model_fields_set:
+            self.placement = BannerPlacement.DASHBOARD
+        if (
+            self.banner_type == BannerType.PERSONALIZED
+            and self.placement != BannerPlacement.DASHBOARD
+        ):
+            raise ValueError("Personalized banners are dashboard-only.")
+        if self.placement == BannerPlacement.DASHBOARD and self.template_id is not None:
+            raise ValueError("Dashboard banners do not use public templates.")
+        if (
+            self.placement != BannerPlacement.DASHBOARD
+            and self.template_id is None
+            and "placement" in self.model_fields_set
+        ):
+            raise ValueError("Public banner campaigns require a template.")
         return self
 
 
@@ -66,6 +84,30 @@ class BannerUpdate(BaseModel):
     priority: int | None = Field(default=None, ge=0)
     starts_at: datetime | None = None
     ends_at: datetime | None = None
+    template_id: UUID | None = None
+    offer_id: UUID | None = None
+
+
+class BannerTemplateCreate(BaseModel):
+    placement: BannerPlacement
+    category_key: str = Field(min_length=1, max_length=80)
+    image_ref: str = Field(min_length=1, max_length=500)
+    content_type: BannerImageContentTypeLiteral | None = None
+
+
+class BannerTemplateRead(BaseModel):
+    id: UUID
+    placement: BannerPlacement
+    category_key: str
+    label: str
+    version: int
+    image_url: str
+    active: bool
+    created_at: datetime
+
+
+class BannerTemplateListResponse(BaseModel):
+    templates: list[BannerTemplateRead]
 
 
 class BannerImageUploadRequest(BaseModel):
@@ -86,6 +128,11 @@ class BannerImageUploadResponse(BaseModel):
 class BannerRead(BaseModel):
     id: UUID
     business_line: str
+    placement: BannerPlacement
+    category_key: str | None
+    template_id: UUID | None
+    offer_id: UUID | None
+    replaces_banner_id: UUID | None
     banner_type: BannerType
     title: str
     subtitle: str | None
@@ -168,6 +215,7 @@ class PublicBannerRead(BaseModel):
     cta_label: str | None
     deep_link: str | None
     image_url: str | None
+    offer_badge: str | None = None
 
 
 class PublicBannerListResponse(BaseModel):

@@ -106,6 +106,85 @@ async def _select_as(
         await engine.dispose()
 
 
+async def _template_count_as(*, auth_user_uuid: str, role: str, platform_scope: str) -> int:
+    engine = _engine()
+    try:
+        async with engine.begin() as conn:
+            await conn.execute(text("SET LOCAL ROLE api_user"))
+            await conn.execute(
+                text(
+                    "SELECT set_config('app.auth_user_uuid', :uuid, true),"
+                    "set_config('app.role', :role, true),"
+                    "set_config('app.business_line', 'both', true),"
+                    "set_config('app.platform_scope', :scope, true)"
+                ),
+                {"uuid": auth_user_uuid, "role": role, "scope": platform_scope},
+            )
+            return int(await conn.scalar(text("SELECT count(*) FROM banner_templates")) or 0)
+    finally:
+        await engine.dispose()
+
+
+@pytest.mark.asyncio
+async def test_template_library_is_staff_only(client: AsyncClient) -> None:
+    _, mobile = await full_registration(client, lines=["loans"])
+    uid = await _auth_user_uuid(mobile)
+    assert (
+        await _template_count_as(auth_user_uuid=uid, role="sub_admin", platform_scope="true") == 29
+    )
+    assert await _template_count_as(auth_user_uuid=uid, role="admin", platform_scope="true") == 29
+    assert await _template_count_as(auth_user_uuid=uid, role="client", platform_scope="false") == 0
+
+
+@pytest.mark.asyncio
+async def test_other_sub_admin_updates_shared_draft_but_cannot_reassign_creator(
+    client: AsyncClient,
+) -> None:
+    _, owner_mobile = await full_registration(client, lines=["loans"])
+    owner_uid = await _auth_user_uuid(owner_mobile)
+    banner_id = await _seed_banner(owner_uid)
+    _, teammate_mobile = await full_registration(client, lines=["loans"])
+    teammate_uid = await _auth_user_uuid(teammate_mobile)
+
+    engine = _engine()
+    try:
+        async with engine.begin() as conn:
+            await conn.execute(text("SET LOCAL ROLE api_user"))
+            await conn.execute(
+                text(
+                    "SELECT set_config('app.auth_user_uuid', :uuid, true),"
+                    "set_config('app.role', 'sub_admin', true),"
+                    "set_config('app.business_line', 'both', true),"
+                    "set_config('app.platform_scope', 'true', true)"
+                ),
+                {"uuid": teammate_uid},
+            )
+            result = await conn.execute(
+                text("UPDATE banners SET title = 'Team edit' WHERE id = :id"),
+                {"id": banner_id},
+            )
+            assert result.rowcount == 1
+
+        async with engine.begin() as conn:
+            await conn.execute(text("SET LOCAL ROLE api_user"))
+            await conn.execute(
+                text(
+                    "SELECT set_config('app.auth_user_uuid', :uuid, true),"
+                    "set_config('app.role', 'sub_admin', true),"
+                    "set_config('app.business_line', 'both', true),"
+                    "set_config('app.platform_scope', 'true', true)"
+                ),
+                {"uuid": teammate_uid},
+            )
+            with pytest.raises(Exception):  # noqa: B017 -- immutable trigger violation
+                await conn.execute(
+                    text("UPDATE banners SET created_by_uuid = :owner WHERE id = :id"),
+                    {"owner": teammate_uid, "id": banner_id},
+                )
+    finally:
+        await engine.dispose()
+
+
 @pytest.mark.asyncio
 async def test_sub_admin_sees_every_banner_not_just_own(client: AsyncClient) -> None:
     _, owner_mobile = await full_registration(client, lines=["loans"])

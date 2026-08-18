@@ -9,9 +9,11 @@ test_property_submissions_api.py.
 
 from __future__ import annotations
 
+import uuid
+
 import pytest
 from httpx import AsyncClient
-from sqlalchemy import text
+from sqlalchemy import delete, text
 
 from app.core.security import create_access_token
 from conftest import full_registration
@@ -345,9 +347,8 @@ async def test_approve_missing_is_404(client: AsyncClient) -> None:
 
 
 @pytest.mark.asyncio
-async def test_other_sub_admin_cannot_edit_or_submit(client: AsyncClient) -> None:
-    """Shared visibility (any sub_admin sees every banner) is not shared write
-    access — edit/submit stays owner-scoped (banners_update RLS policy)."""
+async def test_other_sub_admin_can_edit_and_submit_shared_draft(client: AsyncClient) -> None:
+    """Shared visibility includes team-wide draft editing and submission."""
     _, owner_mobile = await full_registration(client, lines=["loans"])
     owner_uid = await _auth_user_uuid(owner_mobile)
     created = await client.post(
@@ -366,10 +367,169 @@ async def test_other_sub_admin_cannot_edit_or_submit(client: AsyncClient) -> Non
         json={"title": "Hijacked"},
         headers=other_headers,
     )
-    assert edit_res.status_code == 403
+    assert edit_res.status_code == 200
+    assert edit_res.json()["title"] == "Hijacked"
 
     submit_res = await client.post(f"/api/v1/banners/{banner_id}/submit", headers=other_headers)
-    assert submit_res.status_code == 403
+    assert submit_res.status_code == 200
+    assert submit_res.json()["status"] == "pending_approval"
+
+
+@pytest.mark.asyncio
+async def test_public_campaign_requires_active_matching_template(client: AsyncClient) -> None:
+    _, mobile = await full_registration(client, lines=["loans"])
+    uid = await _auth_user_uuid(mobile)
+    headers = {"Authorization": f"Bearer {_sub_admin_token(uid)}"}
+
+    templates = await client.get("/api/v1/banners/templates", headers=headers)
+    assert templates.status_code == 200, templates.text
+    assert len(templates.json()["templates"]) == 29
+    template = next(
+        item
+        for item in templates.json()["templates"]
+        if item["placement"] == "financial_services" and item["category_key"] == "personal-loan"
+    )
+
+    missing = await client.post(
+        "/api/v1/banners",
+        json={**_PAYLOAD, "placement": "financial_services"},
+        headers=headers,
+    )
+    assert missing.status_code == 422
+
+    created = await client.post(
+        "/api/v1/banners",
+        json={
+            **_PAYLOAD,
+            "placement": "financial_services",
+            "template_id": template["id"],
+        },
+        headers=headers,
+    )
+    assert created.status_code == 201, created.text
+    assert created.json()["placement"] == "financial_services"
+    assert created.json()["category_key"] == "personal-loan"
+
+    wrong_line = await client.post(
+        "/api/v1/banners",
+        json={
+            **_PAYLOAD,
+            "business_line": "real_estate",
+            "placement": "financial_services",
+            "template_id": template["id"],
+        },
+        headers=headers,
+    )
+    assert wrong_line.status_code == 422
+
+    offer_template = next(
+        item
+        for item in templates.json()["templates"]
+        if item["placement"] == "homepage" and item["category_key"] == "offers"
+    )
+    missing_offer = await client.post(
+        "/api/v1/banners",
+        json={
+            **_PAYLOAD,
+            "placement": "homepage",
+            "template_id": offer_template["id"],
+        },
+        headers=headers,
+    )
+    assert missing_offer.status_code == 422
+
+    import app.db.session as _session_mod
+    from app.models.offer import Offer, OfferStatus
+
+    async with _session_mod.AsyncSessionLocal() as db:
+        targeted_offer = Offer(
+            business_line="loans",
+            title="Private client incentive",
+            discount_type="percentage",
+            discount_value=10,
+            status=OfferStatus.ACTIVE,
+            audience_rules={"version": 1, "user_types": ["client"]},
+            created_by_uuid=uuid.UUID(uid),
+        )
+        db.add(targeted_offer)
+        await db.commit()
+        targeted_offer_id = str(targeted_offer.id)
+    targeted_offer_response = await client.post(
+        "/api/v1/banners",
+        json={
+            **_PAYLOAD,
+            "placement": "homepage",
+            "template_id": offer_template["id"],
+            "offer_id": targeted_offer_id,
+        },
+        headers=headers,
+    )
+    assert targeted_offer_response.status_code == 422
+    async with _session_mod.AsyncSessionLocal() as db:
+        await db.execute(delete(Offer).where(Offer.id == uuid.UUID(targeted_offer_id)))
+        await db.commit()
+
+
+@pytest.mark.asyncio
+async def test_reviewed_campaign_replacement_archive_and_draft_delete(client: AsyncClient) -> None:
+    _, mobile = await full_registration(client, lines=["loans"])
+    uid = await _auth_user_uuid(mobile)
+    sub_headers = {"Authorization": f"Bearer {_sub_admin_token(uid)}"}
+    admin_headers = {"Authorization": f"Bearer {_admin_token(uid)}"}
+    templates = await client.get("/api/v1/banners/templates", headers=sub_headers)
+    template = next(
+        item
+        for item in templates.json()["templates"]
+        if item["placement"] == "financial_services" and item["category_key"] == "business-loan"
+    )
+    created = await client.post(
+        "/api/v1/banners",
+        json={
+            **_PAYLOAD,
+            "placement": "financial_services",
+            "template_id": template["id"],
+        },
+        headers=sub_headers,
+    )
+    banner_id = created.json()["id"]
+    submitted = await client.post(f"/api/v1/banners/{banner_id}/submit", headers=sub_headers)
+    assert submitted.status_code == 200
+    approved = await client.post(f"/api/v1/banners/{banner_id}/approve", headers=admin_headers)
+    assert approved.status_code == 200
+
+    replacement = await client.post(f"/api/v1/banners/{banner_id}/replacement", headers=sub_headers)
+    assert replacement.status_code == 201, replacement.text
+    replacement_id = replacement.json()["id"]
+    assert replacement.json()["status"] == "draft"
+    assert replacement.json()["replaces_banner_id"] == banner_id
+    assert replacement.json()["template_id"] == template["id"]
+
+    archived = await client.post(f"/api/v1/banners/{banner_id}/archive", headers=sub_headers)
+    assert archived.status_code == 200
+    assert archived.json()["status"] == "archived"
+    deleted = await client.delete(f"/api/v1/banners/{replacement_id}", headers=sub_headers)
+    assert deleted.status_code == 204
+
+
+@pytest.mark.asyncio
+async def test_template_upload_is_admin_only_and_uses_private_staging(client: AsyncClient) -> None:
+    _, mobile = await full_registration(client, lines=["loans"])
+    uid = await _auth_user_uuid(mobile)
+    payload = {"content_type": "image/webp", "filename": "replacement.webp"}
+    denied = await client.post(
+        "/api/v1/banners/templates/image-upload-url",
+        json=payload,
+        headers={"Authorization": f"Bearer {_sub_admin_token(uid)}"},
+    )
+    assert denied.status_code == 403
+
+    response = await client.post(
+        "/api/v1/banners/templates/image-upload-url",
+        json=payload,
+        headers={"Authorization": f"Bearer {_admin_token(uid)}"},
+    )
+    assert response.status_code == 200, response.text
+    assert response.json()["object_key"].startswith("private/banner-templates/staging/")
 
 
 @pytest.mark.asyncio

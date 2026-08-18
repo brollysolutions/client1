@@ -22,6 +22,7 @@ function wireBanner(overrides: Partial<Schemas["PublicBannerRead"]> = {}): Schem
     cta_label: "Apply now",
     deep_link: "/loans",
     image_url: null,
+    offer_badge: null,
     ...overrides,
   };
 }
@@ -38,6 +39,7 @@ describe("mapPublicBanner()", () => {
       title: "Diwali Loan Offer",
       subtitle: "Limited period rates",
       image: undefined,
+      offerBadge: undefined,
       cta: { label: "Apply now", href: "/loans" },
     });
   });
@@ -57,6 +59,32 @@ describe("mapPublicBanner()", () => {
       wireBanner({ image_url: "http://localhost:9000/task-documents/public/banners/x/y.jpg" }),
     );
     expect(banner.image).toBe("http://localhost:9000/task-documents/public/banners/x/y.jpg");
+  });
+
+  it("keeps reviewed bundled template artwork", () => {
+    const banner = mapPublicBanner(
+      wireBanner({ image_url: "/banner-templates/homepage/loans.webp" }),
+    );
+    expect(banner.image).toBe("/banner-templates/homepage/loans.webp");
+  });
+
+  it("drops traversal and protocol-relative template paths", () => {
+    expect(
+      mapPublicBanner(
+        wireBanner({ image_url: "/banner-templates/../private/file.webp" }),
+      ).image,
+    ).toBeUndefined();
+    expect(
+      mapPublicBanner(
+        wireBanner({ image_url: "//banner-templates.example/file.webp" }),
+      ).image,
+    ).toBeUndefined();
+  });
+
+  it("maps an offer badge", () => {
+    expect(mapPublicBanner(wireBanner({ offer_badge: "10% off · Code SAVE10" })).offerBadge).toBe(
+      "10% off · Code SAVE10",
+    );
   });
 
   it("drops image_url from a host outside the allowlist", () => {
@@ -104,14 +132,16 @@ describe("mapPublicBanner()", () => {
 
 describe("getHeroBanners()", () => {
   it("maps a successful response", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn(async () => fakeResponse(200, { banners: [wireBanner()] })),
-    );
+    const fetchMock = vi.fn(async () => fakeResponse(200, { banners: [wireBanner()] }));
+    vi.stubGlobal("fetch", fetchMock);
 
-    const banners = await getHeroBanners();
+    const banners = await getHeroBanners("properties");
     expect(banners).toHaveLength(1);
     expect(banners[0].id).toBe("11111111-1111-1111-1111-111111111111");
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining("/api/v1/public/banners?placement=properties"),
+      expect.anything(),
+    );
   });
 
   it("returns an empty array on a non-2xx response", async () => {

@@ -31,7 +31,12 @@ async def purge_banner_image_orphans() -> None:
     started = time.monotonic()
     logger.info("job.purge_banner_image_orphans.start")
     try:
-        summary = await banners.purge_orphaned_uploads()
+        campaign_summary = await banners.purge_orphaned_uploads()
+        template_summary = await banners.purge_orphaned_template_uploads()
+        summary = {
+            "scanned": campaign_summary["scanned"] + template_summary["scanned"],
+            "deleted": campaign_summary["deleted"] + template_summary["deleted"],
+        }
     except Exception:
         logger.exception("job.purge_banner_image_orphans.failed")
         raise

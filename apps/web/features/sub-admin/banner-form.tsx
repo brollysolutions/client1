@@ -2,12 +2,11 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { ImageIcon, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 import type { components } from "@contracts/generated/schema";
 
-import { FileField } from "@/components/apply-as-agent/file-field";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,19 +18,34 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { DashboardFormPage } from "@/features/dashboard/dashboard-ui";
-import { uploadFileToPresignedPost } from "@/lib/agent-application";
-import { createBanner, getBannerImageUploadUrl } from "@/lib/banners-api";
 import {
-  AudienceRuleFields,
-  emptyAudienceRules,
-} from "./audience-rule-fields";
-import { BannerPreview } from "./cms-previews";
+  createBanner,
+  listBannerTemplates,
+  type BannerTemplate,
+} from "@/lib/banners-api";
+import { listOffers, type Offer } from "@/lib/offers-api";
+import { AudienceRuleFields, emptyAudienceRules } from "./audience-rule-fields";
+import { BannerPreview, formatOfferBadge } from "./cms-previews";
 import { CmsPreviewFrame, type PreviewDevice } from "./cms-workspace";
 
 type Schemas = components["schemas"];
+type Placement = Schemas["BannerPlacement"];
+type BannerType = Schemas["BannerType"];
 
-const IMAGE_ACCEPT = "image/jpeg,image/png,image/webp";
-const IMAGE_MAX_BYTES = 2 * 1024 * 1024;
+const PLACEMENTS: readonly { value: Placement; label: string; note: string }[] = [
+  { value: "homepage", label: "Homepage", note: "Homepage campaign carousel" },
+  {
+    value: "financial_services",
+    label: "Financial services",
+    note: "Below the permanent Financial Services hero",
+  },
+  {
+    value: "properties",
+    label: "Properties",
+    note: "Below the permanent Properties hero",
+  },
+  { value: "dashboard", label: "Authenticated dashboard", note: "Client and Agent dashboards" },
+];
 
 const LINE_OPTIONS = [
   { value: "loans", label: "Loans" },
@@ -39,95 +53,127 @@ const LINE_OPTIONS = [
   { value: "both", label: "Both lines" },
 ] as const;
 
-const TYPE_OPTIONS = [
+const TYPE_OPTIONS: readonly { value: BannerType; label: string }[] = [
   { value: "default", label: "Default" },
   { value: "personalized", label: "Personalized" },
   { value: "action", label: "Action" },
-] as const;
+];
 
-export function BannerForm({ embedded = false, onCreated, onDirtyChange }: { embedded?: boolean; onCreated?: () => void; onDirtyChange?: (dirty: boolean) => void } = {}) {
+export function BannerForm({
+  embedded = false,
+  onCreated,
+  onDirtyChange,
+}: {
+  embedded?: boolean;
+  onCreated?: () => void;
+  onDirtyChange?: (dirty: boolean) => void;
+} = {}) {
   const router = useRouter();
-  const [businessLine, setBusinessLine] = React.useState<(typeof LINE_OPTIONS)[number]["value"]>(
-    "loans",
+  const [placement, setPlacement] = React.useState<Placement>("homepage");
+  const [businessLine, setBusinessLine] = React.useState<"loans" | "real_estate" | "both">(
+    "both",
   );
-  const [bannerType, setBannerType] =
-    React.useState<(typeof TYPE_OPTIONS)[number]["value"]>("default");
+  const [bannerType, setBannerType] = React.useState<BannerType>("default");
+  const [templateId, setTemplateId] = React.useState("");
+  const [offerId, setOfferId] = React.useState("");
+  const [templates, setTemplates] = React.useState<BannerTemplate[]>([]);
+  const [offers, setOffers] = React.useState<Offer[]>([]);
+  const [catalogLoading, setCatalogLoading] = React.useState(true);
   const [title, setTitle] = React.useState("");
   const [subtitle, setSubtitle] = React.useState("");
   const [ctaLabel, setCtaLabel] = React.useState("");
-  const [imageFile, setImageFile] = React.useState<File | null>(null);
-  const [imageKey, setImageKey] = React.useState<string | null>(null);
-  const [imageUploading, setImageUploading] = React.useState(false);
-  const [imageError, setImageError] = React.useState<string | undefined>();
   const [deepLink, setDeepLink] = React.useState("");
   const [priority, setPriority] = React.useState("0");
   const [audienceRules, setAudienceRules] = React.useState(emptyAudienceRules);
   const [startsAt, setStartsAt] = React.useState("");
   const [endsAt, setEndsAt] = React.useState("");
-  const [titleError, setTitleError] = React.useState<string | undefined>();
-  const [scheduleError, setScheduleError] = React.useState<string | undefined>();
+  const [scheduleError, setScheduleError] = React.useState<string>();
   const [submitting, setSubmitting] = React.useState(false);
-  const [previewContext, setPreviewContext] = React.useState("public");
   const [previewDevice, setPreviewDevice] = React.useState<PreviewDevice>("desktop");
-  const dirty = Boolean(title || subtitle || ctaLabel || imageFile || deepLink || priority !== "0" || startsAt || endsAt || businessLine !== "loans" || bannerType !== "default");
+
+  React.useEffect(() => {
+    let cancelled = false;
+    void Promise.all([listBannerTemplates(), listOffers()]).then(([templateResult, offerResult]) => {
+      if (cancelled) return;
+      setCatalogLoading(false);
+      if (templateResult.ok) setTemplates(templateResult.data);
+      else toast.error("Could not load banner templates", { description: templateResult.error });
+      if (offerResult.ok) {
+        setOffers(
+          offerResult.data.filter(
+            (offer) => offer.status === "scheduled" || offer.status === "active",
+          ),
+        );
+      } else {
+        toast.error("Could not load offers", { description: offerResult.error });
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  React.useEffect(() => {
+    setTemplateId("");
+    setOfferId("");
+    if (placement === "financial_services") setBusinessLine("loans");
+    if (placement === "properties") setBusinessLine("real_estate");
+    if (placement === "dashboard" && bannerType === "personalized") return;
+    if (placement !== "dashboard" && bannerType === "personalized") setBannerType("default");
+  }, [bannerType, placement]);
+
+  const placementTemplates = React.useMemo(
+    () => templates.filter((template) => template.placement === placement),
+    [placement, templates],
+  );
+  const selectedTemplate = templates.find((template) => template.id === templateId);
+  const selectedOffer = offers.find((offer) => offer.id === offerId);
+  const needsOffer = selectedTemplate?.category_key === "offers";
+  const matchingOffers = offers.filter(
+    (offer) => businessLine === "both" || offer.business_line === "both" || offer.business_line === businessLine,
+  );
+  const isPublic = placement !== "dashboard";
+  const dirty = Boolean(
+    title ||
+      subtitle ||
+      ctaLabel ||
+      deepLink ||
+      templateId ||
+      offerId ||
+      priority !== "0" ||
+      startsAt ||
+      endsAt ||
+      placement !== "homepage" ||
+      businessLine !== "both" ||
+      bannerType !== "default",
+  );
   React.useEffect(() => onDirtyChange?.(dirty), [dirty, onDirtyChange]);
 
-  // Uploads immediately on pick (presign -> direct-to-storage POST), not
-  // deferred to form submit: the banner row is saved with whatever image_key
-  // this resolves to, so the object needs to already exist in storage by
-  // then. A pick that fails leaves the tile empty rather than silently
-  // keeping a stale key.
-  async function handleImageChange(file: File | null) {
-    setImageFile(file);
-    setImageKey(null);
-    setImageError(undefined);
-    if (!file) return;
-    setImageUploading(true);
-    const presignRes = await getBannerImageUploadUrl({
-      content_type: file.type as Schemas["BannerImageUploadRequest"]["content_type"],
-      filename: file.name,
-    });
-    if (!presignRes.ok) {
-      setImageUploading(false);
-      setImageError(presignRes.error || "Could not start the upload.");
-      setImageFile(null);
-      return;
-    }
-    const { object_key, upload_url, fields } = presignRes.data;
-    const uploadRes = await uploadFileToPresignedPost(upload_url, fields, file);
-    setImageUploading(false);
-    if (!uploadRes.ok) {
-      setImageError("Upload failed. Try again.");
-      setImageFile(null);
-      return;
-    }
-    setImageKey(object_key);
-  }
-
-  async function onSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (title.trim().length === 0) {
-      setTitleError("Title is required.");
-      return;
-    }
-    setTitleError(undefined);
+  async function onSubmit(event: React.FormEvent) {
+    event.preventDefault();
+    if (!title.trim()) return void toast.error("Title is required.");
+    if (isPublic && !templateId) return void toast.error("Choose a template.");
+    if (needsOffer && !offerId) return void toast.error("Choose the Offer this banner promotes.");
     if (startsAt && endsAt && new Date(endsAt) <= new Date(startsAt)) {
       setScheduleError("End must be after start.");
       return;
     }
     setScheduleError(undefined);
     if (bannerType === "personalized" && !audienceRules.user_types?.length) {
-      toast.error("Choose who should see this personalized banner.");
-      return;
+      return void toast.error("Choose who should see this personalized banner.");
     }
+
     setSubmitting(true);
-    const res = await createBanner({
+    const result = await createBanner({
+      placement,
       business_line: businessLine,
       banner_type: bannerType,
+      template_id: isPublic ? templateId : null,
+      offer_id: needsOffer ? offerId : null,
       title: title.trim(),
       subtitle: subtitle.trim() || null,
       cta_label: ctaLabel.trim() || null,
-      image_key: imageKey,
+      image_key: null,
       deep_link: deepLink.trim() || null,
       audience_rules: bannerType === "personalized" ? audienceRules : emptyAudienceRules(),
       priority: Number(priority) || 0,
@@ -135,22 +181,22 @@ export function BannerForm({ embedded = false, onCreated, onDirtyChange }: { emb
       ends_at: endsAt ? new Date(endsAt).toISOString() : null,
     });
     setSubmitting(false);
-    if (res.ok) {
-      toast.success("Banner draft created", {
-        description: "Submit it for Admin approval when you're ready.",
-      });
-      if (onCreated) onCreated();
-      else router.push("/dashboard/banners");
-    } else {
-      toast.error("Could not create banner", { description: res.error });
+    if (!result.ok) {
+      toast.error("Could not create banner", { description: result.error });
+      return;
     }
+    toast.success("Banner draft created", {
+      description: "Submit it for Admin approval when it is ready.",
+    });
+    if (onCreated) onCreated();
+    else router.push("/dashboard/banners");
   }
 
   return (
     <DashboardFormPage
       eyebrow="Campaign content"
       title="New banner"
-      description="Compose the message, audience, visual, and delivery window in one reviewable draft."
+      description="Select the governed artwork, then write the campaign message that appears over it."
       backHref="/dashboard/banners"
       backLabel="Back to banners"
       formTitle="Banner configuration"
@@ -158,183 +204,156 @@ export function BannerForm({ embedded = false, onCreated, onDirtyChange }: { emb
       embedded={embedded}
       aside={
         <CmsPreviewFrame
-          title="Live banner preview"
-          description="Compare the public hero and authenticated dashboard presentation while drafting."
-          contexts={[{ value: "public", label: "Public hero" }, { value: "dashboard", label: "Dashboard" }]}
-          context={previewContext}
-          onContextChange={setPreviewContext}
+          title="Exact banner preview"
+          description="The selected artwork and live HTML copy use the public 9:5 composition."
           device={previewDevice}
           onDeviceChange={setPreviewDevice}
         >
           <BannerPreview
-            context={previewContext as "public" | "dashboard"}
-            banner={{ banner_type: bannerType, title, subtitle: subtitle || null, cta_label: ctaLabel || null, deep_link: deepLink || null }}
+            context={isPublic ? "public" : "dashboard"}
+            banner={{
+              banner_type: bannerType,
+              title,
+              subtitle: subtitle || null,
+              cta_label: ctaLabel || null,
+              deep_link: deepLink || null,
+              image_url: selectedTemplate?.image_url,
+              offer_badge: formatOfferBadge(selectedOffer),
+            }}
           />
         </CmsPreviewFrame>
       }
     >
       <form className="space-y-6" onSubmit={onSubmit}>
-        <div>
-          <Label htmlFor="title">Title</Label>
-          <Input
-            id="title"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            maxLength={500}
-          />
-          {titleError ? <p className="mt-1 text-sm text-destructive">{titleError}</p> : null}
-        </div>
-
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
-            <Label htmlFor="business-line">Line</Label>
-            <Select
-              value={businessLine}
-              onValueChange={(v) => setBusinessLine(v as typeof businessLine)}
-            >
-              <SelectTrigger id="business-line">
-                <SelectValue />
-              </SelectTrigger>
+            <Label htmlFor="placement">Placement</Label>
+            <Select value={placement} onValueChange={(value) => setPlacement(value as Placement)}>
+              <SelectTrigger id="placement"><SelectValue /></SelectTrigger>
               <SelectContent>
-                {LINE_OPTIONS.map((o) => (
-                  <SelectItem key={o.value} value={o.value}>
-                    {o.label}
-                  </SelectItem>
+                {PLACEMENTS.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
+            <p className="mt-1 text-xs text-text-secondary">
+              {PLACEMENTS.find((option) => option.value === placement)?.note}
+            </p>
           </div>
           <div>
-            <Label htmlFor="banner-type">Type</Label>
-            <Select value={bannerType} onValueChange={(v) => setBannerType(v as typeof bannerType)}>
-              <SelectTrigger id="banner-type">
-                <SelectValue />
-              </SelectTrigger>
+            <Label htmlFor="business-line">Business line</Label>
+            <Select
+              value={businessLine}
+              disabled={placement === "financial_services" || placement === "properties"}
+              onValueChange={(value) => setBusinessLine(value as typeof businessLine)}
+            >
+              <SelectTrigger id="business-line"><SelectValue /></SelectTrigger>
               <SelectContent>
-                {TYPE_OPTIONS.map((o) => (
-                  <SelectItem key={o.value} value={o.value}>
-                    {o.label}
-                  </SelectItem>
+                {LINE_OPTIONS.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
         </div>
 
+        {isPublic ? (
+          <div>
+            <Label htmlFor="banner-template">Artwork template</Label>
+            <Select value={templateId || undefined} onValueChange={setTemplateId} disabled={catalogLoading}>
+              <SelectTrigger id="banner-template">
+                <SelectValue placeholder={catalogLoading ? "Loading templates…" : "Choose a category"} />
+              </SelectTrigger>
+              <SelectContent>
+                {placementTemplates.map((template) => (
+                  <SelectItem key={template.id} value={template.id}>
+                    {template.label} · version {template.version}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="mt-1 text-xs text-text-secondary">
+              Artwork is controlled by Admin. Your title, subtitle, and button remain editable HTML.
+            </p>
+          </div>
+        ) : (
+          <div>
+            <Label htmlFor="banner-type">Dashboard banner type</Label>
+            <Select value={bannerType} onValueChange={(value) => setBannerType(value as BannerType)}>
+              <SelectTrigger id="banner-type"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {TYPE_OPTIONS.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+
+        {needsOffer ? (
+          <div>
+            <Label htmlFor="linked-offer">Linked Offer</Label>
+            <Select value={offerId || undefined} onValueChange={setOfferId}>
+              <SelectTrigger id="linked-offer"><SelectValue placeholder="Choose an active or scheduled Offer" /></SelectTrigger>
+              <SelectContent>
+                {matchingOffers.map((offer) => (
+                  <SelectItem key={offer.id} value={offer.id}>{offer.title}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="mt-1 text-xs text-text-secondary">
+              The public badge is generated from this Offer and disappears if the Offer is no longer active.
+            </p>
+          </div>
+        ) : null}
+
+        <div>
+          <Label htmlFor="title">Title</Label>
+          <Input id="title" value={title} onChange={(event) => setTitle(event.target.value)} maxLength={500} />
+        </div>
         <div>
           <Label htmlFor="subtitle">Subtitle</Label>
-          <Input
-            id="subtitle"
-            placeholder="A short line under the title"
-            value={subtitle}
-            onChange={(e) => setSubtitle(e.target.value)}
-            maxLength={300}
-          />
+          <Input id="subtitle" value={subtitle} onChange={(event) => setSubtitle(event.target.value)} maxLength={300} />
         </div>
-
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
             <Label htmlFor="cta-label">Button label</Label>
-            <Input
-              id="cta-label"
-              placeholder="Learn more"
-              value={ctaLabel}
-              onChange={(e) => setCtaLabel(e.target.value)}
-              maxLength={40}
-            />
+            <Input id="cta-label" value={ctaLabel} onChange={(event) => setCtaLabel(event.target.value)} maxLength={40} />
           </div>
           <div>
-            <Label htmlFor="deep-link">Deep link</Label>
-            <Input
-              id="deep-link"
-              placeholder="/loans"
-              value={deepLink}
-              onChange={(e) => setDeepLink(e.target.value)}
-              maxLength={1000}
-            />
+            <Label htmlFor="deep-link">Internal destination</Label>
+            <Input id="deep-link" placeholder="/loans" value={deepLink} onChange={(event) => setDeepLink(event.target.value)} maxLength={1000} />
           </div>
         </div>
         <p className="-mt-3 text-xs text-text-secondary">
-          The button label and deep link together become the banner&apos;s call to action. Use a
-          path starting with a single / to link within the site. An external link (including one
-          starting with //) will not show a button on the public homepage.
+          Use a same-site path beginning with one slash. Unsafe or incomplete links do not render a button.
         </p>
 
-        {bannerType === "personalized" ? (
-          <AudienceRuleFields
-            value={audienceRules}
-            onChange={setAudienceRules}
-            required
-            disabled={submitting}
-          />
-        ) : (
-          <p className="rounded-lg bg-muted/40 p-3 text-xs text-text-secondary">
-            Default and action banners are generic. Choose Personalized to target user, workflow,
-            or location signals.
-          </p>
-        )}
+        {placement === "dashboard" && bannerType === "personalized" ? (
+          <AudienceRuleFields value={audienceRules} onChange={setAudienceRules} required disabled={submitting} />
+        ) : null}
 
-        <div className="grid gap-4 sm:grid-cols-[10rem_1fr]">
-          <FileField
-            id="banner-image"
-            label="Image"
-            icon={ImageIcon}
-            value={imageFile}
-            onChange={handleImageChange}
-            accept={IMAGE_ACCEPT}
-            maxBytes={IMAGE_MAX_BYTES}
-            hint="JPG, PNG or WEBP"
-            error={imageError}
-            disabled={imageUploading}
-          />
+        <div className="grid gap-4 sm:grid-cols-3">
           <div>
             <Label htmlFor="priority">Priority</Label>
-            <Input
-              id="priority"
-              inputMode="numeric"
-              value={priority}
-              onChange={(e) => setPriority(e.target.value.replace(/\D/g, ""))}
-            />
-            <p className="mt-2 text-xs text-text-secondary">
-              {imageUploading
-                ? "Uploading the image..."
-                : "Optional. Shows as the banner's background image on the public homepage."}
-            </p>
+            <Input id="priority" inputMode="numeric" value={priority} onChange={(event) => setPriority(event.target.value.replace(/\D/g, ""))} />
           </div>
-        </div>
-
-        <div className="grid gap-4 sm:grid-cols-2">
           <div>
             <Label htmlFor="starts-at">Goes live at</Label>
-            <Input
-              id="starts-at"
-              type="datetime-local"
-              value={startsAt}
-              onChange={(e) => setStartsAt(e.target.value)}
-            />
+            <Input id="starts-at" type="datetime-local" value={startsAt} onChange={(event) => setStartsAt(event.target.value)} />
           </div>
           <div>
             <Label htmlFor="ends-at">Archives at</Label>
-            <Input
-              id="ends-at"
-              type="datetime-local"
-              value={endsAt}
-              onChange={(e) => setEndsAt(e.target.value)}
-            />
+            <Input id="ends-at" type="datetime-local" value={endsAt} onChange={(event) => setEndsAt(event.target.value)} />
           </div>
         </div>
         <p className="-mt-3 text-xs text-text-secondary">
-          Leave both blank to go live on the next scheduler tick after Admin approval and never
-          auto-archive.
+          Leave the dates blank to publish on the next scheduler tick after approval with no automatic end.
         </p>
         {scheduleError ? <p className="text-sm text-destructive">{scheduleError}</p> : null}
 
-        <Button
-          type="submit"
-          disabled={submitting || imageUploading}
-          className="w-full sm:w-auto"
-        >
-          {submitting ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : null}
+        <Button type="submit" disabled={submitting || catalogLoading} className="w-full sm:w-auto">
+          {submitting ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : null}
           {submitting ? "Saving draft…" : "Save draft"}
         </Button>
       </form>

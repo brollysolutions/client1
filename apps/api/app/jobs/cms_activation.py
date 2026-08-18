@@ -49,46 +49,104 @@ from __future__ import annotations
 import logging
 import time
 
-from sqlalchemy import or_, update
+from sqlalchemy import or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql import func
 
 import app.db.session as db_session
+from app.models.audit_log import AuditAction
 from app.models.banner import Banner, BannerStatus
 from app.models.offer import Offer, OfferStatus
+from app.services.audit_log import record as record_audit
 
 logger = logging.getLogger("scheduler")
 
 
 async def _activate_banners(session: AsyncSession) -> int:
-    result = await session.execute(
-        update(Banner)
-        .where(
-            Banner.status == BannerStatus.APPROVED,
-            or_(Banner.starts_at.is_(None), Banner.starts_at <= func.now()),
+    candidates = (
+        await session.scalars(
+            select(Banner)
+            .where(
+                Banner.status == BannerStatus.APPROVED,
+                or_(Banner.starts_at.is_(None), Banner.starts_at <= func.now()),
+            )
+            .order_by(Banner.priority.desc(), Banner.created_at.asc(), Banner.id.asc())
+            .with_for_update()
         )
-        # updated_at is set explicitly here: the model's Python-side
-        # onupdate=datetime.utcnow (a pre-existing naive-timestamp
-        # inconsistency) would otherwise stamp a value that disagrees with the
-        # func.now() this same statement filtered on.
-        .values(status=BannerStatus.LIVE, updated_at=func.now())
-        .execution_options(synchronize_session=False)
-    )
-    return result.rowcount
+    ).all()
+    activated = 0
+    for banner in candidates:
+        if banner.offer_id is not None:
+            offer = await session.get(Offer, banner.offer_id)
+            if offer is None or offer.status != OfferStatus.ACTIVE or offer.audience_rules != {}:
+                continue
+        if banner.category_key is not None:
+            current = await session.scalar(
+                select(Banner)
+                .where(
+                    Banner.status == BannerStatus.LIVE,
+                    Banner.placement == banner.placement,
+                    Banner.category_key == banner.category_key,
+                )
+                .with_for_update()
+            )
+            if current is not None:
+                if banner.replaces_banner_id != current.id:
+                    continue
+                current.status = BannerStatus.ARCHIVED
+                current.updated_at = func.now()
+                await record_audit(
+                    session,
+                    action=AuditAction.BANNER_ARCHIVED,
+                    entity_type="banner",
+                    entity_uuid=current.id,
+                    actor_uuid=None,
+                    actor_role="system",
+                    business_line=current.business_line,
+                    detail={"placement": current.placement.value, "replaced": True},
+                )
+        banner.status = BannerStatus.LIVE
+        banner.updated_at = func.now()
+        await record_audit(
+            session,
+            action=AuditAction.BANNER_ACTIVATED,
+            entity_type="banner",
+            entity_uuid=banner.id,
+            actor_uuid=None,
+            actor_role="system",
+            business_line=banner.business_line,
+            detail={"placement": banner.placement.value},
+        )
+        activated += 1
+    return activated
 
 
 async def _archive_banners(session: AsyncSession) -> int:
-    result = await session.execute(
-        update(Banner)
-        .where(
-            Banner.status == BannerStatus.LIVE,
-            Banner.ends_at.is_not(None),
-            Banner.ends_at <= func.now(),
+    banners = (
+        await session.scalars(
+            select(Banner)
+            .where(
+                Banner.status == BannerStatus.LIVE,
+                Banner.ends_at.is_not(None),
+                Banner.ends_at <= func.now(),
+            )
+            .with_for_update()
         )
-        .values(status=BannerStatus.ARCHIVED, updated_at=func.now())
-        .execution_options(synchronize_session=False)
-    )
-    return result.rowcount
+    ).all()
+    for banner in banners:
+        banner.status = BannerStatus.ARCHIVED
+        banner.updated_at = func.now()
+        await record_audit(
+            session,
+            action=AuditAction.BANNER_ARCHIVED,
+            entity_type="banner",
+            entity_uuid=banner.id,
+            actor_uuid=None,
+            actor_role="system",
+            business_line=banner.business_line,
+            detail={"placement": banner.placement.value, "scheduled": True},
+        )
+    return len(banners)
 
 
 async def _activate_offers(session: AsyncSession) -> int:

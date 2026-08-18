@@ -14,15 +14,20 @@ every future anonymous read (banner/offer/content serving included).
 
 from __future__ import annotations
 
+from typing import Literal
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.session import get_db
+from app.models.banner import BannerPlacement
+from app.models.offer import Offer
 from app.schemas.banners import PublicBannerListResponse, PublicBannerRead
 from app.schemas.content import PublicContentBlockListResponse, PublicContentBlockRead
 from app.schemas.offers import PublicOfferListResponse, PublicOfferRead
 from app.schemas.properties import PublicPropertyListResponse, PublicPropertyRead
 from app.services import storage
+from app.services.banners import template_image_url
 from app.services.properties import media_by_property, media_urls_by_property
 from app.services.public_catalog import (
     get_public_content_block_by_slug,
@@ -33,6 +38,21 @@ from app.services.public_catalog import (
 )
 
 router = APIRouter()
+
+
+def _offer_badge(offer: Offer) -> str:
+    value = format(offer.discount_value, "f")
+    if "." in value:
+        value = value.rstrip("0").rstrip(".")
+    discount_type = offer.discount_type
+    discount = (
+        f"{value}% off"
+        if discount_type == "percentage"
+        else "Cashback offer"
+        if discount_type == "cashback-tie"
+        else f"₹{value} off"
+    )
+    return f"{offer.title} · {discount}" + (f" · Code {offer.code}" if offer.code else "")
 
 
 @router.get("/properties", response_model=PublicPropertyListResponse)
@@ -54,9 +74,10 @@ async def list_properties_public(
 
 @router.get("/banners", response_model=PublicBannerListResponse)
 async def list_banners_public(
+    placement: Literal["homepage", "financial_services", "properties"] = "homepage",
     db: AsyncSession = Depends(get_db),
 ) -> PublicBannerListResponse:
-    banners = await list_public_banners(db)
+    banners = await list_public_banners(db, BannerPlacement(placement))
     # Not a blind model_validate like the other three list routes below:
     # image_url isn't a column, it's computed from image_key through
     # storage.public_asset_url (None for anything outside public/ -- see that
@@ -64,14 +85,21 @@ async def list_banners_public(
     return PublicBannerListResponse(
         banners=[
             PublicBannerRead(
-                id=b.id,
-                title=b.title,
-                subtitle=b.subtitle,
-                cta_label=b.cta_label,
-                deep_link=b.deep_link,
-                image_url=storage.public_asset_url(b.image_key) if b.image_key else None,
+                id=banner.id,
+                title=banner.title,
+                subtitle=banner.subtitle,
+                cta_label=banner.cta_label,
+                deep_link=banner.deep_link,
+                image_url=(
+                    template_image_url(template.image_ref)
+                    if template is not None
+                    else storage.public_asset_url(banner.image_key)
+                    if banner.image_key
+                    else None
+                ),
+                offer_badge=_offer_badge(offer) if offer is not None else None,
             )
-            for b in banners
+            for banner, template, offer in banners
         ]
     )
 

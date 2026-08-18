@@ -1,4 +1,5 @@
 import React from "react";
+import Image from "next/image";
 import { ArrowRight } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
@@ -8,14 +9,30 @@ import type { ContentBlock } from "@/lib/content-api";
 import type { Offer } from "@/lib/offers-api";
 import { isSafeLocalHref } from "@/lib/safe-local-href";
 
-export type BannerPreviewValue = Pick<Banner, "banner_type" | "title" | "subtitle" | "cta_label" | "deep_link">;
+export type BannerPreviewValue = Pick<
+  Banner,
+  "banner_type" | "title" | "subtitle" | "cta_label" | "deep_link"
+> & {
+  image_url?: string | null;
+  offer_badge?: string | null;
+};
 export type OfferPreviewValue = Pick<Offer, "title" | "description" | "discount_type" | "discount_value" | "code">;
 export type ContentPreviewValue = Pick<ContentBlock, "title" | "body">;
 
+function decimalText(value: string): string {
+  return value.includes(".") ? value.replace(/0+$/, "").replace(/\.$/, "") : value;
+}
+
 function offerDiscount(offer: OfferPreviewValue): string {
-  if (offer.discount_type === "percentage") return `${offer.discount_value}% off`;
+  const value = decimalText(offer.discount_value);
+  if (offer.discount_type === "percentage") return `${value}% off`;
   if (offer.discount_type === "cashback-tie") return "Cashback offer";
-  return `₹${offer.discount_value} off`;
+  return `₹${value} off`;
+}
+
+export function formatOfferBadge(offer: OfferPreviewValue | undefined): string | null {
+  if (!offer) return null;
+  return `${offer.title} · ${offerDiscount(offer)}` + (offer.code ? ` · Code ${offer.code}` : "");
 }
 
 export function BannerPreview({ banner, context }: { banner: BannerPreviewValue; context: "public" | "dashboard" }) {
@@ -32,9 +49,24 @@ export function BannerPreview({ banner, context }: { banner: BannerPreviewValue;
   }
   return (
     <article className="relative aspect-[9/5] min-h-48 overflow-hidden rounded-2xl bg-[var(--nav-bg)] shadow-lg ring-1 ring-black/5">
+      {banner.image_url ? (
+        <Image
+          src={banner.image_url}
+          alt=""
+          fill
+          unoptimized
+          sizes="(min-width: 1280px) 50vw, 100vw"
+          className="object-cover"
+        />
+      ) : null}
       <div className="absolute inset-0 bg-gradient-to-r from-[var(--nav-bg)] via-[var(--nav-bg)]/70 to-transparent" />
       <div className="relative flex h-full items-center p-6 sm:p-8">
         <div className="max-w-sm">
+          {banner.offer_badge ? (
+            <span className="mb-3 inline-flex rounded-full bg-white/85 px-3 py-1 text-xs font-semibold text-brand-navy shadow-sm">
+              {banner.offer_badge}
+            </span>
+          ) : null}
           <h2 className="font-heading text-2xl font-semibold text-[var(--nav-text)]">{banner.title || "Banner title"}</h2>
           {banner.subtitle ? <p className="mt-3 text-sm text-[var(--nav-text)]">{banner.subtitle}</p> : null}
           {action ? <span className="mt-5 inline-flex rounded-lg bg-[var(--nav-primary)] px-4 py-2 text-sm font-semibold text-white">{banner.cta_label}</span> : null}

@@ -142,3 +142,24 @@ async def test_purge_is_idempotent(client: AsyncClient, monkeypatch: pytest.Monk
     monkeypatch.setattr(storage, "list_objects", _fake_objects([]))
     second = await banners.purge_orphaned_uploads()
     assert second == {"scanned": 0, "deleted": 0}
+
+
+@pytest.mark.asyncio
+async def test_template_purge_removes_abandoned_private_and_public_objects(
+    client: AsyncClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    staging = "private/banner-templates/staging/x/abandoned.webp"
+    canonical = "public/banner-templates/11111111-1111-1111-1111-111111111111/artwork.webp"
+    deleted_keys: list[str] = []
+
+    def objects(prefix: str) -> list[dict]:
+        if prefix.startswith("private/"):
+            return [{"key": staging, "last_modified": _OLD}]
+        return [{"key": canonical, "last_modified": _OLD}]
+
+    monkeypatch.setattr(storage, "list_objects", objects)
+    monkeypatch.setattr(storage, "delete_object", lambda key: deleted_keys.append(key))
+
+    summary = await banners.purge_orphaned_template_uploads()
+    assert summary == {"scanned": 2, "deleted": 2}
+    assert deleted_keys == [staging, canonical]

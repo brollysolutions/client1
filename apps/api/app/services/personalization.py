@@ -14,7 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 import app.db.session as db_session
 from app.core.deps import CurrentUser
 from app.models.auth import AuthEvent
-from app.models.banner import Banner, BannerStatus, BannerType
+from app.models.banner import Banner, BannerPlacement, BannerStatus, BannerType
 from app.models.commission import Commission, CommissionStatus
 from app.models.enquiry import Enquiry, EnquiryStatus
 from app.models.lead import Lead, LeadStatus
@@ -405,6 +405,13 @@ async def list_authenticated_placements(
                 select(Banner)
                 .where(
                     Banner.status == BannerStatus.LIVE,
+                    # Legacy default/action rows predate placements and were
+                    # backfilled as homepage; keep them on dashboards until
+                    # retired, while new public campaigns stay page-specific.
+                    or_(
+                        Banner.placement == BannerPlacement.DASHBOARD,
+                        Banner.template_id.is_(None),
+                    ),
                     Banner.business_line.in_((business_line, "both")),
                     or_(Banner.starts_at.is_(None), Banner.starts_at <= func.now()),
                     or_(Banner.ends_at.is_(None), Banner.ends_at > func.now()),
