@@ -41,20 +41,37 @@ type Schemas = components["schemas"];
 type Placement = Schemas["BannerPlacement"];
 type BannerType = Schemas["BannerType"];
 
-const PLACEMENTS: readonly { value: Placement; label: string; note: string }[] = [
-  { value: "homepage", label: "Homepage", note: "Homepage campaign carousel" },
-  {
-    value: "financial_services",
+// Keyed by Placement rather than a free array: Record<Placement, ...> is
+// exhaustiveness-checked by tsc, so a new placement breaks `pnpm typecheck`
+// instead of silently vanishing from this dropdown and leaving nobody able to
+// author for it. The rendered order comes from PLACEMENTS below.
+const PLACEMENT_META: Record<Placement, { label: string; note: string }> = {
+  homepage: { label: "Homepage", note: "Homepage campaign carousel" },
+  homepage_ad: {
+    label: "Homepage sponsor ad",
+    note: "One sponsor card above the homepage hero. Only one can be live at a time; to queue the next, open the live one and use Create replacement",
+  },
+  financial_services: {
     label: "Financial services",
     note: "Immediately below the header, before the Financial Services hero",
   },
-  {
-    value: "properties",
+  properties: {
     label: "Properties",
     note: "Immediately below the header, before the Properties hero",
   },
-  { value: "dashboard", label: "Authenticated dashboard", note: "Client and Agent dashboards" },
+  dashboard: { label: "Authenticated dashboard", note: "Client and Agent dashboards" },
+};
+
+const PLACEMENT_ORDER: readonly Placement[] = [
+  "homepage",
+  "homepage_ad",
+  "financial_services",
+  "properties",
+  "dashboard",
 ];
+
+const PLACEMENTS: readonly { value: Placement; label: string; note: string }[] =
+  PLACEMENT_ORDER.map((value) => ({ value, ...PLACEMENT_META[value] }));
 
 const LINE_OPTIONS = [
   { value: "loans", label: "Loans" },

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 
+import { AdStrip } from "@/components/ad-strip";
 import { ClosingCta } from "@/components/closing-cta";
 import { ContentBlockSection } from "@/components/content-block-section";
 import { FaqSection } from "@/components/faq-section";
@@ -61,8 +62,9 @@ export default async function Home() {
   // never throws (see lib/public-banners.ts), and we deliberately don't
   // distinguish the two here either -- FALLBACK_HERO_BANNERS is what renders
   // in either case, so the homepage is never blank.
-  const [liveBanners, closingBlock] = await Promise.all([
+  const [liveBanners, adBanners, closingBlock] = await Promise.all([
     getHeroBanners(),
+    getHeroBanners("homepage_ad"),
     getPublicContentBlockBySlug("homepage-closing"),
   ]);
   const banners = liveBanners.length > 0 ? liveBanners : FALLBACK_HERO_BANNERS;
@@ -80,6 +82,11 @@ export default async function Home() {
         Compare personal, business, property, vehicle and education loans, credit
         cards, insurance, and verified real estate in one place
       </h1>
+      {/* Sponsored strip above the hero. One sponsor at a time (the server
+          serves at most one for this placement), and unlike the hero it has NO
+          fallback: with no live campaign it renders nothing at all, so the
+          hero stays flush against the sticky header. */}
+      {adBanners.length > 0 ? <AdStrip banner={adBanners[0]} /> : null}
       <HeroCarousel banners={banners} />
       {/* Floating natural-color finance doodles overlay the LineSplit bands and the
           WhyChooseUs bento (lg+, pointer-events-none), hugging the outer gutters. */}

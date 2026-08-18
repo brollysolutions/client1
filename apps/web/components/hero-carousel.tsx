@@ -118,33 +118,27 @@ export function HeroCarousel({
   if (banners.length === 0) return null;
 
   return (
-    // Cream section spans edge to edge, flush against the sticky NavBar above
-    // it (no top padding); the carousel itself is a centered, fixed-size
-    // peek-coverflow box (see docs/ai/plans for the sizing math).
+    // Edge to edge and flush against the sticky NavBar above it (no top
+    // padding). Both variants are full-bleed: `hero` fills the viewport below
+    // the header, `section` uses fixed shorter heights.
     <section
       aria-label={label}
-      data-layout={variant === "section" ? "full-bleed" : "peek"}
+      data-layout={variant === "hero" ? "fullscreen" : "full-bleed"}
       onMouseEnter={() => setInteractionPaused(true)}
       onMouseLeave={() => setInteractionPaused(false)}
       onFocusCapture={() => setInteractionPaused(true)}
       onBlurCapture={(event) => {
         if (!event.currentTarget.contains(event.relatedTarget)) setInteractionPaused(false);
       }}
-      className={cn(
-        "relative w-full bg-[var(--nav-bg)]",
-        variant === "hero"
-          ? "pb-24 sm:pb-32 lg:pb-40"
-          : "border-0 p-0",
-      )}
+      className="relative w-full border-0 bg-[var(--nav-bg)] p-0"
     >
       <Carousel
         setApi={setApi}
         opts={{ loop: true, align: "center", containScroll: false, duration: 40 }}
         className="relative w-full"
       >
-        {/* ml-0/pl-0 kill shadcn's inter-slide gutter — zero gap keeps the
-            peek math (container - basis)/2 exact; the visual gap between
-            center and peeked neighbors comes from scale-95 below instead. */}
+        {/* ml-0/pl-0 kill shadcn's inter-slide gutter: slides are basis-full
+            and edge-to-edge, so any gutter would show as a seam mid-swipe. */}
         <CarouselContent className="ml-0">
           {banners.map((banner, i) => {
             const isSelected = i === selected;
@@ -153,43 +147,23 @@ export function HeroCarousel({
                 key={banner.id}
                 aria-hidden={!isSelected}
                 inert={!isSelected || undefined}
-                className={cn(
-                  "pl-0",
-                  variant === "hero"
-                    ? "basis-[90vw] sm:basis-[720px] lg:basis-[1200px]"
-                    : "basis-full",
-                )}
+                className="basis-full pl-0"
               >
-                {/* Peek scale/opacity/blur lives on this INNER wrapper, not on
-                    CarouselItem itself: CarouselItem is the exact node Embla
-                    repositions via inline `transform` at the loop's wrap point
-                    (last<->first), and an inline style always wins over our
-                    Tailwind transform classes — putting scale-90 etc. on the
-                    same element let Embla's loop transform silently clobber it,
-                    which showed up as an unscaled blurred slide flashing over
-                    the newly-selected card during the wrap. Keeping the two
-                    transforms on separate elements lets them compose instead
-                    of fighting. blur is intentionally excluded from the
-                    transitioned properties: animating filter:blur() through
-                    intermediate values while text is still legible
-                    smears/ghosts it — blur snaps instantly, opacity/scale stay
-                    smooth. */}
-                <div
-                  className={cn(
-                    variant === "hero" &&
-                      "transition-[transform,opacity] duration-500 ease-out transform-gpu motion-reduce:transition-none [will-change:transform,opacity]",
-                    variant === "section"
-                      ? !isSelected && "pointer-events-none"
-                      : isSelected
-                        ? "opacity-100 blur-0 scale-100"
-                        : "pointer-events-none scale-90 opacity-45 blur-[4px]",
-                  )}
-                >
+                {/* Inner wrapper kept deliberately separate from CarouselItem:
+                    CarouselItem is the node Embla repositions with an inline
+                    `transform` at the loop's wrap point, and an inline style
+                    beats Tailwind classes, so anything transform-adjacent put
+                    on that same element gets silently clobbered mid-wrap. Only
+                    pointer-events live here now (the former peek
+                    scale/opacity/blur went away when both variants became
+                    full-bleed), but the split is what keeps it safe to add a
+                    transform back later. */}
+                <div className={cn(!isSelected && "pointer-events-none")}>
                 <div
                   className={cn(
                     "relative w-full overflow-hidden bg-[var(--nav-bg)]",
                     variant === "hero"
-                      ? "aspect-[9/5] rounded-2xl shadow-lg ring-1 ring-black/5"
+                      ? "h-[calc(100svh-4rem)] min-h-[420px]"
                       : "h-[36vw] sm:h-[272px] lg:h-[416px]",
                   )}
                 >
@@ -201,17 +175,8 @@ export function HeroCarousel({
                       alt=""
                       fill
                       priority={i === 0}
-                      sizes={
-                        variant === "section"
-                          ? "100vw"
-                          : "(min-width: 1024px) 1200px, (min-width: 640px) 720px, 90vw"
-                      }
-                      className={cn(
-                        "object-cover",
-                        variant === "hero"
-                          ? "[-webkit-mask-image:linear-gradient(to_right,transparent_0%,transparent_18%,black_58%,black_100%)] [mask-image:linear-gradient(to_right,transparent_0%,transparent_18%,black_58%,black_100%)]"
-                          : "[-webkit-mask-image:linear-gradient(to_right,transparent_0%,transparent_24%,black_62%,black_100%)] [mask-image:linear-gradient(to_right,transparent_0%,transparent_24%,black_62%,black_100%)]",
-                      )}
+                      sizes="100vw"
+                      className="object-cover [-webkit-mask-image:linear-gradient(to_right,transparent_0%,transparent_24%,black_62%,black_100%)] [mask-image:linear-gradient(to_right,transparent_0%,transparent_24%,black_62%,black_100%)]"
                       // next/image's default loader proxies through /_next/image,
                       // fetched SERVER-SIDE by the web process -- not the same
                       // reachability as the browser's direct request this URL is
@@ -234,14 +199,14 @@ export function HeroCarousel({
                     className={cn(
                       "relative flex h-full items-center",
                       variant === "hero"
-                        ? "p-3 sm:p-8 lg:p-10"
+                        ? "px-6 py-10 sm:px-16 lg:px-28"
                         : "py-3 pl-16 pr-16 sm:px-24 sm:py-6 lg:px-28 lg:py-8",
                     )}
                   >
                     <div
                       className={cn(
                         variant === "hero"
-                          ? "max-w-[80%] sm:max-w-sm"
+                          ? "max-w-[78%] sm:max-w-md lg:max-w-xl"
                           : "max-w-[60%] sm:max-w-[46%] lg:max-w-[42%]",
                       )}
                     >
@@ -258,8 +223,10 @@ export function HeroCarousel({
                       ) : null}
                       <h2
                         className={cn(
-                          "font-heading text-base font-semibold text-[var(--nav-text)] sm:text-2xl lg:text-4xl",
-                          variant === "section" && "line-clamp-2",
+                          "font-heading font-semibold text-[var(--nav-text)]",
+                          variant === "hero"
+                            ? "text-2xl sm:text-4xl lg:text-5xl"
+                            : "line-clamp-2 text-base sm:text-2xl lg:text-4xl",
                         )}
                       >
                         {banner.title}
@@ -267,8 +234,10 @@ export function HeroCarousel({
                       {banner.subtitle && (
                         <p
                           className={cn(
-                            "mt-3 hidden text-sm text-[var(--nav-text)] sm:block sm:text-base",
-                            variant === "section" && "line-clamp-2",
+                            "mt-3 hidden text-[var(--nav-text)] sm:block",
+                            variant === "hero"
+                              ? "text-base sm:text-lg lg:text-xl"
+                              : "line-clamp-2 text-sm sm:text-base",
                           )}
                         >
                           {banner.subtitle}
@@ -297,45 +266,42 @@ export function HeroCarousel({
           })}
         </CarouselContent>
 
-        {/* Positioned relative to the CENTER CARD's edge (not the container
-            edge): left/right offsets are calc(50% ± half the card's own basis
-            width from hero's isSelected item) minus a fixed gap, so the arrow
-            sits just outside the main banner instead of over the blurred peek.
-            Card basis must stay in sync with the CarouselItem basis classes above
-            (90vw / 720px / 1200px). Guarded on banners.length > 1, matching the
-            dot-strip guard below: with loop: true and exactly one slide, Embla
-            disables looping and both arrows would otherwise sit there as
-            visible no-ops -- the most likely day-one production state (one
-            approved banner). */}
+        {/* Both variants are full-bleed, so the arrows pin to the container
+            edges and sit over the artwork -- hence the white pill for contrast.
+            Guarded on banners.length > 1, matching the dot guard below: with
+            loop: true and exactly one slide Embla disables looping and both
+            arrows would sit there as visible no-ops, which is the most likely
+            day-one production state (one approved banner). */}
         {banners.length > 1 && (
           <>
             <CarouselPrevious
               variant="ghost"
               onClick={goPrev}
               className={cn(
-                "left-[calc(50%-45vw-2.75rem)] h-12 w-12 cursor-pointer rounded-full border-none bg-transparent text-brand-blue drop-shadow-sm transition-[background-color,color,box-shadow] duration-300 hover:bg-white/40 hover:text-brand-blue hover:backdrop-blur-md hover:shadow-md [&_svg]:size-7 sm:h-14 sm:w-14 sm:[&_svg]:size-8",
-                variant === "hero"
-                  ? "sm:left-[calc(50%-360px-3rem)] lg:left-[calc(50%-600px-3rem)]"
-                  : "left-2 bg-white/90 shadow-md hover:bg-white sm:left-3 lg:left-4",
+                "left-2 h-12 w-12 cursor-pointer rounded-full border-none bg-white/90 text-brand-blue shadow-md transition-[background-color,color,box-shadow] duration-300 hover:bg-white hover:text-brand-blue [&_svg]:size-7 sm:left-3 sm:h-14 sm:w-14 sm:[&_svg]:size-8 lg:left-4",
+                // The full-screen hero puts its copy near the left edge, where
+                // a phone-width arrow would sit on top of the headline. Swipe
+                // and the overlaid dots cover navigation there instead.
+                variant === "hero" && "hidden sm:flex",
               )}
             />
             <CarouselNext
               variant="ghost"
               onClick={goNext}
               className={cn(
-                "right-[calc(50%-45vw-0.75rem)] h-12 w-12 cursor-pointer rounded-full border-none bg-transparent text-brand-blue drop-shadow-sm transition-[background-color,color,box-shadow] duration-300 hover:bg-white/40 hover:text-brand-blue hover:backdrop-blur-md hover:shadow-md [&_svg]:size-7 sm:h-14 sm:w-14 sm:[&_svg]:size-8",
-                variant === "hero"
-                  ? "sm:right-[calc(50%-360px-0.75rem)] lg:right-[calc(50%-600px-0.75rem)]"
-                  : "right-2 bg-white/90 shadow-md hover:bg-white sm:right-3 lg:right-4",
+                "right-2 h-12 w-12 cursor-pointer rounded-full border-none bg-white/90 text-brand-blue shadow-md transition-[background-color,color,box-shadow] duration-300 hover:bg-white hover:text-brand-blue [&_svg]:size-7 sm:right-3 sm:h-14 sm:w-14 sm:[&_svg]:size-8 lg:right-4",
+                variant === "hero" && "hidden sm:flex",
               )}
             />
           </>
         )}
       </Carousel>
 
-      {/* Dot indicators — in the cream strip below the banner (robust over any image). */}
+      {/* Dot indicators — overlaid on the bottom of the full-screen slide, so
+          they do not add height beneath a banner that already fills the screen.
+          White ink because they now sit over artwork rather than a cream strip. */}
       {variant === "hero" && count > 1 && (
-        <div className="flex items-center justify-center gap-2 py-4">
+        <div className="absolute inset-x-0 bottom-6 z-10 flex items-center justify-center gap-2">
           {Array.from({ length: count }).map((_, i) => (
             <button
               key={i}
@@ -345,7 +311,9 @@ export function HeroCarousel({
               aria-current={i === selected}
               className={cn(
                 "h-2 rounded-full transition-[width,background-color] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue focus-visible:ring-offset-2",
-                i === selected ? "w-6 bg-brand-navy" : "w-2 bg-border hover:bg-brand-sky"
+                i === selected
+                  ? "w-6 bg-white shadow-sm ring-1 ring-black/10"
+                  : "w-2 bg-white/70 ring-1 ring-black/10 hover:bg-white"
               )}
             />
           ))}

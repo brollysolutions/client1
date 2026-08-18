@@ -43,12 +43,25 @@ PUBLIC_CATALOG_PER_CATEGORY = 12
 # dots, and manual navigation remain useful rather than turning into a long
 # campaign archive. These server-owned ceilings are both product rules and the
 # endpoint's DoS backstop; clients cannot raise them.
+#
+# Derived over the enum rather than hand-listed: this dict is indexed with [],
+# never .get(), so a public placement missing from it is a 500 on an anonymous
+# route. Deriving it means a new placement cannot be forgotten here. DASHBOARD
+# is excluded because it is authenticated, targeted content -- the router's
+# placement literal already refuses it, and its absence here is the second line
+# of that defence.
 PUBLIC_BANNERS_LIMIT = 7
+# The sponsor strip shows one ad at a time; its successor waits in the
+# replacement queue rather than rotating beside it. The live-uniqueness index
+# already makes a second concurrent sponsor impossible, so this is the
+# transport agreeing with the database rather than a second, weaker rule.
+PUBLIC_AD_STRIP_LIMIT = 1
 PUBLIC_BANNERS_LIMIT_BY_PLACEMENT = {
-    BannerPlacement.HOMEPAGE: PUBLIC_BANNERS_LIMIT,
-    BannerPlacement.FINANCIAL_SERVICES: PUBLIC_BANNERS_LIMIT,
-    BannerPlacement.PROPERTIES: PUBLIC_BANNERS_LIMIT,
+    placement: PUBLIC_BANNERS_LIMIT
+    for placement in BannerPlacement
+    if placement != BannerPlacement.DASHBOARD
 }
+PUBLIC_BANNERS_LIMIT_BY_PLACEMENT[BannerPlacement.HOMEPAGE_AD] = PUBLIC_AD_STRIP_LIMIT
 
 
 async def list_public_properties(db: AsyncSession) -> Sequence[Property]:
