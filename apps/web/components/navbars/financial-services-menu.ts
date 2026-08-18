@@ -15,6 +15,10 @@ export type FinancialServiceLink = {
   label: string;
   href: string;
   icon: LucideIcon;
+  /** Product spot illustration, reused as the desktop mega-menu thumbnail so
+   *  the menu and the /loans cards share one art source. The Lucide `icon`
+   *  stays the mobile-drawer glyph (illustrations are lg+ only). */
+  illustration?: string;
 };
 
 export type FinancialServiceGroup = {
@@ -49,6 +53,7 @@ const [loansGroup, insuranceGroup, creditCardsGroup] = GROUP_DEFS.map(
         label: product.navLabel ?? product.label,
         href: `/loans#${product.id}`,
         icon: product.icon,
+        illustration: product.illustration,
       }),
     ),
   }),
