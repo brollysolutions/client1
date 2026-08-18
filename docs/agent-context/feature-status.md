@@ -9,6 +9,67 @@ Evidence baseline: `abcc1fd`
 verified Admin operational-visibility work in
 [PR #173](https://github.com/brollysolutions/client1/pull/173).
 
+**Done — homepage sponsor ad slot (FR-2.3, FR-12.1; extends already-Complete
+requirements, so completion coverage is unchanged):** `feat/homepage-ad-strip`
+adds a sponsored ad above the Home page hero as a full-bleed leaderboard band:
+creative flush to the leading edge, the sponsor's copy beside it, the CTA at the
+trailing edge, a "Sponsored" disclosure and a session-only dismiss. The same
+pass makes the homepage hero carousel itself full-bleed and full-screen — the
+`hero` variant, whose only caller is the homepage, now fills the viewport below
+the sticky header instead of rendering a centred peek-coverflow card, with the
+peek blur removed, arrows pinned to the container edges (hidden at phone width,
+where they sat on the headline) and dots overlaid on the slide rather than
+adding a strip beneath it. `/loans` and `/real-estate` are unaffected: they use the
+`section` variant. It is a fourth value on
+the existing `banner_placement` enum (`homepage_ad`), so Sub Admin authoring,
+the Admin approval gate, the activation scheduler, RLS, audit and the governed
+artwork catalogue are all inherited: no new table, endpoint, policy, grant or
+dependency.
+
+**One sponsor at a time, with the next queued behind it.** The placement seeds
+exactly one category key (`sponsor`), which turns
+`uq_banners_live_placement_category` into a database guarantee of single
+occupancy rather than a convention; the successor uses the existing replacement
+flow (`replaces_banner_id`, promoted by `cms_activation` at its `starts_at`,
+which refuses to displace a banner the newcomer does not name). The public cap
+for this placement is 1 rather than 7, and because nothing rotates the renderer
+is a plain component with no carousel, autoplay or arrows.
+
+Privacy posture is unchanged and deliberate: no third-party ad script, no
+impression or click beacon, and the dismissal lives in React state only —
+`app/(public)/privacy/page.tsx` publishes "We do not use advertising or
+tracking cookies", and the announcement bar is the precedent for session-only
+dismissal. Ad CTAs stay same-origin; the `isSafeLocalHref` guard was not
+touched. Sponsors cannot be linked to a property listing, because
+`property_category_matches_campaign` falls through to `False` for this
+placement — pinned by a test so it cannot open silently.
+
+The migration adds the enum label inside `op.get_context().autocommit_block()`
+before seeding the template row that references it. Without that block it would
+pass on a fresh database and fail on every existing one (PostgreSQL forbids
+using a label added by the same transaction, except for a type created there,
+which is exactly the path CI takes) — so **a green CI run is not evidence for
+this migration**. Fresh evidence: applied to the already-migrated dev database,
+the label and seed verified, downgrade removed exactly the seeded row,
+re-upgrade clean, single head `c2f8a91b4d73`. Ruff check and format pass across
+455 files; 69 focused banner API/RLS/catalog tests and 33
+route-authorization/RLS-coverage/scheduler tests pass, including new coverage
+that a second concurrent live sponsor raises an integrity error while an
+approved successor is withheld from visitors, that `?placement=dashboard` still
+422s, and that the placement forces no business line. Regenerated contracts
+contain only the two expected additions. Web lint, strict typecheck and all 367
+unit tests pass. Browser verification at 1440px and 390px covered the image-left/content-right
+layout, the disclosure, the dismiss and the hero returning flush beneath it.
+
+Four latent traps were closed while passing through: `CATEGORIES_BY_PLACEMENT`
+now fails at import if a placement is missing (it was indexed with `[]`),
+`PUBLIC_BANNERS_LIMIT_BY_PLACEMENT` is derived over the enum (a missing entry
+was a 500 on an anonymous route), the CMS placement list is a
+`Record<Placement, …>` so tsc catches an omission instead of silently hiding a
+placement from authors, and the artwork-size test uses an explicit
+per-placement map rather than a ternary that dropped new placements into the
+wrong size band.
+
 **Done — public offers strip removal and navbar/section polish (public UI, no
 requirement change):** on
 `claude/20260818-195255-1-remove-liveoffers-entire-section-as-if`, per direct

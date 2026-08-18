@@ -57,10 +57,17 @@ export function mapPublicBanner(raw: Schemas["PublicBannerRead"]): HeroBanner {
 
 // Never throws, never rejects, same contract as getPublicListings(): the
 // homepage must keep rendering when the fetch fails or the table is simply
-// empty. Callers (app/(public)/page.tsx) fall back to FALLBACK_HERO_BANNERS
-// on an empty array -- the two failure shapes are deliberately not
-// distinguished here, since a visitor cannot act on the difference.
-export type PublicBannerPlacement = "homepage" | "financial_services" | "properties";
+// empty. The hero caller (app/(public)/page.tsx) falls back to
+// FALLBACK_HERO_BANNERS on an empty array; the ad strip deliberately does not,
+// because an empty ad slot must vanish rather than show placeholder inventory.
+// The two failure shapes are not distinguished here, since a visitor cannot
+// act on the difference.
+//
+// Derived from the generated contract rather than hand-written, so it cannot
+// drift from the router's Literal. "dashboard" is excluded for the same reason
+// the API excludes it: that placement carries authenticated, audience-targeted
+// content and is not anonymously reachable.
+export type PublicBannerPlacement = Exclude<Schemas["BannerPlacement"], "dashboard">;
 
 export async function getHeroBanners(
   placement: PublicBannerPlacement = "homepage",

@@ -21,8 +21,14 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.pool import NullPool
 
+from app.banner_catalog import CATEGORIES_BY_PLACEMENT
 from app.core.config import settings
 from conftest import full_registration
+
+# Derived from the catalogue rather than hardcoded: this test is about who can
+# READ the template library, not how big it is, and a literal count turns every
+# new placement into an unrelated failure here.
+_SEEDED_TEMPLATES = sum(len(categories) for categories in CATEGORIES_BY_PLACEMENT.values())
 
 
 async def _auth_user_uuid(mobile: str) -> str:
@@ -130,9 +136,13 @@ async def test_template_library_is_staff_only(client: AsyncClient) -> None:
     _, mobile = await full_registration(client, lines=["loans"])
     uid = await _auth_user_uuid(mobile)
     assert (
-        await _template_count_as(auth_user_uuid=uid, role="sub_admin", platform_scope="true") == 38
+        await _template_count_as(auth_user_uuid=uid, role="sub_admin", platform_scope="true")
+        == _SEEDED_TEMPLATES
     )
-    assert await _template_count_as(auth_user_uuid=uid, role="admin", platform_scope="true") == 38
+    assert (
+        await _template_count_as(auth_user_uuid=uid, role="admin", platform_scope="true")
+        == _SEEDED_TEMPLATES
+    )
     assert await _template_count_as(auth_user_uuid=uid, role="client", platform_scope="false") == 0
 
 

@@ -81,7 +81,7 @@ async def list_properties_public(
 
 @router.get("/banners", response_model=PublicBannerListResponse)
 async def list_banners_public(
-    placement: Literal["homepage", "financial_services", "properties"] = "homepage",
+    placement: Literal["homepage", "homepage_ad", "financial_services", "properties"] = "homepage",
     db: AsyncSession = Depends(get_db),
 ) -> PublicBannerListResponse:
     banners = await list_public_banners(db, BannerPlacement(placement))

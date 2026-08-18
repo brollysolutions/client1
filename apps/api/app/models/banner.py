@@ -50,6 +50,10 @@ class BannerPlacement(enum.StrEnum):
     FINANCIAL_SERVICES = "financial_services"
     PROPERTIES = "properties"
     DASHBOARD = "dashboard"
+    # Sponsored strip above the Home page hero carousel. Public and cross-line,
+    # like HOMEPAGE; kept as its own placement so sponsor slides never compete
+    # with hero campaigns for the shared seven-slide cap.
+    HOMEPAGE_AD = "homepage_ad"
 
 
 _ev = lambda x: [e.value for e in x]  # noqa: E731

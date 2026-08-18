@@ -617,9 +617,147 @@ async def test_response_cap(client: AsyncClient) -> None:
 
 
 @pytest.mark.asyncio
+async def test_homepage_ad_strip_is_isolated_from_the_homepage_hero(
+    client: AsyncClient,
+) -> None:
+    """The sponsor strip and the hero carousel must never borrow each other's slides.
+
+    They share a page but not a placement, which is the whole reason the strip
+    got its own enum value instead of reusing "homepage": a sponsor must not be
+    able to consume one of the hero's seven slots, or vice versa.
+    """
+    author = await _author_uuid(client)
+    ad_id = await _seed_banner(
+        author=author,
+        status="live",
+        title="Sponsor strip campaign",
+        placement="homepage_ad",
+    )
+    hero_id = await _seed_banner(
+        author=author,
+        status="live",
+        title="Homepage hero campaign",
+        placement="homepage",
+    )
+    try:
+        hero = await client.get("/api/v1/public/banners")
+        ads = await client.get("/api/v1/public/banners", params={"placement": "homepage_ad"})
+        hero_ids = {item["id"] for item in hero.json()["banners"]}
+        ad_ids = {item["id"] for item in ads.json()["banners"]}
+        assert ad_id in ad_ids and ad_id not in hero_ids
+        assert hero_id in hero_ids and hero_id not in ad_ids
+    finally:
+        await _delete_banners(ad_id, hero_id)
+
+
+@pytest.mark.asyncio
+async def test_only_one_sponsor_can_be_live_and_the_next_waits_behind_it(
+    client: AsyncClient,
+) -> None:
+    """One sponsor at a time, with the successor queued rather than rotated.
+
+    Two guarantees are asserted together because either alone would be
+    misleading: the database refuses a second concurrent LIVE sponsor (the
+    partial unique index over the placement's single category key), and an
+    approved successor sitting in the queue is not served to visitors until
+    the activation job promotes it.
+    """
+    from sqlalchemy.exc import IntegrityError
+
+    import app.db.session as _session_mod
+    from app.models.banner import BannerPlacement as _Placement
+    from app.models.banner import BannerTemplate
+
+    async with _session_mod.AsyncSessionLocal() as db:
+        template = await db.scalar(
+            select(BannerTemplate).where(
+                BannerTemplate.placement == _Placement.HOMEPAGE_AD,
+                BannerTemplate.active.is_(True),
+            )
+        )
+    assert template is not None
+    template_id = str(template.id)
+
+    # This dev database is long-lived and the strip is single-occupancy, so a
+    # leftover LIVE sponsor would make the first seed below fail instead of the
+    # third. Park any incumbent for the duration and restore it afterwards.
+    async with _session_mod.AsyncSessionLocal() as db:
+        parked = list(
+            (
+                await db.execute(
+                    text(
+                        "UPDATE banners SET status = 'archived' "
+                        "WHERE placement = 'homepage_ad' AND status = 'live' RETURNING id"
+                    )
+                )
+            ).scalars()
+        )
+        await db.commit()
+
+    author = await _author_uuid(client)
+    live_id = await _seed_banner(
+        author=author,
+        status="live",
+        title="Current sponsor",
+        placement="homepage_ad",
+        category_key=template.category_key,
+        template_id=template_id,
+    )
+    queued_id = await _seed_banner(
+        author=author,
+        status="approved",
+        title="Queued sponsor",
+        placement="homepage_ad",
+        category_key=template.category_key,
+        template_id=template_id,
+    )
+    try:
+        with pytest.raises(IntegrityError):
+            await _seed_banner(
+                author=author,
+                status="live",
+                title="Second concurrent sponsor",
+                placement="homepage_ad",
+                category_key=template.category_key,
+                template_id=template_id,
+            )
+
+        resp = await client.get("/api/v1/public/banners", params={"placement": "homepage_ad"})
+        served = resp.json()["banners"]
+        assert [item["id"] for item in served] == [live_id]
+        assert queued_id not in {item["id"] for item in served}
+    finally:
+        await _delete_banners(live_id, queued_id)
+        if parked:
+            async with _session_mod.AsyncSessionLocal() as db:
+                await db.execute(
+                    text("UPDATE banners SET status = 'live' WHERE id = ANY(:ids)"),
+                    {"ids": parked},
+                )
+                await db.commit()
+
+
+@pytest.mark.asyncio
+async def test_dashboard_placement_stays_unreachable_anonymously(client: AsyncClient) -> None:
+    """Adding a fourth public placement must not widen the literal to the enum.
+
+    "dashboard" carries authenticated, audience-targeted content; the router's
+    narrow Literal is what keeps it off the anonymous route.
+    """
+    resp = await client.get("/api/v1/public/banners", params={"placement": "dashboard"})
+    assert resp.status_code == 422
+    unknown = await client.get("/api/v1/public/banners", params={"placement": "bogus"})
+    assert unknown.status_code == 422
+
+
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     "placement",
-    [BannerPlacement.FINANCIAL_SERVICES, BannerPlacement.PROPERTIES],
+    [
+        BannerPlacement.FINANCIAL_SERVICES,
+        BannerPlacement.PROPERTIES,
+        BannerPlacement.HOMEPAGE_AD,
+    ],
 )
 async def test_section_placements_use_the_same_seven_banner_cap(
     client: AsyncClient,
