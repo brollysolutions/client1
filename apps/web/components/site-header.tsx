@@ -82,16 +82,24 @@ export function SiteHeader() {
                     </span>
                   </NavigationMenuTrigger>
                   <NavigationMenuContent>
-                    {/* 2-track grid: Loans | (Insurance + Credit Cards
-                        stacked). Credit Cards previously had its own 3rd
-                        column as a single-item highlight tile; a column
-                        holding one lone item and nothing else read as a
-                        rendering bug, so it now shares the Insurance column
-                        as a second headed section instead. 27rem is sized so
-                        "Loan Against Property" (the longest label) fits a
-                        208px sub-column without wrapping. */}
-                    <div className="w-[min(700px,calc(100vw-2rem))]">
-                      <div className="grid grid-cols-[27rem_1fr] gap-x-6">
+                    {/* Financial Services uses two tracks: Loans | (Insurance
+                        + Credit Cards stacked). Properties has three equal
+                        tracks for Residential | Plots | Commercial. */}
+                    <div
+                      className={cn(
+                        item.menu.columns.length === 3
+                          ? "w-[min(900px,calc(100vw-2rem))]"
+                          : "w-[min(700px,calc(100vw-2rem))]",
+                      )}
+                    >
+                      <div
+                        className={cn(
+                          "grid gap-x-6",
+                          item.menu.columns.length === 3
+                            ? "grid-cols-3"
+                            : "grid-cols-[27rem_1fr]",
+                        )}
+                      >
                         {item.menu.columns.map((column, columnIndex) => (
                           <div key={columnIndex} className="min-w-0">
                             {column.groups.map((group, groupIndex) => (

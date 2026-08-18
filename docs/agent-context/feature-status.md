@@ -2,12 +2,46 @@
 
 Status: **Derived living implementation ledger**
 
-As of: **2026-08-17**
+As of: **2026-08-18**
 
 Evidence baseline: `abcc1fd`
 ([PR #175](https://github.com/brollysolutions/client1/pull/175)), plus the
 verified Admin operational-visibility work in
 [PR #173](https://github.com/brollysolutions/client1/pull/173).
+
+**Done — property-backed public banners, property taxonomy, and full-bleed
+carousel polish:** `feat/starter-banner-ctas`
+([PR #195](https://github.com/brollysolutions/client1/pull/195)) preserves the
+completed FR-12 authoring/Admin-approval lifecycle while adding a validated
+active-property relationship for public Homepage/Properties campaigns. Public
+projection now derives the same-origin enquiry destination, managed media, and
+gold RERA VERIFIED badge from the approved listing and suppresses inactive
+linked properties. Property intake, public filtering, and the desktop/mobile
+navigation share the nine-value taxonomy; the desktop menu presents
+Residential, Plots, and Commercial in one three-column row. Properties
+campaigns use nine distinct, visually reviewed 1440×576 WebP assets with no
+people; legacy listings and broad-category campaign edits remain compatible.
+The shared carousel now rotates after five idle seconds without a visible
+pause/resume control, keeps reduced-motion and hover/focus safeguards, removes
+the Homepage dark scrim, and renders Financial Services/Properties full-bleed,
+flush to the header and following hero, with edge chevrons and no dots.
+
+Fresh evidence: the 113-test affected API integration set and 11-test banner
+RLS suite are green, followed by a green two-test subtype-cap rerun; Ruff check
+and format pass across 454 API files; Alembic is applied at the single head
+`a178bb90cc12`; regenerated OpenAPI and TypeScript contracts are byte-identical.
+Web lint, strict typecheck, all 386 unit tests, and the Linux production build
+(all 93 pages) pass. Live desktop and 390px browser checks verified header/hero
+adjacency, full-width sizing, five-second autoplay, controls, the three equal
+dropdown columns, and responsive layout; all nine raster assets were inspected
+for subtype fidelity and absence of people. The broad Playwright suite passed
+9/14; its five failures are pre-existing flows outside this change (login
+fixture, unrelated Admin search, referral-rules form assumption, loan-offers
+heading, and a loan-media registration password rejected for containing the
+mobile number). Security, design, and complete-diff review found and fixed the
+only authoring defect (an optional property selection could not be cleared) and
+found no remaining actionable issue. Requirement completion is unchanged; the
+next priority returns to the FR-2.2 controlled-correction/audit backlog.
 
 **Done — dev-stack `web` cold-start SSR fetch timeouts against `api` (dev
 tooling, no requirement change):** `docker-compose.yml`'s `web` service

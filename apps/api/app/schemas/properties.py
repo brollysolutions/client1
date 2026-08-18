@@ -14,7 +14,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field
 
-from app.models.property import ConstructionStatus, Furnishing, PropertyCategory
+from app.models.property import ConstructionStatus, Furnishing, PropertyCategory, PropertySubtype
 
 
 class PropertyMediaRead(BaseModel):
@@ -36,6 +36,7 @@ class PropertyRead(BaseModel):
     media_urls: list[str] = Field(default_factory=list)
     media: list[PropertyMediaRead] = Field(default_factory=list)
     category: PropertyCategory
+    property_subtype: PropertySubtype | None
     city: str
     locality: str
     pincode: str
@@ -82,6 +83,7 @@ class PublicPropertyRead(BaseModel):
     media_urls: list[str] = Field(default_factory=list)
     media: list[PropertyMediaRead] = Field(default_factory=list)
     category: PropertyCategory
+    property_subtype: PropertySubtype | None
     rera_number: str
 
 

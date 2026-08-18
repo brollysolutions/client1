@@ -40,9 +40,11 @@ from app.models.property import (
     ConstructionStatus,
     Furnishing,
     PropertyCategory,
+    PropertySubtype,
     construction_status_enum,
     furnishing_enum,
     property_category_enum,
+    property_subtype_enum,
 )
 from app.models.user import business_line_enum
 
@@ -85,6 +87,11 @@ class PropertySubmission(Base):
     meta: Mapped[str | None] = mapped_column(String(120), nullable=True)
     image: Mapped[str | None] = mapped_column(String(200), nullable=True)
     category: Mapped[PropertyCategory] = mapped_column(property_category_enum, nullable=False)
+    # Nullable at the database layer for pre-taxonomy drafts. New submissions
+    # require this through SubmissionCreate.
+    property_subtype: Mapped[PropertySubtype | None] = mapped_column(
+        property_subtype_enum, nullable=True
+    )
     city: Mapped[str] = mapped_column(String(120), nullable=False)
     locality: Mapped[str] = mapped_column(String(120), nullable=False)
     pincode: Mapped[str] = mapped_column(String(6), nullable=False)

@@ -4,7 +4,6 @@ import {
   buildSubmissionPayload,
   validateForm,
   EMPTY_FORM,
-  CATEGORY_OPTIONS,
   FURNISHING_OPTIONS,
   CONSTRUCTION_OPTIONS,
   type SubmitFormState,
@@ -19,7 +18,7 @@ const VALID: SubmitFormState = {
   locality: "Kondapur",
   pincode: "500084",
   priceRupees: "5000000",
-  category: "apartments",
+  propertySubtype: "standalone_apartment",
   furnishing: "semi",
   constructionStatus: "ready",
   rera_number: "TS-RERA-123",
@@ -48,6 +47,12 @@ describe("buildSubmissionPayload()", () => {
     const p = buildSubmissionPayload(VALID, MEDIA);
     expect(p.price_paise).toBe(500_000_000);
     expect(Number.isInteger(p.price_paise)).toBe(true);
+  });
+
+  it("derives the broad category from the selected property subtype", () => {
+    const payload = buildSubmissionPayload(VALID, MEDIA);
+    expect(payload.property_subtype).toBe("standalone_apartment");
+    expect(payload.category).toBe("apartments");
   });
 
   it("rounds fractional rupees to whole paise", () => {
@@ -93,9 +98,15 @@ describe("validateForm()", () => {
   });
 
   it("flags missing required text fields", () => {
-    const errs = validateForm({ ...VALID, title: "  ", rera_number: "" });
+    const errs = validateForm({
+      ...VALID,
+      title: "  ",
+      rera_number: "",
+      propertySubtype: "",
+    });
     expect(errs.title).toBeTruthy();
     expect(errs.rera_number).toBeTruthy();
+    expect(errs.propertySubtype).toBeTruthy();
   });
 
   it("requires managed images and rejects unsupported media", () => {
@@ -122,11 +133,6 @@ describe("validateForm()", () => {
 });
 
 describe("option lists match the backend enums", () => {
-  it("category covers all five backend values", () => {
-    expect(CATEGORY_OPTIONS.map((o) => o.value).sort()).toEqual(
-      ["apartments", "commercial", "houses", "plots", "villas"],
-    );
-  });
   it("furnishing and construction match the backend enums", () => {
     expect(FURNISHING_OPTIONS.map((o) => o.value).sort()).toEqual(["furnished", "semi", "unfurnished"]);
     expect(CONSTRUCTION_OPTIONS.map((o) => o.value).sort()).toEqual(["ready", "under_construction"]);

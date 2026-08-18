@@ -25,11 +25,16 @@ from uuid import UUID
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.banner_catalog import category_label, expected_business_line
+from app.banner_catalog import (
+    category_label,
+    expected_business_line,
+    property_category_matches_campaign,
+)
 from app.db.session import AsyncSessionLocal
 from app.models.audit_log import AuditAction
 from app.models.banner import Banner, BannerPlacement, BannerStatus, BannerTemplate
 from app.models.offer import Offer, OfferStatus
+from app.models.property import Property
 from app.schemas.banners import BannerTemplateCreate
 from app.schemas.personalization import AudienceRules, audience_rules_valid_for_banner
 from app.services import media_processing, storage
@@ -53,7 +58,7 @@ class BannerInvalidAudience(Exception):
 
 
 class BannerInvalidConfiguration(Exception):
-    """Raised when placement, template, line, or linked Offer disagree."""
+    """Raised when placement, template, line, Offer, or property disagree."""
 
 
 def template_image_url(image_ref: str) -> str | None:
@@ -71,15 +76,16 @@ async def validate_banner_configuration(
     business_line: str,
     template_id: UUID | None,
     offer_id: UUID | None,
+    property_id: UUID | None,
     allow_legacy: bool = False,
-) -> tuple[BannerTemplate | None, Offer | None]:
+) -> tuple[BannerTemplate | None, Offer | None, Property | None]:
     if placement == BannerPlacement.DASHBOARD:
-        if template_id is not None or offer_id is not None:
+        if template_id is not None or offer_id is not None or property_id is not None:
             raise BannerInvalidConfiguration
-        return None, None
+        return None, None, None
 
-    if template_id is None and allow_legacy and offer_id is None:
-        return None, None
+    if template_id is None and allow_legacy and offer_id is None and property_id is None:
+        return None, None, None
     template = await db.get(BannerTemplate, template_id) if template_id else None
     if template is None or not template.active or template.placement != placement:
         raise BannerInvalidConfiguration
@@ -90,6 +96,9 @@ async def validate_banner_configuration(
         raise BannerInvalidConfiguration
 
     offer = await db.get(Offer, offer_id) if offer_id else None
+    property_listing = await db.get(Property, property_id) if property_id else None
+    if offer_id is not None and property_id is not None:
+        raise BannerInvalidConfiguration
     if template.category_key == "offers" and offer is None:
         raise BannerInvalidConfiguration
     if template.category_key != "offers" and offer is not None:
@@ -101,7 +110,20 @@ async def validate_banner_configuration(
             raise BannerInvalidConfiguration
         if business_line != "both" and offer.business_line not in (business_line, "both"):
             raise BannerInvalidConfiguration
-    return template, offer
+    if property_id is not None and (
+        property_listing is None
+        or not property_listing.active
+        or not property_listing.rera_number.strip()
+        or business_line not in ("real_estate", "both")
+        or not property_category_matches_campaign(
+            placement,
+            template.category_key,
+            property_listing.category,
+            property_listing.property_subtype,
+        )
+    ):
+        raise BannerInvalidConfiguration
+    return template, offer, property_listing
 
 
 async def create_template_version(
@@ -215,6 +237,7 @@ async def submit_banner(
         business_line=banner.business_line,
         template_id=banner.template_id,
         offer_id=banner.offer_id,
+        property_id=banner.property_id,
         allow_legacy=banner.template_id is None and banner.category_key is None,
     )
     try:
@@ -255,6 +278,7 @@ async def approve_banner(banner_id: UUID, reviewer_uuid: UUID) -> Banner | None:
             business_line=banner.business_line,
             template_id=banner.template_id,
             offer_id=banner.offer_id,
+            property_id=banner.property_id,
             allow_legacy=banner.template_id is None and banner.category_key is None,
         )
         try:

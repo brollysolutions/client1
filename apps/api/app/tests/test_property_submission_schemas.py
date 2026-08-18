@@ -28,6 +28,7 @@ def _payload(media: list[dict]) -> dict:
         "type": "Apartment",
         "location": "Baner, Pune",
         "category": "apartments",
+        "property_subtype": "standalone_apartment",
         "city": "Pune",
         "locality": "Baner",
         "pincode": "411045",
@@ -89,3 +90,11 @@ def test_rejects_canonical_key_as_client_input() -> None:
 
     with pytest.raises(ValidationError):
         SubmissionCreate.model_validate(_payload([asset]))
+
+
+def test_rejects_subtype_outside_selected_category() -> None:
+    payload = _payload([_asset(0)])
+    payload["property_subtype"] = "individual_house"
+
+    with pytest.raises(ValidationError, match="does not belong"):
+        SubmissionCreate.model_validate(payload)

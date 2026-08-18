@@ -4,6 +4,7 @@ import {
   FINANCIAL_SERVICES_MENU,
   FINANCIAL_SERVICES_OVERVIEW,
 } from "@/components/navbars/financial-services-menu";
+import { PROPERTIES_MENU, PROPERTIES_OVERVIEW } from "@/components/navbars/properties-menu";
 
 // Real Estate, Earn with Us, Calculator, and Application are all dedicated
 // pages with no navbar dropdown. Financial Services is the one exception: it
@@ -55,7 +56,11 @@ export const NAV_ITEMS: NavItem[] = [
       overview: FINANCIAL_SERVICES_OVERVIEW,
     },
   },
-  { label: "Properties", href: "/real-estate" },
+  {
+    label: "Properties",
+    href: "/real-estate",
+    menu: { columns: PROPERTIES_MENU, overview: PROPERTIES_OVERVIEW },
+  },
   { label: "Earn with Us", href: "/earn-with-us" },
   { label: "Calculator", href: "/calculators" },
   { label: "Become a Partner", href: "/apply-as-agent" },

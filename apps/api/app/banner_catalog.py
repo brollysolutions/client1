@@ -8,6 +8,7 @@ cannot invent a category that no public placement knows how to present.
 from __future__ import annotations
 
 from app.models.banner import BannerPlacement
+from app.models.property import PropertyCategory, PropertySubtype
 
 HOMEPAGE_CATEGORIES = {
     "loans": "Loans",
@@ -38,6 +39,15 @@ FINANCIAL_SERVICE_CATEGORIES = {
 }
 
 PROPERTY_CATEGORIES = {
+    "individual-house": "Individual House",
+    "standalone-apartment": "Standalone Apartment",
+    "gated-community-apartment": "Gated Community Apartment",
+    "villa": "Villa",
+    "locked-space": "Locked Commercial Space",
+    "unlocked-space": "Unlocked Commercial Space",
+    "plot": "Plot",
+    "farmland": "Farmland",
+    "agriland": "Agriland",
     "apartments": "Apartments",
     "houses": "Houses",
     "villas": "Villas",
@@ -54,6 +64,26 @@ CATEGORIES_BY_PLACEMENT: dict[BannerPlacement, dict[str, str]] = {
     BannerPlacement.DASHBOARD: {},
 }
 
+_PROPERTY_CAMPAIGN_CATEGORY = {
+    PropertyCategory.APARTMENTS: "apartments",
+    PropertyCategory.HOUSES: "houses",
+    PropertyCategory.VILLAS: "villas",
+    PropertyCategory.PLOTS: "plots-land",
+    PropertyCategory.COMMERCIAL: "commercial",
+}
+
+_PROPERTY_CAMPAIGN_SUBTYPE = {
+    PropertySubtype.INDIVIDUAL_HOUSE: "individual-house",
+    PropertySubtype.STANDALONE_APARTMENT: "standalone-apartment",
+    PropertySubtype.GATED_COMMUNITY_APARTMENT: "gated-community-apartment",
+    PropertySubtype.VILLA: "villa",
+    PropertySubtype.LOCKED_SPACE: "locked-space",
+    PropertySubtype.UNLOCKED_SPACE: "unlocked-space",
+    PropertySubtype.PLOT: "plot",
+    PropertySubtype.FARMLAND: "farmland",
+    PropertySubtype.AGRILAND: "agriland",
+}
+
 
 def category_label(placement: BannerPlacement, key: str) -> str | None:
     return CATEGORIES_BY_PLACEMENT[placement].get(key)
@@ -65,3 +95,19 @@ def expected_business_line(placement: BannerPlacement) -> str | None:
     if placement == BannerPlacement.PROPERTIES:
         return "real_estate"
     return None
+
+
+def property_category_matches_campaign(
+    placement: BannerPlacement,
+    category_key: str,
+    property_category: PropertyCategory,
+    property_subtype: PropertySubtype | None = None,
+) -> bool:
+    """Return whether a governed public category may promote this listing."""
+    if placement == BannerPlacement.HOMEPAGE:
+        return category_key == "properties"
+    if placement == BannerPlacement.PROPERTIES:
+        if property_subtype is not None and category_key in _PROPERTY_CAMPAIGN_SUBTYPE.values():
+            return _PROPERTY_CAMPAIGN_SUBTYPE[property_subtype] == category_key
+        return _PROPERTY_CAMPAIGN_CATEGORY[property_category] == category_key
+    return False

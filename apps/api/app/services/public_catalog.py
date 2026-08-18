@@ -17,10 +17,10 @@ Takes `db` as a parameter (Depends(get_db) at the router) rather than opening
 its own AsyncSessionLocal(): this is a read with no need to outlive the
 request, so it does not need conftest._patch_db_null_pool's rebind list.
 
-Capped per category (not a flat LIMIT) via a row_number() window so a
-category with fewer listings can never be crowded out by another category's
-volume. The cap is structural, not client-adjustable, and doubles as the
-endpoint's only DoS backstop (see router docstring for the full posture).
+Capped per subtype (with a broad-category fallback for legacy rows) via a
+row_number() window so one subtype can never crowd another subtype out of
+the public dropdown results. The cap is structural, not client-adjustable,
+and doubles as the endpoint's only DoS backstop.
 """
 
 from __future__ import annotations
@@ -57,7 +57,9 @@ async def list_public_properties(db: AsyncSession) -> Sequence[Property]:
             Property,
             func.row_number()
             .over(
-                partition_by=Property.category,
+                # Legacy rows with no subtype keep the former category cap;
+                # new rows are capped independently per structured subtype.
+                partition_by=(Property.category, Property.property_subtype),
                 order_by=(Property.created_at.asc(), Property.id.asc()),
             )
             .label("rn"),
@@ -78,7 +80,7 @@ async def list_public_properties(db: AsyncSession) -> Sequence[Property]:
 
 async def list_public_banners(
     db: AsyncSession, placement: BannerPlacement = BannerPlacement.HOMEPAGE
-) -> Sequence[tuple[Banner, BannerTemplate | None, Offer | None]]:
+) -> Sequence[tuple[Banner, BannerTemplate | None, Offer | None, Property | None]]:
     """The banner analogue of list_public_properties -- same no-RLS reasoning
     (module docstring above), different predicate shape. Three things this
     WHERE clause does beyond "status == live":
@@ -112,15 +114,17 @@ async def list_public_banners(
        that doesn't exist.
     """
     stmt = (
-        select(Banner, BannerTemplate, Offer)
+        select(Banner, BannerTemplate, Offer, Property)
         .outerjoin(BannerTemplate, BannerTemplate.id == Banner.template_id)
         .outerjoin(Offer, Offer.id == Banner.offer_id)
+        .outerjoin(Property, Property.id == Banner.property_id)
         .where(
             # This predicate IS the access control on this route. No RLS runs here.
             Banner.status == BannerStatus.LIVE,
             Banner.banner_type.in_((BannerType.DEFAULT, BannerType.ACTION)),
             Banner.audience_rules == {},
             Banner.placement == placement,
+            or_(Banner.property_id.is_(None), Property.active.is_(True)),
             or_(Banner.starts_at.is_(None), Banner.starts_at <= func.now()),
             or_(Banner.ends_at.is_(None), Banner.ends_at > func.now()),
             or_(

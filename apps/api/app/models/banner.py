@@ -109,6 +109,12 @@ class Banner(Base):
     offer_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("offers.id", ondelete="RESTRICT"), nullable=True
     )
+    # Optional approved-listing promotion. Public projection rechecks active
+    # state and derives media/RERA/CTA data from the property rather than
+    # trusting author-entered claims.
+    property_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("properties.id", ondelete="RESTRICT"), nullable=True
+    )
     replaces_banner_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("banners.id", ondelete="SET NULL"), nullable=True
     )
