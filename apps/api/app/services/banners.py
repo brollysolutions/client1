@@ -1,7 +1,7 @@
 """Banner submit/approve/reject, plus the image-upload presign + orphan purge.
 
-submit_banner runs on the request session under RLS (own-row, draft/rejected only
-— see the banners_update policy). approve_banner/reject_banner run on a bypass
+submit_banner runs on the request session under RLS (shared Sub Admin team queue,
+draft/rejected only — see the banners_update policy). approve_banner/reject_banner run on a bypass
 superuser session, the same mechanism as services.property_submissions: the
 status flip never rides the reviewer's request transaction, and api_user's UPDATE
 grant never needs to cover the approval transition. Access control is the
@@ -41,7 +41,7 @@ class BannerAlreadyReviewed(Exception):
 
 
 class BannerNotOwned(Exception):
-    """Raised when submit targets a banner created by a different sub_admin.
+    """Raised when an explicitly provenance-scoped submit targets another author.
 
     Distinct from "not found" (unlike property_submissions' owner-scoped
     SELECT, banners' shared-visibility SELECT means the caller can already see
@@ -201,7 +201,7 @@ async def submit_banner(
     *,
     can_manage_any: bool = False,
 ) -> Banner | None:
-    """draft/rejected -> pending_approval, own-row only (RLS-covered)."""
+    """Move draft/rejected to pending approval, optionally provenance-scoped."""
     banner = await db.scalar(select(Banner).where(Banner.id == banner_id))
     if banner is None:
         return None

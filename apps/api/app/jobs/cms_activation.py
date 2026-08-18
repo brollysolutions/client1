@@ -78,7 +78,7 @@ async def _activate_banners(session: AsyncSession) -> int:
     for banner in candidates:
         if banner.offer_id is not None:
             offer = await session.get(Offer, banner.offer_id)
-            if offer is None or offer.status != OfferStatus.ACTIVE:
+            if offer is None or offer.status != OfferStatus.ACTIVE or offer.audience_rules != {}:
                 continue
         if banner.category_key is not None:
             current = await session.scalar(

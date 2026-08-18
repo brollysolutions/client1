@@ -119,6 +119,34 @@ async def _delete_banners(*banner_ids: str) -> None:
         await db.commit()
 
 
+async def _seed_offer(*, author: str, audience_rules: dict) -> str:
+    import app.db.session as _session_mod
+    from app.models.offer import Offer, OfferStatus
+
+    async with _session_mod.AsyncSessionLocal() as db:
+        offer = Offer(
+            business_line="loans",
+            title="Private client incentive",
+            discount_type="percentage",
+            discount_value=10,
+            audience_rules=audience_rules,
+            status=OfferStatus.ACTIVE,
+            created_by_uuid=uuid.UUID(author),
+        )
+        db.add(offer)
+        await db.commit()
+        return str(offer.id)
+
+
+async def _delete_offers(*offer_ids: str) -> None:
+    import app.db.session as _session_mod
+    from app.models.offer import Offer
+
+    async with _session_mod.AsyncSessionLocal() as db:
+        await db.execute(delete(Offer).where(Offer.id.in_([uuid.UUID(item) for item in offer_ids])))
+        await db.commit()
+
+
 async def _superuser_sees(banner_id: str) -> bool:
     import app.db.session as _session_mod
     from app.models.banner import Banner
@@ -276,6 +304,27 @@ async def test_non_live_statuses_hidden_from_anonymous(client: AsyncClient) -> N
             assert banner_id not in returned_ids, f"{status} banner leaked to public response"
     finally:
         await _delete_banners(*ids.values())
+
+
+@pytest.mark.asyncio
+async def test_targeted_linked_offer_is_hidden_from_anonymous(client: AsyncClient) -> None:
+    author = await _author_uuid(client)
+    offer_id = await _seed_offer(
+        author=author,
+        audience_rules={"version": 1, "user_types": ["client"]},
+    )
+    banner_id = await _seed_banner(
+        author=author,
+        status="live",
+        title="Must remain private",
+        offer_id=offer_id,
+    )
+    try:
+        resp = await client.get("/api/v1/public/banners")
+        assert banner_id not in {item["id"] for item in resp.json()["banners"]}
+    finally:
+        await _delete_banners(banner_id)
+        await _delete_offers(offer_id)
 
 
 @pytest.mark.asyncio
@@ -453,24 +502,27 @@ async def test_response_cap(client: AsyncClient) -> None:
 
 
 @pytest.mark.asyncio
-async def test_financial_services_cap_allows_one_campaign_per_category(
+@pytest.mark.parametrize(
+    "placement",
+    [BannerPlacement.FINANCIAL_SERVICES, BannerPlacement.PROPERTIES],
+)
+async def test_section_placements_use_the_same_seven_banner_cap(
     client: AsyncClient,
+    placement: BannerPlacement,
 ) -> None:
     author = await _author_uuid(client)
-    limit = PUBLIC_BANNERS_LIMIT_BY_PLACEMENT[BannerPlacement.FINANCIAL_SERVICES]
+    limit = PUBLIC_BANNERS_LIMIT_BY_PLACEMENT[placement]
     ids = [
         await _seed_banner(
             author=author,
             status="live",
-            title=f"Financial Cap Test {i}",
-            placement="financial_services",
+            title=f"{placement.value} Cap Test {i}",
+            placement=placement.value,
         )
         for i in range(limit + 3)
     ]
     try:
-        resp = await client.get(
-            "/api/v1/public/banners", params={"placement": "financial_services"}
-        )
+        resp = await client.get("/api/v1/public/banners", params={"placement": placement.value})
         assert len(resp.json()["banners"]) == limit
     finally:
         await _delete_banners(*ids)

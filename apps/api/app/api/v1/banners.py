@@ -239,13 +239,9 @@ async def update_banner(
     banner = await db.scalar(select(Banner).where(Banner.id == banner_id))
     if banner is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Banner not found.")
-    # App-layer guard against a silent no-op: RLS's banners_update policy only
-    # matches own-row + draft/rejected, but sub_admin's SELECT grant sees every
-    # banner (shared queue) — without this check a mismatched UPDATE would zero-
-    # row no-op and this endpoint would report false success. Ownership and
-    # status are reported as distinct errors (403 vs 409) so the frontend, which
-    # has no way to check ownership client-side (session carries role only, not
-    # user id), can show the right message from a failed optimistic attempt.
+    # RLS and this application guard both restrict mutation to draft/rejected
+    # rows. The queue is intentionally shared across the Sub Admin team, so
+    # authorship is audit provenance rather than an edit-authorization boundary.
     if banner.status not in (BannerStatus.DRAFT, BannerStatus.REJECTED):
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,

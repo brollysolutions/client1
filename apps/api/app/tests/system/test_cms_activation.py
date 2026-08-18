@@ -79,6 +79,7 @@ async def _seed_offer(
     status: OfferStatus,
     starts_at: datetime | None = None,
     ends_at: datetime | None = None,
+    audience_rules: dict | None = None,
 ) -> str:
     import app.db.session as _session_mod
 
@@ -89,6 +90,7 @@ async def _seed_offer(
             discount_type="flat",
             discount_value=100,
             status=status,
+            audience_rules=audience_rules or {},
             created_by_uuid=uuid.UUID(author),
             starts_at=starts_at,
             ends_at=ends_at,
@@ -404,6 +406,29 @@ async def test_offer_campaign_waits_for_linked_offer_to_be_active(client: AsyncC
             await db.commit()
         await cms_activation()
         assert await _banner_status(banner_id) == "live"
+    finally:
+        await _delete_banners(banner_id)
+        await _delete_offers(offer_id)
+
+
+@pytest.mark.asyncio
+async def test_offer_campaign_with_targeted_offer_stays_approved(client: AsyncClient) -> None:
+    author = await _author_uuid(client)
+    offer_id = await _seed_offer(
+        author=author,
+        status=OfferStatus.ACTIVE,
+        audience_rules={"version": 1, "user_types": ["client"]},
+    )
+    banner_id = await _seed_banner(
+        author=author,
+        status=BannerStatus.APPROVED,
+        starts_at=_PAST,
+        category_key="offers",
+        offer_id=offer_id,
+    )
+    try:
+        await cms_activation()
+        assert await _banner_status(banner_id) == "approved"
     finally:
         await _delete_banners(banner_id)
         await _delete_offers(offer_id)

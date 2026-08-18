@@ -38,16 +38,16 @@ from app.models.property import Property
 
 PUBLIC_CATALOG_PER_CATEGORY = 12
 
-# Flat per-placement caps, not a row_number() window like properties. Homepage
-# is deliberately kept to seven slides; the closed Financial Services
-# catalogue needs room for one live campaign per each of its 16 categories.
-# These server-owned ceilings are both product rules and the endpoint's DoS
-# backstop; clients cannot raise them.
+# Flat per-placement caps, not a row_number() window like properties. Every
+# public carousel is deliberately kept to seven slides so the shared autoplay,
+# dots, and manual navigation remain useful rather than turning into a long
+# campaign archive. These server-owned ceilings are both product rules and the
+# endpoint's DoS backstop; clients cannot raise them.
 PUBLIC_BANNERS_LIMIT = 7
 PUBLIC_BANNERS_LIMIT_BY_PLACEMENT = {
     BannerPlacement.HOMEPAGE: PUBLIC_BANNERS_LIMIT,
-    BannerPlacement.FINANCIAL_SERVICES: 16,
-    BannerPlacement.PROPERTIES: 7,
+    BannerPlacement.FINANCIAL_SERVICES: PUBLIC_BANNERS_LIMIT,
+    BannerPlacement.PROPERTIES: PUBLIC_BANNERS_LIMIT,
 }
 
 
@@ -127,6 +127,7 @@ async def list_public_banners(
                 Banner.offer_id.is_(None),
                 (
                     (Offer.status == OfferStatus.ACTIVE)
+                    & (Offer.audience_rules == {})
                     & or_(Offer.starts_at.is_(None), Offer.starts_at <= func.now())
                     & or_(Offer.ends_at.is_(None), Offer.ends_at > func.now())
                 ),
