@@ -1,6 +1,6 @@
 // Server-only client for public content blocks (GET /api/v1/public/content-blocks,
 // GET /api/v1/public/content-blocks/{slug}). Same division of labor as
-// lib/public-offers.ts / lib/public-banners.ts: this module returns the
+// lib/public-banners.ts: this module returns the
 // display PublicContentBlock shape and goes through the server-only
 // serverFetchJson, so it must never be imported by a Client Component.
 //
@@ -35,7 +35,7 @@ export function mapPublicContentBlock(
   };
 }
 
-// Never throws, never rejects, same contract as getPublicOffers() /
+// Never throws, never rejects, same contract as
 // getHeroBanners(): pages must keep rendering when the fetch fails or the
 // table is simply empty. Callers do not distinguish the two.
 export async function getPublicContentBlocks(): Promise<PublicContentBlock[]> {

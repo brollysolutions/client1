@@ -9,6 +9,29 @@ Evidence baseline: `abcc1fd`
 verified Admin operational-visibility work in
 [PR #173](https://github.com/brollysolutions/client1/pull/173).
 
+**Done — public offers strip removal and navbar/section polish (public UI, no
+requirement change):** on
+`claude/20260818-195255-1-remove-liveoffers-entire-section-as-if`, per direct
+user instruction the "Live offers / Offers running right now" strip is removed
+from `/loans` and `/real-estate`: public promotional offers will be carried by
+Sub Admin banner campaigns, so the strip and its supporting modules
+(`components/offer-strip.tsx`, `lib/offers.ts`, `lib/public-offers.ts`, plus
+their three test files) are deleted with no remaining consumers. The anonymous
+`GET /api/v1/public/offers` endpoint and all authenticated Client offer
+surfaces are unchanged. The desktop navbar's "Financial Services" and
+"Properties" triggers now navigate to their pages on pointer click while the
+mega-panel keeps opening on hover; keyboard activation (`event.detail === 0`)
+still opens the panel so dropdown items remain keyboard-reachable. The /loans
+products heading reads "Explore our financial services" with the eyebrow
+removed (the `productsEyebrow` prop is deleted as dead code), and the Credit
+Cards feature card drops its "In the spotlight" chip. Fresh evidence: web
+ESLint, strict typecheck, and all 361 unit tests pass; the production build
+compiles, typechecks, and generates all 93 pages before the known Windows
+standalone `EPERM` symlink failure. Live browser checks verified all four
+changes on the dev stack; the only console errors are pre-existing local
+dev-data artifacts (homepage-closing content-block timeout and three MinIO
+test-listing image-proxy 500s).
+
 **Done — /loans "Explore our services" redesign (public UI, no requirement
 change):** on `feat/loans-services-redesign`, all 16 product-card
 illustrations were redrawn as one cohesive real-color family (shared

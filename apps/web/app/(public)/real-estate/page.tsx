@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 
-import { OfferStrip } from "@/components/offer-strip";
 import { HeroCarousel } from "@/components/hero-carousel";
 import { PropertyCatalogEmpty } from "@/components/property-catalog-empty";
 import { ProductPage, PropertyDoodles } from "@/components/product-page";
@@ -8,7 +7,6 @@ import { PropertyRow } from "@/components/property-row";
 import { TrustStrip } from "@/components/trust-strip";
 import { faqPageJsonLd, REAL_ESTATE_FAQ_ITEMS } from "@/lib/faq";
 import { RE_TRUST, REAL_ESTATE_JOURNEY } from "@/lib/products";
-import { getPublicOffers } from "@/lib/public-offers";
 import { getHeroBanners } from "@/lib/public-banners";
 import { getPublicListings } from "@/lib/public-properties";
 import { groupByCategory, PROPERTY_CATEGORIES } from "@/lib/properties";
@@ -70,9 +68,8 @@ export default async function RealEstatePage({
 }) {
   // Parallel, not sequential: two independent 5s serverFetchJson timeouts
   // should not stack on a single page render.
-  const [listings, offers, banners] = await Promise.all([
+  const [listings, banners] = await Promise.all([
     getPublicListings(),
-    getPublicOffers(),
     getHeroBanners("properties"),
   ]);
   const params = await searchParams;
@@ -136,12 +133,6 @@ export default async function RealEstatePage({
                 </div>
               </div>
             </div>
-            <OfferStrip
-              offers={offers}
-              line="real_estate"
-              heading="Offers running right now"
-              subheading="Live discounts on the properties and services we help you buy."
-            />
           </>
         }
         journeyHeading="What happens when you reach out"

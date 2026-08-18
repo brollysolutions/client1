@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { ArrowRight, Phone } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -32,6 +32,7 @@ const linkClass =
 
 export function SiteHeader() {
   const pathname = usePathname() ?? "";
+  const router = useRouter();
   const scrolled = useScrolled(8);
 
   return (
@@ -66,6 +67,18 @@ export function SiteHeader() {
                       below already documents for the plain-link branch. */}
                   <NavigationMenuTrigger
                     aria-current={isActive ? "page" : undefined}
+                    // A pointer click navigates to the item's page (the panel
+                    // already opens on hover, so click-to-toggle adds nothing
+                    // for mouse/touch users). preventDefault makes Radix skip
+                    // its own toggle handler. Keyboard activation (Enter/
+                    // Space, event.detail === 0) is left alone so keyboard
+                    // users can still open the panel and reach its items.
+                    onClick={(event) => {
+                      if (event.detail > 0) {
+                        event.preventDefault();
+                        router.push(item.href);
+                      }
+                    }}
                     className={cn(
                       "group/nav-trigger text-base text-[var(--nav-text)]",
                       isActive && "text-[var(--nav-primary)]",
