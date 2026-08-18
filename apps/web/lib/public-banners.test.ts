@@ -23,6 +23,7 @@ function wireBanner(overrides: Partial<Schemas["PublicBannerRead"]> = {}): Schem
     deep_link: "/loans",
     image_url: null,
     offer_badge: null,
+    rera_verified: false,
     ...overrides,
   };
 }
@@ -40,6 +41,7 @@ describe("mapPublicBanner()", () => {
       subtitle: "Limited period rates",
       image: undefined,
       offerBadge: undefined,
+      reraVerified: undefined,
       cta: { label: "Apply now", href: "/loans" },
     });
   });
@@ -85,6 +87,10 @@ describe("mapPublicBanner()", () => {
     expect(mapPublicBanner(wireBanner({ offer_badge: "10% off · Code SAVE10" })).offerBadge).toBe(
       "10% off · Code SAVE10",
     );
+  });
+
+  it("maps the server-derived RERA verification state", () => {
+    expect(mapPublicBanner(wireBanner({ rera_verified: true })).reraVerified).toBe(true);
   });
 
   it("drops image_url from a host outside the allowlist", () => {

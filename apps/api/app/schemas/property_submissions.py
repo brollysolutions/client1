@@ -14,7 +14,13 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field, model_validator
 
-from app.models.property import ConstructionStatus, Furnishing, PropertyCategory
+from app.models.property import (
+    PROPERTY_CATEGORY_BY_SUBTYPE,
+    ConstructionStatus,
+    Furnishing,
+    PropertyCategory,
+    PropertySubtype,
+)
 from app.models.property_submission import SubmissionStatus
 
 PropertyImageContentType = Literal["image/jpeg", "image/png", "image/webp"]
@@ -58,6 +64,7 @@ class SubmissionCreate(BaseModel):
     location: str = Field(min_length=1, max_length=160)
     meta: str | None = Field(default=None, max_length=120)
     category: PropertyCategory
+    property_subtype: PropertySubtype
     city: str = Field(min_length=1, max_length=120)
     locality: str = Field(min_length=1, max_length=120)
     pincode: str = Field(min_length=6, max_length=6)
@@ -73,7 +80,9 @@ class SubmissionCreate(BaseModel):
     media: list[SubmissionMediaInput] = Field(min_length=1, max_length=13)
 
     @model_validator(mode="after")
-    def validate_media_quota(self) -> SubmissionCreate:
+    def validate_submission(self) -> SubmissionCreate:
+        if PROPERTY_CATEGORY_BY_SUBTYPE[self.property_subtype] != self.category:
+            raise ValueError("Property subtype does not belong to the selected category.")
         images = [asset for asset in self.media if asset.kind == "image"]
         documents = [asset for asset in self.media if asset.kind == "document"]
         videos = [asset for asset in self.media if asset.kind == "video"]
@@ -117,6 +126,7 @@ class SubmissionRead(BaseModel):
     meta: str | None
     image: str | None
     category: PropertyCategory
+    property_subtype: PropertySubtype | None
     city: str
     locality: str
     pincode: str

@@ -50,6 +50,43 @@ _PAYLOAD = {
 }
 
 
+async def _seed_property(*, active: bool, category: str = "villas") -> str:
+    import app.db.session as _session_mod
+    from app.models.property import Property
+
+    async with _session_mod.AsyncSessionLocal() as db:
+        property_listing = Property(
+            business_line="real_estate",
+            active=active,
+            title=f"Campaign property {uuid.uuid4()}",
+            type="Villa",
+            location="Kokapet, Hyderabad",
+            price_display="₹2 Cr",
+            category=category,
+            city="Hyderabad",
+            locality="Kokapet",
+            pincode="500075",
+            price_paise=20_000_000_00,
+            furnishing="furnished",
+            construction_status="ready",
+            rera_number="RERA/TS/2026/0044",
+        )
+        db.add(property_listing)
+        await db.commit()
+        return str(property_listing.id)
+
+
+async def _delete_properties(*property_ids: str) -> None:
+    import app.db.session as _session_mod
+    from app.models.property import Property
+
+    async with _session_mod.AsyncSessionLocal() as db:
+        await db.execute(
+            delete(Property).where(Property.id.in_([uuid.UUID(item) for item in property_ids]))
+        )
+        await db.commit()
+
+
 @pytest.mark.asyncio
 async def test_sub_admin_create_starts_draft(client: AsyncClient) -> None:
     _, mobile = await full_registration(client, lines=["loans"])
@@ -383,7 +420,7 @@ async def test_public_campaign_requires_active_matching_template(client: AsyncCl
 
     templates = await client.get("/api/v1/banners/templates", headers=headers)
     assert templates.status_code == 200, templates.text
-    assert len(templates.json()["templates"]) == 29
+    assert len(templates.json()["templates"]) == 38
     template = next(
         item
         for item in templates.json()["templates"]
@@ -468,6 +505,97 @@ async def test_public_campaign_requires_active_matching_template(client: AsyncCl
     async with _session_mod.AsyncSessionLocal() as db:
         await db.execute(delete(Offer).where(Offer.id == uuid.UUID(targeted_offer_id)))
         await db.commit()
+
+
+@pytest.mark.asyncio
+async def test_property_campaign_requires_active_category_match_and_copies_to_replacement(
+    client: AsyncClient,
+) -> None:
+    _, mobile = await full_registration(client, lines=["real_estate"])
+    uid = await _auth_user_uuid(mobile)
+    sub_headers = {"Authorization": f"Bearer {_sub_admin_token(uid)}"}
+    admin_headers = {"Authorization": f"Bearer {_admin_token(uid)}"}
+    templates = (await client.get("/api/v1/banners/templates", headers=sub_headers)).json()[
+        "templates"
+    ]
+    homepage_properties = next(
+        item
+        for item in templates
+        if item["placement"] == "homepage" and item["category_key"] == "properties"
+    )
+    homepage_general = next(
+        item
+        for item in templates
+        if item["placement"] == "homepage" and item["category_key"] == "general"
+    )
+    active_property_id = await _seed_property(active=True)
+    inactive_property_id = await _seed_property(active=False)
+    banner_ids: list[str] = []
+    try:
+        created = await client.post(
+            "/api/v1/banners",
+            json={
+                **_PAYLOAD,
+                "business_line": "real_estate",
+                "placement": "homepage",
+                "template_id": homepage_properties["id"],
+                "property_id": active_property_id,
+            },
+            headers=sub_headers,
+        )
+        assert created.status_code == 201, created.text
+        banner_id = created.json()["id"]
+        banner_ids.append(banner_id)
+        assert created.json()["property_id"] == active_property_id
+
+        wrong_category = await client.post(
+            "/api/v1/banners",
+            json={
+                **_PAYLOAD,
+                "business_line": "real_estate",
+                "placement": "homepage",
+                "template_id": homepage_general["id"],
+                "property_id": active_property_id,
+            },
+            headers=sub_headers,
+        )
+        assert wrong_category.status_code == 422
+
+        inactive = await client.post(
+            "/api/v1/banners",
+            json={
+                **_PAYLOAD,
+                "business_line": "real_estate",
+                "placement": "homepage",
+                "template_id": homepage_properties["id"],
+                "property_id": inactive_property_id,
+            },
+            headers=sub_headers,
+        )
+        assert inactive.status_code == 422
+
+        assert (
+            await client.post(f"/api/v1/banners/{banner_id}/submit", headers=sub_headers)
+        ).status_code == 200
+        assert (
+            await client.post(f"/api/v1/banners/{banner_id}/approve", headers=admin_headers)
+        ).status_code == 200
+        replacement = await client.post(
+            f"/api/v1/banners/{banner_id}/replacement", headers=sub_headers
+        )
+        assert replacement.status_code == 201, replacement.text
+        banner_ids.append(replacement.json()["id"])
+        assert replacement.json()["property_id"] == active_property_id
+    finally:
+        import app.db.session as _session_mod
+        from app.models.banner import Banner
+
+        async with _session_mod.AsyncSessionLocal() as db:
+            await db.execute(
+                delete(Banner).where(Banner.id.in_([uuid.UUID(item) for item in banner_ids]))
+            )
+            await db.commit()
+        await _delete_properties(active_property_id, inactive_property_id)
 
 
 @pytest.mark.asyncio

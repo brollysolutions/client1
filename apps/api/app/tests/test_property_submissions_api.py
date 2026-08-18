@@ -61,6 +61,7 @@ _PAYLOAD = {
     "type": "Apartment",
     "location": "Koramangala, Bengaluru",
     "category": "apartments",
+    "property_subtype": "standalone_apartment",
     "city": "Bengaluru",
     "locality": "Koramangala",
     "pincode": "560095",
@@ -139,6 +140,7 @@ async def test_agent_submit_creates_pending(client: AsyncClient) -> None:
     body = res.json()
     assert body["status"] == "pending"
     assert body["submitter_uuid"] == uid
+    assert body["property_subtype"] == "standalone_apartment"
     assert body["approved_property_id"] is None
     assert len(body["media"]) == 1
 
@@ -347,6 +349,7 @@ async def test_reviewer_approve_creates_property(client: AsyncClient) -> None:
     )
     assert prop.status_code == 200
     assert prop.json()["price_display"] == "₹78 L"
+    assert prop.json()["property_subtype"] == "standalone_apartment"
     assert len(prop.json()["media_urls"]) == 1
     assert "/public/properties/" in prop.json()["media_urls"][0]
 

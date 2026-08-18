@@ -23,10 +23,19 @@ import {
   listBannerTemplates,
   type BannerTemplate,
 } from "@/lib/banners-api";
+import {
+  isPropertyCampaignTemplate,
+  isLegacyPropertyCampaignTemplate,
+  propertyCampaignHref,
+  propertyCampaignImage,
+  propertyMatchesCampaign,
+} from "@/lib/banner-properties";
 import { listOffers, type Offer } from "@/lib/offers-api";
+import { getAdminProperties, type AdminProperty } from "@/lib/properties-api";
 import { AudienceRuleFields, emptyAudienceRules } from "./audience-rule-fields";
 import { BannerPreview, formatOfferBadge } from "./cms-previews";
 import { CmsPreviewFrame, type PreviewDevice } from "./cms-workspace";
+import { PropertyCampaignSelect } from "./property-campaign-select";
 
 type Schemas = components["schemas"];
 type Placement = Schemas["BannerPlacement"];
@@ -37,12 +46,12 @@ const PLACEMENTS: readonly { value: Placement; label: string; note: string }[] =
   {
     value: "financial_services",
     label: "Financial services",
-    note: "Below the permanent Financial Services hero",
+    note: "Immediately below the header, before the Financial Services hero",
   },
   {
     value: "properties",
     label: "Properties",
-    note: "Below the permanent Properties hero",
+    note: "Immediately below the header, before the Properties hero",
   },
   { value: "dashboard", label: "Authenticated dashboard", note: "Client and Agent dashboards" },
 ];
@@ -76,8 +85,10 @@ export function BannerForm({
   const [bannerType, setBannerType] = React.useState<BannerType>("default");
   const [templateId, setTemplateId] = React.useState("");
   const [offerId, setOfferId] = React.useState("");
+  const [propertyId, setPropertyId] = React.useState("");
   const [templates, setTemplates] = React.useState<BannerTemplate[]>([]);
   const [offers, setOffers] = React.useState<Offer[]>([]);
+  const [properties, setProperties] = React.useState<AdminProperty[]>([]);
   const [catalogLoading, setCatalogLoading] = React.useState(true);
   const [title, setTitle] = React.useState("");
   const [subtitle, setSubtitle] = React.useState("");
@@ -93,7 +104,7 @@ export function BannerForm({
 
   React.useEffect(() => {
     let cancelled = false;
-    void Promise.all([listBannerTemplates(), listOffers()]).then(([templateResult, offerResult]) => {
+    void Promise.all([listBannerTemplates(), listOffers(), getAdminProperties()]).then(([templateResult, offerResult, propertyResult]) => {
       if (cancelled) return;
       setCatalogLoading(false);
       if (templateResult.ok) setTemplates(templateResult.data);
@@ -107,6 +118,11 @@ export function BannerForm({
       } else {
         toast.error("Could not load offers", { description: offerResult.error });
       }
+      if (propertyResult.ok) {
+        setProperties(propertyResult.data.filter((property) => property.active));
+      } else {
+        toast.error("Could not load properties", { description: propertyResult.error });
+      }
     });
     return () => {
       cancelled = true;
@@ -116,6 +132,7 @@ export function BannerForm({
   React.useEffect(() => {
     setTemplateId("");
     setOfferId("");
+    setPropertyId("");
     if (placement === "financial_services") setBusinessLine("loans");
     if (placement === "properties") setBusinessLine("real_estate");
     if (placement === "dashboard" && bannerType === "personalized") return;
@@ -123,12 +140,25 @@ export function BannerForm({
   }, [bannerType, placement]);
 
   const placementTemplates = React.useMemo(
-    () => templates.filter((template) => template.placement === placement),
+    () =>
+      templates.filter(
+        (template) =>
+          template.placement === placement && !isLegacyPropertyCampaignTemplate(template),
+      ),
     [placement, templates],
   );
   const selectedTemplate = templates.find((template) => template.id === templateId);
   const selectedOffer = offers.find((offer) => offer.id === offerId);
+  const selectedProperty = properties.find((property) => property.id === propertyId);
   const needsOffer = selectedTemplate?.category_key === "offers";
+  const allowsProperty = isPropertyCampaignTemplate(selectedTemplate);
+  const matchingProperties = React.useMemo(
+    () =>
+      selectedTemplate
+        ? properties.filter((property) => propertyMatchesCampaign(property, selectedTemplate))
+        : [],
+    [properties, selectedTemplate],
+  );
   const matchingOffers = offers.filter(
     (offer) => businessLine === "both" || offer.business_line === "both" || offer.business_line === businessLine,
   );
@@ -140,6 +170,7 @@ export function BannerForm({
       deepLink ||
       templateId ||
       offerId ||
+      propertyId ||
       priority !== "0" ||
       startsAt ||
       endsAt ||
@@ -170,11 +201,12 @@ export function BannerForm({
       banner_type: bannerType,
       template_id: isPublic ? templateId : null,
       offer_id: needsOffer ? offerId : null,
+      property_id: allowsProperty && propertyId ? propertyId : null,
       title: title.trim(),
       subtitle: subtitle.trim() || null,
       cta_label: ctaLabel.trim() || null,
       image_key: null,
-      deep_link: deepLink.trim() || null,
+      deep_link: propertyId ? null : deepLink.trim() || null,
       audience_rules: bannerType === "personalized" ? audienceRules : emptyAudienceRules(),
       priority: Number(priority) || 0,
       starts_at: startsAt ? new Date(startsAt).toISOString() : null,
@@ -205,7 +237,7 @@ export function BannerForm({
       aside={
         <CmsPreviewFrame
           title="Exact banner preview"
-          description="The selected artwork and live HTML copy use the public 9:5 composition."
+          description="The selected artwork and live HTML copy use the public banner composition."
           device={previewDevice}
           onDeviceChange={setPreviewDevice}
         >
@@ -215,10 +247,13 @@ export function BannerForm({
               banner_type: bannerType,
               title,
               subtitle: subtitle || null,
-              cta_label: ctaLabel || null,
-              deep_link: deepLink || null,
-              image_url: selectedTemplate?.image_url,
+              cta_label: selectedProperty ? ctaLabel || "Enquire now" : ctaLabel || null,
+              deep_link: selectedProperty ? propertyCampaignHref(selectedProperty) : deepLink || null,
+              image_url:
+                propertyCampaignImage(selectedProperty, selectedTemplate) ??
+                selectedTemplate?.image_url,
               offer_badge: formatOfferBadge(selectedOffer),
+              rera_verified: Boolean(selectedProperty),
             }}
           />
         </CmsPreviewFrame>
@@ -260,7 +295,15 @@ export function BannerForm({
         {isPublic ? (
           <div>
             <Label htmlFor="banner-template">Artwork template</Label>
-            <Select value={templateId || undefined} onValueChange={setTemplateId} disabled={catalogLoading}>
+            <Select
+              value={templateId || undefined}
+              onValueChange={(value) => {
+                setTemplateId(value);
+                setOfferId("");
+                setPropertyId("");
+              }}
+              disabled={catalogLoading}
+            >
               <SelectTrigger id="banner-template">
                 <SelectValue placeholder={catalogLoading ? "Loading templates…" : "Choose a category"} />
               </SelectTrigger>
@@ -307,6 +350,22 @@ export function BannerForm({
           </div>
         ) : null}
 
+        {allowsProperty ? (
+          <div>
+            <Label htmlFor="linked-property">Advertised property (optional)</Label>
+            <PropertyCampaignSelect
+              id="linked-property"
+              properties={matchingProperties}
+              value={propertyId}
+              onChange={setPropertyId}
+              disabled={catalogLoading}
+            />
+            <p className="mt-1 text-xs text-text-secondary">
+              The approved property cover, enquiry destination, and RERA VERIFIED badge are generated from this listing.
+            </p>
+          </div>
+        ) : null}
+
         <div>
           <Label htmlFor="title">Title</Label>
           <Input id="title" value={title} onChange={(event) => setTitle(event.target.value)} maxLength={500} />
@@ -322,11 +381,20 @@ export function BannerForm({
           </div>
           <div>
             <Label htmlFor="deep-link">Internal destination</Label>
-            <Input id="deep-link" placeholder="/loans" value={deepLink} onChange={(event) => setDeepLink(event.target.value)} maxLength={1000} />
+            <Input
+              id="deep-link"
+              placeholder="/loans"
+              value={selectedProperty ? propertyCampaignHref(selectedProperty) : deepLink}
+              onChange={(event) => setDeepLink(event.target.value)}
+              maxLength={1000}
+              disabled={Boolean(selectedProperty)}
+            />
           </div>
         </div>
         <p className="-mt-3 text-xs text-text-secondary">
-          Use a same-site path beginning with one slash. Unsafe or incomplete links do not render a button.
+          {selectedProperty
+            ? "Property enquiries always use the server-generated contact destination."
+            : "Use a same-site path beginning with one slash. Unsafe or incomplete links do not render a button."}
         </p>
 
         {placement === "dashboard" && bannerType === "personalized" ? (

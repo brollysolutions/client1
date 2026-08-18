@@ -70,18 +70,21 @@ async def create_banner(
     db: AsyncSession = Depends(get_db),
 ) -> BannerRead:
     try:
-        template, _ = await validate_banner_configuration(
+        template, _, _ = await validate_banner_configuration(
             db,
             placement=payload.placement,
             business_line=payload.business_line,
             template_id=payload.template_id,
             offer_id=payload.offer_id,
+            property_id=payload.property_id,
             allow_legacy="placement" not in payload.model_fields_set,
         )
     except BannerInvalidConfiguration as exc:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="Banner placement, template, business line, or linked offer is invalid.",
+            detail=(
+                "Banner placement, template, business line, linked Offer, or property is invalid."
+            ),
         ) from exc
     values = payload.model_dump(exclude={"audience_rules"})
     values["audience_rules"] = audience_rules_to_storage(payload.audience_rules)
@@ -253,19 +256,25 @@ async def update_banner(
     prospective_offer_id = (
         payload.offer_id if "offer_id" in payload.model_fields_set else banner.offer_id
     )
+    prospective_property_id = (
+        payload.property_id if "property_id" in payload.model_fields_set else banner.property_id
+    )
     try:
-        template, _ = await validate_banner_configuration(
+        template, _, _ = await validate_banner_configuration(
             db,
             placement=banner.placement,
             business_line=banner.business_line,
             template_id=prospective_template_id,
             offer_id=prospective_offer_id,
+            property_id=prospective_property_id,
             allow_legacy=banner.template_id is None and banner.category_key is None,
         )
     except BannerInvalidConfiguration as exc:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="Banner placement, template, business line, or linked offer is invalid.",
+            detail=(
+                "Banner placement, template, business line, linked Offer, or property is invalid."
+            ),
         ) from exc
     values = payload.model_dump(exclude_unset=True, exclude={"audience_rules"})
     if "audience_rules" in payload.model_fields_set and payload.audience_rules is not None:
@@ -419,6 +428,7 @@ async def create_replacement(
         category_key=source.category_key,
         template_id=template_id,
         offer_id=source.offer_id,
+        property_id=source.property_id,
         replaces_banner_id=source.id,
         banner_type=source.banner_type,
         title=source.title,

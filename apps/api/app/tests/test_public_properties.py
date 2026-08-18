@@ -35,7 +35,13 @@ from sqlalchemy import delete, select
 from app.services.public_catalog import PUBLIC_CATALOG_PER_CATEGORY
 
 
-async def _seed_property(*, active: bool, title: str, category: str = "plots") -> str:
+async def _seed_property(
+    *,
+    active: bool,
+    title: str,
+    category: str = "plots",
+    property_subtype: str | None = None,
+) -> str:
     """Insert a property via the app superuser (bypasses RLS). Returns its id."""
     import app.db.session as _session_mod
     from app.models.property import Property
@@ -51,6 +57,7 @@ async def _seed_property(*, active: bool, title: str, category: str = "plots") -
             meta="2 bed · 1,100 sqft",
             image="/illustrations/properties/apartment-1.svg",
             category=category,
+            property_subtype=property_subtype,
             city="Public City",
             locality="Public Locality",
             pincode="560001",
@@ -173,9 +180,11 @@ async def test_response_omits_internal_fields(client: AsyncClient) -> None:
             "media_urls",
             "media",
             "category",
+            "property_subtype",
             "rera_number",
         }
         assert row["media"] == []
+        assert row["property_subtype"] is None
         for internal_field in (
             "active",
             "created_at",
@@ -226,6 +235,43 @@ async def test_per_category_cap(client: AsyncClient) -> None:
         assert house_id in returned_ids
     finally:
         await _delete_properties(*commercial_ids, house_id)
+
+
+@pytest.mark.asyncio
+async def test_subtypes_are_capped_independently(client: AsyncClient) -> None:
+    """Apartment volume in one subtype must not hide another dropdown subtype."""
+    standalone_ids = [
+        await _seed_property(
+            active=True,
+            title=f"Standalone {i}",
+            category="apartments",
+            property_subtype="standalone_apartment",
+        )
+        for i in range(PUBLIC_CATALOG_PER_CATEGORY + 1)
+    ]
+    gated_ids = [
+        await _seed_property(
+            active=True,
+            title=f"Gated {i}",
+            category="apartments",
+            property_subtype="gated_community_apartment",
+        )
+        for i in range(PUBLIC_CATALOG_PER_CATEGORY + 1)
+    ]
+    try:
+        response = await client.get("/api/v1/public/properties")
+        properties = response.json()["properties"]
+
+        assert (
+            sum(item["property_subtype"] == "standalone_apartment" for item in properties)
+            == PUBLIC_CATALOG_PER_CATEGORY
+        )
+        assert (
+            sum(item["property_subtype"] == "gated_community_apartment" for item in properties)
+            == PUBLIC_CATALOG_PER_CATEGORY
+        )
+    finally:
+        await _delete_properties(*standalone_ids, *gated_ids)
 
 
 @pytest.mark.asyncio

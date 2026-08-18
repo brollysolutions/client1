@@ -23,6 +23,15 @@ const CATEGORIES = {
     "credit-cards",
   ],
   properties: [
+    "individual-house",
+    "standalone-apartment",
+    "gated-community-apartment",
+    "villa",
+    "locked-space",
+    "unlocked-space",
+    "plot",
+    "farmland",
+    "agriland",
     "apartments",
     "houses",
     "villas",
@@ -61,7 +70,7 @@ describe("bundled banner template artwork", () => {
             : { width: 1440, height: 576 },
       })),
     );
-    expect(files).toHaveLength(29);
+    expect(files).toHaveLength(38);
     for (const { file, expectedSize } of files) {
       expect(statSync(file).size).toBeGreaterThan(0);
       expect(statSync(file).size).toBeLessThanOrEqual(2 * 1024 * 1024);
