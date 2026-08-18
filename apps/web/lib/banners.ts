@@ -14,6 +14,7 @@ export type HeroBanner = {
   // public_asset_url), or undefined for a banner with no image --
   // hero-carousel.tsx's cream-placeholder branch handles that case.
   image?: string;
+  offerBadge?: string;
   cta?: { label: string; href: string };
 };
 

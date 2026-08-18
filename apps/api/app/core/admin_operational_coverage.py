@@ -207,13 +207,39 @@ ADMIN_OPERATIONAL_COVERAGE: dict[str, AdminCoverageEntry] = {
         view_coverage=CoverageState.COVERED,
         update_mode=AdminUpdateMode.WORKFLOW_COMMAND,
         update_coverage=CoverageState.COVERED,
-        audit_coverage=CoverageState.GAP,
+        audit_coverage=CoverageState.COVERED,
         api_surfaces=("/api/v1/banners",),
         ui_surfaces=("/dashboard/banners",),
         rls_expectation="Platform Admin may manage any row; Sub Admin remains creator-scoped for delegated authoring.",
         audit_expectation="Material authoring and lifecycle transitions need append-only business audit events.",
-        rationale="Admin authoring and approval exist, but mutable rows do not retain a complete historical action trail.",
-        gap="Gap: banner create/update/submit/approve/reject transitions are not comprehensively represented in audit_log.",
+        rationale=(
+            "Admin authoring and approval exist, and every mutating transition now"
+            " writes an append-only audit event: create/update/delete at the router,"
+            " submit/approve/reject/archive in the service, and activate/expire in the"
+            " scheduler job so scheduler-driven go-live is not an untraced gap."
+        ),
+    ),
+    "banner_templates": _entry(
+        domain="Banner artwork template catalogue and versioning",
+        view_mode=AdminViewMode.FULL,
+        view_coverage=CoverageState.COVERED,
+        update_mode=AdminUpdateMode.WORKFLOW_COMMAND,
+        update_coverage=CoverageState.COVERED,
+        audit_coverage=CoverageState.COVERED,
+        api_surfaces=("/api/v1/banners/templates",),
+        ui_surfaces=("/dashboard/banners",),
+        rls_expectation=(
+            "Sub Admin and Admin may read the catalogue; only platform Admin may"
+            " insert or retire a version, and a database trigger makes a published"
+            " version immutable so history cannot be rewritten in place."
+        ),
+        audit_expectation="Publishing a new template version needs an append-only audit event.",
+        rationale=(
+            "Templates carry no customer data — they are reviewed, text-free artwork"
+            " plus a category label. Versioning is append-only: retiring a version"
+            " clears `active` rather than mutating the row, and every publish records"
+            " BANNER_TEMPLATE_VERSIONED."
+        ),
     ),
     "bookmarks": _entry(
         domain="Client property bookmarks",

@@ -1,4 +1,4 @@
-// Server-only client for the public homepage hero
+// Server-only client for the three public campaign placements
 // (GET /api/v1/public/banners). Same division of labor as
 // lib/public-properties.ts: this module returns the display HeroBanner shape
 // and goes through the server-only serverFetchJson, so it must never be
@@ -37,6 +37,7 @@ export function mapPublicBanner(raw: Schemas["PublicBannerRead"]): HeroBanner {
     // an allowed host (shouldn't happen post write-validator; see the guard
     // above and services/storage.py::public_asset_url).
     image: raw.image_url && isAllowedAssetUrl(raw.image_url) ? raw.image_url : undefined,
+    offerBadge: raw.offer_badge ?? undefined,
     // A CTA needs both a label and a same-origin destination. deep_link is
     // free-text CMS copy that reaches next/link unescaped; an absolute or
     // protocol-relative off-site URL is an open-redirect-shaped surface on a
@@ -58,9 +59,13 @@ export function mapPublicBanner(raw: Schemas["PublicBannerRead"]): HeroBanner {
 // empty. Callers (app/(public)/page.tsx) fall back to FALLBACK_HERO_BANNERS
 // on an empty array -- the two failure shapes are deliberately not
 // distinguished here, since a visitor cannot act on the difference.
-export async function getHeroBanners(): Promise<HeroBanner[]> {
+export type PublicBannerPlacement = "homepage" | "financial_services" | "properties";
+
+export async function getHeroBanners(
+  placement: PublicBannerPlacement = "homepage",
+): Promise<HeroBanner[]> {
   const res = await serverFetchJson<Schemas["PublicBannerListResponse"]>(
-    "/api/v1/public/banners",
+    `/api/v1/public/banners?placement=${encodeURIComponent(placement)}`,
     { revalidate: 60 },
   );
   if (!res.ok) return [];

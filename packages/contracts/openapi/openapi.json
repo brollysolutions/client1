@@ -3299,7 +3299,16 @@
           "mobile_change_verified",
           "mobile_changed",
           "mobile_change_rejected",
-          "vehicle_arrangement_updated"
+          "vehicle_arrangement_updated",
+          "banner_created",
+          "banner_updated",
+          "banner_submitted",
+          "banner_approved",
+          "banner_rejected",
+          "banner_archived",
+          "banner_activated",
+          "banner_deleted",
+          "banner_template_versioned"
         ],
         "title": "AuditAction",
         "type": "string"
@@ -3877,6 +3886,22 @@
             ],
             "title": "Image Key"
           },
+          "offer_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Offer Id"
+          },
+          "placement": {
+            "$ref": "#/components/schemas/BannerPlacement",
+            "default": "homepage"
+          },
           "priority": {
             "default": 0,
             "minimum": 0.0,
@@ -3906,6 +3931,18 @@
               }
             ],
             "title": "Subtitle"
+          },
+          "template_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Template Id"
           },
           "title": {
             "maxLength": 500,
@@ -3994,6 +4031,16 @@
         "title": "BannerListResponse",
         "type": "object"
       },
+      "BannerPlacement": {
+        "enum": [
+          "homepage",
+          "financial_services",
+          "properties",
+          "dashboard"
+        ],
+        "title": "BannerPlacement",
+        "type": "string"
+      },
       "BannerRead": {
         "properties": {
           "approved_by_uuid": {
@@ -4017,6 +4064,17 @@
           "business_line": {
             "title": "Business Line",
             "type": "string"
+          },
+          "category_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Category Key"
           },
           "created_at": {
             "format": "date-time",
@@ -4078,9 +4136,36 @@
             ],
             "title": "Image Key"
           },
+          "offer_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Offer Id"
+          },
+          "placement": {
+            "$ref": "#/components/schemas/BannerPlacement"
+          },
           "priority": {
             "title": "Priority",
             "type": "integer"
+          },
+          "replaces_banner_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Replaces Banner Id"
           },
           "review_note": {
             "anyOf": [
@@ -4119,6 +4204,18 @@
             ],
             "title": "Subtitle"
           },
+          "template_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Template Id"
+          },
           "title": {
             "title": "Title",
             "type": "string"
@@ -4132,6 +4229,11 @@
         "required": [
           "id",
           "business_line",
+          "placement",
+          "category_key",
+          "template_id",
+          "offer_id",
+          "replaces_banner_id",
           "banner_type",
           "title",
           "subtitle",
@@ -4163,6 +4265,113 @@
         ],
         "title": "BannerStatus",
         "type": "string"
+      },
+      "BannerTemplateCreate": {
+        "properties": {
+          "category_key": {
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Category Key",
+            "type": "string"
+          },
+          "content_type": {
+            "anyOf": [
+              {
+                "enum": [
+                  "image/jpeg",
+                  "image/png",
+                  "image/webp"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Content Type"
+          },
+          "image_ref": {
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Image Ref",
+            "type": "string"
+          },
+          "placement": {
+            "$ref": "#/components/schemas/BannerPlacement"
+          }
+        },
+        "required": [
+          "placement",
+          "category_key",
+          "image_ref"
+        ],
+        "title": "BannerTemplateCreate",
+        "type": "object"
+      },
+      "BannerTemplateListResponse": {
+        "properties": {
+          "templates": {
+            "items": {
+              "$ref": "#/components/schemas/BannerTemplateRead"
+            },
+            "title": "Templates",
+            "type": "array"
+          }
+        },
+        "required": [
+          "templates"
+        ],
+        "title": "BannerTemplateListResponse",
+        "type": "object"
+      },
+      "BannerTemplateRead": {
+        "properties": {
+          "active": {
+            "title": "Active",
+            "type": "boolean"
+          },
+          "category_key": {
+            "title": "Category Key",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "image_url": {
+            "title": "Image Url",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "placement": {
+            "$ref": "#/components/schemas/BannerPlacement"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "placement",
+          "category_key",
+          "label",
+          "version",
+          "image_url",
+          "active",
+          "created_at"
+        ],
+        "title": "BannerTemplateRead",
+        "type": "object"
       },
       "BannerType": {
         "enum": [
@@ -4234,6 +4443,18 @@
             ],
             "title": "Image Key"
           },
+          "offer_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Offer Id"
+          },
           "priority": {
             "anyOf": [
               {
@@ -4269,6 +4490,18 @@
               }
             ],
             "title": "Subtitle"
+          },
+          "template_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Template Id"
           },
           "title": {
             "anyOf": [
@@ -9880,6 +10113,17 @@
               }
             ],
             "title": "Image Url"
+          },
+          "offer_badge": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Offer Badge"
           },
           "subtitle": {
             "anyOf": [
@@ -20164,7 +20408,184 @@
         ]
       }
     },
+    "/api/v1/banners/templates": {
+      "get": {
+        "operationId": "list_banner_templates_api_v1_banners_templates_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "active_only",
+            "required": false,
+            "schema": {
+              "default": true,
+              "title": "Active Only",
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BannerTemplateListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "List Banner Templates",
+        "tags": [
+          "banners"
+        ]
+      },
+      "post": {
+        "operationId": "add_banner_template_version_api_v1_banners_templates_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BannerTemplateCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BannerTemplateRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Add Banner Template Version",
+        "tags": [
+          "banners"
+        ]
+      }
+    },
+    "/api/v1/banners/templates/image-upload-url": {
+      "post": {
+        "operationId": "get_template_image_upload_url_api_v1_banners_templates_image_upload_url_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BannerImageUploadRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BannerImageUploadResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Get Template Image Upload Url",
+        "tags": [
+          "banners"
+        ]
+      }
+    },
     "/api/v1/banners/{banner_id}": {
+      "delete": {
+        "operationId": "delete_banner_draft_api_v1_banners__banner_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "banner_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Banner Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Delete Banner Draft",
+        "tags": [
+          "banners"
+        ]
+      },
       "get": {
         "operationId": "get_banner_api_v1_banners__banner_id__get",
         "parameters": [
@@ -20316,6 +20737,54 @@
         ]
       }
     },
+    "/api/v1/banners/{banner_id}/archive": {
+      "post": {
+        "operationId": "archive_api_v1_banners__banner_id__archive_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "banner_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Banner Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BannerRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Archive",
+        "tags": [
+          "banners"
+        ]
+      }
+    },
     "/api/v1/banners/{banner_id}/reject": {
       "post": {
         "operationId": "reject_api_v1_banners__banner_id__reject_post",
@@ -20369,6 +20838,54 @@
           }
         ],
         "summary": "Reject",
+        "tags": [
+          "banners"
+        ]
+      }
+    },
+    "/api/v1/banners/{banner_id}/replacement": {
+      "post": {
+        "operationId": "create_replacement_api_v1_banners__banner_id__replacement_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "banner_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Banner Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BannerRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Create Replacement",
         "tags": [
           "banners"
         ]
@@ -24577,6 +25094,23 @@
     "/api/v1/public/banners": {
       "get": {
         "operationId": "list_banners_public_api_v1_public_banners_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "placement",
+            "required": false,
+            "schema": {
+              "default": "homepage",
+              "enum": [
+                "homepage",
+                "financial_services",
+                "properties"
+              ],
+              "title": "Placement",
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {
@@ -24587,6 +25121,16 @@
               }
             },
             "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
           }
         },
         "summary": "List Banners Public",

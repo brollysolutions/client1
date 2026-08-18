@@ -116,6 +116,8 @@ _ALL_PLATFORM_SCOPE_POLICIES = {
     ("vehicle_arrangements", "vehicle_arrangements_update"),
     ("banners", "banners_insert"),
     ("banners", "banners_update"),
+    ("banner_templates", "banner_templates_insert"),
+    ("banner_templates", "banner_templates_update"),
     ("offers", "offers_insert"),
     ("offers", "offers_update"),
     ("content_blocks", "content_blocks_insert"),

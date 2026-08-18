@@ -9,7 +9,7 @@ the filtering is coming from the app predicate, not from RLS.
 
 Unlike test_public_properties.py's per-category window, PUBLIC_BANNERS_LIMIT
 is a flat cap with no partition axis, so a leftover LIVE row from another test
-file (or a prior run) can crowd a presence assertion out of the top 8. Every
+file (or a prior run) can crowd a presence assertion out of the cap. Every
 presence-test banner here is seeded with priority=100 (default banners.priority
 is 0), guaranteeing it sorts ahead of ordinary seeds regardless of history.
 Every test also deletes its own seeded rows in a finally block, both to avoid
@@ -23,13 +23,27 @@ from __future__ import annotations
 
 import uuid
 from datetime import UTC, datetime, timedelta
+from decimal import Decimal
+from types import SimpleNamespace
 
 import pytest
 from httpx import AsyncClient
 from sqlalchemy import delete, select, text
 
-from app.services.public_catalog import PUBLIC_BANNERS_LIMIT
+from app.api.v1.public_catalog import _offer_badge
+from app.models.banner import BannerPlacement
+from app.services.public_catalog import PUBLIC_BANNERS_LIMIT, PUBLIC_BANNERS_LIMIT_BY_PLACEMENT
 from conftest import full_registration, unique_mobile
+
+
+def test_offer_badge_preserves_integer_trailing_zeroes() -> None:
+    offer = SimpleNamespace(
+        title="Fee waiver",
+        discount_value=Decimal("100.00"),
+        discount_type="fixed",
+        code="SAVE100",
+    )
+    assert _offer_badge(offer) == "Fee waiver · ₹100 off · Code SAVE100"
 
 
 async def _author_uuid(client: AsyncClient) -> str:
@@ -62,6 +76,10 @@ async def _seed_banner(
     deep_link: str | None = None,
     image_key: str | None = None,
     audience_rules: dict | None = None,
+    placement: str = "homepage",
+    category_key: str | None = None,
+    template_id: str | None = None,
+    offer_id: str | None = None,
 ) -> str:
     import app.db.session as _session_mod
     from app.models.banner import Banner
@@ -69,6 +87,10 @@ async def _seed_banner(
     async with _session_mod.AsyncSessionLocal() as db:
         banner = Banner(
             business_line="loans",
+            placement=placement,
+            category_key=category_key,
+            template_id=uuid.UUID(template_id) if template_id else None,
+            offer_id=uuid.UUID(offer_id) if offer_id else None,
             banner_type=banner_type,
             title=title,
             subtitle=subtitle,
@@ -94,6 +116,34 @@ async def _delete_banners(*banner_ids: str) -> None:
     ids = [uuid.UUID(bid) for bid in banner_ids]
     async with _session_mod.AsyncSessionLocal() as db:
         await db.execute(delete(Banner).where(Banner.id.in_(ids)))
+        await db.commit()
+
+
+async def _seed_offer(*, author: str, audience_rules: dict) -> str:
+    import app.db.session as _session_mod
+    from app.models.offer import Offer, OfferStatus
+
+    async with _session_mod.AsyncSessionLocal() as db:
+        offer = Offer(
+            business_line="loans",
+            title="Private client incentive",
+            discount_type="percentage",
+            discount_value=10,
+            audience_rules=audience_rules,
+            status=OfferStatus.ACTIVE,
+            created_by_uuid=uuid.UUID(author),
+        )
+        db.add(offer)
+        await db.commit()
+        return str(offer.id)
+
+
+async def _delete_offers(*offer_ids: str) -> None:
+    import app.db.session as _session_mod
+    from app.models.offer import Offer
+
+    async with _session_mod.AsyncSessionLocal() as db:
+        await db.execute(delete(Offer).where(Offer.id.in_([uuid.UUID(item) for item in offer_ids])))
         await db.commit()
 
 
@@ -139,6 +189,61 @@ async def test_live_banner_is_returned(client: AsyncClient) -> None:
         assert row["cta_label"] == "Apply now"
         assert row["deep_link"] == "/loans"
         assert row["image_url"] is None
+    finally:
+        await _delete_banners(banner_id)
+
+
+@pytest.mark.asyncio
+async def test_public_banner_placement_is_filtered_server_side(client: AsyncClient) -> None:
+    author = await _author_uuid(client)
+    financial_id = await _seed_banner(
+        author=author,
+        status="live",
+        title="Financial campaign",
+        placement="financial_services",
+    )
+    try:
+        homepage = await client.get("/api/v1/public/banners")
+        financial = await client.get(
+            "/api/v1/public/banners", params={"placement": "financial_services"}
+        )
+        assert financial_id not in {item["id"] for item in homepage.json()["banners"]}
+        assert financial_id in {item["id"] for item in financial.json()["banners"]}
+    finally:
+        await _delete_banners(financial_id)
+
+
+@pytest.mark.asyncio
+async def test_templated_banner_serves_reviewed_bundled_artwork(client: AsyncClient) -> None:
+    author = await _author_uuid(client)
+    import app.db.session as _session_mod
+    from app.models.banner import BannerPlacement, BannerTemplate
+
+    async with _session_mod.AsyncSessionLocal() as db:
+        template = await db.scalar(
+            select(BannerTemplate).where(
+                BannerTemplate.placement == BannerPlacement.FINANCIAL_SERVICES,
+                BannerTemplate.category_key == "home-loan",
+                BannerTemplate.active.is_(True),
+            )
+        )
+        assert template is not None
+        template_id = str(template.id)
+
+    banner_id = await _seed_banner(
+        author=author,
+        status="live",
+        title="Home loan campaign",
+        placement="financial_services",
+        category_key="home-loan",
+        template_id=template_id,
+    )
+    try:
+        response = await client.get(
+            "/api/v1/public/banners", params={"placement": "financial_services"}
+        )
+        row = next(item for item in response.json()["banners"] if item["id"] == banner_id)
+        assert row["image_url"] == "/banner-templates/financial_services/home-loan.webp"
     finally:
         await _delete_banners(banner_id)
 
@@ -202,6 +307,27 @@ async def test_non_live_statuses_hidden_from_anonymous(client: AsyncClient) -> N
 
 
 @pytest.mark.asyncio
+async def test_targeted_linked_offer_is_hidden_from_anonymous(client: AsyncClient) -> None:
+    author = await _author_uuid(client)
+    offer_id = await _seed_offer(
+        author=author,
+        audience_rules={"version": 1, "user_types": ["client"]},
+    )
+    banner_id = await _seed_banner(
+        author=author,
+        status="live",
+        title="Must remain private",
+        offer_id=offer_id,
+    )
+    try:
+        resp = await client.get("/api/v1/public/banners")
+        assert banner_id not in {item["id"] for item in resp.json()["banners"]}
+    finally:
+        await _delete_banners(banner_id)
+        await _delete_offers(offer_id)
+
+
+@pytest.mark.asyncio
 async def test_approved_row_is_visible_to_a_raw_superuser_session(client: AsyncClient) -> None:
     """Proves the previous test's exclusion came from the app predicate, not
     RLS. A superuser session bypasses RLS entirely, so if this row is present
@@ -227,7 +353,15 @@ async def test_response_omits_internal_fields(client: AsyncClient) -> None:
     try:
         resp = await client.get("/api/v1/public/banners")
         row = next(b for b in resp.json()["banners"] if b["id"] == banner_id)
-        assert set(row.keys()) == {"id", "title", "subtitle", "cta_label", "deep_link", "image_url"}
+        assert set(row.keys()) == {
+            "id",
+            "title",
+            "subtitle",
+            "cta_label",
+            "deep_link",
+            "image_url",
+            "offer_badge",
+        }
         internal_fields = {
             "image_key",
             "audience_rules",
@@ -363,5 +497,32 @@ async def test_response_cap(client: AsyncClient) -> None:
     try:
         resp = await client.get("/api/v1/public/banners")
         assert len(resp.json()["banners"]) == PUBLIC_BANNERS_LIMIT
+    finally:
+        await _delete_banners(*ids)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "placement",
+    [BannerPlacement.FINANCIAL_SERVICES, BannerPlacement.PROPERTIES],
+)
+async def test_section_placements_use_the_same_seven_banner_cap(
+    client: AsyncClient,
+    placement: BannerPlacement,
+) -> None:
+    author = await _author_uuid(client)
+    limit = PUBLIC_BANNERS_LIMIT_BY_PLACEMENT[placement]
+    ids = [
+        await _seed_banner(
+            author=author,
+            status="live",
+            title=f"{placement.value} Cap Test {i}",
+            placement=placement.value,
+        )
+        for i in range(limit + 3)
+    ]
+    try:
+        resp = await client.get("/api/v1/public/banners", params={"placement": placement.value})
+        assert len(resp.json()["banners"]) == limit
     finally:
         await _delete_banners(*ids)

@@ -51,6 +51,8 @@ export type ProductPageProps = {
   productBands?: ProductBand[];
   /** Custom sections injected after the products grid and before the journey. */
   beforeJourney?: ReactNode;
+  /** Campaign carousel rendered at the top of the page, before the permanent hero. */
+  beforeHero?: ReactNode;
   journeyHeading: string;
   journey: JourneyStep[];
   /** Render the journey as a connected timeline with bespoke glyphs (lg+). Off = plain stacked steps. */
@@ -77,6 +79,7 @@ export function ProductPage({
   productColumns = 3,
   productDoodles = false,
   productBands,
+  beforeHero,
   beforeJourney,
   journeyHeading,
   journey,
@@ -90,6 +93,8 @@ export function ProductPage({
 }: ProductPageProps) {
   return (
     <>
+      {beforeHero}
+
       {/* Header */}
       <section className="relative w-full overflow-hidden bg-[var(--nav-bg)]">
         {heroBackdrop ? (
@@ -130,7 +135,6 @@ export function ProductPage({
         </div>
         <ScrollCue />
       </section>
-
       {/* Products */}
       {productBands && productBands.length > 0 ? (
       <section className="relative w-full overflow-hidden border-t border-[var(--nav-border)] bg-[var(--nav-bg)]">
