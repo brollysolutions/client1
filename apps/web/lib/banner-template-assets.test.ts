@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 
 const CATEGORIES = {
   homepage: ["loans", "offers", "general", "properties", "referrals", "core-concepts"],
+  homepage_ad: ["sponsor"],
   financial_services: [
     "personal-loan",
     "business-loan",
@@ -42,6 +43,16 @@ const CATEGORIES = {
   ],
 } as const;
 
+// Explicit per-placement geometry, deliberately not a ternary: a ternary
+// silently drops a new placement into the else-branch and then demands the
+// wrong artwork size. Indexing this map means a new placement fails loudly.
+const EXPECTED_SIZE: Record<keyof typeof CATEGORIES, { width: number; height: number }> = {
+  homepage: { width: 1440, height: 800 },
+  homepage_ad: { width: 1440, height: 360 },
+  financial_services: { width: 1440, height: 576 },
+  properties: { width: 1440, height: 576 },
+};
+
 function webpSize(bytes: Buffer): { width: number; height: number } {
   const chunk = bytes.toString("ascii", 12, 16);
   if (chunk === "VP8 ") {
@@ -64,13 +75,10 @@ describe("bundled banner template artwork", () => {
     const files = Object.entries(CATEGORIES).flatMap(([placement, categories]) =>
       categories.map((category) => ({
         file: join(process.cwd(), "public", "banner-templates", placement, `${category}.webp`),
-        expectedSize:
-          placement === "homepage"
-            ? { width: 1440, height: 800 }
-            : { width: 1440, height: 576 },
+        expectedSize: EXPECTED_SIZE[placement as keyof typeof CATEGORIES],
       })),
     );
-    expect(files).toHaveLength(38);
+    expect(files).toHaveLength(39);
     for (const { file, expectedSize } of files) {
       expect(statSync(file).size).toBeGreaterThan(0);
       expect(statSync(file).size).toBeLessThanOrEqual(2 * 1024 * 1024);

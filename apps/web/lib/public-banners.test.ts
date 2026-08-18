@@ -150,6 +150,19 @@ describe("getHeroBanners()", () => {
     );
   });
 
+  it("requests the sponsor strip's own placement", async () => {
+    // The strip has its own placement precisely so sponsors never consume the
+    // hero's slots; querying the wrong one would silently merge them.
+    const fetchMock = vi.fn(async () => fakeResponse(200, { banners: [wireBanner()] }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await getHeroBanners("homepage_ad");
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining("/api/v1/public/banners?placement=homepage_ad"),
+      expect.anything(),
+    );
+  });
+
   it("returns an empty array on a non-2xx response", async () => {
     vi.stubGlobal(
       "fetch",

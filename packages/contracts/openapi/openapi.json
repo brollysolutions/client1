@@ -4048,7 +4048,8 @@
           "homepage",
           "financial_services",
           "properties",
-          "dashboard"
+          "dashboard",
+          "homepage_ad"
         ],
         "title": "BannerPlacement",
         "type": "string"
@@ -25197,6 +25198,7 @@
               "default": "homepage",
               "enum": [
                 "homepage",
+                "homepage_ad",
                 "financial_services",
                 "properties"
               ],

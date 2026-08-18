@@ -5137,7 +5137,7 @@ export interface components {
          * BannerPlacement
          * @enum {string}
          */
-        BannerPlacement: "homepage" | "financial_services" | "properties" | "dashboard";
+        BannerPlacement: "homepage" | "financial_services" | "properties" | "dashboard" | "homepage_ad";
         /** BannerRead */
         BannerRead: {
             /** Approved By Uuid */
@@ -15102,7 +15102,7 @@ export interface operations {
     list_banners_public_api_v1_public_banners_get: {
         parameters: {
             query?: {
-                placement?: "homepage" | "financial_services" | "properties";
+                placement?: "homepage" | "homepage_ad" | "financial_services" | "properties";
             };
             header?: never;
             path?: never;

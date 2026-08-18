@@ -15,8 +15,13 @@ import pytest
 from httpx import AsyncClient
 from sqlalchemy import delete, text
 
+from app.banner_catalog import CATEGORIES_BY_PLACEMENT
 from app.core.security import create_access_token
 from conftest import full_registration
+
+# Derived from the catalogue: this test is about template MATCHING, so a
+# literal count would make every new placement fail here for no reason.
+_SEEDED_TEMPLATES = sum(len(categories) for categories in CATEGORIES_BY_PLACEMENT.values())
 
 
 async def _auth_user_uuid(mobile: str) -> str:
@@ -413,6 +418,48 @@ async def test_other_sub_admin_can_edit_and_submit_shared_draft(client: AsyncCli
 
 
 @pytest.mark.asyncio
+async def test_sponsor_strip_campaign_is_not_locked_to_one_business_line(
+    client: AsyncClient,
+) -> None:
+    """A sponsor slot serves either line, and still requires governed artwork.
+
+    financial_services and properties force loans/real_estate respectively via
+    expected_business_line(); homepage_ad deliberately falls through to None,
+    so the same slot accepts a loans campaign and a real_estate one. That
+    fall-through is easy to break, so pin it through the real authoring route.
+    """
+    _, mobile = await full_registration(client, lines=["loans"])
+    uid = await _auth_user_uuid(mobile)
+    headers = {"Authorization": f"Bearer {_sub_admin_token(uid)}"}
+
+    templates = await client.get("/api/v1/banners/templates", headers=headers)
+    slots = [item for item in templates.json()["templates"] if item["placement"] == "homepage_ad"]
+    assert len(slots) == 1, "the strip seeds exactly one sponsor slot"
+
+    for line in ("loans", "real_estate"):
+        created = await client.post(
+            "/api/v1/banners",
+            json={
+                **_PAYLOAD,
+                "business_line": line,
+                "placement": "homepage_ad",
+                "template_id": slots[0]["id"],
+            },
+            headers=headers,
+        )
+        assert created.status_code == 201, created.text
+        assert created.json()["placement"] == "homepage_ad"
+        assert created.json()["business_line"] == line
+
+    without_template = await client.post(
+        "/api/v1/banners",
+        json={**_PAYLOAD, "placement": "homepage_ad"},
+        headers=headers,
+    )
+    assert without_template.status_code == 422
+
+
+@pytest.mark.asyncio
 async def test_public_campaign_requires_active_matching_template(client: AsyncClient) -> None:
     _, mobile = await full_registration(client, lines=["loans"])
     uid = await _auth_user_uuid(mobile)
@@ -420,7 +467,7 @@ async def test_public_campaign_requires_active_matching_template(client: AsyncCl
 
     templates = await client.get("/api/v1/banners/templates", headers=headers)
     assert templates.status_code == 200, templates.text
-    assert len(templates.json()["templates"]) == 38
+    assert len(templates.json()["templates"]) == _SEEDED_TEMPLATES
     template = next(
         item
         for item in templates.json()["templates"]

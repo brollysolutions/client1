@@ -19,6 +19,18 @@ HOMEPAGE_CATEGORIES = {
     "core-concepts": "How Dhanadhara works",
 }
 
+# Exactly one key, and that is the product rule rather than an oversight:
+# uq_banners_live_placement_category permits one LIVE banner per
+# (placement, category_key), so a single key makes "only one sponsor runs at a
+# time" a database guarantee. The next sponsor waits in the existing
+# replacement queue (replaces_banner_id + jobs/cms_activation.py), which swaps
+# it in at its starts_at and refuses to displace a banner it does not name.
+#
+# Deliberately not named "offers": services/banners.py treats that literal as
+# magic (a banner in an "offers" category MUST link a live Offer, and any other
+# category MUST NOT), which is wrong for a general sponsor slot.
+HOMEPAGE_AD_CATEGORIES = {"sponsor": "Sponsor strip"}
+
 FINANCIAL_SERVICE_CATEGORIES = {
     "personal-loan": "Personal Loan",
     "business-loan": "Business Loan",
@@ -57,12 +69,21 @@ PROPERTY_CATEGORIES = {
     "guidance-general": "Property guidance",
 }
 
+# category_label() indexes this with [], not .get(), so every BannerPlacement
+# member must appear here -- a missing entry is a KeyError surfacing as a 500,
+# not a None. The assertion below turns that runtime failure into an
+# import-time one that every test run catches.
 CATEGORIES_BY_PLACEMENT: dict[BannerPlacement, dict[str, str]] = {
     BannerPlacement.HOMEPAGE: HOMEPAGE_CATEGORIES,
+    BannerPlacement.HOMEPAGE_AD: HOMEPAGE_AD_CATEGORIES,
     BannerPlacement.FINANCIAL_SERVICES: FINANCIAL_SERVICE_CATEGORIES,
     BannerPlacement.PROPERTIES: PROPERTY_CATEGORIES,
     BannerPlacement.DASHBOARD: {},
 }
+
+if set(CATEGORIES_BY_PLACEMENT) != set(BannerPlacement):  # pragma: no cover
+    missing = sorted(p.value for p in set(BannerPlacement) - set(CATEGORIES_BY_PLACEMENT))
+    raise RuntimeError(f"CATEGORIES_BY_PLACEMENT is missing placement(s): {missing}")
 
 _PROPERTY_CAMPAIGN_CATEGORY = {
     PropertyCategory.APARTMENTS: "apartments",
