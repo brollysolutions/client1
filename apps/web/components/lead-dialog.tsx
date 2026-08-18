@@ -1,6 +1,9 @@
 "use client";
 
 import Link from "next/link";
+// Namespace React import (matching hero-carousel.tsx) so the classic JSX
+// transform used by the vitest setup can render this component in tests.
+import * as React from "react";
 import { useState } from "react";
 import { toast } from "sonner";
 

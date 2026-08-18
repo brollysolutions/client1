@@ -94,15 +94,30 @@ describe("LOAN_PRODUCT_BANDS", () => {
     expect(new Set(bandedIds)).toEqual(new Set(LOAN_PRODUCTS.map((p) => p.id)));
   });
 
-  it("sets at most one of cta/trust per band", () => {
+  it("points featureProductId at a product that belongs to the same band", () => {
     for (const band of LOAN_PRODUCT_BANDS) {
-      expect(band.cta && band.trust ? "both" : "ok").toBe("ok");
+      if (!band.featureProductId) continue;
+      expect(band.products.map((p) => p.id)).toContain(band.featureProductId);
     }
   });
 
-  it("wires the insurance band's trust content to LOAN_TRUST, not a hand-duplicated copy", () => {
+  it("features Credit Cards in the insurance band so its grid holds the four insurance products", () => {
     const insurance = LOAN_PRODUCT_BANDS.find((b) => b.id === "insurance");
-    expect(insurance?.trust?.points).toBe(LOAN_TRUST);
-    expect(insurance?.trust?.eyebrow).toBe("Why people trust us");
+    expect(insurance?.featureProductId).toBe("credit-cards");
+    expect(
+      insurance?.products.filter((p) => p.id !== insurance.featureProductId)
+        .length,
+    ).toBe(4);
+  });
+
+  it("keeps LOAN_TRUST as the three-point section-level trust content", () => {
+    // /loans passes this to ProductPage's productsTrust, which renders the
+    // TrustStrip below the whole products grid (moved out of the insurance
+    // band per direct user feedback).
+    expect(LOAN_TRUST).toHaveLength(3);
+    for (const point of LOAN_TRUST) {
+      expect(point.label.length).toBeGreaterThan(0);
+      expect(point.note.length).toBeGreaterThan(0);
+    }
   });
 });

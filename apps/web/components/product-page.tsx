@@ -5,6 +5,7 @@ import { FaqSection } from "@/components/faq-section";
 import { JourneyFootTrail } from "@/components/journey-foot-trail";
 import { LeadDialog } from "@/components/lead-dialog";
 import { ScrollCue } from "@/components/scroll-cue";
+import { TrustStrip } from "@/components/trust-strip";
 import {
   Card,
   CardDescription,
@@ -14,7 +15,7 @@ import {
 } from "@/components/ui/card";
 import type { FaqItem } from "@/lib/faq";
 import { contactHref, type LeadBusinessLine } from "@/lib/leads";
-import type { JourneyStep, ProductBand } from "@/lib/products";
+import type { JourneyStep, ProductBand, TrustPoint } from "@/lib/products";
 import { cn } from "@/lib/utils";
 
 // Shared layout for the public Loans and Real Estate marketing pages
@@ -38,8 +39,13 @@ export type ProductPageProps = {
   heroPlant?: string;
   /** Products grid heading. Omit (with no `products`) to skip the grid entirely. */
   productsHeading?: string;
+  /** Small uppercase eyebrow above the products heading. */
+  productsEyebrow?: string;
   /** Optional supporting line under the products heading. */
   productsSubheading?: string;
+  /** Trust points rendered as a full-width TrustStrip at the foot of the
+   *  products section, below every band. */
+  productsTrust?: { eyebrow?: string; points: TrustPoint[] };
   /** Cards per row at lg and up. Defaults to 3. */
   productColumns?: 3 | 4;
   /** Faint finance line-doodles in the products section margins (lg+ only). */
@@ -75,7 +81,9 @@ export function ProductPage({
   heroDoodles = false,
   heroPlant,
   productsHeading,
+  productsEyebrow,
   productsSubheading,
+  productsTrust,
   productColumns = 3,
   productDoodles = false,
   productBands,
@@ -140,55 +148,94 @@ export function ProductPage({
       <section className="relative w-full overflow-hidden border-t border-[var(--nav-border)] bg-[var(--nav-bg)]">
         {productDoodles ? <ProductDoodles /> : null}
         <div className="relative z-10 mx-auto max-w-7xl px-4 py-20 sm:px-6 sm:py-24 lg:px-8">
-          <h2 className="mx-auto max-w-2xl text-center font-heading text-3xl font-semibold text-foreground sm:text-4xl">
+          {productsEyebrow ? (
+            <p className="text-center font-geist text-xs font-semibold uppercase tracking-[0.2em] text-brand-blue">
+              {productsEyebrow}
+            </p>
+          ) : null}
+          <h2
+            className={cn(
+              "mx-auto max-w-2xl text-center font-heading text-3xl font-semibold text-foreground sm:text-4xl",
+              productsEyebrow && "mt-3",
+            )}
+          >
             {productsHeading}
           </h2>
           {productsSubheading ? (
-            <p className="mx-auto mt-3 max-w-2xl text-center text-lg text-text-secondary">
+            <p className="mx-auto mt-4 max-w-2xl text-center text-lg text-text-secondary">
               {productsSubheading}
             </p>
           ) : null}
 
-          {productBands.map((band, bandIndex) => (
+          {productBands.map((band, bandIndex) => {
+            // A band can pull one product out of its grid and present it as a
+            // full-width feature card below (Credit Cards on /loans).
+            const featured = band.featureProductId
+              ? band.products.find((p) => p.id === band.featureProductId)
+              : undefined;
+            const gridProducts = featured
+              ? band.products.filter((p) => p.id !== featured.id)
+              : band.products;
+            return (
             <div
               key={band.id}
               id={band.id}
-              className={cn("scroll-mt-16", bandIndex > 0 && "mt-16")}
+              className={cn("scroll-mt-16", bandIndex > 0 ? "mt-20" : "mt-14")}
             >
-              <h3 className="font-heading text-2xl font-semibold text-foreground">
-                {band.heading}
-              </h3>
+              <div className="flex items-end justify-between gap-6">
+                <div>
+                  <h3 className="font-heading text-2xl font-semibold text-foreground sm:text-3xl">
+                    {band.heading}
+                  </h3>
+                  <span
+                    aria-hidden
+                    className="mt-3 block h-1 w-12 rounded-full bg-brand-blue"
+                  />
+                  {band.description ? (
+                    <p className="mt-3 max-w-xl text-base text-text-secondary sm:text-lg">
+                      {band.description}
+                    </p>
+                  ) : null}
+                </div>
+                <span className="hidden shrink-0 rounded-full border border-[var(--nav-border)] bg-white px-3.5 py-1.5 font-geist text-xs font-semibold uppercase tracking-[0.12em] text-brand-blue sm:block">
+                  {band.products.length} products
+                </span>
+              </div>
               <div
                 className={cn(
-                  "mt-6 grid gap-6 sm:grid-cols-2",
+                  "mt-8 grid gap-6 sm:grid-cols-2",
                   productColumns === 4 ? "lg:grid-cols-4" : "lg:grid-cols-3",
                 )}
               >
-                {band.products.map((product) => (
+                {gridProducts.map((product) => (
                   <Card
                     key={product.id}
                     id={product.id}
                     className={cn(
-                      "group flex h-full scroll-mt-16 flex-col overflow-hidden transition duration-200 hover:-translate-y-0.5 hover:shadow-md motion-reduce:transition-none motion-reduce:hover:translate-y-0",
+                      "group relative flex h-full scroll-mt-16 flex-col overflow-hidden transition duration-200 hover:-translate-y-0.5 hover:border-brand-blue/40 hover:shadow-md motion-reduce:transition-none motion-reduce:hover:translate-y-0",
                       product.illustration && "pt-0",
                     )}
                   >
                     {product.legacyAnchorId ? (
+                      // Absolutely positioned so the empty anchor does not
+                      // become a flex child of the Card's gap-6 column, which
+                      // would push this card's illustration down 24px relative
+                      // to its siblings.
                       <span
                         id={product.legacyAnchorId}
                         aria-hidden
-                        className="block scroll-mt-16"
+                        className="absolute top-0 scroll-mt-16"
                       />
                     ) : null}
                     {product.illustration ? (
-                      <div className="relative aspect-[4/3] w-full bg-[var(--nav-tint)]/40">
+                      <div className="relative aspect-[4/3] w-full overflow-hidden bg-gradient-to-b from-[var(--nav-tint)]/70 via-[var(--nav-tint)]/30 to-transparent">
                         <Image
                           src={product.illustration}
                           alt=""
                           aria-hidden
                           fill
                           sizes="(min-width:1024px) 280px, (min-width:640px) 50vw, 100vw"
-                          className="object-contain p-6"
+                          className="object-contain p-4 transition-transform duration-300 group-hover:scale-[1.04] motion-reduce:transition-none motion-reduce:group-hover:scale-100"
                         />
                       </div>
                     ) : null}
@@ -283,49 +330,76 @@ export function ProductPage({
                   </div>
                 ) : null}
 
-                {band.trust ? (
-                  // Wide banner tile, not a product card: spans the row's
-                  // remaining columns at lg (assumes productColumns={4}, this
-                  // band's only current caller) so it sits directly beside
-                  // the preceding card instead of starting a new row alone.
-                  // `items-stretch` (the grid's default) stretches this to
-                  // match that row's tallest card; `h-full` + centered
-                  // content keep the 3 points from looking pinned to the top.
-                  <div className="relative col-span-full h-full overflow-hidden rounded-2xl border border-[var(--nav-border)] bg-[var(--nav-tint)]/40 shadow-sm sm:col-span-1 lg:col-span-3">
-                    <div
+              </div>
+
+              {featured ? (
+                // Full-width feature card under the band grid: illustration
+                // panel on the right at sm+, copy and the same LeadDialog
+                // enquiry path on the left. Keeps the product's scroll anchor
+                // so mega-menu/footer #links still land here.
+                <Card
+                  id={featured.id}
+                  className="group relative mt-6 scroll-mt-16 gap-0 overflow-hidden py-0 transition duration-200 hover:-translate-y-0.5 hover:border-brand-blue/40 hover:shadow-md motion-reduce:transition-none motion-reduce:hover:translate-y-0"
+                >
+                  {featured.legacyAnchorId ? (
+                    <span
+                      id={featured.legacyAnchorId}
                       aria-hidden
-                      className="absolute inset-x-0 top-0 h-[3px] bg-gradient-to-r from-transparent via-brand-blue to-transparent"
+                      className="absolute top-0 scroll-mt-16"
                     />
-                    <div className="flex h-full flex-col justify-center px-6 py-8 sm:px-8">
-                      {band.trust.eyebrow ? (
-                        <p className="text-center font-geist text-xs font-semibold uppercase tracking-[0.2em] text-brand-blue">
-                          {band.trust.eyebrow}
-                        </p>
-                      ) : null}
-                      <div className="mt-5 grid gap-6 sm:grid-cols-3 sm:gap-0 sm:divide-x sm:divide-[var(--nav-border)]">
-                        {band.trust.points.map((point) => (
-                          <div
-                            key={point.label}
-                            className="flex flex-col items-center px-4 text-center"
-                          >
-                            <span className="flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-br from-white to-[var(--nav-tint)] text-brand-blue shadow-sm ring-2 ring-brand-blue/20">
-                              <point.icon className="h-5 w-5" aria-hidden />
-                            </span>
-                            <h4 className="mt-3 font-heading text-sm font-semibold text-foreground">
-                              {point.label}
-                            </h4>
-                            <p className="mt-1 text-xs text-text-secondary">
-                              {point.note}
-                            </p>
-                          </div>
-                        ))}
+                  ) : null}
+                  {/* Below sm this reads exactly like the other product cards
+                      (illustration band on top, copy below, full-width action);
+                      the horizontal spotlight treatment starts at sm. */}
+                  <div className="grid sm:grid-cols-2 lg:grid-cols-[1.15fr_1fr]">
+                    {featured.illustration ? (
+                      <div className="relative order-first aspect-[4/3] w-full overflow-hidden bg-gradient-to-b from-[var(--nav-tint)]/70 via-[var(--nav-tint)]/30 to-transparent sm:order-last sm:aspect-auto sm:min-h-[220px] sm:bg-gradient-to-br">
+                        <Image
+                          src={featured.illustration}
+                          alt=""
+                          aria-hidden
+                          fill
+                          sizes="(min-width:1024px) 560px, (min-width:640px) 50vw, 100vw"
+                          className="object-contain p-4 transition-transform duration-300 group-hover:scale-[1.04] motion-reduce:transition-none motion-reduce:group-hover:scale-100 sm:p-6"
+                        />
+                      </div>
+                    ) : null}
+                    <div className="flex flex-col items-start gap-2 p-6 sm:justify-center sm:gap-4 sm:p-8 lg:p-10">
+                      <span className="hidden rounded-full bg-[var(--nav-tint)] px-3 py-1 font-geist text-xs font-semibold uppercase tracking-[0.12em] text-brand-blue sm:inline-block">
+                        In the spotlight
+                      </span>
+                      <h4 className="font-heading text-lg font-semibold text-foreground sm:text-3xl">
+                        {featured.label}
+                      </h4>
+                      <p className="max-w-md text-base text-text-secondary">
+                        {featured.description}
+                      </p>
+                      <div className="mt-2 w-full self-stretch sm:mt-0 sm:w-auto">
+                        <LeadDialog
+                          businessLine={businessLine}
+                          product={featured.label}
+                          triggerLabel="Enquire now"
+                          triggerVariant="outline"
+                          href={contactHref({
+                            line: businessLine,
+                            product: featured.label,
+                          })}
+                        />
                       </div>
                     </div>
                   </div>
-                ) : null}
-              </div>
+                </Card>
+              ) : null}
             </div>
-          ))}
+            );
+          })}
+
+          {productsTrust ? (
+            <TrustStrip
+              eyebrow={productsTrust.eyebrow}
+              points={productsTrust.points}
+            />
+          ) : null}
         </div>
       </section>
       ) : null}
