@@ -24,6 +24,7 @@ function wireListing(overrides: Partial<Schemas["PublicPropertyRead"]> = {}): Sc
     meta: "2 bed · 1,120 sqft",
     image: "/illustrations/properties/apartment-1.svg",
     category: "apartments",
+    property_subtype: "standalone_apartment",
     rera_number: "RERA/KA/2024/1234",
     ...overrides,
   };
@@ -43,6 +44,7 @@ describe("mapPublicListing()", () => {
       price: "₹78 L",
       type: "Apartment",
       category: "apartments",
+      propertySubtype: "standalone_apartment",
       meta: "2 bed · 1,120 sqft",
       image: "/illustrations/properties/apartment-1.svg",
       reraNumber: "RERA/KA/2024/1234",

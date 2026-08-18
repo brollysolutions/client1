@@ -35,11 +35,13 @@ describe("CMS previews", () => {
           deep_link: "/real-estate",
           image_url: "/banner-templates/properties/villas.webp",
           offer_badge: "10% off · Code HOME10",
+          rera_verified: true,
         }}
       />,
     );
     expect(markup).toContain("/banner-templates/properties/villas.webp");
     expect(markup).toContain("10% off · Code HOME10");
+    expect(markup).toContain("RERA VERIFIED");
     expect(markup).toContain("Find your next home");
   });
 

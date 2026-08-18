@@ -3,23 +3,17 @@
 // conversion and validation are unit-tested (the one place a bug corrupts catalog data).
 import type { components } from "@contracts/generated/schema";
 
+import { propertySubtypeOption } from "@/lib/property-taxonomy";
+
 type Schemas = components["schemas"];
 type SubmissionCreate = Schemas["SubmissionCreate"];
-type PropertyCategory = Schemas["PropertyCategory"];
 type Furnishing = Schemas["Furnishing"];
 type ConstructionStatus = Schemas["ConstructionStatus"];
 type SubmissionMediaInput = Schemas["SubmissionMediaInput"];
+type PropertySubtype = Schemas["PropertySubtype"];
 
 // Option values are pinned to the contract enums via `satisfies`: if the backend
 // enum changes, the regenerated type makes this fail to compile.
-export const CATEGORY_OPTIONS = [
-  { value: "houses", label: "Houses" },
-  { value: "apartments", label: "Apartments" },
-  { value: "villas", label: "Villas" },
-  { value: "plots", label: "Plots" },
-  { value: "commercial", label: "Commercial" },
-] as const satisfies readonly { value: PropertyCategory; label: string }[];
-
 export const FURNISHING_OPTIONS = [
   { value: "unfurnished", label: "Unfurnished" },
   { value: "semi", label: "Semi-furnished" },
@@ -41,7 +35,7 @@ export type SubmitFormState = {
   images: File[];
   documents: File[];
   video: File | null;
-  category: PropertyCategory | "";
+  propertySubtype: PropertySubtype | "";
   city: string;
   locality: string;
   pincode: string;
@@ -64,7 +58,7 @@ export const EMPTY_FORM: SubmitFormState = {
   images: [],
   documents: [],
   video: null,
-  category: "",
+  propertySubtype: "",
   city: "",
   locality: "",
   pincode: "",
@@ -93,6 +87,8 @@ export function buildSubmissionPayload(
   form: SubmitFormState,
   media: SubmissionMediaInput[],
 ): SubmissionCreate {
+  const subtype = propertySubtypeOption(form.propertySubtype);
+  if (!subtype) throw new Error("A valid property subtype is required.");
   const details: Record<string, unknown> = {};
   for (const row of form.details) {
     const key = row.key.trim();
@@ -103,7 +99,8 @@ export function buildSubmissionPayload(
     type: form.type.trim(),
     location: form.location.trim(),
     meta: orNull(form.meta),
-    category: form.category as PropertyCategory,
+    category: subtype.category,
+    property_subtype: subtype.value,
     city: form.city.trim(),
     locality: form.locality.trim(),
     pincode: form.pincode.trim(),
@@ -128,7 +125,7 @@ export function validateForm(form: SubmitFormState): Record<string, string> {
     ["location", "Location is required."],
     ["city", "City is required."],
     ["locality", "Locality is required."],
-    ["category", "Choose a category."],
+    ["propertySubtype", "Choose a property type."],
     ["furnishing", "Choose a furnishing."],
     ["constructionStatus", "Choose a construction status."],
     ["rera_number", "RERA number is required."],

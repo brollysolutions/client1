@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Pause, Play } from "lucide-react";
+import { ShieldCheck } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -35,7 +35,6 @@ export function HeroCarousel({
   const [api, setApi] = useState<CarouselApi>();
   const [selected, setSelected] = useState(0);
   const [count, setCount] = useState(0);
-  const [userPaused, setUserPaused] = useState(false);
   const [interactionPaused, setInteractionPaused] = useState(false);
   const [reducedMotion, setReducedMotion] = useState(false);
 
@@ -90,7 +89,7 @@ export function HeroCarousel({
   useEffect(() => {
     if (!api || banners.length <= 1) return;
 
-    if (reducedMotion || userPaused || interactionPaused) return;
+    if (reducedMotion || interactionPaused) return;
 
     let timeoutId: ReturnType<typeof setTimeout>;
 
@@ -111,7 +110,7 @@ export function HeroCarousel({
       clearTimeout(timeoutId);
       api.off("select", schedule);
     };
-  }, [api, banners.length, interactionPaused, reducedMotion, userPaused]);
+  }, [api, banners.length, interactionPaused, reducedMotion]);
 
   // Embla with zero slides is undefined behavior; the page never intends to
   // pass zero (it falls back to FALLBACK_HERO_BANNERS), but this is
@@ -124,6 +123,7 @@ export function HeroCarousel({
     // peek-coverflow box (see docs/ai/plans for the sizing math).
     <section
       aria-label={label}
+      data-layout={variant === "section" ? "full-bleed" : "peek"}
       onMouseEnter={() => setInteractionPaused(true)}
       onMouseLeave={() => setInteractionPaused(false)}
       onFocusCapture={() => setInteractionPaused(true)}
@@ -134,7 +134,7 @@ export function HeroCarousel({
         "relative w-full bg-[var(--nav-bg)]",
         variant === "hero"
           ? "pb-24 sm:pb-32 lg:pb-40"
-          : "border-y border-[var(--nav-border)] py-6 sm:py-8",
+          : "border-0 p-0",
       )}
     >
       <Carousel
@@ -157,7 +157,7 @@ export function HeroCarousel({
                   "pl-0",
                   variant === "hero"
                     ? "basis-[90vw] sm:basis-[720px] lg:basis-[1200px]"
-                    : "basis-[90vw] sm:basis-[680px] lg:basis-[1040px]",
+                    : "basis-full",
                 )}
               >
                 {/* Peek scale/opacity/blur lives on this INNER wrapper, not on
@@ -176,16 +176,21 @@ export function HeroCarousel({
                     smooth. */}
                 <div
                   className={cn(
-                    "transition-[transform,opacity] duration-500 ease-out transform-gpu motion-reduce:transition-none [will-change:transform,opacity]",
-                    isSelected
-                      ? "opacity-100 blur-0 scale-100"
-                      : "pointer-events-none scale-90 opacity-45 blur-[4px]"
+                    variant === "hero" &&
+                      "transition-[transform,opacity] duration-500 ease-out transform-gpu motion-reduce:transition-none [will-change:transform,opacity]",
+                    variant === "section"
+                      ? !isSelected && "pointer-events-none"
+                      : isSelected
+                        ? "opacity-100 blur-0 scale-100"
+                        : "pointer-events-none scale-90 opacity-45 blur-[4px]",
                   )}
                 >
                 <div
                   className={cn(
-                    "relative w-full overflow-hidden rounded-2xl bg-[var(--nav-bg)] shadow-lg ring-1 ring-black/5",
-                    variant === "hero" ? "aspect-[9/5]" : "aspect-[5/2]",
+                    "relative w-full overflow-hidden bg-[var(--nav-bg)]",
+                    variant === "hero"
+                      ? "aspect-[9/5] rounded-2xl shadow-lg ring-1 ring-black/5"
+                      : "h-[36vw] sm:h-[272px] lg:h-[416px]",
                   )}
                 >
                   {/* Media layer: real landscape image fills the card; otherwise
@@ -196,11 +201,16 @@ export function HeroCarousel({
                       alt=""
                       fill
                       priority={i === 0}
-                      sizes="(min-width: 1024px) 1200px, (min-width: 640px) 720px, 90vw"
+                      sizes={
+                        variant === "section"
+                          ? "100vw"
+                          : "(min-width: 1024px) 1200px, (min-width: 640px) 720px, 90vw"
+                      }
                       className={cn(
                         "object-cover",
-                        variant === "section" &&
-                          "[-webkit-mask-image:linear-gradient(to_right,transparent_0%,transparent_24%,black_62%,black_100%)] [mask-image:linear-gradient(to_right,transparent_0%,transparent_24%,black_62%,black_100%)]",
+                        variant === "hero"
+                          ? "[-webkit-mask-image:linear-gradient(to_right,transparent_0%,transparent_18%,black_58%,black_100%)] [mask-image:linear-gradient(to_right,transparent_0%,transparent_18%,black_58%,black_100%)]"
+                          : "[-webkit-mask-image:linear-gradient(to_right,transparent_0%,transparent_24%,black_62%,black_100%)] [mask-image:linear-gradient(to_right,transparent_0%,transparent_24%,black_62%,black_100%)]",
                       )}
                       // next/image's default loader proxies through /_next/image,
                       // fetched SERVER-SIDE by the web process -- not the same
@@ -219,17 +229,13 @@ export function HeroCarousel({
                     <div className="absolute inset-0 bg-[var(--nav-bg)]" />
                   )}
 
-                  {/* Scrim: keeps the left-aligned copy legible over cream placeholders
-                      and (future) photos alike. */}
-                  {variant === "hero" ? (
-                    <div className="absolute inset-0 bg-gradient-to-r from-[var(--nav-bg)]/90 via-[var(--nav-bg)]/50 to-transparent" />
-                  ) : null}
-
                   {/* Copy overlay — sized to the card itself, not the page container. */}
                   <div
                     className={cn(
                       "relative flex h-full items-center",
-                      variant === "hero" ? "p-3 sm:p-8 lg:p-10" : "p-3 sm:p-6 lg:p-8",
+                      variant === "hero"
+                        ? "p-3 sm:p-8 lg:p-10"
+                        : "py-3 pl-16 pr-16 sm:px-24 sm:py-6 lg:px-28 lg:py-8",
                     )}
                   >
                     <div
@@ -239,16 +245,32 @@ export function HeroCarousel({
                           : "max-w-[60%] sm:max-w-[46%] lg:max-w-[42%]",
                       )}
                     >
+                      {banner.reraVerified ? (
+                        <span className="mb-3 flex w-fit items-center gap-1.5 rounded-full border border-amber-500/50 bg-gradient-to-r from-amber-200 to-yellow-400 px-3 py-1 text-[10px] font-bold tracking-wide text-amber-950 shadow-sm sm:text-xs">
+                          <ShieldCheck className="h-3.5 w-3.5" aria-hidden />
+                          RERA VERIFIED
+                        </span>
+                      ) : null}
                       {banner.offerBadge ? (
-                        <span className="mb-3 inline-flex rounded-full bg-white/85 px-3 py-1 text-xs font-semibold text-brand-navy shadow-sm backdrop-blur-sm">
+                        <span className="mb-3 flex w-fit rounded-full bg-white/85 px-3 py-1 text-xs font-semibold text-brand-navy shadow-sm backdrop-blur-sm">
                           {banner.offerBadge}
                         </span>
                       ) : null}
-                      <h2 className="font-heading text-base font-semibold text-[var(--nav-text)] sm:text-2xl lg:text-4xl">
+                      <h2
+                        className={cn(
+                          "font-heading text-base font-semibold text-[var(--nav-text)] sm:text-2xl lg:text-4xl",
+                          variant === "section" && "line-clamp-2",
+                        )}
+                      >
                         {banner.title}
                       </h2>
                       {banner.subtitle && (
-                        <p className="mt-3 hidden text-sm text-[var(--nav-text)] sm:block sm:text-base">
+                        <p
+                          className={cn(
+                            "mt-3 hidden text-sm text-[var(--nav-text)] sm:block sm:text-base",
+                            variant === "section" && "line-clamp-2",
+                          )}
+                        >
                           {banner.subtitle}
                         </p>
                       )}
@@ -256,7 +278,7 @@ export function HeroCarousel({
                       {banner.cta && (
                         <Button
                           asChild
-                          className="mt-2 h-8 bg-[var(--nav-primary)] px-3 text-xs text-white shadow-sm hover:bg-[var(--nav-primary-hover)] focus-visible:ring-[var(--nav-primary)] sm:mt-5 sm:h-10 sm:px-4 sm:text-sm"
+                          className="mt-2 h-8 max-w-full truncate bg-[var(--nav-primary)] px-3 text-xs text-white shadow-sm hover:bg-[var(--nav-primary-hover)] focus-visible:ring-[var(--nav-primary)] sm:mt-5 sm:h-10 sm:px-4 sm:text-sm"
                         >
                           <Link
                             href={banner.cta.href}
@@ -294,7 +316,7 @@ export function HeroCarousel({
                 "left-[calc(50%-45vw-2.75rem)] h-12 w-12 cursor-pointer rounded-full border-none bg-transparent text-brand-blue drop-shadow-sm transition-[background-color,color,box-shadow] duration-300 hover:bg-white/40 hover:text-brand-blue hover:backdrop-blur-md hover:shadow-md [&_svg]:size-7 sm:h-14 sm:w-14 sm:[&_svg]:size-8",
                 variant === "hero"
                   ? "sm:left-[calc(50%-360px-3rem)] lg:left-[calc(50%-600px-3rem)]"
-                  : "sm:left-[calc(50%-340px-3rem)] lg:left-[calc(50%-520px-3rem)]",
+                  : "left-2 bg-white/90 shadow-md hover:bg-white sm:left-3 lg:left-4",
               )}
             />
             <CarouselNext
@@ -304,7 +326,7 @@ export function HeroCarousel({
                 "right-[calc(50%-45vw-0.75rem)] h-12 w-12 cursor-pointer rounded-full border-none bg-transparent text-brand-blue drop-shadow-sm transition-[background-color,color,box-shadow] duration-300 hover:bg-white/40 hover:text-brand-blue hover:backdrop-blur-md hover:shadow-md [&_svg]:size-7 sm:h-14 sm:w-14 sm:[&_svg]:size-8",
                 variant === "hero"
                   ? "sm:right-[calc(50%-360px-0.75rem)] lg:right-[calc(50%-600px-0.75rem)]"
-                  : "sm:right-[calc(50%-340px-0.75rem)] lg:right-[calc(50%-520px-0.75rem)]",
+                  : "right-2 bg-white/90 shadow-md hover:bg-white sm:right-3 lg:right-4",
               )}
             />
           </>
@@ -312,7 +334,7 @@ export function HeroCarousel({
       </Carousel>
 
       {/* Dot indicators — in the cream strip below the banner (robust over any image). */}
-      {count > 1 && (
+      {variant === "hero" && count > 1 && (
         <div className="flex items-center justify-center gap-2 py-4">
           {Array.from({ length: count }).map((_, i) => (
             <button
@@ -327,25 +349,6 @@ export function HeroCarousel({
               )}
             />
           ))}
-          <button
-            type="button"
-            disabled={reducedMotion}
-            onClick={() => setUserPaused((paused) => !paused)}
-            aria-label={
-              reducedMotion
-                ? "Autoplay disabled by reduced motion preference"
-                : userPaused
-                  ? "Resume banner autoplay"
-                  : "Pause banner autoplay"
-            }
-            className="ml-2 inline-flex h-8 w-8 items-center justify-center rounded-full text-brand-navy transition-colors hover:bg-white/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue disabled:opacity-50"
-          >
-            {userPaused || reducedMotion ? (
-              <Play className="h-4 w-4" aria-hidden />
-            ) : (
-              <Pause className="h-4 w-4" aria-hidden />
-            )}
-          </button>
         </div>
       )}
     </section>

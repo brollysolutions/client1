@@ -39,6 +39,7 @@ class BannerCreate(BaseModel):
     placement: BannerPlacement = BannerPlacement.HOMEPAGE
     template_id: UUID | None = None
     offer_id: UUID | None = None
+    property_id: UUID | None = None
     banner_type: BannerType
     title: str = Field(min_length=1, max_length=500)
     subtitle: str | None = Field(default=None, max_length=300)
@@ -65,6 +66,10 @@ class BannerCreate(BaseModel):
             raise ValueError("Personalized banners are dashboard-only.")
         if self.placement == BannerPlacement.DASHBOARD and self.template_id is not None:
             raise ValueError("Dashboard banners do not use public templates.")
+        if self.placement == BannerPlacement.DASHBOARD and self.property_id is not None:
+            raise ValueError("Dashboard banners cannot promote public properties.")
+        if self.offer_id is not None and self.property_id is not None:
+            raise ValueError("A banner cannot link both an Offer and a property.")
         if (
             self.placement != BannerPlacement.DASHBOARD
             and self.template_id is None
@@ -86,6 +91,7 @@ class BannerUpdate(BaseModel):
     ends_at: datetime | None = None
     template_id: UUID | None = None
     offer_id: UUID | None = None
+    property_id: UUID | None = None
 
 
 class BannerTemplateCreate(BaseModel):
@@ -132,6 +138,7 @@ class BannerRead(BaseModel):
     category_key: str | None
     template_id: UUID | None
     offer_id: UUID | None
+    property_id: UUID | None
     replaces_banner_id: UUID | None
     banner_type: BannerType
     title: str
@@ -216,6 +223,7 @@ class PublicBannerRead(BaseModel):
     deep_link: str | None
     image_url: str | None
     offer_badge: str | None = None
+    rera_verified: bool = False
 
 
 class PublicBannerListResponse(BaseModel):

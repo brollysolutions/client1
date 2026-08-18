@@ -11,16 +11,15 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
 import { DashboardFormPage } from "@/features/dashboard/dashboard-ui";
-import {
-  CATEGORY_OPTIONS,
-  FURNISHING_OPTIONS,
-  CONSTRUCTION_OPTIONS,
-} from "@/lib/property-submit";
+import { CONSTRUCTION_OPTIONS, FURNISHING_OPTIONS } from "@/lib/property-submit";
+import { PROPERTY_SUBTYPE_GROUPS } from "@/lib/property-taxonomy";
 import { useSubmitProperty } from "./use-submit-property";
 
 function FieldError({ msg }: { msg?: string }) {
@@ -102,16 +101,30 @@ export function SubmitPropertyForm() {
             <FieldError msg={f.errors.type} />
           </div>
           <div>
-            <Label htmlFor="category">Category</Label>
-            <Select value={f.form.category} onValueChange={(v) => f.setField("category", v as typeof f.form.category)}>
-              <SelectTrigger id="category"><SelectValue placeholder="Choose a category" /></SelectTrigger>
+            <Label htmlFor="property-type">Property type</Label>
+            <Select
+              value={f.form.propertySubtype}
+              onValueChange={(value) =>
+                f.setField("propertySubtype", value as typeof f.form.propertySubtype)
+              }
+            >
+              <SelectTrigger id="property-type" className="w-full">
+                <SelectValue placeholder="Choose a property type" />
+              </SelectTrigger>
               <SelectContent>
-                {CATEGORY_OPTIONS.map((o) => (
-                  <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                {PROPERTY_SUBTYPE_GROUPS.map((group) => (
+                  <SelectGroup key={group.heading}>
+                    <SelectLabel>{group.heading}</SelectLabel>
+                    {group.items.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
                 ))}
               </SelectContent>
             </Select>
-            <FieldError msg={f.errors.category} />
+            <FieldError msg={f.errors.propertySubtype} />
           </div>
         </section>
 

@@ -130,9 +130,9 @@ async def test_template_library_is_staff_only(client: AsyncClient) -> None:
     _, mobile = await full_registration(client, lines=["loans"])
     uid = await _auth_user_uuid(mobile)
     assert (
-        await _template_count_as(auth_user_uuid=uid, role="sub_admin", platform_scope="true") == 29
+        await _template_count_as(auth_user_uuid=uid, role="sub_admin", platform_scope="true") == 38
     )
-    assert await _template_count_as(auth_user_uuid=uid, role="admin", platform_scope="true") == 29
+    assert await _template_count_as(auth_user_uuid=uid, role="admin", platform_scope="true") == 38
     assert await _template_count_as(auth_user_uuid=uid, role="client", platform_scope="false") == 0
 
 

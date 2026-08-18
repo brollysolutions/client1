@@ -80,6 +80,7 @@ async def _seed_banner(
     category_key: str | None = None,
     template_id: str | None = None,
     offer_id: str | None = None,
+    property_id: str | None = None,
 ) -> str:
     import app.db.session as _session_mod
     from app.models.banner import Banner
@@ -91,6 +92,7 @@ async def _seed_banner(
             category_key=category_key,
             template_id=uuid.UUID(template_id) if template_id else None,
             offer_id=uuid.UUID(offer_id) if offer_id else None,
+            property_id=uuid.UUID(property_id) if property_id else None,
             banner_type=banner_type,
             title=title,
             subtitle=subtitle,
@@ -107,6 +109,58 @@ async def _seed_banner(
         db.add(banner)
         await db.commit()
         return str(banner.id)
+
+
+async def _seed_property(
+    *, active: bool, category: str = "villas", with_media: bool = False
+) -> str:
+    import app.db.session as _session_mod
+    from app.models.property import Property
+    from app.models.property_media import PropertyMedia
+
+    async with _session_mod.AsyncSessionLocal() as db:
+        property_listing = Property(
+            business_line="real_estate",
+            active=active,
+            title="RERA Villa",
+            type="Villa",
+            location="Kokapet, Hyderabad",
+            price_display="₹2.4 Cr",
+            category=category,
+            city="Hyderabad",
+            locality="Kokapet",
+            pincode="500075",
+            price_paise=24_000_000_00,
+            furnishing="furnished",
+            construction_status="ready",
+            rera_number="RERA/TS/2026/0042",
+        )
+        db.add(property_listing)
+        await db.flush()
+        if with_media:
+            db.add(
+                PropertyMedia(
+                    property_uuid=property_listing.id,
+                    business_line="real_estate",
+                    content_type="image/webp",
+                    object_key=f"public/properties/{property_listing.id}/hero.webp",
+                    size_bytes=1024,
+                    position=0,
+                )
+            )
+        await db.commit()
+        return str(property_listing.id)
+
+
+async def _delete_properties(*property_ids: str) -> None:
+    import app.db.session as _session_mod
+    from app.models.property import Property
+
+    async with _session_mod.AsyncSessionLocal() as db:
+        await db.execute(
+            delete(Property).where(Property.id.in_([uuid.UUID(item) for item in property_ids]))
+        )
+        await db.commit()
 
 
 async def _delete_banners(*banner_ids: str) -> None:
@@ -235,7 +289,7 @@ async def test_templated_banner_serves_reviewed_bundled_artwork(client: AsyncCli
         status="live",
         title="Home loan campaign",
         placement="financial_services",
-        category_key="home-loan",
+        category_key=f"test-home-loan-{uuid.uuid4().hex}",
         template_id=template_id,
     )
     try:
@@ -246,6 +300,66 @@ async def test_templated_banner_serves_reviewed_bundled_artwork(client: AsyncCli
         assert row["image_url"] == "/banner-templates/financial_services/home-loan.webp"
     finally:
         await _delete_banners(banner_id)
+
+
+@pytest.mark.asyncio
+async def test_property_banner_uses_template_artwork_enquiry_and_rera_badge(
+    client: AsyncClient,
+) -> None:
+    author = await _author_uuid(client)
+    property_id = await _seed_property(active=True, with_media=True)
+    import app.db.session as _session_mod
+    from app.models.banner import BannerPlacement, BannerTemplate
+
+    async with _session_mod.AsyncSessionLocal() as db:
+        template = await db.scalar(
+            select(BannerTemplate).where(
+                BannerTemplate.placement == BannerPlacement.PROPERTIES,
+                BannerTemplate.category_key == "villas",
+                BannerTemplate.active.is_(True),
+            )
+        )
+        assert template is not None
+        template_id = str(template.id)
+    banner_id = await _seed_banner(
+        author=author,
+        status="live",
+        title="Tour this approved villa",
+        placement="properties",
+        category_key=f"test-villas-{uuid.uuid4().hex}",
+        template_id=template_id,
+        property_id=property_id,
+        deep_link="https://evil.example/property",
+    )
+    try:
+        response = await client.get("/api/v1/public/banners", params={"placement": "properties"})
+        row = next(item for item in response.json()["banners"] if item["id"] == banner_id)
+        assert row["image_url"] == "/banner-templates/properties/villas.webp"
+        assert row["cta_label"] == "Enquire now"
+        assert row["deep_link"].startswith("/contact?line=real_estate&product=RERA+Villa")
+        assert "evil.example" not in row["deep_link"]
+        assert row["rera_verified"] is True
+    finally:
+        await _delete_banners(banner_id)
+        await _delete_properties(property_id)
+
+
+@pytest.mark.asyncio
+async def test_inactive_linked_property_hides_live_banner(client: AsyncClient) -> None:
+    author = await _author_uuid(client)
+    property_id = await _seed_property(active=False)
+    banner_id = await _seed_banner(
+        author=author,
+        status="live",
+        title="Unavailable property",
+        property_id=property_id,
+    )
+    try:
+        response = await client.get("/api/v1/public/banners")
+        assert banner_id not in {item["id"] for item in response.json()["banners"]}
+    finally:
+        await _delete_banners(banner_id)
+        await _delete_properties(property_id)
 
 
 @pytest.mark.asyncio
@@ -361,6 +475,7 @@ async def test_response_omits_internal_fields(client: AsyncClient) -> None:
             "deep_link",
             "image_url",
             "offer_badge",
+            "rera_verified",
         }
         internal_fields = {
             "image_key",

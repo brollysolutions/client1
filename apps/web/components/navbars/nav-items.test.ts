@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { FINANCIAL_SERVICES_MENU } from "@/components/navbars/financial-services-menu";
 import { NAV_ITEMS } from "@/components/navbars/nav-items";
+import { PROPERTIES_MENU } from "@/components/navbars/properties-menu";
 
 // The public header and mobile drawer both render from NAV_ITEMS, and neither
 // has Playwright coverage, so a drift here reaches production unnoticed. The
@@ -27,10 +28,9 @@ describe("public NAV_ITEMS integrity", () => {
     expect(new Set(hrefs).size).toBe(hrefs.length);
   });
 
-  it("gives exactly one item a mega-menu, and it is Financial Services", () => {
+  it("gives Financial Services and Properties governed mega-menus", () => {
     const withMenu = NAV_ITEMS.filter((item) => item.menu);
-    expect(withMenu).toHaveLength(1);
-    expect(withMenu[0]?.label).toBe("Financial Services");
+    expect(withMenu.map((item) => item.label)).toEqual(["Financial Services", "Properties"]);
   });
 
   it("wires the Financial Services menu to FINANCIAL_SERVICES_MENU, not a hand-duplicated copy", () => {
@@ -38,12 +38,21 @@ describe("public NAV_ITEMS integrity", () => {
     expect(finance?.menu?.columns).toBe(FINANCIAL_SERVICES_MENU);
   });
 
+  it("wires the Properties menu to all nine governed property subtypes", () => {
+    const properties = NAV_ITEMS.find((item) => item.label === "Properties");
+    expect(properties?.menu?.columns).toBe(PROPERTIES_MENU);
+    const items = PROPERTIES_MENU.flatMap((column) => column.groups.flatMap((group) => group.items));
+    expect(items).toHaveLength(9);
+    expect(items.every((item) => item.href.startsWith("/real-estate?property_type="))).toBe(true);
+  });
+
   it("gives every menu item an internal href", () => {
-    const finance = NAV_ITEMS.find((item) => item.label === "Financial Services");
-    for (const column of finance?.menu?.columns ?? []) {
-      for (const group of column.groups) {
-        for (const child of group.items) {
-          expect(child.href.startsWith("/")).toBe(true);
+    for (const item of NAV_ITEMS) {
+      for (const column of item.menu?.columns ?? []) {
+        for (const group of column.groups) {
+          for (const child of group.items) {
+            expect(child.href.startsWith("/")).toBe(true);
+          }
         }
       }
     }

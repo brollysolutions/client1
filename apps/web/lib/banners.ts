@@ -15,6 +15,7 @@ export type HeroBanner = {
   // hero-carousel.tsx's cream-placeholder branch handles that case.
   image?: string;
   offerBadge?: string;
+  reraVerified?: boolean;
   cta?: { label: string; href: string };
 };
 

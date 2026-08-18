@@ -3908,6 +3908,18 @@
             "title": "Priority",
             "type": "integer"
           },
+          "property_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Property Id"
+          },
           "starts_at": {
             "anyOf": [
               {
@@ -4155,6 +4167,18 @@
             "title": "Priority",
             "type": "integer"
           },
+          "property_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Property Id"
+          },
           "replaces_banner_id": {
             "anyOf": [
               {
@@ -4233,6 +4257,7 @@
           "category_key",
           "template_id",
           "offer_id",
+          "property_id",
           "replaces_banner_id",
           "banner_type",
           "title",
@@ -4466,6 +4491,18 @@
               }
             ],
             "title": "Priority"
+          },
+          "property_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Property Id"
           },
           "starts_at": {
             "anyOf": [
@@ -10018,6 +10055,16 @@
             "title": "Price Paise",
             "type": "integer"
           },
+          "property_subtype": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PropertySubtype"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "rera_number": {
             "title": "Rera Number",
             "type": "string"
@@ -10041,6 +10088,7 @@
           "meta",
           "image",
           "category",
+          "property_subtype",
           "city",
           "locality",
           "pincode",
@@ -10056,6 +10104,21 @@
         ],
         "title": "PropertyRead",
         "type": "object"
+      },
+      "PropertySubtype": {
+        "enum": [
+          "individual_house",
+          "standalone_apartment",
+          "gated_community_apartment",
+          "villa",
+          "locked_space",
+          "unlocked_space",
+          "plot",
+          "farmland",
+          "agriland"
+        ],
+        "title": "PropertySubtype",
+        "type": "string"
       },
       "PublicBannerListResponse": {
         "properties": {
@@ -10124,6 +10187,11 @@
               }
             ],
             "title": "Offer Badge"
+          },
+          "rera_verified": {
+            "default": false,
+            "title": "Rera Verified",
+            "type": "boolean"
           },
           "subtitle": {
             "anyOf": [
@@ -10475,6 +10543,16 @@
             "title": "Price Display",
             "type": "string"
           },
+          "property_subtype": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PropertySubtype"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "rera_number": {
             "title": "Rera Number",
             "type": "string"
@@ -10497,6 +10575,7 @@
           "meta",
           "image",
           "category",
+          "property_subtype",
           "rera_number"
         ],
         "title": "PublicPropertyRead",
@@ -11822,6 +11901,9 @@
             "title": "Price Paise",
             "type": "integer"
           },
+          "property_subtype": {
+            "$ref": "#/components/schemas/PropertySubtype"
+          },
           "rera_number": {
             "maxLength": 40,
             "minLength": 1,
@@ -11846,6 +11928,7 @@
           "type",
           "location",
           "category",
+          "property_subtype",
           "city",
           "locality",
           "pincode",
@@ -12117,6 +12200,16 @@
             "title": "Price Paise",
             "type": "integer"
           },
+          "property_subtype": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PropertySubtype"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "rera_number": {
             "title": "Rera Number",
             "type": "string"
@@ -12187,6 +12280,7 @@
           "meta",
           "image",
           "category",
+          "property_subtype",
           "city",
           "locality",
           "pincode",

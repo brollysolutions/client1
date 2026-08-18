@@ -66,6 +66,31 @@ class PropertyCategory(enum.StrEnum):
     COMMERCIAL = "commercial"
 
 
+class PropertySubtype(enum.StrEnum):
+    INDIVIDUAL_HOUSE = "individual_house"
+    STANDALONE_APARTMENT = "standalone_apartment"
+    GATED_COMMUNITY_APARTMENT = "gated_community_apartment"
+    VILLA = "villa"
+    LOCKED_SPACE = "locked_space"
+    UNLOCKED_SPACE = "unlocked_space"
+    PLOT = "plot"
+    FARMLAND = "farmland"
+    AGRILAND = "agriland"
+
+
+PROPERTY_CATEGORY_BY_SUBTYPE: dict[PropertySubtype, PropertyCategory] = {
+    PropertySubtype.INDIVIDUAL_HOUSE: PropertyCategory.HOUSES,
+    PropertySubtype.STANDALONE_APARTMENT: PropertyCategory.APARTMENTS,
+    PropertySubtype.GATED_COMMUNITY_APARTMENT: PropertyCategory.APARTMENTS,
+    PropertySubtype.VILLA: PropertyCategory.VILLAS,
+    PropertySubtype.LOCKED_SPACE: PropertyCategory.COMMERCIAL,
+    PropertySubtype.UNLOCKED_SPACE: PropertyCategory.COMMERCIAL,
+    PropertySubtype.PLOT: PropertyCategory.PLOTS,
+    PropertySubtype.FARMLAND: PropertyCategory.PLOTS,
+    PropertySubtype.AGRILAND: PropertyCategory.PLOTS,
+}
+
+
 class Furnishing(enum.StrEnum):
     UNFURNISHED = "unfurnished"
     SEMI = "semi"
@@ -80,6 +105,9 @@ class ConstructionStatus(enum.StrEnum):
 _ev = lambda x: [e.value for e in x]  # noqa: E731
 property_category_enum = ENUM(
     PropertyCategory, name="re_property_category", create_type=False, values_callable=_ev
+)
+property_subtype_enum = ENUM(
+    PropertySubtype, name="re_property_subtype", create_type=False, values_callable=_ev
 )
 furnishing_enum = ENUM(Furnishing, name="re_furnishing", create_type=False, values_callable=_ev)
 construction_status_enum = ENUM(
@@ -106,6 +134,10 @@ class Property(Base):
 
     # Structured facets (mirror REListing; filtered/sorted client-side).
     category: Mapped[PropertyCategory] = mapped_column(property_category_enum, nullable=False)
+    # Nullable only for listings created before the structured subtype taxonomy.
+    property_subtype: Mapped[PropertySubtype | None] = mapped_column(
+        property_subtype_enum, nullable=True
+    )
     city: Mapped[str] = mapped_column(String(120), nullable=False)
     locality: Mapped[str] = mapped_column(String(120), nullable=False)
     pincode: Mapped[str] = mapped_column(String(6), nullable=False)

@@ -5094,6 +5094,8 @@ export interface components {
              * @default 0
              */
             priority: number;
+            /** Property Id */
+            property_id?: string | null;
             /** Starts At */
             starts_at?: string | null;
             /** Subtitle */
@@ -5174,6 +5176,8 @@ export interface components {
             placement: components["schemas"]["BannerPlacement"];
             /** Priority */
             priority: number;
+            /** Property Id */
+            property_id: string | null;
             /** Replaces Banner Id */
             replaces_banner_id: string | null;
             /** Review Note */
@@ -5257,6 +5261,8 @@ export interface components {
             offer_id?: string | null;
             /** Priority */
             priority?: number | null;
+            /** Property Id */
+            property_id?: string | null;
             /** Starts At */
             starts_at?: string | null;
             /** Subtitle */
@@ -7158,6 +7164,7 @@ export interface components {
             price_display: string;
             /** Price Paise */
             price_paise: number;
+            property_subtype: components["schemas"]["PropertySubtype"] | null;
             /** Rera Number */
             rera_number: string;
             /** Title */
@@ -7165,6 +7172,11 @@ export interface components {
             /** Type */
             type: string;
         };
+        /**
+         * PropertySubtype
+         * @enum {string}
+         */
+        PropertySubtype: "individual_house" | "standalone_apartment" | "gated_community_apartment" | "villa" | "locked_space" | "unlocked_space" | "plot" | "farmland" | "agriland";
         /** PublicBannerListResponse */
         PublicBannerListResponse: {
             /** Banners */
@@ -7234,6 +7246,11 @@ export interface components {
             image_url: string | null;
             /** Offer Badge */
             offer_badge?: string | null;
+            /**
+             * Rera Verified
+             * @default false
+             */
+            rera_verified: boolean;
             /** Subtitle */
             subtitle: string | null;
             /** Title */
@@ -7391,6 +7408,7 @@ export interface components {
             meta: string | null;
             /** Price Display */
             price_display: string;
+            property_subtype: components["schemas"]["PropertySubtype"] | null;
             /** Rera Number */
             rera_number: string;
             /** Title */
@@ -7929,6 +7947,7 @@ export interface components {
             pincode: string;
             /** Price Paise */
             price_paise: number;
+            property_subtype: components["schemas"]["PropertySubtype"];
             /** Rera Number */
             rera_number: string;
             /** Title */
@@ -8029,6 +8048,7 @@ export interface components {
             pincode: string;
             /** Price Paise */
             price_paise: number;
+            property_subtype: components["schemas"]["PropertySubtype"] | null;
             /** Rera Number */
             rera_number: string;
             /** Review Note */

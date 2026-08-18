@@ -48,7 +48,14 @@ import {
   type Banner,
   type BannerTemplate,
 } from "@/lib/banners-api";
+import {
+  isPropertyCampaignTemplate,
+  propertyCampaignHref,
+  propertyCampaignImage,
+  propertyMatchesCampaign,
+} from "@/lib/banner-properties";
 import { listOffers, type Offer } from "@/lib/offers-api";
+import { getAdminProperties, type AdminProperty } from "@/lib/properties-api";
 
 import { audienceSummary } from "./audience-rule-fields";
 import { BannerForm } from "./banner-form";
@@ -64,6 +71,7 @@ import {
   type PreviewDevice,
 } from "./cms-workspace";
 import { useBannerQueue } from "./use-banner-queue";
+import { PropertyCampaignSelect } from "./property-campaign-select";
 
 const STATUS_LABEL: Record<Banner["status"], string> = {
   draft: "Draft",
@@ -99,6 +107,7 @@ type Draft = {
   deepLink: string;
   templateId: string;
   offerId: string;
+  propertyId: string;
   priority: string;
   startsAt: string;
   endsAt: string;
@@ -119,6 +128,7 @@ function toDraft(banner: Banner): Draft {
     deepLink: banner.deep_link ?? "",
     templateId: banner.template_id ?? "",
     offerId: banner.offer_id ?? "",
+    propertyId: banner.property_id ?? "",
     priority: String(banner.priority),
     startsAt: localDateTime(banner.starts_at),
     endsAt: localDateTime(banner.ends_at),
@@ -135,6 +145,7 @@ export function BannersView() {
   const [draft, setDraft] = React.useState<Draft | null>(null);
   const [templates, setTemplates] = React.useState<BannerTemplate[]>([]);
   const [offers, setOffers] = React.useState<Offer[]>([]);
+  const [properties, setProperties] = React.useState<AdminProperty[]>([]);
   const [rejecting, setRejecting] = React.useState(false);
   const [note, setNote] = React.useState("");
   const [busy, setBusy] = React.useState(false);
@@ -143,10 +154,11 @@ export function BannersView() {
   const [createDirty, setCreateDirty] = React.useState(false);
 
   React.useEffect(() => {
-    void Promise.all([listBannerTemplates(false), listOffers()]).then(
-      ([templateResult, offerResult]) => {
+    void Promise.all([listBannerTemplates(false), listOffers(), getAdminProperties()]).then(
+      ([templateResult, offerResult, propertyResult]) => {
         if (templateResult.ok) setTemplates(templateResult.data);
         if (offerResult.ok) setOffers(offerResult.data);
+        if (propertyResult.ok) setProperties(propertyResult.data);
       },
     );
   }, []);
@@ -158,7 +170,9 @@ export function BannersView() {
 
   const selectedTemplate = templates.find((template) => template.id === draft?.templateId);
   const selectedOffer = offers.find((offer) => offer.id === draft?.offerId);
+  const selectedProperty = properties.find((property) => property.id === draft?.propertyId);
   const categoryNeedsOffer = selectedTemplate?.category_key === "offers";
+  const categoryAllowsProperty = isPropertyCampaignTemplate(selectedTemplate);
   const editableTemplates = templates.filter(
     (template) => template.active && template.placement === active?.placement,
   );
@@ -170,6 +184,13 @@ export function BannersView() {
         offer.business_line === "both" ||
         offer.business_line === active.business_line),
   );
+  const editableProperties = selectedTemplate
+    ? properties.filter((property) => propertyMatchesCampaign(property, selectedTemplate))
+    : [];
+  const propertyOptions =
+    selectedProperty && !editableProperties.some((property) => property.id === selectedProperty.id)
+      ? [selectedProperty, ...editableProperties]
+      : editableProperties;
 
   function closeWorkspace(openState: boolean) {
     if (openState || busy) return;
@@ -208,9 +229,10 @@ export function BannersView() {
       title: draft.title.trim(),
       subtitle: draft.subtitle.trim() || null,
       cta_label: draft.ctaLabel.trim() || null,
-      deep_link: draft.deepLink.trim() || null,
+      deep_link: draft.propertyId ? null : draft.deepLink.trim() || null,
       template_id: banner.placement === "dashboard" ? null : draft.templateId,
       offer_id: categoryNeedsOffer ? draft.offerId : null,
+      property_id: categoryAllowsProperty && draft.propertyId ? draft.propertyId : null,
       priority: Number(draft.priority) || 0,
       starts_at: draft.startsAt ? new Date(draft.startsAt).toISOString() : null,
       ends_at: draft.endsAt ? new Date(draft.endsAt).toISOString() : null,
@@ -376,13 +398,18 @@ export function BannersView() {
                         </div>
                         <div>
                           <Label htmlFor="banner-link">Internal destination</Label>
-                          <Input id="banner-link" value={draft.deepLink} disabled={!EDITABLE.has(active.status)} onChange={(event) => setDraft({ ...draft, deepLink: event.target.value })} />
+                          <Input
+                            id="banner-link"
+                            value={selectedProperty ? propertyCampaignHref(selectedProperty) : draft.deepLink}
+                            disabled={!EDITABLE.has(active.status) || Boolean(selectedProperty)}
+                            onChange={(event) => setDraft({ ...draft, deepLink: event.target.value })}
+                          />
                         </div>
                       </div>
                       {active.placement !== "dashboard" ? (
                         <div>
                           <Label htmlFor="edit-template">Artwork template</Label>
-                          <Select value={draft.templateId || undefined} disabled={!EDITABLE.has(active.status)} onValueChange={(templateId) => setDraft({ ...draft, templateId, offerId: "" })}>
+                          <Select value={draft.templateId || undefined} disabled={!EDITABLE.has(active.status)} onValueChange={(templateId) => setDraft({ ...draft, templateId, offerId: "", propertyId: "" })}>
                             <SelectTrigger id="edit-template"><SelectValue placeholder="Choose a template" /></SelectTrigger>
                             <SelectContent>
                               {editableTemplates.map((template) => (
@@ -401,6 +428,21 @@ export function BannersView() {
                               {editableOffers.map((offer) => <SelectItem key={offer.id} value={offer.id}>{offer.title}</SelectItem>)}
                             </SelectContent>
                           </Select>
+                        </div>
+                      ) : null}
+                      {categoryAllowsProperty ? (
+                        <div>
+                          <Label htmlFor="edit-property">Advertised property (optional)</Label>
+                          <PropertyCampaignSelect
+                            id="edit-property"
+                            properties={propertyOptions}
+                            value={draft.propertyId}
+                            onChange={(propertyId) => setDraft({ ...draft, propertyId })}
+                            disabled={!EDITABLE.has(active.status)}
+                          />
+                          <p className="mt-1 text-xs text-text-secondary">
+                            Property cover art, enquiry destination, and RERA verification are server-controlled.
+                          </p>
                         </div>
                       ) : null}
                       <div className="grid gap-4 sm:grid-cols-3">
@@ -461,10 +503,13 @@ export function BannersView() {
                         banner_type: active.banner_type,
                         title: draft.title,
                         subtitle: draft.subtitle || null,
-                        cta_label: draft.ctaLabel || null,
-                        deep_link: draft.deepLink || null,
-                        image_url: selectedTemplate?.image_url,
+                        cta_label: selectedProperty ? draft.ctaLabel || "Enquire now" : draft.ctaLabel || null,
+                        deep_link: selectedProperty ? propertyCampaignHref(selectedProperty) : draft.deepLink || null,
+                        image_url:
+                          propertyCampaignImage(selectedProperty, selectedTemplate) ??
+                          selectedTemplate?.image_url,
                         offer_badge: formatOfferBadge(selectedOffer),
+                        rera_verified: Boolean(selectedProperty?.active),
                       }}
                     />
                   </CmsPreviewFrame>

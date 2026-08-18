@@ -38,6 +38,7 @@ export function mapPublicBanner(raw: Schemas["PublicBannerRead"]): HeroBanner {
     // above and services/storage.py::public_asset_url).
     image: raw.image_url && isAllowedAssetUrl(raw.image_url) ? raw.image_url : undefined,
     offerBadge: raw.offer_badge ?? undefined,
+    reraVerified: raw.rera_verified || undefined,
     // A CTA needs both a label and a same-origin destination. deep_link is
     // free-text CMS copy that reaches next/link unescaped; an absolute or
     // protocol-relative off-site URL is an open-redirect-shaped surface on a

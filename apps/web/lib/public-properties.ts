@@ -22,6 +22,7 @@ export function mapPublicListing(raw: Schemas["PublicPropertyRead"]): PropertyLi
     price: raw.price_display,
     type: raw.type,
     category: raw.category,
+    propertySubtype: raw.property_subtype ?? undefined,
     meta: raw.meta ?? undefined,
     image:
       media.find((item) => item.kind === "image")?.url ??

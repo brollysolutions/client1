@@ -1,6 +1,6 @@
 import React from "react";
 import Image from "next/image";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, ShieldCheck } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -15,6 +15,7 @@ export type BannerPreviewValue = Pick<
 > & {
   image_url?: string | null;
   offer_badge?: string | null;
+  rera_verified?: boolean;
 };
 export type OfferPreviewValue = Pick<Offer, "title" | "description" | "discount_type" | "discount_value" | "code">;
 export type ContentPreviewValue = Pick<ContentBlock, "title" | "body">;
@@ -62,6 +63,12 @@ export function BannerPreview({ banner, context }: { banner: BannerPreviewValue;
       <div className="absolute inset-0 bg-gradient-to-r from-[var(--nav-bg)] via-[var(--nav-bg)]/70 to-transparent" />
       <div className="relative flex h-full items-center p-6 sm:p-8">
         <div className="max-w-sm">
+          {banner.rera_verified ? (
+            <span className="mb-3 flex w-fit items-center gap-1.5 rounded-full border border-amber-500/50 bg-gradient-to-r from-amber-200 to-yellow-400 px-3 py-1 text-xs font-bold tracking-wide text-amber-950 shadow-sm">
+              <ShieldCheck className="h-3.5 w-3.5" aria-hidden />
+              RERA VERIFIED
+            </span>
+          ) : null}
           {banner.offer_badge ? (
             <span className="mb-3 inline-flex rounded-full bg-white/85 px-3 py-1 text-xs font-semibold text-brand-navy shadow-sm">
               {banner.offer_badge}

@@ -347,6 +347,7 @@ async def approve_submission(
             meta=sub.meta,
             image=sub.image,
             category=sub.category,
+            property_subtype=sub.property_subtype,
             city=sub.city,
             locality=sub.locality,
             pincode=sub.pincode,

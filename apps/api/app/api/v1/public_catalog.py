@@ -15,6 +15,7 @@ every future anonymous read (banner/offer/content serving included).
 from __future__ import annotations
 
 from typing import Literal
+from urllib.parse import urlencode
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -22,6 +23,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.session import get_db
 from app.models.banner import BannerPlacement
 from app.models.offer import Offer
+from app.models.property import Property
 from app.schemas.banners import PublicBannerListResponse, PublicBannerRead
 from app.schemas.content import PublicContentBlockListResponse, PublicContentBlockRead
 from app.schemas.offers import PublicOfferListResponse, PublicOfferRead
@@ -55,6 +57,11 @@ def _offer_badge(offer: Offer) -> str:
     return f"{offer.title} · {discount}" + (f" · Code {offer.code}" if offer.code else "")
 
 
+def _property_enquiry_href(property_listing: Property) -> str:
+    product = f"{property_listing.title}, {property_listing.location}"[:120]
+    return f"/contact?{urlencode({'line': 'real_estate', 'product': product})}"
+
+
 @router.get("/properties", response_model=PublicPropertyListResponse)
 async def list_properties_public(
     db: AsyncSession = Depends(get_db),
@@ -78,30 +85,51 @@ async def list_banners_public(
     db: AsyncSession = Depends(get_db),
 ) -> PublicBannerListResponse:
     banners = await list_public_banners(db, BannerPlacement(placement))
+    linked_property_ids = [
+        property_listing.id for _, _, _, property_listing in banners if property_listing is not None
+    ]
+    property_media = await media_urls_by_property(db, linked_property_ids)
     # Not a blind model_validate like the other three list routes below:
     # image_url isn't a column, it's computed from image_key through
     # storage.public_asset_url (None for anything outside public/ -- see that
     # function's docstring). image_key itself never reaches PublicBannerRead.
-    return PublicBannerListResponse(
-        banners=[
+    response: list[PublicBannerRead] = []
+    for banner, template, offer, property_listing in banners:
+        template_url = template_image_url(template.image_ref) if template is not None else None
+        linked_media = property_media.get(property_listing.id, []) if property_listing else []
+        response.append(
             PublicBannerRead(
                 id=banner.id,
                 title=banner.title,
                 subtitle=banner.subtitle,
-                cta_label=banner.cta_label,
-                deep_link=banner.deep_link,
+                cta_label=(
+                    (banner.cta_label or "Enquire now") if property_listing else banner.cta_label
+                ),
+                deep_link=(
+                    _property_enquiry_href(property_listing)
+                    if property_listing is not None
+                    else banner.deep_link
+                ),
                 image_url=(
-                    template_image_url(template.image_ref)
-                    if template is not None
+                    template_url
+                    if property_listing is not None
+                    and banner.placement == BannerPlacement.PROPERTIES
+                    and template_url is not None
+                    else linked_media[0]
+                    if linked_media
+                    else template_url
+                    if template_url is not None
                     else storage.public_asset_url(banner.image_key)
                     if banner.image_key
                     else None
                 ),
                 offer_badge=_offer_badge(offer) if offer is not None else None,
+                rera_verified=bool(
+                    property_listing is not None and property_listing.rera_number.strip()
+                ),
             )
-            for banner, template, offer in banners
-        ]
-    )
+        )
+    return PublicBannerListResponse(banners=response)
 
 
 @router.get("/offers", response_model=PublicOfferListResponse)

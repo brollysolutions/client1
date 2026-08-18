@@ -12,6 +12,7 @@ import { getPublicOffers } from "@/lib/public-offers";
 import { getHeroBanners } from "@/lib/public-banners";
 import { getPublicListings } from "@/lib/public-properties";
 import { groupByCategory, PROPERTY_CATEGORIES } from "@/lib/properties";
+import { propertySubtypeOption } from "@/lib/property-taxonomy";
 import { SITE_NAME, SITE_URL } from "@/lib/site";
 
 // First server-side data fetch on the public site. Regenerated at most every
@@ -62,7 +63,11 @@ const realEstateJsonLd = {
   publisher: { "@type": "Organization", name: SITE_NAME, url: SITE_URL },
 };
 
-export default async function RealEstatePage() {
+export default async function RealEstatePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ property_type?: string | string[] }>;
+}) {
   // Parallel, not sequential: two independent 5s serverFetchJson timeouts
   // should not stack on a single page render.
   const [listings, offers, banners] = await Promise.all([
@@ -70,7 +75,15 @@ export default async function RealEstatePage() {
     getPublicOffers(),
     getHeroBanners("properties"),
   ]);
-  const grouped = groupByCategory(listings);
+  const params = await searchParams;
+  const requestedSubtype = Array.isArray(params.property_type)
+    ? params.property_type[0]
+    : params.property_type;
+  const selectedSubtype = propertySubtypeOption(requestedSubtype);
+  const visibleListings = selectedSubtype
+    ? listings.filter((listing) => listing.propertySubtype === selectedSubtype.value)
+    : listings;
+  const grouped = groupByCategory(visibleListings);
   // Only render category rows that actually have listings (empty-state guard,
   // so a category with nothing to show does not render an empty scroller).
   const populatedCategories = PROPERTY_CATEGORIES.filter(
@@ -98,7 +111,14 @@ export default async function RealEstatePage() {
             <div className="relative w-full border-t border-[var(--nav-border)] bg-[var(--nav-bg)] py-20 sm:py-24 lg:py-28">
               <PropertyDoodles />
               <div className="relative z-10 space-y-16 sm:space-y-20">
-                {populatedCategories.length > 0 ? (
+                {selectedSubtype && visibleListings.length > 0 ? (
+                  <PropertyRow
+                    id={selectedSubtype.value}
+                    heading={selectedSubtype.label}
+                    types={`Explore verified ${selectedSubtype.label.toLowerCase()} available now.`}
+                    listings={visibleListings}
+                  />
+                ) : populatedCategories.length > 0 ? (
                   populatedCategories.map((category) => (
                     <PropertyRow
                       key={category.key}

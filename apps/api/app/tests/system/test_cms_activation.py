@@ -52,6 +52,7 @@ async def _seed_banner(
     category_key: str | None = None,
     replaces_banner_id: str | None = None,
     offer_id: str | None = None,
+    property_id: str | None = None,
 ) -> str:
     import app.db.session as _session_mod
 
@@ -62,6 +63,7 @@ async def _seed_banner(
             category_key=category_key,
             replaces_banner_id=uuid.UUID(replaces_banner_id) if replaces_banner_id else None,
             offer_id=uuid.UUID(offer_id) if offer_id else None,
+            property_id=uuid.UUID(property_id) if property_id else None,
             title=f"CMS activation test {uuid.uuid4()}",
             status=status,
             created_by_uuid=uuid.UUID(author),
@@ -71,6 +73,32 @@ async def _seed_banner(
         db.add(banner)
         await db.commit()
         return str(banner.id)
+
+
+async def _seed_property(*, active: bool) -> str:
+    import app.db.session as _session_mod
+    from app.models.property import Property
+
+    async with _session_mod.AsyncSessionLocal() as db:
+        property_listing = Property(
+            business_line="real_estate",
+            active=active,
+            title="Activation property",
+            type="Villa",
+            location="Kokapet, Hyderabad",
+            price_display="₹2 Cr",
+            category="villas",
+            city="Hyderabad",
+            locality="Kokapet",
+            pincode="500075",
+            price_paise=20_000_000_00,
+            furnishing="furnished",
+            construction_status="ready",
+            rera_number="RERA/TS/2026/0043",
+        )
+        db.add(property_listing)
+        await db.commit()
+        return str(property_listing.id)
 
 
 async def _seed_offer(
@@ -134,6 +162,17 @@ async def _delete_offers(*offer_ids: str) -> None:
         await db.commit()
 
 
+async def _delete_properties(*property_ids: str) -> None:
+    import app.db.session as _session_mod
+    from app.models.property import Property
+
+    async with _session_mod.AsyncSessionLocal() as db:
+        await db.execute(
+            delete(Property).where(Property.id.in_([uuid.UUID(i) for i in property_ids]))
+        )
+        await db.commit()
+
+
 @pytest.mark.asyncio
 async def test_approved_banner_with_past_start_goes_live(client: AsyncClient) -> None:
     author = await _author_uuid(client)
@@ -167,6 +206,23 @@ async def test_approved_banner_with_future_start_stays_approved(client: AsyncCli
         assert await _banner_status(banner_id) == "approved"
     finally:
         await _delete_banners(banner_id)
+
+
+@pytest.mark.asyncio
+async def test_approved_banner_with_inactive_property_stays_approved(client: AsyncClient) -> None:
+    author = await _author_uuid(client)
+    property_id = await _seed_property(active=False)
+    banner_id = await _seed_banner(
+        author=author,
+        status=BannerStatus.APPROVED,
+        property_id=property_id,
+    )
+    try:
+        await cms_activation()
+        assert await _banner_status(banner_id) == "approved"
+    finally:
+        await _delete_banners(banner_id)
+        await _delete_properties(property_id)
 
 
 @pytest.mark.asyncio

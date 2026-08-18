@@ -16,6 +16,9 @@ import type { components } from "@contracts/generated/schema";
 // backend adds later is a compile error here (a missing CATEGORY_COPY key),
 // not a listing that silently never renders.
 export type PropertyCategory = components["schemas"]["PublicPropertyRead"]["category"];
+export type PropertySubtype = NonNullable<
+  components["schemas"]["PublicPropertyRead"]["property_subtype"]
+>;
 export type PropertyMediaItem = components["schemas"]["PropertyMediaRead"];
 
 export type PropertyListing = {
@@ -27,6 +30,8 @@ export type PropertyListing = {
   type: string; // display badge: "Apartment" | "Plot" | "Office" ...
   /** Category the listing is grouped under on the Properties page. */
   category: PropertyCategory;
+  /** Structured navigation and campaign subtype. Missing only on legacy listings. */
+  propertySubtype?: PropertySubtype;
   meta?: string; // "2 bed · 1,120 sqft"
   /** Resolved image URL; undefined ⇒ cream placeholder band. */
   image?: string;
