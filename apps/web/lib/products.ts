@@ -54,13 +54,14 @@ export type ProductBand = {
   /** Section anchor. Must never collide with any Product id. */
   id: string;
   heading: string;
+  /** One-line intro rendered under the band heading. */
+  description?: string;
   products: Product[];
   /** Solid-blue advisor CTA rendered as the final tile of this band. */
   cta?: { title: string; text: string; label: string };
-  /** Trust points rendered as a wide banner tile (spans the row's remaining
-   *  columns at lg) as the final tile of this band. A band should set at
-   *  most one of `cta`/`trust`, not both. */
-  trust?: { eyebrow?: string; points: TrustPoint[] };
+  /** Product pulled out of the band grid and rendered as a full-width
+   *  horizontal feature card after it. Must be an id from `products`. */
+  featureProductId?: string;
 };
 
 export type JourneyStep = {
@@ -269,6 +270,8 @@ export const LOAN_PRODUCT_BANDS: ProductBand[] = [
   {
     id: "loans",
     heading: "Loans",
+    description:
+      "Eleven ways to borrow, from a quick personal loan to funding a whole project.",
     products: LOAN_PRODUCTS.filter((p) => p.group === "loans"),
     cta: {
       title: "Not sure which loan fits?",
@@ -279,15 +282,17 @@ export const LOAN_PRODUCT_BANDS: ProductBand[] = [
   {
     id: "insurance",
     heading: "Cards and insurance",
+    description:
+      "Protect what matters and spend smarter, through the same verified partners.",
     products: LOAN_PRODUCTS.filter(
       (p) => p.group === "insurance" || p.group === "credit-cards",
     ),
-    // Renders as a wide tile beside the Credit Cards card, spanning this
-    // band's remaining grid columns (see product-page.tsx). Replaces the
-    // standalone TrustStrip that used to sit below the whole products
-    // section — /loans is now the only ProductPage consumer of trust
-    // content, so there is no longer a separate section-level strip.
-    trust: { eyebrow: "Why people trust us", points: LOAN_TRUST },
+    // Credit Cards leaves this band's grid and renders as the full-width
+    // feature card under the four insurance cards (see product-page.tsx).
+    // The "Why people trust us" content that used to sit inside this band
+    // now renders as a section-level TrustStrip below the whole grid,
+    // passed to ProductPage by app/(public)/loans/page.tsx.
+    featureProductId: "credit-cards",
   },
 ];
 

@@ -6,7 +6,7 @@ import { ProductPage } from "@/components/product-page";
 import { faqPageJsonLd, LOAN_FAQ_ITEMS } from "@/lib/faq";
 import { getPublicOffers } from "@/lib/public-offers";
 import { getHeroBanners } from "@/lib/public-banners";
-import { LOAN_JOURNEY, LOAN_PRODUCT_BANDS } from "@/lib/products";
+import { LOAN_JOURNEY, LOAN_PRODUCT_BANDS, LOAN_TRUST } from "@/lib/products";
 import { SITE_NAME, SITE_URL } from "@/lib/site";
 
 // First server-side data fetch on this page. Matches /real-estate's ISR
@@ -93,10 +93,13 @@ export default async function LoansPage() {
             />
           ) : null
         }
+        productsEyebrow="Financial services"
         productsHeading="Explore our services"
+        productsSubheading="Sixteen products across loans, credit cards, and insurance. Pick one to see how it works, or ask us and we will point you right."
         productColumns={4}
         productDoodles
         productBands={LOAN_PRODUCT_BANDS}
+        productsTrust={{ eyebrow: "Why people trust us", points: LOAN_TRUST }}
         beforeJourney={
           <OfferStrip
             offers={offers}
