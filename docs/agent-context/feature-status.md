@@ -9,6 +9,35 @@ Evidence baseline: `abcc1fd`
 verified Admin operational-visibility work in
 [PR #173](https://github.com/brollysolutions/client1/pull/173).
 
+**Done — /loans "Explore our services" redesign (public UI, no requirement
+change):** on `feat/loans-services-redesign`, all 16 product-card
+illustrations were redrawn as one cohesive real-color family (shared
+halo/shadow/sparkle scaffold; leather browns, note greens, terracotta roofs,
+and gold rupee accents), replacing a first all-blue duotone pass the user
+rejected mid-review. The section now carries an eyebrow/subheading header,
+per-band intro copy with an accent bar and product-count chip, and refined
+card hover states. The "Cards and insurance" band shows its four insurance
+products in one row with Credit Cards as a full-width spotlight card at sm+
+that collapses to a standard stacked product card on phones, per user
+feedback; the "Why people trust us" content moved from inside that band to
+the section-level `TrustStrip` below the whole grid (`ProductBand.trust`
+retired; `ProductPage.productsTrust` and `ProductBand.featureProductId`
+added). A real alignment defect was fixed: the Home Loan card's empty legacy
+`property-loan` anchor span was a child of the Card's `gap-6` flex column and
+pushed that card's illustration 24px below its siblings; anchor spans are now
+absolutely positioned. The offers strip already returned `null` with no
+matching live offers — behavior confirmed and locked by a new
+`components/offer-strip.test.tsx` (the explicit namespace React imports added
+to `offer-strip.tsx`/`lead-dialog.tsx` only serve the vitest classic-JSX
+setup, matching `hero-carousel.tsx`). No route, API, contract, migration, or
+RLS change. Fresh evidence: web ESLint, strict typecheck, and all 390 unit
+tests pass; the production build compiles, typechecks, and generates all 93
+pages before the known Windows standalone `EPERM` symlink failure. Live
+browser checks at 1440px and 390px against the running dev stack verified
+band layout, illustration fidelity and alignment, spotlight/stacked
+credit-card behavior, anchors, trust strip placement, and the live offers
+strip with no console errors.
+
 **Done — property-backed public banners, property taxonomy, and full-bleed
 carousel polish:** `feat/starter-banner-ctas`
 ([PR #195](https://github.com/brollysolutions/client1/pull/195)) preserves the

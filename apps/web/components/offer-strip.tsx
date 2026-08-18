@@ -1,3 +1,7 @@
+// Explicit React import (matching hero-carousel.tsx) so the classic JSX
+// transform used by the vitest setup can render this component in tests.
+import * as React from "react";
+
 import { LeadDialog } from "@/components/lead-dialog";
 import { Card, CardContent } from "@/components/ui/card";
 import { contactHref } from "@/lib/leads";
