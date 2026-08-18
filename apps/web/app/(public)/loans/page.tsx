@@ -1,10 +1,8 @@
 import type { Metadata } from "next";
 
-import { OfferStrip } from "@/components/offer-strip";
 import { HeroCarousel } from "@/components/hero-carousel";
 import { ProductPage } from "@/components/product-page";
 import { faqPageJsonLd, LOAN_FAQ_ITEMS } from "@/lib/faq";
-import { getPublicOffers } from "@/lib/public-offers";
 import { getHeroBanners } from "@/lib/public-banners";
 import { LOAN_JOURNEY, LOAN_PRODUCT_BANDS, LOAN_TRUST } from "@/lib/products";
 import { SITE_NAME, SITE_URL } from "@/lib/site";
@@ -69,10 +67,7 @@ const loansJsonLd = {
 };
 
 export default async function LoansPage() {
-  const [offers, banners] = await Promise.all([
-    getPublicOffers(),
-    getHeroBanners("financial_services"),
-  ]);
+  const banners = await getHeroBanners("financial_services");
 
   return (
     <>
@@ -93,21 +88,12 @@ export default async function LoansPage() {
             />
           ) : null
         }
-        productsEyebrow="Financial services"
-        productsHeading="Explore our services"
+        productsHeading="Explore our financial services"
         productsSubheading="Sixteen products across loans, credit cards, and insurance. Pick one to see how it works, or ask us and we will point you right."
         productColumns={4}
         productDoodles
         productBands={LOAN_PRODUCT_BANDS}
         productsTrust={{ eyebrow: "Why people trust us", points: LOAN_TRUST }}
-        beforeJourney={
-          <OfferStrip
-            offers={offers}
-            line="loans"
-            heading="Offers running right now"
-            subheading="Live discounts on the loans, cards, and insurance we help you apply for."
-          />
-        }
         journeyHeading="What happens when you apply?"
         journey={LOAN_JOURNEY}
         journeyTimeline

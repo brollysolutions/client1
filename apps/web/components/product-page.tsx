@@ -39,8 +39,6 @@ export type ProductPageProps = {
   heroPlant?: string;
   /** Products grid heading. Omit (with no `products`) to skip the grid entirely. */
   productsHeading?: string;
-  /** Small uppercase eyebrow above the products heading. */
-  productsEyebrow?: string;
   /** Optional supporting line under the products heading. */
   productsSubheading?: string;
   /** Trust points rendered as a full-width TrustStrip at the foot of the
@@ -81,7 +79,6 @@ export function ProductPage({
   heroDoodles = false,
   heroPlant,
   productsHeading,
-  productsEyebrow,
   productsSubheading,
   productsTrust,
   productColumns = 3,
@@ -148,17 +145,7 @@ export function ProductPage({
       <section className="relative w-full overflow-hidden border-t border-[var(--nav-border)] bg-[var(--nav-bg)]">
         {productDoodles ? <ProductDoodles /> : null}
         <div className="relative z-10 mx-auto max-w-7xl px-4 py-20 sm:px-6 sm:py-24 lg:px-8">
-          {productsEyebrow ? (
-            <p className="text-center font-geist text-xs font-semibold uppercase tracking-[0.2em] text-brand-blue">
-              {productsEyebrow}
-            </p>
-          ) : null}
-          <h2
-            className={cn(
-              "mx-auto max-w-2xl text-center font-heading text-3xl font-semibold text-foreground sm:text-4xl",
-              productsEyebrow && "mt-3",
-            )}
-          >
+          <h2 className="mx-auto max-w-2xl text-center font-heading text-3xl font-semibold text-foreground sm:text-4xl">
             {productsHeading}
           </h2>
           {productsSubheading ? (
@@ -365,9 +352,6 @@ export function ProductPage({
                       </div>
                     ) : null}
                     <div className="flex flex-col items-start gap-2 p-6 sm:justify-center sm:gap-4 sm:p-8 lg:p-10">
-                      <span className="hidden rounded-full bg-[var(--nav-tint)] px-3 py-1 font-geist text-xs font-semibold uppercase tracking-[0.12em] text-brand-blue sm:inline-block">
-                        In the spotlight
-                      </span>
                       <h4 className="font-heading text-lg font-semibold text-foreground sm:text-3xl">
                         {featured.label}
                       </h4>
