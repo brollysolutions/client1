@@ -15,15 +15,15 @@ import type { HeroBanner } from "@/lib/banners";
 // hero, fed by the `homepage_ad` banner placement.
 //
 // The artwork occupies the leading panel and the copy sits on a soft brand-tint
-// surface beside it. The explicit Sponsored eyebrow, border and dismiss
-// affordance keep paid content distinguishable from the first-party hero
-// without falling back to the previous white card treatment.
+// surface beside it. The explicit Sponsored eyebrow, inset stage, accent sweep
+// and dismiss affordance keep paid content distinguishable from the first-party
+// hero without falling back to the previous white card treatment.
 //
 // Exactly one sponsor shows at a time, so this is NOT a carousel: no Embla, no
 // autoplay, no arrows, nothing to pause for reduced motion. The "one at a time"
 // rule is enforced upstream by the database --
 // uq_banners_live_placement_category permits a single LIVE banner per
-// (placement, category_key), and this placement seeds exactly one key.
+// placement, regardless of its selected category/theme.
 //
 // The next sponsor is queued rather than rotated: a Sub Admin authors a
 // replacement naming the incumbent, Admin approves it, and the cms_activation
@@ -46,29 +46,33 @@ export function AdStrip({
       aria-label="Sponsored"
       data-layout="ad-strip"
       data-presentation="split-sponsor-card"
-      className="relative isolate h-[152px] w-full overflow-hidden border-y border-brand-blue/15 bg-[#f7f2e9] sm:h-[176px] lg:h-[208px]"
+      className="relative isolate h-[152px] w-full overflow-hidden border-y border-brand-blue/15 bg-[#f7f2e9] px-1.5 py-1.5 sm:h-[176px] sm:px-2 sm:py-2 lg:h-[208px]"
     >
-      <div className="flex h-full w-full">
-        <div className="relative w-[36%] shrink-0 bg-[#dcecf2] sm:w-[42%] lg:w-[44%]">
+      <div className="relative flex h-full w-full overflow-hidden rounded-xl border border-brand-blue/15 bg-[linear-gradient(135deg,#eef6f8_0%,#f7f2e9_55%,#e2eef3_100%)] shadow-[0_12px_28px_-22px_rgba(10,56,88,0.8)] sm:rounded-2xl">
+        <div
+          aria-hidden
+          className="sponsor-accent-sweep pointer-events-none absolute -top-px left-0 z-20 h-0.5 w-[28%] bg-brand-blue/80"
+        />
+        <div className="relative w-[40%] shrink-0 bg-[#dcecf2] sm:aspect-video sm:h-full sm:w-[284px] lg:w-[341px]">
           {banner.image ? (
             <Image
               src={banner.image}
               alt=""
               fill
               priority
-              sizes="(min-width: 1024px) 44vw, (min-width: 640px) 42vw, 36vw"
-              className="object-cover"
+              sizes="(min-width: 1024px) 341px, (min-width: 640px) 284px, 40vw"
+              className="object-contain p-1 sm:object-cover sm:p-0"
               // Same reasoning as hero-carousel.tsx: /_next/image is fetched
               // server-side by the web process, which cannot resolve the
               // browser-only public asset host that Admin-uploaded artwork points at.
               unoptimized
             />
           ) : null}
-          <div className="absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-[#f7f2e9] to-transparent sm:w-12" />
+          <div className="absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-[#f7f2e9]/90 to-transparent sm:w-12" />
         </div>
         <div className="flex min-w-0 flex-1 items-center px-4 py-3 pr-12 sm:px-8 sm:py-5 sm:pr-16 lg:px-12">
           <div className="min-w-0 max-w-2xl">
-            <span className="inline-flex rounded-full border border-brand-blue/20 bg-white/70 px-2.5 py-1 font-geist text-[9px] font-semibold uppercase tracking-[0.18em] text-brand-blue shadow-sm backdrop-blur-sm sm:text-[10px]">
+            <span className="inline-flex rounded-full border border-brand-blue/20 bg-brand-blue px-2.5 py-1 font-geist text-[9px] font-semibold uppercase tracking-[0.18em] text-white shadow-sm sm:text-[10px]">
               Sponsored
             </span>
             {/* A <p>, never a heading: this is an ad above the hero, and a
@@ -100,7 +104,7 @@ export function AdStrip({
           type="button"
           onClick={() => setDismissed(true)}
           aria-label="Dismiss sponsored message"
-          className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full border border-brand-blue/15 bg-white/70 text-text-secondary shadow-sm backdrop-blur-sm transition-colors hover:bg-white hover:text-[var(--nav-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nav-primary)] sm:right-4 sm:top-4"
+          className="absolute right-3 top-3 z-30 flex h-8 w-8 items-center justify-center rounded-full border border-brand-blue/15 bg-white/80 text-text-secondary shadow-sm backdrop-blur-sm transition-colors hover:bg-white hover:text-[var(--nav-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nav-primary)] sm:right-4 sm:top-4"
         >
           <X className="h-4 w-4" aria-hidden />
         </button>

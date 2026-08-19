@@ -9,6 +9,32 @@ Evidence baseline: `abcc1fd`
 verified Admin operational-visibility work in
 [PR #173](https://github.com/brollysolutions/client1/pull/173).
 
+**Done — sponsor spotlight, section scroll cue, and Loans category declutter
+(PR pending; FR-2.3, FR-6.1; completion coverage unchanged):** The public
+sponsor remains a single, clearly disclosed and non-autoplaying campaign, but
+now uses a bordered inset spotlight stage, restrained transform/opacity accent,
+and source-faithful sponsor-art composition. The governed 960x540 creative is
+contained on phones and occupies exact 16:9 rails at tablet/desktop widths,
+rather than being forced into a wider cover crop. No artwork, template,
+Sub-Admin authority, API, RLS, migration, or generated contract changed.
+
+Financial Services and Properties section banners now present one functional,
+focusable two-chevron cue in their existing gap. It is a real `#page-overview`
+anchor with scroll margin and a visible focus ring; the previous permanent-hero
+cue is suppressed only when a section banner provides the new cue. All new
+motion is transform/opacity-only and static under `prefers-reduced-motion`.
+On Loans, only the descriptions below “Loans” and “Cards and insurance”, plus
+their 11/5-product pills, were removed; product content and the section-level
+supporting copy remain intact.
+
+Fresh evidence: focused sponsor/carousel/product rendering tests and the full
+web suite pass (52 files, 372 tests); web lint and strict typecheck pass. The
+production build compiled, typechecked, and generated all 93 pages, then
+failed in its known Windows standalone-symlink `EPERM` tail; host-side public
+fetches also cannot resolve the Docker-only `api` hostname. Design, security,
+and final diff review found no actionable issue. Next priority: publish the
+branch PR and attach its URL to this record.
+
 **Done — governed homepage sponsor themes and public banner presentation
 refinement ([PR #201](https://github.com/brollysolutions/client1/pull/201);
 FR-2.3, FR-12.1-FR-12.3; completion coverage unchanged):**

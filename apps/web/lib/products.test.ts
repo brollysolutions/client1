@@ -78,6 +78,13 @@ describe("LOAN_PRODUCTS", () => {
 });
 
 describe("LOAN_PRODUCT_BANDS", () => {
+  it("keeps the requested category descriptions out of the Loans page", () => {
+    expect(LOAN_PRODUCT_BANDS.map((band) => band.description)).toEqual([
+      undefined,
+      undefined,
+    ]);
+  });
+
   it("never uses a band id that collides with a product id", () => {
     const productIds = new Set(LOAN_PRODUCTS.map((p) => p.id));
     for (const band of LOAN_PRODUCT_BANDS) {

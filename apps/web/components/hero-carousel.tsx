@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { ShieldCheck } from "lucide-react";
+import { ChevronDown, ShieldCheck } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -299,6 +299,24 @@ export function HeroCarousel({
           </>
         )}
       </Carousel>
+
+      {variant === "section" ? (
+        <a
+          href="#page-overview"
+          aria-label="Scroll to page overview"
+          className="absolute bottom-0 left-1/2 z-20 grid h-11 w-11 -translate-x-1/2 translate-y-1/2 place-items-center rounded-full border border-brand-blue/20 bg-[var(--nav-bg)] text-brand-blue shadow-[0_8px_18px_-12px_rgba(10,56,88,0.8)] transition-[background-color,box-shadow] hover:bg-[#eaf3f7] hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue focus-visible:ring-offset-2 motion-reduce:transition-none"
+        >
+          <span className="sr-only">Scroll to page overview</span>
+          <ChevronDown
+            aria-hidden
+            className="section-scroll-cue-first absolute h-4 w-4 -translate-y-1 text-brand-blue"
+          />
+          <ChevronDown
+            aria-hidden
+            className="section-scroll-cue-second absolute h-4 w-4 translate-y-1 text-brand-blue"
+          />
+        </a>
+      ) : null}
 
       {/* Dot indicators — overlaid on the bottom of the full-screen slide, so
           they do not add height beneath a banner that already fills the screen.
