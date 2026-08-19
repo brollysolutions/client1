@@ -9,6 +9,20 @@ Evidence baseline: `abcc1fd`
 verified Admin operational-visibility work in
 [PR #173](https://github.com/brollysolutions/client1/pull/173).
 
+**Done - DhanaDhara DD logo exploration board (brand design document; PR link
+pending; completion coverage unchanged):** added one self-contained SVG board
+with 12 original DD constructions across three visual families, six wordmark/font
+directions, the current palette, a 16-96 px reduction lab, and a client-shortlist
+area. The SVG parses with a `0 0 1800 2600` view box, exposes 12 labeled concept
+groups and 12 reusable mark symbols, includes title/description metadata, and has
+no scripts, inline event handlers, or remote asset references. Playwright renders
+at 900 x 1300 and 450 x 650 were visually reviewed; the feature-tracking check
+passes. Per the client's revised direction, application pages and runtime branding
+remain unchanged, as do routes, APIs, contracts, authorization/RLS, data,
+workflows, dependencies, and business-line behavior. Selection, trademark
+clearance, and application integration remain follow-up work; the next product
+priority remains the FR-2.2 controlled-correction/audit follow-up.
+
 **Done — Starlette HTTP 422 deprecation cleanup
 ([PR #205](https://github.com/brollysolutions/client1/pull/205); maintenance;
 completion coverage unchanged):** all 68 production references across 19 API
