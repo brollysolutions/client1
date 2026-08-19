@@ -9,8 +9,9 @@ Evidence baseline: `abcc1fd`
 verified Admin operational-visibility work in
 [PR #173](https://github.com/brollysolutions/client1/pull/173).
 
-**Done - DhanaDhara DD logo exploration board (brand design document; PR link
-pending; completion coverage unchanged):** added one self-contained SVG board
+**Done - DhanaDhara DD logo exploration board
+([PR #206](https://github.com/brollysolutions/client1/pull/206); brand design
+document; completion coverage unchanged):** added one self-contained SVG board
 with 12 original DD constructions across three visual families, six wordmark/font
 directions, the current palette, a 16-96 px reduction lab, and a client-shortlist
 area. The SVG parses with a `0 0 1800 2600` view box, exposes 12 labeled concept
