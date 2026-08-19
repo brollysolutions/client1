@@ -418,6 +418,28 @@ async def test_other_sub_admin_can_edit_and_submit_shared_draft(client: AsyncCli
 
 
 @pytest.mark.asyncio
+async def test_cross_line_banner_can_be_authored(client: AsyncClient) -> None:
+    """A banner may target both lines, and saying so must not 500.
+
+    ck_banners_business_line_content_audience allows 'both' for content rows,
+    but create_banner forwards the banner's line into the audit entry and
+    ck_audit_log_business_line_optional_operational allows only a concrete line
+    or NULL. Every other banner test uses a concrete line, so this path was
+    unexercised until now; services/audit_log.py::record normalizes it.
+    """
+    _, mobile = await full_registration(client, lines=["loans"])
+    uid = await _auth_user_uuid(mobile)
+
+    created = await client.post(
+        "/api/v1/banners",
+        json={**_PAYLOAD, "business_line": "both"},
+        headers={"Authorization": f"Bearer {_sub_admin_token(uid)}"},
+    )
+    assert created.status_code == 201, created.text
+    assert created.json()["business_line"] == "both"
+
+
+@pytest.mark.asyncio
 async def test_sponsor_strip_campaign_is_not_locked_to_one_business_line(
     client: AsyncClient,
 ) -> None:

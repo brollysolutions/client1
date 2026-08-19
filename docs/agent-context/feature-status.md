@@ -9,6 +9,32 @@ Evidence baseline: `abcc1fd`
 verified Admin operational-visibility work in
 [PR #173](https://github.com/brollysolutions/client1/pull/173).
 
+**Done — cross-line banner and offer authoring no longer 500s (defect fix, no
+requirement change):** creating any banner or offer with `business_line: "both"`
+returned a 500. `ck_banners_business_line_content_audience` (and its offers
+twin) deliberately allow cross-line content rows, but the services forward the
+entity's own line into `services/audit_log.py::record`, and
+`ck_audit_log_business_line_optional_operational` allows only a concrete line or
+NULL — migration `a3b4c5d6e7f8` even asserted zero pre-existing `both` audit
+rows. Every existing banner/offer test used a concrete line, so the path was
+unexercised until the sponsor-ad work hit it.
+
+Fixed in `record()` rather than at the ~40 call sites: an audit entry's line is
+a SCOPE, so a cross-line action is recorded as line-neutral (NULL), which is the
+honest value when neither line is true. The alternative is the same ternary
+repeated at every caller with a 500 waiting behind whichever one is forgotten.
+Operational tables are constrained to a concrete line in the database, so the
+normalization cannot mask a mis-scoped operational row, and the Admin read
+filter was already typed `Literal["loans", "real_estate"] | None`, so no
+read-side change was needed. No schema, contract, RLS or endpoint change.
+
+Fresh evidence: both new tests were confirmed RED against the unfixed code and
+green after (a unit test asserting `both` is stored as NULL and a concrete line
+is untouched, plus an end-to-end test authoring a cross-line banner through the
+real API). Ruff check and format pass across 455 files; 137 audit / banner /
+offer / classification-contract tests and a further 36 admin-suite tests that
+write audit rows all pass.
+
 **Done — homepage sponsor ad slot (FR-2.3, FR-12.1; extends already-Complete
 requirements, so completion coverage is unchanged):** `feat/homepage-ad-strip`
 adds a sponsored ad above the Home page hero as a full-bleed leaderboard band:

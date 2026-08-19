@@ -609,3 +609,60 @@ async def test_rolled_back_action_leaves_no_audit_entry() -> None:
             text("SELECT count(*) FROM audit_log WHERE entity_uuid = :e"), {"e": marker}
         )
     assert found == 0
+
+
+@pytest.mark.asyncio
+async def test_cross_line_action_is_recorded_as_line_neutral() -> None:
+    """A cross-line entity must not blow up the audit write.
+
+    Banners and offers may legitimately be `both`
+    (ck_banners_business_line_content_audience), but an audit row's line is a
+    scope, and ck_audit_log_business_line_optional_operational allows only a
+    concrete line or NULL. Callers forward their entity's own column, so
+    record() normalizes `both` to NULL -- without that, authoring any
+    cross-line banner raised a CheckViolation and surfaced as a 500.
+    """
+    import app.db.session as _session_mod
+
+    marker = uuid.uuid4()
+    async with _session_mod.AsyncSessionLocal() as db:
+        entry = await record(
+            db,
+            action=AuditAction.BANNER_CREATED,
+            entity_type="banner",
+            entity_uuid=marker,
+            actor_uuid=None,
+            actor_role=None,
+            business_line="both",
+        )
+        assert entry.business_line is None
+        await db.commit()
+
+    async with _session_mod.AsyncSessionLocal() as db:
+        stored = await db.scalar(
+            text("SELECT business_line FROM audit_log WHERE entity_uuid = :e"), {"e": str(marker)}
+        )
+        assert stored is None
+        await db.execute(text("DELETE FROM audit_log WHERE entity_uuid = :e"), {"e": str(marker)})
+        await db.commit()
+
+
+@pytest.mark.asyncio
+async def test_concrete_lines_are_recorded_unchanged() -> None:
+    """The normalization above must not touch an ordinary line-scoped entry."""
+    import app.db.session as _session_mod
+
+    marker = uuid.uuid4()
+    async with _session_mod.AsyncSessionLocal() as db:
+        entry = await record(
+            db,
+            action=AuditAction.BANNER_CREATED,
+            entity_type="banner",
+            entity_uuid=marker,
+            actor_uuid=None,
+            actor_role=None,
+            business_line="loans",
+        )
+        assert entry.business_line == "loans"
+        await db.execute(text("DELETE FROM audit_log WHERE entity_uuid = :e"), {"e": str(marker)})
+        await db.commit()
