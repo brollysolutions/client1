@@ -10,8 +10,9 @@ verified Admin operational-visibility work in
 [PR #173](https://github.com/brollysolutions/client1/pull/173).
 
 **Done — governed homepage sponsor themes and public banner presentation
-refinement (FR-2.3, FR-12.1-FR-12.3; completion coverage unchanged; PR
-pending):** `codex/20260819-060544-reconnect-mcps` refines the existing sponsor
+refinement ([PR #201](https://github.com/brollysolutions/client1/pull/201);
+FR-2.3, FR-12.1-FR-12.3; completion coverage unchanged):**
+`codex/20260819-060544-reconnect-mcps` refines the existing sponsor
 slot into the user-selected compact split composition: text-free artwork fills
 the left panel and authored campaign copy/CTA occupies the right. The card is
 152px on phones, 176px at tablet width, and 208px on desktop, retains the
