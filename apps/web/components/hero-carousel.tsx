@@ -130,7 +130,10 @@ export function HeroCarousel({
       onBlurCapture={(event) => {
         if (!event.currentTarget.contains(event.relatedTarget)) setInteractionPaused(false);
       }}
-      className="relative w-full border-0 bg-[var(--nav-bg)] p-0"
+      className={cn(
+        "relative w-full border-0 bg-[var(--nav-bg)] p-0",
+        variant === "section" && "mb-4 sm:mb-5 lg:mb-6",
+      )}
     >
       <Carousel
         setApi={setApi}
@@ -164,7 +167,7 @@ export function HeroCarousel({
                     "relative w-full overflow-hidden bg-[var(--nav-bg)]",
                     variant === "hero"
                       ? "h-[calc(100svh-4rem)] min-h-[420px]"
-                      : "h-[36vw] sm:h-[272px] lg:h-[416px]",
+                      : "h-[clamp(14rem,36vw,32.5rem)]",
                   )}
                 >
                   {/* Media layer: real landscape image fills the card; otherwise

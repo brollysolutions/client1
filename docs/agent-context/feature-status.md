@@ -2,12 +2,59 @@
 
 Status: **Derived living implementation ledger**
 
-As of: **2026-08-18**
+As of: **2026-08-19**
 
 Evidence baseline: `abcc1fd`
 ([PR #175](https://github.com/brollysolutions/client1/pull/175)), plus the
 verified Admin operational-visibility work in
 [PR #173](https://github.com/brollysolutions/client1/pull/173).
+
+**Done — governed homepage sponsor themes and public banner presentation
+refinement (FR-2.3, FR-12.1-FR-12.3; completion coverage unchanged; PR
+pending):** `codex/20260819-060544-reconnect-mcps` refines the existing sponsor
+slot into the user-selected compact split composition: text-free artwork fills
+the left panel and authored campaign copy/CTA occupies the right. The card is
+152px on phones, 176px at tablet width, and 208px on desktop, retains the
+explicit Sponsored disclosure and session-only dismiss, and is reused exactly
+in the CMS preview. Six unique 960x540 WEBPs now cover generic sponsorship,
+personal finance, business finance, cards/rewards, insurance/protection, and
+verified property. The previous wide variants were replaced in place; the
+public media ledger contains 44 governed banner WEBPs and 127 visual files in
+total (81 SVG, 44 WEBP, 2 PNG), with zero exact duplicate groups.
+
+Sub Admin authority is deliberately unchanged: authors can select an active
+governed theme and write campaign copy, while platform Admins continue to
+upload/version artwork and approve campaigns. Migration `d3a9b72c5e41` seeds
+the five additional template rows and adds a placement-wide partial unique
+index so all six categories still share exactly one LIVE sponsor slot. The
+activation job locks that shared live scope and still requires a due
+cross-theme replacement to name its incumbent. No endpoint, generated
+contract, RLS policy, grant, dependency, personalization rule, or upload
+validation changed.
+
+The Financial Services and Properties carousels now use a responsive 224-520px
+height with a 16-24px gap before the permanent hero. The newly introduced
+section-banner scroll cue was removed after direct user feedback; pre-existing
+page behavior outside that cue remains untouched. Production and preview
+aspect guidance stays 1440x576 for those banners, while sponsor guidance is
+960x540 for its left media panel.
+
+Fresh evidence: migration upgrade, downgrade, and re-upgrade succeeded against
+the already-migrated Docker dev database; Alembic reports the single head
+`d3a9b72c5e41`. Seven focused Docker API catalog/public/scheduler tests pass,
+including cross-theme uniqueness and named replacement. The 18 repository
+tracking/migration tests pass; Ruff check/format pass across 456 API files; web
+lint, strict typecheck, and all 370 unit tests pass. The production build
+compiled, typechecked, and generated all 93 pages before the known Windows
+standalone symlink `EPERM` tail; local API-hostname timeouts were handled by the
+existing public fallbacks. Browser checks at desktop and phone widths covered
+`/`, `/loans`, and `/real-estate`. `./scripts/verify.sh --ci` was attempted
+twice, but its broad API phase did not return within the first one-hour command
+window and the longer run became detached when user input arrived; neither run
+is claimed as passed. Design, security, and final diff review found no
+actionable issue. Residual operational note: artwork dimensions remain an Admin
+CMS guidance/preview contract rather than a new server-side pixel-dimension
+rejection rule.
 
 **Done — cross-line banner and offer authoring no longer 500s (defect fix, no
 requirement change):** creating any banner or offer with `business_line: "both"`

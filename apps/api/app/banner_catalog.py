@@ -19,17 +19,25 @@ HOMEPAGE_CATEGORIES = {
     "core-concepts": "How Dhanadhara works",
 }
 
-# Exactly one key, and that is the product rule rather than an oversight:
-# uq_banners_live_placement_category permits one LIVE banner per
-# (placement, category_key), so a single key makes "only one sponsor runs at a
-# time" a database guarantee. The next sponsor waits in the existing
-# replacement queue (replaces_banner_id + jobs/cms_activation.py), which swaps
-# it in at its starts_at and refuses to displace a banner it does not name.
+# These themes let Sub Admins select artwork appropriate to the campaign while
+# Admin retains control of every immutable artwork version. A dedicated partial
+# unique index on the placement (rather than the general placement/category
+# index) keeps the public sponsor slot single-occupancy across all six themes.
+# The next sponsor waits in the existing replacement queue
+# (replaces_banner_id + jobs/cms_activation.py), which swaps it in at its
+# starts_at and refuses to displace a banner it does not name.
 #
 # Deliberately not named "offers": services/banners.py treats that literal as
 # magic (a banner in an "offers" category MUST link a live Offer, and any other
 # category MUST NOT), which is wrong for a general sponsor slot.
-HOMEPAGE_AD_CATEGORIES = {"sponsor": "Sponsor strip"}
+HOMEPAGE_AD_CATEGORIES = {
+    "sponsor": "Sponsor strip",
+    "personal-finance": "Personal finance",
+    "business-finance": "Business finance",
+    "cards-and-rewards": "Cards and rewards",
+    "insurance-protection": "Insurance and protection",
+    "verified-property": "Verified property",
+}
 
 FINANCIAL_SERVICE_CATEGORIES = {
     "personal-loan": "Personal Loan",

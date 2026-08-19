@@ -27,6 +27,7 @@ describe("CMS previews", () => {
     const markup = renderToStaticMarkup(
       <BannerPreview
         context="public"
+        placement="properties"
         banner={{
           banner_type: "default",
           title: "Find your next home",
@@ -43,6 +44,27 @@ describe("CMS previews", () => {
     expect(markup).toContain("10% off · Code HOME10");
     expect(markup).toContain("RERA VERIFIED");
     expect(markup).toContain("Find your next home");
+    expect(markup).toContain("aspect-[5/2]");
+  });
+
+  it("uses the exact split sponsor card for homepage ad previews", () => {
+    const markup = renderToStaticMarkup(
+      <BannerPreview
+        context="public"
+        placement="homepage_ad"
+        banner={{
+          banner_type: "default",
+          title: "Plan your next move",
+          subtitle: "Sponsored by a verified partner",
+          cta_label: "Explore",
+          deep_link: "/loans",
+          image_url: "/banner-templates/homepage_ad/personal-finance.webp",
+        }}
+      />,
+    );
+    expect(markup).toContain('data-presentation="split-sponsor-card"');
+    expect(markup).toContain("personal-finance.webp");
+    expect(markup).not.toContain('aria-label="Dismiss sponsored message"');
   });
 
   it("keeps website body copy as escaped plain text", () => {
