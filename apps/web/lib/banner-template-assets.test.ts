@@ -1,4 +1,5 @@
-import { readFileSync, statSync } from "node:fs";
+import { createHash } from "node:crypto";
+import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
@@ -94,5 +95,25 @@ describe("bundled banner template artwork", () => {
       expect(bytes.toString("ascii", 8, 12)).toBe("WEBP");
       expect(webpSize(bytes)).toEqual(expectedSize);
     }
+  });
+
+  it("contains no ungoverned files or exact duplicate artwork", () => {
+    const hashes = new Map<string, string[]>();
+
+    for (const [placement, categories] of Object.entries(CATEGORIES)) {
+      const directory = join(process.cwd(), "public", "banner-templates", placement);
+      const actualFiles = readdirSync(directory).sort();
+      const expectedFiles = categories.map((category) => `${category}.webp`).sort();
+      expect(actualFiles).toEqual(expectedFiles);
+
+      for (const file of actualFiles) {
+        const hash = createHash("sha256")
+          .update(readFileSync(join(directory, file)))
+          .digest("hex");
+        hashes.set(hash, [...(hashes.get(hash) ?? []), `${placement}/${file}`]);
+      }
+    }
+
+    expect([...hashes.values()].filter((files) => files.length > 1)).toEqual([]);
   });
 });

@@ -48,12 +48,14 @@ const ARTWORK_GUIDANCE: Record<
   financial_services: {
     dimensions: "1440 × 576 px",
     aspectClass: "aspect-[5/2]",
-    composition: "Keep the subject on the right with clear copy space on the left.",
+    composition:
+      "Keep calm copy space on the left, let the scene enter the middle, and hold the focal subject on the right.",
   },
   properties: {
     dimensions: "1440 × 576 px",
     aspectClass: "aspect-[5/2]",
-    composition: "Keep the property focus on the right with clear copy space on the left.",
+    composition:
+      "Keep calm copy space on the left, let the property enter the middle, and hold its focus on the right.",
   },
   dashboard: {
     dimensions: "1440 × 800 px",
