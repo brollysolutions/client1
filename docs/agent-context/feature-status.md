@@ -9,7 +9,8 @@ Evidence baseline: `abcc1fd`
 verified Admin operational-visibility work in
 [PR #173](https://github.com/brollysolutions/client1/pull/173).
 
-**Done — Starlette HTTP 422 deprecation cleanup (PR pending; maintenance;
+**Done — Starlette HTTP 422 deprecation cleanup
+([PR #205](https://github.com/brollysolutions/client1/pull/205); maintenance;
 completion coverage unchanged):** all 68 production references across 19 API
 route/service modules now use Starlette's current
 `HTTP_422_UNPROCESSABLE_CONTENT` name. Both names resolve to numeric 422, so
