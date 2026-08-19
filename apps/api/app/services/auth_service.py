@@ -390,7 +390,7 @@ async def register_set_password(
         validate_password_policy(req.password, mobile)
     except ValueError as exc:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(exc)
         ) from exc
 
     await lock_lead_mobile(db, mobile)
@@ -956,7 +956,7 @@ async def forgot_reset(
         validate_password_policy(req.new_password, mobile)
     except ValueError as exc:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(exc)
         ) from exc
 
     # Serialize with Admin suspension/reactivation and refresh rotation. The
@@ -1049,7 +1049,7 @@ async def change_password(
         validate_password_policy(req.new_password, user.mobile)
     except ValueError as exc:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(exc)
         ) from exc
     user.password_hash = await hash_password(req.new_password)
     if user.status == UserStatus.PENDING_PASSWORD_RESET:

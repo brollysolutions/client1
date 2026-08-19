@@ -253,7 +253,7 @@ async def set_field_visibility(
         )
     except UnknownFieldVisibilityKey as exc:
         raise HTTPException(
-            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status.HTTP_422_UNPROCESSABLE_CONTENT,
             "This field is not part of the supported visibility catalogue.",
         ) from exc
     except FieldVisibilityModeNotAllowed as exc:
@@ -412,7 +412,7 @@ async def update_staff_feature(
         ) from exc
     except InvalidStaffFeatureTarget as exc:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="Feature grants may target only an active Sub Admin.",
         ) from exc
 
@@ -882,21 +882,21 @@ async def update_loan_application_progress(
         ) from exc
     except StatusReasonRequired as exc:
         raise HTTPException(
-            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status.HTTP_422_UNPROCESSABLE_CONTENT,
             "A reason is required when moving to rejected or on hold.",
         ) from exc
     except TermsNotAllowedAtStage as exc:
         raise HTTPException(
-            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status.HTTP_422_UNPROCESSABLE_CONTENT,
             "Deal terms can only be set once the application has been submitted to a bank.",
         ) from exc
     except UnknownBank as exc:
         raise HTTPException(
-            status.HTTP_422_UNPROCESSABLE_ENTITY, "Unknown or inactive bank."
+            status.HTTP_422_UNPROCESSABLE_CONTENT, "Unknown or inactive bank."
         ) from exc
     except BankNotAvailableForLoanType as exc:
         raise HTTPException(
-            status.HTTP_422_UNPROCESSABLE_ENTITY, "This bank does not offer that loan type."
+            status.HTTP_422_UNPROCESSABLE_CONTENT, "This bank does not offer that loan type."
         ) from exc
 
     application = await get_application_for_admin(db, application_id)
@@ -935,17 +935,17 @@ async def update_property_deal_progress(
         ) from exc
     except DealStatusReasonRequired as exc:
         raise HTTPException(
-            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status.HTTP_422_UNPROCESSABLE_CONTENT,
             "A reason is required when moving to rejected or on hold.",
         ) from exc
     except DealTermsNotAllowedAtStage as exc:
         raise HTTPException(
-            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status.HTTP_422_UNPROCESSABLE_CONTENT,
             "Deal terms can only be set once the deal has been booked.",
         ) from exc
     except UnknownSiteVisit as exc:
         raise HTTPException(
-            status.HTTP_422_UNPROCESSABLE_ENTITY, "Unknown site visit for this client."
+            status.HTTP_422_UNPROCESSABLE_CONTENT, "Unknown site visit for this client."
         ) from exc
 
     deal = await get_deal_for_admin(db, deal_id)

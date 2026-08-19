@@ -9,6 +9,23 @@ Evidence baseline: `abcc1fd`
 verified Admin operational-visibility work in
 [PR #173](https://github.com/brollysolutions/client1/pull/173).
 
+**Done — Starlette HTTP 422 deprecation cleanup (PR pending; maintenance;
+completion coverage unchanged):** all 68 production references across 19 API
+route/service modules now use Starlette's current
+`HTTP_422_UNPROCESSABLE_CONTENT` name. Both names resolve to numeric 422, so
+response codes, payloads, routes, OpenAPI, authorization/RLS, service behavior,
+models, migrations, dependencies, and the web app are unchanged. A source-wide
+AST regression guard prevents the deprecated identifier from returning.
+
+Fresh evidence: the new guard failed first with all 68 offenders and now
+passes; `app.main` imports with `StarletteDeprecationWarning` promoted to an
+error; five focused system tests pass; Ruff check and format pass across 457
+files; and Alembic reports the single head `d3a9b72c5e41`. The full API suite
+was attempted for about 13 minutes but returned no report before clean
+termination, so it is recorded as inconclusive rather than passed. Completion
+coverage remains 99.4%, and the next priority remains the FR-2.2
+controlled-correction/audit follow-up.
+
 **Done — refreshed bundled artwork delivery for governed banners
 ([PR #204](https://github.com/brollysolutions/client1/pull/204);
 FR-12.1-FR-12.3; completion coverage unchanged):** bundled template artwork

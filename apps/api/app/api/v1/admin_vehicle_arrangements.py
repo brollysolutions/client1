@@ -88,6 +88,6 @@ async def patch_vehicle_arrangement(
         ) from exc
     except InvalidArrangementEmployee as exc:
         raise HTTPException(
-            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status.HTTP_422_UNPROCESSABLE_CONTENT,
             "The assignee must be an active real-estate Employee.",
         ) from exc

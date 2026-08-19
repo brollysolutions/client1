@@ -77,7 +77,7 @@ async def initiate_authenticated(
 ) -> MobileChangeChallengeResponse:
     if payload.requested_mobile == current_user.mobile:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="The replacement number must be different.",
         )
     try:
