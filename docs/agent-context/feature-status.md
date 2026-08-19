@@ -10,7 +10,8 @@ verified Admin operational-visibility work in
 [PR #173](https://github.com/brollysolutions/client1/pull/173).
 
 **Done — Financial Services and Properties campaign-art composition refresh
-(PR pending; FR-12.1-FR-12.3; completion coverage unchanged):** all 32 governed
+([PR #203](https://github.com/brollysolutions/client1/pull/203); FR-12.1-FR-12.3;
+completion coverage unchanged):** all 32 governed
 section-banner templates (16 per placement) have been replaced with distinct,
 text-free 1440x576 editorial WEBPs following the supplied composition system:
 calm copy space on the left, environmental detail entering the middle, and the
@@ -37,9 +38,9 @@ browser screenshots are recorded as unavailable rather than passed. Production
 build compiled in 56 seconds, typechecked, and generated all 93 pages before the
 known Windows standalone-symlink `EPERM` tail; host-side public fetches also
 cannot resolve the Docker-only `api` hostname. Design review found no actionable
-issue, and security and final diff reviews found no actionable defect. PR
-linkage remains before shipping. Next priority: publish the branch PR and then
-return to the highest-ranked incomplete feature.
+issue, and security and final diff reviews found no actionable defect. The work
+is committed and published in PR #203. Next priority: return to the
+highest-ranked incomplete feature.
 
 **Done — sponsor spotlight, section scroll cue, and Loans category declutter
 ([PR #202](https://github.com/brollysolutions/client1/pull/202); FR-2.3,
