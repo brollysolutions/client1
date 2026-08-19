@@ -61,9 +61,17 @@ class BannerInvalidConfiguration(Exception):
     """Raised when placement, template, line, Offer, or property disagree."""
 
 
-def template_image_url(image_ref: str) -> str | None:
+def template_image_url(image_ref: str, *, version: int | None = None) -> str | None:
     if image_ref.startswith("/banner-templates/") and ".." not in image_ref:
-        return image_ref
+        if version is None:
+            return image_ref
+        if version < 1:
+            return None
+        # Bundled files are deployed at stable public paths. The immutable
+        # database template version gives browsers, CDNs, and Next's image
+        # optimizer a new URL whenever reviewed artwork changes, without
+        # affecting unique object-storage keys.
+        return f"{image_ref}?v={version}"
     if image_ref.startswith("public/banner-templates/"):
         return storage.public_asset_url(image_ref)
     return None

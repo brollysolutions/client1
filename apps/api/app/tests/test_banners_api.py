@@ -495,6 +495,9 @@ async def test_public_campaign_requires_active_matching_template(client: AsyncCl
         for item in templates.json()["templates"]
         if item["placement"] == "financial_services" and item["category_key"] == "personal-loan"
     )
+    assert template["image_url"] == (
+        f"/banner-templates/financial_services/personal-loan.webp?v={template['version']}"
+    )
 
     missing = await client.post(
         "/api/v1/banners",
