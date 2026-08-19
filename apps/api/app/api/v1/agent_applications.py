@@ -160,7 +160,7 @@ async def submit_application(
         ) from exc
     except service.ContentTypeUnrecognized as exc:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="One of your documents isn't a supported file type. Please try again.",
         ) from exc
     except service.StorageUnavailable as exc:

@@ -117,19 +117,19 @@ async def update_offer(
     # unrelated existing discount_type — re-validate the merged row here.
     if offer.discount_type == "percentage" and offer.discount_value > 100:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="discount_value cannot exceed 100 for a percentage offer.",
         )
     try:
         rules = AudienceRules.model_validate(offer.audience_rules)
     except ValueError as exc:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="This offer has invalid audience rules.",
         ) from exc
     if not audience_rules_valid_for_offer(rules):
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="Targeted offers are available to Clients only.",
         )
     await db.commit()
@@ -156,7 +156,7 @@ async def _advance(
         ) from exc
     except OfferInvalidAudience as exc:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="This offer has invalid audience rules.",
         ) from exc
     if offer is None:

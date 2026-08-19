@@ -147,7 +147,7 @@ async def list_leads(
         leads = await list_my_leads(db, agent_profile_uuid, status_filter)
     except InvalidStatusFilter as exc:
         raise HTTPException(
-            status.HTTP_422_UNPROCESSABLE_ENTITY, "Unknown status_filter value."
+            status.HTTP_422_UNPROCESSABLE_CONTENT, "Unknown status_filter value."
         ) from exc
     modes = await effective_modes(db, FieldTargetRole.AGENT)
     return [_to_agent_lead_read(lead, modes) for lead in leads]

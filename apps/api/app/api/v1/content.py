@@ -130,7 +130,7 @@ async def update_content_block(
     # rejected it, so blanking it afterwards would smuggle empty copy live.
     if block.status is ContentStatus.PUBLISHED and not (block.body or "").strip():
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="A published content block must have a body.",
         )
     await db.commit()
@@ -157,7 +157,7 @@ async def _advance(
         ) from exc
     except ContentBodyRequired as exc:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="A content block needs a body before it can be published.",
         ) from exc
     if block is None:
