@@ -270,8 +270,6 @@ export const LOAN_PRODUCT_BANDS: ProductBand[] = [
   {
     id: "loans",
     heading: "Loans",
-    description:
-      "Eleven ways to borrow, from a quick personal loan to funding a whole project.",
     products: LOAN_PRODUCTS.filter((p) => p.group === "loans"),
     cta: {
       title: "Not sure which loan fits?",
@@ -282,8 +280,6 @@ export const LOAN_PRODUCT_BANDS: ProductBand[] = [
   {
     id: "insurance",
     heading: "Cards and insurance",
-    description:
-      "Protect what matters and spend smarter, through the same verified partners.",
     products: LOAN_PRODUCTS.filter(
       (p) => p.group === "insurance" || p.group === "credit-cards",
     ),

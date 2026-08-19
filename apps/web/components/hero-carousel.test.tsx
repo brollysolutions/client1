@@ -35,7 +35,9 @@ describe("HeroCarousel", () => {
     expect(markup).toContain('data-layout="full-bleed"');
     expect(markup).toContain("h-[clamp(14rem,36vw,32.5rem)]");
     expect(markup).toContain("mb-4");
-    expect(markup).not.toContain("Scroll");
+    expect(markup).toContain('href="#page-overview"');
+    expect(markup).toContain('aria-label="Scroll to page overview"');
+    expect(markup).toContain("section-scroll-cue-first");
   });
 
   it("renders the homepage hero full-bleed and full-screen, with overlaid dots", () => {

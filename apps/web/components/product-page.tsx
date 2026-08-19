@@ -1,3 +1,6 @@
+// The Vitest server-rendering setup uses the classic JSX transform, so retain
+// this runtime namespace import even though Next itself uses the automatic one.
+import * as React from "react";
 import type { ReactNode } from "react";
 import Image from "next/image";
 
@@ -101,7 +104,10 @@ export function ProductPage({
       {beforeHero}
 
       {/* Header */}
-      <section className="relative w-full overflow-hidden bg-[var(--nav-bg)]">
+      <section
+        id="page-overview"
+        className="relative w-full scroll-mt-16 overflow-hidden bg-[var(--nav-bg)]"
+      >
         {heroBackdrop ? (
           <>
             <Image
@@ -138,7 +144,7 @@ export function ProductPage({
             {heroDoodles ? <HeroIllustration src={heroPlant} /> : null}
           </div>
         </div>
-        <ScrollCue />
+        {beforeHero ? null : <ScrollCue />}
       </section>
       {/* Products */}
       {productBands && productBands.length > 0 ? (
@@ -169,24 +175,19 @@ export function ProductPage({
               id={band.id}
               className={cn("scroll-mt-16", bandIndex > 0 ? "mt-20" : "mt-14")}
             >
-              <div className="flex items-end justify-between gap-6">
-                <div>
-                  <h3 className="font-heading text-2xl font-semibold text-foreground sm:text-3xl">
-                    {band.heading}
-                  </h3>
-                  <span
-                    aria-hidden
-                    className="mt-3 block h-1 w-12 rounded-full bg-brand-blue"
-                  />
-                  {band.description ? (
-                    <p className="mt-3 max-w-xl text-base text-text-secondary sm:text-lg">
-                      {band.description}
-                    </p>
-                  ) : null}
-                </div>
-                <span className="hidden shrink-0 rounded-full border border-[var(--nav-border)] bg-white px-3.5 py-1.5 font-geist text-xs font-semibold uppercase tracking-[0.12em] text-brand-blue sm:block">
-                  {band.products.length} products
-                </span>
+              <div>
+                <h3 className="font-heading text-2xl font-semibold text-foreground sm:text-3xl">
+                  {band.heading}
+                </h3>
+                <span
+                  aria-hidden
+                  className="mt-3 block h-1 w-12 rounded-full bg-brand-blue"
+                />
+                {band.description ? (
+                  <p className="mt-3 max-w-xl text-base text-text-secondary sm:text-lg">
+                    {band.description}
+                  </p>
+                ) : null}
               </div>
               <div
                 className={cn(

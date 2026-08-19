@@ -226,8 +226,41 @@
 .scroll-cue-bob {
   animation: scrollCue 1.6s ease-in-out infinite;
 }
+
+/* Banner-to-hero cue (components/hero-carousel.tsx). Two compact chevrons
+   animate in the existing section gap, while the focusable medallion remains
+   useful as a normal anchor even when motion is disabled. */
+@keyframes sectionScrollCueFirst {
+  0%,
+  100% { opacity: 0.35; transform: translateY(-5px); }
+  50% { opacity: 1; transform: translateY(-1px); }
+}
+@keyframes sectionScrollCueSecond {
+  0%,
+  100% { opacity: 0.2; transform: translateY(2px); }
+  50% { opacity: 0.75; transform: translateY(6px); }
+}
+.section-scroll-cue-first {
+  animation: sectionScrollCueFirst 1.8s ease-in-out infinite;
+}
+.section-scroll-cue-second {
+  animation: sectionScrollCueSecond 1.8s ease-in-out 0.18s infinite;
+}
+@keyframes sponsorAccentSweep {
+  0%,
+  14% { opacity: 0; transform: translateX(-115%); }
+  22% { opacity: 0.8; }
+  45%,
+  100% { opacity: 0; transform: translateX(315%); }
+}
+.sponsor-accent-sweep {
+  animation: sponsorAccentSweep 6s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+}
 @media (prefers-reduced-motion: reduce) {
-  .scroll-cue-bob {
+  .scroll-cue-bob,
+  .section-scroll-cue-first,
+  .section-scroll-cue-second,
+  .sponsor-accent-sweep {
     animation: none;
   }
 }
