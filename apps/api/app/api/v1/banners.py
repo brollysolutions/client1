@@ -108,7 +108,7 @@ async def create_banner(
 
 
 def _template_read(template: BannerTemplate) -> BannerTemplateRead:
-    image_url = template_image_url(template.image_ref)
+    image_url = template_image_url(template.image_ref, version=template.version)
     if image_url is None:  # Stored rows are constrained; fail closed for legacy corruption.
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT, detail="Template image is invalid."

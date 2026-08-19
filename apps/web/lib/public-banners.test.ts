@@ -65,9 +65,9 @@ describe("mapPublicBanner()", () => {
 
   it("keeps reviewed bundled template artwork", () => {
     const banner = mapPublicBanner(
-      wireBanner({ image_url: "/banner-templates/homepage/loans.webp" }),
+      wireBanner({ image_url: "/banner-templates/homepage/loans.webp?v=1" }),
     );
-    expect(banner.image).toBe("/banner-templates/homepage/loans.webp");
+    expect(banner.image).toBe("/banner-templates/homepage/loans.webp?v=1");
   });
 
   it("drops traversal and protocol-relative template paths", () => {

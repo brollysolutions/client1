@@ -297,7 +297,7 @@ async def test_templated_banner_serves_reviewed_bundled_artwork(client: AsyncCli
             "/api/v1/public/banners", params={"placement": "financial_services"}
         )
         row = next(item for item in response.json()["banners"] if item["id"] == banner_id)
-        assert row["image_url"] == "/banner-templates/financial_services/home-loan.webp"
+        assert row["image_url"] == "/banner-templates/financial_services/home-loan.webp?v=1"
     finally:
         await _delete_banners(banner_id)
 
@@ -334,7 +334,7 @@ async def test_property_banner_uses_template_artwork_enquiry_and_rera_badge(
     try:
         response = await client.get("/api/v1/public/banners", params={"placement": "properties"})
         row = next(item for item in response.json()["banners"] if item["id"] == banner_id)
-        assert row["image_url"] == "/banner-templates/properties/villas.webp"
+        assert row["image_url"] == "/banner-templates/properties/villas.webp?v=1"
         assert row["cta_label"] == "Enquire now"
         assert row["deep_link"].startswith("/contact?line=real_estate&product=RERA+Villa")
         assert "evil.example" not in row["deep_link"]

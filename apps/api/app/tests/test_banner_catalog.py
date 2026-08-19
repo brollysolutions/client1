@@ -5,6 +5,7 @@ from app.banner_catalog import (
 )
 from app.models.banner import BannerPlacement
 from app.models.property import PropertyCategory, PropertySubtype
+from app.services.banners import template_image_url
 from app.services.public_catalog import PUBLIC_BANNERS_LIMIT_BY_PLACEMENT
 
 
@@ -22,6 +23,20 @@ def test_closed_catalog_contains_44_public_categories() -> None:
     assert len(public_categories[BannerPlacement.PROPERTIES]) == 16
     assert expected_business_line(BannerPlacement.FINANCIAL_SERVICES) == "loans"
     assert expected_business_line(BannerPlacement.PROPERTIES) == "real_estate"
+
+
+def test_bundled_template_urls_are_cache_keyed_by_immutable_version() -> None:
+    assert (
+        template_image_url("/banner-templates/financial_services/personal-loan.webp", version=3)
+        == "/banner-templates/financial_services/personal-loan.webp?v=3"
+    )
+
+    uploaded = template_image_url(
+        "public/banner-templates/11111111-1111-1111-1111-111111111111/artwork.webp",
+        version=3,
+    )
+    assert uploaded is not None
+    assert "?v=" not in uploaded
 
 
 def test_every_placement_is_declared_in_both_lookup_tables() -> None:
