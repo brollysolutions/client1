@@ -105,6 +105,19 @@ async def record(
 
     `actor_role` is stored as the role held AT THE TIME of the action; see the
     model docstring for why it is denormalized rather than joined at read time.
+
+    `business_line="both"` is normalized to NULL. Content rows may legitimately
+    be cross-line -- `ck_banners_business_line_content_audience` and its offers
+    twin allow 'both' -- but an audit entry's line is a SCOPE, and
+    `ck_audit_log_business_line_optional_operational` allows only a concrete
+    line or NULL (migration a3b4c5d6e7f8 also asserted zero pre-existing 'both'
+    audit rows). For a cross-line action neither line is true, and NULL already
+    means "not scoped to one line", so that is the honest value. Normalizing at
+    this single funnel rather than in each caller: every caller forwards its
+    entity's own column, so the alternative is the same ternary repeated at
+    ~40 call sites with a 500 waiting behind whichever one is forgotten.
+    Operational tables are constrained to a concrete line at the database level,
+    so this can never silently mask a mis-scoped operational row.
     """
     if detail is not None:
         _assert_detail_is_safe(detail)
@@ -115,7 +128,7 @@ async def record(
         action=action,
         entity_type=entity_type,
         entity_uuid=entity_uuid,
-        business_line=business_line,
+        business_line=None if business_line == "both" else business_line,
         detail=detail,
     )
     db.add(entry)
