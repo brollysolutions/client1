@@ -10,7 +10,8 @@ verified Admin operational-visibility work in
 [PR #173](https://github.com/brollysolutions/client1/pull/173).
 
 **Done — sponsor spotlight, section scroll cue, and Loans category declutter
-(PR pending; FR-2.3, FR-6.1; completion coverage unchanged):** The public
+([PR #202](https://github.com/brollysolutions/client1/pull/202); FR-2.3,
+FR-6.1; completion coverage unchanged):** The public
 sponsor remains a single, clearly disclosed and non-autoplaying campaign, but
 now uses a bordered inset spotlight stage, restrained transform/opacity accent,
 and source-faithful sponsor-art composition. The governed 960x540 creative is
@@ -32,8 +33,9 @@ web suite pass (52 files, 372 tests); web lint and strict typecheck pass. The
 production build compiled, typechecked, and generated all 93 pages, then
 failed in its known Windows standalone-symlink `EPERM` tail; host-side public
 fetches also cannot resolve the Docker-only `api` hostname. Design, security,
-and final diff review found no actionable issue. Next priority: publish the
-branch PR and attach its URL to this record.
+and final diff review found no actionable issue. The branch is published as
+`codex/20260819-113333-701-b-out-418-b-xact-25145`; next priority is the
+highest-ranked incomplete feature in the implementation plan.
 
 **Done — governed homepage sponsor themes and public banner presentation
 refinement ([PR #201](https://github.com/brollysolutions/client1/pull/201);
