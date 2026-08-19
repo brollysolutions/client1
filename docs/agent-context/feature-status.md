@@ -9,7 +9,8 @@ Evidence baseline: `abcc1fd`
 verified Admin operational-visibility work in
 [PR #173](https://github.com/brollysolutions/client1/pull/173).
 
-**Done — refreshed bundled artwork delivery for governed banners (PR pending;
+**Done — refreshed bundled artwork delivery for governed banners
+([PR #204](https://github.com/brollysolutions/client1/pull/204);
 FR-12.1-FR-12.3; completion coverage unchanged):** bundled template artwork
 now carries its immutable database template version in the served URL, for
 example `/banner-templates/financial_services/personal-loan.webp?v=1`. This
@@ -36,8 +37,8 @@ symlink `EPERM` tail; host-side builds also cannot resolve the Docker-only
 `api` hostname. The broad Docker API suite was attempted but remained active
 without a report for about 30 minutes and was terminated cleanly, so it is
 recorded as incomplete rather than passed. Design, security, and diff review
-found no actionable issue. Next priority: publish the branch PR and then return
-to the highest-ranked incomplete feature.
+found no actionable issue. The work is committed and published in PR #204.
+Next priority: return to the highest-ranked incomplete feature.
 
 **Done — Financial Services and Properties campaign-art composition refresh
 ([PR #203](https://github.com/brollysolutions/client1/pull/203); FR-12.1-FR-12.3;
