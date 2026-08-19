@@ -9,6 +9,39 @@ Evidence baseline: `abcc1fd`
 verified Admin operational-visibility work in
 [PR #173](https://github.com/brollysolutions/client1/pull/173).
 
+**Done — Financial Services and Properties campaign-art composition refresh
+([PR #203](https://github.com/brollysolutions/client1/pull/203); FR-12.1-FR-12.3;
+completion coverage unchanged):** all 32 governed
+section-banner templates (16 per placement) have been replaced with distinct,
+text-free 1440x576 editorial WEBPs following the supplied composition system:
+calm copy space on the left, environmental detail entering the middle, and the
+category’s focal subject primarily on the right. Financial scenes now separate
+personal, business, vehicle, education, funding, insurance, and card narratives;
+property scenes distinguish individual subtypes, occupancy states, single and
+plural category campaigns, land uses, offers, commercial property, and general
+guidance. Homepage hero and 960x540 sponsor artwork are intentionally unchanged.
+
+CMS artwork guidance now records the middle-flow requirement. The asset contract
+also rejects ungoverned files and exact duplicate hashes, protecting both the
+closed category catalogue and the no-unused/duplicate-media requirement. The
+public visual ledger remains 127 files (81 SVG, 44 WEBP, 2 PNG), with zero exact
+duplicate groups; all generated sources were normalized without carried source
+metadata and the largest final banner is about 193 KB against the 2 MB limit.
+No category, template row, upload authority, API, contract, migration, RLS rule,
+or public rendering component changed.
+
+Fresh evidence: dual visual contact-sheet review and final-WEBP inspection pass;
+the focused two-test asset contract, web lint, strict typecheck, and all 373 web
+tests pass. Branch-specific `/loans` SSR returned 200 from the isolated dev
+server; the browser connector rejects non-default port 3001, so responsive
+browser screenshots are recorded as unavailable rather than passed. Production
+build compiled in 56 seconds, typechecked, and generated all 93 pages before the
+known Windows standalone-symlink `EPERM` tail; host-side public fetches also
+cannot resolve the Docker-only `api` hostname. Design review found no actionable
+issue, and security and final diff reviews found no actionable defect. The work
+is committed and published in PR #203. Next priority: return to the
+highest-ranked incomplete feature.
+
 **Done — sponsor spotlight, section scroll cue, and Loans category declutter
 ([PR #202](https://github.com/brollysolutions/client1/pull/202); FR-2.3,
 FR-6.1; completion coverage unchanged):** The public
