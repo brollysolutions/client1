@@ -56,11 +56,11 @@ logger = logging.getLogger(__name__)
 # TYPES (from services.payments), not a router-to-router dependency.
 _ERROR_STATUS = {
     payments_service.RecipientNotFound: status.HTTP_404_NOT_FOUND,
-    payments_service.RecipientInactive: status.HTTP_422_UNPROCESSABLE_ENTITY,
-    payments_service.RecipientLineMismatch: status.HTTP_422_UNPROCESSABLE_ENTITY,
-    payments_service.PayoutAmountExceeded: status.HTTP_422_UNPROCESSABLE_ENTITY,
-    payments_service.PayoutDailyCapExceeded: status.HTTP_422_UNPROCESSABLE_ENTITY,
-    payments_service.PayoutCapNotConfigured: status.HTTP_422_UNPROCESSABLE_ENTITY,
+    payments_service.RecipientInactive: status.HTTP_422_UNPROCESSABLE_CONTENT,
+    payments_service.RecipientLineMismatch: status.HTTP_422_UNPROCESSABLE_CONTENT,
+    payments_service.PayoutAmountExceeded: status.HTTP_422_UNPROCESSABLE_CONTENT,
+    payments_service.PayoutDailyCapExceeded: status.HTTP_422_UNPROCESSABLE_CONTENT,
+    payments_service.PayoutCapNotConfigured: status.HTTP_422_UNPROCESSABLE_CONTENT,
     payments_service.DuplicatePayout: status.HTTP_409_CONFLICT,
     payments_service.SelfPayoutForbidden: status.HTTP_403_FORBIDDEN,
     payments_service.GatewayError: status.HTTP_502_BAD_GATEWAY,

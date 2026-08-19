@@ -103,7 +103,7 @@ def _feedback_error(exc: Exception) -> HTTPException:
         return HTTPException(status.HTTP_502_BAD_GATEWAY, "Could not verify the upload. Try again.")
     if isinstance(exc, FeedbackUploadInvalid):
         return HTTPException(
-            status.HTTP_422_UNPROCESSABLE_ENTITY, "The uploaded feedback file is invalid."
+            status.HTTP_422_UNPROCESSABLE_CONTENT, "The uploaded feedback file is invalid."
         )
     return HTTPException(status.HTTP_404_NOT_FOUND, "Feedback attachment not found.")
 
@@ -373,7 +373,7 @@ async def confirm_document(
         ) from exc
     except TaskDocumentContentTypeUnrecognized as exc:
         raise HTTPException(
-            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status.HTTP_422_UNPROCESSABLE_CONTENT,
             "This file isn't a supported document type.",
         ) from exc
     except TaskDocumentLimitReached as exc:

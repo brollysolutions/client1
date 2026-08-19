@@ -376,21 +376,21 @@ async def update_loan_application_progress(
         ) from exc
     except StatusReasonRequired as exc:
         raise HTTPException(
-            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status.HTTP_422_UNPROCESSABLE_CONTENT,
             "A reason is required when moving to rejected or on hold.",
         ) from exc
     except TermsNotAllowedAtStage as exc:
         raise HTTPException(
-            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status.HTTP_422_UNPROCESSABLE_CONTENT,
             "Deal terms can only be set once the application has been submitted to a bank.",
         ) from exc
     except UnknownBank as exc:
         raise HTTPException(
-            status.HTTP_422_UNPROCESSABLE_ENTITY, "Unknown or inactive bank."
+            status.HTTP_422_UNPROCESSABLE_CONTENT, "Unknown or inactive bank."
         ) from exc
     except BankNotAvailableForLoanType as exc:
         raise HTTPException(
-            status.HTTP_422_UNPROCESSABLE_ENTITY, "This bank does not offer that loan type."
+            status.HTTP_422_UNPROCESSABLE_CONTENT, "This bank does not offer that loan type."
         ) from exc
 
     txns_by_application = await list_txns_for_applications(db, [application.id])
@@ -428,7 +428,7 @@ async def create_property_deal(
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Unknown or inactive property.") from exc
     except ClientNotRegistered as exc:
         raise HTTPException(
-            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status.HTTP_422_UNPROCESSABLE_CONTENT,
             "This lead isn't linked to a registered client yet.",
         ) from exc
     modes = await effective_modes(db, FieldTargetRole.TELECALLER)
@@ -467,17 +467,17 @@ async def update_property_deal_progress(
         ) from exc
     except DealStatusReasonRequired as exc:
         raise HTTPException(
-            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status.HTTP_422_UNPROCESSABLE_CONTENT,
             "A reason is required when moving to rejected or on hold.",
         ) from exc
     except DealTermsNotAllowedAtStage as exc:
         raise HTTPException(
-            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status.HTTP_422_UNPROCESSABLE_CONTENT,
             "Deal terms can only be set once the deal has been booked.",
         ) from exc
     except UnknownSiteVisit as exc:
         raise HTTPException(
-            status.HTTP_422_UNPROCESSABLE_ENTITY, "Unknown site visit for this client."
+            status.HTTP_422_UNPROCESSABLE_CONTENT, "Unknown site visit for this client."
         ) from exc
 
     modes = await effective_modes(db, FieldTargetRole.TELECALLER)

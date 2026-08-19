@@ -124,7 +124,7 @@ async def verify_document(
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Document not found.") from exc
     except document_verification.DocumentNoteRequired as exc:
         raise HTTPException(
-            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status.HTTP_422_UNPROCESSABLE_CONTENT,
             "A note is required when marking a document unverified.",
         ) from exc
     return _to_document_read(document)

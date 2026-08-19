@@ -63,14 +63,14 @@ router = APIRouter()
 def _validate_range(date_from: date, date_to: date) -> None:
     if date_from > date_to:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="date_from must not be after date_to.",
         )
 
 
 def _map_sort_error(exc: reporting.InvalidSortField) -> HTTPException:
     return HTTPException(
-        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
         detail=f"Cannot sort by {exc}.",
     )
 

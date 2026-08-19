@@ -81,7 +81,7 @@ async def create_banner(
         )
     except BannerInvalidConfiguration as exc:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=(
                 "Banner placement, template, business line, linked Offer, or property is invalid."
             ),
@@ -152,7 +152,7 @@ async def add_banner_template_version(
         )
     except BannerInvalidConfiguration as exc:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="Unknown category or unsafe template image reference.",
         ) from exc
     return _template_read(template)
@@ -271,7 +271,7 @@ async def update_banner(
         )
     except BannerInvalidConfiguration as exc:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=(
                 "Banner placement, template, business line, linked Offer, or property is invalid."
             ),
@@ -286,12 +286,12 @@ async def update_banner(
         rules = AudienceRules.model_validate(banner.audience_rules)
     except ValueError as exc:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="This banner has invalid audience rules.",
         ) from exc
     if not audience_rules_valid_for_banner(banner.banner_type, rules):
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=(
                 "Personalized banners require at least one user type."
                 if banner.banner_type == "personalized"
@@ -333,12 +333,12 @@ async def submit(
         ) from exc
     except BannerInvalidAudience as exc:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="This banner has invalid audience rules.",
         ) from exc
     except BannerInvalidConfiguration as exc:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="This banner no longer has a valid active template or Offer.",
         ) from exc
     if banner is None:
@@ -475,12 +475,12 @@ async def approve(
         ) from exc
     except BannerInvalidAudience as exc:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="This banner has invalid audience rules.",
         ) from exc
     except BannerInvalidConfiguration as exc:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="This banner no longer has a valid active template or Offer.",
         ) from exc
     if banner is None:

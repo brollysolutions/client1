@@ -126,12 +126,12 @@ async def submit_property(
         ) from exc
     except MediaUploadMissing as exc:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="An uploaded media object is missing or exceeds the allowed size.",
         ) from exc
     except MediaContentMismatch as exc:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="Uploaded media content does not match its declared type.",
         ) from exc
     except MediaStorageUnavailable as exc:
