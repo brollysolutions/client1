@@ -95,7 +95,11 @@ async def list_banners_public(
     # function's docstring). image_key itself never reaches PublicBannerRead.
     response: list[PublicBannerRead] = []
     for banner, template, offer, property_listing in banners:
-        template_url = template_image_url(template.image_ref) if template is not None else None
+        template_url = (
+            template_image_url(template.image_ref, version=template.version)
+            if template is not None
+            else None
+        )
         linked_media = property_media.get(property_listing.id, []) if property_listing else []
         response.append(
             PublicBannerRead(

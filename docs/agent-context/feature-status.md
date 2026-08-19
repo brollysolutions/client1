@@ -9,6 +9,36 @@ Evidence baseline: `abcc1fd`
 verified Admin operational-visibility work in
 [PR #173](https://github.com/brollysolutions/client1/pull/173).
 
+**Done — refreshed bundled artwork delivery for governed banners (PR pending;
+FR-12.1-FR-12.3; completion coverage unchanged):** bundled template artwork
+now carries its immutable database template version in the served URL, for
+example `/banner-templates/financial_services/personal-loan.webp?v=1`. This
+forces browsers, CDNs, and Next's image optimizer to request the refreshed
+pixels instead of retaining an older response at the stable public path. The
+same version-aware URL is returned by the Admin/Sub Admin template library and
+the anonymous public-banner API, so existing approved campaigns and newly
+authored banners use one delivery rule. Canonical uploaded template objects
+remain unchanged because their object keys are already unique.
+
+No artwork, category mapping, banner copy/status, approval workflow, upload
+authority, API schema, generated contract, migration, RLS policy, dependency,
+or business-line behavior changed. All 32 refreshed Financial Services and
+Properties images remain the governed files delivered by the banners.
+
+Fresh evidence: the regression test failed first against the unversioned URL;
+the six-test banner catalogue suite and three focused PostgreSQL-backed Docker
+API tests pass, as do Ruff check/format over all 456 API files, one Alembic head,
+web lint, strict typecheck, the focused 23-test web set, and all 373 web tests.
+Live browser checks on `/loans` and `/real-estate` observed versioned section
+artwork requests returning HTTP 200. The production build compiled,
+typechecked, and generated all 93 pages before the known Windows standalone
+symlink `EPERM` tail; host-side builds also cannot resolve the Docker-only
+`api` hostname. The broad Docker API suite was attempted but remained active
+without a report for about 30 minutes and was terminated cleanly, so it is
+recorded as incomplete rather than passed. Design, security, and diff review
+found no actionable issue. Next priority: publish the branch PR and then return
+to the highest-ranked incomplete feature.
+
 **Done — Financial Services and Properties campaign-art composition refresh
 ([PR #203](https://github.com/brollysolutions/client1/pull/203); FR-12.1-FR-12.3;
 completion coverage unchanged):** all 32 governed
