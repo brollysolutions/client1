@@ -31,6 +31,36 @@ type Schemas = components["schemas"];
 
 const IMAGE_ACCEPT = "image/jpeg,image/png,image/webp";
 const IMAGE_MAX_BYTES = 2 * 1024 * 1024;
+const ARTWORK_GUIDANCE: Record<
+  BannerTemplate["placement"],
+  { dimensions: string; aspectClass: string; composition: string }
+> = {
+  homepage: {
+    dimensions: "1440 × 800 px",
+    aspectClass: "aspect-[9/5]",
+    composition: "Keep the subject on the right with clear copy space on the left.",
+  },
+  homepage_ad: {
+    dimensions: "960 × 540 px",
+    aspectClass: "aspect-video",
+    composition: "Use a text-free scene with the subject centred for the left media panel.",
+  },
+  financial_services: {
+    dimensions: "1440 × 576 px",
+    aspectClass: "aspect-[5/2]",
+    composition: "Keep the subject on the right with clear copy space on the left.",
+  },
+  properties: {
+    dimensions: "1440 × 576 px",
+    aspectClass: "aspect-[5/2]",
+    composition: "Keep the property focus on the right with clear copy space on the left.",
+  },
+  dashboard: {
+    dimensions: "1440 × 800 px",
+    aspectClass: "aspect-[9/5]",
+    composition: "Keep important details away from the outer edges.",
+  },
+};
 
 export function BannerTemplateManager() {
   const [open, setOpen] = React.useState(false);
@@ -44,6 +74,7 @@ export function BannerTemplateManager() {
     [templates],
   );
   const selected = activeTemplates.find((template) => template.id === selectedId);
+  const selectedGuidance = selected ? ARTWORK_GUIDANCE[selected.placement] : null;
 
   const load = React.useCallback(async () => {
     setLoading(true);
@@ -143,11 +174,16 @@ export function BannerTemplateManager() {
                 onChange={setFile}
                 accept={IMAGE_ACCEPT}
                 maxBytes={IMAGE_MAX_BYTES}
-                hint="JPG, PNG or WEBP"
+                hint={
+                  selectedGuidance
+                    ? `JPG, PNG or WEBP · ${selectedGuidance.dimensions}`
+                    : "JPG, PNG or WEBP · choose a category for its dimensions"
+                }
                 disabled={loading}
               />
               <p className="text-xs leading-5 text-text-secondary">
-                Use a 9:5 text-free image with the subject on the right and clear copy space on the left.
+                {selectedGuidance?.composition ??
+                  "Artwork guidance changes with the selected public placement."}
               </p>
               <DialogFooter>
                 <Button disabled={loading || !selected || !file} onClick={() => void replaceTemplate()}>
@@ -163,12 +199,19 @@ export function BannerTemplateManager() {
                 {activeTemplates.map((template) => (
                   <li key={template.id} className="overflow-hidden rounded-lg border border-border bg-card">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={template.image_url} alt="" className="aspect-[9/5] w-full object-cover" />
+                    <img
+                      src={template.image_url}
+                      alt=""
+                      className={`${ARTWORK_GUIDANCE[template.placement].aspectClass} w-full object-cover`}
+                    />
                     <div className="flex items-center justify-between gap-2 p-3">
                       <div className="min-w-0">
                         <p className="truncate text-sm font-medium">{template.label}</p>
                         <p className="text-xs capitalize text-text-secondary">
                           {template.placement.replaceAll("_", " ")}
+                        </p>
+                        <p className="text-xs text-text-secondary">
+                          {ARTWORK_GUIDANCE[template.placement].dimensions}
                         </p>
                       </div>
                       <Badge variant="outline">v{template.version}</Badge>

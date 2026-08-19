@@ -33,6 +33,9 @@ describe("HeroCarousel", () => {
     expect(markup).toContain('href="/real-estate"');
     expect(markup).toContain('aria-hidden="true"');
     expect(markup).toContain('data-layout="full-bleed"');
+    expect(markup).toContain("h-[clamp(14rem,36vw,32.5rem)]");
+    expect(markup).toContain("mb-4");
+    expect(markup).not.toContain("Scroll");
   });
 
   it("renders the homepage hero full-bleed and full-screen, with overlaid dots", () => {

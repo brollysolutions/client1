@@ -21,7 +21,7 @@ from httpx import AsyncClient
 from sqlalchemy import delete, select, text
 
 from app.jobs.cms_activation import cms_activation
-from app.models.banner import Banner, BannerStatus, BannerType
+from app.models.banner import Banner, BannerPlacement, BannerStatus, BannerType
 from app.models.offer import Offer, OfferStatus
 from conftest import full_registration, unique_mobile
 
@@ -49,6 +49,7 @@ async def _seed_banner(
     starts_at: datetime | None = None,
     ends_at: datetime | None = None,
     banner_type: BannerType = BannerType.DEFAULT,
+    placement: BannerPlacement = BannerPlacement.HOMEPAGE,
     category_key: str | None = None,
     replaces_banner_id: str | None = None,
     offer_id: str | None = None,
@@ -60,6 +61,7 @@ async def _seed_banner(
         banner = Banner(
             business_line="loans",
             banner_type=banner_type,
+            placement=placement,
             category_key=category_key,
             replaces_banner_id=uuid.UUID(replaces_banner_id) if replaces_banner_id else None,
             offer_id=uuid.UUID(offer_id) if offer_id else None,
@@ -436,6 +438,68 @@ async def test_category_replacement_archives_current_atomically(client: AsyncCli
             await _delete_banners(replacement_id)
     finally:
         await _delete_banners(unrelated_id, current_id)
+
+
+@pytest.mark.asyncio
+async def test_homepage_ad_replacement_is_safe_across_themes(client: AsyncClient) -> None:
+    """All sponsor themes share one slot and replacement still names its incumbent."""
+    import app.db.session as _session_mod
+
+    async with _session_mod.AsyncSessionLocal() as db:
+        parked = list(
+            (
+                await db.execute(
+                    text(
+                        "UPDATE banners SET status = 'archived' "
+                        "WHERE placement = 'homepage_ad' AND status = 'live' RETURNING id"
+                    )
+                )
+            ).scalars()
+        )
+        await db.commit()
+
+    author = await _author_uuid(client)
+    current_id = await _seed_banner(
+        author=author,
+        status=BannerStatus.LIVE,
+        placement=BannerPlacement.HOMEPAGE_AD,
+        category_key="personal-finance",
+    )
+    unrelated_id = await _seed_banner(
+        author=author,
+        status=BannerStatus.APPROVED,
+        starts_at=_PAST,
+        placement=BannerPlacement.HOMEPAGE_AD,
+        category_key="verified-property",
+    )
+    try:
+        await cms_activation()
+        assert await _banner_status(current_id) == "live"
+        assert await _banner_status(unrelated_id) == "approved"
+
+        replacement_id = await _seed_banner(
+            author=author,
+            status=BannerStatus.APPROVED,
+            starts_at=_PAST,
+            placement=BannerPlacement.HOMEPAGE_AD,
+            category_key="business-finance",
+            replaces_banner_id=current_id,
+        )
+        try:
+            await cms_activation()
+            assert await _banner_status(current_id) == "archived"
+            assert await _banner_status(replacement_id) == "live"
+        finally:
+            await _delete_banners(replacement_id)
+    finally:
+        await _delete_banners(unrelated_id, current_id)
+        if parked:
+            async with _session_mod.AsyncSessionLocal() as db:
+                await db.execute(
+                    text("UPDATE banners SET status = 'live' WHERE id = ANY(:ids)"),
+                    {"ids": parked},
+                )
+                await db.commit()
 
 
 @pytest.mark.asyncio

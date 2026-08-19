@@ -18,6 +18,9 @@ describe("AdStrip", () => {
     const markup = renderToStaticMarkup(<AdStrip banner={SPONSOR} />);
     expect(markup).toContain('aria-label="Sponsored"');
     expect(markup).toContain('data-layout="ad-strip"');
+    expect(markup).toContain('data-presentation="split-sponsor-card"');
+    expect(markup).toContain("h-[152px]");
+    expect(markup).toContain("w-[36%]");
     expect(markup).toContain("Sponsored");
     expect(markup).toContain('aria-label="Dismiss sponsored message"');
   });
@@ -52,5 +55,11 @@ describe("AdStrip", () => {
     const markup = renderToStaticMarkup(<AdStrip banner={bare} />);
     expect(markup).toContain("A sponsor with no call to action");
     expect(markup).not.toContain("<a ");
+  });
+
+  it("can render the exact CMS composition without an interactive dismiss control", () => {
+    const markup = renderToStaticMarkup(<AdStrip banner={SPONSOR} dismissible={false} />);
+    expect(markup).toContain('data-presentation="split-sponsor-card"');
+    expect(markup).not.toContain('aria-label="Dismiss sponsored message"');
   });
 });

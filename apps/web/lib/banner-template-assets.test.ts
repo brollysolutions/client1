@@ -4,7 +4,14 @@ import { describe, expect, it } from "vitest";
 
 const CATEGORIES = {
   homepage: ["loans", "offers", "general", "properties", "referrals", "core-concepts"],
-  homepage_ad: ["sponsor"],
+  homepage_ad: [
+    "sponsor",
+    "personal-finance",
+    "business-finance",
+    "cards-and-rewards",
+    "insurance-protection",
+    "verified-property",
+  ],
   financial_services: [
     "personal-loan",
     "business-loan",
@@ -48,7 +55,7 @@ const CATEGORIES = {
 // wrong artwork size. Indexing this map means a new placement fails loudly.
 const EXPECTED_SIZE: Record<keyof typeof CATEGORIES, { width: number; height: number }> = {
   homepage: { width: 1440, height: 800 },
-  homepage_ad: { width: 1440, height: 360 },
+  homepage_ad: { width: 960, height: 540 },
   financial_services: { width: 1440, height: 576 },
   properties: { width: 1440, height: 576 },
 };
@@ -78,7 +85,7 @@ describe("bundled banner template artwork", () => {
         expectedSize: EXPECTED_SIZE[placement as keyof typeof CATEGORIES],
       })),
     );
-    expect(files).toHaveLength(39);
+    expect(files).toHaveLength(44);
     for (const { file, expectedSize } of files) {
       expect(statSync(file).size).toBeGreaterThan(0);
       expect(statSync(file).size).toBeLessThanOrEqual(2 * 1024 * 1024);

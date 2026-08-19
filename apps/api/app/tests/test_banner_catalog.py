@@ -8,17 +8,16 @@ from app.models.property import PropertyCategory, PropertySubtype
 from app.services.public_catalog import PUBLIC_BANNERS_LIMIT_BY_PLACEMENT
 
 
-def test_closed_catalog_contains_39_public_categories() -> None:
+def test_closed_catalog_contains_44_public_categories() -> None:
     public_categories = {
         placement: categories
         for placement, categories in CATEGORIES_BY_PLACEMENT.items()
         if placement != BannerPlacement.DASHBOARD
     }
-    assert sum(len(categories) for categories in public_categories.values()) == 39
+    assert sum(len(categories) for categories in public_categories.values()) == 44
     assert len(public_categories[BannerPlacement.HOMEPAGE]) == 6
-    # Exactly one, which is what makes "one sponsor at a time" a database
-    # guarantee via uq_banners_live_placement_category rather than a convention.
-    assert len(public_categories[BannerPlacement.HOMEPAGE_AD]) == 1
+    # Six governed themes share one placement-wide live slot.
+    assert len(public_categories[BannerPlacement.HOMEPAGE_AD]) == 6
     assert len(public_categories[BannerPlacement.FINANCIAL_SERVICES]) == 16
     assert len(public_categories[BannerPlacement.PROPERTIES]) == 16
     assert expected_business_line(BannerPlacement.FINANCIAL_SERVICES) == "loans"
