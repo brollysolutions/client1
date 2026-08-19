@@ -55,7 +55,7 @@ from sqlalchemy.sql import func
 
 import app.db.session as db_session
 from app.models.audit_log import AuditAction
-from app.models.banner import Banner, BannerStatus
+from app.models.banner import Banner, BannerPlacement, BannerStatus
 from app.models.offer import Offer, OfferStatus
 from app.models.property import Property
 from app.services.audit_log import record as record_audit
@@ -90,15 +90,15 @@ async def _activate_banners(session: AsyncSession) -> int:
             if offer is None or offer.status != OfferStatus.ACTIVE or offer.audience_rules != {}:
                 continue
         if banner.category_key is not None:
-            current = await session.scalar(
-                select(Banner)
-                .where(
-                    Banner.status == BannerStatus.LIVE,
-                    Banner.placement == banner.placement,
-                    Banner.category_key == banner.category_key,
-                )
-                .with_for_update()
-            )
+            live_scope = [
+                Banner.status == BannerStatus.LIVE,
+                Banner.placement == banner.placement,
+            ]
+            # Public sponsor themes share one physical slot. Every other
+            # public placement still allows one live campaign per category.
+            if banner.placement != BannerPlacement.HOMEPAGE_AD:
+                live_scope.append(Banner.category_key == banner.category_key)
+            current = await session.scalar(select(Banner).where(*live_scope).with_for_update())
             if current is not None:
                 if banner.replaces_banner_id != current.id:
                     continue

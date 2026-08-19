@@ -2,12 +2,15 @@ import React from "react";
 import Image from "next/image";
 import { ArrowRight, ShieldCheck } from "lucide-react";
 
+import { AdStrip } from "@/components/ad-strip";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import type { HeroBanner } from "@/lib/banners";
 import type { Banner } from "@/lib/banners-api";
 import type { ContentBlock } from "@/lib/content-api";
 import type { Offer } from "@/lib/offers-api";
 import { isSafeLocalHref } from "@/lib/safe-local-href";
+import { cn } from "@/lib/utils";
 
 export type BannerPreviewValue = Pick<
   Banner,
@@ -36,7 +39,15 @@ export function formatOfferBadge(offer: OfferPreviewValue | undefined): string |
   return `${offer.title} · ${offerDiscount(offer)}` + (offer.code ? ` · Code ${offer.code}` : "");
 }
 
-export function BannerPreview({ banner, context }: { banner: BannerPreviewValue; context: "public" | "dashboard" }) {
+export function BannerPreview({
+  banner,
+  context,
+  placement,
+}: {
+  banner: BannerPreviewValue;
+  context: "public" | "dashboard";
+  placement?: Banner["placement"];
+}) {
   const action = Boolean(banner.cta_label && banner.deep_link && isSafeLocalHref(banner.deep_link));
   if (context === "dashboard") {
     return (
@@ -48,8 +59,28 @@ export function BannerPreview({ banner, context }: { banner: BannerPreviewValue;
       </article>
     );
   }
+  if (placement === "homepage_ad") {
+    const sponsor: HeroBanner = {
+      id: "cms-sponsor-preview",
+      title: banner.title || "Sponsor message",
+      subtitle: banner.subtitle || undefined,
+      image: banner.image_url || undefined,
+      cta: action
+        ? { label: banner.cta_label!, href: banner.deep_link! }
+        : undefined,
+    };
+    return <AdStrip banner={sponsor} dismissible={false} />;
+  }
   return (
-    <article className="relative aspect-[9/5] min-h-48 overflow-hidden rounded-2xl bg-[var(--nav-bg)] shadow-lg ring-1 ring-black/5">
+    <article
+      data-preview-placement={placement ?? "homepage"}
+      className={cn(
+        "relative min-h-48 overflow-hidden rounded-2xl bg-[var(--nav-bg)] shadow-lg ring-1 ring-black/5",
+        placement === "financial_services" || placement === "properties"
+          ? "aspect-[5/2]"
+          : "aspect-[9/5]",
+      )}
+    >
       {banner.image_url ? (
         <Image
           src={banner.image_url}

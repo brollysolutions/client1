@@ -260,6 +260,7 @@ export function BannerForm({
         >
           <BannerPreview
             context={isPublic ? "public" : "dashboard"}
+            placement={placement}
             banner={{
               banner_type: bannerType,
               title,

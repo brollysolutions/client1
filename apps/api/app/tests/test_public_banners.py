@@ -657,8 +657,8 @@ async def test_only_one_sponsor_can_be_live_and_the_next_waits_behind_it(
     """One sponsor at a time, with the successor queued rather than rotated.
 
     Two guarantees are asserted together because either alone would be
-    misleading: the database refuses a second concurrent LIVE sponsor (the
-    partial unique index over the placement's single category key), and an
+    misleading: the database refuses a second concurrent LIVE sponsor even
+    when it uses a different governed theme, and an
     approved successor sitting in the queue is not served to visitors until
     the activation job promotes it.
     """
@@ -669,14 +669,18 @@ async def test_only_one_sponsor_can_be_live_and_the_next_waits_behind_it(
     from app.models.banner import BannerTemplate
 
     async with _session_mod.AsyncSessionLocal() as db:
-        template = await db.scalar(
-            select(BannerTemplate).where(
-                BannerTemplate.placement == _Placement.HOMEPAGE_AD,
-                BannerTemplate.active.is_(True),
+        templates = (
+            await db.scalars(
+                select(BannerTemplate)
+                .where(
+                    BannerTemplate.placement == _Placement.HOMEPAGE_AD,
+                    BannerTemplate.active.is_(True),
+                )
+                .order_by(BannerTemplate.category_key)
             )
-        )
-    assert template is not None
-    template_id = str(template.id)
+        ).all()
+    assert len(templates) >= 2
+    first_template, second_template = templates[:2]
 
     # This dev database is long-lived and the strip is single-occupancy, so a
     # leftover LIVE sponsor would make the first seed below fail instead of the
@@ -700,16 +704,16 @@ async def test_only_one_sponsor_can_be_live_and_the_next_waits_behind_it(
         status="live",
         title="Current sponsor",
         placement="homepage_ad",
-        category_key=template.category_key,
-        template_id=template_id,
+        category_key=first_template.category_key,
+        template_id=str(first_template.id),
     )
     queued_id = await _seed_banner(
         author=author,
         status="approved",
         title="Queued sponsor",
         placement="homepage_ad",
-        category_key=template.category_key,
-        template_id=template_id,
+        category_key=first_template.category_key,
+        template_id=str(first_template.id),
     )
     try:
         with pytest.raises(IntegrityError):
@@ -718,8 +722,8 @@ async def test_only_one_sponsor_can_be_live_and_the_next_waits_behind_it(
                 status="live",
                 title="Second concurrent sponsor",
                 placement="homepage_ad",
-                category_key=template.category_key,
-                template_id=template_id,
+                category_key=second_template.category_key,
+                template_id=str(second_template.id),
             )
 
         resp = await client.get("/api/v1/public/banners", params={"placement": "homepage_ad"})

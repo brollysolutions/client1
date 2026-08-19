@@ -499,6 +499,7 @@ export function BannersView() {
                   >
                     <BannerPreview
                       context={active.placement === "dashboard" ? "dashboard" : "public"}
+                      placement={active.placement}
                       banner={{
                         banner_type: active.banner_type,
                         title: draft.title,
