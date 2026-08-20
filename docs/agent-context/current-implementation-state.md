@@ -2,7 +2,7 @@
 
 Status: **Derived reconciliation and later product amendment**
 
-As of: **2026-08-09**
+As of: **2026-08-20**
 
 Code baseline: `14773ae` ([PR #151](https://github.com/brollysolutions/client1/pull/151))
 
@@ -397,6 +397,31 @@ Evidence:
 - hierarchy, grant/revocation, payout API/RLS, linked-payout, auth/session, and
   dashboard capability tests
 - generated OpenAPI and TypeScript contracts
+
+### CS-013 — property listing authority, owner CRUD, and panorama media
+
+**Decision (2026-08-20):** Clients cannot list properties. Real-estate Agents
+may create and manage only their own listings; Sub Admins and platform Admins
+may also create listings. Platform Admin retains approval/rejection and broader
+operational authority. An owner edit to an approved listing returns the authored
+version to review while the last approved catalogue version stays public.
+Withdrawal deactivates an approved catalogue row instead of erasing it.
+
+Property MP4 is removed. One optional first-party uploaded equirectangular JPEG
+or WebP panorama is supported through the existing private managed-media and
+Admin approval lifecycle. Loans video, external tour embeds, 360 video, and
+multi-room tours are outside this amendment.
+
+This supersedes FR-7.3 and aligned feature-list wording only where they permit a
+Lead/Client to upload property details; FR-13.1/FR-13.3 only for property video;
+and CS-004 only where it permits Client submission or excludes listing
+editing/resubmission. It preserves real-estate isolation, owner-bound storage,
+content verification, reviewer-only documents, RERA review, auditability,
+retention, and active-listing public RLS.
+
+Source and approved interpretation:
+
+- [`property-listing-authority-and-panorama-2026-08-20.md`](property-listing-authority-and-panorama-2026-08-20.md)
 
 ## 3. Previously open items settled by current behavior
 

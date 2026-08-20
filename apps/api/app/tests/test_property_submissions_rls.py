@@ -2,8 +2,8 @@
 
 Verifies migration f4a5b6c7d8e9: an owning submitter sees only their own submission,
 platform Admin sees the review queue, and Sub Admin cannot review another owner's
-submission. Also checks that the owner branch supports real-estate Clients, Agents,
-and Sub Admins without broadening approval authority.
+submission. Also checks that the owner branch supports real-estate Agents and
+Sub Admins, but not Clients, without broadening approval authority.
 
 Requires the Docker stack with migrations applied; auto-skips without Redis.
 Mirrors test_enquiries_rls.py's harness.
@@ -121,13 +121,13 @@ async def test_owner_agent_sees_own(client: AsyncClient) -> None:
 
 
 @pytest.mark.asyncio
-async def test_owner_client_sees_own(client: AsyncClient) -> None:
+async def test_owner_client_cannot_see_submission_workspace(client: AsyncClient) -> None:
     _, mobile = await full_registration(client, lines=["real_estate"])
     uid = await _auth_user_uuid(mobile)
     sub_id = await _seed_submission(uid)
 
     rows = await _select_as(auth_user_uuid=uid, role="client", business_line="both")
-    assert [r["id"] for r in rows] == [uuid.UUID(sub_id)]
+    assert uuid.UUID(sub_id) not in [r["id"] for r in rows]
 
 
 @pytest.mark.asyncio
@@ -172,6 +172,21 @@ async def test_re_sub_admin_cannot_see_another_submitters_row(client: AsyncClien
 
     rows = await _select_as(role="sub_admin", business_line="real_estate", platform_scope="false")
     assert uuid.UUID(sub_id) not in [r["id"] for r in rows]
+
+
+@pytest.mark.asyncio
+async def test_re_sub_admin_sees_own_submission(client: AsyncClient) -> None:
+    _, mobile = await full_registration(client, lines=["real_estate"])
+    uid = await _auth_user_uuid(mobile)
+    sub_id = await _seed_submission(uid)
+
+    rows = await _select_as(
+        auth_user_uuid=uid,
+        role="sub_admin",
+        business_line="real_estate",
+        platform_scope="true",
+    )
+    assert uuid.UUID(sub_id) in [r["id"] for r in rows]
 
 
 @pytest.mark.asyncio
@@ -228,3 +243,41 @@ async def test_insert_check_rejects_foreign_submitter(client: AsyncClient) -> No
                 )
     finally:
         await engine.dispose()
+
+
+@pytest.mark.asyncio
+async def test_insert_check_denies_client_and_allows_re_agent(client: AsyncClient) -> None:
+    _, mobile = await full_registration(client, lines=["real_estate"])
+    uid = await _auth_user_uuid(mobile)
+
+    async def insert_as(role: str) -> None:
+        engine = _engine()
+        try:
+            async with engine.begin() as conn:
+                await conn.execute(text("SET LOCAL ROLE api_user"))
+                await conn.execute(
+                    text(
+                        "SELECT set_config('app.auth_user_uuid', :uuid, true),"
+                        "set_config('app.role', :role, true),"
+                        "set_config('app.business_line', 'real_estate', true),"
+                        "set_config('app.platform_scope', 'false', true)"
+                    ),
+                    {"uuid": uid, "role": role},
+                )
+                await conn.execute(
+                    text(
+                        "INSERT INTO property_submissions "
+                        "(id, submitter_uuid, business_line, status, title, type, location, "
+                        "category, city, locality, pincode, price_paise, furnishing, "
+                        "construction_status, rera_number) VALUES "
+                        "(gen_random_uuid(), :uuid, 'real_estate', 'pending', 't', 'Villa', "
+                        "'l', 'villas', 'c', 'loc', '560001', 100, 'semi', 'ready', 'R1')"
+                    ),
+                    {"uuid": uid},
+                )
+        finally:
+            await engine.dispose()
+
+    with pytest.raises(Exception):  # noqa: B017 -- RLS must deny Client listing intake
+        await insert_as("client")
+    await insert_as("agent")

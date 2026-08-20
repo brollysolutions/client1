@@ -7,6 +7,8 @@ import { propertySubtypeOption } from "@/lib/property-taxonomy";
 
 type Schemas = components["schemas"];
 type SubmissionCreate = Schemas["SubmissionCreate"];
+type SubmissionUpdate = Schemas["SubmissionUpdate"];
+type SubmissionRead = Schemas["SubmissionRead"];
 type Furnishing = Schemas["Furnishing"];
 type ConstructionStatus = Schemas["ConstructionStatus"];
 type SubmissionMediaInput = Schemas["SubmissionMediaInput"];
@@ -34,7 +36,7 @@ export type SubmitFormState = {
   meta: string;
   images: File[];
   documents: File[];
-  video: File | null;
+  panorama: File | null;
   propertySubtype: PropertySubtype | "";
   city: string;
   locality: string;
@@ -57,7 +59,7 @@ export const EMPTY_FORM: SubmitFormState = {
   meta: "",
   images: [],
   documents: [],
-  video: null,
+  panorama: null,
   propertySubtype: "",
   city: "",
   locality: "",
@@ -87,6 +89,10 @@ export function buildSubmissionPayload(
   form: SubmitFormState,
   media: SubmissionMediaInput[],
 ): SubmissionCreate {
+  return { ...buildSubmissionUpdatePayload(form), media };
+}
+
+export function buildSubmissionUpdatePayload(form: SubmitFormState): SubmissionUpdate {
   const subtype = propertySubtypeOption(form.propertySubtype);
   if (!subtype) throw new Error("A valid property subtype is required.");
   const details: Record<string, unknown> = {};
@@ -113,11 +119,41 @@ export function buildSubmissionPayload(
     age_years: toInt(form.age_years),
     rera_number: form.rera_number.trim(),
     details,
-    media,
   };
 }
 
-export function validateForm(form: SubmitFormState): Record<string, string> {
+export function submissionToFormState(submission: SubmissionRead): SubmitFormState {
+  return {
+    title: submission.title,
+    type: submission.type,
+    location: submission.location,
+    meta: submission.meta ?? "",
+    images: [],
+    documents: [],
+    panorama: null,
+    propertySubtype: submission.property_subtype ?? "",
+    city: submission.city,
+    locality: submission.locality,
+    pincode: submission.pincode,
+    priceRupees: String(submission.price_paise / 100),
+    bhk: String(submission.bhk),
+    area_sqft: String(submission.area_sqft),
+    furnishing: submission.furnishing,
+    constructionStatus: submission.construction_status,
+    amenities: [...submission.amenities],
+    age_years: String(submission.age_years),
+    rera_number: submission.rera_number,
+    details: Object.entries(submission.details ?? {}).map(([key, value]) => ({
+      key,
+      value: typeof value === "string" ? value : (JSON.stringify(value) ?? String(value)),
+    })),
+  };
+}
+
+export function validateForm(
+  form: SubmitFormState,
+  { requireImages = true }: { requireImages?: boolean } = {},
+): Record<string, string> {
   const errs: Record<string, string> = {};
   const required: [keyof SubmitFormState, string][] = [
     ["title", "Title is required."],
@@ -136,7 +172,7 @@ export function validateForm(form: SubmitFormState): Record<string, string> {
   if (!/^\d{6}$/.test(form.pincode.trim())) errs.pincode = "Pincode must be 6 digits.";
   const price = Number.parseFloat(form.priceRupees.trim());
   if (!Number.isFinite(price) || price <= 0) errs.priceRupees = "Enter a price greater than 0.";
-  if (form.images.length < 1 || form.images.length > 10) {
+  if ((requireImages && form.images.length < 1) || form.images.length > 10) {
     errs.images = "Choose between 1 and 10 property images.";
   }
   if (form.documents.length > 2) errs.documents = "Choose at most 2 PDF documents.";
@@ -152,13 +188,13 @@ export function validateForm(form: SubmitFormState): Record<string, string> {
   } else if (form.documents.some((file) => file.size > maxBytes)) {
     errs.documents = "Each PDF must be 5 MiB or smaller.";
   }
-  if (form.video) {
-    if (form.video.type !== "video/mp4") {
-      errs.video = "The property video must be an MP4 file.";
-    } else if (form.video.size > 20 * 1024 * 1024) {
-      errs.video = "The property video must be 20 MiB or smaller.";
-    } else if (form.video.size < 1) {
-      errs.video = "The property video is empty.";
+  if (form.panorama) {
+    if (!new Set(["image/jpeg", "image/webp"]).has(form.panorama.type)) {
+      errs.panorama = "The 360 panorama must be a JPEG or WebP image.";
+    } else if (form.panorama.size > maxBytes) {
+      errs.panorama = "The 360 panorama must be 5 MiB or smaller.";
+    } else if (form.panorama.size < 1) {
+      errs.panorama = "The 360 panorama is empty.";
     }
   }
   return errs;

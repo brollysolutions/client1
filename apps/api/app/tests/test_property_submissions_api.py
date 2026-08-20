@@ -14,7 +14,6 @@ from datetime import UTC, datetime, timedelta
 import pytest
 from httpx import AsyncClient
 from sqlalchemy import select, text
-from sqlalchemy.exc import IntegrityError
 
 from app.cache.redis_keys import RedisCache
 from app.core.security import create_access_token
@@ -41,6 +40,12 @@ async def _auth_user_uuid(mobile: str) -> str:
 def _agent_token(uid: str) -> str:
     return create_access_token(
         {"sub": uid, "role": "agent", "business_line": "real_estate", "platform_scope": "false"}
+    )
+
+
+def _loans_agent_token(uid: str) -> str:
+    return create_access_token(
+        {"sub": uid, "role": "agent", "business_line": "loans", "platform_scope": "false"}
     )
 
 
@@ -101,13 +106,13 @@ def _payload_with_document(uid: str) -> dict:
     return payload
 
 
-def _payload_with_video(uid: str) -> dict:
+def _payload_with_panorama(uid: str) -> dict:
     payload = _payload(uid)
     payload["media"].append(
         {
-            "kind": "video",
-            "content_type": "video/mp4",
-            "object_key": (f"private/property-submissions/staging/{uid}/{uuid.uuid4()}/asset.mp4"),
+            "kind": "panorama",
+            "content_type": "image/webp",
+            "object_key": (f"private/property-submissions/staging/{uid}/{uuid.uuid4()}/asset.webp"),
             "position": 1,
         }
     )
@@ -146,67 +151,64 @@ async def test_agent_submit_creates_pending(client: AsyncClient) -> None:
 
 
 @pytest.mark.asyncio
-async def test_video_stays_private_pending_and_blocks_approval(client: AsyncClient) -> None:
+async def test_panorama_is_ready_and_published_with_approved_property(
+    client: AsyncClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(
+        submission_service,
+        "validate_panorama_object",
+        lambda _object_key, _content_type: None,
+        raising=False,
+    )
     _, mobile = await full_registration(client, lines=["real_estate"])
     uid = await _auth_user_uuid(mobile)
     created = await client.post(
         "/api/v1/property-submissions",
-        json=_payload_with_video(uid),
+        json=_payload_with_panorama(uid),
         headers={"Authorization": f"Bearer {_agent_token(uid)}"},
     )
 
     assert created.status_code == 201, created.text
-    video = next(item for item in created.json()["media"] if item["kind"] == "video")
-    assert video["processing_status"] == "pending"
-    assert video["duration_seconds"] is None
-
-    import app.db.session as session_module
-
-    async with session_module.AsyncSessionLocal() as session:
-        with pytest.raises(IntegrityError):
-            await session.execute(
-                text(
-                    "UPDATE property_submission_media SET processing_status = 'ready' "
-                    "WHERE id = :media_id"
-                ),
-                {"media_id": video["id"]},
-            )
-            await session.commit()
-        await session.rollback()
+    panorama = next(item for item in created.json()["media"] if item["kind"] == "panorama")
+    assert panorama["processing_status"] == "ready"
 
     approved = await client.post(
         f"/api/v1/property-submissions/{created.json()['id']}/approve",
         headers={"Authorization": f"Bearer {_admin_token(uid)}"},
     )
-    assert approved.status_code == 409, approved.text
-    assert approved.json()["detail"] == "All media must finish processing before approval."
+    assert approved.status_code == 200, approved.text
+    prop = await client.get(
+        f"/api/v1/properties/{approved.json()['approved_property_id']}",
+        headers={"Authorization": f"Bearer {_admin_token(uid)}"},
+    )
+    assert [asset["kind"] for asset in prop.json()["media"]] == ["image", "panorama"]
 
 
 @pytest.mark.asyncio
-async def test_video_presign_uses_twenty_megabyte_cap(client: AsyncClient) -> None:
+async def test_panorama_presign_uses_image_cap(client: AsyncClient) -> None:
     _, mobile = await full_registration(client, lines=["real_estate"])
     uid = await _auth_user_uuid(mobile)
     response = await client.post(
         "/api/v1/property-submissions/media-upload-url",
-        json={"kind": "video", "content_type": "video/mp4"},
+        json={"kind": "panorama", "content_type": "image/webp"},
         headers={"Authorization": f"Bearer {_agent_token(uid)}"},
     )
 
     assert response.status_code == 200, response.text
-    assert response.json()["max_bytes"] == 20 * 1024 * 1024
-    assert response.json()["object_key"].endswith("/asset.mp4")
+    assert response.json()["max_bytes"] == 5 * 1024 * 1024
+    assert response.json()["object_key"].endswith("/asset.webp")
 
 
 @pytest.mark.asyncio
-async def test_submission_rejects_more_than_one_video(client: AsyncClient) -> None:
+async def test_submission_rejects_more_than_one_panorama(client: AsyncClient) -> None:
     _, mobile = await full_registration(client, lines=["real_estate"])
     uid = await _auth_user_uuid(mobile)
-    payload = _payload_with_video(uid)
+    payload = _payload_with_panorama(uid)
     payload["media"].append(
         {
-            "kind": "video",
-            "content_type": "video/mp4",
-            "object_key": (f"private/property-submissions/staging/{uid}/{uuid.uuid4()}/asset.mp4"),
+            "kind": "panorama",
+            "content_type": "image/webp",
+            "object_key": (f"private/property-submissions/staging/{uid}/{uuid.uuid4()}/asset.webp"),
             "position": 2,
         }
     )
@@ -294,7 +296,7 @@ async def test_submission_malware_rejection_removes_staging_and_canonical_object
 
 
 @pytest.mark.asyncio
-async def test_client_can_submit(client: AsyncClient) -> None:
+async def test_client_cannot_submit_or_read_submission_workspace(client: AsyncClient) -> None:
     _, mobile = await full_registration(client, lines=["real_estate"])
     uid = await _auth_user_uuid(mobile)
     token = create_access_token(
@@ -305,8 +307,138 @@ async def test_client_can_submit(client: AsyncClient) -> None:
         json=_payload(uid),
         headers={"Authorization": f"Bearer {token}"},
     )
-    assert res.status_code == 201, res.text
-    assert res.json()["submitter_uuid"] == uid
+    assert res.status_code == 403, res.text
+    listed = await client.get(
+        "/api/v1/property-submissions",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert listed.status_code == 403, listed.text
+
+
+@pytest.mark.asyncio
+async def test_loans_agent_cannot_submit_property(client: AsyncClient) -> None:
+    _, mobile = await full_registration(client, lines=["loans", "real_estate"])
+    uid = await _auth_user_uuid(mobile)
+
+    response = await client.post(
+        "/api/v1/property-submissions",
+        json=_payload(uid),
+        headers={"Authorization": f"Bearer {_loans_agent_token(uid)}"},
+    )
+
+    assert response.status_code == 403, response.text
+
+
+@pytest.mark.asyncio
+async def test_platform_admin_can_submit(client: AsyncClient) -> None:
+    _, mobile = await full_registration(client, lines=["real_estate"])
+    uid = await _auth_user_uuid(mobile)
+    response = await client.post(
+        "/api/v1/property-submissions",
+        json=_payload(uid),
+        headers={"Authorization": f"Bearer {_admin_token(uid)}"},
+    )
+
+    assert response.status_code == 201, response.text
+    assert response.json()["submitter_uuid"] == uid
+
+
+@pytest.mark.asyncio
+async def test_owner_updates_and_withdraws_approved_listing(client: AsyncClient) -> None:
+    _, mobile = await full_registration(client, lines=["real_estate"])
+    uid = await _auth_user_uuid(mobile)
+    agent_headers = {"Authorization": f"Bearer {_agent_token(uid)}"}
+    admin_headers = {"Authorization": f"Bearer {_admin_token(uid)}"}
+    created = await client.post(
+        "/api/v1/property-submissions", json=_payload(uid), headers=agent_headers
+    )
+    approved = await client.post(
+        f"/api/v1/property-submissions/{created.json()['id']}/approve", headers=admin_headers
+    )
+    property_id = approved.json()["approved_property_id"]
+
+    update_payload = {**_PAYLOAD, "title": "Updated 2BHK Apartment"}
+    updated = await client.patch(
+        f"/api/v1/property-submissions/{created.json()['id']}",
+        json=update_payload,
+        headers=agent_headers,
+    )
+
+    assert updated.status_code == 200, updated.text
+    assert updated.json()["status"] == "pending"
+    assert updated.json()["title"] == "Updated 2BHK Apartment"
+    still_public = await client.get(f"/api/v1/properties/{property_id}", headers=admin_headers)
+    assert still_public.json()["title"] == "2BHK Apartment"
+
+    reapproved = await client.post(
+        f"/api/v1/property-submissions/{created.json()['id']}/approve", headers=admin_headers
+    )
+    assert reapproved.status_code == 200, reapproved.text
+    assert reapproved.json()["approved_property_id"] == property_id
+    refreshed = await client.get(f"/api/v1/properties/{property_id}", headers=admin_headers)
+    assert refreshed.json()["title"] == "Updated 2BHK Apartment"
+
+    withdrawn = await client.delete(
+        f"/api/v1/property-submissions/{created.json()['id']}", headers=agent_headers
+    )
+    assert withdrawn.status_code == 204, withdrawn.text
+    hidden = await client.get(f"/api/v1/properties/{property_id}", headers=agent_headers)
+    assert hidden.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_other_agent_cannot_update_or_withdraw_listing(client: AsyncClient) -> None:
+    _, owner_mobile = await full_registration(client, lines=["real_estate"])
+    owner_uid = await _auth_user_uuid(owner_mobile)
+    created = await client.post(
+        "/api/v1/property-submissions",
+        json=_payload(owner_uid),
+        headers={"Authorization": f"Bearer {_agent_token(owner_uid)}"},
+    )
+    _, other_mobile = await full_registration(client, lines=["real_estate"])
+    other_uid = await _auth_user_uuid(other_mobile)
+    other_headers = {"Authorization": f"Bearer {_agent_token(other_uid)}"}
+
+    updated = await client.patch(
+        f"/api/v1/property-submissions/{created.json()['id']}",
+        json={**_PAYLOAD, "title": "Unauthorized edit"},
+        headers=other_headers,
+    )
+    withdrawn = await client.delete(
+        f"/api/v1/property-submissions/{created.json()['id']}", headers=other_headers
+    )
+
+    assert updated.status_code == 404
+    assert withdrawn.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_platform_admin_can_update_and_withdraw_another_authors_listing(
+    client: AsyncClient,
+) -> None:
+    _, owner_mobile = await full_registration(client, lines=["real_estate"])
+    owner_uid = await _auth_user_uuid(owner_mobile)
+    created = await client.post(
+        "/api/v1/property-submissions",
+        json=_payload(owner_uid),
+        headers={"Authorization": f"Bearer {_agent_token(owner_uid)}"},
+    )
+    _, admin_mobile = await full_registration(client, lines=["real_estate"])
+    admin_uid = await _auth_user_uuid(admin_mobile)
+    admin_headers = {"Authorization": f"Bearer {_admin_token(admin_uid)}"}
+
+    updated = await client.patch(
+        f"/api/v1/property-submissions/{created.json()['id']}",
+        json={**_PAYLOAD, "title": "Admin corrected listing"},
+        headers=admin_headers,
+    )
+    withdrawn = await client.delete(
+        f"/api/v1/property-submissions/{created.json()['id']}", headers=admin_headers
+    )
+
+    assert updated.status_code == 200, updated.text
+    assert updated.json()["title"] == "Admin corrected listing"
+    assert withdrawn.status_code == 204, withdrawn.text
 
 
 @pytest.mark.asyncio
@@ -466,8 +598,7 @@ async def test_approve_missing_is_404(client: AsyncClient) -> None:
 
 @pytest.mark.asyncio
 async def test_sub_admin_can_submit(client: AsyncClient) -> None:
-    """require_re_submitter (deps.py) widens the submit gate from agent-only to
-    agent OR sub_admin (SubAdmin slice 1, banners migration a4b5c6d7e8f9's PR)."""
+    """Sub Admin owns only the listing rows they author."""
     _, mobile = await full_registration(client, lines=["real_estate"])
     uid = await _auth_user_uuid(mobile)
     res = await client.post(
@@ -582,6 +713,47 @@ async def test_owner_can_request_private_media_access(
     )
     assert res.status_code == 200, res.text
     assert res.json()["url"] == "https://storage.test/preview"
+
+
+@pytest.mark.asyncio
+async def test_reviewer_accesses_public_media_copy_after_approved_edit(
+    client: AsyncClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    previewed: list[str] = []
+    monkeypatch.setattr(
+        storage,
+        "presign_preview",
+        lambda key: previewed.append(key) or "https://storage.test/public-preview",
+    )
+    _, mobile = await full_registration(client, lines=["real_estate"])
+    uid = await _auth_user_uuid(mobile)
+    agent_headers = {"Authorization": f"Bearer {_agent_token(uid)}"}
+    admin_headers = {"Authorization": f"Bearer {_admin_token(uid)}"}
+    created = await client.post(
+        "/api/v1/property-submissions", json=_payload(uid), headers=agent_headers
+    )
+    body = created.json()
+    approved = await client.post(
+        f"/api/v1/property-submissions/{body['id']}/approve", headers=admin_headers
+    )
+    assert approved.status_code == 200, approved.text
+    updated = await client.patch(
+        f"/api/v1/property-submissions/{body['id']}",
+        json={**_PAYLOAD, "title": "Edited approved listing"},
+        headers=agent_headers,
+    )
+    assert updated.status_code == 200, updated.text
+
+    accessed = await client.get(
+        f"/api/v1/property-submissions/{body['id']}/media/{body['media'][0]['id']}/access",
+        headers=admin_headers,
+    )
+
+    assert accessed.status_code == 200, accessed.text
+    assert accessed.json()["url"] == "https://storage.test/public-preview"
+    assert previewed[-1].startswith(
+        f"public/properties/{approved.json()['approved_property_id']}/{body['media'][0]['id']}/"
+    )
 
 
 @pytest.mark.asyncio

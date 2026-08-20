@@ -165,7 +165,13 @@ async def test_private_media_is_owner_or_platform_admin_only(client: AsyncClient
     _, other_mobile = await full_registration(client, lines=["real_estate"])
     other = await _user_uuid(other_mobile)
 
-    assert media_id in await _select_ids("property_submission_media", user_uuid=owner)
+    assert media_id in await _select_ids(
+        "property_submission_media",
+        user_uuid=owner,
+        role="agent",
+        business_line="real_estate",
+    )
+    assert media_id not in await _select_ids("property_submission_media", user_uuid=owner)
     assert media_id not in await _select_ids("property_submission_media", user_uuid=other)
     assert media_id in await _select_ids(
         "property_submission_media", role="admin", platform_scope="true"
@@ -191,6 +197,7 @@ async def test_private_media_insert_requires_owner_submission_and_key(
         *,
         position: int = 0,
         namespace: str = "canonical",
+        role: str = "agent",
     ) -> None:
         engine = _engine()
         try:
@@ -199,11 +206,11 @@ async def test_private_media_insert_requires_owner_submission_and_key(
                 await connection.execute(
                     text(
                         "SELECT set_config('app.auth_user_uuid', :user_uuid, true),"
-                        "set_config('app.role', 'client', true),"
+                        "set_config('app.role', :role, true),"
                         "set_config('app.business_line', 'real_estate', true),"
                         "set_config('app.platform_scope', 'false', true)"
                     ),
-                    {"user_uuid": str(context_owner)},
+                    {"user_uuid": str(context_owner), "role": role},
                 )
                 await connection.execute(
                     text(
@@ -227,6 +234,8 @@ async def test_private_media_insert_requires_owner_submission_and_key(
 
     with pytest.raises(Exception):  # noqa: B017 — asyncpg row-security violation
         await insert_as(owner, other)
+    with pytest.raises(Exception):  # noqa: B017 -- Clients cannot attach listing media
+        await insert_as(owner, owner, role="client")
     await insert_as(owner, owner)
     with pytest.raises(Exception):  # noqa: B017 — asyncpg row-security violation
         await insert_as(other, other, position=1)

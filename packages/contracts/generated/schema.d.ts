@@ -3006,10 +3006,12 @@ export interface paths {
         get: operations["get_submission_api_v1_property_submissions__submission_id__get"];
         put?: never;
         post?: never;
-        delete?: never;
+        /** Delete Submission */
+        delete: operations["delete_submission_api_v1_property_submissions__submission_id__delete"];
         options?: never;
         head?: never;
-        patch?: never;
+        /** Update Submission */
+        patch: operations["update_submission_api_v1_property_submissions__submission_id__patch"];
         trace?: never;
     };
     "/api/v1/property-submissions/{submission_id}/approve": {
@@ -7086,25 +7088,23 @@ export interface components {
         PropertyMediaRead: {
             /** Content Type */
             content_type: string;
-            /** Duration Seconds */
-            duration_seconds: number | null;
             /**
              * Kind
              * @enum {string}
              */
-            kind: "image" | "video";
+            kind: "image" | "panorama";
             /** Url */
             url: string;
         };
         /** PropertyMediaUploadRequest */
         PropertyMediaUploadRequest: {
             /** Content Type */
-            content_type: ("image/jpeg" | "image/png" | "image/webp") | "application/pdf" | "video/mp4";
+            content_type: ("image/jpeg" | "image/png" | "image/webp") | "application/pdf";
             /**
              * Kind
              * @enum {string}
              */
-            kind: "image" | "document" | "video";
+            kind: "image" | "document" | "panorama";
         };
         /** PropertyMediaUploadResponse */
         PropertyMediaUploadResponse: {
@@ -7968,12 +7968,12 @@ export interface components {
         /** SubmissionMediaInput */
         SubmissionMediaInput: {
             /** Content Type */
-            content_type: ("image/jpeg" | "image/png" | "image/webp") | "application/pdf" | "video/mp4";
+            content_type: ("image/jpeg" | "image/png" | "image/webp") | "application/pdf";
             /**
              * Kind
              * @enum {string}
              */
-            kind: "image" | "document" | "video";
+            kind: "image" | "document" | "panorama";
             /** Object Key */
             object_key: string;
             /** Position */
@@ -7983,8 +7983,6 @@ export interface components {
         SubmissionMediaRead: {
             /** Content Type */
             content_type: string;
-            /** Duration Seconds */
-            duration_seconds: number | null;
             /**
              * Id
              * Format: uuid
@@ -7994,7 +7992,7 @@ export interface components {
              * Kind
              * @enum {string}
              */
-            kind: "image" | "document" | "video";
+            kind: "image" | "document" | "panorama";
             /** Position */
             position: number;
             /** Processing Error Code */
@@ -8028,6 +8026,10 @@ export interface components {
              * Format: date-time
              */
             created_at: string;
+            /** Details */
+            details: {
+                [key: string]: unknown;
+            };
             furnishing: components["schemas"]["Furnishing"];
             /**
              * Id
@@ -8067,12 +8069,66 @@ export interface components {
             title: string;
             /** Type */
             type: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
         };
         /**
          * SubmissionStatus
          * @enum {string}
          */
-        SubmissionStatus: "pending" | "approved" | "rejected";
+        SubmissionStatus: "pending" | "approved" | "rejected" | "withdrawn";
+        /**
+         * SubmissionUpdate
+         * @description Editable listing facts; managed media remains immutable after intake.
+         */
+        SubmissionUpdate: {
+            /**
+             * Age Years
+             * @default 0
+             */
+            age_years: number;
+            /** Amenities */
+            amenities?: string[];
+            /**
+             * Area Sqft
+             * @default 0
+             */
+            area_sqft: number;
+            /**
+             * Bhk
+             * @default 0
+             */
+            bhk: number;
+            category: components["schemas"]["PropertyCategory"];
+            /** City */
+            city: string;
+            construction_status: components["schemas"]["ConstructionStatus"];
+            /** Details */
+            details?: {
+                [key: string]: unknown;
+            };
+            furnishing: components["schemas"]["Furnishing"];
+            /** Locality */
+            locality: string;
+            /** Location */
+            location: string;
+            /** Meta */
+            meta?: string | null;
+            /** Pincode */
+            pincode: string;
+            /** Price Paise */
+            price_paise: number;
+            property_subtype: components["schemas"]["PropertySubtype"];
+            /** Rera Number */
+            rera_number: string;
+            /** Title */
+            title: string;
+            /** Type */
+            type: string;
+        };
         /**
          * SupportCategory
          * @enum {string}
@@ -14877,6 +14933,7 @@ export interface operations {
         parameters: {
             query?: {
                 status?: components["schemas"]["SubmissionStatus"] | null;
+                mine?: boolean;
             };
             header?: never;
             path?: never;
@@ -14980,6 +15037,70 @@ export interface operations {
             cookie?: never;
         };
         requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SubmissionRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_submission_api_v1_property_submissions__submission_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                submission_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_submission_api_v1_property_submissions__submission_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                submission_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SubmissionUpdate"];
+            };
+        };
         responses: {
             /** @description Successful Response */
             200: {

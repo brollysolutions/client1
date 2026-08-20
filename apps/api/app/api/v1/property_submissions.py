@@ -1,8 +1,9 @@
 """Property submissions — submitter intake plus the platform Admin review queue.
 
 Submit and reads run on the request session under RLS (submitters see their own,
-Admin sees the queue). Approve/reject delegate to the bypass service so the Property
-insert + status flip are atomic and the catalog keeps its SELECT-only grant.
+Admin sees the queue). Owner updates, withdrawal, approve, and reject delegate to
+explicitly authorized bypass services so catalogue changes remain atomic while
+the public property table keeps its SELECT-only request-session grant.
 """
 
 from __future__ import annotations
@@ -16,13 +17,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.cache.redis_keys import RedisCache
 from app.core.deps import (
     CurrentUser,
-    get_active_user,
     get_cache,
     require_platform_admin,
     require_re_submitter,
 )
 from app.db.session import get_db
-from app.models.property_media import PropertySubmissionMedia
+from app.models.property_media import PropertyMedia, PropertySubmissionMedia
 from app.models.property_submission import PropertySubmission, SubmissionStatus
 from app.schemas.property_submissions import (
     PropertyMediaUploadRequest,
@@ -33,6 +33,7 @@ from app.schemas.property_submissions import (
     SubmissionMediaAccessResponse,
     SubmissionMediaRead,
     SubmissionRead,
+    SubmissionUpdate,
 )
 from app.services import storage
 from app.services.property_submissions import (
@@ -44,11 +45,16 @@ from app.services.property_submissions import (
     MediaUploadMissing,
     MediaUploadRateExceeded,
     SubmissionAlreadyReviewed,
+    SubmissionNotEditable,
     approve_submission,
     create_submission,
     presign_media_upload,
     reject_submission,
     verify_stored_media,
+    withdraw_submission,
+)
+from app.services.property_submissions import (
+    update_submission as update_submission_service,
 )
 
 router = APIRouter()
@@ -145,15 +151,20 @@ async def submit_property(
 
 @router.get("", response_model=SubmissionListResponse)
 async def list_submissions(
+    response: Response,
     status: SubmissionStatus | None = None,
-    current_user: CurrentUser = Depends(get_active_user),
+    mine: bool = False,
+    current_user: CurrentUser = Depends(require_re_submitter),
     db: AsyncSession = Depends(get_db),
 ) -> SubmissionListResponse:
+    response.headers["Cache-Control"] = "private, no-store"
     # RLS scopes the rows: an agent sees only their own, a reviewer sees the queue,
     # anyone else sees nothing. Newest first.
     stmt = select(PropertySubmission).order_by(PropertySubmission.created_at.desc())
     if status is not None:
         stmt = stmt.where(PropertySubmission.status == status)
+    if mine:
+        stmt = stmt.where(PropertySubmission.submitter_uuid == current_user.id)
     rows = (await db.execute(stmt)).scalars().all()
     media = await _media_for_submissions(db, [row.id for row in rows])
     return SubmissionListResponse(submissions=[_to_read(row, media[row.id]) for row in rows])
@@ -162,15 +173,64 @@ async def list_submissions(
 @router.get("/{submission_id}", response_model=SubmissionRead)
 async def get_submission(
     submission_id: UUID,
-    current_user: CurrentUser = Depends(get_active_user),
+    response: Response,
+    current_user: CurrentUser = Depends(require_re_submitter),
     db: AsyncSession = Depends(get_db),
 ) -> SubmissionRead:
+    response.headers["Cache-Control"] = "private, no-store"
     sub = await db.scalar(select(PropertySubmission).where(PropertySubmission.id == submission_id))
     if sub is None:
         # 404, never 403: an RLS-filtered row is indistinguishable from missing.
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Submission not found.")
     media = await _media_for_submissions(db, [sub.id])
     return _to_read(sub, media[sub.id])
+
+
+@router.patch("/{submission_id}", response_model=SubmissionRead)
+async def update_submission(
+    submission_id: UUID,
+    payload: SubmissionUpdate,
+    response: Response,
+    current_user: CurrentUser = Depends(require_re_submitter),
+    db: AsyncSession = Depends(get_db),
+) -> SubmissionRead:
+    response.headers["Cache-Control"] = "private, no-store"
+    try:
+        updated = await update_submission_service(
+            submission_id,
+            payload,
+            current_user.id,
+            actor_role=current_user.role,
+            platform_scope=current_user.platform_scope,
+        )
+    except SubmissionNotEditable as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="A withdrawn listing cannot be edited.",
+        ) from exc
+    if not updated:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Submission not found.")
+    sub = await db.scalar(select(PropertySubmission).where(PropertySubmission.id == submission_id))
+    if sub is None:  # pragma: no cover - authorization and service checks agree
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Submission not found.")
+    media = await _media_for_submissions(db, [sub.id])
+    return _to_read(sub, media[sub.id])
+
+
+@router.delete("/{submission_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_submission(
+    submission_id: UUID,
+    current_user: CurrentUser = Depends(require_re_submitter),
+) -> Response:
+    withdrawn = await withdraw_submission(
+        submission_id,
+        current_user.id,
+        actor_role=current_user.role,
+        platform_scope=current_user.platform_scope,
+    )
+    if not withdrawn:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Submission not found.")
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @router.get(
@@ -181,7 +241,7 @@ async def access_submission_media(
     submission_id: UUID,
     media_id: UUID,
     response: Response,
-    current_user: CurrentUser = Depends(get_active_user),
+    current_user: CurrentUser = Depends(require_re_submitter),
     db: AsyncSession = Depends(get_db),
 ) -> SubmissionMediaAccessResponse:
     response.headers["Cache-Control"] = "private, no-store"
@@ -193,6 +253,23 @@ async def access_submission_media(
     )
     if asset is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Media not found.")
+    if asset.kind in {"image", "panorama"}:
+        approved_property_id = await db.scalar(
+            select(PropertySubmission.approved_property_id).where(
+                PropertySubmission.id == submission_id
+            )
+        )
+        if approved_property_id is not None:
+            public_key = await db.scalar(
+                select(PropertyMedia.object_key).where(
+                    PropertyMedia.property_uuid == approved_property_id,
+                    PropertyMedia.object_key.startswith(
+                        f"public/properties/{approved_property_id}/{asset.id}/"
+                    ),
+                )
+            )
+            if public_key is not None:
+                return SubmissionMediaAccessResponse(url=storage.presign_preview(public_key))
     try:
         await verify_stored_media(asset)
     except MediaNotReady as exc:
@@ -212,7 +289,7 @@ async def access_submission_media(
         ) from exc
     url = (
         storage.presign_preview(asset.object_key)
-        if asset.kind in {"image", "video"}
+        if asset.kind in {"image", "panorama"}
         else storage.presign_download(asset.object_key)
     )
     return SubmissionMediaAccessResponse(url=url)

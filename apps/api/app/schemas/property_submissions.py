@@ -24,41 +24,35 @@ from app.models.property import (
 from app.models.property_submission import SubmissionStatus
 
 PropertyImageContentType = Literal["image/jpeg", "image/png", "image/webp"]
+PropertyPanoramaContentType = Literal["image/jpeg", "image/webp"]
 PropertyDocumentContentType = Literal["application/pdf"]
-PropertyVideoContentType = Literal["video/mp4"]
-PropertyMediaContentType = (
-    PropertyImageContentType | PropertyDocumentContentType | PropertyVideoContentType
-)
+PropertyMediaContentType = PropertyImageContentType | PropertyDocumentContentType
 
 _PRIVATE_KEY_PATTERN = (
     r"^private/property-submissions/staging/"
     r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/"
     r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/"
-    r"asset\.(jpg|png|webp|pdf|mp4)$"
+    r"asset\.(jpg|png|webp|pdf)$"
 )
 
 
 class SubmissionMediaInput(BaseModel):
-    kind: Literal["image", "document", "video"]
+    kind: Literal["image", "document", "panorama"]
     content_type: PropertyMediaContentType
     object_key: str = Field(min_length=1, max_length=600, pattern=_PRIVATE_KEY_PATTERN)
     position: int = Field(ge=0, le=12)
 
     @model_validator(mode="after")
     def validate_kind_matches_type(self) -> SubmissionMediaInput:
-        expected = (
-            "document"
-            if self.content_type == "application/pdf"
-            else "video"
-            if self.content_type == "video/mp4"
-            else "image"
-        )
-        if self.kind != expected:
+        is_document = self.content_type == "application/pdf"
+        if (self.kind == "document") != is_document:
             raise ValueError("Media kind does not match content type.")
+        if self.kind == "panorama" and self.content_type not in {"image/jpeg", "image/webp"}:
+            raise ValueError("Panoramas must be JPEG or WebP images.")
         return self
 
 
-class SubmissionCreate(BaseModel):
+class SubmissionFacts(BaseModel):
     title: str = Field(min_length=1, max_length=200)
     type: str = Field(min_length=1, max_length=40)
     location: str = Field(min_length=1, max_length=160)
@@ -77,21 +71,28 @@ class SubmissionCreate(BaseModel):
     age_years: int = Field(default=0, ge=0)
     rera_number: str = Field(min_length=1, max_length=40)
     details: dict = Field(default_factory=dict)
+
+    @model_validator(mode="after")
+    def validate_property_subtype(self) -> SubmissionFacts:
+        if PROPERTY_CATEGORY_BY_SUBTYPE[self.property_subtype] != self.category:
+            raise ValueError("Property subtype does not belong to the selected category.")
+        return self
+
+
+class SubmissionCreate(SubmissionFacts):
     media: list[SubmissionMediaInput] = Field(min_length=1, max_length=13)
 
     @model_validator(mode="after")
     def validate_submission(self) -> SubmissionCreate:
-        if PROPERTY_CATEGORY_BY_SUBTYPE[self.property_subtype] != self.category:
-            raise ValueError("Property subtype does not belong to the selected category.")
         images = [asset for asset in self.media if asset.kind == "image"]
         documents = [asset for asset in self.media if asset.kind == "document"]
-        videos = [asset for asset in self.media if asset.kind == "video"]
+        panoramas = [asset for asset in self.media if asset.kind == "panorama"]
         if not 1 <= len(images) <= 10:
             raise ValueError("A submission requires between one and ten images.")
         if len(documents) > 2:
             raise ValueError("A submission may include at most two PDF documents.")
-        if len(videos) > 1:
-            raise ValueError("A submission may include at most one video.")
+        if len(panoramas) > 1:
+            raise ValueError("A submission may include at most one panorama.")
         keys = [asset.object_key for asset in self.media]
         positions = [asset.position for asset in self.media]
         if len(keys) != len(set(keys)):
@@ -101,15 +102,18 @@ class SubmissionCreate(BaseModel):
         return self
 
 
+class SubmissionUpdate(SubmissionFacts):
+    """Editable listing facts; managed media remains immutable after intake."""
+
+
 class SubmissionMediaRead(BaseModel):
     id: UUID
-    kind: Literal["image", "document", "video"]
+    kind: Literal["image", "document", "panorama"]
     content_type: str
     size_bytes: int
     position: int
     processing_status: Literal["pending", "processing", "ready", "failed"]
     processing_error_code: str | None
-    duration_seconds: int | None
 
 
 class SubmissionRead(BaseModel):
@@ -138,7 +142,9 @@ class SubmissionRead(BaseModel):
     amenities: list[str]
     age_years: int
     rera_number: str
+    details: dict
     created_at: datetime
+    updated_at: datetime
     media: list[SubmissionMediaRead] = Field(default_factory=list)
 
 
@@ -151,20 +157,16 @@ class RejectRequest(BaseModel):
 
 
 class PropertyMediaUploadRequest(BaseModel):
-    kind: Literal["image", "document", "video"]
+    kind: Literal["image", "document", "panorama"]
     content_type: PropertyMediaContentType
 
     @model_validator(mode="after")
     def validate_kind_matches_type(self) -> PropertyMediaUploadRequest:
-        expected = (
-            "document"
-            if self.content_type == "application/pdf"
-            else "video"
-            if self.content_type == "video/mp4"
-            else "image"
-        )
-        if self.kind != expected:
+        is_document = self.content_type == "application/pdf"
+        if (self.kind == "document") != is_document:
             raise ValueError("Media kind does not match content type.")
+        if self.kind == "panorama" and self.content_type not in {"image/jpeg", "image/webp"}:
+            raise ValueError("Panoramas must be JPEG or WebP images.")
         return self
 
 

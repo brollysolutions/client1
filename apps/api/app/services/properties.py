@@ -48,8 +48,6 @@ async def media_by_property(
         )
     ).all()
     for asset in rows:
-        if asset.kind == "video" and (asset.sanitized_at is None or asset.duration_seconds is None):
-            continue
         url = storage.public_asset_url(asset.object_key)
         if url is not None:
             result.setdefault(asset.property_uuid, []).append(
@@ -57,7 +55,6 @@ async def media_by_property(
                     kind=asset.kind,
                     url=url,
                     content_type=asset.content_type,
-                    duration_seconds=asset.duration_seconds,
                 )
             )
     return result

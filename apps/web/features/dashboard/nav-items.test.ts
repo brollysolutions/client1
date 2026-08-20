@@ -105,7 +105,6 @@ describe("role-aware dashboard navigation", () => {
       "site-visits",
       "compare",
       "client-agent",
-      "client-listings",
       "client-transactions",
       "client-referrals",
     ]);
@@ -186,6 +185,7 @@ describe("role-aware dashboard navigation", () => {
       "admin-loan-config",
       "admin-deals",
       "admin-vehicle-arrangements",
+      "admin-property-listings",
       "admin-property-review",
       "admin-document-verification",
       "admin-users",

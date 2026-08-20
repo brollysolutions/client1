@@ -26,7 +26,7 @@ const scenarios: readonly RoleScenario[] = [
     name: "Client",
     expected: ["Apply for a loan", "Loan media", "Compare Loan Offers", "Referrals"],
     excluded: ["Leads", "Tasks", "Website content"],
-    deniedPath: "/dashboard/admin-leads",
+    deniedPath: "/dashboard/property-submit",
   },
   {
     name: "Agent",
@@ -281,11 +281,18 @@ test.describe("role-aware dashboard navigation", () => {
         { path: "/dashboard/offers/new", heading: "New offer", hasBackLink: true },
         { path: "/dashboard/content/new", heading: "New content block", hasBackLink: true },
         { path: "/dashboard/property-submit", heading: "Submit a property", hasBackLink: true },
-        { path: "/dashboard/referral-rules", heading: "Referral bonus rules", hasBackLink: false },
+        {
+          path: "/dashboard/referral-rules",
+          heading: "Referral bonus rules",
+          hasBackLink: false,
+          hasForm: false,
+        },
       ]) {
         await page.goto(authoringRoute.path);
         await expect(page.getByRole("heading", { name: authoringRoute.heading })).toBeVisible();
-        await expect(page.locator("main form")).toBeVisible();
+        if (authoringRoute.hasForm !== false) {
+          await expect(page.locator("main form")).toBeVisible();
+        }
         if (authoringRoute.hasBackLink) {
           await expect(page.getByRole("link", { name: /^Back to/ })).toBeVisible();
         }
@@ -434,7 +441,6 @@ test.describe("role-aware dashboard navigation", () => {
         { path: "/dashboard/site-visits", heading: "Site Visits" },
         { path: "/dashboard/compare", heading: "Compare properties" },
         { path: "/dashboard/agent", heading: "My Agent" },
-        { path: "/dashboard/my-submissions", heading: "My listings" },
         { path: "/dashboard/transactions", heading: "Transactions" },
         { path: "/dashboard/referrals", heading: "Referrals" },
       ]) {
