@@ -24,7 +24,7 @@ export type PropertyMediaItem = components["schemas"]["PropertyMediaRead"];
 export type PropertyListing = {
   id: string;
   title: string; // "2 BHK Apartment"
-  location: string; // "Baner, Pune"
+  location: string;
   /** Pre-formatted display price. "₹45 L". */
   price: string;
   type: string; // display badge: "Apartment" | "Plot" | "Office" ...

@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
-import { REVERSE_GEOCODE_PROVIDER_LABEL } from "@/lib/reverse-geocode";
 import { SITE_NAME } from "@/lib/site";
 
 export const metadata: Metadata = {
@@ -51,8 +50,9 @@ export default function PrivacyPage() {
           <BulletList
             items={[
               "Contact details you give us: your name and mobile number. Ordinary account registration lets you add an optional email; contact and partner application forms may request the additional details shown on those forms.",
-              "Optional profile details: you may add gender, income information, occupation, and a location during registration or later in Profile settings. These details are not required to use your account.",
-              `Current location: only when you choose Use current location, your browser supplies a point that we round to two decimal places before ${REVERSE_GEOCODE_PROVIDER_LABEL} looks up a city or locality. ${REVERSE_GEOCODE_PROVIDER_LABEL} receives that approximate point and the request's IP address under its privacy terms. In Profile, we save only the returned editable place name after you submit the form. In property search, we use only the matched city or locality as a search filter. We keep no location trail.`,
+              "Optional profile details: you may add gender, income information, occupation, and a manually entered location during registration or later in Profile settings. These details are not required to use your account, and the website does not request your browser location for this field.",
+              "Property search: location terms you type or select are used only to filter available properties and do not update your Profile.",
+              "Previously saved personalization location: if you opted in before browser-location capture was removed, you can delete the saved point from Settings and it otherwise expires automatically within 30 days. The website no longer captures or refreshes it.",
               "Verification details: your mobile number is verified with a one-time code before we create an account. If you add an email, you may verify it after signing in.",
               "Enquiry details: the loan type, property interest, or other details you share so we can connect you with the right bank, lender, or real estate partner.",
               "Partner application documents: if you apply to become a partner agent, we collect identity documents (such as Aadhaar and PAN) to verify you before approval.",
@@ -81,7 +81,6 @@ export default function PrivacyPage() {
             items={[
               "With the bank, lender, or real estate partner relevant to your specific enquiry, so they can follow up with you.",
               "With our payment processor, solely to pay out cashback, referral bonuses, or commissions you have earned. We never use a payment processor, or any other method, to collect loan principal or property purchase money. This platform never handles that money.",
-              `With ${REVERSE_GEOCODE_PROVIDER_LABEL}, only after you choose Use current location, so it can turn an approximate browser-supplied point into a city or locality. We do not send your account details with this request.`,
               "Where required by law, or to protect the rights, safety, or property of our users or ourselves.",
             ]}
           />

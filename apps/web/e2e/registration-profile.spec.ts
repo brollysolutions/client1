@@ -7,35 +7,10 @@ function tokenWith(claims: Record<string, unknown>): string {
 
 test.setTimeout(150_000);
 
-test("registration saves Salaried and an explicitly requested readable current location", async ({
-  context,
-  page,
-}) => {
+test("registration saves Salaried and a manually searched location", async ({ page }) => {
   const mobile = "+919876543210";
   const password = `Browser#Pass9${Date.now()}`;
   let savedProfile: Record<string, unknown> | undefined;
-  let locationLookupUrl: URL | undefined;
-  let locationLookupAttempts = 0;
-
-  await page.route("https://api.bigdatacloud.net/data/reverse-geocode-client?*", async (route) => {
-    locationLookupAttempts += 1;
-    locationLookupUrl = new URL(route.request().url());
-    if (locationLookupAttempts === 1) {
-      await route.fulfill({ status: 503, body: "unavailable" });
-      return;
-    }
-    await route.fulfill({
-      status: 200,
-      contentType: "application/json",
-      body: JSON.stringify({
-        locality: "Kondapur",
-        city: "Hyderabad",
-        principalSubdivision: "Telangana",
-        countryName: "India",
-      }),
-    });
-  });
-
   await page.route("**/api/v1/auth/register/initiate", async (route) => {
     await route.fulfill({
       status: 200,
@@ -98,24 +73,6 @@ test("registration saves Salaried and an explicitly requested readable current l
     });
   });
 
-  await context.grantPermissions(["geolocation"]);
-  await context.setGeolocation({ latitude: 17.3851, longitude: 78.4867 });
-  await page.addInitScript(() => {
-    Object.defineProperty(navigator, "geolocation", {
-      configurable: true,
-      value: {
-        getCurrentPosition(success: PositionCallback) {
-          window.setTimeout(() => {
-            success({
-              coords: { latitude: 17.3851, longitude: 78.4867 },
-              timestamp: Date.now(),
-            } as GeolocationPosition);
-          }, 2_000);
-        },
-      },
-    });
-  });
-
   await page.goto("/register");
   await page.getByLabel("First name").fill("Browser");
   await page.getByLabel("Last name").fill("Profile");
@@ -153,23 +110,9 @@ test("registration saves Salaried and an explicitly requested readable current l
 
   await page.setViewportSize({ width: 390, height: 844 });
   await expect(page.getByLabel("Location")).toBeVisible();
-  await expect(page.getByRole("button", { name: "Use current location" })).toBeVisible();
-  await page.getByRole("button", { name: "Use current location" }).click();
-  await expect(page.getByRole("button", { name: "Save and continue" })).toBeDisabled();
-  await expect(page.locator("#registration-profile-location-feedback")).toContainText(
-    "couldn't find a city or locality for your current location",
-  );
-  await expect(page.getByLabel("Location")).toHaveValue("");
-  await expect(page.getByRole("button", { name: "Save and continue" })).toBeEnabled();
-
-  await page.getByRole("button", { name: "Use current location" }).click();
-  await expect(page.getByRole("button", { name: "Save and continue" })).toBeDisabled();
-  await expect(page.getByLabel("Location")).toHaveValue("Kondapur, Hyderabad, Telangana");
-  await expect(page.getByRole("status")).toContainText("Current locality added");
-  expect(locationLookupAttempts).toBe(2);
-  expect(locationLookupUrl?.searchParams.get("latitude")).toBe("17.39");
-  expect(locationLookupUrl?.searchParams.get("longitude")).toBe("78.49");
-  expect(locationLookupUrl?.searchParams.get("localityLanguage")).toBe("en");
+  await expect(page.getByLabel("Location")).toHaveAttribute("type", "search");
+  await expect(page.getByRole("button", { name: /current location/i })).toHaveCount(0);
+  await page.getByLabel("Location").fill("Kondapur, Hyderabad, Telangana");
 
   const saveResponsePromise = page.waitForResponse(
     (response) =>

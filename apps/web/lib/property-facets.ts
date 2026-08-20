@@ -2,12 +2,10 @@
 // property search + filter Sheet. Pure data/derivations over REListing so
 // they stay in sync with lib/real-estate.ts without hand duplication.
 import {
-  RE_LISTINGS,
   type Furnishing,
   type ListingStatus,
   type REListing,
 } from "@/lib/real-estate";
-import type { ReadableLocation } from "@/lib/reverse-geocode";
 
 export const BHK_OPTIONS: { value: number; label: string }[] = [
   { value: 1, label: "1 BHK" },
@@ -50,13 +48,17 @@ export const SORT_OPTIONS: { value: string; label: string }[] = [
 export function priceBounds(listings: REListing[]): { min: number; max: number } {
   if (listings.length === 0) return { min: 0, max: 500 };
   const values = listings.map((l) => l.priceLakhs);
-  return { min: Math.floor(Math.min(...values)), max: Math.ceil(Math.max(...values)) };
+  const min = Math.floor(Math.min(...values));
+  const max = Math.ceil(Math.max(...values));
+  return min === max ? { min: 0, max: Math.max(max, 1) } : { min, max };
 }
 
 export function areaBounds(listings: REListing[]): { min: number; max: number } {
   const values = listings.map((l) => l.areaSqft).filter((v) => v > 0);
   if (values.length === 0) return { min: 0, max: 5000 };
-  return { min: Math.floor(Math.min(...values)), max: Math.ceil(Math.max(...values)) };
+  const min = Math.floor(Math.min(...values));
+  const max = Math.ceil(Math.max(...values));
+  return min === max ? { min: 0, max: Math.max(max, 1) } : { min, max };
 }
 
 // Formats a lakh-denominated price for slider labels and chips: "₹50 L" below
@@ -77,51 +79,19 @@ export type SuggestionIndex = {
   cities: string[];
   pincodes: string[];
   properties: { id: string; title: string; locality: string; city: string }[];
+  priceBounds: { min: number; max: number };
+  areaBounds: { min: number; max: number };
 };
 
-export type CurrentLocationPropertyFacet = {
-  kind: "locality" | "city" | "query";
-  value: string;
-  city?: string;
-};
-
-export function matchCurrentLocationToPropertyFacet(
-  location: ReadableLocation,
-  suggestionIndex: SuggestionIndex,
-): CurrentLocationPropertyFacet {
-  const exactMatch = (options: string[], candidate: string | null): string | undefined => {
-    if (!candidate) return undefined;
-    const normalized = candidate.toLocaleLowerCase("en");
-    return options.find((option) => option.toLocaleLowerCase("en") === normalized);
-  };
-
-  const locality = exactMatch(suggestionIndex.localities, location.locality);
-  const city = exactMatch(suggestionIndex.cities, location.city);
-  if (locality) {
-    return { kind: "locality", value: locality, ...(city ? { city } : {}) };
-  }
-  if (city) {
-    return { kind: "city", value: city };
-  }
-  return {
-    kind: "query",
-    value: location.locality ?? location.city ?? location.label,
-  };
-}
-
-// Grouped, de-duplicated suggestion source for the search omnibox. Built once
-// from the mock catalog; swaps for a real search endpoint response later.
+// Grouped, de-duplicated suggestion source for the search omnibox. Every value
+// is derived from the authenticated property API response supplied by callers.
 export function buildSuggestionIndex(listings: REListing[]): SuggestionIndex {
   return {
     localities: Array.from(new Set(listings.map((l) => l.locality))).sort(),
     cities: Array.from(new Set(listings.map((l) => l.city))).sort(),
     pincodes: Array.from(new Set(listings.map((l) => l.pincode))).sort(),
     properties: listings.map((l) => ({ id: l.id, title: l.title, locality: l.locality, city: l.city })),
+    priceBounds: priceBounds(listings),
+    areaBounds: areaBounds(listings),
   };
 }
-
-// Precomputed once from the mock catalog for the search bar + filter Sheet.
-export const CITIES: string[] = Array.from(new Set(RE_LISTINGS.map((l) => l.city))).sort();
-export const PRICE_BOUNDS = priceBounds(RE_LISTINGS);
-export const AREA_BOUNDS = areaBounds(RE_LISTINGS);
-export const SUGGESTION_INDEX = buildSuggestionIndex(RE_LISTINGS);

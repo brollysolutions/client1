@@ -135,25 +135,19 @@ recorded as `salaried` or `business_income`; the former `net_salary` value is
 migrated to `salaried`. No Client capability or business line is gated on
 completion.
 
-Location accepts a manually entered locality/city. The browser geolocation API
-is invoked only when the user chooses **Use current location**; the client uses
-low-accuracy mode and rounds the returned coordinates to two decimals before a
-direct browser request asks the deployment-configured BigDataCloud endpoint for
-a city/locality. That public HTTPS endpoint is not hardcoded; an absent or
-invalid value hides the action while manual entry remains. The request omits
-credentials and referrer data, but BigDataCloud still receives the approximate
-point and request IP as disclosed in the UI and privacy notice. Malformed,
-denied, timed-out, or failed lookups leave the current value unchanged and never
-fall back to displaying coordinates.
+Location is a labelled search-style field for a manually entered locality/city.
+The web app does not request browser geolocation, call a reverse-geocoding
+provider, or offer a current-location action. The bounded editable label is sent
+to `PATCH /auth/me` only when the user saves the profile.
 
-The editable readable label is sent to `PATCH /auth/me` only when the user saves
-the profile. The same explicit lookup is available from the shared property
-search on dashboard home, Explore, category, and Bookmarks surfaces; it applies
-only a matched catalogue locality/city (or readable free-text query) to the
-existing URL-synced search filters. It never updates the profile from search.
-The profile stores one current readable value until it is cleared or the account
-is deleted. Neither flow collects in the background, keeps a coordinate trail,
-or writes to the separate 30-day personalization location governed by CS-008.
+The shared property omnibox on dashboard home, Explore, category, and Bookmarks
+surfaces searches locality, city, PIN, or property name. The Filters sheet keeps
+searchable live city/locality controls. Property results, suggestions, and filter
+choices come only from the authenticated property API; there is no frontend
+sample-location fallback or second catalogue-location selector. The landing
+dashboard omits inventory/bookmark/city/category metrics, and property search
+never updates the profile. The profile stores one manually supplied readable
+value until it is cleared or the account is deleted.
 
 Optional identity-wide values live on `auth_users`; email remains unique when
 supplied, and income is represented as a bounded integer-minor-unit source/
@@ -178,7 +172,7 @@ Evidence:
 - [`apps/api/app/tests/auth/test_update_me.py`](../../apps/api/app/tests/auth/test_update_me.py)
 - [`apps/web/app/(auth)/register/page.tsx`](../../apps/web/app/(auth)/register/page.tsx)
 - [`apps/web/app/(app)/dashboard/settings/page.tsx`](../../apps/web/app/(app)/dashboard/settings/page.tsx)
-- [`apps/web/lib/reverse-geocode.ts`](../../apps/web/lib/reverse-geocode.ts)
+- [`apps/web/components/profile/optional-profile-fields.tsx`](../../apps/web/components/profile/optional-profile-fields.tsx)
 - [`apps/web/features/real-estate/property-search-bar.tsx`](../../apps/web/features/real-estate/property-search-bar.tsx)
 - [`apps/web/e2e/registration-profile.spec.ts`](../../apps/web/e2e/registration-profile.spec.ts)
 - [`apps/web/e2e/dashboard-navigation.spec.ts`](../../apps/web/e2e/dashboard-navigation.spec.ts)
@@ -251,15 +245,15 @@ Customer offers remain Client-facing, while Agent benefits and incentives use
 the personalized banner layer. Anonymous responses never include personalized
 banners or offers with non-empty audience rules.
 
-Activity-based personalization is off until the account owner enables it.
-Location is a separate nested opt-in: exact browser coordinates are rounded
-server-side to hundredths of a degree, only the latest point is stored, it
-expires after 30 days, and coordinates never enter audit details. Revocation,
-disabling personalization, and account deletion erase the coarse point. The
-preference table is owner-only under RLS; an authorization-checking one-row
-database function permits atomic deletion without giving Admin a read policy.
-Placements use a private, no-store authenticated response and validate the
-caller's active profile and requested business line before reading content.
+Activity-based personalization is off until the account owner enables it. The
+web app no longer captures or refreshes browser coordinates. A previously saved
+coarse personalization point remains removable from Settings and otherwise
+expires after 30 days; disabling personalization and account deletion also erase
+it. The preference table remains owner-only under RLS, and the existing
+authorization-checking one-row database function permits atomic deletion without
+giving Admin a read policy. Placements use a private, no-store authenticated
+response and validate the caller's active profile and requested business line
+before reading content.
 
 Evidence:
 
@@ -423,7 +417,7 @@ explicitly changes it.
 | Client status reasons | The API exposes `status_reason`, and the client loan UI renders it verbatim when present. | [`schemas/loans.py`](../../apps/api/app/schemas/loans.py), [`apps/web/lib/loans.ts`](../../apps/web/lib/loans.ts), [`loans-applications.tsx`](../../apps/web/features/dashboard/loans-applications.tsx) |
 | Referral payout execution | Sub Admin manages bonus configuration; creating the actual referral payout is restricted to platform Admin. | [`api/v1/referral_bonus.py`](../../apps/api/app/api/v1/referral_bonus.py), [`api/v1/referrals.py`](../../apps/api/app/api/v1/referrals.py) |
 | Agent lead expiry | Agent attribution has a fixed 30-day first-attribution deadline with converted/closed exclusions, idempotent scheduled release, audit, notifications, RLS denial, and Agent history/countdown. | [PR #144](https://github.com/brollysolutions/client1/pull/144), [`services/lead_expiry.py`](../../apps/api/app/services/lead_expiry.py) |
-| Client registration and optional profile | Client registration is mobile-first; email and demographic/income/location details are optional, skippable, editable, clearable, and never gate account use. Current-location capture is explicit, two-decimal, and stored only after the user saves the ordinary profile field. | CS-005, [PR #148](https://github.com/brollysolutions/client1/pull/148), migration `e4b5c6d7e8f9` |
+| Client registration and optional profile | Client registration is mobile-first; email and demographic/income/location details are optional, skippable, editable, clearable, and never gate account use. Location is entered manually through a search-style field; the web app does not request browser geolocation. | CS-005, [PR #148](https://github.com/brollysolutions/client1/pull/148), migration `e4b5c6d7e8f9` |
 | Vehicle arrangements | One dedicated arrangement per site visit; Admin enters transport details, the service automatically assigns an eligible real-estate or dual-line Employee, the assignee fulfils it, and the owning Client follows it read-only. | CS-006, [PR #149](https://github.com/brollysolutions/client1/pull/149), migration `b8c9d0e1f2a3`, migration `dd45ee67ff89`, vehicle-arrangement and Employee-auto-assignment tests |
 | Authenticated personalization | Client/Agent dashboard banner layers and Client offers use a closed consented rule grammar; coarse optional location is retained for at most 30 days; public responses exclude targeted content. | CS-008, [PR #152](https://github.com/brollysolutions/client1/pull/152), migration `c9d0e1f2a3b4`, personalization API/RLS/web tests |
 

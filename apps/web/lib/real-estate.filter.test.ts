@@ -1,193 +1,201 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  RE_LISTINGS,
   countActiveFilters,
   filterListings,
   hasActiveFilters,
-  priceInLakhs,
   sortListings,
   type REListing,
 } from "@/lib/real-estate";
 
-describe("REListing derived fields", () => {
-  it("every listing has a positive priceLakhs parsed from its display price", () => {
-    expect(RE_LISTINGS.every((l) => l.priceLakhs > 0)).toBe(true);
-  });
-
-  it("splits location into locality and city", () => {
-    const a1 = RE_LISTINGS.find((l) => l.id === "a1")!;
-    expect(a1.locality).toBe("Baner");
-    expect(a1.city).toBe("Pune");
-  });
-
-  it("parses bhk and areaSqft from meta for residential listings", () => {
-    const a1 = RE_LISTINGS.find((l) => l.id === "a1")!;
-    expect(a1.bhk).toBe(2);
-    expect(a1.areaSqft).toBe(1120);
-  });
-
-  it("normalizes plot area units (sq yd, acre) to sqft", () => {
-    const p1 = RE_LISTINGS.find((l) => l.id === "p1")!; // "200 sq yd"
-    expect(p1.areaSqft).toBe(1800);
-    expect(p1.bhk).toBe(0);
-
-    const p2 = RE_LISTINGS.find((l) => l.id === "p2")!; // "1 acre"
-    expect(p2.areaSqft).toBe(43560);
-  });
-
-  it("gives commercial listings bhk 0", () => {
-    const c1 = RE_LISTINGS.find((l) => l.id === "c1")!;
-    expect(c1.bhk).toBe(0);
-  });
-});
-
-describe("priceInLakhs()", () => {
-  it("parses lakh values", () => {
-    expect(priceInLakhs("₹78 L")).toBe(78);
-  });
-
-  it("parses crore values as lakhs", () => {
-    expect(priceInLakhs("₹1.2 Cr")).toBe(120);
-  });
-});
+const LISTINGS = [
+  {
+    id: "apartment-one",
+    title: "River Apartment",
+    location: "District One, City Alpha",
+    price: "₹78 L",
+    type: "Apartment",
+    category: "apartments",
+    meta: "2 bed · 1,120 sqft",
+    pincode: "100001",
+    furnishing: "semi",
+    status: "ready",
+    amenities: ["lift", "gym", "security"],
+    ageYears: 4,
+    city: "City Alpha",
+    locality: "District One",
+    bhk: 2,
+    areaSqft: 1120,
+    priceLakhs: 78,
+  },
+  {
+    id: "apartment-two",
+    title: "Park Apartment",
+    location: "District Two, City Beta",
+    price: "₹1.2 Cr",
+    type: "Apartment",
+    category: "apartments",
+    meta: "3 bed · 1,750 sqft",
+    pincode: "200002",
+    furnishing: "furnished",
+    status: "under_construction",
+    amenities: ["parking", "security"],
+    ageYears: 0,
+    city: "City Beta",
+    locality: "District Two",
+    bhk: 3,
+    areaSqft: 1750,
+    priceLakhs: 120,
+  },
+  {
+    id: "villa-one",
+    title: "Garden Villa",
+    location: "Garden Zone, City Alpha",
+    price: "₹1.5 Cr",
+    type: "Villa",
+    category: "villas",
+    meta: "4 bed · 2,400 sqft",
+    pincode: "100002",
+    furnishing: "furnished",
+    status: "ready",
+    amenities: ["parking", "security", "garden"],
+    ageYears: 2,
+    city: "City Alpha",
+    locality: "Garden Zone",
+    bhk: 4,
+    areaSqft: 2400,
+    priceLakhs: 150,
+  },
+  {
+    id: "plot-one",
+    title: "Residential Plot",
+    location: "Plot Zone, City Beta",
+    price: "₹42 L",
+    type: "Plot",
+    category: "plots",
+    meta: "1,800 sqft",
+    pincode: "200003",
+    furnishing: "unfurnished",
+    status: "ready",
+    amenities: ["security"],
+    ageYears: 0,
+    city: "City Beta",
+    locality: "Plot Zone",
+    bhk: 0,
+    areaSqft: 1800,
+    priceLakhs: 42,
+  },
+  {
+    id: "commercial-one",
+    title: "Market Shop",
+    location: "Market Zone, City Gamma",
+    price: "₹95 L",
+    type: "Shop",
+    category: "commercial",
+    meta: "650 sqft",
+    pincode: "300001",
+    furnishing: "unfurnished",
+    status: "ready",
+    amenities: ["parking", "security"],
+    ageYears: 6,
+    city: "City Gamma",
+    locality: "Market Zone",
+    bhk: 0,
+    areaSqft: 650,
+    priceLakhs: 95,
+  },
+] satisfies REListing[];
 
 describe("filterListings()", () => {
   it("returns everything when no facets are set", () => {
-    expect(filterListings(RE_LISTINGS, {})).toHaveLength(RE_LISTINGS.length);
+    expect(filterListings(LISTINGS, {})).toEqual(LISTINGS);
   });
 
-  it("filters by free-text query across title, locality, city and pincode", () => {
-    const byLocality = filterListings(RE_LISTINGS, { q: "baner" });
-    expect(byLocality.length).toBeGreaterThan(0);
-    expect(byLocality.every((l) => l.locality.toLowerCase().includes("baner"))).toBe(true);
-
-    const byPincode = filterListings(RE_LISTINGS, { q: "411045" });
-    expect(byPincode.length).toBeGreaterThan(0);
+  it("filters free text across title, locality, city, and PIN", () => {
+    expect(filterListings(LISTINGS, { q: "district one" })).toEqual([LISTINGS[0]]);
+    expect(filterListings(LISTINGS, { q: "200002" })).toEqual([LISTINGS[1]]);
   });
 
-  it("filters by category (multi-select)", () => {
-    const result = filterListings(RE_LISTINGS, { categories: ["villas", "plots"] });
-    expect(result.every((l) => l.category === "villas" || l.category === "plots")).toBe(true);
+  it("applies category, bedroom, price, and area facets", () => {
+    expect(filterListings(LISTINGS, { categories: ["villas", "plots"] })).toEqual([
+      LISTINGS[2],
+      LISTINGS[3],
+    ]);
+    expect(filterListings(LISTINGS, { bhk: [2, 3] })).toEqual([LISTINGS[0], LISTINGS[1]]);
+    expect(filterListings(LISTINGS, { priceMin: 50, priceMax: 100 })).toEqual([
+      LISTINGS[0],
+      LISTINGS[4],
+    ]);
+    expect(filterListings(LISTINGS, { areaMin: 1000, areaMax: 2000 })).toEqual([
+      LISTINGS[0],
+      LISTINGS[1],
+      LISTINGS[3],
+    ]);
   });
 
-  it("filters by bhk (multi-select)", () => {
-    const result = filterListings(RE_LISTINGS, { bhk: [2, 3] });
-    expect(result.every((l) => l.bhk === 2 || l.bhk === 3)).toBe(true);
+  it("applies status, furnishing, and all-selected-amenity facets", () => {
+    expect(filterListings(LISTINGS, { status: ["under_construction"] })).toEqual([LISTINGS[1]]);
+    expect(filterListings(LISTINGS, { furnishing: ["furnished"] })).toEqual([
+      LISTINGS[1],
+      LISTINGS[2],
+    ]);
+    expect(filterListings(LISTINGS, { amenities: ["parking", "security"] })).toEqual([
+      LISTINGS[1],
+      LISTINGS[2],
+      LISTINGS[4],
+    ]);
   });
 
-  it("filters by inclusive price range", () => {
-    const result = filterListings(RE_LISTINGS, { priceMin: 50, priceMax: 100 });
-    expect(result.every((l) => l.priceLakhs >= 50 && l.priceLakhs <= 100)).toBe(true);
-    expect(result.length).toBeGreaterThan(0);
+  it("applies exact live-catalog city, locality, and PIN facets", () => {
+    expect(filterListings(LISTINGS, { city: "City Alpha" })).toEqual([
+      LISTINGS[0],
+      LISTINGS[2],
+    ]);
+    expect(filterListings(LISTINGS, { locality: "District One" })).toEqual([LISTINGS[0]]);
+    expect(filterListings(LISTINGS, { pincode: "200003" })).toEqual([LISTINGS[3]]);
   });
 
-  it("filters by inclusive area range", () => {
-    const result = filterListings(RE_LISTINGS, { areaMin: 1000, areaMax: 2000 });
-    expect(result.every((l) => l.areaSqft >= 1000 && l.areaSqft <= 2000)).toBe(true);
-    expect(result.length).toBeGreaterThan(0);
-  });
-
-  it("filters by construction status", () => {
-    const result = filterListings(RE_LISTINGS, { status: ["under_construction"] });
-    expect(result.length).toBeGreaterThan(0);
-    expect(result.every((l) => l.status === "under_construction")).toBe(true);
-  });
-
-  it("filters by furnishing", () => {
-    const result = filterListings(RE_LISTINGS, { furnishing: ["furnished"] });
-    expect(result.length).toBeGreaterThan(0);
-    expect(result.every((l) => l.furnishing === "furnished")).toBe(true);
-  });
-
-  it("requires ALL selected amenities to be present (AND, not OR)", () => {
-    const result = filterListings(RE_LISTINGS, { amenities: ["parking", "security"] });
-    expect(result.length).toBeGreaterThan(0);
+  it("combines facets with AND semantics and returns empty for no match", () => {
     expect(
-      result.every((l) => l.amenities.includes("parking") && l.amenities.includes("security")),
-    ).toBe(true);
+      filterListings(LISTINGS, {
+        city: "City Beta",
+        categories: ["apartments"],
+        bhk: [3],
+      }),
+    ).toEqual([LISTINGS[1]]);
+    expect(filterListings(LISTINGS, { city: "City Alpha", bhk: [99] })).toEqual([]);
   });
 
-  it("filters by exact city and locality", () => {
-    expect(filterListings(RE_LISTINGS, { city: "Pune" }).every((l) => l.city === "Pune")).toBe(true);
-    expect(
-      filterListings(RE_LISTINGS, { locality: "Baner" }).every((l) => l.locality === "Baner"),
-    ).toBe(true);
-  });
-
-  it("filters by pincode", () => {
-    const result = filterListings(RE_LISTINGS, { pincode: "411045" });
-    expect(result.length).toBeGreaterThan(0);
-    expect(result.every((l) => l.pincode === "411045")).toBe(true);
-  });
-
-  it("combines multiple facets with AND semantics", () => {
-    const result = filterListings(RE_LISTINGS, {
-      city: "Hyderabad",
-      categories: ["apartments"],
-      bhk: [3],
-    });
-    expect(result.every((l) => l.city === "Hyderabad" && l.category === "apartments" && l.bhk === 3)).toBe(
-      true,
-    );
-  });
-
-  it("returns an empty array when no listing satisfies every facet", () => {
-    const result = filterListings(RE_LISTINGS, { city: "Pune", bhk: [99] });
-    expect(result).toHaveLength(0);
-  });
-
-  it("is pure: works over an arbitrary listings array, not just RE_LISTINGS", () => {
-    const fixture: REListing[] = RE_LISTINGS.slice(0, 2);
-    const result = filterListings(fixture, {});
-    expect(result).toEqual(fixture);
+  it("works over an arbitrary API-backed listing array", () => {
+    expect(filterListings(LISTINGS.slice(0, 2), {})).toEqual(LISTINGS.slice(0, 2));
   });
 });
 
 describe("sortListings()", () => {
-  it("relevance (default) preserves input order", () => {
-    const result = sortListings(RE_LISTINGS, "relevance");
-    expect(result).toEqual(RE_LISTINGS);
+  it("preserves relevance order and does not mutate input", () => {
+    const before = [...LISTINGS];
+    expect(sortListings(LISTINGS, "relevance")).toEqual(LISTINGS);
+    sortListings(LISTINGS, "price_asc");
+    expect(LISTINGS).toEqual(before);
   });
 
-  it("price_asc sorts ascending by priceLakhs", () => {
-    const result = sortListings(RE_LISTINGS, "price_asc");
-    for (let i = 1; i < result.length; i++) {
-      expect(result[i].priceLakhs).toBeGreaterThanOrEqual(result[i - 1].priceLakhs);
-    }
-  });
-
-  it("price_desc sorts descending by priceLakhs", () => {
-    const result = sortListings(RE_LISTINGS, "price_desc");
-    for (let i = 1; i < result.length; i++) {
-      expect(result[i].priceLakhs).toBeLessThanOrEqual(result[i - 1].priceLakhs);
-    }
-  });
-
-  it("does not mutate the input array", () => {
-    const before = [...RE_LISTINGS];
-    sortListings(RE_LISTINGS, "price_asc");
-    expect(RE_LISTINGS).toEqual(before);
+  it("sorts price ascending and descending", () => {
+    expect(sortListings(LISTINGS, "price_asc").map((listing) => listing.priceLakhs)).toEqual([
+      42, 78, 95, 120, 150,
+    ]);
+    expect(sortListings(LISTINGS, "price_desc").map((listing) => listing.priceLakhs)).toEqual([
+      150, 120, 95, 78, 42,
+    ]);
   });
 });
 
 describe("hasActiveFilters() / countActiveFilters()", () => {
-  it("is false/0 for an empty filter set", () => {
+  it("tracks active facets without counting empty arrays", () => {
     expect(hasActiveFilters({})).toBe(false);
     expect(countActiveFilters({})).toBe(0);
-  });
-
-  it("is true/1 for a single active facet", () => {
-    expect(hasActiveFilters({ city: "Pune" })).toBe(true);
-    expect(countActiveFilters({ city: "Pune" })).toBe(1);
-  });
-
-  it("ignores an empty array as inactive", () => {
     expect(hasActiveFilters({ bhk: [] })).toBe(false);
     expect(countActiveFilters({ bhk: [] })).toBe(0);
-  });
-
-  it("counts one per active facet, not per selected value within a facet", () => {
-    expect(countActiveFilters({ bhk: [2, 3, 4], city: "Pune" })).toBe(2);
+    expect(hasActiveFilters({ city: "City Alpha" })).toBe(true);
+    expect(countActiveFilters({ bhk: [2, 3, 4], city: "City Alpha" })).toBe(2);
   });
 });

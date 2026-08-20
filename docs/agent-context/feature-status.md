@@ -9,46 +9,47 @@ Evidence baseline: `abcc1fd`
 verified Admin operational-visibility work in
 [PR #173](https://github.com/brollysolutions/client1/pull/173).
 
-**Done — readable current location for Profile and property search
-([PR #208](https://github.com/brollysolutions/client1/pull/208); FR-17.2-adjacent UX; completion coverage unchanged):**
-**Use current location** now returns an editable place name instead of latitude/
-longitude in registration and Profile settings. The same action is available in
-the shared property omnibox and filter sheet used by dashboard home, Explore,
-category, and Bookmarks surfaces. It prefers an exact catalogue locality, then
-city, and otherwise uses a readable query. Operational pickup/address fields,
-property authoring, audience coordinates, and generic Admin searches are
-unchanged.
+**Done — manual location search replaces browser current location
+([PR #209](https://github.com/brollysolutions/client1/pull/209), following
+[PR #208](https://github.com/brollysolutions/client1/pull/208); FR-17.2-adjacent UX; completion coverage unchanged):**
+Registration and Profile settings expose one labelled, editable, search-style
+Location field for a city or locality. The shared property omnibox and filter
+sheet used by dashboard home, Explore, category, and Bookmarks surfaces retain
+manual API-backed property-name, locality, city, and PIN search. Browser
+geolocation, reverse-geocoding requests and configuration, provider disclosure,
+and every current-location capture/refresh control are removed from the web app.
+Previously saved personalization coordinates remain removable and continue to
+expire through the existing server safeguards, but the current web UI cannot
+capture or refresh them.
 
-The no-key BigDataCloud client endpoint is deployment-configured, not hardcoded;
-missing/invalid configuration hides the action while manual entry/search remains.
-Coordinates are validated and rounded to two decimals before the direct
-user-triggered request; credentials/referrer/cache are omitted. Only normalized,
-bounded response fields are used, provider/permission/timeout/malformed failures
-leave existing values unchanged, and coordinates are never displayed or saved.
-The privacy notice discloses the provider and request IP. API contracts, schema,
-auth/RLS, deletion, logs/audit, personalization storage, and dependencies do not
-change.
+The authenticated property API remains the sole production source for property
+cards, search suggestions, and city/locality/PIN filter choices; the legacy
+frontend sample catalogue and its hardcoded locations remain removed. The
+redundant catalogue-location selector and the Available properties, Saved
+properties, Cities, and Property categories dashboard metrics remain removed.
+Operational pickup/address fields, property authoring, audience coordinates,
+generic Admin searches, APIs/contracts, schema, auth/RLS, deletion, audit/log
+behavior, and dependencies are unchanged.
 
-Fresh evidence: the regression tests failed first; web lint, strict typecheck,
-all 381 unit tests, the 390px registration journey, and an authenticated 390px
-dashboard property-search/filter-sheet journey pass. Desktop (1280px) and phone
-renders were visually reviewed. A broader pre-existing navigation test remains
-blocked before this feature by its stale `Compare Loan Offers` heading. The
-production build compiled, typechecked, and generated all 93 pages before the
-known Windows standalone-symlink `EPERM` tail; host-side public-data fetches also
-cannot resolve the Docker-only `api` name. Security, design, and maintainer
-review found no remaining actionable defect. Next priority remains the FR-2.2
-controlled-correction/audit follow-up.
+Fresh evidence: three regression journeys failed first against the old controls.
+Web lint, strict typecheck, and all 356 unit tests pass. The authenticated 390px
+dashboard property-search/filter-sheet journey and 390px registration journey
+pass; the personalization journey also passed before a later verification rerun
+hit only the development OTP rate limit. Fresh desktop (1280px) and phone renders
+were visually reviewed. The production build compiled, typechecked, and generated
+all 93 pages before the known Windows standalone-symlink `EPERM` tail; unrelated
+host-side public-data fetches also timed out or could not resolve the Docker-only
+`api` name. Security, design, and maintainer review found no remaining actionable
+defect. Next priority remains the FR-2.2 controlled-correction/audit follow-up.
 
 **Done — registration/profile Location and Salaried terminology
 ([PR #207](https://github.com/brollysolutions/client1/pull/207); FR-17.2 and FR-18.1-adjacent profile UX; completion
 coverage unchanged):** Postal address is removed from registration, Profile
 settings, the API, and generated contracts. The preserved database column is
 renamed to `location`; existing `net_salary` rows are migrated to `salaried`.
-Users can enter a locality or explicitly ask the browser for current location;
-that point is rounded to two decimals, placed into the editable field, and not
-sent until the form is saved. Permission denial, timeout, and unsupported
-browsers leave manual entry available. This profile value is separate from the
+Users enter a locality or city in the labelled manual search field; the value is
+not sent until the form is saved. No browser geolocation or reverse-geocoding
+request is made. This profile value is separate from the
 consented 30-day personalization signal, creates no location history, is absent
 from logs/audit details/tokens/Redis, remains owner/platform-Admin RLS scoped,
 and is cleared with account deletion.

@@ -11,7 +11,6 @@ import {
 } from "nuqs";
 
 import {
-  RE_LISTINGS,
   filterListings,
   hasActiveFilters,
   countActiveFilters,
@@ -32,8 +31,8 @@ const SORT_VALUES = ["relevance", "price_asc", "price_desc", "newest"] as const;
 // One hook owns every search + filter facet in the URL query string, mirroring
 // the nuqs pattern already used by the calculator islands
 // (components/calculators/islands/emi-calculator.tsx). Filters are shareable,
-// bookmarkable, and survive reload; results derive from RE_LISTINGS via the
-// pure filterListings/sortListings engine in lib/real-estate.ts.
+// bookmarkable, and survive reload; results derive from the API-backed source
+// through the pure filterListings/sortListings engine in lib/real-estate.ts.
 const PARSERS = {
   q: parseAsString,
   categories: parseAsArrayOf(parseAsStringLiteral(RE_CATEGORY_VALUES)),
@@ -70,13 +69,12 @@ function toPropertyFilters(state: Values<typeof PARSERS>): PropertyFilters {
   };
 }
 
-// `source` scopes the searchable/filterable set (defaults to the whole catalog);
+// `source` scopes the searchable/filterable API result set;
 // `lockedCategory` pins one category invisibly (used on a per-category Explore
 // page) so that category never shows as a user-facing chip or active-filter and
 // can't be cleared, while still constraining results.
-export function usePropertyFilters(opts?: { source?: REListing[]; lockedCategory?: RECategory }) {
-  const source = opts?.source ?? RE_LISTINGS;
-  const lockedCategory = opts?.lockedCategory;
+export function usePropertyFilters(opts: { source: REListing[]; lockedCategory?: RECategory }) {
+  const { source, lockedCategory } = opts;
 
   const [state, setState] = useQueryStates(PARSERS, { clearOnDefault: true });
 

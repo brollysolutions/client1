@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Crosshair, Loader2, MapPinOff, Sparkles } from "lucide-react";
+import { Loader2, MapPinOff, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -9,7 +9,6 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-  capturePersonalizationLocation,
   getPersonalizationPreference,
   revokePersonalizationLocation,
   setPersonalizationPreference,
@@ -43,36 +42,6 @@ export function PersonalizationSettingsCard() {
     } else {
       toast.error(result.error);
     }
-  }
-
-  async function enableLocation() {
-    if (!navigator.geolocation) {
-      toast.error("Location is not available in this browser.");
-      return;
-    }
-    setBusy(true);
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        void (async () => {
-          const result = await capturePersonalizationLocation(
-            position.coords.latitude,
-            position.coords.longitude,
-          );
-          setBusy(false);
-          if (result.ok) {
-            setPreference(result.data);
-            toast.success("Location-based suggestions enabled.");
-          } else {
-            toast.error(result.error);
-          }
-        })();
-      },
-      () => {
-        setBusy(false);
-        toast.error("Location permission was not granted.");
-      },
-      { enableHighAccuracy: false, timeout: 10_000 },
-    );
   }
 
   async function disableLocation() {
@@ -113,60 +82,46 @@ export function PersonalizationSettingsCard() {
         <span>
           <span className="block text-sm font-medium text-text-primary">Personalized content</span>
           <span className="mt-1 block text-xs text-text-secondary">
-            Turning this off also removes the saved coarse location.
+            Turning this off also removes any saved personalization signals.
           </span>
         </span>
       </Label>
 
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-muted/30 p-4">
-        <div>
-          <p className="text-sm font-medium text-text-primary">Location-based suggestions</p>
-          <p className="mt-1 text-xs text-text-secondary">
-            Optional. We save only a rounded location for up to 30 days, never an exact trail.
-          </p>
-          {preference.location_captured_at ? (
-            <p className="mt-1 text-xs text-text-secondary">
-              Last refreshed {new Date(preference.location_captured_at).toLocaleDateString()}.
-            </p>
-          ) : null}
-        </div>
-        {preference.location_enabled ? (
-          <div className="flex flex-wrap gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              disabled={busy}
-              onClick={() => void enableLocation()}
-            >
-              {busy ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Crosshair className="h-4 w-4" />
-              )}
-              Refresh location
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              disabled={busy}
-              onClick={() => void disableLocation()}
-            >
-              <MapPinOff className="h-4 w-4" />
-              Remove location
-            </Button>
+      {preference.location_enabled ? (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-muted/30 p-4">
+          <div className="flex items-start gap-3">
+            <MapPinOff className="mt-0.5 h-4 w-4 text-text-secondary" aria-hidden="true" />
+            <div>
+              <p className="text-sm font-medium text-text-primary">Saved personalization location</p>
+              <p className="mt-1 text-xs text-text-secondary">
+                Browser location capture is no longer available. Remove this previously saved point
+                now, or it will expire automatically.
+              </p>
+              {preference.location_captured_at ? (
+                <p className="mt-1 text-xs text-text-secondary">
+                  Saved {new Date(preference.location_captured_at).toLocaleDateString()}.
+                </p>
+              ) : null}
+            </div>
           </div>
-        ) : (
           <Button
             type="button"
             variant="outline"
-            disabled={busy || !preference.personalization_enabled}
-            onClick={() => void enableLocation()}
+            disabled={busy}
+            onClick={() => void disableLocation()}
           >
-            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Crosshair className="h-4 w-4" />}
-            Use my location
+            {busy ? (
+              <Loader2
+                className="h-4 w-4 animate-spin motion-reduce:animate-none"
+                aria-hidden="true"
+              />
+            ) : (
+              <MapPinOff className="h-4 w-4" aria-hidden="true" />
+            )}
+            {busy ? "Removing…" : "Remove saved location"}
           </Button>
-        )}
-      </div>
+        </div>
+      ) : null}
     </section>
   );
 }

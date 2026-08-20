@@ -166,7 +166,6 @@ function RegisterPageContent() {
   const [serviceLineError, setServiceLineError] = React.useState("");
   const [optionalProfile, setOptionalProfile] = React.useState(EMPTY_OPTIONAL_PROFILE);
   const [profileSaving, setProfileSaving] = React.useState(false);
-  const [profileLocationPending, setProfileLocationPending] = React.useState(false);
   const [errors, setErrors] = React.useState<Partial<Record<keyof Details, string>>>({});
   const [submitting, setSubmitting] = React.useState(false);
   const [e164, setE164] = React.useState("");
@@ -314,7 +313,7 @@ function RegisterPageContent() {
 
   async function submitOptionalProfile(event: React.FormEvent) {
     event.preventDefault();
-    if (profileSaving || profileLocationPending) return;
+    if (profileSaving) return;
 
     const email = profileEmail.trim().toLowerCase();
     if (email && !OPTIONAL_EMAIL_RE.test(email)) {
@@ -706,7 +705,6 @@ function RegisterPageContent() {
               value={optionalProfile}
               onChange={setOptionalProfile}
               disabled={profileSaving}
-              onLocationPendingChange={setProfileLocationPending}
             />
 
             <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
@@ -718,7 +716,7 @@ function RegisterPageContent() {
               >
                 Skip for now
               </Button>
-              <Button type="submit" disabled={profileSaving || profileLocationPending}>
+              <Button type="submit" disabled={profileSaving}>
                 {profileSaving ? "Saving…" : "Save and continue"}
               </Button>
             </div>

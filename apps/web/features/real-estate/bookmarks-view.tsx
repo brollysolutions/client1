@@ -11,10 +11,9 @@ import { useBookmarks } from "@/features/real-estate/store";
 import { useProperties } from "@/features/real-estate/use-properties";
 
 // Bookmarked-properties grid. Reads ids from the shared, server-backed
-// bookmarks store and resolves them against the mock catalog; a ghost
-// bookmark (removed from the catalog) is silently dropped rather than shown
-// broken. Search + filter are scoped to the bookmarked set and sit beside the
-// heading.
+// bookmarks store and resolves them against the fetched property API catalog;
+// a ghost bookmark is silently dropped rather than shown broken. Search and
+// filters are scoped to the bookmarked set and sit beside the heading.
 export function BookmarksView() {
   const { ids, status, error, retry } = useBookmarks();
   const { listings: catalog, loading: catalogLoading, error: catalogError, retry: catalogRetry } =
