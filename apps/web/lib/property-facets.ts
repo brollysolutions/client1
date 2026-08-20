@@ -7,6 +7,7 @@ import {
   type ListingStatus,
   type REListing,
 } from "@/lib/real-estate";
+import type { ReadableLocation } from "@/lib/reverse-geocode";
 
 export const BHK_OPTIONS: { value: number; label: string }[] = [
   { value: 1, label: "1 BHK" },
@@ -77,6 +78,36 @@ export type SuggestionIndex = {
   pincodes: string[];
   properties: { id: string; title: string; locality: string; city: string }[];
 };
+
+export type CurrentLocationPropertyFacet = {
+  kind: "locality" | "city" | "query";
+  value: string;
+  city?: string;
+};
+
+export function matchCurrentLocationToPropertyFacet(
+  location: ReadableLocation,
+  suggestionIndex: SuggestionIndex,
+): CurrentLocationPropertyFacet {
+  const exactMatch = (options: string[], candidate: string | null): string | undefined => {
+    if (!candidate) return undefined;
+    const normalized = candidate.toLocaleLowerCase("en");
+    return options.find((option) => option.toLocaleLowerCase("en") === normalized);
+  };
+
+  const locality = exactMatch(suggestionIndex.localities, location.locality);
+  const city = exactMatch(suggestionIndex.cities, location.city);
+  if (locality) {
+    return { kind: "locality", value: locality, ...(city ? { city } : {}) };
+  }
+  if (city) {
+    return { kind: "city", value: city };
+  }
+  return {
+    kind: "query",
+    value: location.locality ?? location.city ?? location.label,
+  };
+}
 
 // Grouped, de-duplicated suggestion source for the search omnibox. Built once
 // from the mock catalog; swaps for a real search endpoint response later.

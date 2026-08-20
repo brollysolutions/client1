@@ -7,13 +7,34 @@ function tokenWith(claims: Record<string, unknown>): string {
 
 test.setTimeout(150_000);
 
-test("registration saves Salaried and an explicitly requested coarse current location", async ({
+test("registration saves Salaried and an explicitly requested readable current location", async ({
   context,
   page,
 }) => {
   const mobile = "+919876543210";
   const password = `Browser#Pass9${Date.now()}`;
   let savedProfile: Record<string, unknown> | undefined;
+  let locationLookupUrl: URL | undefined;
+  let locationLookupAttempts = 0;
+
+  await page.route("https://api.bigdatacloud.net/data/reverse-geocode-client?*", async (route) => {
+    locationLookupAttempts += 1;
+    locationLookupUrl = new URL(route.request().url());
+    if (locationLookupAttempts === 1) {
+      await route.fulfill({ status: 503, body: "unavailable" });
+      return;
+    }
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        locality: "Kondapur",
+        city: "Hyderabad",
+        principalSubdivision: "Telangana",
+        countryName: "India",
+      }),
+    });
+  });
 
   await page.route("**/api/v1/auth/register/initiate", async (route) => {
     await route.fulfill({
@@ -135,8 +156,20 @@ test("registration saves Salaried and an explicitly requested coarse current loc
   await expect(page.getByRole("button", { name: "Use current location" })).toBeVisible();
   await page.getByRole("button", { name: "Use current location" }).click();
   await expect(page.getByRole("button", { name: "Save and continue" })).toBeDisabled();
-  await expect(page.getByLabel("Location")).toHaveValue("17.39° N, 78.49° E");
-  await expect(page.getByRole("status")).toContainText("Approximate current location added");
+  await expect(page.locator("#registration-profile-location-feedback")).toContainText(
+    "couldn't find a city or locality for your current location",
+  );
+  await expect(page.getByLabel("Location")).toHaveValue("");
+  await expect(page.getByRole("button", { name: "Save and continue" })).toBeEnabled();
+
+  await page.getByRole("button", { name: "Use current location" }).click();
+  await expect(page.getByRole("button", { name: "Save and continue" })).toBeDisabled();
+  await expect(page.getByLabel("Location")).toHaveValue("Kondapur, Hyderabad, Telangana");
+  await expect(page.getByRole("status")).toContainText("Current locality added");
+  expect(locationLookupAttempts).toBe(2);
+  expect(locationLookupUrl?.searchParams.get("latitude")).toBe("17.39");
+  expect(locationLookupUrl?.searchParams.get("longitude")).toBe("78.49");
+  expect(locationLookupUrl?.searchParams.get("localityLanguage")).toBe("en");
 
   const saveResponsePromise = page.waitForResponse(
     (response) =>
@@ -147,13 +180,13 @@ test("registration saves Salaried and an explicitly requested coarse current loc
   expect(saveResponse.ok(), await saveResponse.text()).toBeTruthy();
   expect(await saveResponse.json()).toMatchObject({
     income_source: "salaried",
-    location: "17.39° N, 78.49° E",
+    location: "Kondapur, Hyderabad, Telangana",
   });
   expect(savedProfile).toMatchObject({
     income_source: "salaried",
     income_amount_minor: 5_000_000,
     income_period: "monthly",
-    location: "17.39° N, 78.49° E",
+    location: "Kondapur, Hyderabad, Telangana",
   });
   await expect(page).toHaveURL(/\/dashboard$/, { timeout: 60_000 });
 });

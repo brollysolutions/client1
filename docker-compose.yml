@@ -215,6 +215,10 @@ services:
       # the browser is on the host network, so it reaches the api container
       # through the published port, not the docker network.
       NEXT_PUBLIC_API_BASE_URL: http://localhost:8000
+      # Optional public HTTPS endpoint for the explicit browser-only
+      # current-location lookup. Unset keeps manual Location/search enabled
+      # and hides the device-location action.
+      NEXT_PUBLIC_REVERSE_GEOCODE_URL: ${NEXT_PUBLIC_REVERSE_GEOCODE_URL:-}
       # Runtime-only, server-resolved (lib/api/server.ts): Server Components
       # (e.g. ISR-fetched public pages) run inside THIS container, where
       # "localhost" means itself, not the api container — hence a separate
