@@ -21,16 +21,6 @@ export function setPersonalizationPreference(
   });
 }
 
-export function capturePersonalizationLocation(
-  latitude: number,
-  longitude: number,
-): Promise<ApiResponse<PersonalizationPreference>> {
-  return apiRequest<PersonalizationPreference>("/api/v1/personalization/location", {
-    method: "PUT",
-    body: { latitude, longitude },
-  });
-}
-
 export function revokePersonalizationLocation(): Promise<ApiResponse<PersonalizationPreference>> {
   return apiRequest<PersonalizationPreference>("/api/v1/personalization/location", {
     method: "DELETE",

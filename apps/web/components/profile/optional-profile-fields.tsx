@@ -1,9 +1,7 @@
 "use client";
 
-import * as React from "react";
-import { Crosshair, Loader2 } from "lucide-react";
+import { Search } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -13,12 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  currentLocationErrorMessage,
-  useCurrentLocationLookup,
-} from "@/hooks/use-current-location-lookup";
 import type { Gender, IncomePeriod, IncomeSource } from "@/lib/auth";
-import { REVERSE_GEOCODE_PROVIDER_LABEL } from "@/lib/reverse-geocode";
 
 const NOT_SUPPLIED = "not_supplied";
 const LOCATION_MAX_LENGTH = 500;
@@ -48,43 +41,14 @@ export function OptionalProfileFields({
   onChange,
   disabled = false,
   idPrefix,
-  onLocationPendingChange,
 }: {
   value: OptionalProfileDraft;
   onChange: (value: OptionalProfileDraft) => void;
   disabled?: boolean;
   idPrefix: string;
-  onLocationPendingChange?: (pending: boolean) => void;
 }) {
-  const { available, locating, findCurrentLocation } = useCurrentLocationLookup({
-    onPendingChange: onLocationPendingChange,
-  });
-  const [locationFeedback, setLocationFeedback] = React.useState<{
-    kind: "success" | "error";
-    message: string;
-  } | null>(null);
-  const latestValue = React.useRef(value);
-  latestValue.current = value;
-
   function set<K extends keyof OptionalProfileDraft>(key: K, next: OptionalProfileDraft[K]) {
     onChange({ ...value, [key]: next });
-  }
-
-  async function handleUseCurrentLocation() {
-    setLocationFeedback(null);
-    try {
-      const location = await findCurrentLocation();
-      onChange({
-        ...latestValue.current,
-        location: location.label,
-      });
-      setLocationFeedback({
-        kind: "success",
-        message: "Current locality added. Save the form to keep it.",
-      });
-    } catch (error) {
-      setLocationFeedback({ kind: "error", message: currentLocationErrorMessage(error) });
-    }
   }
 
   return (
@@ -205,59 +169,28 @@ export function OptionalProfileFields({
 
       <div className="space-y-2 sm:col-span-2">
         <Label htmlFor={`${idPrefix}-location`}>Location</Label>
-        <div className="flex flex-col gap-2 sm:flex-row">
+        <div className="relative">
+          <Search
+            className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-secondary"
+            aria-hidden="true"
+          />
           <Input
             id={`${idPrefix}-location`}
             name="location"
+            type="search"
             value={value.location}
-            onChange={(event) => {
-              setLocationFeedback(null);
-              set("location", event.target.value);
-            }}
+            onChange={(event) => set("location", event.target.value)}
             maxLength={LOCATION_MAX_LENGTH}
             autoComplete="address-level2"
-            disabled={disabled || locating}
-            placeholder="Enter a city or locality"
-            aria-describedby={`${idPrefix}-location-help${
-              locationFeedback ? ` ${idPrefix}-location-feedback` : ""
-            }`}
+            disabled={disabled}
+            placeholder="Search or enter a city or locality"
+            className="pl-9"
+            aria-describedby={`${idPrefix}-location-help`}
           />
-          <Button
-            type="button"
-            variant="outline"
-            disabled={disabled || !available || locating}
-            onClick={handleUseCurrentLocation}
-            className="shrink-0"
-          >
-            {locating ? (
-              <Loader2
-                className="h-4 w-4 animate-spin motion-reduce:animate-none"
-                aria-hidden="true"
-              />
-            ) : (
-              <Crosshair className="h-4 w-4" aria-hidden="true" />
-            )}
-            {locating ? "Finding location…" : "Use current location"}
-          </Button>
         </div>
         <p id={`${idPrefix}-location-help`} className="text-xs text-text-secondary">
-          {available
-            ? `Optional. When you choose this, an approximate point rounded to two decimals is sent to ${REVERSE_GEOCODE_PROVIDER_LABEL} to find your city or locality. Only the editable place name is saved.`
-            : "Optional. Enter a city or locality. Current-location lookup is unavailable until reverse geocoding is configured."}
+          Optional. Search for or enter a city or locality. Only this editable place name is saved.
         </p>
-        {locationFeedback ? (
-          <p
-            id={`${idPrefix}-location-feedback`}
-            role={locationFeedback.kind === "error" ? "alert" : "status"}
-            className={
-              locationFeedback.kind === "error"
-                ? "text-xs text-destructive"
-                : "text-xs text-success"
-            }
-          >
-            {locationFeedback.message}
-          </p>
-        ) : null}
       </div>
     </div>
   );

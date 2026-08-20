@@ -447,41 +447,17 @@ test.describe("role-aware dashboard navigation", () => {
     }
   });
 
-  test("Client can use current location across dashboard property search", async ({
-    context,
+  test("Client can search locations manually across dashboard property surfaces", async ({
     page,
     request,
   }) => {
     test.setTimeout(180_000);
     const account = await registerClient(request, 401);
     try {
-      await context.grantPermissions(["geolocation"], {
-        origin: "http://localhost:3000",
-      });
-      await context.setGeolocation({ latitude: 18.559, longitude: 73.7868 });
       await logIn(page, account);
       await page.getByRole("button", { name: "Switch to Real Estate" }).click();
       await page.setViewportSize({ width: 390, height: 844 });
 
-      let locationLookupUrl: URL | undefined;
-      let locationLookupAttempts = 0;
-      await page.route(
-        "https://api.bigdatacloud.net/data/reverse-geocode-client?*",
-        async (route) => {
-          locationLookupAttempts += 1;
-          locationLookupUrl = new URL(route.request().url());
-          await route.fulfill({
-            status: 200,
-            contentType: "application/json",
-            body: JSON.stringify({
-              locality: "Baner",
-              city: "Pune",
-              principalSubdivision: "Maharashtra",
-              countryName: "India",
-            }),
-          });
-        },
-      );
       await page.route("**/api/v1/properties", async (route) => {
         await route.fulfill({
           status: 200,
@@ -531,23 +507,17 @@ test.describe("role-aware dashboard navigation", () => {
       await expect(
         page.getByRole("combobox", { name: "Choose property location" }),
       ).toHaveCount(0);
-      const currentLocationButton = page.getByRole("button", { name: "Use current location" });
-      await expect(currentLocationButton).toContainText("Current location");
-      await currentLocationButton.click();
+      await expect(page.getByRole("button", { name: /current location/i })).toHaveCount(0);
+      await page.getByPlaceholder(/Search by locality/).fill("Baner");
+      await page.getByRole("option", { name: "Baner", exact: true }).click();
       await expect(page.getByPlaceholder(/Search by locality/)).toHaveValue("Baner");
       await expect(page).toHaveURL(/locality=Baner/);
-      await expect(page.getByRole("status")).toContainText("Searching properties near Baner");
-      expect(locationLookupUrl?.searchParams.get("latitude")).toBe("18.56");
-      expect(locationLookupUrl?.searchParams.get("longitude")).toBe("73.79");
 
       await page.getByRole("button", { name: /^Filters/ }).click();
       const filterDialog = page.getByRole("dialog");
-      await expect(filterDialog.getByRole("button", { name: "Use current location" })).toBeVisible();
-      await filterDialog.getByRole("button", { name: "Use current location" }).click();
-      await expect(filterDialog.getByRole("status")).toContainText(
-        "Using Baner for this search",
-      );
-      expect(locationLookupAttempts).toBe(2);
+      await expect(filterDialog.getByRole("button", { name: /current location/i })).toHaveCount(0);
+      await expect(filterDialog.getByText("City", { exact: true })).toBeVisible();
+      await expect(filterDialog.getByText("Area / Locality", { exact: true })).toBeVisible();
     } finally {
       await deleteAccount(request, account);
     }
