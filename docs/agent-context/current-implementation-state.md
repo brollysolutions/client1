@@ -137,11 +137,23 @@ completion.
 
 Location accepts a manually entered locality/city. The browser geolocation API
 is invoked only when the user chooses **Use current location**; the client uses
-low-accuracy mode, rounds the returned coordinates to two decimals, writes the
-result into the editable field, and sends nothing until the user saves. The
-profile stores one current value until it is cleared or the account is deleted.
-It does not reverse-geocode, collect in the background, keep a trail, or write
-to the separate 30-day personalization location governed by CS-008.
+low-accuracy mode and rounds the returned coordinates to two decimals before a
+direct browser request asks the deployment-configured BigDataCloud endpoint for
+a city/locality. That public HTTPS endpoint is not hardcoded; an absent or
+invalid value hides the action while manual entry remains. The request omits
+credentials and referrer data, but BigDataCloud still receives the approximate
+point and request IP as disclosed in the UI and privacy notice. Malformed,
+denied, timed-out, or failed lookups leave the current value unchanged and never
+fall back to displaying coordinates.
+
+The editable readable label is sent to `PATCH /auth/me` only when the user saves
+the profile. The same explicit lookup is available from the shared property
+search on dashboard home, Explore, category, and Bookmarks surfaces; it applies
+only a matched catalogue locality/city (or readable free-text query) to the
+existing URL-synced search filters. It never updates the profile from search.
+The profile stores one current readable value until it is cleared or the account
+is deleted. Neither flow collects in the background, keeps a coordinate trail,
+or writes to the separate 30-day personalization location governed by CS-008.
 
 Optional identity-wide values live on `auth_users`; email remains unique when
 supplied, and income is represented as a bounded integer-minor-unit source/
@@ -166,7 +178,10 @@ Evidence:
 - [`apps/api/app/tests/auth/test_update_me.py`](../../apps/api/app/tests/auth/test_update_me.py)
 - [`apps/web/app/(auth)/register/page.tsx`](../../apps/web/app/(auth)/register/page.tsx)
 - [`apps/web/app/(app)/dashboard/settings/page.tsx`](../../apps/web/app/(app)/dashboard/settings/page.tsx)
+- [`apps/web/lib/reverse-geocode.ts`](../../apps/web/lib/reverse-geocode.ts)
+- [`apps/web/features/real-estate/property-search-bar.tsx`](../../apps/web/features/real-estate/property-search-bar.tsx)
 - [`apps/web/e2e/registration-profile.spec.ts`](../../apps/web/e2e/registration-profile.spec.ts)
+- [`apps/web/e2e/dashboard-navigation.spec.ts`](../../apps/web/e2e/dashboard-navigation.spec.ts)
 
 This supersedes the former mandatory-email registration implementation and
 settles FR-3.3/FR-17.2 without changing CS-001 dual-line enrollment or CS-003
