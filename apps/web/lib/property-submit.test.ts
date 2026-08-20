@@ -126,8 +126,8 @@ describe("validateForm()", () => {
     expect(
       validateForm({
         ...VALID,
-        video: new File(["mov"], "tour.mov", { type: "video/quicktime" }),
-      }).video,
+        panorama: new File(["gif"], "tour.gif", { type: "image/gif" }),
+      }).panorama,
     ).toBeTruthy();
   });
 });

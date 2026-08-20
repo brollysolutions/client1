@@ -34,10 +34,6 @@ const CAPABILITIES = {
   payouts: { roles: ["admin", "sub_admin"], staffFeature: "payout_requests" },
   cms: { roles: ["sub_admin", "admin"] },
   referralRules: { roles: ["sub_admin", "admin"] },
-  realEstateSubmitter: {
-    roles: ["client", "agent"],
-    lines: ["real_estate"],
-  },
 } as const satisfies Record<
   string,
   {
@@ -182,14 +178,6 @@ export const NAV_ITEMS: readonly NavItem[] = [
     label: "My Agent",
     href: "/dashboard/agent",
     icon: DASHBOARD_ICONS.agent,
-    capability: "clientRealEstate",
-    section: "workspace",
-  },
-  {
-    key: "client-listings",
-    label: "My Listings",
-    href: "/dashboard/my-submissions",
-    icon: DASHBOARD_ICONS.propertyListings,
     capability: "clientRealEstate",
     section: "workspace",
   },
@@ -365,6 +353,14 @@ export const NAV_ITEMS: readonly NavItem[] = [
     section: "operations",
   },
   {
+    key: "admin-property-listings",
+    label: "Property listings",
+    href: "/dashboard/my-submissions",
+    icon: DASHBOARD_ICONS.propertyListings,
+    capability: "admin",
+    section: "operations",
+  },
+  {
     key: "admin-property-review",
     label: "Listing approvals",
     href: "/dashboard/property-review",
@@ -519,8 +515,7 @@ export const DASHBOARD_ROUTE_RULES: readonly DashboardRouteRule[] = [
   { path: "/dashboard/loans", capabilities: ["clientLoans"] },
   {
     path: "/dashboard/my-submissions",
-    exact: true,
-    capabilities: ["realEstateSubmitter", "subAdmin"],
+    capabilities: ["agentRealEstate", "subAdmin", "admin"],
   },
   { path: "/dashboard/notifications", exact: true, capabilities: ["shared"] },
   { path: "/dashboard/offers", capabilities: ["cms"] },
@@ -530,7 +525,7 @@ export const DASHBOARD_ROUTE_RULES: readonly DashboardRouteRule[] = [
   {
     path: "/dashboard/property-submit",
     exact: true,
-    capabilities: ["realEstateSubmitter", "subAdmin"],
+    capabilities: ["agentRealEstate", "subAdmin", "admin"],
   },
   { path: "/dashboard/referral-payouts", exact: true, capabilities: ["admin"] },
   {

@@ -11,7 +11,13 @@ from app.schemas.property_submissions import SubmissionCreate
 
 
 def _asset(position: int, *, kind: str = "image", content_type: str = "image/jpeg") -> dict:
-    extension = "pdf" if content_type == "application/pdf" else "jpg"
+    extension = (
+        "pdf"
+        if content_type == "application/pdf"
+        else "webp"
+        if content_type == "image/webp"
+        else "jpg"
+    )
     return {
         "kind": kind,
         "content_type": content_type,
@@ -52,6 +58,14 @@ def test_accepts_ten_images_and_two_documents() -> None:
     assert len(parsed.media) == 12
 
 
+def test_accepts_one_managed_panorama() -> None:
+    parsed = SubmissionCreate.model_validate(
+        _payload([_asset(0), _asset(1, kind="panorama", content_type="image/webp")])
+    )
+
+    assert [asset.kind for asset in parsed.media] == ["image", "panorama"]
+
+
 @pytest.mark.parametrize(
     "media",
     [
@@ -72,6 +86,24 @@ def test_rejects_media_count_outside_approved_quotas(media: list[dict]) -> None:
 def test_rejects_kind_content_type_mismatch() -> None:
     with pytest.raises(ValidationError):
         SubmissionCreate.model_validate(_payload([_asset(0, kind="document")]))
+
+
+def test_rejects_property_video_and_more_than_one_panorama() -> None:
+    video = _asset(1, kind="video", content_type="video/mp4")
+    video["object_key"] = video["object_key"].removesuffix(".jpg") + ".mp4"
+    with pytest.raises(ValidationError):
+        SubmissionCreate.model_validate(_payload([_asset(0), video]))
+
+    with pytest.raises(ValidationError):
+        SubmissionCreate.model_validate(
+            _payload(
+                [
+                    _asset(0),
+                    _asset(1, kind="panorama", content_type="image/webp"),
+                    _asset(2, kind="panorama", content_type="image/webp"),
+                ]
+            )
+        )
 
 
 @pytest.mark.parametrize("duplicate_field", ["object_key", "position"])

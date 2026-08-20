@@ -10,7 +10,6 @@ from httpx import AsyncClient
 from sqlalchemy import select, text
 
 from app.models.loan_document import LoanDocument
-from app.models.property_media import PropertySubmissionMedia
 from app.models.task import TaskFeedbackMedia
 from app.services import managed_media, storage
 from app.services.media_processing import ScannerUnavailable
@@ -20,7 +19,7 @@ from .test_employee_task_documents import _seed_employee, _seed_task
 pytestmark = pytest.mark.asyncio
 
 
-async def test_batch_alternates_property_and_loan_work(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_batch_processes_only_loan_video_work(monkeypatch: pytest.MonkeyPatch) -> None:
     calls: list[type] = []
 
     async def process_one(model: type, *, max_duration_seconds: int) -> bool:
@@ -31,12 +30,7 @@ async def test_batch_alternates_property_and_loan_work(monkeypatch: pytest.Monke
     monkeypatch.setattr(managed_media, "_process_one", process_one)
 
     assert await managed_media.process_pending_media(batch_size=4) == {"processed": 4}
-    assert calls == [
-        PropertySubmissionMedia,
-        LoanDocument,
-        PropertySubmissionMedia,
-        LoanDocument,
-    ]
+    assert calls == [LoanDocument, LoanDocument, LoanDocument, LoanDocument]
 
 
 async def test_scanner_outage_requeues_and_removes_partial_output(
@@ -60,7 +54,7 @@ async def test_scanner_outage_requeues_and_removes_partial_output(
     monkeypatch.setattr(managed_media, "process_video_object", unavailable)
     monkeypatch.setattr(storage, "delete_object", deleted.append)
 
-    assert await managed_media._process_one(PropertySubmissionMedia, max_duration_seconds=120)
+    assert await managed_media._process_one(LoanDocument, max_duration_seconds=120)
     assert finishes == [{"retry": True}]
     assert deleted == ["private/x/asset.mp4"]
 

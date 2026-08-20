@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Image from "next/image";
-import { ArrowDown, ArrowUp, FileText, Loader2, Plus, Video, X } from "lucide-react";
+import { ArrowDown, ArrowUp, FileText, Loader2, Plus, Rotate3D, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,6 +20,7 @@ import {
 import { DashboardFormPage } from "@/features/dashboard/dashboard-ui";
 import { CONSTRUCTION_OPTIONS, FURNISHING_OPTIONS } from "@/lib/property-submit";
 import { PROPERTY_SUBTYPE_GROUPS } from "@/lib/property-taxonomy";
+import type { Submission } from "@/lib/property-submissions-api";
 import { useSubmitProperty } from "./use-submit-property";
 
 function FieldError({ msg }: { msg?: string }) {
@@ -27,16 +28,16 @@ function FieldError({ msg }: { msg?: string }) {
   return <p className="mt-1 text-sm text-destructive">{msg}</p>;
 }
 
-export function SubmitPropertyForm() {
-  const f = useSubmitProperty();
+export function SubmitPropertyForm({ submission }: { submission?: Submission }) {
+  const f = useSubmitProperty(submission);
   const [amenityDraft, setAmenityDraft] = React.useState("");
   const imagePreviews = React.useMemo(
     () => f.form.images.map((file) => ({ file, url: URL.createObjectURL(file) })),
     [f.form.images],
   );
-  const videoPreview = React.useMemo(
-    () => (f.form.video ? URL.createObjectURL(f.form.video) : null),
-    [f.form.video],
+  const panoramaPreview = React.useMemo(
+    () => (f.form.panorama ? URL.createObjectURL(f.form.panorama) : null),
+    [f.form.panorama],
   );
 
   React.useEffect(
@@ -47,9 +48,9 @@ export function SubmitPropertyForm() {
   );
   React.useEffect(
     () => () => {
-      if (videoPreview) URL.revokeObjectURL(videoPreview);
+      if (panoramaPreview) URL.revokeObjectURL(panoramaPreview);
     },
-    [videoPreview],
+    [panoramaPreview],
   );
 
   const commitAmenity = () => {
@@ -68,12 +69,20 @@ export function SubmitPropertyForm() {
   return (
     <DashboardFormPage
       eyebrow="Property listings"
-      title="Submit a property"
-      description="Capture listing details, managed media, and private reviewer documents for Admin review."
+      title={f.editing ? "Edit property" : "Submit a property"}
+      description={
+        f.editing
+          ? "Update the listing facts. Approved changes return to Admin review while the published version stays available."
+          : "Capture listing details, managed media, and private reviewer documents for Admin review."
+      }
       backHref="/dashboard/my-submissions"
       backLabel="Back to submissions"
-      formTitle="Listing submission"
-      formDescription="Nothing becomes public until the review team approves the submission."
+      formTitle={f.editing ? "Listing details" : "Listing submission"}
+      formDescription={
+        f.editing
+          ? "Managed media remains unchanged while you edit the approved listing facts."
+          : "Nothing becomes public until the review team approves the submission."
+      }
     >
       <form
         className="space-y-6"
@@ -277,6 +286,22 @@ export function SubmitPropertyForm() {
               Public media is scanned and normalized; reviewer PDFs always remain private.
             </p>
           </div>
+          {f.editing ? (
+            <div className="rounded-lg border border-border bg-card p-4 text-sm text-text-secondary">
+              <p className="font-medium text-text-primary">Managed media retained</p>
+              <p className="mt-1">
+                {f.existingMedia.filter((asset) => asset.kind === "image").length} images
+                {f.existingMedia.some((asset) => asset.kind === "panorama")
+                  ? " · 1 panorama"
+                  : ""}
+                {f.existingMedia.some((asset) => asset.kind === "document")
+                  ? ` · ${f.existingMedia.filter((asset) => asset.kind === "document").length} private documents`
+                  : ""}
+              </p>
+              <p className="mt-2">Media replacement is kept separate from listing-fact edits.</p>
+            </div>
+          ) : (
+          <>
           <div>
             <Label htmlFor="property-images">Property images</Label>
             <Input
@@ -321,40 +346,37 @@ export function SubmitPropertyForm() {
             )}
           </div>
           <div>
-            <Label htmlFor="property-video">Property video (optional)</Label>
+            <Label htmlFor="property-panorama">360 panorama (optional)</Label>
             <Input
-              id="property-video"
+              id="property-panorama"
               type="file"
-              accept="video/mp4"
+              accept="image/jpeg,image/webp"
               disabled={f.submitting}
               onChange={(event) => {
-                f.setVideo(event.target.files?.[0] ?? null);
+                f.setPanorama(event.target.files?.[0] ?? null);
                 event.target.value = "";
               }}
             />
             <p className="mt-1 text-xs text-text-secondary">
-              One MP4, up to 20 MiB and 2 minutes. It is scanned and normalized before review.
+              One 2:1 equirectangular JPEG or WebP, at least 2048 x 1024 and up to 5 MiB.
+              It is scanned and normalized before review.
             </p>
-            <FieldError msg={f.errors.video} />
-            {f.form.video && videoPreview ? (
+            <FieldError msg={f.errors.panorama} />
+            {f.form.panorama && panoramaPreview ? (
               <div className="mt-3 rounded-lg border p-2">
-                <video
-                  src={videoPreview}
-                  controls
-                  preload="metadata"
-                  className="aspect-video w-full rounded bg-black object-contain"
-                  aria-label="Selected property video preview"
-                />
+                <div className="relative aspect-[2/1] overflow-hidden rounded bg-muted">
+                  <Image src={panoramaPreview} alt="Selected 360 panorama preview" fill unoptimized className="object-cover" />
+                </div>
                 <div className="mt-2 flex items-center gap-2 text-sm">
-                  <Video className="h-4 w-4 text-text-secondary" aria-hidden />
-                  <span className="min-w-0 flex-1 truncate">{f.form.video.name}</span>
+                  <Rotate3D className="h-4 w-4 text-text-secondary" aria-hidden />
+                  <span className="min-w-0 flex-1 truncate">{f.form.panorama.name}</span>
                   <Button
                     type="button"
                     variant="ghost"
                     size="icon"
                     disabled={f.submitting}
-                    aria-label={`Remove ${f.form.video.name}`}
-                    onClick={() => f.setVideo(null)}
+                    aria-label={`Remove ${f.form.panorama.name}`}
+                    onClick={() => f.setPanorama(null)}
                   >
                     <X className="h-4 w-4" aria-hidden />
                   </Button>
@@ -394,6 +416,8 @@ export function SubmitPropertyForm() {
               </ul>
             )}
           </div>
+          </>
+          )}
           <div>
             <Label htmlFor="meta">Short note</Label>
             <Textarea id="meta" value={f.form.meta} onChange={(e) => f.setField("meta", e.target.value)} maxLength={120} />
@@ -402,7 +426,7 @@ export function SubmitPropertyForm() {
 
         <Button type="submit" disabled={f.submitting} className="w-full sm:w-auto">
           {f.submitting ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : null}
-          {f.uploadProgress ?? "Submit for review"}
+          {f.uploadProgress ?? (f.editing ? "Save changes" : "Submit for review")}
         </Button>
       </form>
     </DashboardFormPage>

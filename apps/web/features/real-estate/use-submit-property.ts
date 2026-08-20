@@ -4,18 +4,27 @@ import * as React from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
-import { submitProperty, uploadPropertyMedia } from "@/lib/property-submissions-api";
+import {
+  submitProperty,
+  updateSubmission,
+  uploadPropertyMedia,
+  type Submission,
+} from "@/lib/property-submissions-api";
 import {
   buildSubmissionPayload,
+  buildSubmissionUpdatePayload,
   validateForm,
   EMPTY_FORM,
+  submissionToFormState,
   type DetailRow,
   type SubmitFormState,
 } from "@/lib/property-submit";
 
-export function useSubmitProperty() {
+export function useSubmitProperty(submission?: Submission) {
   const router = useRouter();
-  const [form, setForm] = React.useState<SubmitFormState>(EMPTY_FORM);
+  const [form, setForm] = React.useState<SubmitFormState>(() =>
+    submission ? submissionToFormState(submission) : EMPTY_FORM,
+  );
   const [errors, setErrors] = React.useState<Record<string, string>>({});
   const [submitting, setSubmitting] = React.useState(false);
   const [uploadProgress, setUploadProgress] = React.useState<string | null>(null);
@@ -54,24 +63,41 @@ export function useSubmitProperty() {
   const setDocuments = React.useCallback((documents: File[]) => {
     setForm((prev) => ({ ...prev, documents }));
   }, []);
-  const setVideo = React.useCallback((video: File | null) => {
-    setForm((prev) => ({ ...prev, video }));
+  const setPanorama = React.useCallback((panorama: File | null) => {
+    setForm((prev) => ({ ...prev, panorama }));
   }, []);
 
   const submit = React.useCallback(async () => {
-    const found = validateForm(form);
+    const found = validateForm(form, { requireImages: submission == null });
     setErrors(found);
     if (Object.keys(found).length > 0) {
       toast.error("Please fix the highlighted fields.");
       return;
     }
     setSubmitting(true);
-    const totalUploads = form.images.length + form.documents.length + (form.video ? 1 : 0);
+    if (submission) {
+      setUploadProgress("Saving changes");
+      const res = await updateSubmission(submission.id, buildSubmissionUpdatePayload(form));
+      setSubmitting(false);
+      setUploadProgress(null);
+      if (res.ok) {
+        toast.success(
+          submission.status === "approved"
+            ? "Changes sent for Admin review. The approved version remains public."
+            : "Listing changes saved for review.",
+        );
+        router.push("/dashboard/my-submissions");
+      } else {
+        toast.error(res.error || "Could not update the listing.");
+      }
+      return;
+    }
+    const totalUploads = form.images.length + form.documents.length + (form.panorama ? 1 : 0);
     setUploadProgress(`Uploading 0 of ${totalUploads}`);
     const uploaded = await uploadPropertyMedia(
       form.images,
       form.documents,
-      form.video,
+      form.panorama,
       (done, total) => setUploadProgress(`Uploading ${done} of ${total}`),
     );
     if (!uploaded.ok) {
@@ -90,7 +116,7 @@ export function useSubmitProperty() {
     } else {
       toast.error(res.error || "Could not submit the listing.");
     }
-  }, [form, router]);
+  }, [form, router, submission]);
 
   return {
     form,
@@ -102,7 +128,9 @@ export function useSubmitProperty() {
     removeAmenity,
     setImages,
     setDocuments,
-    setVideo,
+    setPanorama,
+    editing: submission != null,
+    existingMedia: submission?.media ?? [],
     errors,
     submitting,
     uploadProgress,

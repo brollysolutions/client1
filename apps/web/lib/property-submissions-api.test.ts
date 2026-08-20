@@ -85,7 +85,7 @@ describe("uploadPropertyMedia", () => {
     expect(result).toEqual({ ok: false, error: "Could not upload front.jpg." });
   });
 
-  it("uploads an optional video after images and reviewer documents", async () => {
+  it("uploads an optional panorama after images and reviewer documents", async () => {
     const bodies: Array<Record<string, unknown>> = [];
     vi.stubGlobal(
       "fetch",
@@ -93,10 +93,10 @@ describe("uploadPropertyMedia", () => {
         if (url.endsWith("/media-upload-url")) {
           bodies.push(JSON.parse(String(init?.body)) as Record<string, unknown>);
           return response(200, {
-            object_key: "private/property-submissions/staging/owner/batch/asset.mp4",
+            object_key: "private/property-submissions/staging/owner/batch/asset.webp",
             upload_url: "https://storage.test/bucket",
             fields: { key: "asset", policy: "signed" },
-            max_bytes: 20 * 1024 * 1024,
+            max_bytes: 5 * 1024 * 1024,
           });
         }
         return response(201);
@@ -106,13 +106,13 @@ describe("uploadPropertyMedia", () => {
     const result = await uploadPropertyMedia(
       [new File(["image"], "front.jpg", { type: "image/jpeg" })],
       [],
-      new File(["video"], "tour.mp4", { type: "video/mp4" }),
+      new File(["panorama"], "tour.webp", { type: "image/webp" }),
     );
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.media.map((asset) => asset.kind)).toEqual(["image", "video"]);
-    expect(bodies.at(-1)).toEqual({ kind: "video", content_type: "video/mp4" });
+    expect(result.media.map((asset) => asset.kind)).toEqual(["image", "panorama"]);
+    expect(bodies.at(-1)).toEqual({ kind: "panorama", content_type: "image/webp" });
   });
 });
 

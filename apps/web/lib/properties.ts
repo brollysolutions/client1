@@ -4,7 +4,7 @@
 // owns the category union, its display copy, and grouping over an already
 // fetched listing array.
 //
-// Listing a property is an agent-side action, so clients only ever see buy.
+// Listing is restricted to real-estate Agents, Sub Admins, and Admins, so Clients only browse.
 // Copy follows apps/web/CLAUDE.md content rules: humanized, `₹` never `$`, no
 // em/en dashes.
 
@@ -35,7 +35,7 @@ export type PropertyListing = {
   meta?: string; // "2 bed · 1,120 sqft"
   /** Resolved image URL; undefined ⇒ cream placeholder band. */
   image?: string;
-  /** Approved public images and normalized videos in display order. */
+  /** Approved public images and equirectangular panoramas in display order. */
   media?: PropertyMediaItem[];
   /** RERA registration number, a statutory disclosure on the card. */
   reraNumber?: string;

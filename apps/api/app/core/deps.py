@@ -255,20 +255,16 @@ async def get_active_user(
 async def require_re_submitter(
     current_user: CurrentUser = Depends(get_active_user),
 ) -> CurrentUser:
-    """A Client/Lead, real-estate Agent, or Sub Admin may submit a property."""
+    """A real-estate Agent, Sub Admin, or platform Admin may manage listings."""
     is_re_agent = current_user.role == "agent" and current_user.business_line in (
         "real_estate",
         "both",
     )
-    is_client = current_user.role == "client" and current_user.business_line in (
-        "real_estate",
-        "both",
-    )
     is_sub_admin = current_user.role == "sub_admin"
-    if not (is_client or is_re_agent or is_sub_admin):
+    if not (is_re_agent or is_sub_admin or is_platform_admin(current_user)):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only Clients, real-estate Agents, or Sub Admins may submit properties.",
+            detail="Only real-estate Agents, Sub Admins, or platform Admins may manage properties.",
         )
     return current_user
 

@@ -18,10 +18,9 @@ from app.models.property import ConstructionStatus, Furnishing, PropertyCategory
 
 
 class PropertyMediaRead(BaseModel):
-    kind: Literal["image", "video"]
+    kind: Literal["image", "panorama"]
     url: str
     content_type: str
-    duration_seconds: int | None
 
 
 class PropertyRead(BaseModel):
