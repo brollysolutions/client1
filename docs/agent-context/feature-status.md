@@ -10,7 +10,8 @@ verified Admin operational-visibility work in
 [PR #173](https://github.com/brollysolutions/client1/pull/173).
 
 **Done — readable current location and API-backed property search
-([PR #208](https://github.com/brollysolutions/client1/pull/208); FR-17.2-adjacent UX; completion coverage unchanged):**
+([PR #209](https://github.com/brollysolutions/client1/pull/209), following
+[PR #208](https://github.com/brollysolutions/client1/pull/208); FR-17.2-adjacent UX; completion coverage unchanged):**
 **Use current location** now returns an editable place name instead of latitude/
 longitude in registration and Profile settings. The same action is available in
 the shared property omnibox and filter sheet used by dashboard home, Explore,
