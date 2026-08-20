@@ -10,7 +10,7 @@ verified Admin operational-visibility work in
 [PR #173](https://github.com/brollysolutions/client1/pull/173).
 
 **Done — registration/profile Location and Salaried terminology
-(delivery PR pending; FR-17.2 and FR-18.1-adjacent profile UX; completion
+([PR #207](https://github.com/brollysolutions/client1/pull/207); FR-17.2 and FR-18.1-adjacent profile UX; completion
 coverage unchanged):** Postal address is removed from registration, Profile
 settings, the API, and generated contracts. The preserved database column is
 renamed to `location`; existing `net_salary` rows are migrated to `salaried`.
