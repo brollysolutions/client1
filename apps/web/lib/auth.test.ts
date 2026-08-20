@@ -216,7 +216,7 @@ describe("profile mapping", () => {
         income_amount_minor: 12_500_000,
         income_period: "annual",
         occupation: "Business owner",
-        address: null,
+        location: "Kondapur, Hyderabad",
         profiles: [],
       }),
     );
@@ -227,7 +227,7 @@ describe("profile mapping", () => {
       expect(res.data.email).toBeNull();
       expect(res.data.gender).toBe("prefer_not_to_say");
       expect(res.data.incomeAmountMinor).toBe(12_500_000);
-      expect(res.data.address).toBeNull();
+      expect(res.data.location).toBe("Kondapur, Hyderabad");
     }
   });
 
@@ -244,7 +244,7 @@ describe("profile mapping", () => {
       income_amount_minor: null,
       income_period: null,
       occupation: null,
-      address: null,
+      location: null,
       profiles: [],
     });
     vi.stubGlobal("fetch", fetchMock);
@@ -259,7 +259,7 @@ describe("profile mapping", () => {
       incomeAmountMinor: null,
       incomePeriod: null,
       occupation: null,
-      address: null,
+      location: null,
     });
 
     const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
@@ -270,7 +270,7 @@ describe("profile mapping", () => {
       income_amount_minor: null,
       income_period: null,
       occupation: null,
-      address: null,
+      location: null,
     });
   });
 });

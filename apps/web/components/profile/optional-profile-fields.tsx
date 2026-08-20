@@ -1,5 +1,9 @@
 "use client";
 
+import * as React from "react";
+import { Crosshair, Loader2 } from "lucide-react";
+
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -9,7 +13,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
 import type { Gender, IncomePeriod, IncomeSource } from "@/lib/auth";
 
 const NOT_SUPPLIED = "not_supplied";
@@ -21,7 +24,7 @@ export type OptionalProfileDraft = {
   incomeAmountRupees: string;
   incomePeriod: IncomePeriod | "";
   occupation: string;
-  address: string;
+  location: string;
 };
 
 export const EMPTY_OPTIONAL_PROFILE: OptionalProfileDraft = {
@@ -31,22 +34,89 @@ export const EMPTY_OPTIONAL_PROFILE: OptionalProfileDraft = {
   incomeAmountRupees: "",
   incomePeriod: "",
   occupation: "",
-  address: "",
+  location: "",
 };
+
+export function formatApproximateLocation(latitude: number, longitude: number): string {
+  const latitudeHemisphere = latitude < 0 ? "S" : "N";
+  const longitudeHemisphere = longitude < 0 ? "W" : "E";
+  return `${Math.abs(latitude).toFixed(2)}° ${latitudeHemisphere}, ${Math.abs(longitude).toFixed(2)}° ${longitudeHemisphere}`;
+}
 
 export function OptionalProfileFields({
   value,
   onChange,
   disabled = false,
   idPrefix,
+  onLocationPendingChange,
 }: {
   value: OptionalProfileDraft;
   onChange: (value: OptionalProfileDraft) => void;
   disabled?: boolean;
   idPrefix: string;
+  onLocationPendingChange?: (pending: boolean) => void;
 }) {
+  const [locating, setLocating] = React.useState(false);
+  const [locationFeedback, setLocationFeedback] = React.useState<{
+    kind: "success" | "error";
+    message: string;
+  } | null>(null);
+  const latestValue = React.useRef(value);
+  latestValue.current = value;
+
   function set<K extends keyof OptionalProfileDraft>(key: K, next: OptionalProfileDraft[K]) {
     onChange({ ...value, [key]: next });
+  }
+
+  function setLocationPending(pending: boolean) {
+    setLocating(pending);
+    onLocationPendingChange?.(pending);
+  }
+
+  function useCurrentLocation() {
+    if (!navigator.geolocation) {
+      setLocationFeedback({
+        kind: "error",
+        message: "Current location is not available in this browser.",
+      });
+      return;
+    }
+
+    setLocationPending(true);
+    setLocationFeedback(null);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+          setLocationPending(false);
+          setLocationFeedback({
+            kind: "error",
+            message: "Your browser returned an invalid location. Enter it manually instead.",
+          });
+          return;
+        }
+        onChange({
+          ...latestValue.current,
+          location: formatApproximateLocation(latitude, longitude),
+        });
+        setLocationPending(false);
+        setLocationFeedback({
+          kind: "success",
+          message: "Approximate current location added. Save the form to keep it.",
+        });
+      },
+      (error) => {
+        setLocationPending(false);
+        const message =
+          error.code === error.PERMISSION_DENIED
+            ? "Location permission was not granted. Enter your location manually instead."
+            : error.code === error.TIMEOUT
+              ? "Finding your location took too long. Try again or enter it manually."
+              : "Your current location is unavailable. Enter it manually instead.";
+        setLocationFeedback({ kind: "error", message });
+      },
+      { enableHighAccuracy: false, timeout: 10_000, maximumAge: 5 * 60 * 1000 },
+    );
   }
 
   return (
@@ -113,7 +183,7 @@ export function OptionalProfileFields({
           </SelectTrigger>
           <SelectContent>
             <SelectItem value={NOT_SUPPLIED}>Not supplied</SelectItem>
-            <SelectItem value="net_salary">Net salary</SelectItem>
+            <SelectItem value="salaried">Salaried</SelectItem>
             <SelectItem value="business_income">Business income</SelectItem>
           </SelectContent>
         </Select>
@@ -166,16 +236,59 @@ export function OptionalProfileFields({
       </div>
 
       <div className="space-y-2 sm:col-span-2">
-        <Label htmlFor={`${idPrefix}-address`}>Postal address</Label>
-        <Textarea
-          id={`${idPrefix}-address`}
-          value={value.address}
-          onChange={(event) => set("address", event.target.value)}
-          maxLength={500}
-          autoComplete="street-address"
-          disabled={disabled}
-          placeholder="House or flat, street, city, state, and PIN code"
-        />
+        <Label htmlFor={`${idPrefix}-location`}>Location</Label>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <Input
+            id={`${idPrefix}-location`}
+            name="location"
+            value={value.location}
+            onChange={(event) => {
+              setLocationFeedback(null);
+              set("location", event.target.value);
+            }}
+            maxLength={500}
+            autoComplete="address-level2"
+            disabled={disabled}
+            placeholder="e.g. Kondapur, Hyderabad"
+            aria-describedby={`${idPrefix}-location-help${
+              locationFeedback ? ` ${idPrefix}-location-feedback` : ""
+            }`}
+          />
+          <Button
+            type="button"
+            variant="outline"
+            disabled={disabled || locating}
+            onClick={useCurrentLocation}
+            className="shrink-0"
+          >
+            {locating ? (
+              <Loader2
+                className="h-4 w-4 animate-spin motion-reduce:animate-none"
+                aria-hidden="true"
+              />
+            ) : (
+              <Crosshair className="h-4 w-4" aria-hidden="true" />
+            )}
+            {locating ? "Finding location…" : "Use current location"}
+          </Button>
+        </div>
+        <p id={`${idPrefix}-location-help`} className="text-xs text-text-secondary">
+          Optional. Device location is requested only when you choose it and is rounded to two
+          decimal places. You can replace it with a city or locality.
+        </p>
+        {locationFeedback ? (
+          <p
+            id={`${idPrefix}-location-feedback`}
+            role={locationFeedback.kind === "error" ? "alert" : "status"}
+            className={
+              locationFeedback.kind === "error"
+                ? "text-xs text-destructive"
+                : "text-xs text-success"
+            }
+          >
+            {locationFeedback.message}
+          </p>
+        ) : null}
       </div>
     </div>
   );
@@ -191,7 +304,7 @@ export function optionalProfilePayload(value: OptionalProfileDraft):
         incomeAmountMinor: number | null;
         incomePeriod: IncomePeriod | null;
         occupation: string | null;
-        address: string | null;
+        location: string | null;
       };
     }
   | { ok: false; error: string } {
@@ -223,7 +336,7 @@ export function optionalProfilePayload(value: OptionalProfileDraft):
       incomeAmountMinor,
       incomePeriod: value.incomeSource ? value.incomePeriod || null : null,
       occupation: value.occupation.trim() || null,
-      address: value.address.trim() || null,
+      location: value.location.trim() || null,
     },
   };
 }

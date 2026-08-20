@@ -129,9 +129,19 @@ normalization, and an explicit approved-PDF retention policy.
 
 Ordinary Client account creation requires first and last name, an OTP-verified
 mobile, password, and only an optional referral code. Email, gender, income,
-occupation, and postal address are collected after account creation on a
-skippable step and remain editable and clearable from Profile settings. No
-Client capability or business line is gated on completion.
+occupation, and location are collected after account creation on a skippable
+step and remain editable and clearable from Profile settings. Income source is
+recorded as `salaried` or `business_income`; the former `net_salary` value is
+migrated to `salaried`. No Client capability or business line is gated on
+completion.
+
+Location accepts a manually entered locality/city. The browser geolocation API
+is invoked only when the user chooses **Use current location**; the client uses
+low-accuracy mode, rounds the returned coordinates to two decimals, writes the
+result into the editable field, and sends nothing until the user saves. The
+profile stores one current value until it is cleared or the account is deleted.
+It does not reverse-geocode, collect in the background, keep a trail, or write
+to the separate 30-day personalization location governed by CS-008.
 
 Optional identity-wide values live on `auth_users`; email remains unique when
 supplied, and income is represented as a bounded integer-minor-unit source/
@@ -151,10 +161,12 @@ Evidence:
 - [`apps/api/app/services/auth_service.py`](../../apps/api/app/services/auth_service.py)
 - [`apps/api/app/models/user.py`](../../apps/api/app/models/user.py)
 - [`apps/api/alembic/versions/a6b7c8d9e0f1_align_registration_profile.py`](../../apps/api/alembic/versions/a6b7c8d9e0f1_align_registration_profile.py)
+- [`apps/api/alembic/versions/e4b5c6d7e8f9_replace_profile_address_with_location.py`](../../apps/api/alembic/versions/e4b5c6d7e8f9_replace_profile_address_with_location.py)
 - [`apps/api/app/tests/auth/test_register.py`](../../apps/api/app/tests/auth/test_register.py)
 - [`apps/api/app/tests/auth/test_update_me.py`](../../apps/api/app/tests/auth/test_update_me.py)
 - [`apps/web/app/(auth)/register/page.tsx`](../../apps/web/app/(auth)/register/page.tsx)
 - [`apps/web/app/(app)/dashboard/settings/page.tsx`](../../apps/web/app/(app)/dashboard/settings/page.tsx)
+- [`apps/web/e2e/registration-profile.spec.ts`](../../apps/web/e2e/registration-profile.spec.ts)
 
 This supersedes the former mandatory-email registration implementation and
 settles FR-3.3/FR-17.2 without changing CS-001 dual-line enrollment or CS-003
@@ -396,7 +408,7 @@ explicitly changes it.
 | Client status reasons | The API exposes `status_reason`, and the client loan UI renders it verbatim when present. | [`schemas/loans.py`](../../apps/api/app/schemas/loans.py), [`apps/web/lib/loans.ts`](../../apps/web/lib/loans.ts), [`loans-applications.tsx`](../../apps/web/features/dashboard/loans-applications.tsx) |
 | Referral payout execution | Sub Admin manages bonus configuration; creating the actual referral payout is restricted to platform Admin. | [`api/v1/referral_bonus.py`](../../apps/api/app/api/v1/referral_bonus.py), [`api/v1/referrals.py`](../../apps/api/app/api/v1/referrals.py) |
 | Agent lead expiry | Agent attribution has a fixed 30-day first-attribution deadline with converted/closed exclusions, idempotent scheduled release, audit, notifications, RLS denial, and Agent history/countdown. | [PR #144](https://github.com/brollysolutions/client1/pull/144), [`services/lead_expiry.py`](../../apps/api/app/services/lead_expiry.py) |
-| Client registration and optional profile | Client registration is mobile-first; email and demographic/income/address details are optional, skippable, editable, clearable, and never gate account use. | CS-005, [PR #148](https://github.com/brollysolutions/client1/pull/148) |
+| Client registration and optional profile | Client registration is mobile-first; email and demographic/income/location details are optional, skippable, editable, clearable, and never gate account use. Current-location capture is explicit, two-decimal, and stored only after the user saves the ordinary profile field. | CS-005, [PR #148](https://github.com/brollysolutions/client1/pull/148), migration `e4b5c6d7e8f9` |
 | Vehicle arrangements | One dedicated arrangement per site visit; Admin enters transport details, the service automatically assigns an eligible real-estate or dual-line Employee, the assignee fulfils it, and the owning Client follows it read-only. | CS-006, [PR #149](https://github.com/brollysolutions/client1/pull/149), migration `b8c9d0e1f2a3`, migration `dd45ee67ff89`, vehicle-arrangement and Employee-auto-assignment tests |
 | Authenticated personalization | Client/Agent dashboard banner layers and Client offers use a closed consented rule grammar; coarse optional location is retained for at most 30 days; public responses exclude targeted content. | CS-008, [PR #152](https://github.com/brollysolutions/client1/pull/152), migration `c9d0e1f2a3b4`, personalization API/RLS/web tests |
 

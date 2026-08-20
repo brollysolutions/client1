@@ -82,7 +82,7 @@ export type Me = {
   incomeAmountMinor: number | null;
   incomePeriod: IncomePeriod | null;
   occupation: string | null;
-  address: string | null;
+  location: string | null;
   profiles: ClientLineProfile[];
 };
 
@@ -92,7 +92,7 @@ export type Gender =
   | "non_binary"
   | "self_described"
   | "prefer_not_to_say";
-export type IncomeSource = "net_salary" | "business_income";
+export type IncomeSource = "salaried" | "business_income";
 export type IncomePeriod = "monthly" | "annual";
 
 export type UserRole =
@@ -288,7 +288,7 @@ function mapMe(d: Schemas["MeResponse"]): Me {
     incomeAmountMinor: d.income_amount_minor ?? null,
     incomePeriod: d.income_period ?? null,
     occupation: d.occupation ?? null,
-    address: d.address ?? null,
+    location: d.location ?? null,
     profiles: d.profiles.map((p) => ({
       businessLine: p.business_line,
       customerCode: p.customer_code,
@@ -318,7 +318,7 @@ export async function updateProfile(input: {
   incomeAmountMinor?: number | null;
   incomePeriod?: IncomePeriod | null;
   occupation?: string | null;
-  address?: string | null;
+  location?: string | null;
 }): Promise<AuthResult<Me>> {
   const res = await apiRequest<Schemas["MeResponse"]>("/api/v1/auth/me", {
     method: "PATCH",
@@ -336,7 +336,7 @@ export async function updateProfile(input: {
         : {}),
       ...(input.incomePeriod !== undefined ? { income_period: input.incomePeriod } : {}),
       ...(input.occupation !== undefined ? { occupation: input.occupation } : {}),
-      ...(input.address !== undefined ? { address: input.address } : {}),
+      ...(input.location !== undefined ? { location: input.location } : {}),
     } satisfies Schemas["MeUpdateRequest"],
   });
   return toResult(res, mapMe);

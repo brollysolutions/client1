@@ -21,7 +21,7 @@ def test_optional_profile_accepts_empty_values() -> None:
         income_amount_minor=None,
         income_period=None,
         occupation=None,
-        address=None,
+        location=None,
     )
     assert request.email is None
     assert request.income_amount_minor is None
@@ -32,16 +32,16 @@ def test_optional_profile_normalizes_text_and_email() -> None:
         email=" Person@Example.COM ",
         gender="self_described",
         gender_self_description="  Agender  ",
-        income_source="net_salary",
+        income_source="salaried",
         income_amount_minor=500_000,
         income_period="monthly",
         occupation="  Engineer  ",
-        address="  Hyderabad  ",
+        location="  Hyderabad  ",
     )
     assert request.email == "person@example.com"
     assert request.gender_self_description == "Agender"
     assert request.occupation == "Engineer"
-    assert request.address == "Hyderabad"
+    assert request.location == "Hyderabad"
 
 
 @pytest.mark.parametrize(
@@ -51,13 +51,18 @@ def test_optional_profile_normalizes_text_and_email() -> None:
         {"gender": "female", "gender_self_description": "unexpected"},
         {"gender_self_description": None},
         {
-            "income_source": "net_salary",
+            "income_source": "salaried",
             "income_amount_minor": 500_000,
         },
         {"income_source": None},
+        {
+            "income_source": "net_salary",
+            "income_amount_minor": 500_000,
+            "income_period": "monthly",
+        },
         {"income_amount_minor": 0},
         {"occupation": "   "},
-        {"address": "   "},
+        {"location": "   "},
     ],
 )
 def test_optional_profile_rejects_inconsistent_or_unbounded_values(

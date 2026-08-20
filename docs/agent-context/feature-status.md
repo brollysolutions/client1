@@ -2,12 +2,36 @@
 
 Status: **Derived living implementation ledger**
 
-As of: **2026-08-19**
+As of: **2026-08-20**
 
 Evidence baseline: `abcc1fd`
 ([PR #175](https://github.com/brollysolutions/client1/pull/175)), plus the
 verified Admin operational-visibility work in
 [PR #173](https://github.com/brollysolutions/client1/pull/173).
+
+**Done — registration/profile Location and Salaried terminology
+(delivery PR pending; FR-17.2 and FR-18.1-adjacent profile UX; completion
+coverage unchanged):** Postal address is removed from registration, Profile
+settings, the API, and generated contracts. The preserved database column is
+renamed to `location`; existing `net_salary` rows are migrated to `salaried`.
+Users can enter a locality or explicitly ask the browser for current location;
+that point is rounded to two decimals, placed into the editable field, and not
+sent until the form is saved. Permission denial, timeout, and unsupported
+browsers leave manual entry available. This profile value is separate from the
+consented 30-day personalization signal, creates no location history, is absent
+from logs/audit details/tokens/Redis, remains owner/platform-Admin RLS scoped,
+and is cleared with account deletion.
+
+Fresh evidence: 53 focused API auth/profile/deletion tests pass; Ruff check and
+format pass; migration upgrade→downgrade→upgrade and the single applied head
+`e4b5c6d7e8f9` pass; regenerated OpenAPI/TypeScript contracts are byte-stable;
+web lint, strict typecheck, and all 375 unit tests pass. The production build
+compiled, typechecked, and generated all 93 pages before the known Windows
+standalone symlink `EPERM` tail; a Linux builder workaround was inconclusive.
+The focused registration browser journey passes at desktop and 390px widths,
+and broad Playwright is 11/15 with four unrelated stale-flow failures. The
+monolithic API suite produced no report within 13 minutes and is inconclusive.
+Next priority remains the FR-2.2 controlled-correction/audit follow-up.
 
 **Done - DhanaDhara DD logo exploration board
 ([PR #206](https://github.com/brollysolutions/client1/pull/206); brand design
@@ -951,7 +975,7 @@ business-line segregation remain non-negotiable compatibility constraints.
 - **Registration/profile requirement alignment** (FR-3.3, FR-17.2) is
   implemented in [PR #148](https://github.com/brollysolutions/client1/pull/148). Ordinary
   Clients now register with name and an OTP-verified mobile, then may skip or
-  save optional email, gender, income, occupation, and postal address. The same
+  save optional email, gender, income, occupation, and location. The same
   fields are editable and clearable in Profile settings, remain owner/Admin RLS
   protected, and are scrubbed during account deletion. Verified-email recovery
   remains explicit and enumeration-safe, while staff/Agent onboarding still
@@ -984,7 +1008,7 @@ business-line segregation remain non-negotiable compatibility constraints.
 | Support (FR-14.x) | 4 | 0 | 0 | Central tickets, WhatsApp route, Admin triage/resolution, and structured mobile-change fulfilment exist. |
 | Contact privacy (FR-15.x) | 4 | 0 | 0 | Agent-owned and Telecaller-assigned mobile access is locked; Employee raw/deny/provider-neutral invitation modes and least-data projection are enforced server-side. |
 | Analytics (FR-16.x) | 3 | 0 | 0 | **Complete** in [PR #156](https://github.com/brollysolutions/client1/pull/156): Linux PostgreSQL/Redis verification passed 30 reporting service/API/RLS tests with one Alembic head; web lint, strict typecheck, 294 unit tests, and the 92-page production build passed. |
-| Profile/account (FR-17.x) | 4 | 0 | 0 | Profile/settings, optional demographic/income/address details, transactions/support, deletion, retention, and Admin removal exist. |
+| Profile/account (FR-17.x) | 4 | 0 | 0 | Profile/settings, optional demographic/income/location details, transactions/support, deletion, retention, and Admin removal exist. |
 | Location (FR-18.x) | 1 | 0 | 0 | Explicit nested opt-in stores only the latest two-decimal point for 30 days and erases it on revocation, personalization disable, or account deletion; CS-010 removes FR-18.2 Map/GMB integration from scope. |
 | **Total** | **78** | **1** | **0** | **79 active requirements** |
 
@@ -1040,7 +1064,7 @@ The following requirements are complete on the evidence baseline:
   integration is present or planned by this slice.
 - Account lifecycle: FR-17.1 through FR-17.4. Evidence includes role-aware
   settings/navigation; optional, editable, and clearable gender/income/
-  occupation/address details; transaction and support surfaces;
+  occupation/location details; transaction and support surfaces;
   password-confirmed self-deletion; Admin deletion; immediate profile-PII scrub;
   de-linking; and seven-year retention purge behavior.
 - Media controls: FR-13.1 through FR-13.4. Evidence includes separate managed

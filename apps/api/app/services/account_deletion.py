@@ -202,7 +202,7 @@ async def delete_account(
     user.income_amount_minor = None
     user.income_period = None
     user.occupation = None
-    user.address = None
+    user.location = None
     user.password_hash = None
     user.phone_verified_at = None
     user.email_verified_at = None

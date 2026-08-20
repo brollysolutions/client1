@@ -52,7 +52,7 @@ export default function SettingsPage() {
         <FetchError status={errorStatus} message={error} onRetry={retry} />
       ) : me ? (
         <ProfileForm
-          key={`${me.firstName}|${me.lastName}|${me.email}|${me.gender}|${me.incomeAmountMinor}|${me.occupation}|${me.address}`}
+          key={`${me.firstName}|${me.lastName}|${me.email}|${me.gender}|${me.incomeAmountMinor}|${me.occupation}|${me.location}`}
           firstName={me.firstName}
           lastName={me.lastName}
           email={me.email}
@@ -64,7 +64,7 @@ export default function SettingsPage() {
           incomeAmountMinor={me.incomeAmountMinor}
           incomePeriod={me.incomePeriod}
           occupation={me.occupation}
-          address={me.address}
+          location={me.location}
           includePersonalDetails={includePersonalDetails}
           onSaved={(next) => {
             setMe(next);
@@ -106,7 +106,7 @@ function ProfileForm({
   incomeAmountMinor: initialIncomeAmountMinor,
   incomePeriod: initialIncomePeriod,
   occupation: initialOccupation,
-  address: initialAddress,
+  location: initialLocation,
   includePersonalDetails,
   onSaved,
 }: {
@@ -121,7 +121,7 @@ function ProfileForm({
   incomeAmountMinor: Me["incomeAmountMinor"];
   incomePeriod: Me["incomePeriod"];
   occupation: Me["occupation"];
-  address: Me["address"];
+  location: Me["location"];
   includePersonalDetails: boolean;
   onSaved: (next: Me) => void;
 }) {
@@ -136,9 +136,10 @@ function ProfileForm({
       initialIncomeAmountMinor === null ? "" : String(initialIncomeAmountMinor / 100),
     incomePeriod: initialIncomePeriod ?? "",
     occupation: initialOccupation ?? "",
-    address: initialAddress ?? "",
+    location: initialLocation ?? "",
   });
   const [saving, setSaving] = React.useState(false);
+  const [profileLocationPending, setProfileLocationPending] = React.useState(false);
 
   const emailChanged = email.trim().toLowerCase() !== (initialEmail ?? "").toLowerCase();
   const optionalChanged = includePersonalDetails && (
@@ -149,13 +150,18 @@ function ProfileForm({
       (initialIncomeAmountMinor === null ? "" : String(initialIncomeAmountMinor / 100)) ||
     optionalProfile.incomePeriod !== (initialIncomePeriod ?? "") ||
     optionalProfile.occupation.trim() !== (initialOccupation ?? "") ||
-    optionalProfile.address.trim() !== (initialAddress ?? ""));
+    optionalProfile.location.trim() !== (initialLocation ?? ""));
   const dirty =
     firstName.trim() !== initialFirst ||
     lastName.trim() !== initialLast ||
     emailChanged ||
     optionalChanged;
-  const canSave = dirty && firstName.trim() !== "" && lastName.trim() !== "" && !saving;
+  const canSave =
+    dirty &&
+    firstName.trim() !== "" &&
+    lastName.trim() !== "" &&
+    !saving &&
+    !profileLocationPending;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -243,7 +249,7 @@ function ProfileForm({
                 : "Saving will remove your optional email address."
               : initialEmail
                 ? "We use this for account notifications and recovery."
-                : "Optional. Add an address if you want email recovery and updates."}
+                : "Optional. Add an email if you want account recovery and updates."}
           </p>
         </div>
         <div className="space-y-2 sm:col-span-2">
@@ -267,6 +273,7 @@ function ProfileForm({
               value={optionalProfile}
               onChange={setOptionalProfile}
               disabled={saving}
+              onLocationPendingChange={setProfileLocationPending}
             />
           </div>
         ) : null}

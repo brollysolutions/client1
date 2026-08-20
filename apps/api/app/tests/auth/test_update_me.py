@@ -118,7 +118,7 @@ async def test_optional_profile_fields_can_be_saved_and_cleared(client: AsyncCli
         "income_amount_minor": 12_500_000,
         "income_period": "annual",
         "occupation": "Textile business owner",
-        "address": "Road 5, Hyderabad, Telangana 500034",
+        "location": "Kondapur, Hyderabad",
     }
 
     saved = await client.patch("/api/v1/auth/me", headers=headers, json=payload)
@@ -138,7 +138,7 @@ async def test_optional_profile_fields_can_be_saved_and_cleared(client: AsyncCli
             "income_amount_minor": None,
             "income_period": None,
             "occupation": None,
-            "address": None,
+            "location": None,
         },
     )
     assert cleared.status_code == 200, cleared.text
@@ -149,7 +149,7 @@ async def test_optional_profile_fields_can_be_saved_and_cleared(client: AsyncCli
         "income_amount_minor",
         "income_period",
         "occupation",
-        "address",
+        "location",
     ):
         assert cleared.json()[key] is None
 
@@ -185,10 +185,15 @@ async def test_email_can_be_added_then_cleared(client: AsyncClient) -> None:
         {"gender": "self_described", "gender_self_description": None},
         {"gender": "female", "gender_self_description": "unexpected"},
         {"gender_self_description": None},
-        {"income_source": "net_salary", "income_amount_minor": 100_000},
+        {"income_source": "salaried", "income_amount_minor": 100_000},
+        {
+            "income_source": "net_salary",
+            "income_amount_minor": 100_000,
+            "income_period": "monthly",
+        },
         {"income_source": None, "income_amount_minor": 100_000, "income_period": None},
         {"occupation": "   "},
-        {"address": "   "},
+        {"location": "   "},
     ],
 )
 async def test_inconsistent_optional_profile_values_are_422(

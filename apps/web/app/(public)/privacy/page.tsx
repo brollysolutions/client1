@@ -50,7 +50,8 @@ export default function PrivacyPage() {
           <BulletList
             items={[
               "Contact details you give us: your name and mobile number. Ordinary account registration lets you add an optional email; contact and partner application forms may request the additional details shown on those forms.",
-              "Optional profile details: you may add gender, income information, occupation, and a postal address during registration or later in Profile settings. These details are not required to use your account.",
+              "Optional profile details: you may add gender, income information, occupation, and a location during registration or later in Profile settings. These details are not required to use your account.",
+              "Current location: only when you choose Use current location, your browser supplies a point that we round to two decimal places and place in your editable profile. We keep one profile location, not a location trail, and you can replace or remove it at any time.",
               "Verification details: your mobile number is verified with a one-time code before we create an account. If you add an email, you may verify it after signing in.",
               "Enquiry details: the loan type, property interest, or other details you share so we can connect you with the right bank, lender, or real estate partner.",
               "Partner application documents: if you apply to become a partner agent, we collect identity documents (such as Aadhaar and PAN) to verify you before approval.",
@@ -122,7 +123,7 @@ export default function PrivacyPage() {
             We may update this policy from time to time. If we make a significant change, we will
             update the date below.
           </p>
-          <p className="mt-8 text-sm text-text-secondary/80">Last updated: 28 July 2026</p>
+          <p className="mt-8 text-sm text-text-secondary/80">Last updated: 20 August 2026</p>
         </div>
 
         <Link
