@@ -7834,17 +7834,6 @@
       },
       "MeResponse": {
         "properties": {
-          "address": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Address"
-          },
           "email": {
             "anyOf": [
               {
@@ -7923,7 +7912,7 @@
             "anyOf": [
               {
                 "enum": [
-                  "net_salary",
+                  "salaried",
                   "business_income"
                 ],
                 "type": "string"
@@ -7937,6 +7926,17 @@
           "last_name": {
             "title": "Last Name",
             "type": "string"
+          },
+          "location": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Location"
           },
           "mobile": {
             "title": "Mobile",
@@ -7973,7 +7973,7 @@
           "income_amount_minor",
           "income_period",
           "occupation",
-          "address",
+          "location",
           "profiles"
         ],
         "title": "MeResponse",
@@ -7982,19 +7982,6 @@
       "MeUpdateRequest": {
         "description": "Client edit of their own profile. mobile is immutable (account identity).",
         "properties": {
-          "address": {
-            "anyOf": [
-              {
-                "maxLength": 500,
-                "minLength": 1,
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Address"
-          },
           "email": {
             "anyOf": [
               {
@@ -8076,7 +8063,7 @@
             "anyOf": [
               {
                 "enum": [
-                  "net_salary",
+                  "salaried",
                   "business_income"
                 ],
                 "type": "string"
@@ -8092,6 +8079,19 @@
             "minLength": 1,
             "title": "Last Name",
             "type": "string"
+          },
+          "location": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Location"
           },
           "occupation": {
             "anyOf": [

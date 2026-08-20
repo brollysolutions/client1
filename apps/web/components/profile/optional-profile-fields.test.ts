@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   EMPTY_OPTIONAL_PROFILE,
+  formatApproximateLocation,
   optionalProfilePayload,
 } from "@/components/profile/optional-profile-fields";
 
@@ -17,7 +18,7 @@ describe("optionalProfilePayload", () => {
         incomeAmountMinor: null,
         incomePeriod: null,
         occupation: null,
-        address: null,
+        location: null,
       },
     });
   });
@@ -25,11 +26,19 @@ describe("optionalProfilePayload", () => {
   it("converts rupees to integer minor units", () => {
     const result = optionalProfilePayload({
       ...EMPTY_OPTIONAL_PROFILE,
-      incomeSource: "net_salary",
+      incomeSource: "salaried",
       incomeAmountRupees: "50000.25",
       incomePeriod: "monthly",
     });
     expect(result.ok && result.data.incomeAmountMinor).toBe(5_000_025);
+  });
+
+  it("keeps a trimmed manual location", () => {
+    const result = optionalProfilePayload({
+      ...EMPTY_OPTIONAL_PROFILE,
+      location: "  Kondapur, Hyderabad  ",
+    });
+    expect(result.ok && result.data.location).toBe("Kondapur, Hyderabad");
   });
 
   it("requires a description for self-described gender", () => {
@@ -57,5 +66,12 @@ describe("optionalProfilePayload", () => {
         incomePeriod: "annual",
       }).ok,
     ).toBe(false);
+  });
+});
+
+describe("formatApproximateLocation", () => {
+  it("rounds device coordinates to two decimals and adds hemispheres", () => {
+    expect(formatApproximateLocation(17.3851, 78.4867)).toBe("17.39° N, 78.49° E");
+    expect(formatApproximateLocation(-33.8688, -151.2093)).toBe("33.87° S, 151.21° W");
   });
 });

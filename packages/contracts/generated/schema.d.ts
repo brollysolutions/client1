@@ -6459,8 +6459,6 @@ export interface components {
         };
         /** MeResponse */
         MeResponse: {
-            /** Address */
-            address: string | null;
             /** Email */
             email: string | null;
             /** Email Verified */
@@ -6476,9 +6474,11 @@ export interface components {
             /** Income Period */
             income_period: ("monthly" | "annual") | null;
             /** Income Source */
-            income_source: ("net_salary" | "business_income") | null;
+            income_source: ("salaried" | "business_income") | null;
             /** Last Name */
             last_name: string;
+            /** Location */
+            location: string | null;
             /** Mobile */
             mobile: string;
             /** Occupation */
@@ -6491,8 +6491,6 @@ export interface components {
          * @description Client edit of their own profile. mobile is immutable (account identity).
          */
         MeUpdateRequest: {
-            /** Address */
-            address?: string | null;
             /** Email */
             email?: string | null;
             /** First Name */
@@ -6506,9 +6504,11 @@ export interface components {
             /** Income Period */
             income_period?: ("monthly" | "annual") | null;
             /** Income Source */
-            income_source?: ("net_salary" | "business_income") | null;
+            income_source?: ("salaried" | "business_income") | null;
             /** Last Name */
             last_name: string;
+            /** Location */
+            location?: string | null;
             /** Occupation */
             occupation?: string | null;
         };

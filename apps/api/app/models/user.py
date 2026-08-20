@@ -55,7 +55,7 @@ class User(Base):
             name="profile_gender_description_consistent",
         ),
         CheckConstraint(
-            "income_source IS NULL OR income_source IN ('net_salary', 'business_income')",
+            "income_source IS NULL OR income_source IN ('salaried', 'business_income')",
             name="profile_income_source_valid",
         ),
         CheckConstraint(
@@ -105,7 +105,7 @@ class User(Base):
     income_amount_minor: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
     income_period: Mapped[str | None] = mapped_column(String(16), nullable=True)
     occupation: Mapped[str | None] = mapped_column(String(120), nullable=True)
-    address: Mapped[str | None] = mapped_column(Text, nullable=True)
+    location: Mapped[str | None] = mapped_column(Text, nullable=True)
     password_hash: Mapped[str | None] = mapped_column(
         String,
         nullable=True,
