@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PanoramaViewer } from "@/components/panorama-viewer";
 import {
   Dialog,
   DialogContent,
@@ -131,7 +132,7 @@ export function ReviewQueueView() {
       <div>
         <h1 className="text-2xl font-semibold text-text-primary">Property review</h1>
         <p className="text-sm text-text-secondary">
-          Review Client, Agent, and Sub Admin listings before publishing them to the catalog.
+          Review Agent, Admin, and Sub Admin listings before publishing them to the catalog.
         </p>
       </div>
 
@@ -234,22 +235,16 @@ export function ReviewQueueView() {
                   </div>
                 )}
 
-                {activeMedia.some((asset) => asset.kind === "video") ? (
+                {activeMedia.some((asset) => asset.kind === "panorama") ? (
                   <div>
-                    <p className="mb-2 text-sm font-medium text-text-primary">Property video</p>
-                    {activeMedia.filter((asset) => asset.kind === "video").map((asset) => (
-                      <div key={asset.id} className="overflow-hidden rounded-xl border border-border bg-muted">
+                    <p className="mb-2 text-sm font-medium text-text-primary">360° panorama</p>
+                    {activeMedia.filter((asset) => asset.kind === "panorama").map((asset) => (
+                      <div key={asset.id} className="rounded-xl border border-border bg-muted p-2">
                         {mediaUrls[asset.id] && asset.processing_status === "ready" ? (
-                          <video
-                            src={mediaUrls[asset.id]}
-                            controls
-                            preload="metadata"
-                            className="aspect-video w-full bg-black object-contain"
-                            aria-label={`${active.title} property video`}
-                          />
+                          <PanoramaViewer src={mediaUrls[asset.id]} title={active.title} />
                         ) : (
                           <div className="flex aspect-video items-center justify-center text-sm text-text-secondary">
-                            {asset.processing_status === "failed" ? "Video processing failed" : "Video processing"}
+                            Panorama unavailable
                           </div>
                         )}
                       </div>

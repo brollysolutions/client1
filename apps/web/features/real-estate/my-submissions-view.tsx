@@ -2,32 +2,61 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { Inbox, Loader2 } from "lucide-react";
+import { Inbox, Loader2, Pencil, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { DASHBOARD_ICONS } from "@/features/dashboard/dashboard-icons";
 import { DashboardHeader, DashboardPage, DashboardPanel, MetricCard, MetricGrid } from "@/features/dashboard/dashboard-ui";
 import { formatPaiseCompact } from "@/lib/format";
-import type { Submission } from "@/lib/property-submissions-api";
+import { withdrawSubmission, type Submission } from "@/lib/property-submissions-api";
 import { useMySubmissions } from "./use-my-submissions";
 
 const STATUS_VARIANT: Record<Submission["status"], "secondary" | "default" | "destructive"> = {
   pending: "secondary",
   approved: "default",
   rejected: "destructive",
+  withdrawn: "secondary",
 };
 const STATUS_LABEL: Record<Submission["status"], string> = {
   pending: "Pending review",
   approved: "Approved",
   rejected: "Rejected",
+  withdrawn: "Withdrawn",
 };
 
 export function MySubmissionsView() {
   const { items, loading, error, reload } = useMySubmissions();
+  const [withdrawing, setWithdrawing] = React.useState<Submission | null>(null);
+  const [busy, setBusy] = React.useState(false);
   const pendingCount = items.filter((item) => item.status === "pending").length;
   const approvedCount = items.filter((item) => item.status === "approved").length;
   const rejectedCount = items.filter((item) => item.status === "rejected").length;
+
+  async function confirmWithdraw() {
+    if (!withdrawing) return;
+    setBusy(true);
+    const result = await withdrawSubmission(withdrawing.id);
+    setBusy(false);
+    if (result.ok) {
+      toast.success("Listing withdrawn", {
+        description: "The listing is no longer public and cannot be edited.",
+      });
+      setWithdrawing(null);
+      void reload();
+    } else {
+      toast.error("Could not withdraw listing", { description: result.error });
+    }
+  }
 
   return (
     <DashboardPage>
@@ -82,9 +111,9 @@ export function MySubmissionsView() {
                       ? ` · ${(s.media ?? []).filter((asset) => asset.kind === "document").length} private documents`
                       : ""}
                   </p>
-                  {(s.media ?? []).some((asset) => asset.kind === "video") ? (
+                  {(s.media ?? []).some((asset) => asset.kind === "panorama") ? (
                     <p className="mt-1 text-xs text-text-secondary">
-                      Video {((s.media ?? []).find((asset) => asset.kind === "video")?.processing_status ?? "pending").replaceAll("_", " ")}
+                      360° panorama included
                     </p>
                   ) : null}
                   <p className="mt-1 text-xs text-text-secondary">
@@ -103,12 +132,43 @@ export function MySubmissionsView() {
                   Reviewer note: {s.review_note}
                 </p>
               )}
+              {s.status !== "withdrawn" ? (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <Button asChild size="sm" variant="outline">
+                    <Link href={`/dashboard/my-submissions/${s.id}/edit`}>
+                      <Pencil className="h-4 w-4" aria-hidden /> Edit
+                    </Link>
+                  </Button>
+                  <Button size="sm" variant="ghost" onClick={() => setWithdrawing(s)}>
+                    <Trash2 className="h-4 w-4" aria-hidden /> Withdraw
+                  </Button>
+                </div>
+              ) : null}
             </li>
           ))}
         </ul>
         </DashboardPanel>
         </>
       )}
+      <Dialog open={withdrawing !== null} onOpenChange={(open) => !open && !busy && setWithdrawing(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Withdraw this listing?</DialogTitle>
+            <DialogDescription>
+              {withdrawing?.title} will be removed from the public catalogue. This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="ghost" disabled={busy} onClick={() => setWithdrawing(null)}>
+              Keep listing
+            </Button>
+            <Button variant="destructive" disabled={busy} onClick={() => void confirmWithdraw()}>
+              {busy ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Trash2 className="h-4 w-4" aria-hidden />}
+              Withdraw listing
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </DashboardPage>
   );
 }

@@ -176,10 +176,7 @@ async def _process_one(
 
 async def process_pending_media(*, batch_size: int = 4) -> dict[str, int]:
     processed = 0
-    sources = (
-        (PropertySubmissionMedia, settings.PROPERTY_VIDEO_MAX_DURATION_SECONDS),
-        (LoanDocument, settings.LOAN_VIDEO_MAX_DURATION_SECONDS),
-    )
+    sources = ((LoanDocument, settings.LOAN_VIDEO_MAX_DURATION_SECONDS),)
     for index in range(batch_size):
         did_work = False
         for offset in range(len(sources)):

@@ -21,6 +21,12 @@ def _jpeg_with_metadata() -> bytes:
     return output.getvalue()
 
 
+def _jpeg(width: int, height: int) -> bytes:
+    output = BytesIO()
+    Image.new("RGB", (width, height), color=(12, 34, 56)).save(output, format="JPEG", quality=70)
+    return output.getvalue()
+
+
 def test_sanitize_image_removes_metadata_and_keeps_declared_format(monkeypatch) -> None:
     monkeypatch.setattr(media_processing.settings, "MEDIA_MALWARE_SCAN_MODE", "disabled")
 
@@ -41,6 +47,20 @@ def test_sanitize_image_rejects_declared_format_mismatch(monkeypatch) -> None:
         media_processing.sanitize_image_bytes(
             _jpeg_with_metadata(), "image/png", max_bytes=1024 * 1024
         )
+
+
+def test_panorama_validation_accepts_two_to_one_and_rejects_ordinary_landscape() -> None:
+    media_processing.validate_panorama_bytes(_jpeg(2048, 1024), "image/jpeg")
+
+    with pytest.raises(media_processing.InvalidImage):
+        media_processing.validate_panorama_bytes(_jpeg(2048, 1365), "image/jpeg")
+
+
+def test_panorama_validation_rejects_small_or_png_media() -> None:
+    with pytest.raises(media_processing.InvalidImage):
+        media_processing.validate_panorama_bytes(_jpeg(1024, 512), "image/jpeg")
+    with pytest.raises(media_processing.InvalidImage):
+        media_processing.validate_panorama_bytes(_jpeg(2048, 1024), "image/png")
 
 
 def test_scan_fails_closed_when_clamav_is_unreachable(monkeypatch) -> None:

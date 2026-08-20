@@ -9848,21 +9848,10 @@
             "title": "Content Type",
             "type": "string"
           },
-          "duration_seconds": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Duration Seconds"
-          },
           "kind": {
             "enum": [
               "image",
-              "video"
+              "panorama"
             ],
             "title": "Kind",
             "type": "string"
@@ -9875,8 +9864,7 @@
         "required": [
           "kind",
           "url",
-          "content_type",
-          "duration_seconds"
+          "content_type"
         ],
         "title": "PropertyMediaRead",
         "type": "object"
@@ -9896,10 +9884,6 @@
               {
                 "const": "application/pdf",
                 "type": "string"
-              },
-              {
-                "const": "video/mp4",
-                "type": "string"
               }
             ],
             "title": "Content Type"
@@ -9908,7 +9892,7 @@
             "enum": [
               "image",
               "document",
-              "video"
+              "panorama"
             ],
             "title": "Kind",
             "type": "string"
@@ -11986,10 +11970,6 @@
               {
                 "const": "application/pdf",
                 "type": "string"
-              },
-              {
-                "const": "video/mp4",
-                "type": "string"
               }
             ],
             "title": "Content Type"
@@ -11998,7 +11978,7 @@
             "enum": [
               "image",
               "document",
-              "video"
+              "panorama"
             ],
             "title": "Kind",
             "type": "string"
@@ -12006,7 +11986,7 @@
           "object_key": {
             "maxLength": 600,
             "minLength": 1,
-            "pattern": "^private/property-submissions/staging/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/asset\\.(jpg|png|webp|pdf|mp4)$",
+            "pattern": "^private/property-submissions/staging/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/asset\\.(jpg|png|webp|pdf)$",
             "title": "Object Key",
             "type": "string"
           },
@@ -12032,17 +12012,6 @@
             "title": "Content Type",
             "type": "string"
           },
-          "duration_seconds": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Duration Seconds"
-          },
           "id": {
             "format": "uuid",
             "title": "Id",
@@ -12052,7 +12021,7 @@
             "enum": [
               "image",
               "document",
-              "video"
+              "panorama"
             ],
             "title": "Kind",
             "type": "string"
@@ -12094,8 +12063,7 @@
           "size_bytes",
           "position",
           "processing_status",
-          "processing_error_code",
-          "duration_seconds"
+          "processing_error_code"
         ],
         "title": "SubmissionMediaRead",
         "type": "object"
@@ -12147,6 +12115,11 @@
             "format": "date-time",
             "title": "Created At",
             "type": "string"
+          },
+          "details": {
+            "additionalProperties": true,
+            "title": "Details",
+            "type": "object"
           },
           "furnishing": {
             "$ref": "#/components/schemas/Furnishing"
@@ -12265,6 +12238,11 @@
           "type": {
             "title": "Type",
             "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
           }
         },
         "required": [
@@ -12293,7 +12271,9 @@
           "amenities",
           "age_years",
           "rera_number",
-          "created_at"
+          "details",
+          "created_at",
+          "updated_at"
         ],
         "title": "SubmissionRead",
         "type": "object"
@@ -12302,10 +12282,133 @@
         "enum": [
           "pending",
           "approved",
-          "rejected"
+          "rejected",
+          "withdrawn"
         ],
         "title": "SubmissionStatus",
         "type": "string"
+      },
+      "SubmissionUpdate": {
+        "description": "Editable listing facts; managed media remains immutable after intake.",
+        "properties": {
+          "age_years": {
+            "default": 0,
+            "minimum": 0.0,
+            "title": "Age Years",
+            "type": "integer"
+          },
+          "amenities": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Amenities",
+            "type": "array"
+          },
+          "area_sqft": {
+            "default": 0,
+            "minimum": 0.0,
+            "title": "Area Sqft",
+            "type": "integer"
+          },
+          "bhk": {
+            "default": 0,
+            "minimum": 0.0,
+            "title": "Bhk",
+            "type": "integer"
+          },
+          "category": {
+            "$ref": "#/components/schemas/PropertyCategory"
+          },
+          "city": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "City",
+            "type": "string"
+          },
+          "construction_status": {
+            "$ref": "#/components/schemas/ConstructionStatus"
+          },
+          "details": {
+            "additionalProperties": true,
+            "title": "Details",
+            "type": "object"
+          },
+          "furnishing": {
+            "$ref": "#/components/schemas/Furnishing"
+          },
+          "locality": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Locality",
+            "type": "string"
+          },
+          "location": {
+            "maxLength": 160,
+            "minLength": 1,
+            "title": "Location",
+            "type": "string"
+          },
+          "meta": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meta"
+          },
+          "pincode": {
+            "maxLength": 6,
+            "minLength": 6,
+            "title": "Pincode",
+            "type": "string"
+          },
+          "price_paise": {
+            "exclusiveMinimum": 0.0,
+            "title": "Price Paise",
+            "type": "integer"
+          },
+          "property_subtype": {
+            "$ref": "#/components/schemas/PropertySubtype"
+          },
+          "rera_number": {
+            "maxLength": 40,
+            "minLength": 1,
+            "title": "Rera Number",
+            "type": "string"
+          },
+          "title": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          },
+          "type": {
+            "maxLength": 40,
+            "minLength": 1,
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "type",
+          "location",
+          "category",
+          "property_subtype",
+          "city",
+          "locality",
+          "pincode",
+          "price_paise",
+          "furnishing",
+          "construction_status",
+          "rera_number"
+        ],
+        "title": "SubmissionUpdate",
+        "type": "object"
       },
       "SupportCategory": {
         "enum": [
@@ -24849,6 +24952,16 @@
               ],
               "title": "Status"
             }
+          },
+          {
+            "in": "query",
+            "name": "mine",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Mine",
+              "type": "boolean"
+            }
           }
         ],
         "responses": {
@@ -24975,6 +25088,45 @@
       }
     },
     "/api/v1/property-submissions/{submission_id}": {
+      "delete": {
+        "operationId": "delete_submission_api_v1_property_submissions__submission_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "submission_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Submission Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Delete Submission",
+        "tags": [
+          "property-submissions"
+        ]
+      },
       "get": {
         "operationId": "get_submission_api_v1_property_submissions__submission_id__get",
         "parameters": [
@@ -25017,6 +25169,62 @@
           }
         ],
         "summary": "Get Submission",
+        "tags": [
+          "property-submissions"
+        ]
+      },
+      "patch": {
+        "operationId": "update_submission_api_v1_property_submissions__submission_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "submission_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Submission Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubmissionUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubmissionRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Update Submission",
         "tags": [
           "property-submissions"
         ]

@@ -1,27 +1,28 @@
 "use client";
 
 import * as React from "react";
-import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
+import { useParams, useRouter } from "next/navigation";
 
 import { useAuth } from "@/components/auth/session-provider";
-import { MySubmissionsView } from "@/features/real-estate/my-submissions-view";
+import { EditPropertyForm } from "@/features/real-estate/edit-property-form";
 
-// Author workspace for real-estate Agents, Sub Admins, and Admins. This is only
-// a routing hint; the API and RLS enforce role, ownership, and line boundaries.
-export default function MySubmissionsPage() {
+const SUBMITTER_ROLES = new Set(["agent", "sub_admin", "admin"]);
+
+export default function EditPropertyPage() {
+  const params = useParams<{ id: string }>();
   const router = useRouter();
   const { session, isLoading } = useAuth();
   const allowed =
     session != null &&
-    ["agent", "sub_admin", "admin"].includes(session.role) &&
+    SUBMITTER_ROLES.has(session.role) &&
     (session.role !== "agent" ||
       session.businessLine === "real_estate" ||
       session.businessLine === "both");
 
   React.useEffect(() => {
     if (!isLoading && !allowed) router.replace("/dashboard");
-  }, [isLoading, allowed, router]);
+  }, [allowed, isLoading, router]);
 
   if (isLoading || !allowed) {
     return (
@@ -30,5 +31,5 @@ export default function MySubmissionsPage() {
       </div>
     );
   }
-  return <MySubmissionsView />;
+  return <EditPropertyForm submissionId={params.id} />;
 }

@@ -31,13 +31,13 @@ export async function presignPropertyMedia(
 export async function uploadPropertyMedia(
   images: File[],
   documents: File[],
-  video: File | null,
+  panorama: File | null,
   onProgress?: (done: number, total: number) => void,
 ): Promise<{ ok: true; media: SubmissionMediaInput[] } | { ok: false; error: string }> {
   const files = [
     ...images.map((file) => ({ file, kind: "image" as const })),
     ...documents.map((file) => ({ file, kind: "document" as const })),
-    ...(video ? [{ file: video, kind: "video" as const }] : []),
+    ...(panorama ? [{ file: panorama, kind: "panorama" as const }] : []),
   ];
   const media: SubmissionMediaInput[] = [];
   for (let index = 0; index < files.length; index += 1) {
@@ -75,13 +75,31 @@ export async function submitProperty(
 
 export async function listSubmissions(
   status?: SubmissionStatus,
+  mine = false,
 ): Promise<ApiResponse<Submission[]>> {
-  const qs = status ? `?status=${status}` : "";
+  const params = new URLSearchParams();
+  if (status) params.set("status", status);
+  if (mine) params.set("mine", "true");
+  const qs = params.size > 0 ? `?${params.toString()}` : "";
   const res = await apiRequest<Schemas["SubmissionListResponse"]>(
     `/api/v1/property-submissions${qs}`,
   );
   if (!res.ok) return res;
   return { ok: true, status: res.status, data: res.data.submissions };
+}
+
+export async function updateSubmission(
+  id: string,
+  payload: Schemas["SubmissionUpdate"],
+): Promise<ApiResponse<Submission>> {
+  return apiRequest<Submission>(`/api/v1/property-submissions/${id}`, {
+    method: "PATCH",
+    body: payload,
+  });
+}
+
+export async function withdrawSubmission(id: string): Promise<ApiResponse<null>> {
+  return apiRequest<null>(`/api/v1/property-submissions/${id}`, { method: "DELETE" });
 }
 
 export async function getSubmission(id: string): Promise<ApiResponse<Submission>> {

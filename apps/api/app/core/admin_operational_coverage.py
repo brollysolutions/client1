@@ -555,7 +555,7 @@ ADMIN_OPERATIONAL_COVERAGE: dict[str, AdminCoverageEntry] = {
         gap="Gap: Admin property-deal progress and terms changes are not comprehensively represented in audit_log.",
     ),
     "property_media": _entry(
-        domain="Approved property image and video media",
+        domain="Approved property image and panorama media",
         sensitivity=(DataSensitivity.STORAGE_KEY,),
         view_mode=AdminViewMode.MINIMIZED,
         view_coverage=CoverageState.COVERED,

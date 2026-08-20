@@ -151,6 +151,34 @@ def sanitize_image_bytes(content: bytes, content_type: str, *, max_bytes: int) -
     return result
 
 
+def validate_panorama_bytes(content: bytes, content_type: str) -> None:
+    """Require a bounded equirectangular image suitable for a 360 viewer."""
+    expected_format = _IMAGE_FORMAT_BY_CONTENT_TYPE.get(content_type)
+    if expected_format not in {"JPEG", "WEBP"}:
+        raise InvalidImage
+    try:
+        with warnings.catch_warnings():
+            warnings.simplefilter("error", Image.DecompressionBombWarning)
+            Image.MAX_IMAGE_PIXELS = _IMAGE_MAX_PIXELS
+            with Image.open(BytesIO(content)) as source:
+                source.load()
+                normalized = ImageOps.exif_transpose(source)
+                width, height = normalized.size
+                if source.format != expected_format or width < 2048 or height < 1024:
+                    raise InvalidImage
+                # Equirectangular panoramas are 2:1. Permit a two-percent
+                # tolerance for camera stitching/cropping, but reject ordinary
+                # landscape photos mislabeled as interactive tours.
+                if abs(width - (height * 2)) > max(2, height // 50):
+                    raise InvalidImage
+                if width * height > _IMAGE_MAX_PIXELS:
+                    raise InvalidImage
+    except (InvalidImage, Image.DecompressionBombWarning, UnidentifiedImageError, OSError) as exc:
+        if isinstance(exc, InvalidImage):
+            raise
+        raise InvalidImage from exc
+
+
 def canonicalize_object(
     source_key: str,
     destination_key: str,

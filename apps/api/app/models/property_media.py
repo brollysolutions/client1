@@ -17,7 +17,7 @@ from app.models.user import business_line_enum
 class PropertyMediaKind(enum.StrEnum):
     IMAGE = "image"
     DOCUMENT = "document"
-    VIDEO = "video"
+    PANORAMA = "panorama"
 
 
 class MediaProcessingStatus(enum.StrEnum):
@@ -60,7 +60,7 @@ class PropertySubmissionMedia(Base):
 
 
 class PropertyMedia(Base):
-    """Public image or video belonging to one approved property catalogue row."""
+    """Public image or panorama belonging to one approved property catalogue row."""
 
     __tablename__ = "property_media"
 

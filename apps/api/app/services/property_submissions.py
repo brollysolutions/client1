@@ -1,11 +1,9 @@
-"""Submission review — approve/reject on a bypass superuser session.
+"""Property-submission mutations on explicit, bypassed service sessions.
 
-Runs on its OWN AsyncSessionLocal session as the 'app' superuser (bypasses RLS),
-the same mechanism as services.notifications.emit_notification. Approval creates a
-live Property from the submission payload AND flips the submission to `approved`
-in one transaction, so the catalog's SELECT-only api_user grant is untouched and
-the mutation never rides the reviewer's request transaction. Access control is the
-router's platform-Admin guard (RLS wouldn't gate a superuser session).
+Approval/rejection run behind the platform-Admin route guard. Update/withdraw
+repeat owner-or-platform-Admin checks inside the service before touching a row.
+Approval changes the catalogue and review state in one transaction, so the
+catalogue's SELECT-only api_user grant remains untouched.
 """
 
 from __future__ import annotations
@@ -23,7 +21,6 @@ from app.cache.redis_keys import (
     RedisCache,
     property_media_presign_key,
 )
-from app.core.config import settings
 from app.db.session import AsyncSessionLocal
 from app.models.audit_log import AuditAction
 from app.models.property import Property
@@ -33,7 +30,11 @@ from app.models.property_media import (
     PropertySubmissionMedia,
 )
 from app.models.property_submission import PropertySubmission, SubmissionStatus
-from app.schemas.property_submissions import SubmissionCreate, SubmissionMediaInput
+from app.schemas.property_submissions import (
+    SubmissionCreate,
+    SubmissionMediaInput,
+    SubmissionUpdate,
+)
 from app.services import storage
 from app.services.audit_log import record as record_audit
 from app.services.media_processing import (
@@ -41,6 +42,7 @@ from app.services.media_processing import (
     MediaProcessingError,
     ScannerUnavailable,
     canonicalize_object,
+    validate_panorama_bytes,
 )
 
 IMAGE_MAX_BYTES = 5 * 1024 * 1024
@@ -55,7 +57,6 @@ _MEDIA_EXTENSION = {
     "image/png": ".png",
     "image/webp": ".webp",
     "application/pdf": ".pdf",
-    "video/mp4": ".mp4",
 }
 
 
@@ -91,9 +92,11 @@ class MediaNotReady(Exception):
     """Raised when asynchronous processing has not produced safe canonical bytes."""
 
 
+class SubmissionNotEditable(Exception):
+    """Raised when a withdrawn listing is targeted for another edit."""
+
+
 def _max_bytes(content_type: str) -> int:
-    if content_type == "video/mp4":
-        return settings.MEDIA_VIDEO_MAX_UPLOAD_BYTES
     return DOCUMENT_MAX_BYTES if content_type == "application/pdf" else IMAGE_MAX_BYTES
 
 
@@ -110,9 +113,7 @@ async def _delete_objects(object_keys: list[str]) -> None:
 
 async def verify_stored_media(asset: PropertySubmissionMedia) -> None:
     """Fail closed if a signed upload was replaced after submission."""
-    if asset.processing_status != MediaProcessingStatus.READY or (
-        asset.kind == "video" and (asset.sanitized_at is None or asset.duration_seconds is None)
-    ):
+    if asset.processing_status != MediaProcessingStatus.READY:
         raise MediaNotReady
     try:
         current_size = await asyncio.to_thread(storage.head_object, asset.object_key)
@@ -123,6 +124,13 @@ async def verify_stored_media(asset: PropertySubmissionMedia) -> None:
         raise MediaStorageUnavailable from exc
     if not valid:
         raise MediaObjectChanged
+
+
+def validate_panorama_object(object_key: str, content_type: str) -> None:
+    content = storage.read_object_bytes(object_key, max_bytes=IMAGE_MAX_BYTES)
+    if content is None:
+        raise MediaProcessingError
+    validate_panorama_bytes(content, content_type)
 
 
 async def presign_media_upload(
@@ -167,29 +175,24 @@ async def create_submission(
                 media_id = uuid.uuid4()
                 canonical_key = (
                     f"{_CANONICAL_PREFIX}{owner_uuid}/{media_id}/"
-                    f"{'upload' if asset.kind == 'video' else 'asset'}"
-                    f"{_MEDIA_EXTENSION[asset.content_type]}"
+                    f"asset{_MEDIA_EXTENSION[asset.content_type]}"
                 )
                 canonical_keys.append(canonical_key)
-                if asset.kind == "video":
+                size = await asyncio.to_thread(
+                    canonicalize_object,
+                    asset.object_key,
+                    canonical_key,
+                    asset.content_type,
+                    max_bytes=_max_bytes(asset.content_type),
+                )
+                if asset.kind == "panorama":
                     await asyncio.to_thread(
-                        storage.copy_object,
-                        asset.object_key,
+                        validate_panorama_object,
                         canonical_key,
                         asset.content_type,
                     )
-                    processing_status = MediaProcessingStatus.PENDING
-                    sanitized_at = None
-                else:
-                    size = await asyncio.to_thread(
-                        canonicalize_object,
-                        asset.object_key,
-                        canonical_key,
-                        asset.content_type,
-                        max_bytes=_max_bytes(asset.content_type),
-                    )
-                    processing_status = MediaProcessingStatus.READY
-                    sanitized_at = datetime.now(UTC)
+                processing_status = MediaProcessingStatus.READY
+                sanitized_at = datetime.now(UTC)
                 canonical_size = await asyncio.to_thread(storage.head_object, canonical_key)
                 canonical_valid = canonical_size == size and await asyncio.to_thread(
                     storage.content_matches_declared_type,
@@ -252,6 +255,121 @@ async def create_submission(
     return submission
 
 
+def _can_manage_submission(
+    submission: PropertySubmission,
+    actor_uuid: UUID,
+    *,
+    actor_role: str,
+    platform_scope: str | None,
+) -> bool:
+    return submission.submitter_uuid == actor_uuid or (
+        actor_role == "admin" and platform_scope == "true"
+    )
+
+
+def _copy_submission_facts(target: PropertySubmission | Property, source: object) -> None:
+    for field in SubmissionUpdate.model_fields:
+        setattr(target, field, getattr(source, field))
+    if isinstance(target, Property):
+        target.price_display = format_inr_display(target.price_paise)
+
+
+async def update_submission(
+    submission_id: UUID,
+    payload: SubmissionUpdate,
+    actor_uuid: UUID,
+    *,
+    actor_role: str,
+    platform_scope: str | None,
+) -> bool:
+    """Update listing facts under a row lock and return reviewed rows to review."""
+    async with AsyncSessionLocal() as session:
+        sub = await session.get(PropertySubmission, submission_id, with_for_update=True)
+        if sub is None or not _can_manage_submission(
+            sub, actor_uuid, actor_role=actor_role, platform_scope=platform_scope
+        ):
+            return False
+        if sub.status == SubmissionStatus.WITHDRAWN:
+            raise SubmissionNotEditable
+        previous_status = sub.status
+        changed_fields = sorted(
+            field
+            for field in SubmissionUpdate.model_fields
+            if getattr(sub, field) != getattr(payload, field)
+        )
+        if not changed_fields:
+            return True
+        _copy_submission_facts(sub, payload)
+        sub.status = SubmissionStatus.PENDING
+        sub.review_note = None
+        sub.reviewed_by_uuid = None
+        sub.reviewed_at = None
+        await record_audit(
+            session,
+            action=AuditAction.PROPERTY_LISTING_UPDATED,
+            entity_type="property_submission",
+            entity_uuid=sub.id,
+            actor_uuid=actor_uuid,
+            actor_role=actor_role,
+            business_line=sub.business_line,
+            detail={
+                "operation": "facts_updated",
+                "previous_status": previous_status.value,
+                "changed_fields": changed_fields,
+                "approved_property_uuid": (
+                    str(sub.approved_property_id) if sub.approved_property_id else None
+                ),
+            },
+        )
+        await session.commit()
+        return True
+
+
+async def withdraw_submission(
+    submission_id: UUID,
+    actor_uuid: UUID,
+    *,
+    actor_role: str,
+    platform_scope: str | None,
+) -> bool:
+    """Soft-delete one owned listing and deactivate its approved catalogue row."""
+    async with AsyncSessionLocal() as session:
+        sub = await session.get(PropertySubmission, submission_id, with_for_update=True)
+        if sub is None or not _can_manage_submission(
+            sub, actor_uuid, actor_role=actor_role, platform_scope=platform_scope
+        ):
+            return False
+        if sub.status == SubmissionStatus.WITHDRAWN:
+            return True
+        previous_status = sub.status
+        deactivated = False
+        if sub.approved_property_id is not None:
+            prop = await session.get(Property, sub.approved_property_id, with_for_update=True)
+            if prop is not None and prop.active:
+                prop.active = False
+                deactivated = True
+        sub.status = SubmissionStatus.WITHDRAWN
+        await record_audit(
+            session,
+            action=AuditAction.PROPERTY_LISTING_UPDATED,
+            entity_type="property_submission",
+            entity_uuid=sub.id,
+            actor_uuid=actor_uuid,
+            actor_role=actor_role,
+            business_line=sub.business_line,
+            detail={
+                "operation": "withdrawn",
+                "previous_status": previous_status.value,
+                "approved_property_uuid": (
+                    str(sub.approved_property_id) if sub.approved_property_id else None
+                ),
+                "catalogue_deactivated": deactivated,
+            },
+        )
+        await session.commit()
+        return True
+
+
 def format_inr_display(paise: int) -> str:
     """Derive the catalog display string from integer paise. >= 1 Cr -> 'Cr',
     else 'L'. Trims trailing zeros: 78_00_000_00 paise -> '₹78 L'."""
@@ -286,17 +404,22 @@ async def approve_submission(
                 )
             ).all()
         )
-        property_uuid = uuid.uuid4()
+        property_uuid = sub.approved_property_id or uuid.uuid4()
+        is_reapproval = sub.approved_property_id is not None
         public_media: list[PropertyMedia] = []
         promoted_sources: list[str] = []
         promoted_public_keys: list[str] = []
-        for asset in media:
+        for asset in media if not is_reapproval else []:
             try:
                 await verify_stored_media(asset)
             except (MediaObjectChanged, MediaStorageUnavailable, MediaNotReady):
                 await session.rollback()
                 raise
-        public_assets = [asset for asset in media if asset.kind in {"image", "video"}]
+        public_assets = (
+            [asset for asset in media if asset.kind in {"image", "panorama"}]
+            if not is_reapproval
+            else []
+        )
         for public_position, asset in enumerate(public_assets):
             filename = asset.object_key.rsplit("/", 1)[-1]
             public_key = f"{_PUBLIC_PREFIX}{property_uuid}/{asset.id}/{filename}"
@@ -330,39 +453,46 @@ async def approve_submission(
                     object_key=public_key,
                     size_bytes=asset.size_bytes,
                     position=public_position,
-                    duration_seconds=asset.duration_seconds,
                     sanitized_at=asset.sanitized_at,
                 )
             )
             promoted_sources.append(asset.object_key)
 
-        prop = Property(
-            id=property_uuid,
-            business_line="real_estate",
-            active=True,
-            title=sub.title,
-            type=sub.type,
-            location=sub.location,
-            price_display=format_inr_display(sub.price_paise),
-            meta=sub.meta,
-            image=sub.image,
-            category=sub.category,
-            property_subtype=sub.property_subtype,
-            city=sub.city,
-            locality=sub.locality,
-            pincode=sub.pincode,
-            price_paise=sub.price_paise,
-            bhk=sub.bhk,
-            area_sqft=sub.area_sqft,
-            furnishing=sub.furnishing,
-            construction_status=sub.construction_status,
-            amenities=list(sub.amenities),
-            age_years=sub.age_years,
-            rera_number=sub.rera_number,
-            details=dict(sub.details),
-        )
+        if is_reapproval:
+            prop = await session.get(Property, property_uuid, with_for_update=True)
+            if prop is None:
+                await session.rollback()
+                raise MediaStorageUnavailable
+            _copy_submission_facts(prop, sub)
+        else:
+            prop = Property(
+                id=property_uuid,
+                business_line="real_estate",
+                active=True,
+                title=sub.title,
+                type=sub.type,
+                location=sub.location,
+                price_display=format_inr_display(sub.price_paise),
+                meta=sub.meta,
+                image=sub.image,
+                category=sub.category,
+                property_subtype=sub.property_subtype,
+                city=sub.city,
+                locality=sub.locality,
+                pincode=sub.pincode,
+                price_paise=sub.price_paise,
+                bhk=sub.bhk,
+                area_sqft=sub.area_sqft,
+                furnishing=sub.furnishing,
+                construction_status=sub.construction_status,
+                amenities=list(sub.amenities),
+                age_years=sub.age_years,
+                rera_number=sub.rera_number,
+                details=dict(sub.details),
+            )
         try:
-            session.add(prop)
+            if not is_reapproval:
+                session.add(prop)
             session.add_all(public_media)
             await session.flush()
             sub.status = SubmissionStatus.APPROVED
@@ -380,7 +510,8 @@ async def approve_submission(
                 actor_role=reviewer_role,
                 business_line=sub.business_line,
                 detail={
-                    "created_property_uuid": str(prop.id),
+                    "property_uuid": str(prop.id),
+                    "operation": "updated" if is_reapproval else "created",
                     "submitter_uuid": str(sub.submitter_uuid),
                     "price_paise": sub.price_paise,
                     "city": sub.city,
@@ -423,11 +554,11 @@ async def reject_submission(
 
 
 async def purge_media_lifecycle() -> dict[str, int]:
-    """Delete stale private uploads and public images for inactive listings.
+    """Delete stale private uploads and public media for inactive listings.
 
     Objects still referenced by pending submissions, recent rejections, approved
     reviewer documents, or active catalogue media stay protected. Approved image
-    sources are intentionally omitted because their public copies are canonical.
+    and panorama sources are omitted because their public copies are canonical.
     """
     from datetime import timedelta
 

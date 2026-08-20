@@ -2,7 +2,7 @@
 
 The WRITE path that populates the read-only `properties` catalog (models/property.py).
 Unlike the catalog (a shared, public-equivalent row owned by no one), a submission
-IS owned by the Client, Agent, or Sub Admin who created it (``submitter_uuid`` ->
+IS owned by the Agent, Sub Admin, or platform Admin who created it (``submitter_uuid`` ->
 auth_users.id). RLS is owner-or-platform-Admin: the submitter sees their own rows,
 only platform Admin sees the shared queue, and other staff see nothing.
 
@@ -11,7 +11,8 @@ clean field copy into a new active ``Property``. Money is integer paise
 (``price_paise`` BIGINT); ``price_display`` is DERIVED server-side at approval, never
 authored here, so the catalog's display string can't drift from the paise truth.
 
-State machine: ``pending`` -> ``approved`` | ``rejected``, both terminal. Approval and
+State machine: ``pending`` -> ``approved`` | ``rejected``; owner edits return a
+reviewed row to ``pending`` and owner deletion records ``withdrawn``. Approval and
 rejection run in a bypass-session service (services/property_submissions.py), the same
 superuser mechanism as services.notifications.emit_notification, so the catalog keeps
 its SELECT-only api_user grant and the status flip never rides the reviewer's request txn.
@@ -53,6 +54,7 @@ class SubmissionStatus(enum.StrEnum):
     PENDING = "pending"
     APPROVED = "approved"
     REJECTED = "rejected"
+    WITHDRAWN = "withdrawn"
 
 
 _ev = lambda x: [e.value for e in x]  # noqa: E731
