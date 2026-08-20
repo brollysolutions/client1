@@ -14,6 +14,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { PropertyFilterBody } from "@/features/real-estate/property-filter-body";
+import type { SuggestionIndex } from "@/lib/property-facets";
 import type { PropertyFilters, RECategory } from "@/lib/real-estate";
 
 // Right-side "All filters" panel: full facet set from PropertyFilterBody, with
@@ -28,6 +29,8 @@ export function PropertyFilterSheet({
   activeCount,
   resultCount,
   lockedCategory,
+  suggestionIndex,
+  disabled = false,
 }: {
   filters: PropertyFilters;
   setFilters: (patch: Partial<PropertyFilters>) => void;
@@ -35,6 +38,8 @@ export function PropertyFilterSheet({
   activeCount: number;
   resultCount: number;
   lockedCategory?: RECategory;
+  suggestionIndex: SuggestionIndex;
+  disabled?: boolean;
 }) {
   const [open, setOpen] = React.useState(false);
 
@@ -44,6 +49,7 @@ export function PropertyFilterSheet({
         {/* Light-blue (sky) hover, no blue focus-border. */}
         <Button
           variant="outline"
+          disabled={disabled}
           className="h-12 gap-2 rounded-lg px-5 hover:border-brand-cta hover:bg-brand-cta-tint hover:text-brand-cta focus-visible:ring-brand-cta"
         >
           <SlidersHorizontal className="h-4 w-4" />
@@ -67,6 +73,7 @@ export function PropertyFilterSheet({
             filters={filters}
             setFilters={setFilters}
             lockedCategory={lockedCategory}
+            suggestionIndex={suggestionIndex}
           />
         </div>
 

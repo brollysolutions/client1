@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Building2, MapPin, Search, X } from "lucide-react";
+import { Building2, Crosshair, Loader2, MapPin, Search, X } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -19,6 +19,10 @@ import {
 import { PropertyFilterSheet } from "@/features/real-estate/property-filter-sheet";
 import { useDebounce } from "@/hooks/use-debounce";
 import {
+  currentLocationErrorMessage,
+  useCurrentLocationLookup,
+} from "@/hooks/use-current-location-lookup";
+import {
   AMENITIES,
   BHK_OPTIONS,
   FURNISHING_OPTIONS,
@@ -26,9 +30,11 @@ import {
   STATUS_OPTIONS,
   SUGGESTION_INDEX,
   formatLakhs,
+  matchCurrentLocationToPropertyFacet,
   type SuggestionIndex,
 } from "@/lib/property-facets";
 import { RE_CATEGORIES, type PropertyFilters, type RECategory, type SortOrder } from "@/lib/real-estate";
+import { REVERSE_GEOCODE_PROVIDER_LABEL } from "@/lib/reverse-geocode";
 import { cn } from "@/lib/utils";
 
 const MAX_SUGGESTIONS_PER_GROUP = 4;
@@ -155,6 +161,12 @@ export function PropertySearchBar({
 }) {
   const [text, setText] = React.useState(() => initialText(filters));
   const [open, setOpen] = React.useState(false);
+  const [locationFeedback, setLocationFeedback] = React.useState<{
+    kind: "success" | "error";
+    message: string;
+  } | null>(null);
+  const locationFeedbackId = React.useId();
+  const { available, locating, findCurrentLocation } = useCurrentLocationLookup();
   const debouncedText = useDebounce(text, 300);
   const syncingFromFilters = React.useRef(false);
 
@@ -205,24 +217,28 @@ export function PropertySearchBar({
   );
 
   function pickLocality(value: string) {
+    setLocationFeedback(null);
     syncingFromFilters.current = true;
     setText(value);
     setOpen(false);
     setFilters({ locality: value, q: undefined, city: undefined, pincode: undefined });
   }
   function pickCity(value: string) {
+    setLocationFeedback(null);
     syncingFromFilters.current = true;
     setText(value);
     setOpen(false);
     setFilters({ city: value, q: undefined, locality: undefined, pincode: undefined });
   }
   function pickPincode(value: string) {
+    setLocationFeedback(null);
     syncingFromFilters.current = true;
     setText(value);
     setOpen(false);
     setFilters({ pincode: value, q: undefined, locality: undefined, city: undefined });
   }
   function pickProperty(title: string) {
+    setLocationFeedback(null);
     syncingFromFilters.current = true;
     setText(title);
     setOpen(false);
@@ -246,6 +262,35 @@ export function PropertySearchBar({
       city: undefined,
       pincode: undefined,
     });
+  }
+
+  async function handleCurrentLocationSearch() {
+    setOpen(false);
+    setLocationFeedback(null);
+    try {
+      const location = await findCurrentLocation();
+      const match = matchCurrentLocationToPropertyFacet(location, suggestionIndex);
+      syncingFromFilters.current = true;
+      setText(match.value);
+      if (match.kind === "locality") {
+        setFilters({
+          locality: match.value,
+          city: match.city,
+          pincode: undefined,
+          q: undefined,
+        });
+      } else if (match.kind === "city") {
+        setFilters({ city: match.value, locality: undefined, pincode: undefined, q: undefined });
+      } else {
+        setFilters({ q: match.value, locality: undefined, city: undefined, pincode: undefined });
+      }
+      setLocationFeedback({
+        kind: "success",
+        message: `Searching properties near ${match.value}.`,
+      });
+    } catch (error) {
+      setLocationFeedback({ kind: "error", message: currentLocationErrorMessage(error) });
+    }
   }
 
   const selectedLocation = filters.locality
@@ -280,10 +325,12 @@ export function PropertySearchBar({
                 <CommandInput
                   value={text}
                   onValueChange={(value) => {
+                    setLocationFeedback(null);
                     setText(value);
                     setOpen(true);
                   }}
                   onFocus={() => setOpen(true)}
+                  disabled={locating}
                   placeholder="Search by locality, city, PIN code, or property name..."
                   wrapperClassName="h-12 rounded-lg border border-border bg-card px-4"
                   className="text-base"
@@ -339,16 +386,40 @@ export function PropertySearchBar({
           </Popover>
         </Command>
 
+        {available ? (
+          <Button
+            type="button"
+            variant="outline"
+            className="h-12 shrink-0 px-4"
+            disabled={locating}
+            onClick={handleCurrentLocationSearch}
+            aria-describedby={`${locationFeedbackId}-help${
+              locationFeedback ? ` ${locationFeedbackId}-feedback` : ""
+            }`}
+          >
+            {locating ? (
+              <Loader2
+                className="h-4 w-4 animate-spin motion-reduce:animate-none"
+                aria-hidden="true"
+              />
+            ) : (
+              <Crosshair className="h-4 w-4" aria-hidden="true" />
+            )}
+            {locating ? "Finding location…" : "Use current location"}
+          </Button>
+        ) : null}
+
         <Button
           type="button"
           className="h-12 shrink-0 px-5 sm:w-auto"
+          disabled={locating}
           onClick={submitSearch}
         >
           <Search className="h-4 w-4" aria-hidden="true" />
           Search
         </Button>
 
-        <Select value={selectedLocation} onValueChange={selectLocation}>
+        <Select value={selectedLocation} onValueChange={selectLocation} disabled={locating}>
           <SelectTrigger
             aria-label="Choose property location"
             className="h-12 w-full cursor-pointer rounded-lg border-border bg-card px-4 hover:border-brand-cta hover:bg-brand-cta-tint hover:text-brand-cta focus-visible:border-brand-cta focus-visible:ring-brand-cta/40 data-[size=default]:h-12 sm:w-[190px]"
@@ -417,8 +488,33 @@ export function PropertySearchBar({
           activeCount={activeCount}
           resultCount={resultCount}
           lockedCategory={lockedCategory}
+          suggestionIndex={suggestionIndex}
+          disabled={locating}
         />
       </div>
+
+      {available ? (
+        <div className="space-y-1">
+          <p id={`${locationFeedbackId}-help`} className="text-xs text-text-secondary">
+            Current location sends an approximate position, rounded to two decimals, to
+            {` ${REVERSE_GEOCODE_PROVIDER_LABEL} `}and uses only the matched city or locality as a
+            search filter.
+          </p>
+          {locationFeedback ? (
+            <p
+              id={`${locationFeedbackId}-feedback`}
+              role={locationFeedback.kind === "error" ? "alert" : "status"}
+              className={
+                locationFeedback.kind === "error"
+                  ? "text-xs text-destructive"
+                  : "text-xs text-success"
+              }
+            >
+              {locationFeedback.message}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
 
       {chips.length > 0 ? (
         <div className="flex flex-wrap items-center gap-2">

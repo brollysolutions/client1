@@ -447,4 +447,97 @@ test.describe("role-aware dashboard navigation", () => {
       await deleteAccount(request, account);
     }
   });
+
+  test("Client can use current location across dashboard property search", async ({
+    context,
+    page,
+    request,
+  }) => {
+    test.setTimeout(180_000);
+    const account = await registerClient(request, 401);
+    try {
+      await context.grantPermissions(["geolocation"], {
+        origin: "http://localhost:3000",
+      });
+      await context.setGeolocation({ latitude: 18.559, longitude: 73.7868 });
+      await logIn(page, account);
+      await page.getByRole("button", { name: "Switch to Real Estate" }).click();
+      await page.setViewportSize({ width: 390, height: 844 });
+
+      let locationLookupUrl: URL | undefined;
+      let locationLookupAttempts = 0;
+      await page.route(
+        "https://api.bigdatacloud.net/data/reverse-geocode-client?*",
+        async (route) => {
+          locationLookupAttempts += 1;
+          locationLookupUrl = new URL(route.request().url());
+          await route.fulfill({
+            status: 200,
+            contentType: "application/json",
+            body: JSON.stringify({
+              locality: "Baner",
+              city: "Pune",
+              principalSubdivision: "Maharashtra",
+              countryName: "India",
+            }),
+          });
+        },
+      );
+      await page.route("**/api/v1/properties", async (route) => {
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({
+            properties: [
+              {
+                id: "11111111-1111-4111-8111-111111111111",
+                active: true,
+                age_years: 2,
+                amenities: ["parking"],
+                area_sqft: 1100,
+                bhk: 2,
+                category: "apartments",
+                city: "Pune",
+                construction_status: "ready_to_move",
+                created_at: "2026-08-10T08:00:00Z",
+                furnishing: "semi_furnished",
+                image: null,
+                locality: "Baner",
+                location: "Baner, Pune",
+                media: [],
+                media_urls: [],
+                meta: "2 bed · 1,100 sqft",
+                pincode: "411045",
+                price_display: "₹75 L",
+                price_paise: 750000000,
+                rera_number: "P52100000001",
+                title: "Baner Heights",
+                type: "Apartment",
+              },
+            ],
+          }),
+        });
+      });
+
+      await page.goto("/dashboard/explore");
+      await expect(page.getByRole("heading", { name: "Explore properties" })).toBeVisible();
+      await page.getByRole("button", { name: "Use current location" }).click();
+      await expect(page.getByPlaceholder(/Search by locality/)).toHaveValue("Baner");
+      await expect(page).toHaveURL(/locality=Baner/);
+      await expect(page.getByRole("status")).toContainText("Searching properties near Baner");
+      expect(locationLookupUrl?.searchParams.get("latitude")).toBe("18.56");
+      expect(locationLookupUrl?.searchParams.get("longitude")).toBe("73.79");
+
+      await page.getByRole("button", { name: /^Filters/ }).click();
+      const filterDialog = page.getByRole("dialog");
+      await expect(filterDialog.getByRole("button", { name: "Use current location" })).toBeVisible();
+      await filterDialog.getByRole("button", { name: "Use current location" }).click();
+      await expect(filterDialog.getByRole("status")).toContainText(
+        "Using Baner for this search",
+      );
+      expect(locationLookupAttempts).toBe(2);
+    } finally {
+      await deleteAccount(request, account);
+    }
+  });
 });

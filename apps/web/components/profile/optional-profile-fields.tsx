@@ -13,9 +13,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  currentLocationErrorMessage,
+  useCurrentLocationLookup,
+} from "@/hooks/use-current-location-lookup";
 import type { Gender, IncomePeriod, IncomeSource } from "@/lib/auth";
+import { REVERSE_GEOCODE_PROVIDER_LABEL } from "@/lib/reverse-geocode";
 
 const NOT_SUPPLIED = "not_supplied";
+const LOCATION_MAX_LENGTH = 500;
 
 export type OptionalProfileDraft = {
   gender: Gender | "";
@@ -37,12 +43,6 @@ export const EMPTY_OPTIONAL_PROFILE: OptionalProfileDraft = {
   location: "",
 };
 
-export function formatApproximateLocation(latitude: number, longitude: number): string {
-  const latitudeHemisphere = latitude < 0 ? "S" : "N";
-  const longitudeHemisphere = longitude < 0 ? "W" : "E";
-  return `${Math.abs(latitude).toFixed(2)}° ${latitudeHemisphere}, ${Math.abs(longitude).toFixed(2)}° ${longitudeHemisphere}`;
-}
-
 export function OptionalProfileFields({
   value,
   onChange,
@@ -56,7 +56,9 @@ export function OptionalProfileFields({
   idPrefix: string;
   onLocationPendingChange?: (pending: boolean) => void;
 }) {
-  const [locating, setLocating] = React.useState(false);
+  const { available, locating, findCurrentLocation } = useCurrentLocationLookup({
+    onPendingChange: onLocationPendingChange,
+  });
   const [locationFeedback, setLocationFeedback] = React.useState<{
     kind: "success" | "error";
     message: string;
@@ -68,55 +70,21 @@ export function OptionalProfileFields({
     onChange({ ...value, [key]: next });
   }
 
-  function setLocationPending(pending: boolean) {
-    setLocating(pending);
-    onLocationPendingChange?.(pending);
-  }
-
-  function useCurrentLocation() {
-    if (!navigator.geolocation) {
-      setLocationFeedback({
-        kind: "error",
-        message: "Current location is not available in this browser.",
-      });
-      return;
-    }
-
-    setLocationPending(true);
+  async function handleUseCurrentLocation() {
     setLocationFeedback(null);
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const { latitude, longitude } = position.coords;
-        if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
-          setLocationPending(false);
-          setLocationFeedback({
-            kind: "error",
-            message: "Your browser returned an invalid location. Enter it manually instead.",
-          });
-          return;
-        }
-        onChange({
-          ...latestValue.current,
-          location: formatApproximateLocation(latitude, longitude),
-        });
-        setLocationPending(false);
-        setLocationFeedback({
-          kind: "success",
-          message: "Approximate current location added. Save the form to keep it.",
-        });
-      },
-      (error) => {
-        setLocationPending(false);
-        const message =
-          error.code === error.PERMISSION_DENIED
-            ? "Location permission was not granted. Enter your location manually instead."
-            : error.code === error.TIMEOUT
-              ? "Finding your location took too long. Try again or enter it manually."
-              : "Your current location is unavailable. Enter it manually instead.";
-        setLocationFeedback({ kind: "error", message });
-      },
-      { enableHighAccuracy: false, timeout: 10_000, maximumAge: 5 * 60 * 1000 },
-    );
+    try {
+      const location = await findCurrentLocation();
+      onChange({
+        ...latestValue.current,
+        location: location.label,
+      });
+      setLocationFeedback({
+        kind: "success",
+        message: "Current locality added. Save the form to keep it.",
+      });
+    } catch (error) {
+      setLocationFeedback({ kind: "error", message: currentLocationErrorMessage(error) });
+    }
   }
 
   return (
@@ -246,35 +214,38 @@ export function OptionalProfileFields({
               setLocationFeedback(null);
               set("location", event.target.value);
             }}
-            maxLength={500}
+            maxLength={LOCATION_MAX_LENGTH}
             autoComplete="address-level2"
-            disabled={disabled}
+            disabled={disabled || locating}
             placeholder="e.g. Kondapur, Hyderabad"
             aria-describedby={`${idPrefix}-location-help${
               locationFeedback ? ` ${idPrefix}-location-feedback` : ""
             }`}
           />
-          <Button
-            type="button"
-            variant="outline"
-            disabled={disabled || locating}
-            onClick={useCurrentLocation}
-            className="shrink-0"
-          >
-            {locating ? (
-              <Loader2
-                className="h-4 w-4 animate-spin motion-reduce:animate-none"
-                aria-hidden="true"
-              />
-            ) : (
-              <Crosshair className="h-4 w-4" aria-hidden="true" />
-            )}
-            {locating ? "Finding location…" : "Use current location"}
-          </Button>
+          {available ? (
+            <Button
+              type="button"
+              variant="outline"
+              disabled={disabled || locating}
+              onClick={handleUseCurrentLocation}
+              className="shrink-0"
+            >
+              {locating ? (
+                <Loader2
+                  className="h-4 w-4 animate-spin motion-reduce:animate-none"
+                  aria-hidden="true"
+                />
+              ) : (
+                <Crosshair className="h-4 w-4" aria-hidden="true" />
+              )}
+              {locating ? "Finding location…" : "Use current location"}
+            </Button>
+          ) : null}
         </div>
         <p id={`${idPrefix}-location-help`} className="text-xs text-text-secondary">
-          Optional. Device location is requested only when you choose it and is rounded to two
-          decimal places. You can replace it with a city or locality.
+          {available
+            ? `Optional. When you choose this, an approximate point rounded to two decimals is sent to ${REVERSE_GEOCODE_PROVIDER_LABEL} to find your city or locality. Only the editable place name is saved.`
+            : "Optional. Enter a city or locality, such as Kondapur, Hyderabad."}
         </p>
         {locationFeedback ? (
           <p
