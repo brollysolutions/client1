@@ -140,7 +140,9 @@ is invoked only when the user chooses **Use current location**; the client uses
 low-accuracy mode and rounds the returned coordinates to two decimals before a
 direct browser request asks the deployment-configured BigDataCloud endpoint for
 a city/locality. That public HTTPS endpoint is not hardcoded; an absent or
-invalid value hides the action while manual entry remains. The request omits
+invalid value leaves the action visibly disabled while manual entry remains.
+Docker development lets Next.js load the value from `apps/web/.env.local` and
+does not shadow it with an empty Compose environment variable. The request omits
 credentials and referrer data, but BigDataCloud still receives the approximate
 point and request IP as disclosed in the UI and privacy notice. Malformed,
 denied, timed-out, or failed lookups leave the current value unchanged and never
@@ -149,8 +151,12 @@ fall back to displaying coordinates.
 The editable readable label is sent to `PATCH /auth/me` only when the user saves
 the profile. The same explicit lookup is available from the shared property
 search on dashboard home, Explore, category, and Bookmarks surfaces; it applies
-only a matched catalogue locality/city (or readable free-text query) to the
-existing URL-synced search filters. It never updates the profile from search.
+only a matched live-property locality/city (or readable free-text query) to the
+existing URL-synced search filters. Property results, suggestion lists, and
+city/locality/PIN filter choices come only from the authenticated property API;
+there is no frontend sample-location fallback or second catalogue-location
+selector. The landing dashboard omits inventory/bookmark/city/category metrics.
+Property search never updates the profile.
 The profile stores one current readable value until it is cleared or the account
 is deleted. Neither flow collects in the background, keeps a coordinate trail,
 or writes to the separate 30-day personalization location governed by CS-008.

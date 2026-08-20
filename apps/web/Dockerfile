@@ -38,7 +38,7 @@ ENV NEXT_PUBLIC_ASSET_HOST=${NEXT_PUBLIC_ASSET_HOST}
 # Browser-only, no-key reverse-geocoding endpoint. This stays configurable so
 # a deployment can disable or replace the provider without changing source.
 # When unset or invalid, manual Location entry remains and the device-location
-# action is not rendered.
+# action is visibly unavailable.
 ARG NEXT_PUBLIC_REVERSE_GEOCODE_URL
 ENV NEXT_PUBLIC_REVERSE_GEOCODE_URL=${NEXT_PUBLIC_REVERSE_GEOCODE_URL}
 ENV NEXT_TELEMETRY_DISABLED=1

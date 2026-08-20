@@ -6,12 +6,12 @@ import { SearchX } from "lucide-react";
 import { PropertyCard } from "@/features/real-estate/property-card";
 import { PropertySearchBar } from "@/features/real-estate/property-search-bar";
 import { usePropertyFilters } from "@/features/real-estate/use-property-filters";
-import { SUGGESTION_INDEX, buildSuggestionIndex } from "@/lib/property-facets";
+import { buildSuggestionIndex } from "@/lib/property-facets";
 import type { RECategory, REListing } from "@/lib/real-estate";
 import { cn } from "@/lib/utils";
 
 // Reusable "omnibox + filter sheet + results grid" surface. Scopes the search
-// suggestions and filter engine to `source` (defaults to the whole catalog) and
+// suggestions and filter engine to the API-backed `source` and
 // can pin one category via `lockedCategory`. When no filters are active it shows
 // `idle` if provided (the home page's category rows), otherwise the full source
 // as a grid (category / bookmark pages). The results grid is a responsive 4-up
@@ -23,7 +23,7 @@ export function PropertyBrowser({
   idle,
   header,
 }: {
-  source?: REListing[];
+  source: REListing[];
   lockedCategory?: RECategory;
   // Rendered instead of the default full-source grid when no filters are active.
   idle?: React.ReactNode;
@@ -32,10 +32,7 @@ export function PropertyBrowser({
   const { filters, setFilters, clearAll, active, activeCount, results, resultCount } =
     usePropertyFilters({ source, lockedCategory });
 
-  const suggestionIndex = React.useMemo(
-    () => (source ? buildSuggestionIndex(source) : SUGGESTION_INDEX),
-    [source],
-  );
+  const suggestionIndex = React.useMemo(() => buildSuggestionIndex(source), [source]);
 
   const searchBar = (
     <PropertySearchBar

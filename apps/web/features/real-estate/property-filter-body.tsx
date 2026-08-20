@@ -16,19 +16,14 @@ import {
 import {
   AMENITIES,
   BHK_OPTIONS,
-  CITIES,
   FURNISHING_OPTIONS,
-  PRICE_BOUNDS,
-  AREA_BOUNDS,
   STATUS_OPTIONS,
-  SUGGESTION_INDEX,
   formatLakhs,
   matchCurrentLocationToPropertyFacet,
   type SuggestionIndex,
 } from "@/lib/property-facets";
 import {
   RE_CATEGORIES,
-  RE_LISTINGS,
   type Furnishing,
   type ListingStatus,
   type PropertyFilters,
@@ -45,22 +40,24 @@ export function PropertyFilterBody({
   filters,
   setFilters,
   lockedCategory,
-  suggestionIndex = SUGGESTION_INDEX,
+  suggestionIndex,
 }: {
   filters: PropertyFilters;
   setFilters: (patch: Partial<PropertyFilters>) => void;
   // When the page is pinned to one category, hide the Property-type facet and
   // derive residential-only sections from that category.
   lockedCategory?: RECategory;
-  suggestionIndex?: SuggestionIndex;
+  suggestionIndex: SuggestionIndex;
 }) {
+  const priceRange = suggestionIndex.priceBounds;
+  const areaRange = suggestionIndex.areaBounds;
   const [priceDraft, setPriceDraft] = React.useState<[number, number]>([
-    filters.priceMin ?? PRICE_BOUNDS.min,
-    filters.priceMax ?? PRICE_BOUNDS.max,
+    filters.priceMin ?? priceRange.min,
+    filters.priceMax ?? priceRange.max,
   ]);
   const [areaDraft, setAreaDraft] = React.useState<[number, number]>([
-    filters.areaMin ?? AREA_BOUNDS.min,
-    filters.areaMax ?? AREA_BOUNDS.max,
+    filters.areaMin ?? areaRange.min,
+    filters.areaMax ?? areaRange.max,
   ]);
   const [locationFeedback, setLocationFeedback] = React.useState<{
     kind: "success" | "error";
@@ -70,12 +67,12 @@ export function PropertyFilterBody({
   const { available, locating, findCurrentLocation } = useCurrentLocationLookup();
 
   React.useEffect(() => {
-    setPriceDraft([filters.priceMin ?? PRICE_BOUNDS.min, filters.priceMax ?? PRICE_BOUNDS.max]);
-  }, [filters.priceMin, filters.priceMax]);
+    setPriceDraft([filters.priceMin ?? priceRange.min, filters.priceMax ?? priceRange.max]);
+  }, [filters.priceMin, filters.priceMax, priceRange.min, priceRange.max]);
 
   React.useEffect(() => {
-    setAreaDraft([filters.areaMin ?? AREA_BOUNDS.min, filters.areaMax ?? AREA_BOUNDS.max]);
-  }, [filters.areaMin, filters.areaMax]);
+    setAreaDraft([filters.areaMin ?? areaRange.min, filters.areaMax ?? areaRange.max]);
+  }, [filters.areaMin, filters.areaMax, areaRange.min, areaRange.max]);
 
   function toggleArrayValue<T extends string>(current: T[] | undefined, value: T): T[] | undefined {
     const set = new Set(current ?? []);
@@ -94,9 +91,13 @@ export function PropertyFilterBody({
 
   const localityOptions = filters.city
     ? Array.from(
-        new Set(RE_LISTINGS.filter((l) => l.city === filters.city).map((l) => l.locality)),
+        new Set(
+          suggestionIndex.properties
+            .filter((property) => property.city === filters.city)
+            .map((property) => property.locality),
+        ),
       ).sort()
-    : SUGGESTION_INDEX.localities;
+    : suggestionIndex.localities;
 
   async function handleCurrentLocationFilter() {
     setLocationFeedback(null);
@@ -173,8 +174,8 @@ export function PropertyFilterBody({
         </div>
         <Slider
           value={priceDraft}
-          min={PRICE_BOUNDS.min}
-          max={PRICE_BOUNDS.max}
+          min={priceRange.min}
+          max={priceRange.max}
           step={1}
           onValueChange={(value) => setPriceDraft(value as [number, number])}
           onValueCommit={(value) => setFilters({ priceMin: value[0], priceMax: value[1] })}
@@ -191,8 +192,8 @@ export function PropertyFilterBody({
         </div>
         <Slider
           value={areaDraft}
-          min={AREA_BOUNDS.min}
-          max={AREA_BOUNDS.max}
+          min={areaRange.min}
+          max={areaRange.max}
           step={50}
           onValueChange={(value) => setAreaDraft(value as [number, number])}
           onValueCommit={(value) => setFilters({ areaMin: value[0], areaMax: value[1] })}
@@ -257,49 +258,53 @@ export function PropertyFilterBody({
         </div>
       </section>
 
-      {available ? (
-        <section className="space-y-2.5">
-          <h3 className="text-sm font-semibold text-text-primary">Current location</h3>
-          <Button
-            type="button"
-            variant="outline"
-            className="w-full"
-            disabled={locating}
-            onClick={handleCurrentLocationFilter}
-            aria-describedby={`${locationFeedbackId}-help${
-              locationFeedback ? ` ${locationFeedbackId}-feedback` : ""
-            }`}
+      <section className="space-y-2.5">
+        <h3 className="text-sm font-semibold text-text-primary">Current location</h3>
+        <Button
+          type="button"
+          variant="outline"
+          className="w-full"
+          disabled={!available || locating}
+          onClick={handleCurrentLocationFilter}
+          aria-describedby={`${locationFeedbackId}-help${
+            locationFeedback ? ` ${locationFeedbackId}-feedback` : ""
+          }`}
+        >
+          {locating ? (
+            <Loader2
+              className="h-4 w-4 animate-spin motion-reduce:animate-none"
+              aria-hidden="true"
+            />
+          ) : (
+            <Crosshair className="h-4 w-4" aria-hidden="true" />
+          )}
+          {locating ? "Finding location…" : "Use current location"}
+        </Button>
+        <p id={`${locationFeedbackId}-help`} className="text-xs text-text-secondary">
+          {available ? (
+            <>
+              Sends an approximate position, rounded to two decimals, to
+              {` ${REVERSE_GEOCODE_PROVIDER_LABEL} `}and applies only the matched city or locality to
+              this search.
+            </>
+          ) : (
+            "Current location is unavailable until reverse geocoding is configured. Choose a live city or locality below."
+          )}
+        </p>
+        {locationFeedback ? (
+          <p
+            id={`${locationFeedbackId}-feedback`}
+            role={locationFeedback.kind === "error" ? "alert" : "status"}
+            className={
+              locationFeedback.kind === "error"
+                ? "text-xs text-destructive"
+                : "text-xs text-success"
+            }
           >
-            {locating ? (
-              <Loader2
-                className="h-4 w-4 animate-spin motion-reduce:animate-none"
-                aria-hidden="true"
-              />
-            ) : (
-              <Crosshair className="h-4 w-4" aria-hidden="true" />
-            )}
-            {locating ? "Finding location…" : "Use current location"}
-          </Button>
-          <p id={`${locationFeedbackId}-help`} className="text-xs text-text-secondary">
-            Sends an approximate position, rounded to two decimals, to
-            {` ${REVERSE_GEOCODE_PROVIDER_LABEL} `}and applies only the matched city or locality to
-            this search.
+            {locationFeedback.message}
           </p>
-          {locationFeedback ? (
-            <p
-              id={`${locationFeedbackId}-feedback`}
-              role={locationFeedback.kind === "error" ? "alert" : "status"}
-              className={
-                locationFeedback.kind === "error"
-                  ? "text-xs text-destructive"
-                  : "text-xs text-success"
-              }
-            >
-              {locationFeedback.message}
-            </p>
-          ) : null}
-        </section>
-      ) : null}
+        ) : null}
+      </section>
 
       <section className="space-y-2.5">
         <h3 className="text-sm font-semibold text-text-primary">City</h3>
@@ -309,7 +314,7 @@ export function PropertyFilterBody({
             setLocationFeedback(null);
             setFilters({ city: v });
           }}
-          options={CITIES}
+          options={suggestionIndex.cities}
           placeholder="Any city"
         />
       </section>

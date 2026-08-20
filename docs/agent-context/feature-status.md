@@ -9,18 +9,24 @@ Evidence baseline: `abcc1fd`
 verified Admin operational-visibility work in
 [PR #173](https://github.com/brollysolutions/client1/pull/173).
 
-**Done — readable current location for Profile and property search
+**Done — readable current location and API-backed property search
 ([PR #208](https://github.com/brollysolutions/client1/pull/208); FR-17.2-adjacent UX; completion coverage unchanged):**
 **Use current location** now returns an editable place name instead of latitude/
 longitude in registration and Profile settings. The same action is available in
 the shared property omnibox and filter sheet used by dashboard home, Explore,
-category, and Bookmarks surfaces. It prefers an exact catalogue locality, then
-city, and otherwise uses a readable query. Operational pickup/address fields,
-property authoring, audience coordinates, and generic Admin searches are
-unchanged.
+category, and Bookmarks surfaces. It prefers an exact live-property locality,
+then city, and otherwise uses a readable query. The authenticated property API
+is now the sole production source for property cards, search suggestions, and
+city/locality/PIN filter choices; the legacy frontend sample catalogue and its
+hardcoded locations are removed. The redundant catalogue-location selector and
+the Available properties, Saved properties, Cities, and Property categories
+dashboard metrics are also removed. Operational pickup/address fields, property
+authoring, audience coordinates, and generic Admin searches are unchanged.
 
 The no-key BigDataCloud client endpoint is deployment-configured, not hardcoded;
-missing/invalid configuration hides the action while manual entry/search remains.
+missing/invalid configuration leaves the action visibly disabled with manual
+entry/search guidance. Docker development no longer injects an empty variable
+that overrides a configured `apps/web/.env.local` value.
 Coordinates are validated and rounded to two decimals before the direct
 user-triggered request; credentials/referrer/cache are omitted. Only normalized,
 bounded response fields are used, provider/permission/timeout/malformed failures
@@ -29,16 +35,15 @@ The privacy notice discloses the provider and request IP. API contracts, schema,
 auth/RLS, deletion, logs/audit, personalization storage, and dependencies do not
 change.
 
-Fresh evidence: the regression tests failed first; web lint, strict typecheck,
-all 381 unit tests, the 390px registration journey, and an authenticated 390px
-dashboard property-search/filter-sheet journey pass. Desktop (1280px) and phone
-renders were visually reviewed. A broader pre-existing navigation test remains
-blocked before this feature by its stale `Compare Loan Offers` heading. The
-production build compiled, typechecked, and generated all 93 pages before the
-known Windows standalone-symlink `EPERM` tail; host-side public-data fetches also
-cannot resolve the Docker-only `api` name. Security, design, and maintainer
-review found no remaining actionable defect. Next priority remains the FR-2.2
-controlled-correction/audit follow-up.
+Fresh evidence: the regression test failed first; web lint, strict typecheck,
+all 363 unit tests, the 390px registration journey, and an authenticated 390px
+dashboard property-search/filter-sheet journey pass. Fresh desktop (1280px) and
+phone renders were visually reviewed. The production build compiled, typechecked,
+and generated all 93 pages before the known Windows standalone-symlink `EPERM`
+tail; unrelated host-side public-data fetches also timed out or could not resolve
+the Docker-only `api` name. Security, design, and maintainer review found no
+remaining actionable defect. Next priority remains the FR-2.2 controlled-
+correction/audit follow-up.
 
 **Done — registration/profile Location and Salaried terminology
 ([PR #207](https://github.com/brollysolutions/client1/pull/207); FR-17.2 and FR-18.1-adjacent profile UX; completion

@@ -424,10 +424,9 @@ test.describe("role-aware dashboard navigation", () => {
       await page.goto("/dashboard/explore");
       await expect(page.getByRole("heading", { name: "Explore properties" })).toBeVisible();
       await expect(page.getByRole("button", { name: "Search", exact: true })).toBeVisible();
-      const locationPicker = page.getByRole("combobox", { name: "Choose property location" });
-      await locationPicker.click();
+      await page.getByPlaceholder(/Search by locality/).fill("Baner");
       await page.getByRole("option", { name: "Baner" }).click();
-      await expect(locationPicker).toContainText("Baner");
+      await expect(page.getByPlaceholder(/Search by locality/)).toHaveValue("Baner");
 
       for (const surface of [
         { path: "/dashboard/bookmarks", heading: "Bookmarks" },
@@ -519,9 +518,22 @@ test.describe("role-aware dashboard navigation", () => {
         });
       });
 
-      await page.goto("/dashboard/explore");
-      await expect(page.getByRole("heading", { name: "Explore properties" })).toBeVisible();
-      await page.getByRole("button", { name: "Use current location" }).click();
+      await page.goto("/dashboard");
+      await expect(page.getByRole("heading", { name: "Find your next property" })).toBeVisible();
+      for (const removedMetric of [
+        "Available properties",
+        "Saved properties",
+        "Cities",
+        "Property categories",
+      ]) {
+        await expect(page.getByText(removedMetric, { exact: true })).toHaveCount(0);
+      }
+      await expect(
+        page.getByRole("combobox", { name: "Choose property location" }),
+      ).toHaveCount(0);
+      const currentLocationButton = page.getByRole("button", { name: "Use current location" });
+      await expect(currentLocationButton).toContainText("Current location");
+      await currentLocationButton.click();
       await expect(page.getByPlaceholder(/Search by locality/)).toHaveValue("Baner");
       await expect(page).toHaveURL(/locality=Baner/);
       await expect(page.getByRole("status")).toContainText("Searching properties near Baner");

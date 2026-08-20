@@ -217,35 +217,33 @@ export function OptionalProfileFields({
             maxLength={LOCATION_MAX_LENGTH}
             autoComplete="address-level2"
             disabled={disabled || locating}
-            placeholder="e.g. Kondapur, Hyderabad"
+            placeholder="Enter a city or locality"
             aria-describedby={`${idPrefix}-location-help${
               locationFeedback ? ` ${idPrefix}-location-feedback` : ""
             }`}
           />
-          {available ? (
-            <Button
-              type="button"
-              variant="outline"
-              disabled={disabled || locating}
-              onClick={handleUseCurrentLocation}
-              className="shrink-0"
-            >
-              {locating ? (
-                <Loader2
-                  className="h-4 w-4 animate-spin motion-reduce:animate-none"
-                  aria-hidden="true"
-                />
-              ) : (
-                <Crosshair className="h-4 w-4" aria-hidden="true" />
-              )}
-              {locating ? "Finding location…" : "Use current location"}
-            </Button>
-          ) : null}
+          <Button
+            type="button"
+            variant="outline"
+            disabled={disabled || !available || locating}
+            onClick={handleUseCurrentLocation}
+            className="shrink-0"
+          >
+            {locating ? (
+              <Loader2
+                className="h-4 w-4 animate-spin motion-reduce:animate-none"
+                aria-hidden="true"
+              />
+            ) : (
+              <Crosshair className="h-4 w-4" aria-hidden="true" />
+            )}
+            {locating ? "Finding location…" : "Use current location"}
+          </Button>
         </div>
         <p id={`${idPrefix}-location-help`} className="text-xs text-text-secondary">
           {available
             ? `Optional. When you choose this, an approximate point rounded to two decimals is sent to ${REVERSE_GEOCODE_PROVIDER_LABEL} to find your city or locality. Only the editable place name is saved.`
-            : "Optional. Enter a city or locality, such as Kondapur, Hyderabad."}
+            : "Optional. Enter a city or locality. Current-location lookup is unavailable until reverse geocoding is configured."}
         </p>
         {locationFeedback ? (
           <p

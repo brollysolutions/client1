@@ -10,9 +10,7 @@ import { Popover, PopoverAnchor, PopoverContent } from "@/components/ui/popover"
 import {
   Select,
   SelectContent,
-  SelectGroup,
   SelectItem,
-  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
@@ -28,7 +26,6 @@ import {
   FURNISHING_OPTIONS,
   SORT_OPTIONS,
   STATUS_OPTIONS,
-  SUGGESTION_INDEX,
   formatLakhs,
   matchCurrentLocationToPropertyFacet,
   type SuggestionIndex,
@@ -134,7 +131,7 @@ function initialText(filters: PropertyFilters): string {
 // Big omnibox (property name, locality, city, or PIN code) plus the Filters
 // Sheet trigger and a removable active-filter chip row underneath. Suggestions
 // are grouped Localities/Cities/PIN codes/Properties, built from
-// lib/property-facets.ts#SUGGESTION_INDEX. Typing free text debounces into
+// the API-backed suggestion index. Typing free text debounces into
 // filters.q; picking a suggestion sets the matching structured facet directly.
 export function PropertySearchBar({
   filters,
@@ -143,7 +140,7 @@ export function PropertySearchBar({
   activeCount,
   resultCount,
   active = false,
-  suggestionIndex = SUGGESTION_INDEX,
+  suggestionIndex,
   lockedCategory,
 }: {
   filters: PropertyFilters;
@@ -152,9 +149,9 @@ export function PropertySearchBar({
   activeCount: number;
   resultCount: number;
   active?: boolean;
-  // Scoped suggestion source (built from a category/bookmark subset); defaults
-  // to the whole-catalog index.
-  suggestionIndex?: SuggestionIndex;
+  // Scoped suggestion source built from the API-backed page, category, or
+  // bookmark subset.
+  suggestionIndex: SuggestionIndex;
   // When set, the Filters sheet hides the Property-type facet (page is already
   // pinned to this category).
   lockedCategory?: RECategory;
@@ -293,23 +290,6 @@ export function PropertySearchBar({
     }
   }
 
-  const selectedLocation = filters.locality
-    ? `locality:${filters.locality}`
-    : filters.city
-      ? `city:${filters.city}`
-      : filters.pincode
-        ? `pincode:${filters.pincode}`
-        : undefined;
-
-  function selectLocation(value: string) {
-    const separator = value.indexOf(":");
-    const kind = value.slice(0, separator);
-    const location = value.slice(separator + 1);
-    if (kind === "locality") pickLocality(location);
-    else if (kind === "city") pickCity(location);
-    else pickPincode(location);
-  }
-
   const chips = buildChips(filters, setFilters);
 
   return (
@@ -386,28 +366,27 @@ export function PropertySearchBar({
           </Popover>
         </Command>
 
-        {available ? (
-          <Button
-            type="button"
-            variant="outline"
-            className="h-12 shrink-0 px-4"
-            disabled={locating}
-            onClick={handleCurrentLocationSearch}
-            aria-describedby={`${locationFeedbackId}-help${
-              locationFeedback ? ` ${locationFeedbackId}-feedback` : ""
-            }`}
-          >
-            {locating ? (
-              <Loader2
-                className="h-4 w-4 animate-spin motion-reduce:animate-none"
-                aria-hidden="true"
-              />
-            ) : (
-              <Crosshair className="h-4 w-4" aria-hidden="true" />
-            )}
-            {locating ? "Finding location…" : "Use current location"}
-          </Button>
-        ) : null}
+        <Button
+          type="button"
+          variant="outline"
+          className="h-12 shrink-0 px-4"
+          disabled={!available || locating}
+          onClick={handleCurrentLocationSearch}
+          aria-label="Use current location"
+          aria-describedby={`${locationFeedbackId}-help${
+            locationFeedback ? ` ${locationFeedbackId}-feedback` : ""
+          }`}
+        >
+          {locating ? (
+            <Loader2
+              className="h-4 w-4 animate-spin motion-reduce:animate-none"
+              aria-hidden="true"
+            />
+          ) : (
+            <Crosshair className="h-4 w-4" aria-hidden="true" />
+          )}
+          {locating ? "Finding location…" : "Current location"}
+        </Button>
 
         <Button
           type="button"
@@ -418,48 +397,6 @@ export function PropertySearchBar({
           <Search className="h-4 w-4" aria-hidden="true" />
           Search
         </Button>
-
-        <Select value={selectedLocation} onValueChange={selectLocation} disabled={locating}>
-          <SelectTrigger
-            aria-label="Choose property location"
-            className="h-12 w-full cursor-pointer rounded-lg border-border bg-card px-4 hover:border-brand-cta hover:bg-brand-cta-tint hover:text-brand-cta focus-visible:border-brand-cta focus-visible:ring-brand-cta/40 data-[size=default]:h-12 sm:w-[190px]"
-          >
-            <MapPin className="h-4 w-4 text-brand-cta" aria-hidden="true" />
-            <SelectValue placeholder="Choose location" />
-          </SelectTrigger>
-          <SelectContent>
-            {suggestionIndex.localities.length ? (
-              <SelectGroup>
-                <SelectLabel>Localities</SelectLabel>
-                {suggestionIndex.localities.slice(0, 12).map((location) => (
-                  <SelectItem key={`locality:${location}`} value={`locality:${location}`}>
-                    {location}
-                  </SelectItem>
-                ))}
-              </SelectGroup>
-            ) : null}
-            {suggestionIndex.cities.length ? (
-              <SelectGroup>
-                <SelectLabel>Cities</SelectLabel>
-                {suggestionIndex.cities.slice(0, 12).map((location) => (
-                  <SelectItem key={`city:${location}`} value={`city:${location}`}>
-                    {location}
-                  </SelectItem>
-                ))}
-              </SelectGroup>
-            ) : null}
-            {suggestionIndex.pincodes.length ? (
-              <SelectGroup>
-                <SelectLabel>PIN codes</SelectLabel>
-                {suggestionIndex.pincodes.slice(0, 12).map((location) => (
-                  <SelectItem key={`pincode:${location}`} value={`pincode:${location}`}>
-                    {location}
-                  </SelectItem>
-                ))}
-              </SelectGroup>
-            ) : null}
-          </SelectContent>
-        </Select>
 
         {active ? (
           <Select
@@ -493,28 +430,32 @@ export function PropertySearchBar({
         />
       </div>
 
-      {available ? (
-        <div className="space-y-1">
-          <p id={`${locationFeedbackId}-help`} className="text-xs text-text-secondary">
-            Current location sends an approximate position, rounded to two decimals, to
-            {` ${REVERSE_GEOCODE_PROVIDER_LABEL} `}and uses only the matched city or locality as a
-            search filter.
+      <div className="space-y-1">
+        <p id={`${locationFeedbackId}-help`} className="text-xs text-text-secondary">
+          {available ? (
+            <>
+              Current location sends an approximate position, rounded to two decimals, to
+              {` ${REVERSE_GEOCODE_PROVIDER_LABEL} `}and uses only the matched city or locality as a
+              search filter.
+            </>
+          ) : (
+            "Current location is unavailable until reverse geocoding is configured. Search by city or locality manually."
+          )}
+        </p>
+        {locationFeedback ? (
+          <p
+            id={`${locationFeedbackId}-feedback`}
+            role={locationFeedback.kind === "error" ? "alert" : "status"}
+            className={
+              locationFeedback.kind === "error"
+                ? "text-xs text-destructive"
+                : "text-xs text-success"
+            }
+          >
+            {locationFeedback.message}
           </p>
-          {locationFeedback ? (
-            <p
-              id={`${locationFeedbackId}-feedback`}
-              role={locationFeedback.kind === "error" ? "alert" : "status"}
-              className={
-                locationFeedback.kind === "error"
-                  ? "text-xs text-destructive"
-                  : "text-xs text-success"
-              }
-            >
-              {locationFeedback.message}
-            </p>
-          ) : null}
-        </div>
-      ) : null}
+        ) : null}
+      </div>
 
       {chips.length > 0 ? (
         <div className="flex flex-wrap items-center gap-2">
