@@ -139,7 +139,6 @@ function ProfileForm({
     location: initialLocation ?? "",
   });
   const [saving, setSaving] = React.useState(false);
-  const [profileLocationPending, setProfileLocationPending] = React.useState(false);
 
   const emailChanged = email.trim().toLowerCase() !== (initialEmail ?? "").toLowerCase();
   const optionalChanged = includePersonalDetails && (
@@ -160,8 +159,7 @@ function ProfileForm({
     dirty &&
     firstName.trim() !== "" &&
     lastName.trim() !== "" &&
-    !saving &&
-    !profileLocationPending;
+    !saving;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -273,7 +271,6 @@ function ProfileForm({
               value={optionalProfile}
               onChange={setOptionalProfile}
               disabled={saving}
-              onLocationPendingChange={setProfileLocationPending}
             />
           </div>
         ) : null}

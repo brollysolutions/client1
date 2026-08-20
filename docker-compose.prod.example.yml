@@ -169,10 +169,6 @@ services:
         # allows this value or dev's localhost:9000, and there's no way to
         # notice the gap short of a blank hero card.
         NEXT_PUBLIC_ASSET_HOST: ${NEXT_PUBLIC_ASSET_HOST?set NEXT_PUBLIC_ASSET_HOST to the storage endpoint origin banner images are served from}
-        # Public, no-key HTTPS endpoint called directly from the browser only
-        # after the user requests current location. Leave empty to remove that
-        # action while preserving manual Location entry.
-        NEXT_PUBLIC_REVERSE_GEOCODE_URL: ${NEXT_PUBLIC_REVERSE_GEOCODE_URL:-}
     # No command override: the standalone prod image's CMD is `node server.js`
     # (pnpm and package.json scripts are not present in that image).
     #

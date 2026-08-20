@@ -11,8 +11,7 @@ import { createBookmark, deleteBookmark, getBookmarks } from "@/lib/bookmarks";
 // mock keys, so a catalog lookup by id is neither available nor needed here.
 type BookmarkSnapshot = { title: string; locality: string; city: string };
 
-// Frontend-only persistence for the real-estate client workspace: compare
-// lives in localStorage since no property backend exists yet. Bookmarks are
+// Compare selections are local browser workspace state. Bookmarks are
 // server-backed (lib/bookmarks.ts); enquiries and site visits have likewise
 // moved to real APIs (lib/enquiries.ts, lib/site-visits.ts). Cross-tab sync
 // via the `storage` event keeps two open compare tabs consistent; SSR-safe

@@ -85,15 +85,9 @@ function promoteToAgent(mobile: string): void {
 test.describe("authenticated personalization", () => {
   test.setTimeout(60_000);
 
-  test("Client can consent, explicitly save a coarse location, and revoke it", async ({
-    context,
-    page,
-    request,
-  }) => {
+  test("Client can consent without browser-location capture", async ({ page, request }) => {
     const account = await registerClient(request, 1);
     try {
-      await context.grantPermissions(["geolocation"]);
-      await context.setGeolocation({ latitude: 12.971_598_7, longitude: 77.594_566 });
       await logInThroughBrowser(page, account);
 
       await expect(page.getByRole("region", { name: "Dashboard highlights" })).toBeVisible();
@@ -107,10 +101,8 @@ test.describe("authenticated personalization", () => {
       await consent.click();
       await expect(consent).toBeChecked();
 
-      await page.getByRole("button", { name: "Use my location" }).click();
-      await expect(page.getByRole("button", { name: "Remove location" })).toBeVisible();
-      await page.getByRole("button", { name: "Remove location" }).click();
-      await expect(page.getByRole("button", { name: "Use my location" })).toBeVisible();
+      await expect(page.getByRole("button", { name: /use my location/i })).toHaveCount(0);
+      await expect(page.getByRole("button", { name: /refresh location/i })).toHaveCount(0);
     } finally {
       await deleteAccount(request, account);
     }

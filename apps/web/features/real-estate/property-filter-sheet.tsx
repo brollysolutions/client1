@@ -30,7 +30,6 @@ export function PropertyFilterSheet({
   resultCount,
   lockedCategory,
   suggestionIndex,
-  disabled = false,
 }: {
   filters: PropertyFilters;
   setFilters: (patch: Partial<PropertyFilters>) => void;
@@ -39,7 +38,6 @@ export function PropertyFilterSheet({
   resultCount: number;
   lockedCategory?: RECategory;
   suggestionIndex: SuggestionIndex;
-  disabled?: boolean;
 }) {
   const [open, setOpen] = React.useState(false);
 
@@ -49,7 +47,6 @@ export function PropertyFilterSheet({
         {/* Light-blue (sky) hover, no blue focus-border. */}
         <Button
           variant="outline"
-          disabled={disabled}
           className="h-12 gap-2 rounded-lg px-5 hover:border-brand-cta hover:bg-brand-cta-tint hover:text-brand-cta focus-visible:ring-brand-cta"
         >
           <SlidersHorizontal className="h-4 w-4" />

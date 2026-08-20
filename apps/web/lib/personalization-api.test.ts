@@ -1,7 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
-  capturePersonalizationLocation,
   listAuthenticatedPlacements,
   revokePersonalizationLocation,
   setPersonalizationPreference,
@@ -20,7 +19,7 @@ afterEach(() => {
 });
 
 describe("personalization API client", () => {
-  it("sends consent and explicit location actions with their bounded payloads", async () => {
+  it("sends consent and legacy-location removal actions", async () => {
     const calls: { url: string; method: string; body?: unknown }[] = [];
     vi.stubGlobal(
       "fetch",
@@ -39,7 +38,6 @@ describe("personalization API client", () => {
     );
 
     await setPersonalizationPreference(true);
-    await capturePersonalizationLocation(17.3851, 78.4861);
     await revokePersonalizationLocation();
 
     expect(calls.map(({ url, method, body }) => ({
@@ -51,11 +49,6 @@ describe("personalization API client", () => {
         path: "/api/v1/personalization/preferences",
         method: "PATCH",
         body: { personalization_enabled: true },
-      },
-      {
-        path: "/api/v1/personalization/location",
-        method: "PUT",
-        body: { latitude: 17.3851, longitude: 78.4861 },
       },
       {
         path: "/api/v1/personalization/location",
