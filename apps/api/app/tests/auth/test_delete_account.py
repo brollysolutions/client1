@@ -42,7 +42,7 @@ async def _get_user_row(uid: str) -> dict:
                 text(
                     "SELECT id, mobile, email, status, password_hash, "
                     "phone_verified_at, email_verified_at, gender, gender_self_description, "
-                    "income_source, income_amount_minor, income_period, occupation, address "
+                    "income_source, income_amount_minor, income_period, occupation, location "
                     "FROM auth_users WHERE id = :id"
                 ),
                 {"id": uid},
@@ -342,11 +342,11 @@ async def test_delete_correct_password_returns_200_and_tombstones(client: AsyncC
             "last_name": "User",
             "gender": "self_described",
             "gender_self_description": "Agender",
-            "income_source": "net_salary",
+            "income_source": "salaried",
             "income_amount_minor": 500_000,
             "income_period": "monthly",
             "occupation": "Engineer",
-            "address": "Sensitive address",
+            "location": "17.39° N, 78.49° E",
         },
     )
     assert profile.status_code == 200, profile.text
@@ -369,7 +369,7 @@ async def test_delete_correct_password_returns_200_and_tombstones(client: AsyncC
         "income_amount_minor",
         "income_period",
         "occupation",
-        "address",
+        "location",
     ):
         assert row[field] is None
     redis_client = aioredis.from_url(settings.REDIS_URL, decode_responses=True)

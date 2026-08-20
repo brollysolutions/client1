@@ -1,0 +1,363 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 1800 2600" role="img" aria-labelledby="board-title board-description">
+  <title id="board-title">DhanaDhara DD logo exploration board</title>
+  <desc id="board-description">Twelve original double-D monogram directions, six wordmark and font studies, brand colors, small-size checks, and client selection notes in one self-contained SVG file.</desc>
+
+  <defs>
+    <filter id="card-shadow" x="-10%" y="-10%" width="120%" height="130%">
+      <feDropShadow dx="0" dy="10" stdDeviation="14" flood-color="#293681" flood-opacity="0.08"/>
+    </filter>
+    <linearGradient id="flow-gradient" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#4274D9"/>
+      <stop offset="1" stop-color="#0284C7"/>
+    </linearGradient>
+    <style>
+      .ui { font-family: "Segoe UI", Arial, sans-serif; }
+      .heading { font-family: "Segoe UI", Arial, sans-serif; font-weight: 700; fill: #20242E; }
+      .muted { font-family: "Segoe UI", Arial, sans-serif; fill: #667085; }
+      .eyebrow { font-family: "Segoe UI", Arial, sans-serif; font-size: 18px; font-weight: 700; letter-spacing: 3px; fill: #0284C7; }
+      .section-title { font-family: "Segoe UI", Arial, sans-serif; font-size: 34px; font-weight: 700; fill: #20242E; }
+      .card-title { font-family: "Segoe UI", Arial, sans-serif; font-size: 21px; font-weight: 700; fill: #20242E; }
+      .card-copy { font-family: "Segoe UI", Arial, sans-serif; font-size: 16px; fill: #667085; }
+      .number { font-family: "Segoe UI", Arial, sans-serif; font-size: 15px; font-weight: 700; fill: #293681; }
+      .word-modern { font-family: "Segoe UI", Arial, sans-serif; font-weight: 700; letter-spacing: -1.8px; fill: #20242E; }
+      .word-humanist { font-family: "Trebuchet MS", Arial, sans-serif; font-weight: 700; letter-spacing: -1px; fill: #20242E; }
+      .word-geometric { font-family: "Century Gothic", "Segoe UI", sans-serif; font-weight: 700; letter-spacing: -2px; fill: #20242E; }
+      .word-heritage { font-family: Georgia, "Times New Roman", serif; font-weight: 700; letter-spacing: -1px; fill: #20242E; }
+      .word-editorial { font-family: "Palatino Linotype", Palatino, Georgia, serif; font-weight: 700; letter-spacing: -1px; fill: #20242E; }
+      .word-classic { font-family: "Times New Roman", Times, serif; font-weight: 700; letter-spacing: -1px; fill: #20242E; }
+    </style>
+
+    <!-- 01: stable outer pillar + inset flow D -->
+    <symbol id="mark-01" viewBox="0 0 120 120">
+      <path d="M25 17.5v85h18.75C75.5 102.5 95 85.75 95 60S75.5 17.5 43.75 17.5H25" fill="none" stroke="#293681" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M42.5 32.5v55h8.75C70.25 87.5 82.5 77 82.5 60S70.25 32.5 51.25 32.5H42.5" fill="none" stroke="#0284C7" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+    </symbol>
+
+    <!-- 02: two offset D structures sharing visual rhythm -->
+    <symbol id="mark-02" viewBox="0 0 120 120">
+      <path d="M16 18v84h22c27 0 43-16 43-42S65 18 38 18H16" fill="none" stroke="#293681" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M46 29v62h12c22 0 35-12 35-31S80 29 58 29H46" fill="none" stroke="#4274D9" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+      <circle cx="94" cy="60" r="4" fill="#0284C7"/>
+    </symbol>
+
+    <!-- 03: direct twin initials with softened geometric bowls -->
+    <symbol id="mark-03" viewBox="0 0 120 120">
+      <path d="M10 26v68h16c22 0 34-13 34-34S48 26 26 26H10" fill="none" stroke="#293681" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M55 26v68h16c23 0 35-13 35-34S94 26 71 26H55" fill="none" stroke="#0284C7" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+    </symbol>
+
+    <!-- 04: solid pillar with a light river cut and blue second D -->
+    <symbol id="mark-04" viewBox="0 0 120 120">
+      <path d="M18 14h29c36 0 57 17 57 46s-21 46-57 46H18V14Zm22 21v50h8c20 0 32-9 32-25S68 35 48 35h-8Z" fill="#293681" fill-rule="evenodd"/>
+      <path d="M46 30v60h8c24 0 39-11 39-30S78 30 54 30h-8" fill="none" stroke="#F3F3EE" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M42 39c19 4 31 15 42 36" fill="none" stroke="#0284C7" stroke-width="6" stroke-linecap="round"/>
+    </symbol>
+
+    <!-- 05: high-contrast serif initials, deliberately unboxed -->
+    <symbol id="mark-05" viewBox="0 0 120 120">
+      <text x="54" y="90" text-anchor="middle" font-family="Georgia, serif" font-size="92" font-weight="700" fill="#293681">D</text>
+      <text x="76" y="90" text-anchor="middle" font-family="Georgia, serif" font-size="92" font-weight="700" fill="#0284C7" fill-opacity="0.82">D</text>
+    </symbol>
+
+    <!-- 06: engraved outline initials with offset overlap -->
+    <symbol id="mark-06" viewBox="0 0 120 120">
+      <text x="48" y="91" text-anchor="middle" font-family="Times New Roman, serif" font-size="94" font-weight="700" fill="none" stroke="#293681" stroke-width="2.4">D</text>
+      <text x="72" y="91" text-anchor="middle" font-family="Times New Roman, serif" font-size="94" font-weight="700" fill="none" stroke="#4274D9" stroke-width="2.4">D</text>
+      <path d="M60 16v88" stroke="#0284C7" stroke-width="2" stroke-linecap="round" opacity="0.65"/>
+    </symbol>
+
+    <!-- 07: inscriptional monoline with restrained serif terminals -->
+    <symbol id="mark-07" viewBox="0 0 120 120">
+      <path d="M22 22h19M22 98h19M28 22v76h14c27 0 43-14 43-38S69 22 42 22H28" fill="none" stroke="#293681" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M48 34v52h8c18 0 30-10 30-26S74 34 56 34h-8M43 34h15M43 86h15" fill="none" stroke="#0284C7" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+    </symbol>
+
+    <!-- 08: vertically connected signature Ds without an enclosing badge -->
+    <symbol id="mark-08" viewBox="0 0 120 120">
+      <path d="M24 10v43h11c18 0 29-8 29-21.5S53 10 35 10H24M48 67v43h11c18 0 29-8 29-21.5S77 67 59 67H48" fill="none" stroke="#293681" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M30 59c17-6 31-3 49 7" fill="none" stroke="#0284C7" stroke-width="4.5" stroke-linecap="round"/>
+    </symbol>
+
+    <!-- 09: paired doorway arches: property, access, and progress -->
+    <symbol id="mark-09" viewBox="0 0 120 120">
+      <path d="M18 101V55c0-25 15-39 37-39s37 14 37 39v46H18Z" fill="none" stroke="#293681" stroke-width="7" stroke-linejoin="round"/>
+      <path d="M43 101V60c0-15 9-24 22-24s23 9 23 24v41H43Z" fill="none" stroke="#0284C7" stroke-width="6" stroke-linejoin="round"/>
+      <path d="M55 16v85" stroke="#293681" stroke-width="5" stroke-linecap="round" opacity="0.75"/>
+    </symbol>
+
+    <!-- 10: circular wealth-flow gesture around two stable D stems -->
+    <symbol id="mark-10" viewBox="0 0 120 120">
+      <path d="M20 60a40 40 0 1 1 12 29" fill="none" stroke="#293681" stroke-width="6" stroke-linecap="round"/>
+      <path d="M27 30v60h12c20 0 31-12 31-30S59 30 39 30H27" fill="none" stroke="#4274D9" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M48 41v38h8c13 0 21-7 21-19s-8-19-21-19h-8" fill="none" stroke="#0284C7" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+      <circle cx="24" cy="91" r="4" fill="#0284C7"/>
+    </symbol>
+
+    <!-- 11: carved negative-space DD with a minimal accent seam -->
+    <symbol id="mark-11" viewBox="0 0 120 120">
+      <path d="M15 14h32c37 0 58 17 58 46s-21 46-58 46H15V14Z" fill="#293681"/>
+      <path d="M38 34v52h10c21 0 33-9 33-26S69 34 48 34H38Z" fill="#F3F3EE"/>
+      <path d="M49 41v38h6c15 0 24-7 24-19s-9-19-24-19h-6" fill="none" stroke="#0284C7" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </symbol>
+
+    <!-- 12: quiet wordmark companion, two precise open bowls -->
+    <symbol id="mark-12" viewBox="0 0 120 120">
+      <path d="M19 33v54h14c18 0 28-10 28-27S51 33 33 33H19" fill="none" stroke="#293681" stroke-width="6" stroke-linecap="square" stroke-linejoin="round"/>
+      <path d="M57 33v54h14c19 0 30-10 30-27S90 33 71 33H57" fill="none" stroke="#4274D9" stroke-width="6" stroke-linecap="square" stroke-linejoin="round"/>
+      <path d="M19 98h82" stroke="#0284C7" stroke-width="3" stroke-linecap="round"/>
+    </symbol>
+  </defs>
+
+  <rect width="1800" height="2600" fill="#F3F3EE"/>
+
+  <!-- Board header -->
+  <g transform="translate(60 62)">
+    <text class="eyebrow" x="0" y="0">BRAND EXPLORATION • 19 AUGUST 2026</text>
+    <text class="heading" x="0" y="72" font-size="68" letter-spacing="-3">DhanaDhara</text>
+    <text class="heading" x="0" y="123" font-size="32" font-weight="600">DD monogram &amp; wordmark directions</text>
+    <text class="muted" x="0" y="165" font-size="20">12 original marks, 6 typography studies, small-size checks, and review notes — all in one vector file.</text>
+    <text class="muted" x="0" y="197" font-size="17">Rolls-Royce is used only as a reference for confident double initials. No badge, geometry, font, or trade dress is copied.</text>
+  </g>
+
+  <!-- Existing Dhanadhara palette -->
+  <g transform="translate(1242 55)">
+    <text class="eyebrow" x="0" y="0">CURRENT PALETTE</text>
+    <g transform="translate(0 28)">
+      <rect width="118" height="80" rx="16" fill="#293681"/>
+      <text class="ui" x="59" y="106" text-anchor="middle" font-size="14" fill="#667085">#293681</text>
+      <rect x="132" width="118" height="80" rx="16" fill="#4274D9"/>
+      <text class="ui" x="191" y="106" text-anchor="middle" font-size="14" fill="#667085">#4274D9</text>
+      <rect x="264" width="118" height="80" rx="16" fill="#0284C7"/>
+      <text class="ui" x="323" y="106" text-anchor="middle" font-size="14" fill="#667085">#0284C7</text>
+      <rect x="396" width="118" height="80" rx="16" fill="#F3F3EE" stroke="#D5D8E2"/>
+      <text class="ui" x="455" y="106" text-anchor="middle" font-size="14" fill="#667085">#F3F3EE</text>
+    </g>
+  </g>
+
+  <!-- Direction 1 -->
+  <text class="section-title" x="60" y="320">01 — Pillar &amp; Flow</text>
+  <text class="muted" x="385" y="320" font-size="18">Premium confidence through structure, open curves, and movement.</text>
+
+  <g data-logo-concept="01" transform="translate(60 350)">
+    <rect width="390" height="350" rx="26" fill="#FFFFFF" stroke="#DDE1EA" filter="url(#card-shadow)"/>
+    <rect x="24" y="22" width="42" height="30" rx="15" fill="#E7F4FB"/>
+    <text class="number" x="45" y="43" text-anchor="middle">01</text>
+    <use href="#mark-01" x="115" y="34" width="160" height="160"/>
+    <text class="word-modern" x="195" y="237" text-anchor="middle" font-size="34">DhanaDhara</text>
+    <text class="card-title" x="195" y="278" text-anchor="middle">Nested Pillar</text>
+    <text class="card-copy" x="195" y="310" text-anchor="middle">Stable outer D • flowing inner D</text>
+  </g>
+
+  <g data-logo-concept="02" transform="translate(490 350)">
+    <rect width="390" height="350" rx="26" fill="#FFFFFF" stroke="#DDE1EA" filter="url(#card-shadow)"/>
+    <rect x="24" y="22" width="42" height="30" rx="15" fill="#E7F4FB"/>
+    <text class="number" x="45" y="43" text-anchor="middle">02</text>
+    <use href="#mark-02" x="115" y="34" width="160" height="160"/>
+    <text class="word-humanist" x="195" y="237" text-anchor="middle" font-size="34">DhanaDhara</text>
+    <text class="card-title" x="195" y="278" text-anchor="middle">Offset Current</text>
+    <text class="card-copy" x="195" y="310" text-anchor="middle">Two rhythms • one forward motion</text>
+  </g>
+
+  <g data-logo-concept="03" transform="translate(920 350)">
+    <rect width="390" height="350" rx="26" fill="#FFFFFF" stroke="#DDE1EA" filter="url(#card-shadow)"/>
+    <rect x="24" y="22" width="42" height="30" rx="15" fill="#E7F4FB"/>
+    <text class="number" x="45" y="43" text-anchor="middle">03</text>
+    <use href="#mark-03" x="115" y="34" width="160" height="160"/>
+    <text class="word-geometric" x="195" y="237" text-anchor="middle" font-size="31">DhanaDhara</text>
+    <text class="card-title" x="195" y="278" text-anchor="middle">Twin Horizon</text>
+    <text class="card-copy" x="195" y="310" text-anchor="middle">Immediate DD recognition • digital first</text>
+  </g>
+
+  <g data-logo-concept="04" transform="translate(1350 350)">
+    <rect width="390" height="350" rx="26" fill="#FFFFFF" stroke="#DDE1EA" filter="url(#card-shadow)"/>
+    <rect x="24" y="22" width="42" height="30" rx="15" fill="#E7F4FB"/>
+    <text class="number" x="45" y="43" text-anchor="middle">04</text>
+    <use href="#mark-04" x="115" y="34" width="160" height="160"/>
+    <text class="word-modern" x="195" y="237" text-anchor="middle" font-size="34">DhanaDhara</text>
+    <text class="card-title" x="195" y="278" text-anchor="middle">River Cut</text>
+    <text class="card-copy" x="195" y="310" text-anchor="middle">Bold silhouette • wealth-flow seam</text>
+  </g>
+
+  <!-- Direction 2 -->
+  <text class="section-title" x="60" y="750">02 — Heritage &amp; Prestige</text>
+  <text class="muted" x="480" y="750" font-size="18">Serif-led character without copying another luxury badge.</text>
+
+  <g data-logo-concept="05" transform="translate(60 780)">
+    <rect width="390" height="350" rx="26" fill="#FFFFFF" stroke="#DDE1EA" filter="url(#card-shadow)"/>
+    <rect x="24" y="22" width="42" height="30" rx="15" fill="#EEEAF8"/>
+    <text class="number" x="45" y="43" text-anchor="middle">05</text>
+    <use href="#mark-05" x="115" y="34" width="160" height="160"/>
+    <text class="word-heritage" x="195" y="237" text-anchor="middle" font-size="35">DhanaDhara</text>
+    <text class="card-title" x="195" y="278" text-anchor="middle">High-Contrast Pair</text>
+    <text class="card-copy" x="195" y="310" text-anchor="middle">Classic confidence • editorial luxury</text>
+  </g>
+
+  <g data-logo-concept="06" transform="translate(490 780)">
+    <rect width="390" height="350" rx="26" fill="#FFFFFF" stroke="#DDE1EA" filter="url(#card-shadow)"/>
+    <rect x="24" y="22" width="42" height="30" rx="15" fill="#EEEAF8"/>
+    <text class="number" x="45" y="43" text-anchor="middle">06</text>
+    <use href="#mark-06" x="115" y="34" width="160" height="160"/>
+    <text class="word-classic" x="195" y="237" text-anchor="middle" font-size="37">DhanaDhara</text>
+    <text class="card-title" x="195" y="278" text-anchor="middle">Engraved Overlap</text>
+    <text class="card-copy" x="195" y="310" text-anchor="middle">Fine outlines • premium print character</text>
+  </g>
+
+  <g data-logo-concept="07" transform="translate(920 780)">
+    <rect width="390" height="350" rx="26" fill="#FFFFFF" stroke="#DDE1EA" filter="url(#card-shadow)"/>
+    <rect x="24" y="22" width="42" height="30" rx="15" fill="#EEEAF8"/>
+    <text class="number" x="45" y="43" text-anchor="middle">07</text>
+    <use href="#mark-07" x="115" y="34" width="160" height="160"/>
+    <text class="word-editorial" x="195" y="237" text-anchor="middle" font-size="35">DhanaDhara</text>
+    <text class="card-title" x="195" y="278" text-anchor="middle">Inscriptional Line</text>
+    <text class="card-copy" x="195" y="310" text-anchor="middle">Architectural terminals • refined restraint</text>
+  </g>
+
+  <g data-logo-concept="08" transform="translate(1350 780)">
+    <rect width="390" height="350" rx="26" fill="#FFFFFF" stroke="#DDE1EA" filter="url(#card-shadow)"/>
+    <rect x="24" y="22" width="42" height="30" rx="15" fill="#EEEAF8"/>
+    <text class="number" x="45" y="43" text-anchor="middle">08</text>
+    <use href="#mark-08" x="115" y="34" width="160" height="160"/>
+    <text class="word-heritage" x="195" y="237" text-anchor="middle" font-size="35" font-style="italic">DhanaDhara</text>
+    <text class="card-title" x="195" y="278" text-anchor="middle">Vertical Signature</text>
+    <text class="card-copy" x="195" y="310" text-anchor="middle">Connected initials • graceful movement</text>
+  </g>
+
+  <!-- Direction 3 -->
+  <text class="section-title" x="60" y="1180">03 — Modern Trust</text>
+  <text class="muted" x="405" y="1180" font-size="18">Simple forms designed for apps, dashboards, documents, and signage.</text>
+
+  <g data-logo-concept="09" transform="translate(60 1210)">
+    <rect width="390" height="350" rx="26" fill="#FFFFFF" stroke="#DDE1EA" filter="url(#card-shadow)"/>
+    <rect x="24" y="22" width="42" height="30" rx="15" fill="#E8F3F6"/>
+    <text class="number" x="45" y="43" text-anchor="middle">09</text>
+    <use href="#mark-09" x="115" y="34" width="160" height="160"/>
+    <text class="word-geometric" x="195" y="237" text-anchor="middle" font-size="31">DhanaDhara</text>
+    <text class="card-title" x="195" y="278" text-anchor="middle">Open Doorway</text>
+    <text class="card-copy" x="195" y="310" text-anchor="middle">Property access • upward progress</text>
+  </g>
+
+  <g data-logo-concept="10" transform="translate(490 1210)">
+    <rect width="390" height="350" rx="26" fill="#FFFFFF" stroke="#DDE1EA" filter="url(#card-shadow)"/>
+    <rect x="24" y="22" width="42" height="30" rx="15" fill="#E8F3F6"/>
+    <text class="number" x="45" y="43" text-anchor="middle">10</text>
+    <use href="#mark-10" x="115" y="34" width="160" height="160"/>
+    <text class="word-humanist" x="195" y="237" text-anchor="middle" font-size="34">DhanaDhara</text>
+    <text class="card-title" x="195" y="278" text-anchor="middle">Circle of Value</text>
+    <text class="card-copy" x="195" y="310" text-anchor="middle">Continuity • service around the customer</text>
+  </g>
+
+  <g data-logo-concept="11" transform="translate(920 1210)">
+    <rect width="390" height="350" rx="26" fill="#FFFFFF" stroke="#DDE1EA" filter="url(#card-shadow)"/>
+    <rect x="24" y="22" width="42" height="30" rx="15" fill="#E8F3F6"/>
+    <text class="number" x="45" y="43" text-anchor="middle">11</text>
+    <use href="#mark-11" x="115" y="34" width="160" height="160"/>
+    <text class="word-modern" x="195" y="237" text-anchor="middle" font-size="34">DhanaDhara</text>
+    <text class="card-title" x="195" y="278" text-anchor="middle">Carved Space</text>
+    <text class="card-copy" x="195" y="310" text-anchor="middle">Strong app icon • distinctive negative space</text>
+  </g>
+
+  <g data-logo-concept="12" transform="translate(1350 1210)">
+    <rect width="390" height="350" rx="26" fill="#FFFFFF" stroke="#DDE1EA" filter="url(#card-shadow)"/>
+    <rect x="24" y="22" width="42" height="30" rx="15" fill="#E8F3F6"/>
+    <text class="number" x="45" y="43" text-anchor="middle">12</text>
+    <use href="#mark-12" x="115" y="34" width="160" height="160"/>
+    <text class="word-geometric" x="195" y="237" text-anchor="middle" font-size="31">DhanaDhara</text>
+    <text class="card-title" x="195" y="278" text-anchor="middle">Quiet Precision</text>
+    <text class="card-copy" x="195" y="310" text-anchor="middle">Minimal pair • wordmark-led identity</text>
+  </g>
+
+  <!-- Typography and evaluation lab -->
+  <text class="section-title" x="60" y="1640">Wordmark / font exploration</text>
+  <text class="muted" x="565" y="1640" font-size="18">Font names describe the direction; final artwork should be licensed and converted to outlines.</text>
+
+  <g transform="translate(60 1680)">
+    <rect width="1110" height="540" rx="28" fill="#FFFFFF" stroke="#DDE1EA" filter="url(#card-shadow)"/>
+    <text class="eyebrow" x="34" y="45">SIX TYPE MOODS</text>
+    <line x1="34" y1="68" x2="1076" y2="68" stroke="#E7E9EF"/>
+
+    <text class="muted" x="36" y="121" font-size="16">A • Geometric sans</text>
+    <text class="word-geometric" x="350" y="129" font-size="46">DhanaDhara</text>
+    <text class="muted" x="860" y="121" font-size="15">precise • contemporary</text>
+    <line x1="34" y1="148" x2="1076" y2="148" stroke="#EEF0F4"/>
+
+    <text class="muted" x="36" y="201" font-size="16">B • Humanist sans</text>
+    <text class="word-humanist" x="350" y="209" font-size="46">DhanaDhara</text>
+    <text class="muted" x="860" y="201" font-size="15">warm • approachable</text>
+    <line x1="34" y1="228" x2="1076" y2="228" stroke="#EEF0F4"/>
+
+    <text class="muted" x="36" y="281" font-size="16">C • Modern system sans</text>
+    <text class="word-modern" x="350" y="289" font-size="46">DhanaDhara</text>
+    <text class="muted" x="860" y="281" font-size="15">clear • digital trust</text>
+    <line x1="34" y1="308" x2="1076" y2="308" stroke="#EEF0F4"/>
+
+    <text class="muted" x="36" y="361" font-size="16">D • High-contrast serif</text>
+    <text class="word-heritage" x="350" y="369" font-size="48">DhanaDhara</text>
+    <text class="muted" x="860" y="361" font-size="15">luxury • authority</text>
+    <line x1="34" y1="388" x2="1076" y2="388" stroke="#EEF0F4"/>
+
+    <text class="muted" x="36" y="441" font-size="16">E • Editorial serif</text>
+    <text class="word-editorial" x="350" y="449" font-size="48">DhanaDhara</text>
+    <text class="muted" x="860" y="441" font-size="15">established • graceful</text>
+    <line x1="34" y1="468" x2="1076" y2="468" stroke="#EEF0F4"/>
+
+    <text class="muted" x="36" y="511" font-size="16">F • Classic serif</text>
+    <text class="word-classic" x="350" y="519" font-size="49">DhanaDhara</text>
+    <text class="muted" x="860" y="511" font-size="15">formal • traditional</text>
+  </g>
+
+  <g transform="translate(1200 1680)">
+    <rect width="540" height="540" rx="28" fill="#FFFFFF" stroke="#DDE1EA" filter="url(#card-shadow)"/>
+    <text class="eyebrow" x="32" y="45">SMALL-SIZE LAB</text>
+    <text class="muted" x="32" y="79" font-size="16">Check recognition before choosing detail.</text>
+
+    <text class="card-title" x="32" y="126">Concept 01</text>
+    <use href="#mark-01" x="32" y="147" width="96" height="96"/>
+    <use href="#mark-01" x="158" y="163" width="64" height="64"/>
+    <use href="#mark-01" x="254" y="179" width="32" height="32"/>
+    <use href="#mark-01" x="330" y="187" width="16" height="16"/>
+    <text class="muted" x="80" y="264" text-anchor="middle" font-size="13">96</text>
+    <text class="muted" x="190" y="264" text-anchor="middle" font-size="13">64</text>
+    <text class="muted" x="270" y="264" text-anchor="middle" font-size="13">32</text>
+    <text class="muted" x="338" y="264" text-anchor="middle" font-size="13">16px</text>
+
+    <line x1="32" y1="291" x2="508" y2="291" stroke="#E7E9EF"/>
+    <text class="card-title" x="32" y="335">Three families at 48px</text>
+    <use href="#mark-01" x="34" y="357" width="64" height="64"/>
+    <use href="#mark-05" x="146" y="357" width="64" height="64"/>
+    <use href="#mark-09" x="258" y="357" width="64" height="64"/>
+    <text class="muted" x="66" y="450" text-anchor="middle" font-size="13">Pillar</text>
+    <text class="muted" x="178" y="450" text-anchor="middle" font-size="13">Heritage</text>
+    <text class="muted" x="290" y="450" text-anchor="middle" font-size="13">Modern</text>
+
+    <rect x="32" y="477" width="476" height="38" rx="19" fill="#F3F3EE"/>
+    <text class="muted" x="270" y="502" text-anchor="middle" font-size="14">Prefer marks that remain DD—not B or a single D—at 16–32px.</text>
+  </g>
+
+  <!-- Client decision area -->
+  <g transform="translate(60 2270)">
+    <rect width="1680" height="250" rx="28" fill="#293681"/>
+    <text x="38" y="54" font-family="Segoe UI, Arial, sans-serif" font-size="27" font-weight="700" fill="#FFFFFF">Client review — shortlist before finalization</text>
+    <text x="38" y="91" font-family="Segoe UI, Arial, sans-serif" font-size="17" fill="#DCE4FF">Choose up to three concept numbers and two type moods. The selected ideas can then be redrawn, simplified, and legally screened.</text>
+
+    <g transform="translate(38 125)" font-family="Segoe UI, Arial, sans-serif" fill="#FFFFFF">
+      <text x="0" y="20" font-size="16" font-weight="700">MARK SHORTLIST</text>
+      <rect x="165" y="0" width="122" height="34" rx="8" fill="#FFFFFF" fill-opacity="0.12" stroke="#FFFFFF" stroke-opacity="0.45"/>
+      <text x="226" y="22" text-anchor="middle" font-size="14" fill="#DCE4FF">___  ___  ___</text>
+
+      <text x="340" y="20" font-size="16" font-weight="700">TYPE MOODS</text>
+      <rect x="470" y="0" width="112" height="34" rx="8" fill="#FFFFFF" fill-opacity="0.12" stroke="#FFFFFF" stroke-opacity="0.45"/>
+      <text x="526" y="22" text-anchor="middle" font-size="14" fill="#DCE4FF">___  ___</text>
+
+      <text x="640" y="20" font-size="16" font-weight="700">DESIRED FEEL</text>
+      <text x="772" y="20" font-size="15" fill="#DCE4FF">□ premium  □ modern  □ approachable  □ heritage</text>
+
+      <text x="1180" y="20" font-size="16" font-weight="700">DECISION</text>
+      <text x="1275" y="20" font-size="15" fill="#DCE4FF">□ refine  □ combine  □ explore again</text>
+    </g>
+
+    <line x1="38" y1="185" x2="1642" y2="185" stroke="#FFFFFF" stroke-opacity="0.2"/>
+    <text x="38" y="222" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#BFCBF6">Working file: scalable SVG • no external images • colors follow the current Dhanadhara system • concepts are exploratory, not trademark-cleared production marks.</text>
+  </g>
+
+  <text class="muted" x="900" y="2570" text-anchor="middle" font-size="14">DhanaDhara logo exploration • one-file comparison board • v1</text>
+</svg>

@@ -218,11 +218,11 @@ class MeResponse(BaseModel):
     email_verified: bool
     gender: Literal["female", "male", "non_binary", "self_described", "prefer_not_to_say"] | None
     gender_self_description: str | None
-    income_source: Literal["net_salary", "business_income"] | None
+    income_source: Literal["salaried", "business_income"] | None
     income_amount_minor: int | None
     income_period: Literal["monthly", "annual"] | None
     occupation: str | None
-    address: str | None
+    location: str | None
     # One summary per business line the client holds (both, for self-registered
     # clients). The dashboard switches between these.
     profiles: list[ClientProfileSummary]
@@ -239,11 +239,11 @@ class MeUpdateRequest(BaseModel):
         Literal["female", "male", "non_binary", "self_described", "prefer_not_to_say"] | None
     ) = None
     gender_self_description: Annotated[str | None, Field(min_length=1, max_length=100)] = None
-    income_source: Literal["net_salary", "business_income"] | None = None
+    income_source: Literal["salaried", "business_income"] | None = None
     income_amount_minor: Annotated[int | None, Field(ge=1, le=1_000_000_000_000)] = None
     income_period: Literal["monthly", "annual"] | None = None
     occupation: Annotated[str | None, Field(min_length=1, max_length=120)] = None
-    address: Annotated[str | None, Field(min_length=1, max_length=500)] = None
+    location: Annotated[str | None, Field(min_length=1, max_length=500)] = None
 
     @field_validator("first_name", "last_name")
     @classmethod
@@ -258,7 +258,7 @@ class MeUpdateRequest(BaseModel):
     def email_normalize(cls, v: str | None) -> str | None:
         return v.strip().lower() if v else v
 
-    @field_validator("gender_self_description", "occupation", "address")
+    @field_validator("gender_self_description", "occupation", "location")
     @classmethod
     def optional_text_not_blank(cls, v: str | None) -> str | None:
         if v is None:

@@ -534,7 +534,7 @@ async def get_me(db: AsyncSession, current_user_id: UUID) -> MeResponse:
         income_amount_minor=user.income_amount_minor,
         income_period=user.income_period,
         occupation=user.occupation,
-        address=user.address,
+        location=user.location,
         profiles=profiles,
     )
 
@@ -574,7 +574,7 @@ async def update_me(
         "income_amount_minor",
         "income_period",
         "occupation",
-        "address",
+        "location",
     ):
         if field in supplied_fields:
             setattr(user, field, getattr(req, field))
