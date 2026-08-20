@@ -10,7 +10,7 @@ verified Admin operational-visibility work in
 [PR #173](https://github.com/brollysolutions/client1/pull/173).
 
 **Done — property listing authority, owner CRUD, and managed 360 panorama
-(PR pending on `codex/20260819-165700-lets-work-on-dhanadhara-logo-and-dhanadhar`;
+([PR #210](https://github.com/brollysolutions/client1/pull/210);
 FR-7.3 and FR-13.1 through FR-13.4; completion coverage unchanged):** Clients
 can no longer create, read, edit, or withdraw authored property submissions.
 Real-estate Agents and Sub Admins manage only their own listings; platform Admins

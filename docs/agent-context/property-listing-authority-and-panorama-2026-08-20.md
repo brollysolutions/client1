@@ -44,8 +44,9 @@ This decision narrowly supersedes:
   purposes, including Loans media, remain unchanged;
 - `current-implementation-state.md` CS-004 where it permits Client property
   submissions and treats listing editing/resubmission as out of scope;
-- the current property-submission API, RLS, web navigation, and MP4 media paths
-  until the implementation on the linked task branch is shipped.
+- the former property-submission API, RLS, web navigation, and MP4 media paths;
+  the replacement implementation is delivered in
+  [PR #210](https://github.com/brollysolutions/client1/pull/210).
 
 The decision does not weaken business-line segregation, object ownership,
 Admin approval, RERA validation, private reviewer-document handling, upload
