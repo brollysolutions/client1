@@ -625,8 +625,8 @@ work than several completed UI requirements.
 
 ## Current work
 
-**Done on `feat/configurable-financial-application-forms` (PR pending
-publication) — CS-014 configurable Financial Products and product-specific
+**Done — [PR #211](https://github.com/brollysolutions/client1/pull/211) —
+CS-014 configurable Financial Products and product-specific
 Client forms:** the Admin catalogue is now the authenticated Client catalogue
 source. Admin can create, rename, order, activate/deactivate, and publish typed,
 allowlisted product forms; each form edit increments its version. Clients see

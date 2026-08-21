@@ -437,8 +437,8 @@ Lender names and product availability remain Admin-managed reference data and
 are not seeded by CS-014. Initial intake also contains no inline KYC/document
 upload fields; the existing document workspace remains a separate workflow.
 
-**Implementation status:** Complete on
-`feat/configurable-financial-application-forms` pending PR publication. The
+**Implementation status:** Complete in
+[PR #211](https://github.com/brollysolutions/client1/pull/211). The
 additive migration, typed server validation, generated contracts, Admin form
 builder, dynamic Client renderer, loan/enquiry separation, historical
 snapshots, RLS ledgers, no-store responses, and account-deletion answer scrub
