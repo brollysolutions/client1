@@ -2288,6 +2288,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/loans/enquiries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Service Enquiries */
+        get: operations["list_service_enquiries_api_v1_loans_enquiries_get"];
+        put?: never;
+        /** Create Service Enquiry */
+        post: operations["create_service_enquiry_api_v1_loans_enquiries_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/loans/loan-types": {
         parameters: {
             query?: never;
@@ -3936,6 +3954,13 @@ export interface components {
             customer_code: string;
             /** Fee Outcome */
             fee_outcome: ("waived" | "cashback" | "none") | null;
+            /** Form Answers */
+            form_answers: {
+                [key: string]: string | string[];
+            } | null;
+            form_schema_snapshot: components["schemas"]["ProductFormDefinition"] | null;
+            /** Form Version */
+            form_version: number | null;
             /**
              * Id
              * Format: uuid
@@ -4021,15 +4046,19 @@ export interface components {
             active: boolean;
             /** Application Count */
             application_count: number;
+            category: components["schemas"]["ProductCategory"];
             /**
              * Created At
              * Format: date-time
              */
             created_at: string;
-            /** Custom Fields */
-            custom_fields: {
-                [key: string]: unknown;
-            } | null;
+            /** Display Order */
+            display_order: number;
+            /** Enquiry Count */
+            enquiry_count: number;
+            form_schema: components["schemas"]["ProductFormDefinition"];
+            /** Form Version */
+            form_version: number;
             /**
              * Id
              * Format: uuid
@@ -6025,6 +6054,48 @@ export interface components {
              */
             target_role: "agent" | "telecaller" | "employee";
         };
+        /** FinancialServiceEnquiryCreate */
+        FinancialServiceEnquiryCreate: {
+            /** Answers */
+            answers: {
+                [key: string]: string | string[];
+            };
+            /** Form Version */
+            form_version: number;
+            /**
+             * Product Id
+             * Format: uuid
+             */
+            product_id: string;
+        };
+        /** FinancialServiceEnquiryListResponse */
+        FinancialServiceEnquiryListResponse: {
+            /** Enquiries */
+            enquiries: components["schemas"]["FinancialServiceEnquiryRead"][];
+        };
+        /** FinancialServiceEnquiryRead */
+        FinancialServiceEnquiryRead: {
+            /** Form Answers */
+            form_answers: {
+                [key: string]: string | string[];
+            } | null;
+            form_schema_snapshot: components["schemas"]["ProductFormDefinition"];
+            /** Form Version */
+            form_version: number;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            product: components["schemas"]["LoanTypeSummary"];
+            /** Status */
+            status: string;
+            /**
+             * Submitted At
+             * Format: date-time
+             */
+            submitted_at: string;
+        };
         /** ForgotInitiateRequest */
         ForgotInitiateRequest: {
             /** Mobile */
@@ -6048,6 +6119,56 @@ export interface components {
             mobile: string;
             /** Otp */
             otp: string;
+        };
+        /** FormCondition */
+        FormCondition: {
+            /** Equals */
+            equals: string;
+            /** Field Key */
+            field_key: string;
+        };
+        /** FormFieldDefinition */
+        FormFieldDefinition: {
+            condition?: components["schemas"]["FormCondition"] | null;
+            /** Help Text */
+            help_text?: string | null;
+            input_type: components["schemas"]["FormInputType"];
+            /** Key */
+            key: string;
+            /** Label */
+            label: string;
+            /** Options */
+            options?: components["schemas"]["FormOption"][];
+            /** Placeholder */
+            placeholder?: string | null;
+            /**
+             * Required
+             * @default true
+             */
+            required: boolean;
+        };
+        /**
+         * FormInputType
+         * @enum {string}
+         */
+        FormInputType: "text" | "textarea" | "date" | "integer" | "currency" | "select" | "multi_select" | "pincode" | "phone";
+        /** FormOption */
+        FormOption: {
+            /** Label */
+            label: string;
+            /** Value */
+            value: string;
+        };
+        /** FormSectionDefinition */
+        FormSectionDefinition: {
+            /** Description */
+            description?: string | null;
+            /** Fields */
+            fields: components["schemas"]["FormFieldDefinition"][];
+            /** Key */
+            key: string;
+            /** Title */
+            title: string;
         };
         /**
          * Furnishing
@@ -6173,8 +6294,12 @@ export interface components {
         };
         /** LoanApplicationCreate */
         LoanApplicationCreate: {
-            /** Amount Requested */
-            amount_requested: number | string;
+            /** Answers */
+            answers: {
+                [key: string]: string | string[];
+            };
+            /** Form Version */
+            form_version: number;
             /**
              * Loan Type Id
              * Format: uuid
@@ -6217,6 +6342,13 @@ export interface components {
             /** Closed At */
             closed_at: string | null;
             fee_outcome: components["schemas"]["FeeOutcome"] | null;
+            /** Form Answers */
+            form_answers: {
+                [key: string]: string | string[];
+            } | null;
+            form_schema_snapshot: components["schemas"]["ProductFormDefinition"] | null;
+            /** Form Version */
+            form_version: number | null;
             /**
              * Id
              * Format: uuid
@@ -6383,6 +6515,14 @@ export interface components {
         };
         /** LoanTypeCreate */
         LoanTypeCreate: {
+            /** @default loan */
+            category: components["schemas"]["ProductCategory"];
+            /**
+             * Display Order
+             * @default 1000
+             */
+            display_order: number;
+            form_schema?: components["schemas"]["ProductFormDefinition"] | null;
             /** Label */
             label: string;
         };
@@ -6393,6 +6533,12 @@ export interface components {
         };
         /** LoanTypeRead */
         LoanTypeRead: {
+            category: components["schemas"]["ProductCategory"];
+            /** Display Order */
+            display_order: number;
+            form_schema: components["schemas"]["ProductFormDefinition"];
+            /** Form Version */
+            form_version: number;
             /**
              * Id
              * Format: uuid
@@ -6400,9 +6546,12 @@ export interface components {
             id: string;
             /** Label */
             label: string;
+            /** Name */
+            name: string;
         };
         /** LoanTypeSummary */
         LoanTypeSummary: {
+            category: components["schemas"]["ProductCategory"];
             /**
              * Id
              * Format: uuid
@@ -6415,6 +6564,9 @@ export interface components {
         LoanTypeUpdate: {
             /** Active */
             active?: boolean | null;
+            /** Display Order */
+            display_order?: number | null;
+            form_schema?: components["schemas"]["ProductFormDefinition"] | null;
             /** Label */
             label?: string | null;
         };
@@ -7018,6 +7170,16 @@ export interface components {
         PersonalizationPreferenceUpdate: {
             /** Personalization Enabled */
             personalization_enabled: boolean;
+        };
+        /**
+         * ProductCategory
+         * @enum {string}
+         */
+        ProductCategory: "loan" | "credit_card" | "insurance";
+        /** ProductFormDefinition */
+        ProductFormDefinition: {
+            /** Sections */
+            sections: components["schemas"]["FormSectionDefinition"][];
         };
         /**
          * PropertyCategory
@@ -8567,6 +8729,13 @@ export interface components {
             closed_at?: string | null;
             /** Fee Outcome */
             fee_outcome?: ("waived" | "cashback" | "none") | null;
+            /** Form Answers */
+            form_answers?: {
+                [key: string]: string | string[];
+            } | null;
+            form_schema_snapshot?: components["schemas"]["ProductFormDefinition"] | null;
+            /** Form Version */
+            form_version?: number | null;
             /**
              * Id
              * Format: uuid
@@ -13710,6 +13879,59 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["LoanDocumentListResponse"];
+                };
+            };
+        };
+    };
+    list_service_enquiries_api_v1_loans_enquiries_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FinancialServiceEnquiryListResponse"];
+                };
+            };
+        };
+    };
+    create_service_enquiry_api_v1_loans_enquiries_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FinancialServiceEnquiryCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FinancialServiceEnquiryRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

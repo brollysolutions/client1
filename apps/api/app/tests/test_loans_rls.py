@@ -23,7 +23,7 @@ from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.pool import NullPool
 
 from app.core.config import settings
-from conftest import full_registration, unique_mobile
+from conftest import full_registration, loan_application_payload, unique_mobile
 
 
 async def _client_profile_uuid(mobile: str) -> str:
@@ -258,13 +258,11 @@ async def test_application_created_via_endpoint_is_still_rls_scoped(client: Asyn
     cpu = await _client_profile_uuid(mobile)
     headers = {"Authorization": f"Bearer {token}"}
 
-    loan_type_id = (await client.get("/api/v1/loans/loan-types", headers=headers)).json()[
-        "loan_types"
-    ][0]["id"]
+    payload = await loan_application_payload(client, token)
     created = await client.post(
         "/api/v1/loans/applications",
         headers=headers,
-        json={"loan_type_id": loan_type_id, "amount_requested": "500000"},
+        json=payload,
     )
     app_id = created.json()["id"]
 

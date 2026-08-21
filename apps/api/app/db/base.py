@@ -25,7 +25,13 @@ from app.models.profile import (  # noqa
 )
 from app.models.lead import Lead  # noqa
 from app.models.lead_activity import LeadActivity  # noqa
-from app.models.loan import LoanType, Bank, LoanApplication, LoanTxnHistory  # noqa
+from app.models.loan import (  # noqa
+    Bank,
+    FinancialServiceEnquiry,
+    LoanApplication,
+    LoanTxnHistory,
+    LoanType,
+)
 from app.models.task import EmployeeAssignmentCursor, Task, TaskDocument, TaskFeedbackMedia  # noqa
 from app.models.loan_document import LoanDocument  # noqa
 from app.models.support_ticket import SupportTicket  # noqa

@@ -14,16 +14,16 @@ export function LoanConfigView() {
   return (
     <div className="mx-auto w-full max-w-5xl space-y-6 px-4 sm:px-6 lg:px-10">
       <div>
-        <h1 className="text-2xl font-semibold text-text-primary">Loan configuration</h1>
+        <h1 className="text-2xl font-semibold text-text-primary">Financial product configuration</h1>
         <p className="text-sm text-text-secondary">
-          Manage loan types, banks, and which bank offers which loan type -- no code change or
-          deploy needed.
+          Publish client forms, manage lenders, and configure which lender offers each lending
+          product without a deployment.
         </p>
       </div>
 
       <Tabs defaultValue="loan-types">
         <TabsList>
-          <TabsTrigger value="loan-types">Loan types</TabsTrigger>
+          <TabsTrigger value="loan-types">Financial products</TabsTrigger>
           <TabsTrigger value="banks">Banks</TabsTrigger>
           <TabsTrigger value="availability">Availability</TabsTrigger>
         </TabsList>

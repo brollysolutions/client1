@@ -9,6 +9,8 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
+from app.schemas.financial_products import FormAnswers, ProductFormDefinition
+
 LeadStatusLiteral = Literal["new", "assigned", "working", "converted", "closed", "released"]
 LoanStatusLiteral = Literal[
     "new",
@@ -145,6 +147,9 @@ class TelecallerLoanApplicationRead(BaseModel):
     status_reason: str | None = None
     closed_at: datetime | None = None
     txns: list[LoanTxnRead]
+    form_version: int | None = None
+    form_schema_snapshot: ProductFormDefinition | None = None
+    form_answers: FormAnswers | None = None
 
 
 class PropertyDealCreate(BaseModel):

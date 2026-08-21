@@ -24,7 +24,7 @@ from app.models.loan_document import LoanDocument
 from app.services import loan_documents as loan_document_service
 from app.services import storage
 from app.services.media_processing import MalwareDetected
-from conftest import full_registration
+from conftest import full_registration, loan_application_payload
 
 pytestmark = pytest.mark.asyncio
 
@@ -63,33 +63,14 @@ async def _make_client_with_application(client: AsyncClient) -> tuple[str, str]:
     """Registers a real client and creates a real loan application via the
     HTTP API. Returns (access_token, application_id)."""
     token, _mobile = await full_registration(client, lines=["loans"])
-    res = await client.get("/api/v1/loans/loan-types", headers=_headers(token))
-    assert res.status_code == 200, res.text
-    loan_types = res.json()["loan_types"]
-    if not loan_types:
-        # Seed one directly if none exist yet in this dev/test DB.
-        loan_type_id = await _seed_loan_type()
-    else:
-        loan_type_id = loan_types[0]["id"]
-
+    payload = await loan_application_payload(client, token, requested_amount="100000")
     create_res = await client.post(
         "/api/v1/loans/applications",
         headers=_headers(token),
-        json={"loan_type_id": loan_type_id, "amount_requested": "100000"},
+        json=payload,
     )
     assert create_res.status_code == 201, create_res.text
     return token, create_res.json()["id"]
-
-
-async def _seed_loan_type() -> str:
-    import app.db.session as _session_mod
-    from app.models.loan import LoanType
-
-    async with _session_mod.AsyncSessionLocal() as db:
-        loan_type = LoanType(name=f"lt_{uuid.uuid4().hex[:8]}", label="Test Loan Type")
-        db.add(loan_type)
-        await db.commit()
-        return str(loan_type.id)
 
 
 async def _presign_and_confirm(

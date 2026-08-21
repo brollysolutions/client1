@@ -17,15 +17,7 @@ import pytest
 from httpx import AsyncClient
 from sqlalchemy import text
 
-from conftest import full_registration
-
-
-async def _first_loan_type_id(client: AsyncClient, token: str) -> str:
-    resp = await client.get(
-        "/api/v1/loans/loan-types", headers={"Authorization": f"Bearer {token}"}
-    )
-    assert resp.status_code == 200
-    return resp.json()["loan_types"][0]["id"]
+from conftest import full_registration, loan_application_payload
 
 
 @pytest.mark.asyncio
@@ -43,14 +35,16 @@ async def test_loan_types_returns_seeded_labels(client: AsyncClient) -> None:
     assert resp.status_code == 200
     labels = {lt["label"] for lt in resp.json()["loan_types"]}
     assert "Personal Loan" in labels
-    assert "Property Loan" in labels
+    assert "Home Loan" in labels
+    assert "Life & Term Insurance" in labels
+    assert len(labels) >= 16
 
 
 @pytest.mark.asyncio
 async def test_create_requires_auth(client: AsyncClient) -> None:
     resp = await client.post(
         "/api/v1/loans/applications",
-        json={"loan_type_id": str(uuid.uuid4()), "amount_requested": "500000"},
+        json={"loan_type_id": str(uuid.uuid4()), "form_version": 1, "answers": {}},
     )
     assert resp.status_code == 401
 
@@ -59,20 +53,23 @@ async def test_create_requires_auth(client: AsyncClient) -> None:
 async def test_create_then_appears_in_list(client: AsyncClient) -> None:
     token, _ = await full_registration(client, lines=["loans"])
     headers = {"Authorization": f"Bearer {token}"}
-    loan_type_id = await _first_loan_type_id(client, token)
+    payload = await loan_application_payload(client, token)
 
     created = await client.post(
         "/api/v1/loans/applications",
         headers=headers,
-        json={"loan_type_id": loan_type_id, "amount_requested": "500000"},
+        json=payload,
     )
     assert created.status_code == 201, created.text
+    assert created.headers["cache-control"] == "private, no-store"
     body = created.json()
     assert body["status"] == "new"
     assert body["amount_requested"] == "500000.00"
-    assert body["loan_type"]["id"] == loan_type_id
+    assert body["loan_type"]["id"] == payload["loan_type_id"]
+    assert body["form_answers"]["current_location"] == "Bengaluru"
 
     listed = await client.get("/api/v1/loans/applications", headers=headers)
+    assert listed.headers["cache-control"] == "private, no-store"
     assert [a["id"] for a in listed.json()["applications"]] == [body["id"]]
 
 
@@ -81,12 +78,12 @@ async def test_create_resolves_a_real_lead(client: AsyncClient) -> None:
     """The application's lead_uuid must be a real, non-null leads.id — the
     lead-spine FK the whole feature exists to satisfy."""
     token, mobile = await full_registration(client, lines=["loans"])
-    loan_type_id = await _first_loan_type_id(client, token)
+    payload = await loan_application_payload(client, token)
 
     created = await client.post(
         "/api/v1/loans/applications",
         headers={"Authorization": f"Bearer {token}"},
-        json={"loan_type_id": loan_type_id, "amount_requested": "500000"},
+        json=payload,
     )
     app_id = created.json()["id"]
 
@@ -116,7 +113,7 @@ async def test_create_missing_loan_type_id_is_422(client: AsyncClient) -> None:
     resp = await client.post(
         "/api/v1/loans/applications",
         headers={"Authorization": f"Bearer {token}"},
-        json={"amount_requested": "500000"},
+        json={"form_version": 1, "answers": {"requested_amount": "500000"}},
     )
     assert resp.status_code == 422
 
@@ -124,11 +121,11 @@ async def test_create_missing_loan_type_id_is_422(client: AsyncClient) -> None:
 @pytest.mark.asyncio
 async def test_create_zero_amount_is_422(client: AsyncClient) -> None:
     token, _ = await full_registration(client, lines=["loans"])
-    loan_type_id = await _first_loan_type_id(client, token)
+    payload = await loan_application_payload(client, token, requested_amount="0")
     resp = await client.post(
         "/api/v1/loans/applications",
         headers={"Authorization": f"Bearer {token}"},
-        json={"loan_type_id": loan_type_id, "amount_requested": "0"},
+        json=payload,
     )
     assert resp.status_code == 422
 
@@ -139,7 +136,7 @@ async def test_create_unknown_loan_type_id_is_404(client: AsyncClient) -> None:
     resp = await client.post(
         "/api/v1/loans/applications",
         headers={"Authorization": f"Bearer {token}"},
-        json={"loan_type_id": str(uuid.uuid4()), "amount_requested": "500000"},
+        json={"loan_type_id": str(uuid.uuid4()), "form_version": 1, "answers": {}},
     )
     assert resp.status_code == 404
 
@@ -148,19 +145,22 @@ async def test_create_unknown_loan_type_id_is_404(client: AsyncClient) -> None:
 async def test_second_active_application_is_409(client: AsyncClient) -> None:
     token, _ = await full_registration(client, lines=["loans"])
     headers = {"Authorization": f"Bearer {token}"}
-    loan_type_id = await _first_loan_type_id(client, token)
+    first_payload = await loan_application_payload(client, token)
 
     first = await client.post(
         "/api/v1/loans/applications",
         headers=headers,
-        json={"loan_type_id": loan_type_id, "amount_requested": "500000"},
+        json=first_payload,
     )
     assert first.status_code == 201
 
     second = await client.post(
         "/api/v1/loans/applications",
         headers=headers,
-        json={"loan_type_id": loan_type_id, "amount_requested": "300000"},
+        json={
+            **first_payload,
+            "answers": {**first_payload["answers"], "requested_amount": "300000"},
+        },
     )
     assert second.status_code == 409
 
@@ -196,7 +196,7 @@ async def test_staff_cannot_create_application(client: AsyncClient) -> None:
     resp = await client.post(
         "/api/v1/loans/applications",
         headers={"Authorization": f"Bearer {staff_token}"},
-        json={"loan_type_id": str(uuid.uuid4()), "amount_requested": "500000"},
+        json={"loan_type_id": str(uuid.uuid4()), "form_version": 1, "answers": {}},
     )
     assert resp.status_code == 403
 
@@ -221,6 +221,6 @@ async def test_client_without_loans_profile_is_403(client: AsyncClient) -> None:
     resp = await client.post(
         "/api/v1/loans/applications",
         headers={"Authorization": f"Bearer {real_estate_only_token}"},
-        json={"loan_type_id": str(uuid.uuid4()), "amount_requested": "500000"},
+        json={"loan_type_id": str(uuid.uuid4()), "form_version": 1, "answers": {}},
     )
     assert resp.status_code == 403

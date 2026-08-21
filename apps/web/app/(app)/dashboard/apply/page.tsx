@@ -2,81 +2,64 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { CreditCard, IdCard, Loader2, Wallet } from "lucide-react";
+import { CheckCircle2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
-import { FileField } from "@/components/apply-as-agent/file-field";
-import { IconInput } from "@/components/icon-input";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
-import { FetchError } from "@/features/dashboard/fetch-error";
 import { DashboardHeader, DashboardPage, DashboardPanel } from "@/features/dashboard/dashboard-ui";
+import { FetchError } from "@/features/dashboard/fetch-error";
 import {
-  uploadLoanDocuments,
-  type LoanDocType,
-  type LoanDocumentUploadEntry,
-} from "@/lib/loan-documents";
+  FinancialProductFormFields,
+  validateProductAnswers,
+  type ProductAnswerErrors,
+  type ProductAnswers,
+} from "@/features/dashboard/financial-product-form";
+import { useMe } from "@/features/dashboard/me-provider";
 import {
+  createFinancialServiceEnquiry,
   createLoanApplication,
   getLoanApplications,
   getLoanTypes,
+  type FinancialProduct,
   type LoanApplication,
-  type LoanTypeOption,
 } from "@/lib/loans";
 import { cn } from "@/lib/utils";
 
 type PageStatus = "loading" | "ready" | "error";
 
+const CATEGORY_LABEL: Record<FinancialProduct["category"], string> = {
+  loan: "Loans & Funding",
+  credit_card: "Credit Cards",
+  insurance: "Insurance",
+};
+
 function findActiveApplication(applications: LoanApplication[]): LoanApplication | null {
-  // Mirrors the DB's partial-unique predicate (status NOT IN ('closed',
-  // 'rejected')) — at most one such row can exist per client at a time.
-  return applications.find((a) => a.status !== "closed" && a.status !== "rejected") ?? null;
+  return applications.find((application) => application.status !== "closed" && application.status !== "rejected") ?? null;
 }
 
-function validateAmount(value: string): string | undefined {
-  const trimmed = value.trim();
-  if (!trimmed) return "Enter the amount you'd like to borrow.";
-  const amount = Number(trimmed);
-  if (!Number.isFinite(amount) || amount <= 0) return "Enter a valid amount.";
-  return undefined;
-}
-
-// Dashboard "Apply" — creates a real loan_application (not a lead). Rebuilt
-// in the landing partner-form's design language (IconInput, FileField KYC
-// tiles, a completion meter): components/apply-as-agent/file-field.tsx,
-// components/icon-input.tsx. KYC tiles are optional — a representative can
-// also collect these later — so only loan type + amount are required to
-// submit; any files picked upload right after the application is created.
 export default function ApplyPage() {
   const router = useRouter();
-
+  const { me, status: meStatus } = useMe();
   const [status, setStatus] = React.useState<PageStatus>("loading");
   const [error, setError] = React.useState<string | null>(null);
   const [errorStatus, setErrorStatus] = React.useState<number | null>(null);
   const [reloadKey, setReloadKey] = React.useState(0);
-
-  const [loanTypes, setLoanTypes] = React.useState<LoanTypeOption[]>([]);
+  const [products, setProducts] = React.useState<FinancialProduct[]>([]);
   const [activeApplication, setActiveApplication] = React.useState<LoanApplication | null>(null);
-
-  const [loanTypeId, setLoanTypeId] = React.useState("");
-  const [amount, setAmount] = React.useState("");
-  const [amountError, setAmountError] = React.useState<string | undefined>();
-  const [aadhaarFront, setAadhaarFront] = React.useState<File | null>(null);
-  const [aadhaarBack, setAadhaarBack] = React.useState<File | null>(null);
-  const [pan, setPan] = React.useState<File | null>(null);
-
+  const [productId, setProductId] = React.useState("");
+  const [answers, setAnswers] = React.useState<ProductAnswers>({});
+  const [answerErrors, setAnswerErrors] = React.useState<ProductAnswerErrors>({});
   const [submitting, setSubmitting] = React.useState(false);
-  const [uploadProgress, setUploadProgress] = React.useState<{ done: number; total: number } | null>(
-    null,
-  );
+  const [submittedEnquiryLabel, setSubmittedEnquiryLabel] = React.useState<string | null>(null);
+
+  const selectedProduct = products.find((product) => product.id === productId) ?? null;
 
   const retry = React.useCallback(() => {
     setStatus("loading");
     setError(null);
     setErrorStatus(null);
-    setReloadKey((k) => k + 1);
+    setReloadKey((key) => key + 1);
   }, []);
 
   React.useEffect(() => {
@@ -90,7 +73,7 @@ export default function ApplyPage() {
         setStatus("error");
         return;
       }
-      setLoanTypes(typesRes.data);
+      setProducts(typesRes.data);
       setActiveApplication(appsRes.ok ? findActiveApplication(appsRes.data) : null);
       setStatus("ready");
     };
@@ -100,81 +83,67 @@ export default function ApplyPage() {
     };
   }, [reloadKey]);
 
-  const canSubmit = loanTypeId !== "" && !validateAmount(amount) && !submitting;
-
-  const progressFlags = [
-    loanTypeId !== "",
-    !validateAmount(amount),
-    aadhaarFront !== null,
-    aadhaarBack !== null,
-    pan !== null,
-  ];
-  const progressPercent = Math.round(
-    (progressFlags.filter(Boolean).length / progressFlags.length) * 100,
-  );
+  function chooseProduct(product: FinancialProduct) {
+    setProductId(product.id);
+    setAnswers({});
+    setAnswerErrors({});
+    setSubmittedEnquiryLabel(null);
+  }
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
-    if (submitting) return;
-    const amountMsg = validateAmount(amount);
-    setAmountError(amountMsg);
-    if (!loanTypeId || amountMsg) return;
+    if (!selectedProduct || !me || submitting) return;
+    const errors = validateProductAnswers(selectedProduct, answers);
+    setAnswerErrors(errors);
+    if (Object.keys(errors).length > 0) {
+      toast.error("Check the highlighted fields before submitting.");
+      return;
+    }
+    if (selectedProduct.category === "loan" && activeApplication) {
+      toast.error("You already have a loan application in progress.");
+      return;
+    }
 
     setSubmitting(true);
-    const result = await createLoanApplication({ loanTypeId, amountRequested: amount.trim() });
-
-    if (!result.ok) {
+    if (selectedProduct.category !== "loan") {
+      const result = await createFinancialServiceEnquiry({
+        productId: selectedProduct.id,
+        formVersion: selectedProduct.form_version,
+        answers,
+      });
       setSubmitting(false);
-      if (result.status === 409) {
-        const appsRes = await getLoanApplications();
-        setActiveApplication(appsRes.ok ? findActiveApplication(appsRes.data) : null);
+      if (!result.ok) {
+        if (result.status === 409) retry();
+        toast.error(result.error || "Couldn't submit your enquiry. Please try again.");
         return;
       }
+      setSubmittedEnquiryLabel(selectedProduct.label);
+      setAnswers({});
+      toast.success("Enquiry submitted", {
+        description: "A representative will contact you about the next steps.",
+      });
+      return;
+    }
+
+    const result = await createLoanApplication({
+      productId: selectedProduct.id,
+      formVersion: selectedProduct.form_version,
+      answers,
+    });
+    if (!result.ok) {
+      setSubmitting(false);
+      if (result.status === 409) retry();
       toast.error(result.error || "Couldn't submit your application. Please try again.");
       return;
     }
 
-    // The application itself is created — this is the part the user actually
-    // asked for, so confirm it immediately and never roll it back over a
-    // document-upload failure. Uploads run after, sequentially; a bad file
-    // must not cost the other, already-succeeded ones.
     toast.success("Application submitted", {
       description: "We'll be in touch about the next steps.",
     });
-    const applicationId = result.data.id;
-
-    const entries: LoanDocumentUploadEntry[] = (
-      [
-        { docType: "aadhaar_front" as LoanDocType, file: aadhaarFront },
-        { docType: "aadhaar_back" as LoanDocType, file: aadhaarBack },
-        { docType: "pan" as LoanDocType, file: pan },
-      ] as const
-    )
-      .filter((e): e is { docType: LoanDocType; file: File } => e.file !== null)
-      .map((e) => ({ docType: e.docType, file: e.file }));
-
-    if (entries.length === 0) {
-      router.push(`/dashboard/loans/${applicationId}`);
-      return;
-    }
-
-    setUploadProgress({ done: 0, total: entries.length });
-    const { failed } = await uploadLoanDocuments(applicationId, entries, (done, total) =>
-      setUploadProgress({ done, total }),
-    );
-    setUploadProgress(null);
-
-    if (failed.length === 0) {
-      router.push(`/dashboard/loans/${applicationId}`);
-      return;
-    }
-    toast.warning("Application created. Some documents didn't upload.", {
-      description: "You can add them from Documents.",
-    });
-    router.push("/dashboard/documents");
+    router.push(`/dashboard/loans/${result.data.id}`);
   }
 
-  if (status === "loading") {
+  if (status === "loading" || meStatus === "loading") {
     return (
       <DashboardPage className="max-w-5xl">
         <Skeleton className="h-9 w-2/3" />
@@ -191,168 +160,122 @@ export default function ApplyPage() {
     );
   }
 
-  if (activeApplication) {
-    return (
-      <DashboardPage className="max-w-5xl">
-        <DashboardHeader
-          eyebrow="Loans workspace"
-          title="Apply for a loan"
-          description="Start a new request or return to the application already being processed."
-        />
-        <div className="rounded-2xl border border-dashed border-border bg-card px-6 py-14 text-center">
-          <h2 className="text-lg font-semibold text-text-primary">
-            You already have an application in progress
-          </h2>
-          <p className="mx-auto mt-2 max-w-md text-sm text-text-secondary">
-            We can only track one active application at a time. This one will need to close
-            before you can start another.
-          </p>
-          <Button
-            className="mt-5"
-            onClick={() => router.push(`/dashboard/loans/${activeApplication.id}`)}
-          >
-            View your application
-          </Button>
-        </div>
-      </DashboardPage>
-    );
-  }
-
   return (
     <DashboardPage className="max-w-5xl">
       <DashboardHeader
-        eyebrow="Loans workspace"
-        title="Apply for a loan"
-        description="Choose the loan and amount you need. Supporting KYC media can be added now or later."
+        eyebrow="Financial Services"
+        title="Apply for a financial product"
+        description="Choose a product and complete the questions configured for it."
       />
 
-      <DashboardPanel
-        title="Application details"
-        description="Required fields are limited to the loan type and requested amount."
-      >
-      <div className="mb-8">
-        <div className="flex items-center justify-between gap-3">
-          <span className="text-sm font-medium text-text-primary">Your application</span>
-          <span aria-live="polite" className="text-sm font-medium tabular-nums text-brand-cta">
-            {progressPercent}% complete
-          </span>
-        </div>
-        <Progress
-          value={progressPercent}
-          aria-label="Application completion"
-          className="mt-2 bg-brand-cta-tint"
-          indicatorClassName="bg-brand-cta"
-        />
-      </div>
-
-      <form onSubmit={handleSubmit} noValidate className="grid gap-8">
-        <fieldset className="grid min-w-0 gap-4 border-0 p-0">
-          <h3
-            id="apply-loan-type-heading"
-            className="font-heading text-lg font-semibold text-foreground"
-          >
-            Loan details
-          </h3>
-          <div
-            role="group"
-            aria-labelledby="apply-loan-type-heading"
-            className="grid grid-cols-2 gap-2 sm:grid-cols-3"
-          >
-            {loanTypes.map((loanType) => (
-              <button
-                key={loanType.id}
-                type="button"
-                aria-pressed={loanTypeId === loanType.id}
-                onClick={() => setLoanTypeId(loanType.id)}
-                disabled={submitting}
-                className={cn(
-                  "h-12 cursor-pointer rounded-lg border px-3 text-sm font-medium transition",
-                  "focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-brand-cta/50",
-                  "disabled:cursor-default disabled:opacity-50",
-                  loanTypeId === loanType.id
-                    ? "border-brand-cta bg-brand-cta text-white"
-                    : "border-border bg-transparent text-foreground hover:bg-brand-cta-tint",
-                )}
-              >
-                {loanType.label}
-              </button>
-            ))}
-          </div>
-
-          <div className="grid gap-2">
-            <Label htmlFor="apply-amount">Amount requested</Label>
-            <IconInput
-              id="apply-amount"
-              icon={Wallet}
-              inputMode="numeric"
-              value={amount}
-              onChange={(event) => setAmount(event.target.value)}
-              onBlur={() => setAmountError(validateAmount(amount))}
-              placeholder="500000"
-              aria-invalid={!!amountError}
-              aria-describedby={amountError ? "apply-amount-error" : undefined}
-              disabled={submitting}
-            />
-            {amountError && (
-              <p id="apply-amount-error" className="text-sm text-destructive">
-                {amountError}
+      {submittedEnquiryLabel ? (
+        <div className="rounded-2xl border border-success/35 bg-success/5 p-6">
+          <div className="flex items-start gap-3">
+            <CheckCircle2 className="mt-0.5 h-5 w-5 text-success" aria-hidden="true" />
+            <div>
+              <h2 className="font-semibold text-text-primary">{submittedEnquiryLabel} enquiry submitted</h2>
+              <p className="mt-1 text-sm text-text-secondary">
+                A representative will contact you. You can submit another card or insurance enquiry
+                if needed.
               </p>
-            )}
-          </div>
-        </fieldset>
-
-        <fieldset className="border-0 border-t border-border p-0 pt-8">
-          <div className="rounded-xl border border-border bg-brand-cta-tint/30 p-5 sm:p-6">
-            <h3 className="font-heading text-lg font-semibold text-foreground">KYC documents</h3>
-            <p className="text-sm text-text-secondary">
-              Optional for now. A representative can also collect these later.
-            </p>
-            <div className="mt-5 grid min-w-0 grid-cols-2 gap-4 sm:grid-cols-3 sm:gap-5">
-              <FileField
-                id="apply-aadhaar-front"
-                label="Aadhaar front"
-                icon={IdCard}
-                value={aadhaarFront}
-                onChange={setAadhaarFront}
-                disabled={submitting}
-              />
-              <FileField
-                id="apply-aadhaar-back"
-                label="Aadhaar back"
-                icon={IdCard}
-                value={aadhaarBack}
-                onChange={setAadhaarBack}
-                disabled={submitting}
-              />
-              <FileField
-                id="apply-pan"
-                label="PAN card"
-                icon={CreditCard}
-                value={pan}
-                onChange={setPan}
-                disabled={submitting}
-              />
             </div>
           </div>
-        </fieldset>
-
-        <div className="grid gap-2">
-          <Button
-            type="submit"
-            disabled={!canSubmit}
-            className="h-12 bg-brand-cta text-base text-white hover:bg-brand-cta-hover focus-visible:ring-brand-cta"
-          >
-            {submitting && <Loader2 className="h-4 w-4 animate-spin" aria-hidden />}
-            {submitting ? "Submitting..." : "Submit application"}
-          </Button>
-          <p aria-live="polite" className="text-center text-sm text-text-secondary">
-            {uploadProgress
-              ? `Uploading ${uploadProgress.done} of ${uploadProgress.total}…`
-              : null}
-          </p>
         </div>
-      </form>
+      ) : null}
+
+      <DashboardPanel
+        title="Choose a product"
+        description="Active Admin products appear here in the configured order."
+      >
+        <div className="space-y-6">
+          {(["loan", "credit_card", "insurance"] as const).map((category) => {
+            const categoryProducts = products.filter((product) => product.category === category);
+            if (categoryProducts.length === 0) return null;
+            return (
+              <fieldset key={category} className="grid min-w-0 gap-3 border-0 p-0">
+                <legend className="text-sm font-semibold text-text-primary">{CATEGORY_LABEL[category]}</legend>
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                  {categoryProducts.map((product) => {
+                    const blocked = category === "loan" && activeApplication !== null;
+                    return (
+                      <button
+                        key={product.id}
+                        type="button"
+                        aria-pressed={productId === product.id}
+                        aria-describedby={blocked ? "active-loan-note" : undefined}
+                        onClick={() => chooseProduct(product)}
+                        disabled={submitting || blocked}
+                        className={cn(
+                          "min-h-12 cursor-pointer rounded-lg border px-3 py-2 text-sm font-medium transition-colors",
+                          "focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-brand-cta/50",
+                          "disabled:cursor-not-allowed disabled:opacity-50",
+                          productId === product.id
+                            ? "border-brand-cta bg-brand-cta text-white"
+                            : "border-border bg-transparent text-foreground hover:bg-brand-cta-tint",
+                        )}
+                      >
+                        {product.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </fieldset>
+            );
+          })}
+          {products.length === 0 ? (
+            <p role="status" className="rounded-lg border border-dashed border-border p-5 text-sm text-text-secondary">
+              No financial products are available right now. Please check again later.
+            </p>
+          ) : null}
+          {activeApplication ? (
+            <div id="active-loan-note" className="rounded-lg border border-border bg-muted/35 p-4 text-sm text-text-secondary">
+              You already have a loan application in progress. You can still request a credit card
+              or insurance product, or <button type="button" className="font-medium text-brand-cta underline" onClick={() => router.push(`/dashboard/loans/${activeApplication.id}`)}>view the active loan</button>.
+            </div>
+          ) : null}
+        </div>
       </DashboardPanel>
+
+      {selectedProduct && me ? (
+        <DashboardPanel
+          title={selectedProduct.label}
+          description={
+            selectedProduct.category === "loan"
+              ? "Complete the application details below."
+              : "Complete the enquiry details below. This request does not enter the loan sanction or disbursal workflow."
+          }
+        >
+          <form onSubmit={handleSubmit} noValidate className="grid gap-8">
+            <FinancialProductFormFields
+              product={selectedProduct}
+              fullName={`${me.firstName} ${me.lastName}`.trim()}
+              mobile={me.mobile}
+              answers={answers}
+              errors={answerErrors}
+              onAnswersChange={(nextAnswers) => {
+                setAnswers(nextAnswers);
+                setAnswerErrors((currentErrors) =>
+                  Object.keys(currentErrors).length === 0
+                    ? currentErrors
+                    : validateProductAnswers(selectedProduct, nextAnswers),
+                );
+              }}
+              disabled={submitting}
+            />
+
+            <div className="grid gap-2">
+              <Button type="submit" disabled={submitting} className="h-12 bg-brand-cta text-base text-white hover:bg-brand-cta-hover focus-visible:ring-brand-cta">
+                {submitting ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : null}
+                {submitting
+                  ? "Submitting…"
+                  : selectedProduct.category === "loan"
+                    ? "Submit application"
+                    : "Submit enquiry"}
+              </Button>
+            </div>
+          </form>
+        </DashboardPanel>
+      ) : null}
     </DashboardPage>
   );
 }

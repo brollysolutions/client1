@@ -9,6 +9,8 @@ from uuid import UUID
 
 from pydantic import BaseModel, EmailStr, Field, field_validator, model_validator
 
+from app.schemas.financial_products import FormAnswers, ProductFormDefinition
+
 # ---------------------------------------------------------------------------
 # Staff provisioning
 # ---------------------------------------------------------------------------
@@ -265,6 +267,9 @@ class AdminLoanApplicationRead(BaseModel):
     fee_outcome: Literal["waived", "cashback", "none"] | None
     opened_at: datetime
     closed_at: datetime | None
+    form_version: int | None
+    form_schema_snapshot: ProductFormDefinition | None
+    form_answers: FormAnswers | None
 
 
 class AdminLoanApplicationListResponse(BaseModel):

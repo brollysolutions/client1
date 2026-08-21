@@ -12,7 +12,7 @@ import uuid
 from datetime import date, datetime
 from typing import TYPE_CHECKING, Any, Optional
 
-from sqlalchemy import Boolean, Date, DateTime, ForeignKey, Numeric, String, Text
+from sqlalchemy import Boolean, Date, DateTime, ForeignKey, Integer, Numeric, String, Text
 from sqlalchemy.dialects.postgresql import ENUM, JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -54,9 +54,14 @@ class LoanType(Base):
     name: Mapped[str] = mapped_column(String, unique=True, nullable=False)
     label: Mapped[str] = mapped_column(String, nullable=False)
     active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
-    # Open Item A (Admin_Dashboard_System_Design.md §5.2): null = shared field
-    # set, populated = per-type field builder. The builder itself is out of
-    # scope (feature-status.md §4) — read-only everywhere this column is exposed.
+    # This legacy-named table is now the authenticated Financial Products
+    # catalogue. Category prevents card/insurance enquiries from entering the
+    # loan sanction and disbursal lifecycle.
+    category: Mapped[str] = mapped_column(String(20), nullable=False, default="loan")
+    display_order: Mapped[int] = mapped_column(Integer, nullable=False, default=1000)
+    form_version: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+    # Validated ProductFormDefinition serialized as JSONB. Never accept or use
+    # this value without parsing it through schemas.financial_products.
     custom_fields: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, default=datetime.utcnow
@@ -140,6 +145,9 @@ class LoanApplication(Base):
         loan_status_enum, nullable=False, default=LoanStatus.NEW
     )
     status_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+    form_version: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    form_schema_snapshot: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
+    form_answers: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
     opened_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, default=datetime.utcnow
     )
@@ -158,6 +166,35 @@ class LoanApplication(Base):
 
     loan_type: Mapped["LoanType"] = relationship("LoanType")
     bank: Mapped[Optional["Bank"]] = relationship("Bank")
+    client_profile: Mapped["ClientProfile"] = relationship("ClientProfile")
+
+
+class FinancialServiceEnquiry(Base):
+    """A submitted credit-card or insurance request outside LoanStatus."""
+
+    __tablename__ = "financial_service_enquiries"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    lead_uuid: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("leads.id"), nullable=False
+    )
+    client_profile_uuid: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("client_profiles.id"), nullable=False
+    )
+    business_line: Mapped[str] = mapped_column(business_line_enum, nullable=False)
+    product_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("loan_types.id"), nullable=False, index=True
+    )
+    product_category: Mapped[str] = mapped_column(String(20), nullable=False)
+    status: Mapped[str] = mapped_column(String(20), nullable=False, default="submitted")
+    form_version: Mapped[int] = mapped_column(Integer, nullable=False)
+    form_schema_snapshot: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False)
+    form_answers: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
+    submitted_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=datetime.utcnow
+    )
+
+    product: Mapped["LoanType"] = relationship("LoanType")
     client_profile: Mapped["ClientProfile"] = relationship("ClientProfile")
 
 

@@ -2,7 +2,7 @@
 
 Status: **Derived reconciliation and later product amendment**
 
-As of: **2026-08-20**
+As of: **2026-08-21**
 
 Code baseline: `14773ae` ([PR #151](https://github.com/brollysolutions/client1/pull/151))
 
@@ -423,6 +423,37 @@ Source and approved interpretation:
 
 - [`property-listing-authority-and-panorama-2026-08-20.md`](property-listing-authority-and-panorama-2026-08-20.md)
 
+### CS-014 — Admin-configured product-specific Financial Services forms
+
+**Decision (2026-08-21):** Admin-configured Financial Products and their
+versioned, allowlisted application forms are the source of truth for the
+authenticated Client dashboard. Lending/funding products retain the loan
+lifecycle; Credit Cards and Insurance use quote/enquiry semantics and never
+enter sanction/disbursal states. Registered identity fields are server-sourced,
+submitted answers are validated against the exact configured version, and
+historical submissions retain an immutable schema snapshot.
+
+Lender names and product availability remain Admin-managed reference data and
+are not seeded by CS-014. Initial intake also contains no inline KYC/document
+upload fields; the existing document workspace remains a separate workflow.
+
+**Implementation status:** Complete in
+[PR #211](https://github.com/brollysolutions/client1/pull/211). The
+additive migration, typed server validation, generated contracts, Admin form
+builder, dynamic Client renderer, loan/enquiry separation, historical
+snapshots, RLS ledgers, no-store responses, and account-deletion answer scrub
+are implemented and verified. No lender or product-availability seed is part
+of this delivery.
+
+This explicitly replaces the previously settled v1 shared-field behavior and
+activates the reserved per-product form capability. It does not weaken Admin
+authorization, Client ownership, assigned-staff scope, business-line RLS,
+account-deletion cleanup, or public catalogue independence.
+
+Source and approved interpretation:
+
+- [`configurable-financial-product-forms-2026-08-21.md`](configurable-financial-product-forms-2026-08-21.md)
+
 ## 3. Previously open items settled by current behavior
 
 The following entries may still be labelled “open,” “assumed,” or “pending” in
@@ -432,7 +463,7 @@ explicitly changes it.
 | Topic | Current behavior | Evidence |
 | --- | --- | --- |
 | Telephony and number masking | Integrated telephony, recording, and masking are outside v1. Assigned Telecallers use the visible number and device dialer. | SRS v1.2 §5.2/§5.7 and feature-list v1.2 revision note |
-| Loan-type custom fields | V1 uses the shared field set. `custom_fields` is reserved/read-only for a later builder. | [`schemas/loan_config.py`](../../apps/api/app/schemas/loan_config.py), migration `678f7a77e812` |
+| Loan-type custom fields | Superseded by CS-014: Admin-configured versioned product forms are now approved for the authenticated Client dashboard. | [`configurable-financial-product-forms-2026-08-21.md`](configurable-financial-product-forms-2026-08-21.md) |
 | Agent lead editing cutoff | The originating Agent may edit an unassigned lead; assignment to a Telecaller locks further Agent edits. | [`services/agent.py`](../../apps/api/app/services/agent.py), [`test_agent_api.py`](../../apps/api/app/tests/test_agent_api.py) |
 | Telecaller field tasks | A Telecaller may raise a `document_collection` task for an assigned lead; the service assigns it to an active same-line or dual-line Employee by durable round robin, with scheduled no-capacity retry and inactive-assignee repair. Admin sees the relationship read-only. | [`api/v1/telecaller.py`](../../apps/api/app/api/v1/telecaller.py), [`services/telecaller.py`](../../apps/api/app/services/telecaller.py), [`services/employee_assignment.py`](../../apps/api/app/services/employee_assignment.py), [`test_employee_auto_assignment.py`](../../apps/api/app/tests/test_employee_auto_assignment.py) |
 | Document verification owner | A platform Admin verifies task and loan documents. The collecting Employee cannot self-verify. | [`api/v1/document_verification.py`](../../apps/api/app/api/v1/document_verification.py), [`models/task.py`](../../apps/api/app/models/task.py) |
