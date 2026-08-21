@@ -465,8 +465,8 @@ details, and links. Financial Product and lender details expose server-derived
 last-updated dates, including relevant Admin availability changes, without
 hardcoded lender data or external scraping.
 
-**Implementation status:** Done on
-`feat/configurable-financial-application-forms` (PR pending). Role, ownership,
+**Implementation status:** Done in
+[PR #212](https://github.com/brollysolutions/client1/pull/212). Role, ownership,
 media, publication, RLS, audit, retention, historical-record, and Admin-managed
 lender boundaries remain unchanged. Fresh evidence includes 183 focused
 PostgreSQL passes, migration round-trip and one head, API Ruff/format, all 366

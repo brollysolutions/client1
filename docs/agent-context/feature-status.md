@@ -10,7 +10,8 @@ verified Admin operational-visibility work in
 [PR #173](https://github.com/brollysolutions/client1/pull/173).
 
 **Done — property-specific listing forms, RERA review, and catalogue freshness
-(PR pending; FR-7.3 and FR-6.2-FR-6.4 follow-up; completion coverage unchanged):**
+([PR #212](https://github.com/brollysolutions/client1/pull/212); FR-7.3 and
+FR-6.2-FR-6.4 follow-up; completion coverage unchanged):**
 new property intake now uses versioned, subtype-specific schemas while
 preserving existing authoring roles, Admin-only approval, last-approved
 publication, managed media, and historical rows. Project Residence amenities

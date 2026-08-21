@@ -1,6 +1,7 @@
 # Property-specific listing forms and catalogue freshness
 
-Status: **Implemented and verified; PR pending**
+Status: **Implemented and verified in
+[PR #212](https://github.com/brollysolutions/client1/pull/212)**
 
 As of: **2026-08-21**
 
