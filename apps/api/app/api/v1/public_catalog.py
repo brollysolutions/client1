@@ -23,7 +23,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.session import get_db
 from app.models.banner import BannerPlacement
 from app.models.offer import Offer
-from app.models.property import Property
+from app.models.property import Property, ReraVerificationStatus
 from app.schemas.banners import PublicBannerListResponse, PublicBannerRead
 from app.schemas.content import PublicContentBlockListResponse, PublicContentBlockRead
 from app.schemas.offers import PublicOfferListResponse, PublicOfferRead
@@ -72,7 +72,15 @@ async def list_properties_public(
     return PublicPropertyListResponse(
         properties=[
             PublicPropertyRead.model_validate(p, from_attributes=True).model_copy(
-                update={"media_urls": media[p.id], "media": media_items[p.id]}
+                update={
+                    "media_urls": media[p.id],
+                    "media": media_items[p.id],
+                    "rera_number": (
+                        p.rera_number
+                        if p.rera_verification_status == ReraVerificationStatus.VERIFIED
+                        else None
+                    ),
+                }
             )
             for p in properties
         ]
@@ -129,7 +137,8 @@ async def list_banners_public(
                 ),
                 offer_badge=_offer_badge(offer) if offer is not None else None,
                 rera_verified=bool(
-                    property_listing is not None and property_listing.rera_number.strip()
+                    property_listing is not None
+                    and property_listing.rera_verification_status == ReraVerificationStatus.VERIFIED
                 ),
             )
         )

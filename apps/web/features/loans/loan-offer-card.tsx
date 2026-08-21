@@ -5,6 +5,7 @@ import { toast } from "sonner";
 
 import { useLoanCompare } from "@/features/loans/loan-offers-store";
 import type { Bank } from "@/lib/loans";
+import { formatLastUpdated } from "@/lib/format";
 
 export function LoanOfferCard({ bank }: { bank: Bank }) {
   const compare = useLoanCompare();
@@ -28,7 +29,10 @@ export function LoanOfferCard({ bank }: { bank: Bank }) {
         <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-loans-soft text-loans-accent">
           <Landmark className="h-4 w-4" aria-hidden="true" />
         </span>
-        <p className="min-w-0 flex-1 font-medium text-text-primary">{bank.name}</p>
+        <div className="min-w-0 flex-1">
+          <p className="font-medium text-text-primary">{bank.name}</p>
+          <p className="text-xs text-text-secondary">{formatLastUpdated(bank.last_updated_at)}</p>
+        </div>
       </div>
       <label className="mt-3 flex cursor-pointer items-center gap-2 text-xs text-text-secondary">
         <input

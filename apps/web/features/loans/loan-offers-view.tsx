@@ -12,6 +12,7 @@ import { DASHBOARD_ICONS } from "@/features/dashboard/dashboard-icons";
 import { DashboardHeader, DashboardPage, DashboardPanel, MetricCard, MetricGrid } from "@/features/dashboard/dashboard-ui";
 import { FetchError } from "@/features/dashboard/fetch-error";
 import { getBanks, getLoanTypes, type Bank, type LoanTypeOption } from "@/lib/loans";
+import { formatLastUpdated } from "@/lib/format";
 
 type Status = "loading" | "ready" | "error";
 
@@ -26,6 +27,17 @@ type BanksByType = Record<string, Bank[]>;
 // sections this page fans out bank-fetches for so a polluted reference
 // table degrades gracefully instead of exhausting browser connections.
 const RENDERED_LOAN_TYPES_LIMIT = 12;
+const BANK_PREVIEW_LIMIT = 12;
+
+export function selectLoanComparisonTypes(types: LoanTypeOption[]): LoanTypeOption[] {
+  return types
+    .filter((type) => type.category === "loan")
+    .slice(0, RENDERED_LOAN_TYPES_LIMIT);
+}
+
+export function banksForDisplay(banks: Bank[], expanded: boolean): Bank[] {
+  return expanded ? banks : banks.slice(0, BANK_PREVIEW_LIMIT);
+}
 
 // Loans line's "Compare Loan Offers" -> real participating banks per loan
 // type (GET /loans/banks?loan_type_id=). No fabricated interest rates,
@@ -41,6 +53,7 @@ export function LoanOffersView() {
   const [reloadKey, setReloadKey] = React.useState(0);
   const [loanTypes, setLoanTypes] = React.useState<LoanTypeOption[]>([]);
   const [banksByType, setBanksByType] = React.useState<BanksByType>({});
+  const [expandedTypeIds, setExpandedTypeIds] = React.useState<Set<string>>(new Set());
 
   const retry = React.useCallback(() => {
     setStatus("loading");
@@ -60,7 +73,7 @@ export function LoanOffersView() {
         setStatus("error");
         return;
       }
-      const renderedTypes = typesRes.data.slice(0, RENDERED_LOAN_TYPES_LIMIT);
+      const renderedTypes = selectLoanComparisonTypes(typesRes.data);
       const bankResults = await Promise.all(renderedTypes.map((type) => getBanks(type.id)));
       if (!active) return;
       const firstFailure = bankResults.find((r) => !r.ok);
@@ -162,22 +175,43 @@ export function LoanOffersView() {
       <div className="space-y-8">
         {loanTypes.map((type) => {
           const banks = banksByType[type.id] ?? [];
+          const expanded = expandedTypeIds.has(type.id);
+          const visibleBanks = banksForDisplay(banks, expanded);
           return (
             <section key={type.id}>
               <h2 className="font-heading text-xl font-semibold text-text-primary">
                 {type.label}
               </h2>
+              <p className="mt-1 text-xs text-text-secondary">{formatLastUpdated(type.last_updated_at)}</p>
               {banks.length === 0 ? (
                 <p className="mt-3 text-sm text-text-secondary">
                   No participating banks for this loan type yet.
                 </p>
               ) : (
                 <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                  {banks.map((bank) => (
+                  {visibleBanks.map((bank) => (
                     <LoanOfferCard key={bank.id} bank={bank} />
                   ))}
                 </div>
               )}
+              {banks.length > BANK_PREVIEW_LIMIT ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="mt-4"
+                  aria-expanded={expanded}
+                  onClick={() => {
+                    setExpandedTypeIds((current) => {
+                      const next = new Set(current);
+                      if (expanded) next.delete(type.id);
+                      else next.add(type.id);
+                      return next;
+                    });
+                  }}
+                >
+                  {expanded ? "Show fewer lenders" : `Show all ${banks.length} lenders`}
+                </Button>
+              ) : null}
             </section>
           );
         })}

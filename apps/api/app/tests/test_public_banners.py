@@ -134,6 +134,9 @@ async def _seed_property(
             furnishing="furnished",
             construction_status="ready",
             rera_number="RERA/TS/2026/0042",
+            rera_applicability="applicable",
+            rera_verification_status="verified",
+            rera_verified_at=datetime.now(UTC),
         )
         db.add(property_listing)
         await db.flush()

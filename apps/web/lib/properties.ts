@@ -20,6 +20,7 @@ export type PropertySubtype = NonNullable<
   components["schemas"]["PublicPropertyRead"]["property_subtype"]
 >;
 export type PropertyMediaItem = components["schemas"]["PropertyMediaRead"];
+export type PropertyStructuredDetails = components["schemas"]["PublicPropertyRead"]["structured_details"];
 
 export type PropertyListing = {
   id: string;
@@ -38,7 +39,9 @@ export type PropertyListing = {
   /** Approved public images and equirectangular panoramas in display order. */
   media?: PropertyMediaItem[];
   /** RERA registration number, a statutory disclosure on the card. */
-  reraNumber?: string;
+  reraNumber?: string | null;
+  reraVerificationStatus?: components["schemas"]["ReraVerificationStatus"];
+  structuredDetails?: PropertyStructuredDetails;
 };
 
 const CATEGORY_COPY: Record<PropertyCategory, { label: string; blurb: string }> = {

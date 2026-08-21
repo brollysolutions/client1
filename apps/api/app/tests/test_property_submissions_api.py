@@ -26,6 +26,8 @@ from app.services import storage
 from app.services.media_processing import MalwareDetected
 from conftest import full_registration
 
+_PROJECT_AMENITIES = " ".join(["landscaped"] * 150)
+
 
 async def _auth_user_uuid(mobile: str) -> str:
     import app.db.session as _session_mod
@@ -69,11 +71,30 @@ _PAYLOAD = {
     "property_subtype": "standalone_apartment",
     "city": "Bengaluru",
     "locality": "Koramangala",
+    "state": "Karnataka",
     "pincode": "560095",
     "price_paise": 78_00_00_000,
+    "bhk": 2,
+    "area_sqft": 1200,
     "furnishing": "furnished",
     "construction_status": "ready",
+    "rera_applicability": "applicable",
     "rera_number": "RERA/RE/2026/00099",
+    "structured_details": {
+        "kind": "project_residence",
+        "project_name": "Green Meadows",
+        "project_area_acres": 4.5,
+        "number_of_towers": 3,
+        "total_units": 120,
+        "configurations": ["2_bhk", "3_bhk"],
+        "unit_or_plot_area_sqft": 1200,
+        "price_per_sqft_paise": 650_000,
+        "sale_type": "new_sale",
+        "plot_facing": "not_applicable",
+        "entrance_facing": "east",
+        "amenities_description": _PROJECT_AMENITIES,
+        "about_project": "A calm community with landscaped gardens and generous shared spaces.",
+    },
 }
 
 
@@ -117,6 +138,22 @@ def _payload_with_panorama(uid: str) -> dict:
         }
     )
     return payload
+
+
+async def _review_rera(
+    client: AsyncClient,
+    submission_id: str,
+    headers: dict[str, str],
+    *,
+    status: str = "verified",
+    note: str | None = None,
+) -> None:
+    response = await client.post(
+        f"/api/v1/property-submissions/{submission_id}/rera-review",
+        json={"status": status, "note": note},
+        headers=headers,
+    )
+    assert response.status_code == 200, response.text
 
 
 @pytest.fixture(autouse=True)
@@ -172,9 +209,11 @@ async def test_panorama_is_ready_and_published_with_approved_property(
     panorama = next(item for item in created.json()["media"] if item["kind"] == "panorama")
     assert panorama["processing_status"] == "ready"
 
+    admin_headers = {"Authorization": f"Bearer {_admin_token(uid)}"}
+    await _review_rera(client, created.json()["id"], admin_headers)
     approved = await client.post(
         f"/api/v1/property-submissions/{created.json()['id']}/approve",
-        headers={"Authorization": f"Bearer {_admin_token(uid)}"},
+        headers=admin_headers,
     )
     assert approved.status_code == 200, approved.text
     prop = await client.get(
@@ -352,12 +391,17 @@ async def test_owner_updates_and_withdraws_approved_listing(client: AsyncClient)
     created = await client.post(
         "/api/v1/property-submissions", json=_payload(uid), headers=agent_headers
     )
+    await _review_rera(client, created.json()["id"], admin_headers)
     approved = await client.post(
         f"/api/v1/property-submissions/{created.json()['id']}/approve", headers=admin_headers
     )
     property_id = approved.json()["approved_property_id"]
 
-    update_payload = {**_PAYLOAD, "title": "Updated 2BHK Apartment"}
+    update_payload = {
+        **_PAYLOAD,
+        "title": "Updated 2BHK Apartment",
+        "rera_number": "RERA/RE/2026/UPDATED",
+    }
     updated = await client.patch(
         f"/api/v1/property-submissions/{created.json()['id']}",
         json=update_payload,
@@ -367,9 +411,15 @@ async def test_owner_updates_and_withdraws_approved_listing(client: AsyncClient)
     assert updated.status_code == 200, updated.text
     assert updated.json()["status"] == "pending"
     assert updated.json()["title"] == "Updated 2BHK Apartment"
+    assert updated.json()["rera_verification_status"] == "not_reviewed"
     still_public = await client.get(f"/api/v1/properties/{property_id}", headers=admin_headers)
     assert still_public.json()["title"] == "2BHK Apartment"
 
+    await _review_rera(client, created.json()["id"], admin_headers)
+    still_awaiting_approval = await client.get(
+        f"/api/v1/properties/{property_id}", headers=admin_headers
+    )
+    assert still_awaiting_approval.json()["rera_number"] == "RERA/RE/2026/00099"
     reapproved = await client.post(
         f"/api/v1/property-submissions/{created.json()['id']}/approve", headers=admin_headers
     )
@@ -377,6 +427,7 @@ async def test_owner_updates_and_withdraws_approved_listing(client: AsyncClient)
     assert reapproved.json()["approved_property_id"] == property_id
     refreshed = await client.get(f"/api/v1/properties/{property_id}", headers=admin_headers)
     assert refreshed.json()["title"] == "Updated 2BHK Apartment"
+    assert refreshed.json()["rera_number"] == "RERA/RE/2026/UPDATED"
 
     withdrawn = await client.delete(
         f"/api/v1/property-submissions/{created.json()['id']}", headers=agent_headers
@@ -464,10 +515,18 @@ async def test_reviewer_approve_creates_property(client: AsyncClient) -> None:
         headers={"Authorization": f"Bearer {_agent_token(uid)}"},
     )
     sub_id = created.json()["id"]
+    admin_headers = {"Authorization": f"Bearer {_admin_token(uid)}"}
 
+    blocked = await client.post(
+        f"/api/v1/property-submissions/{sub_id}/approve",
+        headers=admin_headers,
+    )
+    assert blocked.status_code == 409
+
+    await _review_rera(client, sub_id, admin_headers)
     res = await client.post(
         f"/api/v1/property-submissions/{sub_id}/approve",
-        headers={"Authorization": f"Bearer {_admin_token(uid)}"},
+        headers=admin_headers,
     )
     assert res.status_code == 200, res.text
     body = res.json()
@@ -484,6 +543,65 @@ async def test_reviewer_approve_creates_property(client: AsyncClient) -> None:
     assert prop.json()["property_subtype"] == "standalone_apartment"
     assert len(prop.json()["media_urls"]) == 1
     assert "/public/properties/" in prop.json()["media_urls"][0]
+
+
+@pytest.mark.asyncio
+async def test_rera_review_is_admin_only_and_validates_exemption(client: AsyncClient) -> None:
+    _, mobile = await full_registration(client, lines=["real_estate"])
+    uid = await _auth_user_uuid(mobile)
+    payload = _payload(uid)
+    payload["rera_applicability"] = "exemption_claimed"
+    payload["rera_number"] = None
+    created = await client.post(
+        "/api/v1/property-submissions",
+        json=payload,
+        headers={"Authorization": f"Bearer {_agent_token(uid)}"},
+    )
+    submission_id = created.json()["id"]
+
+    forbidden = await client.post(
+        f"/api/v1/property-submissions/{submission_id}/rera-review",
+        json={"status": "exemption_verified", "note": "Registry exemption reviewed."},
+        headers={"Authorization": f"Bearer {_agent_token(uid)}"},
+    )
+    assert forbidden.status_code == 403
+
+    incompatible = await client.post(
+        f"/api/v1/property-submissions/{submission_id}/rera-review",
+        json={"status": "verified", "note": None},
+        headers={"Authorization": f"Bearer {_admin_token(uid)}"},
+    )
+    assert incompatible.status_code == 409
+
+    reviewed = await client.post(
+        f"/api/v1/property-submissions/{submission_id}/rera-review",
+        json={"status": "exemption_verified", "note": "Registry exemption reviewed."},
+        headers={"Authorization": f"Bearer {_admin_token(uid)}"},
+    )
+    assert reviewed.status_code == 200, reviewed.text
+    assert reviewed.json()["rera_number"] is None
+    assert reviewed.json()["rera_verification_status"] == "exemption_verified"
+    assert "rera_review_note" not in reviewed.json()
+    assert "rera_verified_by_uuid" not in reviewed.json()
+
+    approved = await client.post(
+        f"/api/v1/property-submissions/{submission_id}/approve",
+        headers={"Authorization": f"Bearer {_admin_token(uid)}"},
+    )
+    assert approved.status_code == 200, approved.text
+
+    mismatch = await client.post(
+        f"/api/v1/property-submissions/{submission_id}/rera-review",
+        json={"status": "mismatch", "note": "Registry status changed after publication."},
+        headers={"Authorization": f"Bearer {_admin_token(uid)}"},
+    )
+    assert mismatch.status_code == 200, mismatch.text
+    property_response = await client.get(
+        f"/api/v1/properties/{approved.json()['approved_property_id']}",
+        headers={"Authorization": f"Bearer {_admin_token(uid)}"},
+    )
+    assert property_response.status_code == 200, property_response.text
+    assert property_response.json()["active"] is False
 
 
 @pytest.mark.asyncio
@@ -505,9 +623,11 @@ async def test_reviewer_approve_preserves_legacy_image_without_managed_media(
         await session.commit()
         submission_id = submission.id
 
+    admin_headers = {"Authorization": f"Bearer {_admin_token(uid)}"}
+    await _review_rera(client, str(submission_id), admin_headers)
     response = await client.post(
         f"/api/v1/property-submissions/{submission_id}/approve",
-        headers={"Authorization": f"Bearer {_admin_token(uid)}"},
+        headers=admin_headers,
     )
 
     assert response.status_code == 200, response.text
@@ -531,6 +651,7 @@ async def test_double_approve_conflicts(client: AsyncClient) -> None:
     )
     sub_id = created.json()["id"]
     headers = {"Authorization": f"Bearer {_admin_token(uid)}"}
+    await _review_rera(client, sub_id, headers)
     await client.post(f"/api/v1/property-submissions/{sub_id}/approve", headers=headers)
     second = await client.post(f"/api/v1/property-submissions/{sub_id}/approve", headers=headers)
     assert second.status_code == 409
@@ -733,6 +854,7 @@ async def test_reviewer_accesses_public_media_copy_after_approved_edit(
         "/api/v1/property-submissions", json=_payload(uid), headers=agent_headers
     )
     body = created.json()
+    await _review_rera(client, body["id"], admin_headers)
     approved = await client.post(
         f"/api/v1/property-submissions/{body['id']}/approve", headers=admin_headers
     )
@@ -799,9 +921,11 @@ async def test_approval_revalidates_reviewer_only_document_before_copy(
         lambda _source, destination, _ct: copied.append(destination),
     )
 
+    admin_headers = {"Authorization": f"Bearer {_admin_token(uid)}"}
+    await _review_rera(client, created.json()["id"], admin_headers)
     res = await client.post(
         f"/api/v1/property-submissions/{created.json()['id']}/approve",
-        headers={"Authorization": f"Bearer {_admin_token(uid)}"},
+        headers=admin_headers,
     )
 
     assert res.status_code == 409, res.text
@@ -836,9 +960,11 @@ async def test_approval_cleans_unverified_public_copy_and_stays_pending(
     deleted: list[str] = []
     monkeypatch.setattr(storage, "delete_object", deleted.append)
 
+    admin_headers = {"Authorization": f"Bearer {_admin_token(uid)}"}
+    await _review_rera(client, created.json()["id"], admin_headers)
     response = await client.post(
         f"/api/v1/property-submissions/{created.json()['id']}/approve",
-        headers={"Authorization": f"Bearer {_admin_token(uid)}"},
+        headers=admin_headers,
     )
 
     assert response.status_code == 502, response.text
@@ -889,6 +1015,7 @@ async def test_media_lifecycle_retains_references_and_purges_expired_objects(
 
     approved_payload = _payload_with_document(uid)
     approved = await create(approved_payload)
+    await _review_rera(client, approved["id"], admin_headers)
     approved_response = await client.post(
         f"/api/v1/property-submissions/{approved['id']}/approve",
         headers=admin_headers,
@@ -897,6 +1024,7 @@ async def test_media_lifecycle_retains_references_and_purges_expired_objects(
 
     inactive_payload = _payload(uid)
     inactive = await create(inactive_payload)
+    await _review_rera(client, inactive["id"], admin_headers)
     inactive_response = await client.post(
         f"/api/v1/property-submissions/{inactive['id']}/approve",
         headers=admin_headers,

@@ -9,6 +9,36 @@ Evidence baseline: `abcc1fd`
 verified Admin operational-visibility work in
 [PR #173](https://github.com/brollysolutions/client1/pull/173).
 
+**Done — property-specific listing forms, RERA review, and catalogue freshness
+(PR pending; FR-7.3 and FR-6.2-FR-6.4 follow-up; completion coverage unchanged):**
+new property intake now uses versioned, subtype-specific schemas while
+preserving existing authoring roles, Admin-only approval, last-approved
+publication, managed media, and historical rows. Project Residence amenities
+require 150–500 words. RERA Registration Number is optional at intake;
+applicant applicability claims and Admin verification are distinct, only
+reviewed applicable/exempt listings may publish, and a post-publication mismatch
+deactivates the catalogue row. Public narratives are bounded plain text with
+server-side digit/contact/link rejection. Financial Product and lender
+freshness derives from Admin-managed records and availability changes and is
+shown on both Admin and Client dashboards. No lender data is seeded, hardcoded,
+scraped, or synchronized externally, and no KYC field was added.
+
+Fresh evidence: the additive migration passes fresh-database upgrade,
+downgrade, and re-upgrade and Alembic reports one head `a7b8c9d0e1f2`; 183
+focused PostgreSQL tests pass with four unrelated sponsor-cap cases explicitly
+deselected. The full API suite completed 1,741 passes and 13 failures; three
+feature-owned home-queue failures caused by two stale fixtures were fixed and
+rerun green, leaving 10 unrelated baseline/shared-state failures. API
+Ruff/format, seven feature-
+tracking tests, eleven migration/RLS tests, the tracking co-change guard, web
+lint/typecheck, all 366 web tests, regenerated contracts, and a Linux production
+image containing all 93 pages pass. Connected Playwright author, Admin review,
+public disclosure, mobile layout, and freshness journeys pass. The broad browser
+suite is 8/17: six failures exhaust the suite's own network OTP limit and three
+are stale/cold-route expectations. Security, design, and maintainer review found
+no remaining actionable feature defect. Completion remains **99.4%**; next
+priority returns to FR-2.2 controlled correction/audit.
+
 **Done — property listing authority, owner CRUD, and managed 360 panorama
 ([PR #210](https://github.com/brollysolutions/client1/pull/210);
 FR-7.3 and FR-13.1 through FR-13.4; completion coverage unchanged):** Clients

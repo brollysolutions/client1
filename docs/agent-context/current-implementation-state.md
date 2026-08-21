@@ -454,6 +454,30 @@ Source and approved interpretation:
 
 - [`configurable-financial-product-forms-2026-08-21.md`](configurable-financial-product-forms-2026-08-21.md)
 
+### CS-015 — Property-specific listing forms and verified catalogue freshness
+
+**Decision (2026-08-21):** New property intake uses professionally ordered,
+code-defined subtype schemas instead of arbitrary detail rows. RERA Registration
+Number is optional at intake; applicability and platform-Admin verification are
+separate states, and a submitted number alone never produces a verified badge.
+Public About/other narrative is bounded plain text and rejects digits, contact
+details, and links. Financial Product and lender details expose server-derived
+last-updated dates, including relevant Admin availability changes, without
+hardcoded lender data or external scraping.
+
+**Implementation status:** Done on
+`feat/configurable-financial-application-forms` (PR pending). Role, ownership,
+media, publication, RLS, audit, retention, historical-record, and Admin-managed
+lender boundaries remain unchanged. Fresh evidence includes 183 focused
+PostgreSQL passes, migration round-trip and one head, API Ruff/format, all 366
+web tests plus lint/typecheck, a 93-page Linux production image, and connected
+author/review/public/freshness browser journeys. The full API and browser-suite
+baseline limitations are recorded in `feature-status.md`.
+
+Source and approved interpretation:
+
+- [`property-specific-listing-forms-2026-08-21.md`](property-specific-listing-forms-2026-08-21.md)
+
 ## 3. Previously open items settled by current behavior
 
 The following entries may still be labelled “open,” “assumed,” or “pending” in

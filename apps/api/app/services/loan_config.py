@@ -370,6 +370,7 @@ async def set_bank_availability(
                 "updated_by_uuid": stmt.excluded.updated_by_uuid,
                 "updated_at": func.now(),
             },
+            where=BankLoanTypeAvailability.available.is_distinct_from(stmt.excluded.available),
         )
         try:
             await db.execute(stmt)

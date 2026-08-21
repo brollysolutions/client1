@@ -111,7 +111,7 @@ export function LoanProgressForm({
     payload: LoanProgressUpdatePayload,
   ) => Promise<ApiResponse<unknown>>;
 }) {
-  const [banks, setBanks] = React.useState<Bank[]>([]);
+  const [banks, setBanks] = React.useState<Pick<Bank, "id" | "name">[]>([]);
   const [status, setStatus] = React.useState<LoanStatusValue | "">("");
   const [reason, setReason] = React.useState("");
   const [amountSanctioned, setAmountSanctioned] = React.useState(

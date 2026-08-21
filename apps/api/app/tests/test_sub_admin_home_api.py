@@ -105,18 +105,39 @@ async def test_other_sub_admins_pending_banner_not_in_my_queue(client: AsyncClie
     assert banner_id not in pending_ids
 
 
+_PROJECT_AMENITIES = " ".join(["landscaped"] * 150)
+
 _SUBMISSION_PAYLOAD = {
     "title": "Home-queue submission",
     "type": "Apartment",
     "location": "Koramangala, Bengaluru",
     "category": "apartments",
+    "property_subtype": "standalone_apartment",
     "city": "Bengaluru",
     "locality": "Koramangala",
+    "state": "Karnataka",
     "pincode": "560095",
     "price_paise": 78_00_00_000,
+    "area_sqft": 1200,
     "furnishing": "furnished",
     "construction_status": "ready",
+    "rera_applicability": "applicable",
     "rera_number": "RERA/RE/2026/00099",
+    "structured_details": {
+        "kind": "project_residence",
+        "project_name": "Sub Admin Home Residences",
+        "project_area_acres": 4.5,
+        "number_of_towers": 3,
+        "total_units": 120,
+        "configurations": ["2_bhk", "3_bhk"],
+        "unit_or_plot_area_sqft": 1200,
+        "price_per_sqft_paise": 650_000,
+        "sale_type": "new_sale",
+        "plot_facing": "not_applicable",
+        "entrance_facing": "east",
+        "amenities_description": _PROJECT_AMENITIES,
+        "about_project": "A calm community with landscaped gardens and generous shared spaces.",
+    },
 }
 
 

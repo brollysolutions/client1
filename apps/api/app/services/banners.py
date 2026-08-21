@@ -34,7 +34,7 @@ from app.db.session import AsyncSessionLocal
 from app.models.audit_log import AuditAction
 from app.models.banner import Banner, BannerPlacement, BannerStatus, BannerTemplate
 from app.models.offer import Offer, OfferStatus
-from app.models.property import Property
+from app.models.property import Property, ReraVerificationStatus
 from app.schemas.banners import BannerTemplateCreate
 from app.schemas.personalization import AudienceRules, audience_rules_valid_for_banner
 from app.services import media_processing, storage
@@ -121,7 +121,11 @@ async def validate_banner_configuration(
     if property_id is not None and (
         property_listing is None
         or not property_listing.active
-        or not property_listing.rera_number.strip()
+        or property_listing.rera_verification_status
+        not in {
+            ReraVerificationStatus.VERIFIED,
+            ReraVerificationStatus.EXEMPTION_VERIFIED,
+        }
         or business_line not in ("real_estate", "both")
         or not property_category_matches_campaign(
             placement,

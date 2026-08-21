@@ -2,8 +2,8 @@
 
 Enums are imported from the model so the values are a single source of truth
 and land in the OpenAPI contract (the frontend consumes them as typed unions).
-No Create/Update schema this slice: listings are seeded/admin-managed, and the
-public API is read-only.
+Authoring uses the separate submission schemas; this module keeps the
+authenticated and anonymous read surfaces explicit.
 """
 
 from __future__ import annotations
@@ -14,7 +14,15 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field
 
-from app.models.property import ConstructionStatus, Furnishing, PropertyCategory, PropertySubtype
+from app.models.property import (
+    ConstructionStatus,
+    Furnishing,
+    PropertyCategory,
+    PropertySubtype,
+    ReraApplicability,
+    ReraVerificationStatus,
+)
+from app.schemas.property_details import PropertyStructuredDetails
 
 
 class PropertyMediaRead(BaseModel):
@@ -38,14 +46,18 @@ class PropertyRead(BaseModel):
     property_subtype: PropertySubtype | None
     city: str
     locality: str
+    state: str | None
     pincode: str
     bhk: int
     area_sqft: int
-    furnishing: Furnishing
-    construction_status: ConstructionStatus
+    furnishing: Furnishing | None
+    construction_status: ConstructionStatus | None
     amenities: list[str]
     age_years: int
-    rera_number: str
+    rera_applicability: ReraApplicability
+    rera_number: str | None
+    rera_verification_status: ReraVerificationStatus
+    structured_details: PropertyStructuredDetails | None
     active: bool
     created_at: datetime
 
@@ -67,9 +79,8 @@ class PublicPropertyRead(BaseModel):
     Excludes the dashboard's entire filter-facet vocabulary (price_paise, bhk,
     area_sqft, furnishing, construction_status, amenities, age_years, pincode,
     city, locality) and internal metadata (active, created_at). `rera_number`
-    is deliberately included: RERA registration is a statutory disclosure on
-    any advertisement of a registered project, and a public listing page is
-    one.
+    is included only after Admin verification; exemption-verified listings have
+    no public registration number.
     """
 
     id: UUID
@@ -83,7 +94,9 @@ class PublicPropertyRead(BaseModel):
     media: list[PropertyMediaRead] = Field(default_factory=list)
     category: PropertyCategory
     property_subtype: PropertySubtype | None
-    rera_number: str
+    rera_number: str | None
+    rera_verification_status: ReraVerificationStatus
+    structured_details: PropertyStructuredDetails | None
 
 
 class PublicPropertyListResponse(BaseModel):

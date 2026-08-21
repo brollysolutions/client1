@@ -3213,6 +3213,99 @@
         "title": "AgentsSummary",
         "type": "object"
       },
+      "AgriculturalLandDetails": {
+        "additionalProperties": false,
+        "properties": {
+          "facilities": {
+            "items": {
+              "maxLength": 80,
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 30,
+            "title": "Facilities",
+            "type": "array"
+          },
+          "kind": {
+            "const": "agricultural_land",
+            "default": "agricultural_land",
+            "title": "Kind",
+            "type": "string"
+          },
+          "land_area": {
+            "exclusiveMinimum": 0.0,
+            "maximum": 100000.0,
+            "title": "Land Area",
+            "type": "number"
+          },
+          "land_area_unit": {
+            "$ref": "#/components/schemas/LandAreaUnit"
+          },
+          "land_type": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Land Type",
+            "type": "string"
+          },
+          "ongoing_loan_status": {
+            "$ref": "#/components/schemas/YesNoUnknown"
+          },
+          "other_information": {
+            "anyOf": [
+              {
+                "maxLength": 3000,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Other Information"
+          },
+          "registration_district": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Registration District",
+            "type": "string"
+          },
+          "rythu_bandhu_status": {
+            "$ref": "#/components/schemas/YesNoUnknown"
+          },
+          "sub_registrar_office": {
+            "maxLength": 160,
+            "minLength": 1,
+            "title": "Sub Registrar Office",
+            "type": "string"
+          },
+          "survey_number": {
+            "maxLength": 120,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9/ ._-]+$",
+            "title": "Survey Number",
+            "type": "string"
+          },
+          "title_details": {
+            "maxLength": 300,
+            "minLength": 1,
+            "title": "Title Details",
+            "type": "string"
+          }
+        },
+        "required": [
+          "land_area",
+          "land_area_unit",
+          "title_details",
+          "ongoing_loan_status",
+          "land_type",
+          "survey_number",
+          "rythu_bandhu_status",
+          "registration_district",
+          "sub_registrar_office"
+        ],
+        "title": "AgriculturalLandDetails",
+        "type": "object"
+      },
       "AudienceLocationCircle": {
         "additionalProperties": false,
         "properties": {
@@ -3828,6 +3921,11 @@
             "title": "Id",
             "type": "string"
           },
+          "last_updated_at": {
+            "format": "date-time",
+            "title": "Last Updated At",
+            "type": "string"
+          },
           "name": {
             "title": "Name",
             "type": "string"
@@ -3835,7 +3933,8 @@
         },
         "required": [
           "id",
-          "name"
+          "name",
+          "last_updated_at"
         ],
         "title": "BankRead",
         "type": "object"
@@ -4894,6 +4993,114 @@
           "customer_code"
         ],
         "title": "ClientProfileSummary",
+        "type": "object"
+      },
+      "CommercialOwnership": {
+        "enum": [
+          "individual",
+          "entity"
+        ],
+        "title": "CommercialOwnership",
+        "type": "string"
+      },
+      "CommercialPropertyDetails": {
+        "additionalProperties": false,
+        "properties": {
+          "about_property": {
+            "maxLength": 3000,
+            "minLength": 1,
+            "title": "About Property",
+            "type": "string"
+          },
+          "amenities_description": {
+            "anyOf": [
+              {
+                "maxLength": 2000,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Amenities Description"
+          },
+          "facing": {
+            "$ref": "#/components/schemas/Facing"
+          },
+          "kind": {
+            "const": "commercial_property",
+            "default": "commercial_property",
+            "title": "Kind",
+            "type": "string"
+          },
+          "local_approval": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LocalApproval"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "monthly_rental_income_paise": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Monthly Rental Income Paise"
+          },
+          "other_information": {
+            "anyOf": [
+              {
+                "maxLength": 3000,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Other Information"
+          },
+          "ownership_type": {
+            "$ref": "#/components/schemas/CommercialOwnership"
+          },
+          "rental_income_start": {
+            "$ref": "#/components/schemas/RentalIncomeStart"
+          },
+          "sale_type": {
+            "$ref": "#/components/schemas/SaleType"
+          },
+          "total_area_sqft": {
+            "exclusiveMinimum": 0.0,
+            "maximum": 100000000.0,
+            "title": "Total Area Sqft",
+            "type": "integer"
+          },
+          "unit_area_sqft": {
+            "exclusiveMinimum": 0.0,
+            "maximum": 100000000.0,
+            "title": "Unit Area Sqft",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "ownership_type",
+          "total_area_sqft",
+          "unit_area_sqft",
+          "facing",
+          "sale_type",
+          "rental_income_start",
+          "about_property"
+        ],
+        "title": "CommercialPropertyDetails",
         "type": "object"
       },
       "CommissionCancelRequest": {
@@ -6175,6 +6382,17 @@
         "title": "EnquiryStatus",
         "type": "string"
       },
+      "Facing": {
+        "enum": [
+          "east",
+          "west",
+          "north",
+          "south",
+          "not_applicable"
+        ],
+        "title": "Facing",
+        "type": "string"
+      },
       "FeeCashbackCancelRequest": {
         "properties": {
           "reason": {
@@ -6951,6 +7169,90 @@
         "title": "HTTPValidationError",
         "type": "object"
       },
+      "IndividualPropertyDetails": {
+        "additionalProperties": false,
+        "properties": {
+          "about_property": {
+            "maxLength": 3000,
+            "minLength": 1,
+            "title": "About Property",
+            "type": "string"
+          },
+          "built_up_area_sqft": {
+            "exclusiveMinimum": 0.0,
+            "maximum": 10000000.0,
+            "title": "Built Up Area Sqft",
+            "type": "integer"
+          },
+          "facing": {
+            "$ref": "#/components/schemas/Facing"
+          },
+          "kind": {
+            "const": "individual_property",
+            "default": "individual_property",
+            "title": "Kind",
+            "type": "string"
+          },
+          "land_area_unit": {
+            "$ref": "#/components/schemas/SiteAreaUnit"
+          },
+          "monthly_rental_income_paise": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Monthly Rental Income Paise"
+          },
+          "number_of_floors": {
+            "maximum": 200.0,
+            "minimum": 1.0,
+            "title": "Number Of Floors",
+            "type": "integer"
+          },
+          "ongoing_loan_status": {
+            "$ref": "#/components/schemas/YesNoUnknown"
+          },
+          "other_information": {
+            "anyOf": [
+              {
+                "maxLength": 3000,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Other Information"
+          },
+          "property_use": {
+            "$ref": "#/components/schemas/PropertyUse"
+          },
+          "total_land_area": {
+            "exclusiveMinimum": 0.0,
+            "maximum": 100000000.0,
+            "title": "Total Land Area",
+            "type": "number"
+          }
+        },
+        "required": [
+          "property_use",
+          "total_land_area",
+          "land_area_unit",
+          "built_up_area_sqft",
+          "number_of_floors",
+          "facing",
+          "ongoing_loan_status",
+          "about_property"
+        ],
+        "title": "IndividualPropertyDetails",
+        "type": "object"
+      },
       "InterestLevel": {
         "enum": [
           "hot",
@@ -6958,6 +7260,14 @@
           "cold"
         ],
         "title": "InterestLevel",
+        "type": "string"
+      },
+      "LandAreaUnit": {
+        "enum": [
+          "acres",
+          "guntas"
+        ],
+        "title": "LandAreaUnit",
         "type": "string"
       },
       "LeadActivityCreate": {
@@ -8109,6 +8419,11 @@
             "title": "Label",
             "type": "string"
           },
+          "last_updated_at": {
+            "format": "date-time",
+            "title": "Last Updated At",
+            "type": "string"
+          },
           "name": {
             "title": "Name",
             "type": "string"
@@ -8121,7 +8436,8 @@
           "category",
           "display_order",
           "form_version",
-          "form_schema"
+          "form_schema",
+          "last_updated_at"
         ],
         "title": "LoanTypeRead",
         "type": "object"
@@ -8254,6 +8570,34 @@
           "converted"
         ],
         "title": "LoansReportRow",
+        "type": "object"
+      },
+      "LocalApproval": {
+        "additionalProperties": false,
+        "properties": {
+          "authority": {
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Authority",
+            "type": "string"
+          },
+          "reference_number": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reference Number"
+          }
+        },
+        "required": [
+          "authority"
+        ],
+        "title": "LocalApproval",
         "type": "object"
       },
       "LocationCaptureRequest": {
@@ -10087,6 +10431,118 @@
         "title": "PersonalizationPreferenceUpdate",
         "type": "object"
       },
+      "PlotDetails": {
+        "additionalProperties": false,
+        "properties": {
+          "about_project": {
+            "maxLength": 5000,
+            "minLength": 1,
+            "title": "About Project",
+            "type": "string"
+          },
+          "amenities_description": {
+            "anyOf": [
+              {
+                "maxLength": 2000,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Amenities Description"
+          },
+          "facing": {
+            "$ref": "#/components/schemas/Facing"
+          },
+          "kind": {
+            "const": "plot",
+            "default": "plot",
+            "title": "Kind",
+            "type": "string"
+          },
+          "local_approval": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LocalApproval"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "other_information": {
+            "anyOf": [
+              {
+                "maxLength": 3000,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Other Information"
+          },
+          "plot_size_sqyd": {
+            "exclusiveMinimum": 0.0,
+            "maximum": 10000000.0,
+            "title": "Plot Size Sqyd",
+            "type": "integer"
+          },
+          "price_per_sqyd_paise": {
+            "exclusiveMinimum": 0.0,
+            "title": "Price Per Sqyd Paise",
+            "type": "integer"
+          },
+          "project_name": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Project Name",
+            "type": "string"
+          },
+          "project_status": {
+            "$ref": "#/components/schemas/PlotProjectStatus"
+          },
+          "sale_type": {
+            "$ref": "#/components/schemas/SaleType"
+          },
+          "total_plots": {
+            "maximum": 100000.0,
+            "minimum": 1.0,
+            "title": "Total Plots",
+            "type": "integer"
+          },
+          "total_project_area_acres": {
+            "exclusiveMinimum": 0.0,
+            "maximum": 100000.0,
+            "title": "Total Project Area Acres",
+            "type": "number"
+          }
+        },
+        "required": [
+          "project_name",
+          "total_project_area_acres",
+          "plot_size_sqyd",
+          "total_plots",
+          "facing",
+          "price_per_sqyd_paise",
+          "sale_type",
+          "project_status",
+          "about_project"
+        ],
+        "title": "PlotDetails",
+        "type": "object"
+      },
+      "PlotProjectStatus": {
+        "enum": [
+          "under_development",
+          "completed"
+        ],
+        "title": "PlotProjectStatus",
+        "type": "string"
+      },
       "ProductCategory": {
         "enum": [
           "loan",
@@ -10112,6 +10568,133 @@
           "sections"
         ],
         "title": "ProductFormDefinition",
+        "type": "object"
+      },
+      "ProjectResidenceDetails": {
+        "additionalProperties": false,
+        "properties": {
+          "about_project": {
+            "maxLength": 5000,
+            "minLength": 1,
+            "title": "About Project",
+            "type": "string"
+          },
+          "amenities_description": {
+            "maxLength": 5000,
+            "minLength": 1,
+            "title": "Amenities Description",
+            "type": "string"
+          },
+          "configurations": {
+            "items": {
+              "$ref": "#/components/schemas/ResidentialConfiguration"
+            },
+            "maxItems": 6,
+            "minItems": 1,
+            "title": "Configurations",
+            "type": "array"
+          },
+          "entrance_facing": {
+            "$ref": "#/components/schemas/Facing",
+            "default": "not_applicable"
+          },
+          "expected_handover_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expected Handover Date"
+          },
+          "kind": {
+            "const": "project_residence",
+            "default": "project_residence",
+            "title": "Kind",
+            "type": "string"
+          },
+          "local_approval": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LocalApproval"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "number_of_towers": {
+            "maximum": 1000.0,
+            "minimum": 1.0,
+            "title": "Number Of Towers",
+            "type": "integer"
+          },
+          "plot_facing": {
+            "$ref": "#/components/schemas/Facing",
+            "default": "not_applicable"
+          },
+          "price_per_sqft_paise": {
+            "exclusiveMinimum": 0.0,
+            "title": "Price Per Sqft Paise",
+            "type": "integer"
+          },
+          "project_area_acres": {
+            "exclusiveMinimum": 0.0,
+            "maximum": 100000.0,
+            "title": "Project Area Acres",
+            "type": "number"
+          },
+          "project_name": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Project Name",
+            "type": "string"
+          },
+          "sale_type": {
+            "$ref": "#/components/schemas/SaleType"
+          },
+          "total_units": {
+            "maximum": 100000.0,
+            "minimum": 1.0,
+            "title": "Total Units",
+            "type": "integer"
+          },
+          "uds_sqft": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "maximum": 10000000.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Uds Sqft"
+          },
+          "unit_or_plot_area_sqft": {
+            "exclusiveMinimum": 0.0,
+            "maximum": 10000000.0,
+            "title": "Unit Or Plot Area Sqft",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "project_name",
+          "project_area_acres",
+          "number_of_towers",
+          "total_units",
+          "configurations",
+          "unit_or_plot_area_sqft",
+          "price_per_sqft_paise",
+          "sale_type",
+          "amenities_description",
+          "about_project"
+        ],
+        "title": "ProjectResidenceDetails",
         "type": "object"
       },
       "PropertyCategory": {
@@ -10479,7 +11062,14 @@
             "type": "string"
           },
           "construction_status": {
-            "$ref": "#/components/schemas/ConstructionStatus"
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ConstructionStatus"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "created_at": {
             "format": "date-time",
@@ -10487,7 +11077,14 @@
             "type": "string"
           },
           "furnishing": {
-            "$ref": "#/components/schemas/Furnishing"
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Furnishing"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "id": {
             "format": "uuid",
@@ -10560,9 +11157,70 @@
               }
             ]
           },
+          "rera_applicability": {
+            "$ref": "#/components/schemas/ReraApplicability"
+          },
           "rera_number": {
-            "title": "Rera Number",
-            "type": "string"
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rera Number"
+          },
+          "rera_verification_status": {
+            "$ref": "#/components/schemas/ReraVerificationStatus"
+          },
+          "state": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "State"
+          },
+          "structured_details": {
+            "anyOf": [
+              {
+                "discriminator": {
+                  "mapping": {
+                    "agricultural_land": "#/components/schemas/AgriculturalLandDetails",
+                    "commercial_property": "#/components/schemas/CommercialPropertyDetails",
+                    "individual_property": "#/components/schemas/IndividualPropertyDetails",
+                    "plot": "#/components/schemas/PlotDetails",
+                    "project_residence": "#/components/schemas/ProjectResidenceDetails"
+                  },
+                  "propertyName": "kind"
+                },
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/ProjectResidenceDetails"
+                  },
+                  {
+                    "$ref": "#/components/schemas/IndividualPropertyDetails"
+                  },
+                  {
+                    "$ref": "#/components/schemas/CommercialPropertyDetails"
+                  },
+                  {
+                    "$ref": "#/components/schemas/PlotDetails"
+                  },
+                  {
+                    "$ref": "#/components/schemas/AgriculturalLandDetails"
+                  }
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Structured Details"
           },
           "title": {
             "title": "Title",
@@ -10586,6 +11244,7 @@
           "property_subtype",
           "city",
           "locality",
+          "state",
           "pincode",
           "bhk",
           "area_sqft",
@@ -10593,7 +11252,10 @@
           "construction_status",
           "amenities",
           "age_years",
+          "rera_applicability",
           "rera_number",
+          "rera_verification_status",
+          "structured_details",
           "active",
           "created_at"
         ],
@@ -10613,6 +11275,14 @@
           "agriland"
         ],
         "title": "PropertySubtype",
+        "type": "string"
+      },
+      "PropertyUse": {
+        "enum": [
+          "residential",
+          "residential_commercial"
+        ],
+        "title": "PropertyUse",
         "type": "string"
       },
       "PublicBannerListResponse": {
@@ -10984,7 +11654,7 @@
         "type": "object"
       },
       "PublicPropertyRead": {
-        "description": "Anonymous-read shape (docs/specs/public-property-catalog.md).\n\nDeliberately NOT PropertyRead: a separate schema means a future sensitive\ncolumn added to the authenticated read can never silently surface here.\nExcludes the dashboard's entire filter-facet vocabulary (price_paise, bhk,\narea_sqft, furnishing, construction_status, amenities, age_years, pincode,\ncity, locality) and internal metadata (active, created_at). `rera_number`\nis deliberately included: RERA registration is a statutory disclosure on\nany advertisement of a registered project, and a public listing page is\none.",
+        "description": "Anonymous-read shape (docs/specs/public-property-catalog.md).\n\nDeliberately NOT PropertyRead: a separate schema means a future sensitive\ncolumn added to the authenticated read can never silently surface here.\nExcludes the dashboard's entire filter-facet vocabulary (price_paise, bhk,\narea_sqft, furnishing, construction_status, amenities, age_years, pincode,\ncity, locality) and internal metadata (active, created_at). `rera_number`\nis included only after Admin verification; exemption-verified listings have\nno public registration number.",
         "properties": {
           "category": {
             "$ref": "#/components/schemas/PropertyCategory"
@@ -11049,8 +11719,55 @@
             ]
           },
           "rera_number": {
-            "title": "Rera Number",
-            "type": "string"
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rera Number"
+          },
+          "rera_verification_status": {
+            "$ref": "#/components/schemas/ReraVerificationStatus"
+          },
+          "structured_details": {
+            "anyOf": [
+              {
+                "discriminator": {
+                  "mapping": {
+                    "agricultural_land": "#/components/schemas/AgriculturalLandDetails",
+                    "commercial_property": "#/components/schemas/CommercialPropertyDetails",
+                    "individual_property": "#/components/schemas/IndividualPropertyDetails",
+                    "plot": "#/components/schemas/PlotDetails",
+                    "project_residence": "#/components/schemas/ProjectResidenceDetails"
+                  },
+                  "propertyName": "kind"
+                },
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/ProjectResidenceDetails"
+                  },
+                  {
+                    "$ref": "#/components/schemas/IndividualPropertyDetails"
+                  },
+                  {
+                    "$ref": "#/components/schemas/CommercialPropertyDetails"
+                  },
+                  {
+                    "$ref": "#/components/schemas/PlotDetails"
+                  },
+                  {
+                    "$ref": "#/components/schemas/AgriculturalLandDetails"
+                  }
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Structured Details"
           },
           "title": {
             "title": "Title",
@@ -11071,7 +11788,9 @@
           "image",
           "category",
           "property_subtype",
-          "rera_number"
+          "rera_number",
+          "rera_verification_status",
+          "structured_details"
         ],
         "title": "PublicPropertyRead",
         "type": "object"
@@ -11656,6 +12375,15 @@
         "title": "RejectRequest",
         "type": "object"
       },
+      "RentalIncomeStart": {
+        "enum": [
+          "immediate",
+          "from_handover",
+          "not_applicable"
+        ],
+        "title": "RentalIncomeStart",
+        "type": "string"
+      },
       "ReportSummary": {
         "description": "Aggregate over the entire filtered set, ignoring `limit`/`offset` --\nwhat the stat tiles render, always in sync with the table's true totals\neven when the table itself is paginated.",
         "properties": {
@@ -11674,6 +12402,49 @@
         ],
         "title": "ReportSummary",
         "type": "object"
+      },
+      "ReraApplicability": {
+        "enum": [
+          "applicable",
+          "exemption_claimed",
+          "unsure"
+        ],
+        "title": "ReraApplicability",
+        "type": "string"
+      },
+      "ReraReviewRequest": {
+        "properties": {
+          "note": {
+            "anyOf": [
+              {
+                "maxLength": 1000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ReraVerificationStatus"
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "title": "ReraReviewRequest",
+        "type": "object"
+      },
+      "ReraVerificationStatus": {
+        "enum": [
+          "not_reviewed",
+          "verified",
+          "mismatch",
+          "exemption_verified"
+        ],
+        "title": "ReraVerificationStatus",
+        "type": "string"
       },
       "ResendOtpRequest": {
         "properties": {
@@ -11775,6 +12546,26 @@
         "title": "ResetTokenResponse",
         "type": "object"
       },
+      "ResidentialConfiguration": {
+        "enum": [
+          "1_bhk",
+          "2_bhk",
+          "3_bhk",
+          "4_bhk",
+          "5_plus_bhk",
+          "studio"
+        ],
+        "title": "ResidentialConfiguration",
+        "type": "string"
+      },
+      "SaleType": {
+        "enum": [
+          "new_sale",
+          "resale"
+        ],
+        "title": "SaleType",
+        "type": "string"
+      },
       "SetPasswordRequest": {
         "properties": {
           "confirm_password": {
@@ -11799,6 +12590,14 @@
         ],
         "title": "SetPasswordRequest",
         "type": "object"
+      },
+      "SiteAreaUnit": {
+        "enum": [
+          "sqft",
+          "sqyd"
+        ],
+        "title": "SiteAreaUnit",
+        "type": "string"
       },
       "SiteVisitCreate": {
         "properties": {
@@ -12317,6 +13116,7 @@
             "items": {
               "type": "string"
             },
+            "maxItems": 30,
             "title": "Amenities",
             "type": "array"
           },
@@ -12342,15 +13142,24 @@
             "type": "string"
           },
           "construction_status": {
-            "$ref": "#/components/schemas/ConstructionStatus"
-          },
-          "details": {
-            "additionalProperties": true,
-            "title": "Details",
-            "type": "object"
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ConstructionStatus"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "furnishing": {
-            "$ref": "#/components/schemas/Furnishing"
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Furnishing"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "locality": {
             "maxLength": 120,
@@ -12386,8 +13195,7 @@
             "title": "Meta"
           },
           "pincode": {
-            "maxLength": 6,
-            "minLength": 6,
+            "pattern": "^[1-9][0-9]{5}$",
             "title": "Pincode",
             "type": "string"
           },
@@ -12399,11 +13207,56 @@
           "property_subtype": {
             "$ref": "#/components/schemas/PropertySubtype"
           },
+          "rera_applicability": {
+            "$ref": "#/components/schemas/ReraApplicability"
+          },
           "rera_number": {
-            "maxLength": 40,
+            "anyOf": [
+              {
+                "maxLength": 40,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rera Number"
+          },
+          "state": {
+            "maxLength": 120,
             "minLength": 1,
-            "title": "Rera Number",
+            "title": "State",
             "type": "string"
+          },
+          "structured_details": {
+            "discriminator": {
+              "mapping": {
+                "agricultural_land": "#/components/schemas/AgriculturalLandDetails",
+                "commercial_property": "#/components/schemas/CommercialPropertyDetails",
+                "individual_property": "#/components/schemas/IndividualPropertyDetails",
+                "plot": "#/components/schemas/PlotDetails",
+                "project_residence": "#/components/schemas/ProjectResidenceDetails"
+              },
+              "propertyName": "kind"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ProjectResidenceDetails"
+              },
+              {
+                "$ref": "#/components/schemas/IndividualPropertyDetails"
+              },
+              {
+                "$ref": "#/components/schemas/CommercialPropertyDetails"
+              },
+              {
+                "$ref": "#/components/schemas/PlotDetails"
+              },
+              {
+                "$ref": "#/components/schemas/AgriculturalLandDetails"
+              }
+            ],
+            "title": "Structured Details"
           },
           "title": {
             "maxLength": 200,
@@ -12426,11 +13279,11 @@
           "property_subtype",
           "city",
           "locality",
+          "state",
           "pincode",
           "price_paise",
-          "furnishing",
-          "construction_status",
-          "rera_number",
+          "rera_applicability",
+          "structured_details",
           "media"
         ],
         "title": "SubmissionCreate",
@@ -12619,7 +13472,14 @@
             "type": "string"
           },
           "construction_status": {
-            "$ref": "#/components/schemas/ConstructionStatus"
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ConstructionStatus"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "created_at": {
             "format": "date-time",
@@ -12631,8 +13491,26 @@
             "title": "Details",
             "type": "object"
           },
+          "details_version": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Details Version"
+          },
           "furnishing": {
-            "$ref": "#/components/schemas/Furnishing"
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Furnishing"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "id": {
             "format": "uuid",
@@ -12694,9 +13572,34 @@
               }
             ]
           },
+          "rera_applicability": {
+            "$ref": "#/components/schemas/ReraApplicability"
+          },
           "rera_number": {
-            "title": "Rera Number",
-            "type": "string"
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rera Number"
+          },
+          "rera_verification_status": {
+            "$ref": "#/components/schemas/ReraVerificationStatus"
+          },
+          "rera_verified_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rera Verified At"
           },
           "review_note": {
             "anyOf": [
@@ -12733,8 +13636,56 @@
             ],
             "title": "Reviewed By Uuid"
           },
+          "state": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "State"
+          },
           "status": {
             "$ref": "#/components/schemas/SubmissionStatus"
+          },
+          "structured_details": {
+            "anyOf": [
+              {
+                "discriminator": {
+                  "mapping": {
+                    "agricultural_land": "#/components/schemas/AgriculturalLandDetails",
+                    "commercial_property": "#/components/schemas/CommercialPropertyDetails",
+                    "individual_property": "#/components/schemas/IndividualPropertyDetails",
+                    "plot": "#/components/schemas/PlotDetails",
+                    "project_residence": "#/components/schemas/ProjectResidenceDetails"
+                  },
+                  "propertyName": "kind"
+                },
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/ProjectResidenceDetails"
+                  },
+                  {
+                    "$ref": "#/components/schemas/IndividualPropertyDetails"
+                  },
+                  {
+                    "$ref": "#/components/schemas/CommercialPropertyDetails"
+                  },
+                  {
+                    "$ref": "#/components/schemas/PlotDetails"
+                  },
+                  {
+                    "$ref": "#/components/schemas/AgriculturalLandDetails"
+                  }
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Structured Details"
           },
           "submitter_uuid": {
             "format": "uuid",
@@ -12772,6 +13723,7 @@
           "property_subtype",
           "city",
           "locality",
+          "state",
           "pincode",
           "price_paise",
           "bhk",
@@ -12780,8 +13732,13 @@
           "construction_status",
           "amenities",
           "age_years",
+          "rera_applicability",
           "rera_number",
+          "rera_verification_status",
+          "rera_verified_at",
           "details",
+          "details_version",
+          "structured_details",
           "created_at",
           "updated_at"
         ],
@@ -12811,6 +13768,7 @@
             "items": {
               "type": "string"
             },
+            "maxItems": 30,
             "title": "Amenities",
             "type": "array"
           },
@@ -12836,15 +13794,24 @@
             "type": "string"
           },
           "construction_status": {
-            "$ref": "#/components/schemas/ConstructionStatus"
-          },
-          "details": {
-            "additionalProperties": true,
-            "title": "Details",
-            "type": "object"
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ConstructionStatus"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "furnishing": {
-            "$ref": "#/components/schemas/Furnishing"
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Furnishing"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "locality": {
             "maxLength": 120,
@@ -12871,8 +13838,7 @@
             "title": "Meta"
           },
           "pincode": {
-            "maxLength": 6,
-            "minLength": 6,
+            "pattern": "^[1-9][0-9]{5}$",
             "title": "Pincode",
             "type": "string"
           },
@@ -12884,11 +13850,56 @@
           "property_subtype": {
             "$ref": "#/components/schemas/PropertySubtype"
           },
+          "rera_applicability": {
+            "$ref": "#/components/schemas/ReraApplicability"
+          },
           "rera_number": {
-            "maxLength": 40,
+            "anyOf": [
+              {
+                "maxLength": 40,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rera Number"
+          },
+          "state": {
+            "maxLength": 120,
             "minLength": 1,
-            "title": "Rera Number",
+            "title": "State",
             "type": "string"
+          },
+          "structured_details": {
+            "discriminator": {
+              "mapping": {
+                "agricultural_land": "#/components/schemas/AgriculturalLandDetails",
+                "commercial_property": "#/components/schemas/CommercialPropertyDetails",
+                "individual_property": "#/components/schemas/IndividualPropertyDetails",
+                "plot": "#/components/schemas/PlotDetails",
+                "project_residence": "#/components/schemas/ProjectResidenceDetails"
+              },
+              "propertyName": "kind"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ProjectResidenceDetails"
+              },
+              {
+                "$ref": "#/components/schemas/IndividualPropertyDetails"
+              },
+              {
+                "$ref": "#/components/schemas/CommercialPropertyDetails"
+              },
+              {
+                "$ref": "#/components/schemas/PlotDetails"
+              },
+              {
+                "$ref": "#/components/schemas/AgriculturalLandDetails"
+              }
+            ],
+            "title": "Structured Details"
           },
           "title": {
             "maxLength": 200,
@@ -12911,11 +13922,11 @@
           "property_subtype",
           "city",
           "locality",
+          "state",
           "pincode",
           "price_paise",
-          "furnishing",
-          "construction_status",
-          "rera_number"
+          "rera_applicability",
+          "structured_details"
         ],
         "title": "SubmissionUpdate",
         "type": "object"
@@ -14941,6 +15952,15 @@
         },
         "title": "WebhookAck",
         "type": "object"
+      },
+      "YesNoUnknown": {
+        "enum": [
+          "yes",
+          "no",
+          "unknown"
+        ],
+        "title": "YesNoUnknown",
+        "type": "string"
       }
     },
     "securitySchemes": {
@@ -26014,6 +27034,64 @@
           }
         ],
         "summary": "Reject",
+        "tags": [
+          "property-submissions"
+        ]
+      }
+    },
+    "/api/v1/property-submissions/{submission_id}/rera-review": {
+      "post": {
+        "operationId": "record_rera_review_api_v1_property_submissions__submission_id__rera_review_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "submission_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Submission Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReraReviewRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubmissionRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Record Rera Review",
         "tags": [
           "property-submissions"
         ]

@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Image from "next/image";
-import { ArrowDown, ArrowUp, FileText, Loader2, Plus, Rotate3D, X } from "lucide-react";
+import { ArrowDown, ArrowUp, FileText, Loader2, Rotate3D, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,9 +18,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { DashboardFormPage } from "@/features/dashboard/dashboard-ui";
-import { CONSTRUCTION_OPTIONS, FURNISHING_OPTIONS } from "@/lib/property-submit";
 import { PROPERTY_SUBTYPE_GROUPS } from "@/lib/property-taxonomy";
 import type { Submission } from "@/lib/property-submissions-api";
+import { PropertyDetailFields } from "./property-detail-fields";
 import { useSubmitProperty } from "./use-submit-property";
 
 function FieldError({ msg }: { msg?: string }) {
@@ -100,13 +100,13 @@ export function SubmitPropertyForm({ submission }: { submission?: Submission }) 
             </p>
           </div>
           <div>
-            <Label htmlFor="title">Title</Label>
+            <Label htmlFor="title">Listing name</Label>
             <Input id="title" value={f.form.title} onChange={(e) => f.setField("title", e.target.value)} maxLength={200} />
             <FieldError msg={f.errors.title} />
           </div>
           <div>
-            <Label htmlFor="type">Type</Label>
-            <Input id="type" placeholder="e.g. 2BHK Apartment" value={f.form.type} onChange={(e) => f.setField("type", e.target.value)} maxLength={40} />
+            <Label htmlFor="type">Display type</Label>
+            <Input id="type" placeholder="e.g. Apartment" value={f.form.type} onChange={(e) => f.setField("type", e.target.value)} maxLength={40} />
             <FieldError msg={f.errors.type} />
           </div>
           <div>
@@ -161,6 +161,11 @@ export function SubmitPropertyForm({ submission }: { submission?: Submission }) 
             <FieldError msg={f.errors.locality} />
           </div>
           <div>
+            <Label htmlFor="state">State</Label>
+            <Input id="state" value={f.form.state} onChange={(e) => f.setField("state", e.target.value)} maxLength={120} />
+            <FieldError msg={f.errors.state} />
+          </div>
+          <div>
             <Label htmlFor="pincode">Pincode</Label>
             <Input id="pincode" inputMode="numeric" value={f.form.pincode}
               onChange={(e) => f.setField("pincode", e.target.value.replace(/\D/g, "").slice(0, 6))} />
@@ -175,62 +180,22 @@ export function SubmitPropertyForm({ submission }: { submission?: Submission }) 
           </div>
         </section>
 
-        {/* Specs */}
-        <section className="grid gap-4 rounded-xl border border-border bg-muted/20 p-4 sm:grid-cols-3 sm:p-5">
-          <div className="sm:col-span-3">
-            <h2 className="text-sm font-semibold text-text-primary">Property specifications</h2>
-            <p className="mt-0.5 text-xs text-text-secondary">
-              Record the key facts used for filtering and compliance review.
-            </p>
-          </div>
-          <div>
-            <Label htmlFor="bhk">BHK</Label>
-            <Input id="bhk" inputMode="numeric" value={f.form.bhk} onChange={(e) => f.setField("bhk", e.target.value.replace(/\D/g, ""))} />
-          </div>
-          <div>
-            <Label htmlFor="area">Area (sqft)</Label>
-            <Input id="area" inputMode="numeric" value={f.form.area_sqft} onChange={(e) => f.setField("area_sqft", e.target.value.replace(/\D/g, ""))} />
-          </div>
-          <div>
-            <Label htmlFor="age">Age (years)</Label>
-            <Input id="age" inputMode="numeric" value={f.form.age_years} onChange={(e) => f.setField("age_years", e.target.value.replace(/\D/g, ""))} />
-          </div>
-          <div>
-            <Label htmlFor="furnishing">Furnishing</Label>
-            <Select value={f.form.furnishing} onValueChange={(v) => f.setField("furnishing", v as typeof f.form.furnishing)}>
-              <SelectTrigger id="furnishing"><SelectValue placeholder="Choose" /></SelectTrigger>
-              <SelectContent>
-                {FURNISHING_OPTIONS.map((o) => (<SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>))}
-              </SelectContent>
-            </Select>
-            <FieldError msg={f.errors.furnishing} />
-          </div>
-          <div>
-            <Label htmlFor="construction">Construction status</Label>
-            <Select value={f.form.constructionStatus} onValueChange={(v) => f.setField("constructionStatus", v as typeof f.form.constructionStatus)}>
-              <SelectTrigger id="construction"><SelectValue placeholder="Choose" /></SelectTrigger>
-              <SelectContent>
-                {CONSTRUCTION_OPTIONS.map((o) => (<SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>))}
-              </SelectContent>
-            </Select>
-            <FieldError msg={f.errors.constructionStatus} />
-          </div>
-          <div>
-            <Label htmlFor="rera">RERA number</Label>
-            <Input id="rera" value={f.form.rera_number} onChange={(e) => f.setField("rera_number", e.target.value)} maxLength={40} />
-            <FieldError msg={f.errors.rera_number} />
-          </div>
-        </section>
+        <PropertyDetailFields
+          form={f.form}
+          errors={f.errors}
+          setField={f.setField}
+          setDetailField={f.setDetailField}
+        />
 
         {/* Amenities */}
         <section className="space-y-4 rounded-xl border border-border bg-muted/20 p-4 sm:p-5">
           <div>
-            <h2 className="text-sm font-semibold text-text-primary">Amenities</h2>
+            <h2 className="text-sm font-semibold text-text-primary">Amenities or facilities</h2>
             <p className="mt-0.5 text-xs text-text-secondary">
-              Add concise, customer-visible property features.
+              Add concise, customer-visible features one at a time.
             </p>
           </div>
-          <Label htmlFor="amenity">Amenities</Label>
+          <Label htmlFor="amenity">Feature</Label>
           <div className="flex gap-2">
             <Input id="amenity" value={amenityDraft}
               onChange={(e) => setAmenityDraft(e.target.value)}
@@ -250,32 +215,6 @@ export function SubmitPropertyForm({ submission }: { submission?: Submission }) 
               ))}
             </ul>
           )}
-        </section>
-
-        {/* Extra details (JSONB key/value) */}
-        <section className="space-y-4 rounded-xl border border-border bg-muted/20 p-4 sm:p-5">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-sm font-semibold text-text-primary">Extra details</h2>
-              <p className="mt-0.5 text-xs text-text-secondary">
-                Optional structured facts that do not fit the standard fields.
-              </p>
-            </div>
-            <Button type="button" variant="ghost" size="sm" onClick={f.addDetailRow}>
-              <Plus className="mr-1 h-4 w-4" /> Add row
-            </Button>
-          </div>
-          <div className="space-y-2">
-            {f.form.details.map((row, i) => (
-              <div key={i} className="flex gap-2">
-                <Input placeholder="Key" value={row.key} onChange={(e) => f.setDetailRow(i, { ...row, key: e.target.value })} />
-                <Input placeholder="Value" value={row.value} onChange={(e) => f.setDetailRow(i, { ...row, value: e.target.value })} />
-                <Button type="button" variant="ghost" size="icon" aria-label="Remove row" onClick={() => f.removeDetailRow(i)}>
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
-            ))}
-          </div>
         </section>
 
         {/* Managed media + meta */}

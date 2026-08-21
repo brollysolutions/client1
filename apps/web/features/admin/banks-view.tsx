@@ -18,6 +18,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { createBank, updateBank, type AdminBank } from "@/lib/loan-config-api";
+import { formatLastUpdated } from "@/lib/format";
 import { useBanks } from "./use-banks";
 
 export function BanksView() {
@@ -129,6 +130,9 @@ export function BanksView() {
                       ? "Not used yet"
                       : `Funded ${bank.application_count} application${bank.application_count === 1 ? "" : "s"}`}
                   </p>
+                  <p className="mt-0.5 text-xs text-text-secondary">
+                    {formatLastUpdated(bank.updated_at)}
+                  </p>
                 </div>
                 <Badge variant={bank.active ? "secondary" : "outline"} className="shrink-0">
                   {bank.active ? "Active" : "Disabled"}
@@ -154,7 +158,7 @@ export function BanksView() {
                 id="new-bank-name"
                 value={newName}
                 onChange={(ev) => setNewName(ev.target.value)}
-                placeholder="Federal Bank"
+                placeholder="Enter lender name"
                 maxLength={200}
                 autoFocus
               />
@@ -175,6 +179,7 @@ export function BanksView() {
             <>
               <DialogHeader>
                 <DialogTitle>Edit bank</DialogTitle>
+                <DialogDescription>{formatLastUpdated(active.updated_at)}</DialogDescription>
               </DialogHeader>
               <div className="space-y-4">
                 <div>
