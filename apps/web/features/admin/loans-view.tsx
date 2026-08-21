@@ -14,6 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { LoanProgressForm } from "@/features/loans/loan-progress-form";
+import { FormAnswerSummary } from "@/features/loans/form-answer-summary";
 import { formatINR } from "@/lib/format";
 
 import { useAdminLoans } from "./use-admin-loans";
@@ -140,7 +141,11 @@ export function AdminLoansView() {
                 </button>
 
                 {expanded ? (
-                  <div className="mt-4">
+                  <div className="mt-4 space-y-4">
+                    <FormAnswerSummary
+                      schema={application.form_schema_snapshot}
+                      answers={application.form_answers}
+                    />
                     <LoanProgressForm
                       application={{
                         id: application.id,

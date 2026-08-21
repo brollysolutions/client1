@@ -19,7 +19,7 @@ from sqlalchemy.exc import IntegrityError
 
 from app.core.security import create_access_token
 from app.services import referrals
-from conftest import full_registration, unique_mobile
+from conftest import full_registration, loan_application_payload, unique_mobile
 
 from .test_property_deal_progress_api import _seed_property
 from .test_property_deal_progress_api import _seed_telecaller as _seed_re_telecaller
@@ -220,13 +220,11 @@ async def test_loan_disbursal_accrues_referral(client: AsyncClient) -> None:
 
     await _seed_config("loans", "500", {"min_conversion": 1}, created_by_uuid=uid_a)
 
-    loan_type_id = (
-        await client.get("/api/v1/loans/loan-types", headers={"Authorization": f"Bearer {token_b}"})
-    ).json()["loan_types"][0]["id"]
+    payload = await loan_application_payload(client, token_b)
     created = await client.post(
         "/api/v1/loans/applications",
         headers={"Authorization": f"Bearer {token_b}"},
-        json={"loan_type_id": loan_type_id, "amount_requested": "500000"},
+        json=payload,
     )
     assert created.status_code == 201, created.text
     application_id = created.json()["id"]

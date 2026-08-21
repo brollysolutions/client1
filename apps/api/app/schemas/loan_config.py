@@ -1,23 +1,23 @@
-"""Admin loan-config CRUD schemas — loan types, banks, per-bank availability
-(FR-6.3/FR-6.4, feature-status.md §3 #4).
+"""Admin financial-product, lender, and availability request contracts.
 
-Deliberately separate from `schemas/loans.py`, which stays frozen: the
-client-facing `LoanTypeRead{id,label}`/`BankRead{id,name}` shapes are read by
-every authenticated role and must not grow the admin-only fields below.
-
-`custom_fields` is read-only everywhere here (Open Item A,
-Admin_Dashboard_System_Design.md §5.2 — the per-loan-type custom-field builder
-is out of scope, feature-status.md §4). There is no Delete request/response
-shape anywhere in this module — see migration 678f7a77e812 for why.
+The API remains the source of truth for the allowlisted form-builder shape.
+Products are deactivated rather than deleted so historical submissions retain
+their catalogue references and immutable form snapshots.
 """
 
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Annotated, Any
+from typing import Annotated
 from uuid import UUID
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
+
+from app.schemas.financial_products import (
+    ProductCategory,
+    ProductFormDefinition,
+    ensure_category_form,
+)
 
 
 class AdminLoanTypeRead(BaseModel):
@@ -25,10 +25,14 @@ class AdminLoanTypeRead(BaseModel):
     name: str
     label: str
     active: bool
-    custom_fields: dict[str, Any] | None
+    category: ProductCategory
+    display_order: int
+    form_version: int
+    form_schema: ProductFormDefinition
     created_at: datetime
     updated_at: datetime
     application_count: int
+    enquiry_count: int
 
 
 class AdminLoanTypeListResponse(BaseModel):
@@ -37,15 +41,49 @@ class AdminLoanTypeListResponse(BaseModel):
 
 class LoanTypeCreate(BaseModel):
     label: str = Field(min_length=1, max_length=200)
+    category: ProductCategory = ProductCategory.LOAN
+    display_order: Annotated[int, Field(ge=0, le=10000)] = 1000
+    form_schema: ProductFormDefinition | None = None
+
+    @field_validator("label")
+    @classmethod
+    def _normalize_label(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("Product name cannot be blank.")
+        return value
+
+    @model_validator(mode="after")
+    def _category_form_matches(self) -> LoanTypeCreate:
+        if self.form_schema is not None:
+            ensure_category_form(self.category, self.form_schema)
+        return self
 
 
 class LoanTypeUpdate(BaseModel):
     label: str | None = Field(default=None, min_length=1, max_length=200)
     active: bool | None = None
+    display_order: Annotated[int | None, Field(default=None, ge=0, le=10000)] = None
+    form_schema: ProductFormDefinition | None = None
+
+    @field_validator("label")
+    @classmethod
+    def _normalize_label(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        value = value.strip()
+        if not value:
+            raise ValueError("Product name cannot be blank.")
+        return value
 
     @model_validator(mode="after")
     def _at_least_one_field(self) -> LoanTypeUpdate:
-        if self.label is None and self.active is None:
+        if (
+            self.label is None
+            and self.active is None
+            and self.display_order is None
+            and self.form_schema is None
+        ):
             raise ValueError("Provide at least one field to update.")
         return self
 

@@ -20,6 +20,7 @@ import {
   formatDate,
   formatRate,
 } from "@/features/dashboard/loan-format";
+import { FormAnswerSummary } from "@/features/loans/form-answer-summary";
 
 type Status = "loading" | "ready" | "error";
 
@@ -154,6 +155,15 @@ function LoanDetail({ application: a }: { application: LoanApplication }) {
           {a.closedOn ? <Term label="Closed on" value={formatDate(a.closedOn)} /> : null}
         </dl>
       </DashboardPanel>
+
+      {a.formSchema && a.formAnswers ? (
+        <DashboardPanel
+          title="Submitted application"
+          description={`The answers saved with form version ${a.formVersion ?? 1}.`}
+        >
+          <FormAnswerSummary schema={a.formSchema} answers={a.formAnswers} />
+        </DashboardPanel>
+      ) : null}
 
       {/* Journey timeline */}
       <DashboardPanel title="Application journey" description="Your application moves through these operational stages.">

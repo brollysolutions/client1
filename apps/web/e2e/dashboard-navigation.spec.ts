@@ -24,7 +24,7 @@ type RoleScenario = {
 const scenarios: readonly RoleScenario[] = [
   {
     name: "Client",
-    expected: ["Apply for a loan", "Loan media", "Compare Loan Offers", "Referrals"],
+    expected: ["Financial products", "Loan media", "Compare Loan Offers", "Referrals"],
     excluded: ["Leads", "Tasks", "Website content"],
     deniedPath: "/dashboard/property-submit",
   },
@@ -32,28 +32,28 @@ const scenarios: readonly RoleScenario[] = [
     name: "Agent",
     agent: true,
     expected: ["Leads", "Listings", "Earnings", "Transactions"],
-    excluded: ["Apply for a loan", "Tasks", "Referrals"],
+    excluded: ["Financial products", "Tasks", "Referrals"],
     deniedPath: "/dashboard/referrals",
   },
   {
     name: "Telecaller",
     promote: ["telecaller", "loans"],
     expected: ["Leads"],
-    excluded: ["Apply for a loan", "Tasks", "Earnings"],
+    excluded: ["Financial products", "Tasks", "Earnings"],
     deniedPath: "/dashboard/leads/new",
   },
   {
     name: "Employee",
     promote: ["employee", "real_estate"],
     expected: ["Tasks", "Vehicle arrangements"],
-    excluded: ["Apply for a loan", "Leads", "Earnings"],
+    excluded: ["Financial products", "Leads", "Earnings"],
     deniedPath: "/dashboard/leads",
   },
   {
     name: "Sub Admin",
     promote: ["sub_admin"],
     expected: ["Property listings", "Referral rules", "Banners", "Offers", "Website content"],
-    excluded: ["Apply for a loan", "Leads", "Tasks"],
+    excluded: ["Financial products", "Leads", "Tasks"],
     deniedPath: "/dashboard/admin-leads",
   },
   {
@@ -64,7 +64,7 @@ const scenarios: readonly RoleScenario[] = [
       "Users & staff",
       "Payouts",
     ],
-    excluded: ["Apply for a loan", "Leads", "Tasks", "Website content", "Audit log"],
+    excluded: ["Financial products", "Leads", "Tasks", "Website content", "Audit log"],
     deniedPath: "/dashboard/banners/new",
   },
 ];
@@ -182,20 +182,33 @@ async function createClientLoanApplication(
   });
   expect(typesResponse.ok(), await typesResponse.text()).toBeTruthy();
   const types = (await typesResponse.json()) as {
-    loan_types: { id: string; label: string }[];
+    loan_types: { id: string; label: string; name: string; form_version: number }[];
   };
   expect(types.loan_types.length).toBeGreaterThan(0);
-  const loanType = types.loan_types[0];
+  const loanType = types.loan_types.find((product) => product.name === "personal-loan");
+  expect(loanType).toBeDefined();
   const applicationResponse = await request.post(
     `${API_BASE_URL}/api/v1/loans/applications`,
     {
       headers,
-      data: { loan_type_id: loanType.id, amount_requested: "500000" },
+      data: {
+        loan_type_id: loanType!.id,
+        form_version: loanType!.form_version,
+        answers: {
+          date_of_birth: "1990-01-01",
+          current_location: "Pune",
+          current_pincode: "411045",
+          employment_type: "salaried",
+          net_monthly_salary: "75000",
+          work_experience_years: "8",
+          requested_amount: "500000",
+        },
+      },
     },
   );
   expect(applicationResponse.ok(), await applicationResponse.text()).toBeTruthy();
   const application = (await applicationResponse.json()) as { id: string };
-  return { id: application.id, label: loanType.label };
+  return { id: application.id, label: loanType!.label };
 }
 
 test.describe("role-aware dashboard navigation", () => {
@@ -340,7 +353,7 @@ test.describe("role-aware dashboard navigation", () => {
       await page.getByRole("button", { name: "Open menu" }).click();
 
       const navigation = page.locator('nav[aria-label="Workspace"]:visible');
-      await expect(navigation.getByRole("link", { name: "Apply for a loan" })).toBeVisible();
+      await expect(navigation.getByRole("link", { name: "Financial products" })).toBeVisible();
       await expect(navigation.getByRole("link", { name: "Loan media" })).toBeVisible();
       await expect(navigation.getByRole("link", { name: "Leads", exact: true })).toHaveCount(0);
       await expect(navigation.getByRole("link", { name: "Tasks", exact: true })).toHaveCount(0);
@@ -367,7 +380,7 @@ test.describe("role-aware dashboard navigation", () => {
         { path: "/dashboard", heading: "Your loan journey" },
         { path: `/dashboard/loans/${application.id}`, heading: application.label },
         { path: "/dashboard/explore", heading: "Explore" },
-        { path: "/dashboard/apply", heading: "Apply for a loan" },
+        { path: "/dashboard/apply", heading: "Apply for a financial product" },
         { path: "/dashboard/documents", heading: "Loan media" },
         { path: "/dashboard/loan-offers", heading: "Compare Loan Offers" },
         { path: "/dashboard/loan-officer", heading: "My Loan Officer" },
@@ -448,6 +461,48 @@ test.describe("role-aware dashboard navigation", () => {
         await expect(page.getByRole("heading", { name: surface.heading, exact: true })).toBeVisible();
         await expect(page.locator("main header")).toBeVisible();
       }
+    } finally {
+      await deleteAccount(request, account);
+    }
+  });
+
+  test("Client submits a product-specific loan form without inline KYC uploads", async ({
+    page,
+    request,
+  }) => {
+    const account = await registerClient(request, 450);
+    try {
+      await logIn(page, account);
+      await page.goto("/dashboard/apply");
+
+      await expect(
+        page.getByRole("heading", { name: "Apply for a financial product", exact: true }),
+      ).toBeVisible();
+      await page.getByRole("button", { name: "Personal Loan", exact: true }).click();
+
+      await expect(page.getByLabel("Full Name")).toHaveValue("Navigation Browser");
+      await expect(page.getByLabel("Registered Mobile Number")).toHaveValue(account.mobile);
+      await page.getByLabel(/Date of Birth/).fill("1990-01-01");
+      await page.getByLabel(/Current Location/).fill("Pune");
+      await page.getByLabel(/Current PIN Code/).fill("411045");
+      await page.getByRole("combobox", { name: /Employment Type/ }).click();
+      await page.getByRole("option", { name: "Salaried", exact: true }).click();
+      await page.getByLabel(/Net Monthly Salary/).fill("75000");
+      await page.getByLabel(/Total Work Experience/).fill("8");
+      await page.getByLabel(/Requested Loan Amount/).fill("500000");
+
+      await expect(page.getByText("KYC documents", { exact: true })).toHaveCount(0);
+      await expect(page.getByLabel(/Aadhaar|PAN card/)).toHaveCount(0);
+      await page.getByRole("button", { name: "Submit application", exact: true }).click();
+
+      await expect(page).toHaveURL(/\/dashboard\/loans\/[0-9a-f-]+$/, { timeout: 30_000 });
+      await expect(
+        page.getByRole("heading", { name: "Submitted application details", exact: true }),
+      ).toBeVisible();
+      await expect(page.getByText("Pune", { exact: true })).toBeVisible();
+      await expect(
+        page.getByText("₹5,00,000", { exact: true }).first(),
+      ).toBeVisible();
     } finally {
       await deleteAccount(request, account);
     }

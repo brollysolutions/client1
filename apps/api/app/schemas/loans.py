@@ -1,9 +1,9 @@
 """Client-facing loan schemas (/api/v1/loans/*).
 
-loan_type is flattened from the relationship so callers never see the raw
-loan_type_id FK. LoanApplicationCreate is the one client-writable shape: the
-client picks a loan type + amount only — lead_uuid, client_profile_uuid,
-business_line, and status are all stamped server-side (see api/v1/loans.py).
+Loan/product relationships are exposed as typed summaries rather than raw
+foreign keys. Clients submit a published form version and dynamic answers;
+identity, lead, business-line, workflow status, and canonical loan amount are
+resolved or stamped server-side (see api/v1/loans.py).
 """
 
 from __future__ import annotations
@@ -16,11 +16,13 @@ from uuid import UUID
 from pydantic import BaseModel, Field, model_validator
 
 from app.models.loan import FeeOutcome, LoanStatus
+from app.schemas.financial_products import FormAnswers, ProductCategory, ProductFormDefinition
 
 
 class LoanTypeSummary(BaseModel):
     id: UUID
     label: str
+    category: ProductCategory
 
 
 class LoanApplicationRead(BaseModel):
@@ -35,6 +37,9 @@ class LoanApplicationRead(BaseModel):
     fee_outcome: FeeOutcome | None
     opened_at: datetime
     closed_at: datetime | None
+    form_version: int | None
+    form_schema_snapshot: ProductFormDefinition | None
+    form_answers: FormAnswers | None
 
 
 class LoanApplicationListResponse(BaseModel):
@@ -43,16 +48,42 @@ class LoanApplicationListResponse(BaseModel):
 
 class LoanApplicationCreate(BaseModel):
     loan_type_id: UUID
-    amount_requested: Annotated[Decimal, Field(gt=0, le=Decimal("999999999999.99"))]
+    form_version: Annotated[int, Field(ge=1)]
+    answers: FormAnswers
 
 
 class LoanTypeRead(BaseModel):
     id: UUID
+    name: str
     label: str
+    category: ProductCategory
+    display_order: int
+    form_version: int
+    form_schema: ProductFormDefinition
 
 
 class LoanTypeListResponse(BaseModel):
     loan_types: list[LoanTypeRead]
+
+
+class FinancialServiceEnquiryCreate(BaseModel):
+    product_id: UUID
+    form_version: Annotated[int, Field(ge=1)]
+    answers: FormAnswers
+
+
+class FinancialServiceEnquiryRead(BaseModel):
+    id: UUID
+    product: LoanTypeSummary
+    status: str
+    form_version: int
+    form_schema_snapshot: ProductFormDefinition
+    form_answers: FormAnswers | None
+    submitted_at: datetime
+
+
+class FinancialServiceEnquiryListResponse(BaseModel):
+    enquiries: list[FinancialServiceEnquiryRead]
 
 
 class BankRead(BaseModel):

@@ -285,3 +285,32 @@ async def do_login(
     )
     assert resp.status_code == 200, resp.text
     return resp.json()["access_token"]
+
+
+async def loan_application_payload(
+    client: AsyncClient,
+    token: str,
+    *,
+    requested_amount: str = "500000",
+) -> dict[str, object]:
+    """Build a valid payload from the seeded Personal Loan form contract."""
+    response = await client.get(
+        "/api/v1/loans/loan-types", headers={"Authorization": f"Bearer {token}"}
+    )
+    assert response.status_code == 200, response.text
+    product = next(
+        item for item in response.json()["loan_types"] if item["name"] == "personal-loan"
+    )
+    return {
+        "loan_type_id": product["id"],
+        "form_version": product["form_version"],
+        "answers": {
+            "date_of_birth": "1990-01-01",
+            "current_location": "Bengaluru",
+            "current_pincode": "560001",
+            "employment_type": "salaried",
+            "net_monthly_salary": "75000",
+            "work_experience_years": "5",
+            "requested_amount": requested_amount,
+        },
+    }

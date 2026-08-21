@@ -15,7 +15,7 @@ from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
 
 from app.core.security import create_access_token
-from conftest import full_registration
+from conftest import full_registration, loan_application_payload
 
 from .test_telecaller_api import (
     _auth_user_uuid,
@@ -365,14 +365,12 @@ async def test_terminal_status_frees_client_to_reapply(client: AsyncClient) -> N
     once the prior one is rejected."""
     token, mobile = await full_registration(client, lines=["loans"])
     headers = {"Authorization": f"Bearer {token}"}
-    loan_type_id = (await client.get("/api/v1/loans/loan-types", headers=headers)).json()[
-        "loan_types"
-    ][0]["id"]
+    payload = await loan_application_payload(client, token)
 
     created = await client.post(
         "/api/v1/loans/applications",
         headers=headers,
-        json={"loan_type_id": loan_type_id, "amount_requested": "500000"},
+        json=payload,
     )
     assert created.status_code == 201, created.text
     application_id = created.json()["id"]
@@ -387,7 +385,7 @@ async def test_terminal_status_frees_client_to_reapply(client: AsyncClient) -> N
     second = await client.post(
         "/api/v1/loans/applications",
         headers=headers,
-        json={"loan_type_id": loan_type_id, "amount_requested": "500000"},
+        json=payload,
     )
     assert second.status_code == 201, second.text
 
@@ -459,6 +457,7 @@ async def test_admin_list_loans(client: AsyncClient) -> None:
         headers={"Authorization": f"Bearer {await _admin_token(client)}"},
     )
     assert res.status_code == 200, res.text
+    assert res.headers["cache-control"] == "private, no-store"
     ids = [row["id"] for row in res.json()["applications"]]
     assert application_id in ids
 

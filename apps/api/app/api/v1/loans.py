@@ -18,14 +18,19 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy import select
-from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 
 from app.cache.redis_keys import RedisCache
 from app.core.deps import CurrentUser, get_active_user, get_cache
 from app.db.session import get_db
-from app.models.loan import Bank, BankLoanTypeAvailability, LoanApplication, LoanType
+from app.models.loan import (
+    Bank,
+    BankLoanTypeAvailability,
+    FinancialServiceEnquiry,
+    LoanApplication,
+    LoanType,
+)
 from app.models.loan_document import LoanDocument
 from app.schemas.loan_documents import (
     LoanDocumentCreate,
@@ -37,6 +42,9 @@ from app.schemas.loan_documents import (
 from app.schemas.loans import (
     BankListResponse,
     BankRead,
+    FinancialServiceEnquiryCreate,
+    FinancialServiceEnquiryListResponse,
+    FinancialServiceEnquiryRead,
     LoanApplicationCreate,
     LoanApplicationListResponse,
     LoanApplicationRead,
@@ -44,9 +52,8 @@ from app.schemas.loans import (
     LoanTypeListResponse,
     LoanTypeRead,
 )
-from app.services import loan_documents, storage
+from app.services import financial_products, loan_documents, storage
 from app.services.contacts import get_my_loan_officer
-from app.services.leads import resolve_loans_lead
 
 router = APIRouter()
 
@@ -70,7 +77,7 @@ def _map_loan_document_error(exc: loan_documents.LoanDocumentError) -> HTTPExcep
 
 
 def _private_no_store(response: Response) -> None:
-    """Signed private-media URLs are bearer links and must not be cached."""
+    """Private media and application answers must not be cached."""
     response.headers["Cache-Control"] = "private, no-store"
 
 
@@ -137,11 +144,24 @@ async def list_loan_types(
     db: AsyncSession = Depends(get_db),
 ) -> LoanTypeListResponse:
     result = await db.execute(
-        select(LoanType).where(LoanType.active.is_(True)).order_by(LoanType.label)
+        select(LoanType)
+        .where(LoanType.active.is_(True), LoanType.custom_fields.is_not(None))
+        .order_by(LoanType.display_order, LoanType.label)
     )
     loan_types = result.scalars().all()
     return LoanTypeListResponse(
-        loan_types=[LoanTypeRead.model_validate(lt, from_attributes=True) for lt in loan_types]
+        loan_types=[
+            LoanTypeRead(
+                id=product.id,
+                name=product.name,
+                label=product.label,
+                category=product.category,
+                display_order=product.display_order,
+                form_version=product.form_version,
+                form_schema=financial_products.form_for_product(product),
+            )
+            for product in loan_types
+        ]
     )
 
 
@@ -158,6 +178,11 @@ async def list_banks(
             # be indistinguishable from "every bank offers this type" — the
             # exact dead-config failure this endpoint exists to prevent.
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Unknown loan type.")
+        if loan_type.category != "loan":
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                detail="Lenders are available only for lending products.",
+            )
 
     stmt = select(Bank).where(Bank.active.is_(True))
     if loan_type_id is not None:
@@ -190,9 +215,11 @@ async def get_my_loan_officer_contact(
 
 @router.get("/applications", response_model=LoanApplicationListResponse)
 async def list_loan_applications(
+    response: Response,
     current_user: CurrentUser = Depends(get_active_user),
     db: AsyncSession = Depends(get_db),
 ) -> LoanApplicationListResponse:
+    _private_no_store(response)
     result = await db.execute(
         select(LoanApplication)
         .options(joinedload(LoanApplication.loan_type))
@@ -209,9 +236,11 @@ async def list_loan_applications(
 @router.get("/applications/{application_id}", response_model=LoanApplicationRead)
 async def get_loan_application(
     application_id: UUID,
+    response: Response,
     current_user: CurrentUser = Depends(get_active_user),
     db: AsyncSession = Depends(get_db),
 ) -> LoanApplicationRead:
+    _private_no_store(response)
     result = await db.execute(
         select(LoanApplication)
         .options(joinedload(LoanApplication.loan_type))
@@ -232,32 +261,40 @@ async def get_loan_application(
 )
 async def create_loan_application(
     req: LoanApplicationCreate,
+    response: Response,
     current_user: CurrentUser = Depends(get_active_user),
     db: AsyncSession = Depends(get_db),
 ) -> LoanApplicationRead:
     _require_loans_client(current_user)
+    _private_no_store(response)
     # _require_loans_client already confirmed business_line in ("loans", "both"),
     # which _build_access_claims only ever sets alongside client_profile_uuid.
     assert current_user.client_profile_uuid is not None
 
-    loan_type = await db.get(LoanType, req.loan_type_id)
-    if loan_type is None or not loan_type.active:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Unknown loan type.")
-
-    lead_id = await resolve_loans_lead(current_user.mobile, current_user.client_profile_uuid)
-
-    application = LoanApplication(
-        lead_uuid=lead_id,
-        client_profile_uuid=current_user.client_profile_uuid,
-        business_line="loans",
-        loan_type_id=req.loan_type_id,
-        amount_requested=req.amount_requested,
-    )
-    db.add(application)
     try:
-        await db.commit()
-    except IntegrityError:
-        await db.rollback()
+        application = await financial_products.create_loan_application(
+            db,
+            product_id=req.loan_type_id,
+            form_version=req.form_version,
+            answers=req.answers,
+            client_profile_uuid=current_user.client_profile_uuid,
+            mobile=current_user.mobile,
+        )
+    except financial_products.ProductNotFound as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Unknown loan type."
+        ) from exc
+    except financial_products.WrongProductCategory as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(exc)
+        ) from exc
+    except financial_products.StaleFormVersion as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
+    except financial_products.InvalidFormAnswers as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(exc)
+        ) from exc
+    except financial_products.ActiveLoanApplicationExists:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="You already have an active loan application in progress.",
@@ -281,6 +318,76 @@ async def create_loan_application(
     )
     created = result.scalar_one()
     return LoanApplicationRead.model_validate(created, from_attributes=True)
+
+
+@router.get("/enquiries", response_model=FinancialServiceEnquiryListResponse)
+async def list_service_enquiries(
+    response: Response,
+    current_user: CurrentUser = Depends(get_active_user),  # noqa: ARG001
+    db: AsyncSession = Depends(get_db),
+) -> FinancialServiceEnquiryListResponse:
+    _private_no_store(response)
+    result = await db.execute(
+        select(FinancialServiceEnquiry)
+        .options(joinedload(FinancialServiceEnquiry.product))
+        .order_by(FinancialServiceEnquiry.submitted_at.desc())
+    )
+    enquiries = result.scalars().all()
+    return FinancialServiceEnquiryListResponse(
+        enquiries=[
+            FinancialServiceEnquiryRead.model_validate(enquiry, from_attributes=True)
+            for enquiry in enquiries
+        ]
+    )
+
+
+@router.post(
+    "/enquiries",
+    response_model=FinancialServiceEnquiryRead,
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_service_enquiry(
+    req: FinancialServiceEnquiryCreate,
+    response: Response,
+    current_user: CurrentUser = Depends(get_active_user),
+    db: AsyncSession = Depends(get_db),
+) -> FinancialServiceEnquiryRead:
+    _require_loans_client(current_user)
+    _private_no_store(response)
+    assert current_user.client_profile_uuid is not None
+    try:
+        enquiry = await financial_products.create_service_enquiry(
+            db,
+            product_id=req.product_id,
+            form_version=req.form_version,
+            answers=req.answers,
+            client_profile_uuid=current_user.client_profile_uuid,
+            mobile=current_user.mobile,
+        )
+    except financial_products.ProductNotFound as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Unknown product."
+        ) from exc
+    except financial_products.WrongProductCategory as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(exc)
+        ) from exc
+    except financial_products.StaleFormVersion as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
+    except financial_products.InvalidFormAnswers as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(exc)
+        ) from exc
+
+    enquiry_id = enquiry.id
+    db.expire(enquiry)
+    result = await db.execute(
+        select(FinancialServiceEnquiry)
+        .options(joinedload(FinancialServiceEnquiry.product))
+        .where(FinancialServiceEnquiry.id == enquiry_id)
+    )
+    created = result.scalar_one()
+    return FinancialServiceEnquiryRead.model_validate(created, from_attributes=True)
 
 
 @router.post(

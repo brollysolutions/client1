@@ -25,10 +25,9 @@ atomic deletion without granting Admin a location/consent read policy.
 Phase B runs on a bypass (app-superuser) session, `import app.db.session as
 db_session` resolved at call time — never a module-level `from
 app.db.session import AsyncSessionLocal` (see conftest's NullPool rebind list;
-this convention keeps this module OFF that list). It is limited to exactly the
-two tables whose RLS genuinely cannot be satisfied by either actor under their
-own session, keeping the best-effort blast radius as small as the RLS gap
-actually forces:
+this convention keeps this module OFF that list). It handles rows whose RLS or
+grant shape cannot be satisfied by both deletion actors under their own
+session, keeping the best-effort blast radius limited to that access gap:
 
   - `staff_profiles_rls`'s WITH CHECK is platform_scope-only (no owner branch)
     — a staff member self-deleting cannot flip their own row under their own
@@ -36,6 +35,10 @@ actually forces:
   - `refresh_tokens_rls` has NO platform_scope branch at all (owner-only) — an
     Admin's own request-scoped session cannot revoke a DIFFERENT user's
     refresh tokens.
+  - Financial application answers in `loan_applications` and
+    `financial_service_enquiries` are applicant-supplied PII. Staff may retain
+    lifecycle metadata after account deletion, but only the bypass session can
+    reliably scrub another user's answer payload under every caller context.
 
 The financial de-link (`transactions`/`payouts`) also runs here since those
 tables grant `api_user` SELECT only — no request-scoped session, self-service
@@ -79,6 +82,7 @@ from app.cache.redis_keys import (
 )
 from app.models.audit_log import AuditAction
 from app.models.auth import AuthEvent, RefreshToken
+from app.models.loan import FinancialServiceEnquiry, LoanApplication
 from app.models.loan_document import LoanDocument
 from app.models.mobile_change import MobileChangeRequest, MobileChangeStatus
 from app.models.notification import NotificationType
@@ -370,6 +374,22 @@ async def delete_account(
                     RefreshToken.revoked.is_(False),
                 )
                 .values(revoked=True)
+            )
+            # Dynamic answers may include DOB, income, locations, and
+            # co-applicant PII. Preserve the financial record and its form
+            # snapshot while erasing the deleted account's submitted values.
+            target_client_profiles = select(ClientProfile.id).where(
+                ClientProfile.auth_user_uuid == target_auth_user_uuid
+            )
+            await session.execute(
+                update(LoanApplication)
+                .where(LoanApplication.client_profile_uuid.in_(target_client_profiles))
+                .values(form_answers=None)
+            )
+            await session.execute(
+                update(FinancialServiceEnquiry)
+                .where(FinancialServiceEnquiry.client_profile_uuid.in_(target_client_profiles))
+                .values(form_answers=None)
             )
             # Recovery requests retain old/new numbers only while active.  A
             # soft-deleted auth_users row remains in place, so ON DELETE cannot

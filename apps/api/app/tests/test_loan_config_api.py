@@ -159,9 +159,31 @@ async def test_create_loan_type_derives_slug(client: AsyncClient) -> None:
     body = res.json()
     assert body["label"] == label
     assert body["active"] is True
-    assert body["custom_fields"] is None
+    assert body["category"] == "loan"
+    assert body["display_order"] == 1000
+    assert body["form_version"] == 1
+    assert body["form_schema"]["sections"][0]["fields"][0]["key"] == "requested_amount"
     assert body["application_count"] == 0
+    assert body["enquiry_count"] == 0
     assert body["name"] == label.lower().replace(" ", "-")
+
+
+@pytest.mark.asyncio
+async def test_loan_type_labels_are_trimmed_and_cannot_be_blank(client: AsyncClient) -> None:
+    headers = await _admin_headers(client)
+    label = _unique_label()
+    created = await client.post(
+        "/api/v1/admin/loan-types", json={"label": f"  {label}  "}, headers=headers
+    )
+    assert created.status_code == 201, created.text
+    assert created.json()["label"] == label
+
+    rejected = await client.patch(
+        f"/api/v1/admin/loan-types/{created.json()['id']}",
+        json={"label": "   "},
+        headers=headers,
+    )
+    assert rejected.status_code == 422
 
 
 @pytest.mark.asyncio
@@ -243,6 +265,138 @@ async def test_patch_loan_type_empty_body_422(client: AsyncClient) -> None:
         f"/api/v1/admin/loan-types/{loan_type['id']}", json={}, headers=headers
     )
     assert res.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_publish_form_increments_version_and_propagates_to_client(
+    client: AsyncClient,
+) -> None:
+    headers = await _admin_headers(client)
+    product = await _create_loan_type(client, headers)
+    form_schema = product["form_schema"]
+    form_schema["sections"][0]["fields"].append(
+        {
+            "key": "loan_purpose",
+            "label": "Purpose of Loan",
+            "input_type": "textarea",
+            "required": False,
+            "options": [],
+            "condition": None,
+        }
+    )
+
+    response = await client.patch(
+        f"/api/v1/admin/loan-types/{product['id']}",
+        json={"display_order": 77, "form_schema": form_schema},
+        headers=headers,
+    )
+    assert response.status_code == 200, response.text
+    assert response.json()["form_version"] == 2
+    assert response.json()["display_order"] == 77
+
+    client_read = await client.get("/api/v1/loans/loan-types", headers=headers)
+    published = next(row for row in client_read.json()["loan_types"] if row["id"] == product["id"])
+    assert published["form_version"] == 2
+    # The API expands omitted optional field properties to their canonical
+    # null defaults before publishing the schema.
+    assert published["form_schema"] == response.json()["form_schema"]
+
+
+@pytest.mark.asyncio
+async def test_loan_form_cannot_remove_canonical_requested_amount(client: AsyncClient) -> None:
+    headers = await _admin_headers(client)
+    product = await _create_loan_type(client, headers)
+    response = await client.patch(
+        f"/api/v1/admin/loan-types/{product['id']}",
+        json={
+            "form_schema": {
+                "sections": [
+                    {
+                        "key": "details",
+                        "title": "Details",
+                        "fields": [
+                            {
+                                "key": "purpose",
+                                "label": "Purpose",
+                                "input_type": "text",
+                                "required": True,
+                            }
+                        ],
+                    }
+                ]
+            }
+        },
+        headers=headers,
+    )
+    assert response.status_code == 422
+    assert "requested_amount" in response.json()["detail"]
+
+
+@pytest.mark.asyncio
+async def test_loan_form_cannot_make_requested_amount_conditional(client: AsyncClient) -> None:
+    headers = await _admin_headers(client)
+    product = await _create_loan_type(client, headers)
+    response = await client.patch(
+        f"/api/v1/admin/loan-types/{product['id']}",
+        json={
+            "form_schema": {
+                "sections": [
+                    {
+                        "key": "details",
+                        "title": "Details",
+                        "fields": [
+                            {
+                                "key": "income_source",
+                                "label": "Income Source",
+                                "input_type": "select",
+                                "required": True,
+                                "options": [
+                                    {"value": "salaried", "label": "Salaried"},
+                                    {"value": "self_employed", "label": "Self-employed"},
+                                ],
+                            },
+                            {
+                                "key": "requested_amount",
+                                "label": "Requested Loan Amount",
+                                "input_type": "currency",
+                                "required": True,
+                                "condition": {
+                                    "field_key": "income_source",
+                                    "equals": "salaried",
+                                },
+                            },
+                        ],
+                    }
+                ]
+            }
+        },
+        headers=headers,
+    )
+    assert response.status_code == 422
+    assert "unconditional" in response.json()["detail"]
+
+
+@pytest.mark.asyncio
+async def test_admin_created_insurance_product_uses_enquiry_workflow(client: AsyncClient) -> None:
+    headers = await _admin_headers(client)
+    response = await client.post(
+        "/api/v1/admin/loan-types",
+        json={
+            "label": f"Test Insurance {uuid.uuid4().hex[:8]}",
+            "category": "insurance",
+            "display_order": 900,
+        },
+        headers=headers,
+    )
+    assert response.status_code == 201, response.text
+    assert response.json()["category"] == "insurance"
+    assert response.json()["form_schema"]["sections"][0]["fields"][0]["key"] == "coverage_amount"
+
+    client_read = await client.get("/api/v1/loans/loan-types", headers=headers)
+    published = next(
+        row for row in client_read.json()["loan_types"] if row["id"] == response.json()["id"]
+    )
+    assert published["category"] == "insurance"
 
 
 @pytest.mark.asyncio

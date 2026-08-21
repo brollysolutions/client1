@@ -111,7 +111,7 @@ export const NAV_ITEMS: readonly NavItem[] = [
   },
   {
     key: "apply",
-    label: "Apply for a loan",
+    label: "Financial products",
     href: "/dashboard/apply",
     icon: DASHBOARD_ICONS.applyForLoan,
     capability: "clientLoans",
@@ -330,7 +330,7 @@ export const NAV_ITEMS: readonly NavItem[] = [
   },
   {
     key: "admin-loan-config",
-    label: "Loan configuration",
+    label: "Financial products",
     href: "/dashboard/loan-config",
     icon: DASHBOARD_ICONS.loanConfiguration,
     capability: "admin",
