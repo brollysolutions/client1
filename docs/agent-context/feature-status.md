@@ -2,7 +2,7 @@
 
 Status: **Derived living implementation ledger**
 
-As of: **2026-08-20**
+As of: **2026-08-21**
 
 Evidence baseline: `abcc1fd`
 ([PR #175](https://github.com/brollysolutions/client1/pull/175)), plus the
@@ -624,6 +624,40 @@ an estimate of calendar time: a single security-sensitive gap can require more
 work than several completed UI requirements.
 
 ## Current work
+
+**Done on `feat/configurable-financial-application-forms` (PR pending
+publication) — CS-014 configurable Financial Products and product-specific
+Client forms:** the Admin catalogue is now the authenticated Client catalogue
+source. Admin can create, rename, order, activate/deactivate, and publish typed,
+allowlisted product forms; each form edit increments its version. Clients see
+the published order without a deployment, registered name/mobile remain
+server-sourced, submissions are validated against the exact version, and the
+record retains an immutable schema snapshot. Loans/funding preserve the loan
+lifecycle and one-active-loan invariant, while Credit Cards and Insurance use
+separate immutable enquiries with no sanction/disbursal fields. Dynamic answer
+PII is RLS-protected, served with no-store headers, and scrubbed on account
+deletion. Intake has no inline KYC/document uploads. Lender records and
+product availability remain exclusively Admin-managed; this feature seeds no
+lender or availability row.
+
+Fresh evidence: migration upgrade→downgrade→upgrade passes with one head
+`f6a7b8c9d0e1`, while lender/availability row counts remain unchanged. API
+Ruff and format pass across 463 files. Final focused database evidence is 47
+financial-product/Admin-config tests plus 15 exhaustive Admin-coverage,
+business-line-classification, and platform-RLS contracts. Web lint, strict
+typecheck, and all 359 unit tests pass. The authenticated Playwright journey
+submits a product-specific loan and reaches its saved answer summary without
+an Aadhaar/PAN upload step. The production build compiles, typechecks, and
+generates all 93 pages before the known Windows standalone-symlink `EPERM`.
+The full isolated API suite completed 1,741 tests in 62m51s: 1,724 passed and
+17 failed. Four feature-owned exhaustive-ledger failures were corrected and
+rerun green; the remaining 13 are unrelated baseline/shared-state defects in
+property fixtures, banner seed assumptions, payout/mobile/assignment state,
+and one test deleting the isolated database. The exact repository wrapper was
+attempted for ten minutes but did not finish its same monolithic API phase.
+Security, responsive design, and maintainer review found no remaining
+actionable feature defect. Completion coverage remains **99.4%**; next priority
+returns to the FR-2.2 controlled-correction and remaining audit-family follow-up.
 
 **Delivery:** [PR #194](https://github.com/brollysolutions/client1/pull/194). Next priority remains the FR-2.2 controlled-correction and remaining audit-family follow-up.
 

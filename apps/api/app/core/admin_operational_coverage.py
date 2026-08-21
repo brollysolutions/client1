@@ -397,6 +397,19 @@ ADMIN_OPERATIONAL_COVERAGE: dict[str, AdminCoverageEntry] = {
         audit_expectation="Assignment, release, expiry, and reasoned detail corrections append safe events.",
         rationale="Named commands preserve immutable ownership, lifecycle cutoffs, and provenance.",
     ),
+    "financial_service_enquiries": _entry(
+        domain="Credit-card and insurance enquiries",
+        sensitivity=(DataSensitivity.FINANCIAL, DataSensitivity.IDENTITY_PII),
+        view_mode=AdminViewMode.MINIMIZED,
+        view_coverage=CoverageState.GAP,
+        update_mode=AdminUpdateMode.IMMUTABLE,
+        update_coverage=CoverageState.PROTECTED,
+        audit_coverage=CoverageState.COVERED,
+        rls_expectation="Platform Admin may read both-line enquiries; Clients and assigned staff remain owner/assignment scoped.",
+        audit_expectation="The immutable submitted enquiry and versioned form snapshot are the source record.",
+        rationale="Card and insurance requests stay outside loan sanction and disbursal commands.",
+        gap="Gap: no purpose-built Admin operational projection or UI currently exposes submitted card and insurance enquiries.",
+    ),
     "loan_applications": _entry(
         domain="Loan application progression",
         sensitivity=(DataSensitivity.FINANCIAL, DataSensitivity.IDENTITY_PII),
@@ -803,6 +816,7 @@ FR_2_2_DOMAIN_TABLES: dict[str, tuple[str, ...]] = {
     "user": ("auth_users", "client_profiles", "agent_profiles", "staff_profiles"),
     "workflow": (
         "agent_applications",
+        "financial_service_enquiries",
         "leads",
         "lead_activities",
         "loan_applications",

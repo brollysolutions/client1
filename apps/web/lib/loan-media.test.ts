@@ -17,7 +17,10 @@ function application(id: string, openedOn: string): LoanApplication {
     processingFee: null,
     feeOutcome: null,
     openedOn,
-    closedOn: null,
+  closedOn: null,
+  formVersion: null,
+  formSchema: null,
+  formAnswers: null,
   };
 }
 

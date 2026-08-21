@@ -31,7 +31,14 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.audit_log import AuditAction
-from app.models.loan import Bank, BankLoanTypeAvailability, LoanApplication, LoanType
+from app.models.loan import (
+    Bank,
+    BankLoanTypeAvailability,
+    FinancialServiceEnquiry,
+    LoanApplication,
+    LoanType,
+)
+from app.schemas.financial_products import ProductCategory, ensure_category_form
 from app.schemas.loan_config import (
     BankAvailabilitySetEntry,
     BankCreate,
@@ -40,6 +47,7 @@ from app.schemas.loan_config import (
     LoanTypeUpdate,
 )
 from app.services.audit_log import record as record_audit
+from app.services.financial_products import serialize_form, starter_form_for
 
 _SLUG_INVALID = re.compile(r"[^a-z0-9]+")
 
@@ -55,6 +63,10 @@ class DuplicateBankName(Exception):
 class LoanTypeNotFound(Exception):
     """Raised when a loan_type id doesn't resolve — 404, never 403 (the caller
     is already require_admin-gated, so a miss here is a genuine absence)."""
+
+
+class InvalidProductForm(Exception):
+    """Raised when a form violates the selected product category's invariants."""
 
 
 class BankNotFound(Exception):
@@ -74,7 +86,7 @@ def _slugify(label: str) -> str:
 async def list_loan_types(db: AsyncSession) -> list[LoanType]:
     """All rows, including inactive — this is the admin console's read, unlike
     GET /api/v1/loans/loan-types which filters active=True for every role."""
-    result = await db.scalars(select(LoanType).order_by(LoanType.label))
+    result = await db.scalars(select(LoanType).order_by(LoanType.display_order, LoanType.label))
     return list(result.all())
 
 
@@ -89,6 +101,17 @@ async def loan_type_application_counts(db: AsyncSession) -> dict[UUID, int]:
     return {loan_type_id: count for loan_type_id, count in rows}
 
 
+async def loan_type_enquiry_counts(db: AsyncSession) -> dict[UUID, int]:
+    rows = (
+        await db.execute(
+            select(FinancialServiceEnquiry.product_id, func.count()).group_by(
+                FinancialServiceEnquiry.product_id
+            )
+        )
+    ).all()
+    return {product_id: count for product_id, count in rows}
+
+
 async def create_loan_type(
     db: AsyncSession,
     payload: LoanTypeCreate,
@@ -96,7 +119,16 @@ async def create_loan_type(
     actor_uuid: UUID | None,
     actor_role: str | None,
 ) -> LoanType:
-    loan_type = LoanType(id=uuid.uuid4(), name=_slugify(payload.label), label=payload.label)
+    definition = payload.form_schema or starter_form_for(payload.category)
+    loan_type = LoanType(
+        id=uuid.uuid4(),
+        name=_slugify(payload.label),
+        label=payload.label,
+        category=payload.category.value,
+        display_order=payload.display_order,
+        form_version=1,
+        custom_fields=serialize_form(definition),
+    )
     db.add(loan_type)
     try:
         await db.flush()  # get loan_type.id; also surfaces the name UNIQUE race
@@ -112,7 +144,14 @@ async def create_loan_type(
         actor_uuid=actor_uuid,
         actor_role=actor_role,
         business_line="loans",
-        detail={"name": loan_type.name, "label": loan_type.label},
+        detail={
+            "name": loan_type.name,
+            "label": loan_type.label,
+            "category": loan_type.category,
+            "display_order": loan_type.display_order,
+            "form_version": loan_type.form_version,
+            "field_keys": [field.key for field in definition.fields()],
+        },
     )
     await db.commit()
     await db.refresh(loan_type)
@@ -146,6 +185,20 @@ async def update_loan_type(
     if payload.active is not None and payload.active != loan_type.active:
         loan_type.active = payload.active
         changed["active"] = payload.active
+    if payload.display_order is not None and payload.display_order != loan_type.display_order:
+        loan_type.display_order = payload.display_order
+        changed["display_order"] = payload.display_order
+    if payload.form_schema is not None:
+        try:
+            ensure_category_form(ProductCategory(loan_type.category), payload.form_schema)
+        except ValueError as exc:
+            raise InvalidProductForm(str(exc)) from exc
+        serialized = serialize_form(payload.form_schema)
+        if serialized != loan_type.custom_fields:
+            loan_type.custom_fields = serialized
+            loan_type.form_version += 1
+            changed["form_version"] = loan_type.form_version
+            changed["field_keys"] = [field.key for field in payload.form_schema.fields()]
 
     if changed:
         await record_audit(

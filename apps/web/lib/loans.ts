@@ -26,6 +26,9 @@ export type LoanApplication = {
   feeOutcome: FeeOutcome | null;
   openedOn: string; // ISO date
   closedOn: string | null;
+  formVersion: number | null;
+  formSchema: Schemas["ProductFormDefinition"] | null;
+  formAnswers: Record<string, string | string[]> | null;
 };
 
 function mapApplication(raw: Schemas["LoanApplicationRead"]): LoanApplication {
@@ -41,6 +44,9 @@ function mapApplication(raw: Schemas["LoanApplicationRead"]): LoanApplication {
     feeOutcome: raw.fee_outcome,
     openedOn: raw.opened_at,
     closedOn: raw.closed_at,
+    formVersion: raw.form_version,
+    formSchema: raw.form_schema_snapshot,
+    formAnswers: raw.form_answers,
   };
 }
 
@@ -58,10 +64,8 @@ export async function getLoanApplication(id: string): Promise<ApiResponse<LoanAp
   return { ok: true, status: res.status, data: mapApplication(res.data) };
 }
 
-export type LoanTypeOption = {
-  id: string;
-  label: string;
-};
+export type FinancialProduct = Schemas["LoanTypeRead"];
+export type LoanTypeOption = FinancialProduct;
 
 export async function getLoanTypes(): Promise<ApiResponse<LoanTypeOption[]>> {
   const res = await apiRequest<Schemas["LoanTypeListResponse"]>("/api/v1/loans/loan-types");
@@ -101,16 +105,45 @@ export async function getMyLoanOfficer(): Promise<ApiResponse<LoanOfficerContact
 }
 
 export async function createLoanApplication(input: {
-  loanTypeId: string;
-  amountRequested: string;
+  productId: string;
+  formVersion: number;
+  answers: Record<string, string | string[]>;
 }): Promise<ApiResponse<LoanApplication>> {
   const res = await apiRequest<Schemas["LoanApplicationRead"]>("/api/v1/loans/applications", {
     method: "POST",
     body: {
-      loan_type_id: input.loanTypeId,
-      amount_requested: input.amountRequested,
+      loan_type_id: input.productId,
+      form_version: input.formVersion,
+      answers: input.answers,
     } satisfies Schemas["LoanApplicationCreate"],
   });
   if (!res.ok) return res;
   return { ok: true, status: res.status, data: mapApplication(res.data) };
+}
+
+export type FinancialServiceEnquiry = Schemas["FinancialServiceEnquiryRead"];
+
+export async function getFinancialServiceEnquiries(): Promise<
+  ApiResponse<FinancialServiceEnquiry[]>
+> {
+  const res = await apiRequest<Schemas["FinancialServiceEnquiryListResponse"]>(
+    "/api/v1/loans/enquiries",
+  );
+  if (!res.ok) return res;
+  return { ok: true, status: res.status, data: res.data.enquiries };
+}
+
+export async function createFinancialServiceEnquiry(input: {
+  productId: string;
+  formVersion: number;
+  answers: Record<string, string | string[]>;
+}): Promise<ApiResponse<FinancialServiceEnquiry>> {
+  return apiRequest<FinancialServiceEnquiry>("/api/v1/loans/enquiries", {
+    method: "POST",
+    body: {
+      product_id: input.productId,
+      form_version: input.formVersion,
+      answers: input.answers,
+    } satisfies Schemas["FinancialServiceEnquiryCreate"],
+  });
 }

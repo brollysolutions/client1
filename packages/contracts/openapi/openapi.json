@@ -790,6 +790,51 @@
             ],
             "title": "Fee Outcome"
           },
+          "form_answers": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    }
+                  ]
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Form Answers"
+          },
+          "form_schema_snapshot": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ProductFormDefinition"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "form_version": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Form Version"
+          },
           "id": {
             "format": "uuid",
             "title": "Id",
@@ -883,7 +928,10 @@
           "processing_fee",
           "fee_outcome",
           "opened_at",
-          "closed_at"
+          "closed_at",
+          "form_version",
+          "form_schema_snapshot",
+          "form_answers"
         ],
         "title": "AdminLoanApplicationRead",
         "type": "object"
@@ -1034,22 +1082,28 @@
             "title": "Application Count",
             "type": "integer"
           },
+          "category": {
+            "$ref": "#/components/schemas/ProductCategory"
+          },
           "created_at": {
             "format": "date-time",
             "title": "Created At",
             "type": "string"
           },
-          "custom_fields": {
-            "anyOf": [
-              {
-                "additionalProperties": true,
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Custom Fields"
+          "display_order": {
+            "title": "Display Order",
+            "type": "integer"
+          },
+          "enquiry_count": {
+            "title": "Enquiry Count",
+            "type": "integer"
+          },
+          "form_schema": {
+            "$ref": "#/components/schemas/ProductFormDefinition"
+          },
+          "form_version": {
+            "title": "Form Version",
+            "type": "integer"
           },
           "id": {
             "format": "uuid",
@@ -1075,10 +1129,14 @@
           "name",
           "label",
           "active",
-          "custom_fields",
+          "category",
+          "display_order",
+          "form_version",
+          "form_schema",
           "created_at",
           "updated_at",
-          "application_count"
+          "application_count",
+          "enquiry_count"
         ],
         "title": "AdminLoanTypeRead",
         "type": "object"
@@ -6506,6 +6564,123 @@
         "title": "FieldVisibilityUpdateRequest",
         "type": "object"
       },
+      "FinancialServiceEnquiryCreate": {
+        "properties": {
+          "answers": {
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                }
+              ]
+            },
+            "title": "Answers",
+            "type": "object"
+          },
+          "form_version": {
+            "minimum": 1.0,
+            "title": "Form Version",
+            "type": "integer"
+          },
+          "product_id": {
+            "format": "uuid",
+            "title": "Product Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "product_id",
+          "form_version",
+          "answers"
+        ],
+        "title": "FinancialServiceEnquiryCreate",
+        "type": "object"
+      },
+      "FinancialServiceEnquiryListResponse": {
+        "properties": {
+          "enquiries": {
+            "items": {
+              "$ref": "#/components/schemas/FinancialServiceEnquiryRead"
+            },
+            "title": "Enquiries",
+            "type": "array"
+          }
+        },
+        "required": [
+          "enquiries"
+        ],
+        "title": "FinancialServiceEnquiryListResponse",
+        "type": "object"
+      },
+      "FinancialServiceEnquiryRead": {
+        "properties": {
+          "form_answers": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    }
+                  ]
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Form Answers"
+          },
+          "form_schema_snapshot": {
+            "$ref": "#/components/schemas/ProductFormDefinition"
+          },
+          "form_version": {
+            "title": "Form Version",
+            "type": "integer"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "product": {
+            "$ref": "#/components/schemas/LoanTypeSummary"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "submitted_at": {
+            "format": "date-time",
+            "title": "Submitted At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "product",
+          "status",
+          "form_version",
+          "form_schema_snapshot",
+          "form_answers",
+          "submitted_at"
+        ],
+        "title": "FinancialServiceEnquiryRead",
+        "type": "object"
+      },
       "ForgotInitiateRequest": {
         "properties": {
           "mobile": {
@@ -6572,6 +6747,186 @@
           "otp"
         ],
         "title": "ForgotVerifyRequest",
+        "type": "object"
+      },
+      "FormCondition": {
+        "properties": {
+          "equals": {
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Equals",
+            "type": "string"
+          },
+          "field_key": {
+            "maxLength": 64,
+            "minLength": 1,
+            "pattern": "^[a-z][a-z0-9_]*$",
+            "title": "Field Key",
+            "type": "string"
+          }
+        },
+        "required": [
+          "field_key",
+          "equals"
+        ],
+        "title": "FormCondition",
+        "type": "object"
+      },
+      "FormFieldDefinition": {
+        "properties": {
+          "condition": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FormCondition"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "help_text": {
+            "anyOf": [
+              {
+                "maxLength": 240,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Help Text"
+          },
+          "input_type": {
+            "$ref": "#/components/schemas/FormInputType"
+          },
+          "key": {
+            "maxLength": 64,
+            "minLength": 1,
+            "pattern": "^[a-z][a-z0-9_]*$",
+            "title": "Key",
+            "type": "string"
+          },
+          "label": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Label",
+            "type": "string"
+          },
+          "options": {
+            "items": {
+              "$ref": "#/components/schemas/FormOption"
+            },
+            "maxItems": 30,
+            "title": "Options",
+            "type": "array"
+          },
+          "placeholder": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Placeholder"
+          },
+          "required": {
+            "default": true,
+            "title": "Required",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "key",
+          "label",
+          "input_type"
+        ],
+        "title": "FormFieldDefinition",
+        "type": "object"
+      },
+      "FormInputType": {
+        "enum": [
+          "text",
+          "textarea",
+          "date",
+          "integer",
+          "currency",
+          "select",
+          "multi_select",
+          "pincode",
+          "phone"
+        ],
+        "title": "FormInputType",
+        "type": "string"
+      },
+      "FormOption": {
+        "properties": {
+          "label": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Label",
+            "type": "string"
+          },
+          "value": {
+            "maxLength": 80,
+            "minLength": 1,
+            "pattern": "^[a-z0-9][a-z0-9_-]*$",
+            "title": "Value",
+            "type": "string"
+          }
+        },
+        "required": [
+          "value",
+          "label"
+        ],
+        "title": "FormOption",
+        "type": "object"
+      },
+      "FormSectionDefinition": {
+        "properties": {
+          "description": {
+            "anyOf": [
+              {
+                "maxLength": 240,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "fields": {
+            "items": {
+              "$ref": "#/components/schemas/FormFieldDefinition"
+            },
+            "maxItems": 30,
+            "minItems": 1,
+            "title": "Fields",
+            "type": "array"
+          },
+          "key": {
+            "maxLength": 64,
+            "minLength": 1,
+            "pattern": "^[a-z][a-z0-9_]*$",
+            "title": "Key",
+            "type": "string"
+          },
+          "title": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "title",
+          "fields"
+        ],
+        "title": "FormSectionDefinition",
         "type": "object"
       },
       "Furnishing": {
@@ -6931,19 +7286,27 @@
       },
       "LoanApplicationCreate": {
         "properties": {
-          "amount_requested": {
-            "anyOf": [
-              {
-                "exclusiveMinimum": 0.0,
-                "maximum": 999999999999.99,
-                "type": "number"
-              },
-              {
-                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
-                "type": "string"
-              }
-            ],
-            "title": "Amount Requested"
+          "answers": {
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                }
+              ]
+            },
+            "title": "Answers",
+            "type": "object"
+          },
+          "form_version": {
+            "minimum": 1.0,
+            "title": "Form Version",
+            "type": "integer"
           },
           "loan_type_id": {
             "format": "uuid",
@@ -6953,7 +7316,8 @@
         },
         "required": [
           "loan_type_id",
-          "amount_requested"
+          "form_version",
+          "answers"
         ],
         "title": "LoanApplicationCreate",
         "type": "object"
@@ -7122,6 +7486,51 @@
               }
             ]
           },
+          "form_answers": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    }
+                  ]
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Form Answers"
+          },
+          "form_schema_snapshot": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ProductFormDefinition"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "form_version": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Form Version"
+          },
           "id": {
             "format": "uuid",
             "title": "Id",
@@ -7185,7 +7594,10 @@
           "processing_fee",
           "fee_outcome",
           "opened_at",
-          "closed_at"
+          "closed_at",
+          "form_version",
+          "form_schema_snapshot",
+          "form_answers"
         ],
         "title": "LoanApplicationRead",
         "type": "object"
@@ -7622,6 +8034,27 @@
       },
       "LoanTypeCreate": {
         "properties": {
+          "category": {
+            "$ref": "#/components/schemas/ProductCategory",
+            "default": "loan"
+          },
+          "display_order": {
+            "default": 1000,
+            "maximum": 10000.0,
+            "minimum": 0.0,
+            "title": "Display Order",
+            "type": "integer"
+          },
+          "form_schema": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ProductFormDefinition"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "label": {
             "maxLength": 200,
             "minLength": 1,
@@ -7653,6 +8086,20 @@
       },
       "LoanTypeRead": {
         "properties": {
+          "category": {
+            "$ref": "#/components/schemas/ProductCategory"
+          },
+          "display_order": {
+            "title": "Display Order",
+            "type": "integer"
+          },
+          "form_schema": {
+            "$ref": "#/components/schemas/ProductFormDefinition"
+          },
+          "form_version": {
+            "title": "Form Version",
+            "type": "integer"
+          },
           "id": {
             "format": "uuid",
             "title": "Id",
@@ -7661,17 +8108,29 @@
           "label": {
             "title": "Label",
             "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
           }
         },
         "required": [
           "id",
-          "label"
+          "name",
+          "label",
+          "category",
+          "display_order",
+          "form_version",
+          "form_schema"
         ],
         "title": "LoanTypeRead",
         "type": "object"
       },
       "LoanTypeSummary": {
         "properties": {
+          "category": {
+            "$ref": "#/components/schemas/ProductCategory"
+          },
           "id": {
             "format": "uuid",
             "title": "Id",
@@ -7684,7 +8143,8 @@
         },
         "required": [
           "id",
-          "label"
+          "label",
+          "category"
         ],
         "title": "LoanTypeSummary",
         "type": "object"
@@ -7701,6 +8161,29 @@
               }
             ],
             "title": "Active"
+          },
+          "display_order": {
+            "anyOf": [
+              {
+                "maximum": 10000.0,
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display Order"
+          },
+          "form_schema": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ProductFormDefinition"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "label": {
             "anyOf": [
@@ -9602,6 +10085,33 @@
           "personalization_enabled"
         ],
         "title": "PersonalizationPreferenceUpdate",
+        "type": "object"
+      },
+      "ProductCategory": {
+        "enum": [
+          "loan",
+          "credit_card",
+          "insurance"
+        ],
+        "title": "ProductCategory",
+        "type": "string"
+      },
+      "ProductFormDefinition": {
+        "properties": {
+          "sections": {
+            "items": {
+              "$ref": "#/components/schemas/FormSectionDefinition"
+            },
+            "maxItems": 10,
+            "minItems": 1,
+            "title": "Sections",
+            "type": "array"
+          }
+        },
+        "required": [
+          "sections"
+        ],
+        "title": "ProductFormDefinition",
         "type": "object"
       },
       "PropertyCategory": {
@@ -13509,6 +14019,51 @@
               }
             ],
             "title": "Fee Outcome"
+          },
+          "form_answers": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    }
+                  ]
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Form Answers"
+          },
+          "form_schema_snapshot": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ProductFormDefinition"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "form_version": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Form Version"
           },
           "id": {
             "format": "uuid",
@@ -23072,6 +23627,76 @@
           }
         ],
         "summary": "List Own Loan Documents",
+        "tags": [
+          "loans"
+        ]
+      }
+    },
+    "/api/v1/loans/enquiries": {
+      "get": {
+        "operationId": "list_service_enquiries_api_v1_loans_enquiries_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FinancialServiceEnquiryListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "List Service Enquiries",
+        "tags": [
+          "loans"
+        ]
+      },
+      "post": {
+        "operationId": "create_service_enquiry_api_v1_loans_enquiries_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FinancialServiceEnquiryCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FinancialServiceEnquiryRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Create Service Enquiry",
         "tags": [
           "loans"
         ]

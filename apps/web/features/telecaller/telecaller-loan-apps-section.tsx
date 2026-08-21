@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { LoanProgressForm } from "@/features/loans/loan-progress-form";
+import { FormAnswerSummary } from "@/features/loans/form-answer-summary";
 import { formatINR } from "@/lib/format";
 import type {
   LoanApplicationProgressUpdate,
@@ -166,6 +167,13 @@ export function TelecallerLoanAppsSection({
               <Badge variant="secondary">
                 {STATUS_LABEL[application.status] ?? application.status}
               </Badge>
+            </div>
+
+            <div className="mt-4">
+              <FormAnswerSummary
+                schema={application.form_schema_snapshot}
+                answers={application.form_answers}
+              />
             </div>
 
             {application.txns.length > 0 ? (

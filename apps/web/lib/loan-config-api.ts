@@ -9,6 +9,10 @@ import { apiRequest, type ApiResponse } from "@/lib/api/client";
 type Schemas = components["schemas"];
 
 export type AdminLoanType = Schemas["AdminLoanTypeRead"];
+export type ProductCategory = Schemas["ProductCategory"];
+export type ProductFormDefinition = Schemas["ProductFormDefinition"];
+export type FormFieldDefinition = Schemas["FormFieldDefinition"];
+export type FormInputType = Schemas["FormInputType"];
 export type AdminBank = Schemas["AdminBankRead"];
 export type AvailabilityEntry = Schemas["BankAvailabilityEntry"];
 export type AvailabilityMatrix = Schemas["BankAvailabilityMatrixResponse"];

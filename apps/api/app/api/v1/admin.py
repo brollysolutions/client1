@@ -130,6 +130,7 @@ from app.services.field_visibility import (
 from app.services.field_visibility import (
     update_for_admin as update_field_visibility,
 )
+from app.services.financial_products import form_for_product
 from app.services.lead_details import (
     DetailActor,
     LeadDetailsLocked,
@@ -160,6 +161,7 @@ from app.services.loan_config import (
     BankNotFound,
     DuplicateBankName,
     DuplicateLoanTypeName,
+    InvalidProductForm,
     LoanTypeNotFound,
     bank_application_counts,
     create_bank,
@@ -168,6 +170,7 @@ from app.services.loan_config import (
     list_banks,
     list_loan_types,
     loan_type_application_counts,
+    loan_type_enquiry_counts,
     set_bank_availability,
     update_bank,
     update_loan_type,
@@ -301,6 +304,9 @@ def _to_admin_loan_application_read(application) -> AdminLoanApplicationRead:  #
         fee_outcome=application.fee_outcome,
         opened_at=application.opened_at,
         closed_at=application.closed_at,
+        form_version=application.form_version,
+        form_schema_snapshot=application.form_schema_snapshot,
+        form_answers=application.form_answers,
     )
 
 
@@ -849,10 +855,12 @@ async def list_task_feedback_for_admin(
 
 @router.get("/loans", response_model=AdminLoanApplicationListResponse)
 async def list_loan_applications(
+    response: Response,
     status_filter: str | None = None,
     current_user: CurrentUser = Depends(require_platform_admin),  # noqa: ARG001
     db: AsyncSession = Depends(get_db),
 ) -> AdminLoanApplicationListResponse:
+    response.headers["Cache-Control"] = "private, no-store"
     applications = await list_applications_for_admin(db, status_filter)
     return AdminLoanApplicationListResponse(
         applications=[_to_admin_loan_application_read(a) for a in applications]
@@ -863,9 +871,11 @@ async def list_loan_applications(
 async def update_loan_application_progress(
     application_id: UUID,
     payload: LoanApplicationProgressUpdate,
+    response: Response,
     current_user: CurrentUser = Depends(require_platform_admin),  # noqa: ARG001
     db: AsyncSession = Depends(get_db),
 ) -> AdminLoanApplicationRead:
+    response.headers["Cache-Control"] = "private, no-store"
     application = await get_application_for_admin(db, application_id)
     if application is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Loan application not found.")
@@ -1068,16 +1078,24 @@ async def list_audit_entries(
 # ---------------------------------------------------------------------------
 
 
-def _to_admin_loan_type_read(loan_type, count: int) -> AdminLoanTypeRead:  # noqa: ANN001
+def _to_admin_loan_type_read(
+    loan_type,
+    application_count: int,
+    enquiry_count: int = 0,  # noqa: ANN001
+) -> AdminLoanTypeRead:
     return AdminLoanTypeRead(
         id=loan_type.id,
         name=loan_type.name,
         label=loan_type.label,
         active=loan_type.active,
-        custom_fields=loan_type.custom_fields,
+        category=loan_type.category,
+        display_order=loan_type.display_order,
+        form_version=loan_type.form_version,
+        form_schema=form_for_product(loan_type),
         created_at=loan_type.created_at,
         updated_at=loan_type.updated_at,
-        application_count=count,
+        application_count=application_count,
+        enquiry_count=enquiry_count,
     )
 
 
@@ -1099,9 +1117,15 @@ async def list_admin_loan_types(
     db: AsyncSession = Depends(get_db),
 ) -> AdminLoanTypeListResponse:
     loan_types = await list_loan_types(db)
-    counts = await loan_type_application_counts(db)
+    application_counts = await loan_type_application_counts(db)
+    enquiry_counts = await loan_type_enquiry_counts(db)
     return AdminLoanTypeListResponse(
-        loan_types=[_to_admin_loan_type_read(lt, counts.get(lt.id, 0)) for lt in loan_types]
+        loan_types=[
+            _to_admin_loan_type_read(
+                lt, application_counts.get(lt.id, 0), enquiry_counts.get(lt.id, 0)
+            )
+            for lt in loan_types
+        ]
     )
 
 
@@ -1119,7 +1143,7 @@ async def create_admin_loan_type(
         raise HTTPException(
             status.HTTP_409_CONFLICT, "A loan type with an equivalent name already exists."
         ) from exc
-    return _to_admin_loan_type_read(loan_type, 0)
+    return _to_admin_loan_type_read(loan_type, 0, 0)
 
 
 @router.patch("/loan-types/{loan_type_id}", response_model=AdminLoanTypeRead)
@@ -1135,8 +1159,15 @@ async def update_admin_loan_type(
         )
     except LoanTypeNotFound as exc:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Loan type not found.") from exc
-    counts = await loan_type_application_counts(db)
-    return _to_admin_loan_type_read(loan_type, counts.get(loan_type.id, 0))
+    except InvalidProductForm as exc:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, str(exc)) from exc
+    application_counts = await loan_type_application_counts(db)
+    enquiry_counts = await loan_type_enquiry_counts(db)
+    return _to_admin_loan_type_read(
+        loan_type,
+        application_counts.get(loan_type.id, 0),
+        enquiry_counts.get(loan_type.id, 0),
+    )
 
 
 @router.get("/banks", response_model=AdminBankListResponse)
@@ -1188,14 +1219,18 @@ async def update_admin_bank(
 
 
 async def _availability_matrix(db: AsyncSession) -> BankAvailabilityMatrixResponse:
-    loan_types = await list_loan_types(db)
+    loan_types = [product for product in await list_loan_types(db) if product.category == "loan"]
     banks = await list_banks(db)
     lt_counts = await loan_type_application_counts(db)
+    enquiry_counts = await loan_type_enquiry_counts(db)
     bank_counts = await bank_application_counts(db)
     entries = await list_availability_entries(db)
     return BankAvailabilityMatrixResponse(
         banks=[_to_admin_bank_read(b, bank_counts.get(b.id, 0)) for b in banks],
-        loan_types=[_to_admin_loan_type_read(lt, lt_counts.get(lt.id, 0)) for lt in loan_types],
+        loan_types=[
+            _to_admin_loan_type_read(lt, lt_counts.get(lt.id, 0), enquiry_counts.get(lt.id, 0))
+            for lt in loan_types
+        ],
         entries=[
             BankAvailabilityEntry(
                 bank_id=e.bank_id, loan_type_id=e.loan_type_id, available=e.available

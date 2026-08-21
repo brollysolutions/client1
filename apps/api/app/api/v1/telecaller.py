@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.deps import CurrentUser, require_telecaller
@@ -123,6 +123,9 @@ def _to_telecaller_loan_application_read(
         fee_outcome=application.fee_outcome,
         status=application.status,
         closed_at=application.closed_at,
+        form_version=application.form_version,
+        form_schema_snapshot=application.form_schema_snapshot,
+        form_answers=application.form_answers,
         txns=txns,
         **project_values(
             modes,
@@ -206,9 +209,11 @@ async def list_leads(
 )
 async def get_lead(
     lead_id: UUID,
+    response: Response,
     current_user: CurrentUser = Depends(require_telecaller),
     db: AsyncSession = Depends(get_db),
 ) -> TelecallerLeadDetailRead:
+    response.headers["Cache-Control"] = "private, no-store"
     staff_profile_uuid = _staff_profile_uuid(current_user)
     lead = await get_lead_for_telecaller(db, lead_id, staff_profile_uuid)
     if lead is None:
@@ -351,9 +356,11 @@ async def create_loan_txn(
 async def update_loan_application_progress(
     application_id: UUID,
     payload: LoanApplicationProgressUpdate,
+    response: Response,
     current_user: CurrentUser = Depends(require_telecaller),
     db: AsyncSession = Depends(get_db),
 ) -> TelecallerLoanApplicationRead:
+    response.headers["Cache-Control"] = "private, no-store"
     staff_profile_uuid = _staff_profile_uuid(current_user)
     try:
         application = await get_application_for_telecaller(db, application_id, staff_profile_uuid)
