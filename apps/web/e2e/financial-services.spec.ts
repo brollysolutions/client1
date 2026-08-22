@@ -2,16 +2,28 @@ import { expect, test } from "@playwright/test";
 
 test.describe.configure({ timeout: 120_000 });
 
-test("Home exposes curated financial services and the four fixed calculators", async ({
+test("Home restores the Loans band and places calculators after Properties", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/", { waitUntil: "domcontentloaded", timeout: 90_000 });
 
-  await expect(
-    page.getByRole("heading", { name: "Financial services for your next step" }),
-  ).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Calculate before you decide" })).toBeVisible();
+  const loansHeading = page.getByRole("heading", {
+    name: "Loans, cards, and insurance that fit you",
+  });
+  const propertiesHeading = page.getByRole("heading", { name: "Buy your property with confidence" });
+  const calculatorsHeading = page.getByRole("heading", { name: "Calculate before you decide" });
+  await expect(loansHeading).toBeVisible();
+  await expect(propertiesHeading).toBeVisible();
+  await expect(calculatorsHeading).toBeVisible();
+  const headings = await page.locator("main h2").allTextContents();
+  expect(headings.indexOf("Loans, cards, and insurance that fit you")).toBeLessThan(
+    headings.indexOf("Buy your property with confidence"),
+  );
+  expect(headings.indexOf("Buy your property with confidence")).toBeLessThan(
+    headings.indexOf("Calculate before you decide"),
+  );
+  await expect(page.getByText("Free planning tools")).toHaveCount(0);
   const calculators = page.locator('section[aria-labelledby="home-calculators-heading"]');
   for (const href of [
     "/calculators/emi",
