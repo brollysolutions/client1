@@ -22,17 +22,14 @@ export function HomeCalculators() {
   return (
     <section
       aria-labelledby="home-calculators-heading"
-      className="w-full border-t border-[var(--nav-border)] bg-white"
+      className="w-full border-t border-[var(--nav-border)] bg-background"
     >
       <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 sm:py-20 lg:px-8">
         <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
           <div className="max-w-3xl">
-            <p className="text-sm font-semibold uppercase tracking-[0.16em] text-brand-blue">
-              Free planning tools
-            </p>
             <h2
               id="home-calculators-heading"
-              className="mt-3 font-heading text-3xl font-semibold text-[var(--nav-text)] sm:text-4xl"
+              className="font-heading text-3xl font-semibold text-[var(--nav-text)] sm:text-4xl"
             >
               Calculate before you decide
             </h2>

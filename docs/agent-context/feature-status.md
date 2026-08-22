@@ -732,6 +732,26 @@ work than several completed UI requirements.
 
 ## Current work
 
+**Done — [PR #217](https://github.com/brollysolutions/client1/pull/217) —
+Homepage information-flow refinement (public UI; no requirement or
+completion-percentage change):** the Home page again presents
+the established Loans band, followed by the Properties band and then the four
+fixed calculators. The calculator band no longer has the planning-tools
+eyebrow and now uses the shared cream `bg-background` outer surface; its white
+calculator cards and all calculator links remain unchanged. The removed
+homepage featured-services grid does not alter the Admin-published `/loans`
+catalogue, service detail pages, provider offers, internal application/enquiry
+paths, API, contracts, authorization, RLS, or business-line behavior.
+
+Fresh evidence: the focused characterization test failed before the change and
+then passed; web lint, strict typecheck, and all 383 web unit tests pass. The
+focused 390px Playwright homepage journey passes after refreshing the local web
+container, and 390px/1440px Chromium screenshots plus design review found no
+actionable accessibility, responsive-layout, interaction, motion, or visual
+system issue. `pnpm build` exceeded its 180-second host limit without a final
+report, so it is inconclusive rather than passing. Completion coverage remains
+**99.4%**; next priority returns to FR-2.2 controlled correction/audit.
+
 **Done — [PR #211](https://github.com/brollysolutions/client1/pull/211) —
 CS-014 configurable Financial Products and product-specific
 Client forms:** the Admin catalogue is now the authenticated Client catalogue

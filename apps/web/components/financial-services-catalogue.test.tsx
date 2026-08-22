@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 
 import { FinancialServicesCatalogue } from "@/components/financial-services-catalogue";
 import { HomeCalculators } from "@/components/home-calculators";
-import { HomeFinancialServices } from "@/components/home-financial-services";
+import { LineSplit } from "@/components/line-split";
 import type { PublicFinancialProduct } from "@/lib/financial-catalog";
 
 function product(index: number): PublicFinancialProduct {
@@ -40,24 +40,28 @@ describe("Financial Services public discovery", () => {
     expect(markup).not.toMatch(/href="https?:\/\//);
   });
 
-  it("limits the homepage curation to six configured services", () => {
+  it("places the restored Loans and Properties bands before the calculator section", () => {
     const markup = renderToStaticMarkup(
-      <HomeFinancialServices products={Array.from({ length: 7 }, (_, index) => product(index + 1))} />,
+      <>
+        <LineSplit />
+        <HomeCalculators />
+      </>,
     );
 
-    expect(markup).toContain("Configured Service 6");
-    expect(markup).not.toContain("Configured Service 7");
-    expect(markup).toContain("Curated by Dhanadhara");
-    expect(markup).not.toMatch(/href="https?:\/\//);
-  });
-
-  it("keeps the four fixed calculators and the full calculator-hub link on Home", () => {
-    const markup = renderToStaticMarkup(<HomeCalculators />);
-
+    expect(markup).toContain("Loans, cards, and insurance that fit you");
+    expect(markup).toContain("Buy your property with confidence");
     expect(markup).toContain("EMI Calculator");
     expect(markup).toContain("Loan Eligibility");
     expect(markup).toContain("Home Affordability");
     expect(markup).toContain("Stamp Duty");
     expect(markup).toContain('href="/calculators"');
+    expect(markup.indexOf("Loans, cards, and insurance that fit you")).toBeLessThan(
+      markup.indexOf("Buy your property with confidence"),
+    );
+    expect(markup.indexOf("Buy your property with confidence")).toBeLessThan(
+      markup.indexOf("Calculate before you decide"),
+    );
+    expect(markup).not.toContain("Free planning tools");
+    expect(markup).toContain("bg-background");
   });
 });

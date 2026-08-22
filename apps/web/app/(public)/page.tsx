@@ -7,14 +7,12 @@ import { FaqSection } from "@/components/faq-section";
 import { FloatingDoodles } from "@/components/floating-doodles";
 import { HeroCarousel } from "@/components/hero-carousel";
 import { HomeCalculators } from "@/components/home-calculators";
-import { HomeFinancialServices } from "@/components/home-financial-services";
 import { HowItWorks } from "@/components/how-it-works";
 import { LineSplit } from "@/components/line-split";
 import { PartnerCta } from "@/components/partner-cta";
 import { WhyChooseUs } from "@/components/why-choose-us";
 import { FALLBACK_HERO_BANNERS } from "@/lib/banners";
 import { faqPageJsonLd, HOME_FAQ_ITEMS } from "@/lib/faq";
-import { getPublicFinancialProducts } from "@/lib/financial-catalog";
 import { getHeroBanners } from "@/lib/public-banners";
 import { getPublicContentBlockBySlug } from "@/lib/public-content-blocks";
 import { SITE_NAME, SITE_URL } from "@/lib/site";
@@ -68,11 +66,10 @@ export default async function Home() {
   // never throws (see lib/public-banners.ts), and we deliberately don't
   // distinguish the two here either -- FALLBACK_HERO_BANNERS is what renders
   // in either case, so the homepage is never blank.
-  const [liveBanners, adBanners, closingBlock, featuredProducts] = await Promise.all([
+  const [liveBanners, adBanners, closingBlock] = await Promise.all([
     getHeroBanners(),
     getHeroBanners("homepage_ad"),
     getPublicContentBlockBySlug("homepage-closing"),
-    getPublicFinancialProducts({ featured: true, pageSize: 6 }),
   ]);
   const banners = liveBanners.length > 0 ? liveBanners : FALLBACK_HERO_BANNERS;
 
@@ -95,14 +92,13 @@ export default async function Home() {
           hero stays flush against the sticky header. */}
       {adBanners.length > 0 ? <AdStrip banner={adBanners[0]} /> : null}
       <HeroCarousel banners={banners} />
-      <HomeFinancialServices products={featuredProducts.items} />
-      <HomeCalculators />
       {/* Floating natural-color finance doodles overlay the real-estate band and the
           WhyChooseUs bento (lg+, pointer-events-none), hugging the outer gutters. */}
       <div className="relative">
         <LineSplit />
         <FloatingDoodles />
       </div>
+      <HomeCalculators />
       <HowItWorks />
       <div className="relative">
         <WhyChooseUs />
