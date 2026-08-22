@@ -10,9 +10,9 @@ verified Admin operational-visibility work in
 [PR #173](https://github.com/brollysolutions/client1/pull/173).
 
 **Done - Admin-published Financial Services catalogue, provider offers, and
-reusable logo library (PR pending from
-`feat/configurable-financial-application-forms`; CS-014 public follow-up and
-FR-6.1-FR-6.4; completion coverage unchanged):** active explicitly published
+reusable logo library ([PR #215](https://github.com/brollysolutions/client1/pull/215);
+CS-014 public follow-up and FR-6.1-FR-6.4; completion coverage unchanged):**
+active explicitly published
 Financial Products now drive the public catalogue and service-detail pages;
 Admin can curate up to six Home services, manage bounded marketing content,
 publish searchable/filterable/sortable/paginated provider offers, and reuse
