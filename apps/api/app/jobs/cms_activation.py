@@ -57,7 +57,7 @@ import app.db.session as db_session
 from app.models.audit_log import AuditAction
 from app.models.banner import Banner, BannerPlacement, BannerStatus
 from app.models.offer import Offer, OfferStatus
-from app.models.property import Property
+from app.models.property import Property, ReraVerificationStatus
 from app.services.audit_log import record as record_audit
 
 logger = logging.getLogger("scheduler")
@@ -82,7 +82,11 @@ async def _activate_banners(session: AsyncSession) -> int:
             if (
                 property_listing is None
                 or not property_listing.active
-                or not property_listing.rera_number.strip()
+                or property_listing.rera_verification_status
+                not in {
+                    ReraVerificationStatus.VERIFIED,
+                    ReraVerificationStatus.EXEMPTION_VERIFIED,
+                }
             ):
                 continue
         if banner.offer_id is not None:

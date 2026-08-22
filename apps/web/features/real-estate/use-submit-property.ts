@@ -16,7 +16,7 @@ import {
   validateForm,
   EMPTY_FORM,
   submissionToFormState,
-  type DetailRow,
+  type PropertyDetailForm,
   type SubmitFormState,
 } from "@/lib/property-submit";
 
@@ -36,15 +36,12 @@ export function useSubmitProperty(submission?: Submission) {
     [],
   );
 
-  const addDetailRow = React.useCallback(() => {
-    setForm((prev) => ({ ...prev, details: [...prev.details, { key: "", value: "" }] }));
-  }, []);
-  const setDetailRow = React.useCallback((i: number, row: DetailRow) => {
-    setForm((prev) => ({ ...prev, details: prev.details.map((r, idx) => (idx === i ? row : r)) }));
-  }, []);
-  const removeDetailRow = React.useCallback((i: number) => {
-    setForm((prev) => ({ ...prev, details: prev.details.filter((_, idx) => idx !== i) }));
-  }, []);
+  const setDetailField = React.useCallback(
+    <K extends keyof PropertyDetailForm>(field: K, value: PropertyDetailForm[K]) => {
+      setForm((prev) => ({ ...prev, details: { ...prev.details, [field]: value } }));
+    },
+    [],
+  );
 
   const addAmenity = React.useCallback((value: string) => {
     const v = value.trim();
@@ -121,9 +118,7 @@ export function useSubmitProperty(submission?: Submission) {
   return {
     form,
     setField,
-    addDetailRow,
-    setDetailRow,
-    removeDetailRow,
+    setDetailField,
     addAmenity,
     removeAmenity,
     setImages,

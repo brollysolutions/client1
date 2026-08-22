@@ -271,7 +271,7 @@ export function BannerForm({
                 propertyCampaignImage(selectedProperty, selectedTemplate) ??
                 selectedTemplate?.image_url,
               offer_badge: formatOfferBadge(selectedOffer),
-              rera_verified: Boolean(selectedProperty),
+              rera_verified: selectedProperty?.rera_verification_status === "verified",
             }}
           />
         </CmsPreviewFrame>

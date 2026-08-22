@@ -37,6 +37,8 @@ export function mapProperty(raw: Schemas["PropertyRead"]): REListing {
     areaSqft: raw.area_sqft,
     priceLakhs: raw.price_paise / 10_000_000,
     reraNumber: raw.rera_number,
+    reraVerificationStatus: raw.rera_verification_status,
+    structuredDetails: raw.structured_details,
   };
 }
 

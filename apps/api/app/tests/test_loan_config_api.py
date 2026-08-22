@@ -14,6 +14,7 @@ availability table is deliberately empty by default, and why this matters.
 from __future__ import annotations
 
 import uuid
+from datetime import datetime
 
 import pytest
 from httpx import AsyncClient
@@ -297,6 +298,7 @@ async def test_publish_form_increments_version_and_propagates_to_client(
     client_read = await client.get("/api/v1/loans/loan-types", headers=headers)
     published = next(row for row in client_read.json()["loan_types"] if row["id"] == product["id"])
     assert published["form_version"] == 2
+    assert published["last_updated_at"] == response.json()["updated_at"]
     # The API expands omitted optional field properties to their canonical
     # null defaults before publishing the schema.
     assert published["form_schema"] == response.json()["form_schema"]
@@ -539,6 +541,12 @@ async def test_set_and_read_bank_availability(client: AsyncClient) -> None:
     headers = await _admin_headers(client)
     bank = await _create_bank(client, headers)
     loan_type = await _create_loan_type(client, headers)
+    before_banks = await client.get("/api/v1/loans/banks", headers=headers)
+    before_bank = next(row for row in before_banks.json()["banks"] if row["id"] == bank["id"])
+    before_products = await client.get("/api/v1/loans/loan-types", headers=headers)
+    before_product = next(
+        row for row in before_products.json()["loan_types"] if row["id"] == loan_type["id"]
+    )
 
     res = await client.put(
         f"/api/v1/admin/banks/{bank['id']}/availability",
@@ -556,6 +564,19 @@ async def test_set_and_read_bank_availability(client: AsyncClient) -> None:
         "loan_type_id": loan_type["id"],
         "available": False,
     } in matrix.json()["entries"]
+
+    after_banks = await client.get("/api/v1/loans/banks", headers=headers)
+    after_bank = next(row for row in after_banks.json()["banks"] if row["id"] == bank["id"])
+    after_products = await client.get("/api/v1/loans/loan-types", headers=headers)
+    after_product = next(
+        row for row in after_products.json()["loan_types"] if row["id"] == loan_type["id"]
+    )
+    assert datetime.fromisoformat(after_bank["last_updated_at"]) > datetime.fromisoformat(
+        before_bank["last_updated_at"]
+    )
+    assert datetime.fromisoformat(after_product["last_updated_at"]) > datetime.fromisoformat(
+        before_product["last_updated_at"]
+    )
 
 
 @pytest.mark.asyncio

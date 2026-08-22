@@ -3,11 +3,18 @@ import { describe, expect, it } from "vitest";
 import {
   formatCompactINR,
   formatINR,
+  formatLastUpdated,
   formatNumber,
   formatPaise,
   formatPaiseCompact,
   formatPercent,
 } from "@/lib/format";
+
+describe("formatLastUpdated()", () => {
+  it("uses the explicit freshness label required on products and lenders", () => {
+    expect(formatLastUpdated("2026-08-21T00:00:00Z")).toBe("Last updated: 21 Aug 2026");
+  });
+});
 
 describe("formatINR()", () => {
   it("uses en-IN grouping and the rupee symbol", () => {

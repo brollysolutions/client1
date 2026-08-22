@@ -47,6 +47,7 @@ from sqlalchemy import (
     BigInteger,
     Boolean,
     DateTime,
+    ForeignKey,
     Integer,
     SmallInteger,
     String,
@@ -102,6 +103,19 @@ class ConstructionStatus(enum.StrEnum):
     UNDER_CONSTRUCTION = "under_construction"
 
 
+class ReraApplicability(enum.StrEnum):
+    APPLICABLE = "applicable"
+    EXEMPTION_CLAIMED = "exemption_claimed"
+    UNSURE = "unsure"
+
+
+class ReraVerificationStatus(enum.StrEnum):
+    NOT_REVIEWED = "not_reviewed"
+    VERIFIED = "verified"
+    MISMATCH = "mismatch"
+    EXEMPTION_VERIFIED = "exemption_verified"
+
+
 _ev = lambda x: [e.value for e in x]  # noqa: E731
 property_category_enum = ENUM(
     PropertyCategory, name="re_property_category", create_type=False, values_callable=_ev
@@ -112,6 +126,15 @@ property_subtype_enum = ENUM(
 furnishing_enum = ENUM(Furnishing, name="re_furnishing", create_type=False, values_callable=_ev)
 construction_status_enum = ENUM(
     ConstructionStatus, name="re_construction_status", create_type=False, values_callable=_ev
+)
+rera_applicability_enum = ENUM(
+    ReraApplicability, name="re_rera_applicability", create_type=False, values_callable=_ev
+)
+rera_verification_status_enum = ENUM(
+    ReraVerificationStatus,
+    name="re_rera_verification_status",
+    create_type=False,
+    values_callable=_ev,
 )
 
 
@@ -140,6 +163,7 @@ class Property(Base):
     )
     city: Mapped[str] = mapped_column(String(120), nullable=False)
     locality: Mapped[str] = mapped_column(String(120), nullable=False)
+    state: Mapped[str | None] = mapped_column(String(120), nullable=True)
     pincode: Mapped[str] = mapped_column(String(6), nullable=False)
     # Money in integer minor units (source of truth; price_display is authored
     # alongside). BigInteger: ₹2.6 Cr = 2_600_000_000 paise exceeds int32.
@@ -148,18 +172,35 @@ class Property(Base):
         SmallInteger, nullable=False, default=0
     )  # 0 = N/A (plot/commercial)
     area_sqft: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
-    furnishing: Mapped[Furnishing] = mapped_column(furnishing_enum, nullable=False)
-    construction_status: Mapped[ConstructionStatus] = mapped_column(
-        construction_status_enum, nullable=False
+    furnishing: Mapped[Furnishing | None] = mapped_column(furnishing_enum, nullable=True)
+    construction_status: Mapped[ConstructionStatus | None] = mapped_column(
+        construction_status_enum, nullable=True
     )
     amenities: Mapped[list[str]] = mapped_column(ARRAY(String), nullable=False, default=list)
     age_years: Mapped[int] = mapped_column(SmallInteger, nullable=False, default=0)
 
-    # RERA registration number, shown on every listing (SRS 5.6).
-    rera_number: Mapped[str] = mapped_column(String(40), nullable=False)
+    # Applicant-provided RERA number; the public projection discloses it only
+    # after a platform Admin records a verified applicable registration.
+    rera_number: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    rera_applicability: Mapped[ReraApplicability] = mapped_column(
+        rera_applicability_enum, nullable=False, default=ReraApplicability.UNSURE
+    )
+    rera_verification_status: Mapped[ReraVerificationStatus] = mapped_column(
+        rera_verification_status_enum,
+        nullable=False,
+        default=ReraVerificationStatus.NOT_REVIEWED,
+    )
+    rera_verified_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    rera_verified_by_uuid: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("auth_users.id", ondelete="SET NULL"), nullable=True
+    )
 
     # Overflow for anything not promoted to a typed column.
     details: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
+    details_version: Mapped[int | None] = mapped_column(SmallInteger, nullable=True)
+    structured_details: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, default=datetime.utcnow

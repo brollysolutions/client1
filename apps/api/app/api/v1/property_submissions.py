@@ -28,6 +28,7 @@ from app.schemas.property_submissions import (
     PropertyMediaUploadRequest,
     PropertyMediaUploadResponse,
     RejectRequest,
+    ReraReviewRequest,
     SubmissionCreate,
     SubmissionListResponse,
     SubmissionMediaAccessResponse,
@@ -37,6 +38,7 @@ from app.schemas.property_submissions import (
 )
 from app.services import storage
 from app.services.property_submissions import (
+    InvalidReraReview,
     MediaContentMismatch,
     MediaNotReady,
     MediaObjectChanged,
@@ -44,12 +46,14 @@ from app.services.property_submissions import (
     MediaStorageUnavailable,
     MediaUploadMissing,
     MediaUploadRateExceeded,
+    ReraReviewRequired,
     SubmissionAlreadyReviewed,
     SubmissionNotEditable,
     approve_submission,
     create_submission,
     presign_media_upload,
     reject_submission,
+    review_rera,
     verify_stored_media,
     withdraw_submission,
 )
@@ -310,6 +314,11 @@ async def approve(
             status_code=status.HTTP_409_CONFLICT,
             detail="This submission has already been reviewed.",
         ) from exc
+    except ReraReviewRequired as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Complete the RERA applicability review before approval.",
+        ) from exc
     except MediaNotReady as exc:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
@@ -329,6 +338,35 @@ async def approve(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Submission not found.")
     sub = await db.scalar(select(PropertySubmission).where(PropertySubmission.id == submission_id))
     if sub is None:  # pragma: no cover — reviewer RLS always sees the row it just approved
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Submission not found.")
+    media = await _media_for_submissions(db, [sub.id])
+    return _to_read(sub, media[sub.id])
+
+
+@router.post("/{submission_id}/rera-review", response_model=SubmissionRead)
+async def record_rera_review(
+    submission_id: UUID,
+    payload: ReraReviewRequest,
+    current_user: CurrentUser = Depends(require_platform_admin),
+    db: AsyncSession = Depends(get_db),
+) -> SubmissionRead:
+    try:
+        ok = await review_rera(
+            submission_id,
+            current_user.id,
+            payload.status,
+            payload.note,
+            reviewer_role=current_user.role,
+        )
+    except InvalidReraReview as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="The RERA review outcome does not match the submitted applicability details.",
+        ) from exc
+    if not ok:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Submission not found.")
+    sub = await db.scalar(select(PropertySubmission).where(PropertySubmission.id == submission_id))
+    if sub is None:  # pragma: no cover
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Submission not found.")
     media = await _media_for_submissions(db, [sub.id])
     return _to_read(sub, media[sub.id])

@@ -510,7 +510,7 @@ export function BannersView() {
                           propertyCampaignImage(selectedProperty, selectedTemplate) ??
                           selectedTemplate?.image_url,
                         offer_badge: formatOfferBadge(selectedOffer),
-                        rera_verified: Boolean(selectedProperty?.active),
+                        rera_verified: selectedProperty?.rera_verification_status === "verified",
                       }}
                     />
                   </CmsPreviewFrame>

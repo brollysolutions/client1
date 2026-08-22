@@ -3,11 +3,14 @@ import { describe, expect, it } from "vitest";
 import {
   buildSubmissionPayload,
   validateForm,
+  EMPTY_DETAILS,
   EMPTY_FORM,
   FURNISHING_OPTIONS,
   CONSTRUCTION_OPTIONS,
   type SubmitFormState,
 } from "@/lib/property-submit";
+
+const PROJECT_AMENITIES = Array.from({ length: 150 }, () => "landscaped").join(" ");
 
 const VALID: SubmitFormState = {
   ...EMPTY_FORM,
@@ -16,17 +19,29 @@ const VALID: SubmitFormState = {
   location: "Kondapur, Hyderabad",
   city: "Hyderabad",
   locality: "Kondapur",
+  state: "Telangana",
   pincode: "500084",
   priceRupees: "5000000",
   propertySubtype: "standalone_apartment",
   furnishing: "semi",
   constructionStatus: "ready",
-  rera_number: "TS-RERA-123",
-  bhk: "2",
-  area_sqft: "1150",
-  age_years: "3",
+  reraApplicability: "applicable",
+  reraNumber: "TS-RERA-123",
   amenities: ["parking", "lift"],
-  details: [{ key: "facing", value: "East" }, { key: "floor", value: "7" }],
+  details: {
+    ...EMPTY_DETAILS,
+    projectName: "Sunny Homes",
+    projectAreaAcres: "4.5",
+    numberOfTowers: "3",
+    totalUnits: "120",
+    configurations: ["2_bhk", "3_bhk"],
+    unitAreaSqft: "1150",
+    rateRupees: "6500",
+    saleType: "new_sale",
+    facing: "east",
+    amenitiesDescription: PROJECT_AMENITIES,
+    about: "A calm community with landscaped gardens and generous shared spaces.",
+  },
   images: [new File(["image"], "a.jpg", { type: "image/jpeg" })],
   documents: [],
   meta: "Ready to move",
@@ -62,17 +77,20 @@ describe("buildSubmissionPayload()", () => {
   it("trims strings and coerces numeric fields", () => {
     const p = buildSubmissionPayload(VALID, MEDIA);
     expect(p.title).toBe("Sunny 2BHK");
-    expect(p.bhk).toBe(2);
+    expect(p.bhk).toBe(0);
     expect(p.area_sqft).toBe(1150);
-    expect(p.age_years).toBe(3);
+    expect(p.age_years).toBe(0);
   });
 
-  it("assembles details rows into an object, dropping blank keys", () => {
-    const p = buildSubmissionPayload({
-      ...VALID,
-      details: [{ key: "facing", value: "East" }, { key: "", value: "ignored" }],
-    }, MEDIA);
-    expect(p.details).toEqual({ facing: "East" });
+  it("builds the closed project-residence payload", () => {
+    const p = buildSubmissionPayload(VALID, MEDIA);
+    expect(p.structured_details).toMatchObject({
+      kind: "project_residence",
+      project_name: "Sunny Homes",
+      unit_or_plot_area_sqft: 1150,
+      price_per_sqft_paise: 650_000,
+      configurations: ["2_bhk", "3_bhk"],
+    });
   });
 
   it("passes amenities through and omits empty optional strings as null", () => {
@@ -88,6 +106,15 @@ describe("validateForm()", () => {
     expect(validateForm(VALID)).toEqual({});
   });
 
+  it("requires at least 150 words for project amenities", () => {
+    const details = {
+      ...VALID.details,
+      amenitiesDescription: Array.from({ length: 149 }, () => "landscaped").join(" "),
+    };
+
+    expect(validateForm({ ...VALID, details }).amenitiesDescription).toContain("at least 150 words");
+  });
+
   it("flags a non-6-digit pincode", () => {
     expect(validateForm({ ...VALID, pincode: "5008" }).pincode).toBeTruthy();
   });
@@ -101,12 +128,36 @@ describe("validateForm()", () => {
     const errs = validateForm({
       ...VALID,
       title: "  ",
-      rera_number: "",
       propertySubtype: "",
     });
     expect(errs.title).toBeTruthy();
-    expect(errs.rera_number).toBeTruthy();
     expect(errs.propertySubtype).toBeTruthy();
+  });
+
+  it("accepts a blank optional RERA number", () => {
+    expect(validateForm({ ...VALID, reraNumber: "" })).toEqual({});
+    expect(buildSubmissionPayload({ ...VALID, reraNumber: "" }, MEDIA).rera_number).toBeNull();
+  });
+
+  it("rejects numbers and links in public narrative fields", () => {
+    expect(
+      validateForm({
+        ...VALID,
+        details: { ...VALID.details, about: "Call 9876543210" },
+      }).about,
+    ).toBeTruthy();
+    expect(
+      validateForm({
+        ...VALID,
+        details: { ...VALID.details, about: "Visit example.xyz" },
+      }).about,
+    ).toBeTruthy();
+    expect(
+      validateForm({
+        ...VALID,
+        details: { ...VALID.details, about: "Use ftp://example" },
+      }).about,
+    ).toBeTruthy();
   });
 
   it("requires managed images and rejects unsupported media", () => {

@@ -112,6 +112,16 @@ export async function approveSubmission(id: string): Promise<ApiResponse<Submiss
   });
 }
 
+export async function reviewSubmissionRera(
+  id: string,
+  body: Schemas["ReraReviewRequest"],
+): Promise<ApiResponse<Submission>> {
+  return apiRequest<Submission>(`/api/v1/property-submissions/${id}/rera-review`, {
+    method: "POST",
+    body,
+  });
+}
+
 export async function rejectSubmission(
   id: string,
   note: string,

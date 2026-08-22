@@ -3,6 +3,7 @@ import { MapPin } from "lucide-react";
 
 import { LeadDialog } from "@/components/lead-dialog";
 import { PropertyMediaDialog } from "@/components/property-media-dialog";
+import { PropertyDetailsDialog } from "@/components/property-details-dialog";
 import {
   Card,
   CardContent,
@@ -56,8 +57,8 @@ export function PropertyCard({ listing }: { listing: PropertyListing }) {
         {listing.meta ? (
           <p className="text-sm text-text-secondary">{listing.meta}</p>
         ) : null}
-        {listing.reraNumber ? (
-          <p className="text-xs text-muted-foreground">RERA {listing.reraNumber}</p>
+        {listing.reraNumber && listing.reraVerificationStatus === "verified" ? (
+          <p className="text-xs text-muted-foreground">RERA verified · {listing.reraNumber}</p>
         ) : null}
       </CardHeader>
 
@@ -68,6 +69,7 @@ export function PropertyCard({ listing }: { listing: PropertyListing }) {
       </CardContent>
 
       <CardFooter className="flex flex-col gap-2 pt-5">
+        <PropertyDetailsDialog title={listing.title} details={listing.structuredDetails} />
         {listing.media?.length ? (
           <PropertyMediaDialog title={listing.title} media={listing.media} />
         ) : null}

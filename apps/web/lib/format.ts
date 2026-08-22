@@ -16,6 +16,11 @@ const inrExact = new Intl.NumberFormat("en-IN", {
 });
 
 const num = new Intl.NumberFormat("en-IN", { maximumFractionDigits: 0 });
+const updatedDate = new Intl.DateTimeFormat("en-IN", { dateStyle: "medium" });
+
+export function formatLastUpdated(value: string): string {
+  return `Last updated: ${updatedDate.format(new Date(value))}`;
+}
 
 /** e.g. 100000 -> "₹1,00,000". */
 export function formatINR(value: number): string {

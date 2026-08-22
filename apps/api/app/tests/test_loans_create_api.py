@@ -34,6 +34,7 @@ async def test_loan_types_returns_seeded_labels(client: AsyncClient) -> None:
     )
     assert resp.status_code == 200
     labels = {lt["label"] for lt in resp.json()["loan_types"]}
+    assert all(lt["last_updated_at"] for lt in resp.json()["loan_types"])
     assert "Personal Loan" in labels
     assert "Home Loan" in labels
     assert "Life & Term Insurance" in labels

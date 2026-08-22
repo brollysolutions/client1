@@ -60,6 +60,7 @@ class LoanTypeRead(BaseModel):
     display_order: int
     form_version: int
     form_schema: ProductFormDefinition
+    last_updated_at: datetime
 
 
 class LoanTypeListResponse(BaseModel):
@@ -89,6 +90,7 @@ class FinancialServiceEnquiryListResponse(BaseModel):
 class BankRead(BaseModel):
     id: UUID
     name: str
+    last_updated_at: datetime
 
 
 class BankListResponse(BaseModel):

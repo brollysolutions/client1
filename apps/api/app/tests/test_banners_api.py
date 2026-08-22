@@ -10,6 +10,7 @@ test_property_submissions_api.py.
 from __future__ import annotations
 
 import uuid
+from datetime import UTC, datetime
 
 import pytest
 from httpx import AsyncClient
@@ -75,6 +76,9 @@ async def _seed_property(*, active: bool, category: str = "villas") -> str:
             furnishing="furnished",
             construction_status="ready",
             rera_number="RERA/TS/2026/0044",
+            rera_applicability="applicable",
+            rera_verification_status="verified",
+            rera_verified_at=datetime.now(UTC),
         )
         db.add(property_listing)
         await db.commit()

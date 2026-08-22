@@ -16,7 +16,8 @@ import type { AdminProperty } from "@/lib/properties-api";
 import { cn } from "@/lib/utils";
 
 function propertyLabel(property: AdminProperty): string {
-  return `${property.title} · ${property.location} · ${property.rera_number}`;
+  const compliance = property.rera_number ? `RERA ${property.rera_number}` : "RERA exemption";
+  return `${property.title} · ${property.location} · ${compliance}`;
 }
 
 export function PropertyCampaignSelect({
@@ -48,14 +49,14 @@ export function PropertyCampaignSelect({
           className="h-11 w-full justify-between px-3 font-normal"
         >
           <span className={cn("truncate", !selected && "text-muted-foreground")}>
-            {selected ? propertyLabel(selected) : "Search an active RERA property"}
+            {selected ? propertyLabel(selected) : "Search an active verified property"}
           </span>
           <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-50" aria-hidden />
         </Button>
       </PopoverTrigger>
       <PopoverContent align="start" className="w-[var(--radix-popover-trigger-width)] p-0">
         <Command>
-          <CommandInput placeholder="Search title, location, or RERA code" />
+          <CommandInput placeholder="Search title, location, or RERA status" />
           <CommandList>
             <CommandEmpty>No matching active properties.</CommandEmpty>
             <CommandItem

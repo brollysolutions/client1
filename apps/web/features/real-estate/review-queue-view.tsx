@@ -8,7 +8,9 @@ import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { PanoramaViewer } from "@/components/panorama-viewer";
+import { PropertyDetailsSummary } from "@/components/property-details-dialog";
 import {
   Dialog,
   DialogContent,
@@ -24,6 +26,7 @@ import {
   accessSubmissionMedia,
   getSubmission,
   rejectSubmission,
+  reviewSubmissionRera,
   type Submission,
 } from "@/lib/property-submissions-api";
 import { useSubmissionQueue } from "./use-submission-queue";
@@ -45,6 +48,7 @@ export function ReviewQueueView() {
   const [active, setActive] = React.useState<Submission | null>(null);
   const [rejecting, setRejecting] = React.useState(false);
   const [note, setNote] = React.useState("");
+  const [reraNote, setReraNote] = React.useState("");
   const [busy, setBusy] = React.useState(false);
   const [mediaUrls, setMediaUrls] = React.useState<Record<string, string>>({});
   const [mediaLoading, setMediaLoading] = React.useState(false);
@@ -52,6 +56,12 @@ export function ReviewQueueView() {
   const activeId = active?.id;
   const waitingForMedia = activeMedia.some((asset) =>
     ["pending", "processing"].includes(asset.processing_status),
+  );
+  const reraReady = Boolean(
+    active &&
+      ((active.rera_applicability === "applicable" && active.rera_verification_status === "verified") ||
+        (active.rera_applicability === "exemption_claimed" &&
+          active.rera_verification_status === "exemption_verified")),
   );
 
   React.useEffect(() => {
@@ -127,6 +137,32 @@ export function ReviewQueueView() {
     }
   }
 
+  async function onReraReview(
+    sub: Submission,
+    status: "verified" | "mismatch" | "exemption_verified",
+  ) {
+    if (status !== "verified" && reraNote.trim().length === 0) {
+      toast.error("Add a RERA review note", {
+        description: "Record the registry mismatch or the basis for the exemption.",
+      });
+      return;
+    }
+    setBusy(true);
+    const result = await reviewSubmissionRera(sub.id, {
+      status,
+      note: reraNote.trim() || null,
+    });
+    setBusy(false);
+    if (result.ok) {
+      setActive(result.data);
+      setReraNote("");
+      toast.success("RERA review saved");
+      void reload();
+    } else {
+      toast.error("Could not save RERA review", { description: result.error });
+    }
+  }
+
   return (
     <div className="mx-auto w-full max-w-5xl space-y-6 px-4 sm:px-6 lg:px-10">
       <div>
@@ -179,6 +215,7 @@ export function ReviewQueueView() {
                   setActive(sub);
                   setRejecting(false);
                   setNote("");
+                  setReraNote("");
                 }}
                 className="flex w-full items-center justify-between gap-4 rounded-2xl border border-border bg-card p-4 text-left transition-colors hover:border-brand-cta"
               >
@@ -200,7 +237,7 @@ export function ReviewQueueView() {
       {!loading && !error && filtered.length > 0 ? <AdminPagination page={page} total={filtered.length} onPageChange={setPage} /> : null}
 
       <Dialog open={active !== null} onOpenChange={(o) => !o && setActive(null)}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto overscroll-contain">
           {active ? (
             <>
               <DialogHeader>
@@ -288,17 +325,75 @@ export function ReviewQueueView() {
                   </div>
                   <div>
                     <dt className="text-text-secondary">RERA</dt>
-                    <dd className="font-medium text-text-primary">{active.rera_number}</dd>
+                    <dd className="font-medium text-text-primary">{active.rera_number ?? "Not provided"}</dd>
                   </div>
                 </dl>
 
-                {rejecting ? (
+                <div className="rounded-xl border border-border p-4">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                      <p className="text-sm font-medium text-text-primary">RERA registry review</p>
+                      <p className="text-xs text-text-secondary">
+                        Applicant selection: {active.rera_applicability.replaceAll("_", " ")}
+                      </p>
+                    </div>
+                    <Badge variant={reraReady ? "default" : "secondary"}>
+                      {active.rera_verification_status.replaceAll("_", " ")}
+                    </Badge>
+                  </div>
+                  <Label htmlFor="rera-review-note" className="mt-3 block">
+                    Registry finding or exemption basis
+                  </Label>
                   <Textarea
-                    value={note}
-                    onChange={(e) => setNote(e.target.value)}
-                    placeholder="Reason for rejection (shown to the submitter)"
-                    rows={3}
+                    id="rera-review-note"
+                    name="rera-review-note"
+                    className="mt-1"
+                    value={reraNote}
+                    onChange={(event) => setReraNote(event.target.value)}
+                    placeholder="Record the registry result for the audit trail"
+                    rows={2}
+                    maxLength={1000}
                   />
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {active.rera_applicability === "applicable" ? (
+                      <Button type="button" size="sm" variant="outline" disabled={busy || !active.rera_number} onClick={() => void onReraReview(active, "verified")}>
+                        Verify registration
+                      </Button>
+                    ) : null}
+                    {active.rera_applicability === "exemption_claimed" ? (
+                      <Button type="button" size="sm" variant="outline" disabled={busy} onClick={() => void onReraReview(active, "exemption_verified")}>
+                        Confirm exemption
+                      </Button>
+                    ) : null}
+                    <Button type="button" size="sm" variant="destructive" disabled={busy} onClick={() => void onReraReview(active, "mismatch")}>
+                      Mark mismatch
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="rounded-xl border border-border p-4">
+                  <p className="mb-3 text-sm font-medium text-text-primary">Subtype-specific details</p>
+                  <PropertyDetailsSummary details={active.structured_details} />
+                </div>
+
+                {rejecting ? (
+                  <div>
+                    <Label htmlFor="property-rejection-reason">
+                      Reason for rejection
+                    </Label>
+                    <Textarea
+                      id="property-rejection-reason"
+                      name="property-rejection-reason"
+                      className="mt-1"
+                      value={note}
+                      onChange={(e) => setNote(e.target.value)}
+                      placeholder="Explain what the submitter needs to correct"
+                      rows={3}
+                    />
+                    <p className="mt-1 text-xs text-text-secondary">
+                      This reason is shown to the submitter.
+                    </p>
+                  </div>
                 ) : null}
               </div>
 
@@ -320,8 +415,8 @@ export function ReviewQueueView() {
                     </Button>
                     <Button
                       onClick={() => void onApprove(active)}
-                      disabled={busy || activeMedia.some((asset) => asset.processing_status !== "ready")}
-                      title={activeMedia.some((asset) => asset.processing_status !== "ready") ? "Wait for all media processing to finish" : undefined}
+                      disabled={busy || !reraReady || activeMedia.some((asset) => asset.processing_status !== "ready")}
+                      title={!reraReady ? "Complete the RERA review first" : activeMedia.some((asset) => asset.processing_status !== "ready") ? "Wait for all media processing to finish" : undefined}
                     >
                       {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
                       Approve
