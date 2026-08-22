@@ -7,7 +7,7 @@ import * as React from "react";
 import { useState } from "react";
 import { toast } from "sonner";
 
-import { Button } from "@/components/ui/button";
+import { Button, type ButtonProps } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -59,6 +59,7 @@ export function LeadDialog({
   description,
   submitLabel = "Request callback",
   href,
+  size,
 }: {
   businessLine: LeadBusinessLine;
   triggerLabel?: string;
@@ -71,6 +72,10 @@ export function LeadDialog({
   // "solid" = the primary section CTA; "outline" = the per-card secondary
   // button; "invert" = a white button for use on a solid blue surface.
   triggerVariant?: "solid" | "outline" | "invert";
+  // Forwarded to the trigger Button. Defaults to shadcn's "default" size;
+  // pass "lg" to match an adjacent size="lg" CTA (e.g. an internal Apply
+  // button sitting next to this trigger).
+  size?: ButtonProps["size"];
   // When true, the form renders a loans/real-estate toggle and the submitted
   // business_line follows the user's pick instead of the fixed prop (used by
   // the agent-application flow, which recruits for both lines).
@@ -142,6 +147,7 @@ export function LeadDialog({
         <Button
           asChild
           variant="outline"
+          size={size}
           className="w-full border-[var(--nav-primary)] text-[var(--nav-primary)] hover:bg-[var(--nav-tint)] hover:text-[var(--nav-primary-hover)]"
         >
           <Link href={href} aria-label={linkAriaLabel}>
@@ -154,6 +160,7 @@ export function LeadDialog({
       return (
         <Button
           asChild
+          size={size}
           className="w-full bg-white text-[var(--nav-primary)] hover:bg-white/90 focus-visible:ring-white sm:w-auto"
         >
           <Link href={href} aria-label={linkAriaLabel}>
@@ -163,7 +170,7 @@ export function LeadDialog({
       );
     }
     return (
-      <Button asChild className={cn("w-full sm:w-auto", line.triggerClass)}>
+      <Button asChild size={size} className={cn("w-full sm:w-auto", line.triggerClass)}>
         <Link href={href} aria-label={linkAriaLabel}>
           {triggerLabel}
         </Link>
@@ -183,6 +190,7 @@ export function LeadDialog({
         {triggerVariant === "outline" ? (
           <Button
             variant="outline"
+            size={size}
             aria-label={product ? `Enquire about ${product}` : triggerLabel}
             className="w-full border-[var(--nav-primary)] text-[var(--nav-primary)] hover:bg-[var(--nav-tint)] hover:text-[var(--nav-primary-hover)]"
           >
@@ -190,13 +198,14 @@ export function LeadDialog({
           </Button>
         ) : triggerVariant === "invert" ? (
           <Button
+            size={size}
             aria-label={triggerLabel}
             className="w-full bg-white text-[var(--nav-primary)] hover:bg-white/90 focus-visible:ring-white sm:w-auto"
           >
             {triggerLabel}
           </Button>
         ) : (
-          <Button className={cn("w-full sm:w-auto", line.triggerClass)}>
+          <Button size={size} className={cn("w-full sm:w-auto", line.triggerClass)}>
             {triggerLabel}
           </Button>
         )}
