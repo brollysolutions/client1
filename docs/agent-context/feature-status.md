@@ -9,9 +9,9 @@ Evidence baseline: `abcc1fd`
 verified Admin operational-visibility work in
 [PR #173](https://github.com/brollysolutions/client1/pull/173).
 
-**Done - public property detail and authentication intent handoff (PR pending on
-`feat/configurable-financial-application-forms`; FR-7.1, FR-7.2, and FR-17.1
-follow-up; completion coverage unchanged):** approved property discovery stays
+**Done - public property detail and authentication intent handoff
+([PR #216](https://github.com/brollysolutions/client1/pull/216); FR-7.1, FR-7.2,
+and FR-17.1 follow-up; completion coverage unchanged):** approved property discovery stays
 public and curated rather than becoming a registration wall or placing the full
 inventory on Home. Public cards now open a full-size, shareable property route
 with a managed image gallery, approved panorama, structured subtype facts,
