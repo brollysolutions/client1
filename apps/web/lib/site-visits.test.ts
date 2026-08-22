@@ -39,9 +39,6 @@ describe("site visits vehicle arrangement mapping", () => {
 
     await createSiteVisit({
       propertyRef: "prop-1",
-      title: "Home",
-      locality: "Whitefield",
-      city: "Bengaluru",
       contactName: "Asha",
       contactMobile: "+919876543210",
       preferredDate: "2026-08-09",
@@ -54,10 +51,14 @@ describe("site visits vehicle arrangement mapping", () => {
     const [, options] = vi.mocked(fetch).mock.calls[0];
     const body = JSON.parse(String(options?.body));
     expect(body).toMatchObject({
+      property_ref: "prop-1",
       pickup_requested: true,
       pickup_location: "MG Road",
       pickup_at: "2026-08-09T04:30:00Z",
     });
+    expect(body).not.toHaveProperty("title");
+    expect(body).not.toHaveProperty("locality");
+    expect(body).not.toHaveProperty("city");
   });
 
   it("maps nested arrangement details for the client view", async () => {

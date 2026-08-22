@@ -17,11 +17,14 @@ from sqlalchemy.orm import selectinload
 from app.core.deps import CurrentUser
 from app.models.audit_log import AuditAction
 from app.models.notification import NotificationType
+from app.models.property import Property
 from app.models.site_visit import SiteVisit, SiteVisitStatus
 from app.models.vehicle_arrangement import VehicleArrangement, VehicleArrangementStatus
 from app.schemas.site_visits import SiteVisitCreate
 from app.services.audit_log import record
+from app.services.leads import ensure_client_line_lead_for_user
 from app.services.notifications import emit_notification
+from app.services.properties import get_active_property
 
 _TERMINAL_STATUSES = {SiteVisitStatus.DONE, SiteVisitStatus.CANCELLED}
 
@@ -38,13 +41,27 @@ async def list_site_visits(db: AsyncSession) -> list[SiteVisit]:
 async def create_site_visit(
     db: AsyncSession, payload: SiteVisitCreate, current_user: CurrentUser
 ) -> SiteVisit:
+    property_listing: Property | None = await get_active_property(db, payload.property_ref)
+    if property_listing is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Property not found.")
+    try:
+        await ensure_client_line_lead_for_user(
+            auth_user_uuid=current_user.id,
+            mobile=current_user.mobile,
+            business_line="real_estate",
+        )
+    except ValueError as exc:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            "Your Real Estate Client profile is not available.",
+        ) from exc
     visit = SiteVisit(
         user_uuid=current_user.id,
         business_line="real_estate",
-        property_ref=payload.property_ref,
-        title=payload.title,
-        locality=payload.locality,
-        city=payload.city,
+        property_ref=str(property_listing.id),
+        title=property_listing.title,
+        locality=property_listing.locality,
+        city=property_listing.city,
         contact_name=payload.contact_name,
         contact_mobile=payload.contact_mobile,
         preferred_date=payload.preferred_date,

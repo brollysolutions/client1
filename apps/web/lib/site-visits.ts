@@ -88,9 +88,6 @@ export async function getSiteVisits(): Promise<ApiResponse<SiteVisit[]>> {
 
 export async function createSiteVisit(input: {
   propertyRef: string;
-  title: string;
-  locality: string;
-  city: string;
   contactName: string;
   contactMobile: string;
   preferredDate: string;
@@ -104,9 +101,6 @@ export async function createSiteVisit(input: {
     method: "POST",
     body: {
       property_ref: input.propertyRef,
-      title: input.title,
-      locality: input.locality,
-      city: input.city,
       contact_name: input.contactName,
       contact_mobile: input.contactMobile,
       preferred_date: input.preferredDate,

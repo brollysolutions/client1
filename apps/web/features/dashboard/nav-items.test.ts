@@ -239,6 +239,12 @@ describe("dashboard direct-route UX access", () => {
         context("client", null, "loans", ["loans"]),
       ),
     ).toBe(false);
+    expect(
+      isDashboardPathAllowed(
+        "/dashboard/properties/123e4567-e89b-42d3-a456-426614174000",
+        context("client", null, "loans", ["loans"]),
+      ),
+    ).toBe(true);
   });
 
   it("keeps role-only and shared nested routes distinct", () => {

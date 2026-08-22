@@ -18,6 +18,8 @@ export type LeadInput = {
   // Optional product/offering the lead enquired about (e.g. "Personal Loan").
   // Captured from the per-card Enquire button; the backend can map it later.
   product?: string;
+  // Canonical property identity. The API resolves public facts server-side.
+  property_ref?: string;
   // Optional extras from the /contact page form; the backend folds them into
   // Lead.requirement JSONB.
   email?: string;
@@ -38,10 +40,12 @@ export type LeadResult = { ok: true } | { ok: false; error: string };
 export function contactHref(params?: {
   line?: LeadTopic;
   product?: string;
+  propertyRef?: string;
 }): string {
   const sp = new URLSearchParams();
   if (params?.line) sp.set("line", params.line);
-  if (params?.product) sp.set("product", params.product);
+  if (params?.product) sp.set("product", params.product.slice(0, 120));
+  if (params?.propertyRef) sp.set("property", params.propertyRef);
   const qs = sp.toString();
   return qs ? `/contact?${qs}` : "/contact";
 }
@@ -56,6 +60,7 @@ export async function submitLead(input: LeadInput): Promise<LeadResult> {
       topic: input.business_line,
       origin: input.origin,
       ...(input.product ? { product: input.product } : {}),
+      ...(input.property_ref ? { property_ref: input.property_ref } : {}),
       ...(input.email ? { email: input.email } : {}),
       ...(input.message ? { message: input.message } : {}),
       ...(input.company ? { company: input.company } : {}),

@@ -61,6 +61,7 @@ PUBLIC_ROUTES = frozenset(
         "GET /api/v1/public/banners",
         "GET /api/v1/public/offers",
         "GET /api/v1/public/properties",
+        "GET /api/v1/public/properties/{property_id}",
         "GET /api/v1/public/content-blocks",
         "GET /api/v1/public/content-blocks/{slug}",
         "GET /api/v1/public/financial-products",

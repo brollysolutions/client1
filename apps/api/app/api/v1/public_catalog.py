@@ -14,11 +14,14 @@ every future anonymous read (banner/offer/content serving included).
 
 from __future__ import annotations
 
+import logging
 from decimal import Decimal
 from typing import Literal
 from urllib.parse import urlencode
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from pydantic import TypeAdapter, ValidationError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.session import get_db
@@ -38,7 +41,12 @@ from app.schemas.financial_catalog import (
 )
 from app.schemas.financial_products import ProductCategory
 from app.schemas.offers import PublicOfferListResponse, PublicOfferRead
-from app.schemas.properties import PublicPropertyListResponse, PublicPropertyRead
+from app.schemas.properties import (
+    PublicPropertyDetailRead,
+    PublicPropertyListResponse,
+    PublicPropertyRead,
+)
+from app.schemas.property_details import PropertyStructuredDetails
 from app.services import storage
 from app.services.banners import template_image_url
 from app.services.financial_catalog import (
@@ -50,6 +58,7 @@ from app.services.financial_catalog import (
 from app.services.properties import media_by_property, media_urls_by_property
 from app.services.public_catalog import (
     get_public_content_block_by_slug,
+    get_public_property,
     list_public_banners,
     list_public_content_blocks,
     list_public_offers,
@@ -57,6 +66,33 @@ from app.services.public_catalog import (
 )
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
+_PROPERTY_DETAILS_ADAPTER = TypeAdapter(PropertyStructuredDetails)
+
+
+def _public_property_data(property_listing: Property) -> dict:
+    """Project an ORM row while containing malformed legacy detail JSON.
+
+    Structured details were introduced after the catalog table. One stale
+    approved row must not make the full anonymous catalog unavailable; the
+    typed common facts remain safe to serve and the invalid detail block is
+    omitted with an identifier-only warning for repair.
+    """
+
+    structured_details = property_listing.structured_details
+    if structured_details is not None:
+        try:
+            structured_details = _PROPERTY_DETAILS_ADAPTER.validate_python(structured_details)
+        except ValidationError:
+            logger.warning(
+                "public_property.invalid_structured_details property_id=%s",
+                property_listing.id,
+            )
+            structured_details = None
+    return {
+        **property_listing.__dict__,
+        "structured_details": structured_details,
+    }
 
 
 def _public_product_read(product, provider_count: int) -> PublicFinancialProductRead:  # noqa: ANN001
@@ -209,7 +245,7 @@ async def list_properties_public(
     media_items = await media_by_property(db, [property.id for property in properties])
     return PublicPropertyListResponse(
         properties=[
-            PublicPropertyRead.model_validate(p, from_attributes=True).model_copy(
+            PublicPropertyRead.model_validate(_public_property_data(p)).model_copy(
                 update={
                     "media_urls": media[p.id],
                     "media": media_items[p.id],
@@ -222,6 +258,32 @@ async def list_properties_public(
             )
             for p in properties
         ]
+    )
+
+
+@router.get("/properties/{property_id}", response_model=PublicPropertyDetailRead)
+async def get_property_public(
+    property_id: UUID,
+    db: AsyncSession = Depends(get_db),
+) -> PublicPropertyDetailRead:
+    property_listing = await get_public_property(db, property_id)
+    if property_listing is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Property not found.")
+
+    media_urls = await media_urls_by_property(db, [property_listing.id])
+    media_items = await media_by_property(db, [property_listing.id])
+    return PublicPropertyDetailRead.model_validate(
+        _public_property_data(property_listing)
+    ).model_copy(
+        update={
+            "media_urls": media_urls[property_listing.id],
+            "media": media_items[property_listing.id],
+            "rera_number": (
+                property_listing.rera_number
+                if property_listing.rera_verification_status == ReraVerificationStatus.VERIFIED
+                else None
+            ),
+        }
     )
 
 

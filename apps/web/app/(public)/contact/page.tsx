@@ -55,15 +55,32 @@ const contactJsonLd = {
 export default async function ContactPage({
   searchParams,
 }: {
-  searchParams: Promise<{ line?: string; product?: string; invitation?: string }>;
+  searchParams: Promise<{
+    line?: string;
+    product?: string;
+    property?: string;
+    invitation?: string;
+  }>;
 }) {
-  const { line, product, invitation } = await searchParams;
-  // Only honor a valid topic from the CTA; otherwise let the form default.
-  // `product` is free text (loan type / property / calculator name).
-  const initialLine: LeadTopic | undefined =
-    line === "loans" || line === "real_estate" ? line : undefined;
+  const { line, product, property, invitation } = await searchParams;
   const invitationToken =
     invitation && /^[A-Za-z0-9_-]{32,128}$/.test(invitation) ? invitation : undefined;
+  const propertyRef =
+    property &&
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+      property,
+    )
+      ? property
+      : undefined;
+  // A canonical property reference always belongs to Real Estate. This also
+  // locks the form's line selector so a crafted query cannot submit an invalid
+  // property/Loans combination. Free-text products mirror the API's limit.
+  const initialLine: LeadTopic | undefined = propertyRef
+    ? "real_estate"
+    : line === "loans" || line === "real_estate"
+      ? line
+      : undefined;
+  const initialProduct = product?.trim().slice(0, 120) || undefined;
 
   return (
     <>
@@ -124,7 +141,8 @@ export default async function ContactPage({
               <div className="mt-8">
                 <ContactForm
                   initialLine={initialLine}
-                  initialProduct={product}
+                  initialProduct={initialProduct}
+                  propertyRef={propertyRef}
                   invitationToken={invitationToken}
                 />
               </div>

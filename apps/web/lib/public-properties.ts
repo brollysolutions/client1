@@ -9,7 +9,8 @@ import type { components } from "@contracts/generated/schema";
 
 import { isAllowedAssetUrl } from "@/lib/allowed-asset-url";
 import { serverFetchJson } from "@/lib/api/server";
-import type { PropertyListing } from "@/lib/properties";
+import type { ApiResponse } from "@/lib/api/client";
+import type { PropertyDetailListing, PropertyListing } from "@/lib/properties";
 
 type Schemas = components["schemas"];
 
@@ -47,4 +48,41 @@ export async function getPublicListings(): Promise<PropertyListing[]> {
   );
   if (!res.ok) return [];
   return res.data.properties.map(mapPublicListing);
+}
+
+export function mapPublicPropertyDetail(
+  raw: Schemas["PublicPropertyDetailRead"],
+): PropertyDetailListing {
+  const base = mapPublicListing(raw);
+  return {
+    ...base,
+    city: raw.city,
+    locality: raw.locality,
+    ...(raw.state ? { state: raw.state } : {}),
+    pincode: raw.pincode,
+    bhk: raw.bhk,
+    areaSqft: raw.area_sqft,
+    furnishing: raw.furnishing,
+    constructionStatus: raw.construction_status,
+    amenities: raw.amenities,
+    ageYears: raw.age_years,
+    reraApplicability: raw.rera_applicability,
+  };
+}
+
+export async function getPublicProperty(
+  id: string,
+): Promise<ApiResponse<PropertyDetailListing>> {
+  const res = await serverFetchJson<Schemas["PublicPropertyDetailRead"]>(
+    `/api/v1/public/properties/${encodeURIComponent(id)}`,
+    // Detail visibility must reflect deactivation immediately even when a
+    // visitor arrived from the five-minute curated catalogue cache.
+    { revalidate: 0 },
+  );
+  if (!res.ok) return res;
+  return {
+    ok: true,
+    status: res.status,
+    data: mapPublicPropertyDetail(res.data),
+  };
 }

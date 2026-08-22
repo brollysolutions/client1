@@ -9,6 +9,47 @@ Evidence baseline: `abcc1fd`
 verified Admin operational-visibility work in
 [PR #173](https://github.com/brollysolutions/client1/pull/173).
 
+**Done - public property detail and authentication intent handoff
+([PR #216](https://github.com/brollysolutions/client1/pull/216); FR-7.1, FR-7.2,
+and FR-17.1 follow-up; completion coverage unchanged):** approved property discovery stays
+public and curated rather than becoming a registration wall or placing the full
+inventory on Home. Public cards now open a full-size, shareable property route
+with a managed image gallery, approved panorama, structured subtype facts,
+amenities, RERA disclosure, trust copy, responsive action rail, Dhanadhara
+contact, and an internal-open action.
+
+The anonymous API uses an explicit active predicate and a separate safe detail
+schema. It excludes exact minor-unit price, publication state, timestamps, and
+reviewer identity; invalid legacy detail JSON is contained per row. Exact public
+detail requests are dynamic/no-store so a deactivated property is not retained
+by the five-minute curated-catalogue cache. Inactive and unknown UUIDs remain
+indistinguishable 404s. Dynamic JSON-LD escapes stored text, managed asset URLs
+retain the existing allowlist, and no owner data, private review evidence, map,
+or external redirect is exposed.
+
+Login and registration preserve only a safe local dashboard destination and
+return to the exact property. Property-origin registration preselects and locks
+Real Estate while still allowing Loans to be added. Existing Loans-only Clients
+can view the public-equivalent detail and contact the team, but this slice does
+not mutate their service enrollment. Real Estate enquiry and site-visit writes
+accept only the property UUID from the browser, resolve current active facts on
+the server, and ensure the Real Estate Client line before persisting. Public
+contact leads carry the same UUID, retain rate limiting and generic inactive-row
+responses, and ignore browser-supplied property facts.
+
+Fresh evidence: generated OpenAPI and TypeScript contracts are current; API
+Ruff check/format pass; 49 focused PostgreSQL-backed public-property,
+enquiry, site-visit, and lead tests pass; Alembic reports the single head
+`73f4c2a91d6e`. Web lint and strict typecheck pass; all 384 tests across 62
+files pass, followed by a 25-test post-hardening property/auth/contact rerun.
+Desktop and 390 px browser review covers public detail, exact contact identity,
+mobile actions, login return, and Real Estate registration intent. The canonical
+Docker builder compiles, typechecks, generates all 93 pages, and includes both
+dynamic property routes. The full repository wrapper remained in its host-side
+API pytest phase until the 30-minute command limit, so it is inconclusive rather
+than passing. Security, design, and maintainer reviews found no remaining
+actionable defect. Next priority returns to FR-2.2 controlled correction/audit.
+
 **Done - Admin-published Financial Services catalogue, provider offers, and
 reusable logo library ([PR #215](https://github.com/brollysolutions/client1/pull/215);
 CS-014 public follow-up and FR-6.1-FR-6.4; completion coverage unchanged):**

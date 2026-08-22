@@ -125,9 +125,6 @@ export function PropertyActionDialog({
     if (isSiteVisit) {
       const result = await createSiteVisit({
         propertyRef: listing.id,
-        title: listing.title,
-        locality: listing.locality,
-        city: listing.city,
         contactName: name.trim(),
         contactMobile: toE164(phone),
         preferredDate,
@@ -156,9 +153,6 @@ export function PropertyActionDialog({
 
     const result = await createEnquiry({
       propertyRef: listing.id,
-      title: listing.title,
-      locality: listing.locality,
-      city: listing.city,
       contactName: name.trim(),
       contactMobile: toE164(phone),
       ...(message.trim() ? { message: message.trim() } : {}),
