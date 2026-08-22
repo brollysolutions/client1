@@ -147,16 +147,5 @@ function Band({ line, paddingClassName }: { line: Line; paddingClassName: string
 }
 
 export function LineSplit() {
-  return (
-    <>
-      <Band
-        line={LINES[0]}
-        paddingClassName="pt-6 pb-16 sm:pt-8 sm:pb-20 lg:pt-10 lg:pb-24"
-      />
-      <Band
-        line={LINES[1]}
-        paddingClassName="py-16 sm:py-20 lg:py-24"
-      />
-    </>
-  );
+  return <Band line={LINES[1]} paddingClassName="py-16 sm:py-20 lg:py-24" />;
 }

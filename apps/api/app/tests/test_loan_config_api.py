@@ -14,7 +14,7 @@ availability table is deliberately empty by default, and why this matters.
 from __future__ import annotations
 
 import uuid
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import pytest
 from httpx import AsyncClient
@@ -103,6 +103,225 @@ async def _create_bank(client: AsyncClient, headers: dict[str, str]) -> dict:
     )
     assert res.status_code == 201, res.text
     return res.json()
+
+
+@pytest.mark.asyncio
+async def test_admin_publishes_product_profile_and_explicit_provider_offer(
+    client: AsyncClient,
+) -> None:
+    headers = await _admin_headers(client)
+    product = await _create_loan_type(client, headers)
+
+    blank_provider = await client.post(
+        "/api/v1/admin/banks",
+        json={"name": "   "},
+        headers=headers,
+    )
+    assert blank_provider.status_code == 422
+
+    incomplete = await client.patch(
+        f"/api/v1/admin/loan-types/{product['id']}",
+        json={"public_visible": True},
+        headers=headers,
+    )
+    assert incomplete.status_code == 422
+
+    published = await client.patch(
+        f"/api/v1/admin/loan-types/{product['id']}",
+        json={
+            "public_visible": True,
+            "public_summary": "A concise public summary.",
+            "public_description": "A clear description for a prospective applicant.",
+            "public_highlights": ["Assisted internal application"],
+            "public_eligibility": ["Provider-specific review applies"],
+            "public_documents": ["Income proof may be requested later"],
+            "public_faq": [
+                {
+                    "question": "Is approval guaranteed?",
+                    "answer": "No. The selected provider completes its own assessment.",
+                }
+            ],
+            "homepage_featured": True,
+            "homepage_feature_order": 3,
+        },
+        headers=headers,
+    )
+    assert published.status_code == 200, published.text
+    assert published.json()["homepage_featured"] is True
+
+    provider_name = _unique_bank_name()
+    provider_response = await client.post(
+        "/api/v1/admin/banks",
+        json={
+            "name": f"  {provider_name}  ",
+            "legal_name": "Test Provider Private Limited",
+            "provider_type": "nbfc",
+        },
+        headers=headers,
+    )
+    assert provider_response.status_code == 201, provider_response.text
+    provider = provider_response.json()
+    assert provider["name"] == provider_name
+    assert provider["provider_type"] == "nbfc"
+    assert provider["logo_url"] is None
+
+    renamed = await client.patch(
+        f"/api/v1/admin/banks/{provider['id']}",
+        json={"name": f"  {provider_name} Updated  "},
+        headers=headers,
+    )
+    assert renamed.status_code == 200, renamed.text
+    provider = renamed.json()
+    assert provider["name"] == f"{provider_name} Updated"
+
+    future_offer = await client.post(
+        "/api/v1/admin/product-provider-offers",
+        json={
+            "loan_type_id": product["id"],
+            "bank_id": provider["id"],
+            "offer_name": "Impossible future verification",
+            "published": True,
+            "last_verified_at": (datetime.now().astimezone() + timedelta(days=1)).isoformat(),
+        },
+        headers=headers,
+    )
+    assert future_offer.status_code == 422
+
+    now = datetime.now().astimezone().isoformat()
+    offer_response = await client.post(
+        "/api/v1/admin/product-provider-offers",
+        json={
+            "loan_type_id": product["id"],
+            "bank_id": provider["id"],
+            "offer_name": "Standard assisted option",
+            "summary": "Indicative terms only.",
+            "published": True,
+            "display_order": 1,
+            "min_amount": "100000",
+            "max_amount": "1000000",
+            "min_interest_rate": "10.5",
+            "max_interest_rate": "16.5",
+            "min_tenure_months": 12,
+            "max_tenure_months": 60,
+            "last_verified_at": now,
+        },
+        headers=headers,
+    )
+    assert offer_response.status_code == 201, offer_response.text
+    offer = offer_response.json()
+    assert offer["product_label"] == product["label"]
+    assert offer["provider_name"] == provider["name"]
+    assert "destination_url" not in offer
+
+    invalid_range = await client.patch(
+        f"/api/v1/admin/product-provider-offers/{offer['id']}",
+        json={"min_amount": "2000000"},
+        headers=headers,
+    )
+    assert invalid_range.status_code == 422
+
+    updated = await client.patch(
+        f"/api/v1/admin/product-provider-offers/{offer['id']}",
+        json={"summary": "Updated informational terms."},
+        headers=headers,
+    )
+    assert updated.status_code == 200, updated.text
+    assert updated.json()["summary"] == "Updated informational terms."
+
+    public = await client.get(f"/api/v1/public/financial-products/{product['name']}/providers")
+    assert public.status_code == 200, public.text
+    assert offer["id"] in {item["id"] for item in public.json()["items"]}
+
+    audit = await _audit_row("financial_product_offer_created", offer["id"])
+    assert audit is not None
+    assert audit["entity_type"] == "financial_product_provider_offer"
+    update_audit = await _audit_row("financial_product_offer_updated", offer["id"])
+    assert update_audit is not None
+
+
+@pytest.mark.asyncio
+async def test_provider_logo_presign_is_raster_only_and_raw_remote_keys_are_rejected(
+    client: AsyncClient,
+) -> None:
+    headers = await _admin_headers(client)
+    svg = await client.post(
+        "/api/v1/admin/provider-logos/upload-url",
+        json={"filename": "logo.svg", "content_type": "image/svg+xml"},
+        headers=headers,
+    )
+    assert svg.status_code == 422
+
+    raster = await client.post(
+        "/api/v1/admin/provider-logos/upload-url",
+        json={"filename": "logo.png", "content_type": "image/png"},
+        headers=headers,
+    )
+    assert raster.status_code == 200, raster.text
+    assert raster.json()["object_key"].startswith("private/provider-logos/staging/")
+    assert raster.json()["max_bytes"] == 1024 * 1024
+
+    remote = await client.post(
+        "/api/v1/admin/banks",
+        json={"name": _unique_bank_name(), "logo_key": "https://example.com/logo.svg"},
+        headers=headers,
+    )
+    assert remote.status_code == 422
+
+    traversal = await client.post(
+        "/api/v1/admin/banks",
+        json={"name": _unique_bank_name(), "logo_key": "/provider-logos/../secret.svg"},
+        headers=headers,
+    )
+    assert traversal.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_provider_logo_confirm_canonicalizes_and_verifies_managed_asset(
+    client: AsyncClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from app.services import financial_catalog
+
+    headers = await _admin_headers(client)
+    provider = await _create_bank(client, headers)
+    staging_key = f"private/provider-logos/staging/{uuid.uuid4()}/logo.png"
+    deleted: list[str] = []
+
+    monkeypatch.setattr(financial_catalog.storage, "head_object", lambda _key: 512)
+    monkeypatch.setattr(
+        financial_catalog.storage,
+        "content_matches_declared_type",
+        lambda _key, _content_type: True,
+    )
+    monkeypatch.setattr(
+        financial_catalog,
+        "canonicalize_object",
+        lambda *_args, **_kwargs: 512,
+    )
+    monkeypatch.setattr(
+        financial_catalog.storage,
+        "delete_object",
+        lambda key: deleted.append(key),
+    )
+
+    response = await client.post(
+        f"/api/v1/admin/banks/{provider['id']}/logo",
+        json={
+            "object_key": staging_key,
+            "content_type": "image/png",
+            "source_reference": "Official provider brand portal",
+        },
+        headers=headers,
+    )
+
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert body["logo_key"].startswith(f"public/provider-logos/{provider['id']}/")
+    assert body["logo_key"].endswith(".png")
+    assert body["logo_url"] is not None
+    assert body["logo_source"] == "Official provider brand portal"
+    assert body["logo_verified_at"] is not None
+    assert staging_key in deleted
 
 
 # ---------------------------------------------------------------------------

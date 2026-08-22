@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import re
 import uuid
+from datetime import UTC, datetime
 from uuid import UUID
 
 from sqlalchemy import func, select
@@ -38,6 +39,7 @@ from app.models.loan import (
     LoanApplication,
     LoanType,
 )
+from app.schemas.financial_catalog import FinancialProductMarketingFields
 from app.schemas.financial_products import ProductCategory, ensure_category_form
 from app.schemas.loan_config import (
     BankAvailabilitySetEntry,
@@ -47,6 +49,7 @@ from app.schemas.loan_config import (
     LoanTypeUpdate,
 )
 from app.services.audit_log import record as record_audit
+from app.services.financial_catalog import ProviderLogoInvalid, validate_provider_logo_key
 from app.services.financial_products import serialize_form, starter_form_for
 
 _SLUG_INVALID = re.compile(r"[^a-z0-9]+")
@@ -200,6 +203,42 @@ async def update_loan_type(
             changed["form_version"] = loan_type.form_version
             changed["field_keys"] = [field.key for field in payload.form_schema.fields()]
 
+    marketing_fields = {
+        "public_visible",
+        "public_summary",
+        "public_description",
+        "public_highlights",
+        "public_eligibility",
+        "public_documents",
+        "public_faq",
+        "homepage_featured",
+        "homepage_feature_order",
+    }
+    if payload.model_fields_set & marketing_fields:
+        merged = {
+            "public_visible": loan_type.public_visible,
+            "public_summary": loan_type.public_summary,
+            "public_description": loan_type.public_description,
+            "public_highlights": loan_type.public_highlights,
+            "public_eligibility": loan_type.public_eligibility,
+            "public_documents": loan_type.public_documents,
+            "public_faq": loan_type.public_faq,
+            "homepage_featured": loan_type.homepage_featured,
+            "homepage_feature_order": loan_type.homepage_feature_order,
+        }
+        merged.update(payload.model_dump(include=marketing_fields, exclude_unset=True))
+        try:
+            marketing = FinancialProductMarketingFields.model_validate(merged)
+        except ValueError as exc:
+            raise InvalidProductForm(str(exc)) from exc
+        for field in marketing_fields:
+            value = getattr(marketing, field)
+            if field == "public_faq":
+                value = [item.model_dump() for item in value]
+            if getattr(loan_type, field) != value:
+                setattr(loan_type, field, value)
+                changed[field] = value
+
     if changed:
         await record_audit(
             db,
@@ -244,7 +283,16 @@ async def create_bank(
     actor_uuid: UUID | None,
     actor_role: str | None,
 ) -> Bank:
-    bank = Bank(id=uuid.uuid4(), name=payload.name, logo_key=payload.logo_key)
+    validate_provider_logo_key(payload.logo_key)
+    bank = Bank(
+        id=uuid.uuid4(),
+        name=payload.name.strip(),
+        legal_name=payload.legal_name.strip() if payload.legal_name else None,
+        provider_type=payload.provider_type.value,
+        logo_key=payload.logo_key,
+        logo_source=payload.logo_source.strip() if payload.logo_source else None,
+        logo_verified_at=datetime.now(UTC) if payload.logo_key else None,
+    )
     db.add(bank)
     try:
         await db.flush()  # get bank.id; also surfaces the lower(name) UNIQUE race
@@ -284,17 +332,44 @@ async def update_bank(
 
     changed: dict[str, object] = {}
     if payload.name is not None and payload.name != bank.name:
-        changed["name"] = payload.name
-    if payload.logo_key is not None and payload.logo_key != bank.logo_key:
-        changed["logo_key"] = payload.logo_key
+        changed["name"] = payload.name.strip()
+    if "legal_name" in payload.model_fields_set:
+        legal_name = payload.legal_name.strip() if payload.legal_name else None
+        if legal_name != bank.legal_name:
+            changed["legal_name"] = legal_name
+    if payload.provider_type is not None and payload.provider_type.value != bank.provider_type:
+        changed["provider_type"] = payload.provider_type.value
+    if "logo_key" in payload.model_fields_set:
+        validate_provider_logo_key(payload.logo_key)
+        if payload.logo_key != bank.logo_key:
+            changed["logo_key"] = payload.logo_key
+            changed["logo_verified_at"] = datetime.now(UTC) if payload.logo_key else None
+            if payload.logo_key is None and "logo_source" not in payload.model_fields_set:
+                changed["logo_source"] = None
+    if "logo_source" in payload.model_fields_set:
+        logo_source = payload.logo_source.strip() if payload.logo_source else None
+        effective_logo_key = (
+            payload.logo_key if "logo_key" in payload.model_fields_set else bank.logo_key
+        )
+        if effective_logo_key is not None and logo_source is None:
+            raise ProviderLogoInvalid
+        if logo_source != bank.logo_source:
+            changed["logo_source"] = logo_source
     if payload.active is not None and payload.active != bank.active:
         changed["active"] = payload.active
 
     if changed:
         if "name" in changed:
-            bank.name = payload.name
-        if "logo_key" in changed:
-            bank.logo_key = payload.logo_key
+            bank.name = changed["name"]
+        for field in (
+            "legal_name",
+            "provider_type",
+            "logo_key",
+            "logo_source",
+            "logo_verified_at",
+        ):
+            if field in changed:
+                setattr(bank, field, changed[field])
         if "active" in changed:
             bank.active = payload.active
         try:

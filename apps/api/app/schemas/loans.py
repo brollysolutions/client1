@@ -25,6 +25,21 @@ class LoanTypeSummary(BaseModel):
     category: ProductCategory
 
 
+class PreferredProviderOfferSnapshot(BaseModel):
+    offer_id: UUID
+    provider_id: UUID
+    provider_name: str
+    provider_type: str
+    offer_name: str
+    min_amount: Decimal | None
+    max_amount: Decimal | None
+    min_interest_rate: Decimal | None
+    max_interest_rate: Decimal | None
+    min_tenure_months: int | None
+    max_tenure_months: int | None
+    last_verified_at: datetime
+
+
 class LoanApplicationRead(BaseModel):
     id: UUID
     loan_type: LoanTypeSummary
@@ -40,6 +55,7 @@ class LoanApplicationRead(BaseModel):
     form_version: int | None
     form_schema_snapshot: ProductFormDefinition | None
     form_answers: FormAnswers | None
+    provider_offer_snapshot: PreferredProviderOfferSnapshot | None
 
 
 class LoanApplicationListResponse(BaseModel):
@@ -50,6 +66,7 @@ class LoanApplicationCreate(BaseModel):
     loan_type_id: UUID
     form_version: Annotated[int, Field(ge=1)]
     answers: FormAnswers
+    provider_offer_id: UUID | None = None
 
 
 class LoanTypeRead(BaseModel):
@@ -71,6 +88,7 @@ class FinancialServiceEnquiryCreate(BaseModel):
     product_id: UUID
     form_version: Annotated[int, Field(ge=1)]
     answers: FormAnswers
+    provider_offer_id: UUID | None = None
 
 
 class FinancialServiceEnquiryRead(BaseModel):
@@ -80,6 +98,7 @@ class FinancialServiceEnquiryRead(BaseModel):
     form_version: int
     form_schema_snapshot: ProductFormDefinition
     form_answers: FormAnswers | None
+    provider_offer_snapshot: PreferredProviderOfferSnapshot | None
     submitted_at: datetime
 
 

@@ -188,6 +188,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/banks/{bank_id}/logo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Set Provider Logo */
+        post: operations["set_provider_logo_api_v1_admin_banks__bank_id__logo_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/commissions": {
         parameters: {
             query?: never;
@@ -739,6 +756,41 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/product-provider-offers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Product Provider Offers */
+        get: operations["list_product_provider_offers_api_v1_admin_product_provider_offers_get"];
+        put?: never;
+        /** Add Product Provider Offer */
+        post: operations["add_product_provider_offer_api_v1_admin_product_provider_offers_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/product-provider-offers/{offer_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Edit Product Provider Offer */
+        patch: operations["edit_product_provider_offer_api_v1_admin_product_provider_offers__offer_id__patch"];
+        trace?: never;
+    };
     "/api/v1/admin/property-deals": {
         parameters: {
             query?: never;
@@ -771,6 +823,23 @@ export interface paths {
         head?: never;
         /** Update Property Deal Progress */
         patch: operations["update_property_deal_progress_api_v1_admin_property_deals__deal_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/admin/provider-logos/upload-url": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Get Provider Logo Upload Url */
+        post: operations["get_provider_logo_upload_url_api_v1_admin_provider_logos_upload_url_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/v1/admin/reports/agents": {
@@ -3157,6 +3226,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/public/financial-products": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Financial Products Public */
+        get: operations["list_financial_products_public_api_v1_public_financial_products_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/financial-products/{slug}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Financial Product Public */
+        get: operations["get_financial_product_public_api_v1_public_financial_products__slug__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/financial-products/{slug}/providers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Financial Product Providers Public */
+        get: operations["list_financial_product_providers_public_api_v1_public_financial_products__slug__providers_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/public/offers": {
         parameters: {
             query?: never;
@@ -3749,10 +3869,19 @@ export interface components {
              * Format: uuid
              */
             id: string;
+            /** Legal Name */
+            legal_name: string | null;
             /** Logo Key */
             logo_key: string | null;
+            /** Logo Source */
+            logo_source: string | null;
+            /** Logo Url */
+            logo_url: string | null;
+            /** Logo Verified At */
+            logo_verified_at: string | null;
             /** Name */
             name: string;
+            provider_type: components["schemas"]["ProviderType"];
             /**
              * Updated At
              * Format: date-time
@@ -4076,6 +4205,10 @@ export interface components {
             form_schema: components["schemas"]["ProductFormDefinition"];
             /** Form Version */
             form_version: number;
+            /** Homepage Feature Order */
+            homepage_feature_order: number;
+            /** Homepage Featured */
+            homepage_featured: boolean;
             /**
              * Id
              * Format: uuid
@@ -4085,6 +4218,20 @@ export interface components {
             label: string;
             /** Name */
             name: string;
+            /** Public Description */
+            public_description: string | null;
+            /** Public Documents */
+            public_documents: string[];
+            /** Public Eligibility */
+            public_eligibility: string[];
+            /** Public Faq */
+            public_faq: components["schemas"]["PublicFaqItem"][];
+            /** Public Highlights */
+            public_highlights: string[];
+            /** Public Summary */
+            public_summary: string | null;
+            /** Public Visible */
+            public_visible: boolean;
             /**
              * Updated At
              * Format: date-time
@@ -4210,6 +4357,75 @@ export interface components {
             active: boolean;
             /** Reason */
             reason: string;
+        };
+        /** AdminProviderOfferListResponse */
+        AdminProviderOfferListResponse: {
+            /** Offers */
+            offers: components["schemas"]["AdminProviderOfferRead"][];
+        };
+        /** AdminProviderOfferRead */
+        AdminProviderOfferRead: {
+            /**
+             * Bank Id
+             * Format: uuid
+             */
+            bank_id: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Display Order
+             * @default 1000
+             */
+            display_order: number;
+            /** Eligibility Summary */
+            eligibility_summary?: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Last Verified At */
+            last_verified_at?: string | null;
+            /**
+             * Loan Type Id
+             * Format: uuid
+             */
+            loan_type_id: string;
+            /** Max Amount */
+            max_amount?: string | null;
+            /** Max Interest Rate */
+            max_interest_rate?: string | null;
+            /** Max Tenure Months */
+            max_tenure_months?: number | null;
+            /** Min Amount */
+            min_amount?: string | null;
+            /** Min Interest Rate */
+            min_interest_rate?: string | null;
+            /** Min Tenure Months */
+            min_tenure_months?: number | null;
+            /** Offer Name */
+            offer_name: string;
+            /** Processing Fee Text */
+            processing_fee_text?: string | null;
+            /** Product Label */
+            product_label: string;
+            /** Provider Name */
+            provider_name: string;
+            /**
+             * Published
+             * @default false
+             */
+            published: boolean;
+            /** Summary */
+            summary?: string | null;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
         };
         /** AdminReferralListResponse */
         AdminReferralListResponse: {
@@ -4935,7 +5151,7 @@ export interface components {
          *     `services/fee_cashbacks.py` (FR-6.6 processing-fee cashback).
          * @enum {string}
          */
-        AuditAction: "agent_approved" | "agent_rejected" | "staff_created" | "staff_feature_granted" | "staff_feature_revoked" | "account_removed" | "account_status_updated" | "payout_approved" | "payout_rejected" | "payout_manual_issued" | "payout_manual_cleared" | "payout_manual_failed" | "payout_manual_reversed" | "property_submission_approved" | "property_submission_rejected" | "property_listing_updated" | "support_ticket_advanced" | "retention_purged" | "loan_type_created" | "loan_type_updated" | "bank_created" | "bank_updated" | "bank_availability_updated" | "commission_entered" | "commission_cancelled" | "fee_cashback_entered" | "fee_cashback_cancelled" | "document_verified" | "document_unverified" | "payout_link_reconciled" | "notification_broadcast" | "agent_lead_expired" | "lead_assigned" | "employee_work_assigned" | "lead_details_updated" | "field_visibility_updated" | "mobile_change_verified" | "mobile_changed" | "mobile_change_rejected" | "vehicle_arrangement_updated" | "banner_created" | "banner_updated" | "banner_submitted" | "banner_approved" | "banner_rejected" | "banner_archived" | "banner_activated" | "banner_deleted" | "banner_template_versioned";
+        AuditAction: "agent_approved" | "agent_rejected" | "staff_created" | "staff_feature_granted" | "staff_feature_revoked" | "account_removed" | "account_status_updated" | "payout_approved" | "payout_rejected" | "payout_manual_issued" | "payout_manual_cleared" | "payout_manual_failed" | "payout_manual_reversed" | "property_submission_approved" | "property_submission_rejected" | "property_listing_updated" | "support_ticket_advanced" | "retention_purged" | "loan_type_created" | "loan_type_updated" | "bank_created" | "bank_updated" | "bank_availability_updated" | "financial_product_offer_created" | "financial_product_offer_updated" | "commission_entered" | "commission_cancelled" | "fee_cashback_entered" | "fee_cashback_cancelled" | "document_verified" | "document_unverified" | "payout_link_reconciled" | "notification_broadcast" | "agent_lead_expired" | "lead_assigned" | "employee_work_assigned" | "lead_details_updated" | "field_visibility_updated" | "mobile_change_verified" | "mobile_changed" | "mobile_change_rejected" | "vehicle_arrangement_updated" | "banner_created" | "banner_updated" | "banner_submitted" | "banner_approved" | "banner_rejected" | "banner_archived" | "banner_activated" | "banner_deleted" | "banner_template_versioned";
         /** AuditLogListResponse */
         AuditLogListResponse: {
             /** Entries */
@@ -5117,10 +5333,16 @@ export interface components {
         };
         /** BankCreate */
         BankCreate: {
+            /** Legal Name */
+            legal_name?: string | null;
             /** Logo Key */
             logo_key?: string | null;
+            /** Logo Source */
+            logo_source?: string | null;
             /** Name */
             name: string;
+            /** @default bank */
+            provider_type: components["schemas"]["ProviderType"];
         };
         /** BankListResponse */
         BankListResponse: {
@@ -5146,10 +5368,15 @@ export interface components {
         BankUpdate: {
             /** Active */
             active?: boolean | null;
+            /** Legal Name */
+            legal_name?: string | null;
             /** Logo Key */
             logo_key?: string | null;
+            /** Logo Source */
+            logo_source?: string | null;
             /** Name */
             name?: string | null;
+            provider_type?: components["schemas"]["ProviderType"] | null;
         };
         /** BannerCreate */
         BannerCreate: {
@@ -6151,6 +6378,8 @@ export interface components {
              * Format: uuid
              */
             product_id: string;
+            /** Provider Offer Id */
+            provider_offer_id?: string | null;
         };
         /** FinancialServiceEnquiryListResponse */
         FinancialServiceEnquiryListResponse: {
@@ -6172,6 +6401,7 @@ export interface components {
              */
             id: string;
             product: components["schemas"]["LoanTypeSummary"];
+            provider_offer_snapshot: components["schemas"]["PreferredProviderOfferSnapshot"] | null;
             /** Status */
             status: string;
             /**
@@ -6418,6 +6648,8 @@ export interface components {
              * Format: uuid
              */
             loan_type_id: string;
+            /** Provider Offer Id */
+            provider_offer_id?: string | null;
         };
         /** LoanApplicationListResponse */
         LoanApplicationListResponse: {
@@ -6477,6 +6709,7 @@ export interface components {
             opened_at: string;
             /** Processing Fee */
             processing_fee: string | null;
+            provider_offer_snapshot: components["schemas"]["PreferredProviderOfferSnapshot"] | null;
             status: components["schemas"]["LoanStatus"];
             /** Status Reason */
             status_reason: string | null;
@@ -6685,8 +6918,26 @@ export interface components {
             /** Display Order */
             display_order?: number | null;
             form_schema?: components["schemas"]["ProductFormDefinition"] | null;
+            /** Homepage Feature Order */
+            homepage_feature_order?: number | null;
+            /** Homepage Featured */
+            homepage_featured?: boolean | null;
             /** Label */
             label?: string | null;
+            /** Public Description */
+            public_description?: string | null;
+            /** Public Documents */
+            public_documents?: string[] | null;
+            /** Public Eligibility */
+            public_eligibility?: string[] | null;
+            /** Public Faq */
+            public_faq?: components["schemas"]["PublicFaqItem"][] | null;
+            /** Public Highlights */
+            public_highlights?: string[] | null;
+            /** Public Summary */
+            public_summary?: string | null;
+            /** Public Visible */
+            public_visible?: boolean | null;
         };
         /** LoansReportResponse */
         LoansReportResponse: {
@@ -7329,6 +7580,42 @@ export interface components {
          * @enum {string}
          */
         PlotProjectStatus: "under_development" | "completed";
+        /** PreferredProviderOfferSnapshot */
+        PreferredProviderOfferSnapshot: {
+            /**
+             * Last Verified At
+             * Format: date-time
+             */
+            last_verified_at: string;
+            /** Max Amount */
+            max_amount: string | null;
+            /** Max Interest Rate */
+            max_interest_rate: string | null;
+            /** Max Tenure Months */
+            max_tenure_months: number | null;
+            /** Min Amount */
+            min_amount: string | null;
+            /** Min Interest Rate */
+            min_interest_rate: string | null;
+            /** Min Tenure Months */
+            min_tenure_months: number | null;
+            /**
+             * Offer Id
+             * Format: uuid
+             */
+            offer_id: string;
+            /** Offer Name */
+            offer_name: string;
+            /**
+             * Provider Id
+             * Format: uuid
+             */
+            provider_id: string;
+            /** Provider Name */
+            provider_name: string;
+            /** Provider Type */
+            provider_type: string;
+        };
         /**
          * ProductCategory
          * @enum {string}
@@ -7544,6 +7831,120 @@ export interface components {
          * @enum {string}
          */
         PropertyUse: "residential" | "residential_commercial";
+        /** ProviderLogoConfirmRequest */
+        ProviderLogoConfirmRequest: {
+            /**
+             * Content Type
+             * @enum {string}
+             */
+            content_type: "image/jpeg" | "image/png" | "image/webp";
+            /** Object Key */
+            object_key: string;
+            /** Source Reference */
+            source_reference: string;
+        };
+        /** ProviderLogoUploadRequest */
+        ProviderLogoUploadRequest: {
+            /**
+             * Content Type
+             * @enum {string}
+             */
+            content_type: "image/jpeg" | "image/png" | "image/webp";
+            /** Filename */
+            filename: string;
+        };
+        /** ProviderLogoUploadResponse */
+        ProviderLogoUploadResponse: {
+            /** Fields */
+            fields: {
+                [key: string]: string;
+            };
+            /** Max Bytes */
+            max_bytes: number;
+            /** Object Key */
+            object_key: string;
+            /** Upload Url */
+            upload_url: string;
+        };
+        /** ProviderOfferCreate */
+        ProviderOfferCreate: {
+            /**
+             * Bank Id
+             * Format: uuid
+             */
+            bank_id: string;
+            /**
+             * Display Order
+             * @default 1000
+             */
+            display_order: number;
+            /** Eligibility Summary */
+            eligibility_summary?: string | null;
+            /** Last Verified At */
+            last_verified_at?: string | null;
+            /**
+             * Loan Type Id
+             * Format: uuid
+             */
+            loan_type_id: string;
+            /** Max Amount */
+            max_amount?: number | string | null;
+            /** Max Interest Rate */
+            max_interest_rate?: number | string | null;
+            /** Max Tenure Months */
+            max_tenure_months?: number | null;
+            /** Min Amount */
+            min_amount?: number | string | null;
+            /** Min Interest Rate */
+            min_interest_rate?: number | string | null;
+            /** Min Tenure Months */
+            min_tenure_months?: number | null;
+            /** Offer Name */
+            offer_name: string;
+            /** Processing Fee Text */
+            processing_fee_text?: string | null;
+            /**
+             * Published
+             * @default false
+             */
+            published: boolean;
+            /** Summary */
+            summary?: string | null;
+        };
+        /** ProviderOfferUpdate */
+        ProviderOfferUpdate: {
+            /** Display Order */
+            display_order?: number | null;
+            /** Eligibility Summary */
+            eligibility_summary?: string | null;
+            /** Last Verified At */
+            last_verified_at?: string | null;
+            /** Max Amount */
+            max_amount?: number | string | null;
+            /** Max Interest Rate */
+            max_interest_rate?: number | string | null;
+            /** Max Tenure Months */
+            max_tenure_months?: number | null;
+            /** Min Amount */
+            min_amount?: number | string | null;
+            /** Min Interest Rate */
+            min_interest_rate?: number | string | null;
+            /** Min Tenure Months */
+            min_tenure_months?: number | null;
+            /** Offer Name */
+            offer_name?: string | null;
+            /** Processing Fee Text */
+            processing_fee_text?: string | null;
+            /** Published */
+            published?: boolean | null;
+            /** Summary */
+            summary?: string | null;
+        };
+        /**
+         * ProviderType
+         * @enum {string}
+         */
+        ProviderType: "bank" | "small_finance_bank" | "nbfc" | "hfc" | "fintech" | "other";
         /** PublicBannerListResponse */
         PublicBannerListResponse: {
             /** Banners */
@@ -7657,6 +8058,58 @@ export interface components {
             slug: string;
             /** Title */
             title: string;
+        };
+        /** PublicFaqItem */
+        PublicFaqItem: {
+            /** Answer */
+            answer: string;
+            /** Question */
+            question: string;
+        };
+        /** PublicFinancialProductListResponse */
+        PublicFinancialProductListResponse: {
+            /** Items */
+            items: components["schemas"]["PublicFinancialProductRead"][];
+            /** Page */
+            page: number;
+            /** Page Size */
+            page_size: number;
+            /** Total */
+            total: number;
+        };
+        /** PublicFinancialProductRead */
+        PublicFinancialProductRead: {
+            category: components["schemas"]["ProductCategory"];
+            /** Description */
+            description: string;
+            /** Documents */
+            documents: string[];
+            /** Eligibility */
+            eligibility: string[];
+            /** Faq */
+            faq: components["schemas"]["PublicFaqItem"][];
+            /** Highlights */
+            highlights: string[];
+            /** Homepage Featured */
+            homepage_featured: boolean;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Label */
+            label: string;
+            /** Provider Count */
+            provider_count: number;
+            /** Slug */
+            slug: string;
+            /** Summary */
+            summary: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
         };
         /** PublicLeadCreate */
         PublicLeadCreate: {
@@ -7784,6 +8237,63 @@ export interface components {
             title: string;
             /** Type */
             type: string;
+        };
+        /** PublicProviderOfferListResponse */
+        PublicProviderOfferListResponse: {
+            /** Items */
+            items: components["schemas"]["PublicProviderOfferRead"][];
+            /** Page */
+            page: number;
+            /** Page Size */
+            page_size: number;
+            /** Total */
+            total: number;
+        };
+        /** PublicProviderOfferRead */
+        PublicProviderOfferRead: {
+            /** Eligibility Summary */
+            eligibility_summary: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Last Verified At */
+            last_verified_at: string | null;
+            /** Max Amount */
+            max_amount: string | null;
+            /** Max Interest Rate */
+            max_interest_rate: string | null;
+            /** Max Tenure Months */
+            max_tenure_months: number | null;
+            /** Min Amount */
+            min_amount: string | null;
+            /** Min Interest Rate */
+            min_interest_rate: string | null;
+            /** Min Tenure Months */
+            min_tenure_months: number | null;
+            /** Offer Name */
+            offer_name: string;
+            /** Processing Fee Text */
+            processing_fee_text: string | null;
+            provider: components["schemas"]["PublicProviderRead"];
+            /** Summary */
+            summary: string | null;
+        };
+        /** PublicProviderRead */
+        PublicProviderRead: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Legal Name */
+            legal_name: string | null;
+            /** Logo Url */
+            logo_url: string | null;
+            /** Name */
+            name: string;
+            provider_type: components["schemas"]["ProviderType"];
         };
         /** PushSubscribeRequest */
         PushSubscribeRequest: {
@@ -9615,6 +10125,41 @@ export interface operations {
             };
         };
     };
+    set_provider_logo_api_v1_admin_banks__bank_id__logo_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                bank_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProviderLogoConfirmRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminBankRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_commissions_api_v1_admin_commissions_get: {
         parameters: {
             query?: {
@@ -10759,6 +11304,94 @@ export interface operations {
             };
         };
     };
+    list_product_provider_offers_api_v1_admin_product_provider_offers_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminProviderOfferListResponse"];
+                };
+            };
+        };
+    };
+    add_product_provider_offer_api_v1_admin_product_provider_offers_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProviderOfferCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminProviderOfferRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    edit_product_provider_offer_api_v1_admin_product_provider_offers__offer_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                offer_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProviderOfferUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminProviderOfferRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_property_deals_api_v1_admin_property_deals_get: {
         parameters: {
             query?: {
@@ -10812,6 +11445,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AdminPropertyDealRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_provider_logo_upload_url_api_v1_admin_provider_logos_upload_url_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProviderLogoUploadRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProviderLogoUploadResponse"];
                 };
             };
             /** @description Validation Error */
@@ -15806,6 +16472,112 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PublicContentBlockRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_financial_products_public_api_v1_public_financial_products_get: {
+        parameters: {
+            query?: {
+                q?: string | null;
+                category?: components["schemas"]["ProductCategory"] | null;
+                featured?: boolean | null;
+                page?: number;
+                page_size?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicFinancialProductListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_financial_product_public_api_v1_public_financial_products__slug__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicFinancialProductRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_financial_product_providers_public_api_v1_public_financial_products__slug__providers_get: {
+        parameters: {
+            query?: {
+                q?: string | null;
+                provider_type?: components["schemas"]["ProviderType"] | null;
+                amount?: number | string | null;
+                interest_rate_max?: number | string | null;
+                tenure_months?: number | null;
+                sort?: "recommended" | "interest_rate" | "amount" | "updated";
+                page?: number;
+                page_size?: number;
+            };
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicProviderOfferListResponse"];
                 };
             };
             /** @description Validation Error */

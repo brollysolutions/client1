@@ -108,6 +108,9 @@ _ALL_PLATFORM_SCOPE_POLICIES = {
     ("loan_types", "loan_types_update"),
     ("bank_loan_type_availability", "bank_loan_type_availability_insert"),
     ("bank_loan_type_availability", "bank_loan_type_availability_update"),
+    ("financial_product_provider_offers", "provider_offers_select"),
+    ("financial_product_provider_offers", "provider_offers_insert"),
+    ("financial_product_provider_offers", "provider_offers_update"),
     ("commissions", "commissions_select"),
     ("commissions", "commissions_insert"),
     ("commissions", "commissions_update"),
@@ -202,3 +205,17 @@ async def test_all_platform_scope_policies_still_exist() -> None:
         if _mentions_platform_scope(p["qual"]) or _mentions_platform_scope(p["with_check"])
     }
     assert actual == _ALL_PLATFORM_SCOPE_POLICIES
+
+
+async def test_provider_offer_select_policy_keeps_drafts_admin_only() -> None:
+    policies = await _fetch_policies()
+    policy = next(
+        item
+        for item in policies
+        if item["tablename"] == "financial_product_provider_offers"
+        and item["policyname"] == "provider_offers_select"
+    )
+    predicate = policy["qual"] or ""
+    assert "published" in predicate
+    assert "app.platform_scope" in predicate
+    assert "app.role" in predicate

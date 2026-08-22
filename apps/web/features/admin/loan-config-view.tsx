@@ -4,6 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BankAvailabilityView } from "./bank-availability-view";
 import { BanksView } from "./banks-view";
 import { LoanTypesView } from "./loan-types-view";
+import { ProviderOffersView } from "./provider-offers-view";
 
 // FR-6.3/FR-6.4: loan types + banks + which bank offers which loan type, all
 // config-driven ("no developer involvement"). Three tabs share one page
@@ -16,16 +17,17 @@ export function LoanConfigView() {
       <div>
         <h1 className="text-2xl font-semibold text-text-primary">Financial product configuration</h1>
         <p className="text-sm text-text-secondary">
-          Publish client forms, manage lenders, and configure which lender offers each lending
-          product without a deployment.
+          Publish client forms, manage the provider and logo library, and curate the options shown
+          on each public financial-service page.
         </p>
       </div>
 
       <Tabs defaultValue="loan-types">
-        <TabsList>
+        <TabsList className="h-auto w-full justify-start overflow-x-auto">
           <TabsTrigger value="loan-types">Financial products</TabsTrigger>
-          <TabsTrigger value="banks">Banks</TabsTrigger>
+          <TabsTrigger value="banks">Providers &amp; logos</TabsTrigger>
           <TabsTrigger value="availability">Availability</TabsTrigger>
+          <TabsTrigger value="offers">Public offers</TabsTrigger>
         </TabsList>
         <TabsContent value="loan-types" className="mt-4">
           <LoanTypesView />
@@ -35,6 +37,9 @@ export function LoanConfigView() {
         </TabsContent>
         <TabsContent value="availability" className="mt-4">
           <BankAvailabilityView />
+        </TabsContent>
+        <TabsContent value="offers" className="mt-4">
+          <ProviderOffersView />
         </TabsContent>
       </Tabs>
     </div>
