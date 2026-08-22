@@ -2,12 +2,47 @@
 
 Status: **Derived living implementation ledger**
 
-As of: **2026-08-21**
+As of: **2026-08-22**
 
 Evidence baseline: `abcc1fd`
 ([PR #175](https://github.com/brollysolutions/client1/pull/175)), plus the
 verified Admin operational-visibility work in
 [PR #173](https://github.com/brollysolutions/client1/pull/173).
+
+**Done - Admin-published Financial Services catalogue, provider offers, and
+reusable logo library (PR pending from
+`feat/configurable-financial-application-forms`; CS-014 public follow-up and
+FR-6.1-FR-6.4; completion coverage unchanged):** active explicitly published
+Financial Products now drive the public catalogue and service-detail pages;
+Admin can curate up to six Home services, manage bounded marketing content,
+publish searchable/filterable/sortable/paginated provider offers, and reuse
+verified provider identities and managed logos. Whole cards and Explore open
+the internal detail page, while Apply and Enquire retain product and optional
+offer context entirely inside Dhanadhara. The Home page also exposes the four
+fixed calculators and a View all route without claiming that calculators are
+Admin-configured.
+
+Publication fails closed across service, provider, offer, verification, and
+RLS state. Raster logos use the existing managed-media verification pipeline;
+raw SVG upload is rejected and the reviewed repository-SVG manifest remains
+empty until exact asset provenance is approved. The supplied lender-name corpus
+is retained only as unapproved context and is not seeded, deduplicated into
+legal identities, or paired with logos. There is no provider destination URL,
+external lender redirect, approval claim, live-rate synchronization, inline
+KYC upload, or change to operational lender assignment semantics.
+
+Fresh evidence: migration `73f4c2a91d6e` passes downgrade and re-upgrade and
+Alembic reports exactly one head; generated OpenAPI and TypeScript contracts are
+current; API Ruff check/format pass; 60 focused catalogue/forms/RLS tests pass,
+and the final provider/logo review rerun passes 43 tests. Web lint, strict
+non-incremental typecheck, and all 369 tests across 57 files pass. The two-case
+responsive Financial Services Playwright journey passes after warming the
+development Home route, and visual review covers mobile Home and desktop
+service detail. The production-equivalent Docker builder compiles and generates
+all 93 pages. The monolithic API suite remained CPU-active without a report at
+the 40-minute execution bound and is recorded as inconclusive, not passing.
+Security, design, and maintainer reviews found no remaining actionable defect.
+Next priority returns to the FR-2.2 controlled-correction/audit follow-up.
 
 **Done — property-specific listing forms, RERA review, and catalogue freshness
 ([PR #212](https://github.com/brollysolutions/client1/pull/212); FR-7.3 and

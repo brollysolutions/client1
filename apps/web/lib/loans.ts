@@ -108,6 +108,7 @@ export async function createLoanApplication(input: {
   productId: string;
   formVersion: number;
   answers: Record<string, string | string[]>;
+  providerOfferId?: string;
 }): Promise<ApiResponse<LoanApplication>> {
   const res = await apiRequest<Schemas["LoanApplicationRead"]>("/api/v1/loans/applications", {
     method: "POST",
@@ -115,6 +116,7 @@ export async function createLoanApplication(input: {
       loan_type_id: input.productId,
       form_version: input.formVersion,
       answers: input.answers,
+      provider_offer_id: input.providerOfferId,
     } satisfies Schemas["LoanApplicationCreate"],
   });
   if (!res.ok) return res;
@@ -137,6 +139,7 @@ export async function createFinancialServiceEnquiry(input: {
   productId: string;
   formVersion: number;
   answers: Record<string, string | string[]>;
+  providerOfferId?: string;
 }): Promise<ApiResponse<FinancialServiceEnquiry>> {
   return apiRequest<FinancialServiceEnquiry>("/api/v1/loans/enquiries", {
     method: "POST",
@@ -144,6 +147,7 @@ export async function createFinancialServiceEnquiry(input: {
       product_id: input.productId,
       form_version: input.formVersion,
       answers: input.answers,
+      provider_offer_id: input.providerOfferId,
     } satisfies Schemas["FinancialServiceEnquiryCreate"],
   });
 }

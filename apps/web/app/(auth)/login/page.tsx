@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft, Lock } from "lucide-react";
 import { toast } from "sonner";
 
@@ -26,10 +26,34 @@ import {
   RESET_MOBILE_KEY,
 } from "@/lib/auth";
 import { isValidMobile, normalizeMobile, toE164 } from "@/lib/phone";
+import { isSafeLocalHref } from "@/lib/safe-local-href";
 
 export default function LoginPage() {
+  return (
+    <React.Suspense fallback={<div className="min-h-screen bg-[var(--nav-bg)]" />}>
+      <LoginPageContent />
+    </React.Suspense>
+  );
+}
+
+function LoginPageContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { setSession } = useAuth();
+  const requestedReturnTo = searchParams.get("return_to");
+  const isDashboardReturnPath =
+    requestedReturnTo === "/dashboard" ||
+    requestedReturnTo?.startsWith("/dashboard/") ||
+    requestedReturnTo?.startsWith("/dashboard?") ||
+    requestedReturnTo?.startsWith("/dashboard#");
+  const returnTo =
+    requestedReturnTo &&
+    isDashboardReturnPath &&
+    isSafeLocalHref(requestedReturnTo)
+      ? requestedReturnTo
+      : "/dashboard";
+  const registerHref =
+    returnTo === "/dashboard" ? "/register" : `/register?return_to=${encodeURIComponent(returnTo)}`;
   const [mobile, setMobile] = React.useState("");
   const [password, setPassword] = React.useState("");
   const [submitting, setSubmitting] = React.useState(false);
@@ -78,7 +102,7 @@ export default function LoginPage() {
       toast.success("Welcome back!", {
         description: "You're logged in. Taking you to your dashboard.",
       });
-      router.replace("/dashboard");
+      router.replace(returnTo);
     } else {
       setSubmitting(false);
       toast.error(result.error || "Couldn't log you in.", {
@@ -163,7 +187,7 @@ export default function LoginPage() {
               toast.success("Password updated", {
                 description: "You're all set. Signing you in now.",
               });
-              router.replace("/dashboard");
+              router.replace(returnTo);
             } else {
               toast.success("Password updated", {
                 description: "Please log in with your new password.",
@@ -271,7 +295,7 @@ export default function LoginPage() {
       <p className="mt-6 text-center text-sm text-text-secondary">
         Don&apos;t have an account?{" "}
         <Link
-          href="/register"
+          href={registerHref}
           className={cn(
             AUTH_LINK_CLASS,
             "font-medium underline-offset-4 hover:underline focus-visible:underline focus-visible:outline-none"

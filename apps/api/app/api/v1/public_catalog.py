@@ -14,10 +14,11 @@ every future anonymous read (banner/offer/content serving included).
 
 from __future__ import annotations
 
+from decimal import Decimal
 from typing import Literal
 from urllib.parse import urlencode
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.session import get_db
@@ -26,10 +27,26 @@ from app.models.offer import Offer
 from app.models.property import Property, ReraVerificationStatus
 from app.schemas.banners import PublicBannerListResponse, PublicBannerRead
 from app.schemas.content import PublicContentBlockListResponse, PublicContentBlockRead
+from app.schemas.financial_catalog import (
+    ProviderOfferSort,
+    ProviderType,
+    PublicFinancialProductListResponse,
+    PublicFinancialProductRead,
+    PublicProviderOfferListResponse,
+    PublicProviderOfferRead,
+    PublicProviderRead,
+)
+from app.schemas.financial_products import ProductCategory
 from app.schemas.offers import PublicOfferListResponse, PublicOfferRead
 from app.schemas.properties import PublicPropertyListResponse, PublicPropertyRead
 from app.services import storage
 from app.services.banners import template_image_url
+from app.services.financial_catalog import (
+    get_public_product,
+    list_public_products,
+    list_public_provider_offers,
+    provider_logo_url,
+)
 from app.services.properties import media_by_property, media_urls_by_property
 from app.services.public_catalog import (
     get_public_content_block_by_slug,
@@ -40,6 +57,127 @@ from app.services.public_catalog import (
 )
 
 router = APIRouter()
+
+
+def _public_product_read(product, provider_count: int) -> PublicFinancialProductRead:  # noqa: ANN001
+    return PublicFinancialProductRead(
+        id=product.id,
+        slug=product.name,
+        label=product.label,
+        category=product.category,
+        summary=product.public_summary,
+        description=product.public_description,
+        highlights=product.public_highlights,
+        eligibility=product.public_eligibility,
+        documents=product.public_documents,
+        faq=product.public_faq,
+        homepage_featured=product.homepage_featured,
+        provider_count=provider_count,
+        updated_at=product.updated_at,
+    )
+
+
+@router.get("/financial-products", response_model=PublicFinancialProductListResponse)
+async def list_financial_products_public(
+    q: str | None = Query(default=None, min_length=1, max_length=100),
+    category: ProductCategory | None = None,
+    featured: bool | None = None,
+    page: int = Query(default=1, ge=1, le=10000),
+    page_size: int = Query(default=12, ge=1, le=100),
+    db: AsyncSession = Depends(get_db),
+) -> PublicFinancialProductListResponse:
+    rows, total = await list_public_products(
+        db,
+        query=q,
+        category=category.value if category is not None else None,
+        featured=featured,
+        page=page,
+        page_size=page_size,
+    )
+    return PublicFinancialProductListResponse(
+        items=[_public_product_read(product, count) for product, count in rows],
+        total=total,
+        page=page,
+        page_size=page_size,
+    )
+
+
+@router.get("/financial-products/{slug}", response_model=PublicFinancialProductRead)
+async def get_financial_product_public(
+    slug: str,
+    db: AsyncSession = Depends(get_db),
+) -> PublicFinancialProductRead:
+    row = await get_public_product(db, slug)
+    if row is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Financial product not found.")
+    return _public_product_read(*row)
+
+
+@router.get(
+    "/financial-products/{slug}/providers",
+    response_model=PublicProviderOfferListResponse,
+)
+async def list_financial_product_providers_public(
+    slug: str,
+    q: str | None = Query(default=None, min_length=1, max_length=100),
+    provider_type: ProviderType | None = None,
+    amount: Decimal | None = Query(default=None, ge=0, le=99_999_999_999),
+    interest_rate_max: Decimal | None = Query(default=None, ge=0, le=100),
+    tenure_months: int | None = Query(default=None, ge=1, le=600),
+    sort: ProviderOfferSort = "recommended",
+    page: int = Query(default=1, ge=1, le=10000),
+    page_size: int = Query(default=12, ge=1, le=100),
+    db: AsyncSession = Depends(get_db),
+) -> PublicProviderOfferListResponse:
+    product_row = await get_public_product(db, slug)
+    if product_row is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Financial product not found.")
+    product, _ = product_row
+    rows, total = await list_public_provider_offers(
+        db,
+        product=product,
+        query=q,
+        provider_type=provider_type.value if provider_type is not None else None,
+        amount=amount,
+        interest_rate_max=interest_rate_max,
+        tenure_months=tenure_months,
+        sort=sort,
+        page=page,
+        page_size=page_size,
+    )
+    return PublicProviderOfferListResponse(
+        items=[
+            PublicProviderOfferRead(
+                id=offer.id,
+                offer_name=offer.offer_name,
+                summary=offer.summary,
+                provider=PublicProviderRead(
+                    id=provider.id,
+                    name=provider.name,
+                    legal_name=provider.legal_name,
+                    provider_type=provider.provider_type,
+                    logo_url=(
+                        provider_logo_url(provider.logo_key)
+                        if provider.logo_verified_at is not None
+                        else None
+                    ),
+                ),
+                min_amount=offer.min_amount,
+                max_amount=offer.max_amount,
+                min_interest_rate=offer.min_interest_rate,
+                max_interest_rate=offer.max_interest_rate,
+                min_tenure_months=offer.min_tenure_months,
+                max_tenure_months=offer.max_tenure_months,
+                processing_fee_text=offer.processing_fee_text,
+                eligibility_summary=offer.eligibility_summary,
+                last_verified_at=offer.last_verified_at,
+            )
+            for offer, provider in rows
+        ],
+        total=total,
+        page=page,
+        page_size=page_size,
+    )
 
 
 def _offer_badge(offer: Offer) -> str:

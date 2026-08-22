@@ -14,6 +14,8 @@ export type ProductFormDefinition = Schemas["ProductFormDefinition"];
 export type FormFieldDefinition = Schemas["FormFieldDefinition"];
 export type FormInputType = Schemas["FormInputType"];
 export type AdminBank = Schemas["AdminBankRead"];
+export type AdminProviderOffer = Schemas["AdminProviderOfferRead"];
+export type ProviderType = Schemas["ProviderType"];
 export type AvailabilityEntry = Schemas["BankAvailabilityEntry"];
 export type AvailabilityMatrix = Schemas["BankAvailabilityMatrixResponse"];
 
@@ -56,6 +58,76 @@ export async function updateBank(
   payload: Schemas["BankUpdate"],
 ): Promise<ApiResponse<AdminBank>> {
   return apiRequest<AdminBank>(`/api/v1/admin/banks/${id}`, { method: "PATCH", body: payload });
+}
+
+export async function listProviderOffers(): Promise<ApiResponse<AdminProviderOffer[]>> {
+  const res = await apiRequest<Schemas["AdminProviderOfferListResponse"]>(
+    "/api/v1/admin/product-provider-offers",
+  );
+  if (!res.ok) return res;
+  return { ok: true, status: res.status, data: res.data.offers };
+}
+
+export async function createProviderOffer(
+  payload: Schemas["ProviderOfferCreate"],
+): Promise<ApiResponse<AdminProviderOffer>> {
+  return apiRequest<AdminProviderOffer>("/api/v1/admin/product-provider-offers", {
+    method: "POST",
+    body: payload,
+  });
+}
+
+export async function updateProviderOffer(
+  id: string,
+  payload: Schemas["ProviderOfferUpdate"],
+): Promise<ApiResponse<AdminProviderOffer>> {
+  return apiRequest<AdminProviderOffer>(`/api/v1/admin/product-provider-offers/${id}`, {
+    method: "PATCH",
+    body: payload,
+  });
+}
+
+const PROVIDER_LOGO_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
+
+export async function uploadProviderLogo(
+  bankId: string,
+  file: File,
+  sourceReference: string,
+): Promise<ApiResponse<AdminBank>> {
+  if (!PROVIDER_LOGO_TYPES.has(file.type)) {
+    return { ok: false, status: 422, error: "Choose a JPEG, PNG, or WebP logo." };
+  }
+  const presign = await apiRequest<Schemas["ProviderLogoUploadResponse"]>(
+    "/api/v1/admin/provider-logos/upload-url",
+    {
+      method: "POST",
+      body: { filename: file.name, content_type: file.type },
+    },
+  );
+  if (!presign.ok) return presign;
+  if (file.size < 1 || file.size > presign.data.max_bytes) {
+    return { ok: false, status: 422, error: "The logo must be 1 MiB or smaller." };
+  }
+  const form = new FormData();
+  for (const [key, value] of Object.entries(presign.data.fields)) form.append(key, value);
+  form.append("file", file);
+  let uploaded: Response;
+  try {
+    uploaded = await fetch(presign.data.upload_url, { method: "POST", body: form });
+  } catch {
+    return { ok: false, status: 0, error: "Couldn't upload the logo. Please try again." };
+  }
+  if (!uploaded.ok) {
+    return { ok: false, status: uploaded.status, error: "Storage rejected the logo upload." };
+  }
+  return apiRequest<AdminBank>(`/api/v1/admin/banks/${bankId}/logo`, {
+    method: "POST",
+    body: {
+      object_key: presign.data.object_key,
+      content_type: file.type,
+      source_reference: sourceReference,
+    },
+  });
 }
 
 export async function getBankAvailabilityMatrix(): Promise<ApiResponse<AvailabilityMatrix>> {

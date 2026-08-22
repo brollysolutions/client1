@@ -6,7 +6,7 @@ export function isAllowedAssetUrl(raw: string): boolean {
   // Keep this path allowlist deliberately narrow: a generic leading slash
   // would also admit protocol-relative and backslash-normalized URLs.
   if (
-    raw.startsWith("/banner-templates/") &&
+    (raw.startsWith("/banner-templates/") || raw.startsWith("/provider-logos/")) &&
     !raw.startsWith("//") &&
     !raw.includes("\\") &&
     !raw.split("/").includes("..")

@@ -66,6 +66,15 @@ from app.schemas.field_visibility import (
     FieldVisibilityListResponse,
     FieldVisibilityUpdateRequest,
 )
+from app.schemas.financial_catalog import (
+    AdminProviderOfferListResponse,
+    AdminProviderOfferRead,
+    ProviderLogoConfirmRequest,
+    ProviderLogoUploadRequest,
+    ProviderLogoUploadResponse,
+    ProviderOfferCreate,
+    ProviderOfferUpdate,
+)
 from app.schemas.lead_details import AdminLeadDetailsPatch, LeadDetailsRead
 from app.schemas.loan_config import (
     AdminBankListResponse,
@@ -129,6 +138,21 @@ from app.services.field_visibility import (
 )
 from app.services.field_visibility import (
     update_for_admin as update_field_visibility,
+)
+from app.services.financial_catalog import (
+    PROVIDER_LOGO_MAX_BYTES,
+    ProductOrProviderNotFound,
+    ProviderLogoInvalid,
+    ProviderLogoStorageUnavailable,
+    ProviderOfferInvalid,
+    ProviderOfferNotFound,
+    ProviderOfferTermsInvalid,
+    confirm_provider_logo,
+    create_provider_offer,
+    list_admin_provider_offers,
+    presign_provider_logo,
+    provider_logo_url,
+    update_provider_offer,
 )
 from app.services.financial_products import form_for_product
 from app.services.lead_details import (
@@ -1092,6 +1116,15 @@ def _to_admin_loan_type_read(
         display_order=loan_type.display_order,
         form_version=loan_type.form_version,
         form_schema=form_for_product(loan_type),
+        public_visible=loan_type.public_visible,
+        public_summary=loan_type.public_summary,
+        public_description=loan_type.public_description,
+        public_highlights=loan_type.public_highlights,
+        public_eligibility=loan_type.public_eligibility,
+        public_documents=loan_type.public_documents,
+        public_faq=loan_type.public_faq,
+        homepage_featured=loan_type.homepage_featured,
+        homepage_feature_order=loan_type.homepage_feature_order,
         created_at=loan_type.created_at,
         updated_at=loan_type.updated_at,
         application_count=application_count,
@@ -1103,7 +1136,12 @@ def _to_admin_bank_read(bank, count: int) -> AdminBankRead:  # noqa: ANN001
     return AdminBankRead(
         id=bank.id,
         name=bank.name,
+        legal_name=bank.legal_name,
+        provider_type=bank.provider_type,
         logo_key=bank.logo_key,
+        logo_url=provider_logo_url(bank.logo_key) if bank.logo_verified_at is not None else None,
+        logo_source=bank.logo_source,
+        logo_verified_at=bank.logo_verified_at,
         active=bank.active,
         created_at=bank.created_at,
         updated_at=bank.updated_at,
@@ -1194,6 +1232,11 @@ async def create_admin_bank(
         raise HTTPException(
             status.HTTP_409_CONFLICT, "A bank with an equivalent name already exists."
         ) from exc
+    except ProviderLogoInvalid as exc:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_CONTENT,
+            "Use a reviewed built-in logo or the managed provider-logo upload flow.",
+        ) from exc
     return _to_admin_bank_read(bank, 0)
 
 
@@ -1213,6 +1256,158 @@ async def update_admin_bank(
     except DuplicateBankName as exc:
         raise HTTPException(
             status.HTTP_409_CONFLICT, "A bank with an equivalent name already exists."
+        ) from exc
+    except ProviderLogoInvalid as exc:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_CONTENT,
+            "Use a reviewed built-in logo or the managed provider-logo upload flow.",
+        ) from exc
+    counts = await bank_application_counts(db)
+    return _to_admin_bank_read(bank, counts.get(bank.id, 0))
+
+
+def _to_admin_provider_offer_read(
+    offer,
+    product_label: str,
+    provider_name: str,  # noqa: ANN001
+) -> AdminProviderOfferRead:
+    return AdminProviderOfferRead(
+        id=offer.id,
+        loan_type_id=offer.loan_type_id,
+        bank_id=offer.bank_id,
+        product_label=product_label,
+        provider_name=provider_name,
+        offer_name=offer.offer_name,
+        summary=offer.summary,
+        published=offer.published,
+        display_order=offer.display_order,
+        min_amount=offer.min_amount,
+        max_amount=offer.max_amount,
+        min_interest_rate=offer.min_interest_rate,
+        max_interest_rate=offer.max_interest_rate,
+        min_tenure_months=offer.min_tenure_months,
+        max_tenure_months=offer.max_tenure_months,
+        processing_fee_text=offer.processing_fee_text,
+        eligibility_summary=offer.eligibility_summary,
+        last_verified_at=offer.last_verified_at,
+        created_at=offer.created_at,
+        updated_at=offer.updated_at,
+    )
+
+
+@router.get("/product-provider-offers", response_model=AdminProviderOfferListResponse)
+async def list_product_provider_offers(
+    current_user: CurrentUser = Depends(require_platform_admin),  # noqa: ARG001
+    db: AsyncSession = Depends(get_db),
+) -> AdminProviderOfferListResponse:
+    rows = await list_admin_provider_offers(db)
+    return AdminProviderOfferListResponse(
+        offers=[
+            _to_admin_provider_offer_read(offer, product.label, provider.name)
+            for offer, product, provider in rows
+        ]
+    )
+
+
+@router.post(
+    "/product-provider-offers",
+    response_model=AdminProviderOfferRead,
+    status_code=status.HTTP_201_CREATED,
+)
+async def add_product_provider_offer(
+    payload: ProviderOfferCreate,
+    current_user: CurrentUser = Depends(require_platform_admin),
+    db: AsyncSession = Depends(get_db),
+) -> AdminProviderOfferRead:
+    try:
+        offer = await create_provider_offer(
+            db, payload, actor_uuid=current_user.id, actor_role=current_user.role
+        )
+    except ProductOrProviderNotFound as exc:
+        raise HTTPException(
+            status.HTTP_404_NOT_FOUND, "Financial product or provider not found."
+        ) from exc
+    except ProviderOfferInvalid as exc:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            "Publish only when the product and provider are active and the terms are verified.",
+        ) from exc
+    rows = await list_admin_provider_offers(db)
+    row = next(item for item in rows if item[0].id == offer.id)
+    return _to_admin_provider_offer_read(offer, row[1].label, row[2].name)
+
+
+@router.patch("/product-provider-offers/{offer_id}", response_model=AdminProviderOfferRead)
+async def edit_product_provider_offer(
+    offer_id: UUID,
+    payload: ProviderOfferUpdate,
+    current_user: CurrentUser = Depends(require_platform_admin),
+    db: AsyncSession = Depends(get_db),
+) -> AdminProviderOfferRead:
+    try:
+        offer = await update_provider_offer(
+            db,
+            offer_id,
+            payload,
+            actor_uuid=current_user.id,
+            actor_role=current_user.role,
+        )
+    except ProviderOfferNotFound as exc:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Provider offer not found.") from exc
+    except ProviderOfferTermsInvalid as exc:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, str(exc)) from exc
+    except (ProductOrProviderNotFound, ProviderOfferInvalid) as exc:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            "Publish only when the product and provider are active and the terms are verified.",
+        ) from exc
+    rows = await list_admin_provider_offers(db)
+    row = next(item for item in rows if item[0].id == offer.id)
+    return _to_admin_provider_offer_read(offer, row[1].label, row[2].name)
+
+
+@router.post("/provider-logos/upload-url", response_model=ProviderLogoUploadResponse)
+async def get_provider_logo_upload_url(
+    payload: ProviderLogoUploadRequest,
+    current_user: CurrentUser = Depends(require_platform_admin),  # noqa: ARG001
+) -> ProviderLogoUploadResponse:
+    upload_url, fields, object_key = presign_provider_logo(payload.filename, payload.content_type)
+    return ProviderLogoUploadResponse(
+        object_key=object_key,
+        upload_url=upload_url,
+        fields=fields,
+        max_bytes=PROVIDER_LOGO_MAX_BYTES,
+    )
+
+
+@router.post("/banks/{bank_id}/logo", response_model=AdminBankRead)
+async def set_provider_logo(
+    bank_id: UUID,
+    payload: ProviderLogoConfirmRequest,
+    current_user: CurrentUser = Depends(require_platform_admin),
+    db: AsyncSession = Depends(get_db),
+) -> AdminBankRead:
+    try:
+        bank = await confirm_provider_logo(
+            db,
+            bank_id,
+            object_key=payload.object_key,
+            content_type=payload.content_type,
+            source_reference=payload.source_reference,
+            actor_uuid=current_user.id,
+            actor_role=current_user.role,
+        )
+    except ProductOrProviderNotFound as exc:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Provider not found.") from exc
+    except ProviderLogoInvalid as exc:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_CONTENT,
+            "The logo upload is missing, unsafe, too large, or not the declared image type.",
+        ) from exc
+    except ProviderLogoStorageUnavailable as exc:
+        raise HTTPException(
+            status.HTTP_502_BAD_GATEWAY,
+            "Logo verification is temporarily unavailable. Please retry.",
         ) from exc
     counts = await bank_application_counts(db)
     return _to_admin_bank_read(bank, counts.get(bank.id, 0))

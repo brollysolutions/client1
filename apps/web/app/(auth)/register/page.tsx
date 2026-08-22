@@ -37,6 +37,7 @@ import {
 import type { ServiceLine } from "@/lib/auth";
 import { formatMobile, isValidMobile, toE164 } from "@/lib/phone";
 import { isValidReferralCodeFormat, normalizeReferralCode } from "@/lib/referral-share";
+import { isSafeLocalHref } from "@/lib/safe-local-href";
 
 // Defense-in-depth: never render a dev OTP hint in a production build, even if
 // the backend (which is the real gate) were ever misconfigured to send one (L3).
@@ -152,6 +153,20 @@ export default function RegisterPage() {
 function RegisterPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const requestedReturnTo = searchParams.get("return_to");
+  const isDashboardReturnPath =
+    requestedReturnTo === "/dashboard" ||
+    requestedReturnTo?.startsWith("/dashboard/") ||
+    requestedReturnTo?.startsWith("/dashboard?") ||
+    requestedReturnTo?.startsWith("/dashboard#");
+  const returnTo =
+    requestedReturnTo &&
+    isDashboardReturnPath &&
+    isSafeLocalHref(requestedReturnTo)
+      ? requestedReturnTo
+      : "/dashboard";
+  const loginHref =
+    returnTo === "/dashboard" ? "/login" : `/login?return_to=${encodeURIComponent(returnTo)}`;
   const { setSession, isAuthenticated, isLoading } = useAuth();
   const [step, setStep] = React.useState(0);
 
@@ -200,8 +215,8 @@ function RegisterPageContent() {
   }, [searchParams]);
 
   React.useEffect(() => {
-    if (!isLoading && isAuthenticated && step !== 3) router.replace("/dashboard");
-  }, [isAuthenticated, isLoading, router, step]);
+    if (!isLoading && isAuthenticated && step !== 3) router.replace(returnTo);
+  }, [isAuthenticated, isLoading, returnTo, router, step]);
 
   // Single source of truth for a field's error, shared by the live (on-change)
   // check and the full pre-submit check so the two never disagree.
@@ -308,7 +323,7 @@ function RegisterPageContent() {
 
   function finishRegistration() {
     clearWizard();
-    router.replace("/dashboard");
+    router.replace(returnTo);
   }
 
   async function submitOptionalProfile(event: React.FormEvent) {
@@ -548,7 +563,7 @@ function RegisterPageContent() {
           <p className="mt-6 text-center text-sm text-text-secondary">
             Already have an account?{" "}
             <Link
-              href="/login"
+              href={loginHref}
               className={cn(
                 AUTH_LINK_CLASS,
                 "font-medium underline-offset-4 hover:underline focus-visible:underline focus-visible:outline-none"

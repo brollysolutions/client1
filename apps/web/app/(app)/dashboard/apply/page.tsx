@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { CheckCircle2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -40,7 +40,18 @@ function findActiveApplication(applications: LoanApplication[]): LoanApplication
 }
 
 export default function ApplyPage() {
+  return (
+    <React.Suspense fallback={<div className="min-h-[24rem]" />}>
+      <ApplyPageContent />
+    </React.Suspense>
+  );
+}
+
+function ApplyPageContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const requestedProduct = searchParams.get("product");
+  const requestedOffer = searchParams.get("offer");
   const { me, status: meStatus } = useMe();
   const [status, setStatus] = React.useState<PageStatus>("loading");
   const [error, setError] = React.useState<string | null>(null);
@@ -49,10 +60,12 @@ export default function ApplyPage() {
   const [products, setProducts] = React.useState<FinancialProduct[]>([]);
   const [activeApplication, setActiveApplication] = React.useState<LoanApplication | null>(null);
   const [productId, setProductId] = React.useState("");
+  const [providerOfferId, setProviderOfferId] = React.useState<string | undefined>();
   const [answers, setAnswers] = React.useState<ProductAnswers>({});
   const [answerErrors, setAnswerErrors] = React.useState<ProductAnswerErrors>({});
   const [submitting, setSubmitting] = React.useState(false);
   const [submittedEnquiryLabel, setSubmittedEnquiryLabel] = React.useState<string | null>(null);
+  const preselectionApplied = React.useRef(false);
 
   const selectedProduct = products.find((product) => product.id === productId) ?? null;
 
@@ -75,6 +88,16 @@ export default function ApplyPage() {
         return;
       }
       setProducts(typesRes.data);
+      if (!preselectionApplied.current && requestedProduct) {
+        const preselected = typesRes.data.find(
+          (product) => product.id === requestedProduct || product.name === requestedProduct,
+        );
+        if (preselected) {
+          setProductId(preselected.id);
+          setProviderOfferId(requestedOffer || undefined);
+        }
+        preselectionApplied.current = true;
+      }
       setActiveApplication(appsRes.ok ? findActiveApplication(appsRes.data) : null);
       setStatus("ready");
     };
@@ -82,10 +105,11 @@ export default function ApplyPage() {
     return () => {
       active = false;
     };
-  }, [reloadKey]);
+  }, [reloadKey, requestedOffer, requestedProduct]);
 
   function chooseProduct(product: FinancialProduct) {
     setProductId(product.id);
+    setProviderOfferId(undefined);
     setAnswers({});
     setAnswerErrors({});
     setSubmittedEnquiryLabel(null);
@@ -111,6 +135,7 @@ export default function ApplyPage() {
         productId: selectedProduct.id,
         formVersion: selectedProduct.form_version,
         answers,
+        providerOfferId,
       });
       setSubmitting(false);
       if (!result.ok) {
@@ -130,6 +155,7 @@ export default function ApplyPage() {
       productId: selectedProduct.id,
       formVersion: selectedProduct.form_version,
       answers,
+      providerOfferId,
     });
     if (!result.ok) {
       setSubmitting(false);
@@ -188,6 +214,15 @@ export default function ApplyPage() {
         title="Choose a product"
         description="Active Admin products appear here in the configured order."
       >
+        {providerOfferId && selectedProduct ? (
+          <div className="mb-4 rounded-xl border border-brand-cta/30 bg-brand-cta-tint p-4 text-sm text-text-secondary">
+            <p className="font-medium text-text-primary">Provider option selected</p>
+            <p className="mt-1">
+              We will retain this as your non-binding preference. Final terms and approval remain
+              subject to provider review; staff assignment is handled separately.
+            </p>
+          </div>
+        ) : null}
         <div className="space-y-6">
           {(["loan", "credit_card", "insurance"] as const).map((category) => {
             const categoryProducts = products.filter((product) => product.category === category);

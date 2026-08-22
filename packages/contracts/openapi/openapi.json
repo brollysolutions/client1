@@ -240,6 +240,17 @@
             "title": "Id",
             "type": "string"
           },
+          "legal_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Legal Name"
+          },
           "logo_key": {
             "anyOf": [
               {
@@ -251,9 +262,46 @@
             ],
             "title": "Logo Key"
           },
+          "logo_source": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Logo Source"
+          },
+          "logo_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Logo Url"
+          },
+          "logo_verified_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Logo Verified At"
+          },
           "name": {
             "title": "Name",
             "type": "string"
+          },
+          "provider_type": {
+            "$ref": "#/components/schemas/ProviderType"
           },
           "updated_at": {
             "format": "date-time",
@@ -264,7 +312,12 @@
         "required": [
           "id",
           "name",
+          "legal_name",
+          "provider_type",
           "logo_key",
+          "logo_url",
+          "logo_source",
+          "logo_verified_at",
           "active",
           "created_at",
           "updated_at",
@@ -1105,6 +1158,14 @@
             "title": "Form Version",
             "type": "integer"
           },
+          "homepage_feature_order": {
+            "title": "Homepage Feature Order",
+            "type": "integer"
+          },
+          "homepage_featured": {
+            "title": "Homepage Featured",
+            "type": "boolean"
+          },
           "id": {
             "format": "uuid",
             "title": "Id",
@@ -1117,6 +1178,60 @@
           "name": {
             "title": "Name",
             "type": "string"
+          },
+          "public_description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Public Description"
+          },
+          "public_documents": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Public Documents",
+            "type": "array"
+          },
+          "public_eligibility": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Public Eligibility",
+            "type": "array"
+          },
+          "public_faq": {
+            "items": {
+              "$ref": "#/components/schemas/PublicFaqItem"
+            },
+            "title": "Public Faq",
+            "type": "array"
+          },
+          "public_highlights": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Public Highlights",
+            "type": "array"
+          },
+          "public_summary": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Public Summary"
+          },
+          "public_visible": {
+            "title": "Public Visible",
+            "type": "boolean"
           },
           "updated_at": {
             "format": "date-time",
@@ -1133,6 +1248,15 @@
           "display_order",
           "form_version",
           "form_schema",
+          "public_visible",
+          "public_summary",
+          "public_description",
+          "public_highlights",
+          "public_eligibility",
+          "public_documents",
+          "public_faq",
+          "homepage_featured",
+          "homepage_feature_order",
           "created_at",
           "updated_at",
           "application_count",
@@ -1433,6 +1557,211 @@
           "reason"
         ],
         "title": "AdminPropertyStatusUpdate",
+        "type": "object"
+      },
+      "AdminProviderOfferListResponse": {
+        "properties": {
+          "offers": {
+            "items": {
+              "$ref": "#/components/schemas/AdminProviderOfferRead"
+            },
+            "title": "Offers",
+            "type": "array"
+          }
+        },
+        "required": [
+          "offers"
+        ],
+        "title": "AdminProviderOfferListResponse",
+        "type": "object"
+      },
+      "AdminProviderOfferRead": {
+        "properties": {
+          "bank_id": {
+            "format": "uuid",
+            "title": "Bank Id",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "display_order": {
+            "default": 1000,
+            "maximum": 10000.0,
+            "minimum": 0.0,
+            "title": "Display Order",
+            "type": "integer"
+          },
+          "eligibility_summary": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Eligibility Summary"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "last_verified_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Verified At"
+          },
+          "loan_type_id": {
+            "format": "uuid",
+            "title": "Loan Type Id",
+            "type": "string"
+          },
+          "max_amount": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,12}|(?=[\\d.]{1,15}0*$)\\d{0,12}\\.\\d{0,2}0*$)",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Amount"
+          },
+          "max_interest_rate": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,3}|(?=[\\d.]{1,7}0*$)\\d{0,3}\\.\\d{0,3}0*$)",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Interest Rate"
+          },
+          "max_tenure_months": {
+            "anyOf": [
+              {
+                "maximum": 600.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Tenure Months"
+          },
+          "min_amount": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,12}|(?=[\\d.]{1,15}0*$)\\d{0,12}\\.\\d{0,2}0*$)",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Min Amount"
+          },
+          "min_interest_rate": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,3}|(?=[\\d.]{1,7}0*$)\\d{0,3}\\.\\d{0,3}0*$)",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Min Interest Rate"
+          },
+          "min_tenure_months": {
+            "anyOf": [
+              {
+                "maximum": 600.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Min Tenure Months"
+          },
+          "offer_name": {
+            "maxLength": 160,
+            "minLength": 1,
+            "title": "Offer Name",
+            "type": "string"
+          },
+          "processing_fee_text": {
+            "anyOf": [
+              {
+                "maxLength": 240,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Processing Fee Text"
+          },
+          "product_label": {
+            "title": "Product Label",
+            "type": "string"
+          },
+          "provider_name": {
+            "title": "Provider Name",
+            "type": "string"
+          },
+          "published": {
+            "default": false,
+            "title": "Published",
+            "type": "boolean"
+          },
+          "summary": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Summary"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "loan_type_id",
+          "bank_id",
+          "offer_name",
+          "id",
+          "product_label",
+          "provider_name",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "AdminProviderOfferRead",
         "type": "object"
       },
       "AdminReferralListResponse": {
@@ -3434,6 +3763,8 @@
           "bank_created",
           "bank_updated",
           "bank_availability_updated",
+          "financial_product_offer_created",
+          "financial_product_offer_updated",
           "commission_entered",
           "commission_cancelled",
           "fee_cashback_entered",
@@ -3873,6 +4204,18 @@
       },
       "BankCreate": {
         "properties": {
+          "legal_name": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Legal Name"
+          },
           "logo_key": {
             "anyOf": [
               {
@@ -3885,11 +4228,27 @@
             ],
             "title": "Logo Key"
           },
+          "logo_source": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Logo Source"
+          },
           "name": {
             "maxLength": 200,
             "minLength": 1,
             "title": "Name",
             "type": "string"
+          },
+          "provider_type": {
+            "$ref": "#/components/schemas/ProviderType",
+            "default": "bank"
           }
         },
         "required": [
@@ -3952,6 +4311,18 @@
             ],
             "title": "Active"
           },
+          "legal_name": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Legal Name"
+          },
           "logo_key": {
             "anyOf": [
               {
@@ -3963,6 +4334,18 @@
               }
             ],
             "title": "Logo Key"
+          },
+          "logo_source": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Logo Source"
           },
           "name": {
             "anyOf": [
@@ -3976,6 +4359,16 @@
               }
             ],
             "title": "Name"
+          },
+          "provider_type": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ProviderType"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "title": "BankUpdate",
@@ -6810,6 +7203,18 @@
             "format": "uuid",
             "title": "Product Id",
             "type": "string"
+          },
+          "provider_offer_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider Offer Id"
           }
         },
         "required": [
@@ -6877,6 +7282,16 @@
           "product": {
             "$ref": "#/components/schemas/LoanTypeSummary"
           },
+          "provider_offer_snapshot": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PreferredProviderOfferSnapshot"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "status": {
             "title": "Status",
             "type": "string"
@@ -6894,6 +7309,7 @@
           "form_version",
           "form_schema_snapshot",
           "form_answers",
+          "provider_offer_snapshot",
           "submitted_at"
         ],
         "title": "FinancialServiceEnquiryRead",
@@ -7622,6 +8038,18 @@
             "format": "uuid",
             "title": "Loan Type Id",
             "type": "string"
+          },
+          "provider_offer_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider Offer Id"
           }
         },
         "required": [
@@ -7878,6 +8306,16 @@
             ],
             "title": "Processing Fee"
           },
+          "provider_offer_snapshot": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PreferredProviderOfferSnapshot"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "status": {
             "$ref": "#/components/schemas/LoanStatus"
           },
@@ -7907,7 +8345,8 @@
           "closed_at",
           "form_version",
           "form_schema_snapshot",
-          "form_answers"
+          "form_answers",
+          "provider_offer_snapshot"
         ],
         "title": "LoanApplicationRead",
         "type": "object"
@@ -8501,6 +8940,30 @@
               }
             ]
           },
+          "homepage_feature_order": {
+            "anyOf": [
+              {
+                "maximum": 10000.0,
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Homepage Feature Order"
+          },
+          "homepage_featured": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Homepage Featured"
+          },
           "label": {
             "anyOf": [
               {
@@ -8513,6 +8976,107 @@
               }
             ],
             "title": "Label"
+          },
+          "public_description": {
+            "anyOf": [
+              {
+                "maxLength": 4000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Public Description"
+          },
+          "public_documents": {
+            "anyOf": [
+              {
+                "items": {
+                  "maxLength": 180,
+                  "minLength": 2,
+                  "type": "string"
+                },
+                "maxItems": 12,
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Public Documents"
+          },
+          "public_eligibility": {
+            "anyOf": [
+              {
+                "items": {
+                  "maxLength": 180,
+                  "minLength": 2,
+                  "type": "string"
+                },
+                "maxItems": 12,
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Public Eligibility"
+          },
+          "public_faq": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/PublicFaqItem"
+                },
+                "maxItems": 10,
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Public Faq"
+          },
+          "public_highlights": {
+            "anyOf": [
+              {
+                "items": {
+                  "maxLength": 180,
+                  "minLength": 2,
+                  "type": "string"
+                },
+                "maxItems": 12,
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Public Highlights"
+          },
+          "public_summary": {
+            "anyOf": [
+              {
+                "maxLength": 280,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Public Summary"
+          },
+          "public_visible": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Public Visible"
           }
         },
         "title": "LoanTypeUpdate",
@@ -10543,6 +11107,123 @@
         "title": "PlotProjectStatus",
         "type": "string"
       },
+      "PreferredProviderOfferSnapshot": {
+        "properties": {
+          "last_verified_at": {
+            "format": "date-time",
+            "title": "Last Verified At",
+            "type": "string"
+          },
+          "max_amount": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Amount"
+          },
+          "max_interest_rate": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Interest Rate"
+          },
+          "max_tenure_months": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Tenure Months"
+          },
+          "min_amount": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Min Amount"
+          },
+          "min_interest_rate": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Min Interest Rate"
+          },
+          "min_tenure_months": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Min Tenure Months"
+          },
+          "offer_id": {
+            "format": "uuid",
+            "title": "Offer Id",
+            "type": "string"
+          },
+          "offer_name": {
+            "title": "Offer Name",
+            "type": "string"
+          },
+          "provider_id": {
+            "format": "uuid",
+            "title": "Provider Id",
+            "type": "string"
+          },
+          "provider_name": {
+            "title": "Provider Name",
+            "type": "string"
+          },
+          "provider_type": {
+            "title": "Provider Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "offer_id",
+          "provider_id",
+          "provider_name",
+          "provider_type",
+          "offer_name",
+          "min_amount",
+          "max_amount",
+          "min_interest_rate",
+          "max_interest_rate",
+          "min_tenure_months",
+          "max_tenure_months",
+          "last_verified_at"
+        ],
+        "title": "PreferredProviderOfferSnapshot",
+        "type": "object"
+      },
       "ProductCategory": {
         "enum": [
           "loan",
@@ -11285,6 +11966,468 @@
         "title": "PropertyUse",
         "type": "string"
       },
+      "ProviderLogoConfirmRequest": {
+        "properties": {
+          "content_type": {
+            "enum": [
+              "image/jpeg",
+              "image/png",
+              "image/webp"
+            ],
+            "title": "Content Type",
+            "type": "string"
+          },
+          "object_key": {
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Object Key",
+            "type": "string"
+          },
+          "source_reference": {
+            "maxLength": 500,
+            "minLength": 3,
+            "title": "Source Reference",
+            "type": "string"
+          }
+        },
+        "required": [
+          "object_key",
+          "content_type",
+          "source_reference"
+        ],
+        "title": "ProviderLogoConfirmRequest",
+        "type": "object"
+      },
+      "ProviderLogoUploadRequest": {
+        "properties": {
+          "content_type": {
+            "enum": [
+              "image/jpeg",
+              "image/png",
+              "image/webp"
+            ],
+            "title": "Content Type",
+            "type": "string"
+          },
+          "filename": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Filename",
+            "type": "string"
+          }
+        },
+        "required": [
+          "filename",
+          "content_type"
+        ],
+        "title": "ProviderLogoUploadRequest",
+        "type": "object"
+      },
+      "ProviderLogoUploadResponse": {
+        "properties": {
+          "fields": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Fields",
+            "type": "object"
+          },
+          "max_bytes": {
+            "title": "Max Bytes",
+            "type": "integer"
+          },
+          "object_key": {
+            "title": "Object Key",
+            "type": "string"
+          },
+          "upload_url": {
+            "title": "Upload Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "object_key",
+          "upload_url",
+          "fields",
+          "max_bytes"
+        ],
+        "title": "ProviderLogoUploadResponse",
+        "type": "object"
+      },
+      "ProviderOfferCreate": {
+        "properties": {
+          "bank_id": {
+            "format": "uuid",
+            "title": "Bank Id",
+            "type": "string"
+          },
+          "display_order": {
+            "default": 1000,
+            "maximum": 10000.0,
+            "minimum": 0.0,
+            "title": "Display Order",
+            "type": "integer"
+          },
+          "eligibility_summary": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Eligibility Summary"
+          },
+          "last_verified_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Verified At"
+          },
+          "loan_type_id": {
+            "format": "uuid",
+            "title": "Loan Type Id",
+            "type": "string"
+          },
+          "max_amount": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,12}|(?=[\\d.]{1,15}0*$)\\d{0,12}\\.\\d{0,2}0*$)",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Amount"
+          },
+          "max_interest_rate": {
+            "anyOf": [
+              {
+                "maximum": 100.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,3}|(?=[\\d.]{1,7}0*$)\\d{0,3}\\.\\d{0,3}0*$)",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Interest Rate"
+          },
+          "max_tenure_months": {
+            "anyOf": [
+              {
+                "maximum": 600.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Tenure Months"
+          },
+          "min_amount": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,12}|(?=[\\d.]{1,15}0*$)\\d{0,12}\\.\\d{0,2}0*$)",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Min Amount"
+          },
+          "min_interest_rate": {
+            "anyOf": [
+              {
+                "maximum": 100.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,3}|(?=[\\d.]{1,7}0*$)\\d{0,3}\\.\\d{0,3}0*$)",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Min Interest Rate"
+          },
+          "min_tenure_months": {
+            "anyOf": [
+              {
+                "maximum": 600.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Min Tenure Months"
+          },
+          "offer_name": {
+            "maxLength": 160,
+            "minLength": 1,
+            "title": "Offer Name",
+            "type": "string"
+          },
+          "processing_fee_text": {
+            "anyOf": [
+              {
+                "maxLength": 240,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Processing Fee Text"
+          },
+          "published": {
+            "default": false,
+            "title": "Published",
+            "type": "boolean"
+          },
+          "summary": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Summary"
+          }
+        },
+        "required": [
+          "loan_type_id",
+          "bank_id",
+          "offer_name"
+        ],
+        "title": "ProviderOfferCreate",
+        "type": "object"
+      },
+      "ProviderOfferUpdate": {
+        "properties": {
+          "display_order": {
+            "anyOf": [
+              {
+                "maximum": 10000.0,
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display Order"
+          },
+          "eligibility_summary": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Eligibility Summary"
+          },
+          "last_verified_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Verified At"
+          },
+          "max_amount": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,12}|(?=[\\d.]{1,15}0*$)\\d{0,12}\\.\\d{0,2}0*$)",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Amount"
+          },
+          "max_interest_rate": {
+            "anyOf": [
+              {
+                "maximum": 100.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,3}|(?=[\\d.]{1,7}0*$)\\d{0,3}\\.\\d{0,3}0*$)",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Interest Rate"
+          },
+          "max_tenure_months": {
+            "anyOf": [
+              {
+                "maximum": 600.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Tenure Months"
+          },
+          "min_amount": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,12}|(?=[\\d.]{1,15}0*$)\\d{0,12}\\.\\d{0,2}0*$)",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Min Amount"
+          },
+          "min_interest_rate": {
+            "anyOf": [
+              {
+                "maximum": 100.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,3}|(?=[\\d.]{1,7}0*$)\\d{0,3}\\.\\d{0,3}0*$)",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Min Interest Rate"
+          },
+          "min_tenure_months": {
+            "anyOf": [
+              {
+                "maximum": 600.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Min Tenure Months"
+          },
+          "offer_name": {
+            "anyOf": [
+              {
+                "maxLength": 160,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Offer Name"
+          },
+          "processing_fee_text": {
+            "anyOf": [
+              {
+                "maxLength": 240,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Processing Fee Text"
+          },
+          "published": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Published"
+          },
+          "summary": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Summary"
+          }
+        },
+        "title": "ProviderOfferUpdate",
+        "type": "object"
+      },
+      "ProviderType": {
+        "enum": [
+          "bank",
+          "small_finance_bank",
+          "nbfc",
+          "hfc",
+          "fintech",
+          "other"
+        ],
+        "title": "ProviderType",
+        "type": "string"
+      },
       "PublicBannerListResponse": {
         "properties": {
           "banners": {
@@ -11451,6 +12594,145 @@
           "business_line"
         ],
         "title": "PublicContentBlockRead",
+        "type": "object"
+      },
+      "PublicFaqItem": {
+        "properties": {
+          "answer": {
+            "maxLength": 800,
+            "minLength": 3,
+            "title": "Answer",
+            "type": "string"
+          },
+          "question": {
+            "maxLength": 180,
+            "minLength": 3,
+            "title": "Question",
+            "type": "string"
+          }
+        },
+        "required": [
+          "question",
+          "answer"
+        ],
+        "title": "PublicFaqItem",
+        "type": "object"
+      },
+      "PublicFinancialProductListResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/PublicFinancialProductRead"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "page": {
+            "title": "Page",
+            "type": "integer"
+          },
+          "page_size": {
+            "title": "Page Size",
+            "type": "integer"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "page",
+          "page_size"
+        ],
+        "title": "PublicFinancialProductListResponse",
+        "type": "object"
+      },
+      "PublicFinancialProductRead": {
+        "properties": {
+          "category": {
+            "$ref": "#/components/schemas/ProductCategory"
+          },
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "documents": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Documents",
+            "type": "array"
+          },
+          "eligibility": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Eligibility",
+            "type": "array"
+          },
+          "faq": {
+            "items": {
+              "$ref": "#/components/schemas/PublicFaqItem"
+            },
+            "title": "Faq",
+            "type": "array"
+          },
+          "highlights": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Highlights",
+            "type": "array"
+          },
+          "homepage_featured": {
+            "title": "Homepage Featured",
+            "type": "boolean"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "provider_count": {
+            "title": "Provider Count",
+            "type": "integer"
+          },
+          "slug": {
+            "title": "Slug",
+            "type": "string"
+          },
+          "summary": {
+            "title": "Summary",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "slug",
+          "label",
+          "category",
+          "summary",
+          "description",
+          "highlights",
+          "eligibility",
+          "documents",
+          "faq",
+          "homepage_featured",
+          "provider_count",
+          "updated_at"
+        ],
+        "title": "PublicFinancialProductRead",
         "type": "object"
       },
       "PublicLeadCreate": {
@@ -11793,6 +13075,232 @@
           "structured_details"
         ],
         "title": "PublicPropertyRead",
+        "type": "object"
+      },
+      "PublicProviderOfferListResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/PublicProviderOfferRead"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "page": {
+            "title": "Page",
+            "type": "integer"
+          },
+          "page_size": {
+            "title": "Page Size",
+            "type": "integer"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "page",
+          "page_size"
+        ],
+        "title": "PublicProviderOfferListResponse",
+        "type": "object"
+      },
+      "PublicProviderOfferRead": {
+        "properties": {
+          "eligibility_summary": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Eligibility Summary"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "last_verified_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Verified At"
+          },
+          "max_amount": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Amount"
+          },
+          "max_interest_rate": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Interest Rate"
+          },
+          "max_tenure_months": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Tenure Months"
+          },
+          "min_amount": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Min Amount"
+          },
+          "min_interest_rate": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Min Interest Rate"
+          },
+          "min_tenure_months": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Min Tenure Months"
+          },
+          "offer_name": {
+            "title": "Offer Name",
+            "type": "string"
+          },
+          "processing_fee_text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Processing Fee Text"
+          },
+          "provider": {
+            "$ref": "#/components/schemas/PublicProviderRead"
+          },
+          "summary": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Summary"
+          }
+        },
+        "required": [
+          "id",
+          "offer_name",
+          "summary",
+          "provider",
+          "min_amount",
+          "max_amount",
+          "min_interest_rate",
+          "max_interest_rate",
+          "min_tenure_months",
+          "max_tenure_months",
+          "processing_fee_text",
+          "eligibility_summary",
+          "last_verified_at"
+        ],
+        "title": "PublicProviderOfferRead",
+        "type": "object"
+      },
+      "PublicProviderRead": {
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "legal_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Legal Name"
+          },
+          "logo_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Logo Url"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "provider_type": {
+            "$ref": "#/components/schemas/ProviderType"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "legal_name",
+          "provider_type",
+          "logo_url"
+        ],
+        "title": "PublicProviderRead",
         "type": "object"
       },
       "PushSubscribeRequest": {
@@ -16579,6 +18087,64 @@
         ]
       }
     },
+    "/api/v1/admin/banks/{bank_id}/logo": {
+      "post": {
+        "operationId": "set_provider_logo_api_v1_admin_banks__bank_id__logo_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "bank_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Bank Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProviderLogoConfirmRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminBankRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Set Provider Logo",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
     "/api/v1/admin/commissions": {
       "get": {
         "operationId": "list_commissions_api_v1_admin_commissions_get",
@@ -18658,6 +20224,134 @@
         ]
       }
     },
+    "/api/v1/admin/product-provider-offers": {
+      "get": {
+        "operationId": "list_product_provider_offers_api_v1_admin_product_provider_offers_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminProviderOfferListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "List Product Provider Offers",
+        "tags": [
+          "admin"
+        ]
+      },
+      "post": {
+        "operationId": "add_product_provider_offer_api_v1_admin_product_provider_offers_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProviderOfferCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminProviderOfferRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Add Product Provider Offer",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/product-provider-offers/{offer_id}": {
+      "patch": {
+        "operationId": "edit_product_provider_offer_api_v1_admin_product_provider_offers__offer_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "offer_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Offer Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProviderOfferUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminProviderOfferRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Edit Product Provider Offer",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
     "/api/v1/admin/property-deals": {
       "get": {
         "operationId": "list_property_deals_api_v1_admin_property_deals_get",
@@ -18765,6 +20459,52 @@
           }
         ],
         "summary": "Update Property Deal Progress",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/provider-logos/upload-url": {
+      "post": {
+        "operationId": "get_provider_logo_upload_url_api_v1_admin_provider_logos_upload_url_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProviderLogoUploadRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProviderLogoUploadResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Get Provider Logo Upload Url",
         "tags": [
           "admin"
         ]
@@ -27205,6 +28945,333 @@
           }
         },
         "summary": "Get Content Block By Slug Public",
+        "tags": [
+          "public"
+        ]
+      }
+    },
+    "/api/v1/public/financial-products": {
+      "get": {
+        "operationId": "list_financial_products_public_api_v1_public_financial_products_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 100,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Q"
+            }
+          },
+          {
+            "in": "query",
+            "name": "category",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/ProductCategory"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Category"
+            }
+          },
+          {
+            "in": "query",
+            "name": "featured",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Featured"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "default": 1,
+              "maximum": 10000,
+              "minimum": 1,
+              "title": "Page",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page_size",
+            "required": false,
+            "schema": {
+              "default": 12,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Page Size",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicFinancialProductListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Financial Products Public",
+        "tags": [
+          "public"
+        ]
+      }
+    },
+    "/api/v1/public/financial-products/{slug}": {
+      "get": {
+        "operationId": "get_financial_product_public_api_v1_public_financial_products__slug__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "slug",
+            "required": true,
+            "schema": {
+              "title": "Slug",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicFinancialProductRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Financial Product Public",
+        "tags": [
+          "public"
+        ]
+      }
+    },
+    "/api/v1/public/financial-products/{slug}/providers": {
+      "get": {
+        "operationId": "list_financial_product_providers_public_api_v1_public_financial_products__slug__providers_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "slug",
+            "required": true,
+            "schema": {
+              "title": "Slug",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 100,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Q"
+            }
+          },
+          {
+            "in": "query",
+            "name": "provider_type",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/ProviderType"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Provider Type"
+            }
+          },
+          {
+            "in": "query",
+            "name": "amount",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maximum": 99999999999.0,
+                  "minimum": 0.0,
+                  "type": "number"
+                },
+                {
+                  "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Amount"
+            }
+          },
+          {
+            "in": "query",
+            "name": "interest_rate_max",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maximum": 100.0,
+                  "minimum": 0.0,
+                  "type": "number"
+                },
+                {
+                  "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Interest Rate Max"
+            }
+          },
+          {
+            "in": "query",
+            "name": "tenure_months",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maximum": 600,
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Tenure Months"
+            }
+          },
+          {
+            "in": "query",
+            "name": "sort",
+            "required": false,
+            "schema": {
+              "default": "recommended",
+              "enum": [
+                "recommended",
+                "interest_rate",
+                "amount",
+                "updated"
+              ],
+              "title": "Sort",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "default": 1,
+              "maximum": 10000,
+              "minimum": 1,
+              "title": "Page",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page_size",
+            "required": false,
+            "schema": {
+              "default": 12,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Page Size",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicProviderOfferListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Financial Product Providers Public",
         "tags": [
           "public"
         ]
