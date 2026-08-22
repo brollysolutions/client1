@@ -245,6 +245,25 @@ export const LOAN_PRODUCTS: Product[] = [
   },
 ];
 
+// Slugs that Admin publishes in the /loans catalogue but that are not marketing
+// products in LOAN_PRODUCTS (so they are intentionally absent from the navbar
+// mega-menu and the 11/4/1 band split those tests lock). Listing them here
+// keeps public/illustrations/products/*.svg with a single owner, and keeps the
+// public catalogue from dropping a published service to the bare icon fallback.
+const EXTRA_CATALOGUE_ILLUSTRATIONS: Record<string, string> = {
+  "equipment-financing": "/illustrations/products/equipment-financing.svg",
+};
+
+/** Resolves the spot illustration for an Admin-published catalogue slug.
+ *  Returns undefined when no art exists yet, which is a designed state on the
+ *  card rather than a missing image. */
+export function catalogueIllustration(slug: string): string | undefined {
+  return (
+    LOAN_PRODUCTS.find((product) => product.id === slug)?.illustration ??
+    EXTRA_CATALOGUE_ILLUSTRATIONS[slug]
+  );
+}
+
 export const LOAN_TRUST: TrustPoint[] = [
   {
     icon: ShieldCheck,

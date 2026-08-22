@@ -5,7 +5,8 @@ import { FinancialServicesCatalogue } from "@/components/financial-services-cata
 import { ProductPage } from "@/components/product-page";
 import { TrustStrip } from "@/components/trust-strip";
 import { faqPageJsonLd, LOAN_FAQ_ITEMS } from "@/lib/faq";
-import { getPublicFinancialProducts } from "@/lib/financial-catalog";
+import { getCatalogueFacets, getPublicFinancialProducts } from "@/lib/financial-catalog";
+import { parseCatalogueCategory } from "@/lib/financial-catalogue-url";
 import { getHeroBanners } from "@/lib/public-banners";
 import { LOAN_JOURNEY, LOAN_TRUST } from "@/lib/products";
 import { SITE_NAME, SITE_URL } from "@/lib/site";
@@ -78,18 +79,16 @@ function one(value: string | string[] | undefined): string | undefined {
 export default async function LoansPage({ searchParams }: { searchParams: LoansSearchParams }) {
   const params = await searchParams;
   const q = one(params.q)?.trim() || undefined;
-  const categoryValue = one(params.category);
-  const category =
-    categoryValue === "loan" ||
-    categoryValue === "credit_card" ||
-    categoryValue === "insurance"
-      ? categoryValue
-      : undefined;
+  const category = parseCatalogueCategory(one(params.category));
   const requestedPage = Number(one(params.page) ?? "1");
   const page = Number.isInteger(requestedPage) && requestedPage > 0 ? requestedPage : 1;
-  const [banners, catalogue] = await Promise.all([
+  const [banners, catalogue, facets] = await Promise.all([
     getHeroBanners("financial_services"),
     getPublicFinancialProducts({ q, category, page, pageSize: 12 }),
+    // Counts for the filter pills. Narrowed by the text query but not by the
+    // category the reader is currently standing in, so each pill shows what
+    // picking it would actually return.
+    getCatalogueFacets(q),
   ]);
 
   return (
@@ -113,7 +112,11 @@ export default async function LoansPage({ searchParams }: { searchParams: LoansS
         }
         beforeJourney={
           <>
-            <FinancialServicesCatalogue catalogue={catalogue} query={{ q, category, page }} />
+            <FinancialServicesCatalogue
+              catalogue={catalogue}
+              facets={facets}
+              query={{ q, category, page }}
+            />
             <TrustStrip eyebrow="Why people trust us" points={LOAN_TRUST} />
           </>
         }

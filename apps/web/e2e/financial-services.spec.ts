@@ -70,3 +70,48 @@ test("catalogue cards and provider applications remain inside Dhanadhara", async
     true,
   );
 });
+
+test("catalogue results filter as you type under a sticky, button-free bar", async ({ page }) => {
+  await page.goto("/loans", { waitUntil: "domcontentloaded", timeout: 90_000 });
+
+  const catalogue = page.locator("#financial-services-catalogue");
+  const bar = catalogue.locator('form[role="search"]');
+  const search = bar.getByRole("searchbox", { name: "Search financial services" });
+
+  // The submit gate is gone; filtering is driven entirely by the input.
+  await expect(bar.getByRole("button", { name: "Show results" })).toHaveCount(0);
+  await expect(catalogue.getByText("Admin-curated catalogue")).toHaveCount(0);
+
+  // Scroll well past the bar's resting position and confirm it pins flush
+  // under the 64px site header instead of scrolling away.
+  await catalogue.locator('article a[aria-label^="Explore "]').last().scrollIntoViewIfNeeded();
+  await expect(bar).toBeVisible();
+  const pinned = await bar.boundingBox();
+  expect(pinned?.y).toBeGreaterThanOrEqual(60);
+  expect(pinned?.y).toBeLessThanOrEqual(68);
+
+  // Typing alone updates the URL and the rendered results, with no click.
+  const before = await catalogue.locator("article").count();
+  expect(before).toBeGreaterThan(4);
+  await search.fill("insurance");
+  await expect(page).toHaveURL(/\/loans\?q=insurance$/, { timeout: 30_000 });
+  await expect
+    .poll(async () => catalogue.locator("article").count(), { timeout: 30_000 })
+    .toBeLessThan(before);
+  for (const label of await catalogue.locator('a[aria-label^="Explore "]').all()) {
+    await expect(label).toHaveAttribute("aria-label", /Insurance/i);
+  }
+
+  // Category pills stay real links so the filter still works without JS.
+  await expect(bar.getByRole("link", { name: /^Insurance/ })).toHaveAttribute(
+    "href",
+    "/loans?q=insurance&category=insurance",
+  );
+
+  // Clearing the search restores the full catalogue in place.
+  await bar.getByRole("button", { name: "Clear search" }).click();
+  await expect(page).toHaveURL(/\/loans$/, { timeout: 30_000 });
+  await expect
+    .poll(async () => catalogue.locator("article").count(), { timeout: 30_000 })
+    .toBe(before);
+});
