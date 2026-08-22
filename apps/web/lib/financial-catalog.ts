@@ -60,6 +60,32 @@ export async function getPublicFinancialProducts(
     : { items: [], total: 0, page: query.page ?? 1, page_size: query.pageSize ?? 12 };
 }
 
+export type CatalogueFacets = {
+  all: number;
+  loan: number;
+  credit_card: number;
+  insurance: number;
+};
+
+/**
+ * Per-category result counts for the /loans filter pills, narrowed by the
+ * active text query so a pill shows what picking it would actually return.
+ *
+ * Each call asks for a single row and reads `total`, which stays exact past
+ * the endpoint's 100-row page cap. `all` is the sum because ProductCategory is
+ * closed over exactly these three values.
+ */
+export async function getCatalogueFacets(q?: string): Promise<CatalogueFacets> {
+  const [loan, credit_card, insurance] = await Promise.all(
+    (["loan", "credit_card", "insurance"] as const).map((category) =>
+      getPublicFinancialProducts({ q, category, page: 1, pageSize: 1 }).then(
+        (result) => result.total,
+      ),
+    ),
+  );
+  return { all: loan + credit_card + insurance, loan, credit_card, insurance };
+}
+
 export async function getPublicFinancialProduct(
   slug: string,
 ): Promise<PublicFinancialProduct | null> {
