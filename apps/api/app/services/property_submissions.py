@@ -23,7 +23,11 @@ from app.cache.redis_keys import (
 )
 from app.db.session import AsyncSessionLocal
 from app.models.audit_log import AuditAction
-from app.models.property import Property
+from app.models.property import (
+    Property,
+    ReraApplicability,
+    ReraVerificationStatus,
+)
 from app.models.property_media import (
     MediaProcessingStatus,
     PropertyMedia,
@@ -94,6 +98,14 @@ class MediaNotReady(Exception):
 
 class SubmissionNotEditable(Exception):
     """Raised when a withdrawn listing is targeted for another edit."""
+
+
+class ReraReviewRequired(Exception):
+    """Raised when publication is attempted without the required RERA review."""
+
+
+class InvalidReraReview(Exception):
+    """Raised when a reviewer outcome conflicts with the applicant assertion."""
 
 
 def _max_bytes(content_type: str) -> int:
@@ -220,11 +232,14 @@ async def create_submission(
         await _delete_objects(canonical_keys)
         raise
 
-    data = payload.model_dump(exclude={"media"})
+    data = payload.model_dump(exclude={"media", "structured_details"})
+    data["structured_details"] = payload.structured_details.model_dump(mode="json")
     submission = PropertySubmission(
         submitter_uuid=owner_uuid,
         business_line="real_estate",
         image=None,
+        details={},
+        details_version=1,
         **data,
     )
     db.add(submission)
@@ -267,11 +282,29 @@ def _can_manage_submission(
     )
 
 
+def _payload_fact_values(payload: SubmissionCreate | SubmissionUpdate) -> dict[str, object]:
+    values = payload.model_dump(exclude={"media", "structured_details"})
+    values["structured_details"] = payload.structured_details.model_dump(mode="json")
+    return values
+
+
 def _copy_submission_facts(target: PropertySubmission | Property, source: object) -> None:
-    for field in SubmissionUpdate.model_fields:
-        setattr(target, field, getattr(source, field))
+    values = (
+        _payload_fact_values(source)
+        if isinstance(source, (SubmissionCreate, SubmissionUpdate))
+        else {field: getattr(source, field) for field in SubmissionUpdate.model_fields}
+    )
+    for field, value in values.items():
+        setattr(target, field, value)
+    target.details_version = 1 if values["structured_details"] is not None else None
     if isinstance(target, Property):
         target.price_display = format_inr_display(target.price_paise)
+
+
+def _copy_rera_review(target: Property, source: PropertySubmission) -> None:
+    target.rera_verification_status = source.rera_verification_status
+    target.rera_verified_at = source.rera_verified_at
+    target.rera_verified_by_uuid = source.rera_verified_by_uuid
 
 
 async def update_submission(
@@ -292,10 +325,9 @@ async def update_submission(
         if sub.status == SubmissionStatus.WITHDRAWN:
             raise SubmissionNotEditable
         previous_status = sub.status
+        values = _payload_fact_values(payload)
         changed_fields = sorted(
-            field
-            for field in SubmissionUpdate.model_fields
-            if getattr(sub, field) != getattr(payload, field)
+            field for field, value in values.items() if getattr(sub, field) != value
         )
         if not changed_fields:
             return True
@@ -304,6 +336,10 @@ async def update_submission(
         sub.review_note = None
         sub.reviewed_by_uuid = None
         sub.reviewed_at = None
+        sub.rera_verification_status = ReraVerificationStatus.NOT_REVIEWED
+        sub.rera_verified_at = None
+        sub.rera_verified_by_uuid = None
+        sub.rera_review_note = None
         await record_audit(
             session,
             action=AuditAction.PROPERTY_LISTING_UPDATED,
@@ -319,6 +355,70 @@ async def update_submission(
                 "approved_property_uuid": (
                     str(sub.approved_property_id) if sub.approved_property_id else None
                 ),
+            },
+        )
+        await session.commit()
+        return True
+
+
+async def review_rera(
+    submission_id: UUID,
+    reviewer_uuid: UUID,
+    outcome: ReraVerificationStatus,
+    note: str | None,
+    *,
+    reviewer_role: str | None = None,
+) -> bool:
+    """Record an Admin-only registry outcome without trusting applicant data."""
+    async with AsyncSessionLocal() as session:
+        sub = await session.get(PropertySubmission, submission_id, with_for_update=True)
+        if sub is None or sub.status == SubmissionStatus.WITHDRAWN:
+            return False
+        if outcome == ReraVerificationStatus.VERIFIED and (
+            sub.rera_applicability != ReraApplicability.APPLICABLE or not sub.rera_number
+        ):
+            raise InvalidReraReview
+        if outcome == ReraVerificationStatus.EXEMPTION_VERIFIED and (
+            sub.rera_applicability != ReraApplicability.EXEMPTION_CLAIMED
+        ):
+            raise InvalidReraReview
+        if outcome == ReraVerificationStatus.NOT_REVIEWED:
+            raise InvalidReraReview
+
+        now = datetime.now(UTC)
+        sub.rera_verification_status = outcome
+        sub.rera_verified_at = now
+        sub.rera_verified_by_uuid = reviewer_uuid
+        sub.rera_review_note = note.strip() if note else None
+        catalogue_deactivated = False
+        if sub.approved_property_id is not None:
+            prop = await session.get(Property, sub.approved_property_id, with_for_update=True)
+            if prop is not None and (
+                sub.status == SubmissionStatus.APPROVED
+                or outcome == ReraVerificationStatus.MISMATCH
+            ):
+                _copy_rera_review(prop, sub)
+                if outcome == ReraVerificationStatus.MISMATCH and prop.active:
+                    prop.active = False
+                    catalogue_deactivated = True
+
+        await record_audit(
+            session,
+            action=AuditAction.PROPERTY_LISTING_UPDATED,
+            entity_type="property_submission",
+            entity_uuid=sub.id,
+            actor_uuid=reviewer_uuid,
+            actor_role=reviewer_role,
+            business_line=sub.business_line,
+            detail={
+                "operation": "rera_reviewed",
+                "outcome": outcome.value,
+                "applicability": sub.rera_applicability.value,
+                "approved_property_uuid": (
+                    str(sub.approved_property_id) if sub.approved_property_id else None
+                ),
+                "review_note_recorded": bool(note),
+                "catalogue_deactivated": catalogue_deactivated,
             },
         )
         await session.commit()
@@ -395,6 +495,18 @@ async def approve_submission(
             return None
         if sub.status != SubmissionStatus.PENDING:
             raise SubmissionAlreadyReviewed
+        if (
+            (
+                sub.rera_applicability == ReraApplicability.APPLICABLE
+                and sub.rera_verification_status != ReraVerificationStatus.VERIFIED
+            )
+            or (
+                sub.rera_applicability == ReraApplicability.EXEMPTION_CLAIMED
+                and sub.rera_verification_status != ReraVerificationStatus.EXEMPTION_VERIFIED
+            )
+            or sub.rera_applicability == ReraApplicability.UNSURE
+        ):
+            raise ReraReviewRequired
         media = list(
             (
                 await session.scalars(
@@ -464,6 +576,7 @@ async def approve_submission(
                 await session.rollback()
                 raise MediaStorageUnavailable
             _copy_submission_facts(prop, sub)
+            _copy_rera_review(prop, sub)
         else:
             prop = Property(
                 id=property_uuid,
@@ -479,6 +592,7 @@ async def approve_submission(
                 property_subtype=sub.property_subtype,
                 city=sub.city,
                 locality=sub.locality,
+                state=sub.state,
                 pincode=sub.pincode,
                 price_paise=sub.price_paise,
                 bhk=sub.bhk,
@@ -488,7 +602,15 @@ async def approve_submission(
                 amenities=list(sub.amenities),
                 age_years=sub.age_years,
                 rera_number=sub.rera_number,
+                rera_applicability=sub.rera_applicability,
+                rera_verification_status=sub.rera_verification_status,
+                rera_verified_at=sub.rera_verified_at,
+                rera_verified_by_uuid=sub.rera_verified_by_uuid,
                 details=dict(sub.details),
+                details_version=sub.details_version,
+                structured_details=(
+                    dict(sub.structured_details) if sub.structured_details is not None else None
+                ),
             )
         try:
             if not is_reapproval:

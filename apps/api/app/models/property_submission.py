@@ -28,6 +28,7 @@ from sqlalchemy import (
     ARRAY,
     BigInteger,
     DateTime,
+    ForeignKey,
     Integer,
     SmallInteger,
     String,
@@ -42,10 +43,14 @@ from app.models.property import (
     Furnishing,
     PropertyCategory,
     PropertySubtype,
+    ReraApplicability,
+    ReraVerificationStatus,
     construction_status_enum,
     furnishing_enum,
     property_category_enum,
     property_subtype_enum,
+    rera_applicability_enum,
+    rera_verification_status_enum,
 )
 from app.models.user import business_line_enum
 
@@ -96,18 +101,36 @@ class PropertySubmission(Base):
     )
     city: Mapped[str] = mapped_column(String(120), nullable=False)
     locality: Mapped[str] = mapped_column(String(120), nullable=False)
+    state: Mapped[str | None] = mapped_column(String(120), nullable=True)
     pincode: Mapped[str] = mapped_column(String(6), nullable=False)
     price_paise: Mapped[int] = mapped_column(BigInteger, nullable=False)
     bhk: Mapped[int] = mapped_column(SmallInteger, nullable=False, default=0)
     area_sqft: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
-    furnishing: Mapped[Furnishing] = mapped_column(furnishing_enum, nullable=False)
-    construction_status: Mapped[ConstructionStatus] = mapped_column(
-        construction_status_enum, nullable=False
+    furnishing: Mapped[Furnishing | None] = mapped_column(furnishing_enum, nullable=True)
+    construction_status: Mapped[ConstructionStatus | None] = mapped_column(
+        construction_status_enum, nullable=True
     )
     amenities: Mapped[list[str]] = mapped_column(ARRAY(String), nullable=False, default=list)
     age_years: Mapped[int] = mapped_column(SmallInteger, nullable=False, default=0)
-    rera_number: Mapped[str] = mapped_column(String(40), nullable=False)
+    rera_number: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    rera_applicability: Mapped[ReraApplicability] = mapped_column(
+        rera_applicability_enum, nullable=False, default=ReraApplicability.UNSURE
+    )
+    rera_verification_status: Mapped[ReraVerificationStatus] = mapped_column(
+        rera_verification_status_enum,
+        nullable=False,
+        default=ReraVerificationStatus.NOT_REVIEWED,
+    )
+    rera_verified_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    rera_verified_by_uuid: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("auth_users.id", ondelete="SET NULL"), nullable=True
+    )
+    rera_review_note: Mapped[str | None] = mapped_column(Text, nullable=True)
     details: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
+    details_version: Mapped[int | None] = mapped_column(SmallInteger, nullable=True)
+    structured_details: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, default=datetime.utcnow

@@ -27,6 +27,7 @@ Requires: running Postgres + Redis (docker compose up -d).
 from __future__ import annotations
 
 import uuid
+from datetime import UTC, datetime
 
 import pytest
 from httpx import AsyncClient
@@ -69,6 +70,9 @@ async def _seed_property(
             amenities=["lift", "gym"],
             age_years=3,
             rera_number="RERA/KA/2024/1234",
+            rera_applicability="applicable",
+            rera_verification_status="verified",
+            rera_verified_at=datetime.now(UTC),
             details={},
         )
         db.add(prop)
@@ -182,9 +186,13 @@ async def test_response_omits_internal_fields(client: AsyncClient) -> None:
             "category",
             "property_subtype",
             "rera_number",
+            "rera_verification_status",
+            "structured_details",
         }
         assert row["media"] == []
         assert row["property_subtype"] is None
+        assert row["rera_verification_status"] == "verified"
+        assert row["structured_details"] is None
         for internal_field in (
             "active",
             "created_at",
@@ -199,6 +207,8 @@ async def test_response_omits_internal_fields(client: AsyncClient) -> None:
             "age_years",
             "pincode",
             "city",
+            "state",
+            "rera_applicability",
             "locality",
             "details",
         ):

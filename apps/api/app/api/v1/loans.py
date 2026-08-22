@@ -17,7 +17,7 @@ from __future__ import annotations
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 
@@ -143,12 +143,17 @@ async def list_loan_types(
     current_user: CurrentUser = Depends(get_active_user),  # noqa: ARG001
     db: AsyncSession = Depends(get_db),
 ) -> LoanTypeListResponse:
+    availability_updated_at = (
+        select(func.max(BankLoanTypeAvailability.updated_at))
+        .where(BankLoanTypeAvailability.loan_type_id == LoanType.id)
+        .correlate(LoanType)
+        .scalar_subquery()
+    )
     result = await db.execute(
-        select(LoanType)
+        select(LoanType, availability_updated_at.label("availability_updated_at"))
         .where(LoanType.active.is_(True), LoanType.custom_fields.is_not(None))
         .order_by(LoanType.display_order, LoanType.label)
     )
-    loan_types = result.scalars().all()
     return LoanTypeListResponse(
         loan_types=[
             LoanTypeRead(
@@ -159,8 +164,11 @@ async def list_loan_types(
                 display_order=product.display_order,
                 form_version=product.form_version,
                 form_schema=financial_products.form_for_product(product),
+                last_updated_at=max(
+                    value for value in (product.updated_at, matrix_updated_at) if value is not None
+                ),
             )
-            for product in loan_types
+            for product, matrix_updated_at in result.all()
         ]
     )
 
@@ -184,7 +192,15 @@ async def list_banks(
                 detail="Lenders are available only for lending products.",
             )
 
-    stmt = select(Bank).where(Bank.active.is_(True))
+    availability_updated_at = (
+        select(func.max(BankLoanTypeAvailability.updated_at))
+        .where(BankLoanTypeAvailability.bank_id == Bank.id)
+        .correlate(Bank)
+        .scalar_subquery()
+    )
+    stmt = select(Bank, availability_updated_at.label("availability_updated_at")).where(
+        Bank.active.is_(True)
+    )
     if loan_type_id is not None:
         stmt = stmt.where(
             ~select(BankLoanTypeAvailability.bank_id)
@@ -196,8 +212,18 @@ async def list_banks(
             .exists()
         )
     result = await db.execute(stmt.order_by(Bank.name))
-    banks = result.scalars().all()
-    return BankListResponse(banks=[BankRead.model_validate(b, from_attributes=True) for b in banks])
+    return BankListResponse(
+        banks=[
+            BankRead(
+                id=bank.id,
+                name=bank.name,
+                last_updated_at=max(
+                    value for value in (bank.updated_at, matrix_updated_at) if value is not None
+                ),
+            )
+            for bank, matrix_updated_at in result.all()
+        ]
+    )
 
 
 @router.get("/officer", response_model=LoanOfficerContactRead | None)

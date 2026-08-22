@@ -24,6 +24,7 @@ import {
   type FinancialProduct,
   type LoanApplication,
 } from "@/lib/loans";
+import { formatLastUpdated } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 type PageStatus = "loading" | "ready" | "error";
@@ -214,7 +215,10 @@ export default function ApplyPage() {
                             : "border-border bg-transparent text-foreground hover:bg-brand-cta-tint",
                         )}
                       >
-                        {product.label}
+                        <span className="block">{product.label}</span>
+                        <span className={`mt-0.5 block text-[11px] font-normal ${productId === product.id ? "text-white/80" : "text-text-secondary"}`}>
+                          {formatLastUpdated(product.last_updated_at)}
+                        </span>
                       </button>
                     );
                   })}
@@ -246,6 +250,9 @@ export default function ApplyPage() {
           }
         >
           <form onSubmit={handleSubmit} noValidate className="grid gap-8">
+            <p className="text-xs text-text-secondary">
+              Form version {selectedProduct.form_version} · {formatLastUpdated(selectedProduct.last_updated_at)}
+            </p>
             <FinancialProductFormFields
               product={selectedProduct}
               fullName={`${me.firstName} ${me.lastName}`.trim()}

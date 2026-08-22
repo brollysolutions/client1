@@ -1,5 +1,6 @@
 import { Building2, Home, LandPlot, TreePine, Warehouse } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import type { components } from "@contracts/generated/schema";
 
 import type { PropertyListing as BaseListing } from "@/lib/properties";
 
@@ -13,8 +14,8 @@ export type ListingStatus = "ready" | "under_construction";
 export type REListing = Omit<BaseListing, "category" | "reraNumber"> & {
   category: RECategory;
   pincode: string;
-  furnishing: Furnishing;
-  status: ListingStatus;
+  furnishing: Furnishing | null;
+  status: ListingStatus | null;
   amenities: string[];
   ageYears: number;
   city: string;
@@ -23,6 +24,8 @@ export type REListing = Omit<BaseListing, "category" | "reraNumber"> & {
   areaSqft: number;
   priceLakhs: number;
   reraNumber?: string | null;
+  reraVerificationStatus?: components["schemas"]["ReraVerificationStatus"];
+  structuredDetails?: components["schemas"]["PropertyRead"]["structured_details"];
 };
 
 export const RE_CATEGORIES: {
@@ -110,8 +113,8 @@ export function filterListings(listings: REListing[], filters: PropertyFilters):
     if (filters.priceMax != null && listing.priceLakhs > filters.priceMax) return false;
     if (filters.areaMin != null && listing.areaSqft < filters.areaMin) return false;
     if (filters.areaMax != null && listing.areaSqft > filters.areaMax) return false;
-    if (filters.status?.length && !filters.status.includes(listing.status)) return false;
-    if (filters.furnishing?.length && !filters.furnishing.includes(listing.furnishing)) return false;
+    if (filters.status?.length && (!listing.status || !filters.status.includes(listing.status))) return false;
+    if (filters.furnishing?.length && (!listing.furnishing || !filters.furnishing.includes(listing.furnishing))) return false;
     if (filters.amenities?.length && !filters.amenities.every((item) => listing.amenities.includes(item))) {
       return false;
     }

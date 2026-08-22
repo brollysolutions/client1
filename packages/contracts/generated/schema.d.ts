@@ -3083,6 +3083,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/property-submissions/{submission_id}/rera-review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Record Rera Review */
+        post: operations["record_rera_review_api_v1_property_submissions__submission_id__rera_review_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/public/banners": {
         parameters: {
             query?: never;
@@ -4845,6 +4862,33 @@ export interface components {
             /** Loans Total */
             loans_total: number;
         };
+        /** AgriculturalLandDetails */
+        AgriculturalLandDetails: {
+            /** Facilities */
+            facilities?: string[];
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            kind: "agricultural_land";
+            /** Land Area */
+            land_area: number;
+            land_area_unit: components["schemas"]["LandAreaUnit"];
+            /** Land Type */
+            land_type: string;
+            ongoing_loan_status: components["schemas"]["YesNoUnknown"];
+            /** Other Information */
+            other_information?: string | null;
+            /** Registration District */
+            registration_district: string;
+            rythu_bandhu_status: components["schemas"]["YesNoUnknown"];
+            /** Sub Registrar Office */
+            sub_registrar_office: string;
+            /** Survey Number */
+            survey_number: string;
+            /** Title Details */
+            title_details: string;
+        };
         /** AudienceLocationCircle */
         AudienceLocationCircle: {
             /** Label */
@@ -5090,6 +5134,11 @@ export interface components {
              * Format: uuid
              */
             id: string;
+            /**
+             * Last Updated At
+             * Format: date-time
+             */
+            last_updated_at: string;
             /** Name */
             name: string;
         };
@@ -5390,6 +5439,36 @@ export interface components {
             business_line: "loans" | "real_estate";
             /** Customer Code */
             customer_code: string;
+        };
+        /**
+         * CommercialOwnership
+         * @enum {string}
+         */
+        CommercialOwnership: "individual" | "entity";
+        /** CommercialPropertyDetails */
+        CommercialPropertyDetails: {
+            /** About Property */
+            about_property: string;
+            /** Amenities Description */
+            amenities_description?: string | null;
+            facing: components["schemas"]["Facing"];
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            kind: "commercial_property";
+            local_approval?: components["schemas"]["LocalApproval"] | null;
+            /** Monthly Rental Income Paise */
+            monthly_rental_income_paise?: number | null;
+            /** Other Information */
+            other_information?: string | null;
+            ownership_type: components["schemas"]["CommercialOwnership"];
+            rental_income_start: components["schemas"]["RentalIncomeStart"];
+            sale_type: components["schemas"]["SaleType"];
+            /** Total Area Sqft */
+            total_area_sqft: number;
+            /** Unit Area Sqft */
+            unit_area_sqft: number;
         };
         /** CommissionCancelRequest */
         CommissionCancelRequest: {
@@ -5899,6 +5978,11 @@ export interface components {
          * @enum {string}
          */
         EnquiryStatus: "new" | "contacted" | "closed";
+        /**
+         * Facing
+         * @enum {string}
+         */
+        Facing: "east" | "west" | "north" | "south" | "not_applicable";
         /** FeeCashbackCancelRequest */
         FeeCashbackCancelRequest: {
             /** Reason */
@@ -6180,11 +6264,40 @@ export interface components {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
         };
+        /** IndividualPropertyDetails */
+        IndividualPropertyDetails: {
+            /** About Property */
+            about_property: string;
+            /** Built Up Area Sqft */
+            built_up_area_sqft: number;
+            facing: components["schemas"]["Facing"];
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            kind: "individual_property";
+            land_area_unit: components["schemas"]["SiteAreaUnit"];
+            /** Monthly Rental Income Paise */
+            monthly_rental_income_paise?: number | null;
+            /** Number Of Floors */
+            number_of_floors: number;
+            ongoing_loan_status: components["schemas"]["YesNoUnknown"];
+            /** Other Information */
+            other_information?: string | null;
+            property_use: components["schemas"]["PropertyUse"];
+            /** Total Land Area */
+            total_land_area: number;
+        };
         /**
          * InterestLevel
          * @enum {string}
          */
         InterestLevel: "hot" | "warm" | "cold";
+        /**
+         * LandAreaUnit
+         * @enum {string}
+         */
+        LandAreaUnit: "acres" | "guntas";
         /** LeadActivityCreate */
         LeadActivityCreate: {
             /**
@@ -6546,6 +6659,11 @@ export interface components {
             id: string;
             /** Label */
             label: string;
+            /**
+             * Last Updated At
+             * Format: date-time
+             */
+            last_updated_at: string;
             /** Name */
             name: string;
         };
@@ -6591,6 +6709,13 @@ export interface components {
             converted: number;
             /** Total */
             total: number;
+        };
+        /** LocalApproval */
+        LocalApproval: {
+            /** Authority */
+            authority: string;
+            /** Reference Number */
+            reference_number?: string | null;
         };
         /** LocationCaptureRequest */
         LocationCaptureRequest: {
@@ -7171,6 +7296,39 @@ export interface components {
             /** Personalization Enabled */
             personalization_enabled: boolean;
         };
+        /** PlotDetails */
+        PlotDetails: {
+            /** About Project */
+            about_project: string;
+            /** Amenities Description */
+            amenities_description?: string | null;
+            facing: components["schemas"]["Facing"];
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            kind: "plot";
+            local_approval?: components["schemas"]["LocalApproval"] | null;
+            /** Other Information */
+            other_information?: string | null;
+            /** Plot Size Sqyd */
+            plot_size_sqyd: number;
+            /** Price Per Sqyd Paise */
+            price_per_sqyd_paise: number;
+            /** Project Name */
+            project_name: string;
+            project_status: components["schemas"]["PlotProjectStatus"];
+            sale_type: components["schemas"]["SaleType"];
+            /** Total Plots */
+            total_plots: number;
+            /** Total Project Area Acres */
+            total_project_area_acres: number;
+        };
+        /**
+         * PlotProjectStatus
+         * @enum {string}
+         */
+        PlotProjectStatus: "under_development" | "completed";
         /**
          * ProductCategory
          * @enum {string}
@@ -7180,6 +7338,42 @@ export interface components {
         ProductFormDefinition: {
             /** Sections */
             sections: components["schemas"]["FormSectionDefinition"][];
+        };
+        /** ProjectResidenceDetails */
+        ProjectResidenceDetails: {
+            /** About Project */
+            about_project: string;
+            /** Amenities Description */
+            amenities_description: string;
+            /** Configurations */
+            configurations: components["schemas"]["ResidentialConfiguration"][];
+            /** @default not_applicable */
+            entrance_facing: components["schemas"]["Facing"];
+            /** Expected Handover Date */
+            expected_handover_date?: string | null;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            kind: "project_residence";
+            local_approval?: components["schemas"]["LocalApproval"] | null;
+            /** Number Of Towers */
+            number_of_towers: number;
+            /** @default not_applicable */
+            plot_facing: components["schemas"]["Facing"];
+            /** Price Per Sqft Paise */
+            price_per_sqft_paise: number;
+            /** Project Area Acres */
+            project_area_acres: number;
+            /** Project Name */
+            project_name: string;
+            sale_type: components["schemas"]["SaleType"];
+            /** Total Units */
+            total_units: number;
+            /** Uds Sqft */
+            uds_sqft?: number | null;
+            /** Unit Or Plot Area Sqft */
+            unit_or_plot_area_sqft: number;
         };
         /**
          * PropertyCategory
@@ -7296,13 +7490,13 @@ export interface components {
             category: components["schemas"]["PropertyCategory"];
             /** City */
             city: string;
-            construction_status: components["schemas"]["ConstructionStatus"];
+            construction_status: components["schemas"]["ConstructionStatus"] | null;
             /**
              * Created At
              * Format: date-time
              */
             created_at: string;
-            furnishing: components["schemas"]["Furnishing"];
+            furnishing: components["schemas"]["Furnishing"] | null;
             /**
              * Id
              * Format: uuid
@@ -7327,8 +7521,14 @@ export interface components {
             /** Price Paise */
             price_paise: number;
             property_subtype: components["schemas"]["PropertySubtype"] | null;
+            rera_applicability: components["schemas"]["ReraApplicability"];
             /** Rera Number */
-            rera_number: string;
+            rera_number: string | null;
+            rera_verification_status: components["schemas"]["ReraVerificationStatus"];
+            /** State */
+            state: string | null;
+            /** Structured Details */
+            structured_details: (components["schemas"]["ProjectResidenceDetails"] | components["schemas"]["IndividualPropertyDetails"] | components["schemas"]["CommercialPropertyDetails"] | components["schemas"]["PlotDetails"] | components["schemas"]["AgriculturalLandDetails"]) | null;
             /** Title */
             title: string;
             /** Type */
@@ -7339,6 +7539,11 @@ export interface components {
          * @enum {string}
          */
         PropertySubtype: "individual_house" | "standalone_apartment" | "gated_community_apartment" | "villa" | "locked_space" | "unlocked_space" | "plot" | "farmland" | "agriland";
+        /**
+         * PropertyUse
+         * @enum {string}
+         */
+        PropertyUse: "residential" | "residential_commercial";
         /** PublicBannerListResponse */
         PublicBannerListResponse: {
             /** Banners */
@@ -7547,9 +7752,8 @@ export interface components {
          *     Excludes the dashboard's entire filter-facet vocabulary (price_paise, bhk,
          *     area_sqft, furnishing, construction_status, amenities, age_years, pincode,
          *     city, locality) and internal metadata (active, created_at). `rera_number`
-         *     is deliberately included: RERA registration is a statutory disclosure on
-         *     any advertisement of a registered project, and a public listing page is
-         *     one.
+         *     is included only after Admin verification; exemption-verified listings have
+         *     no public registration number.
          */
         PublicPropertyRead: {
             category: components["schemas"]["PropertyCategory"];
@@ -7572,7 +7776,10 @@ export interface components {
             price_display: string;
             property_subtype: components["schemas"]["PropertySubtype"] | null;
             /** Rera Number */
-            rera_number: string;
+            rera_number: string | null;
+            rera_verification_status: components["schemas"]["ReraVerificationStatus"];
+            /** Structured Details */
+            structured_details: (components["schemas"]["ProjectResidenceDetails"] | components["schemas"]["IndividualPropertyDetails"] | components["schemas"]["CommercialPropertyDetails"] | components["schemas"]["PlotDetails"] | components["schemas"]["AgriculturalLandDetails"]) | null;
             /** Title */
             title: string;
             /** Type */
@@ -7820,6 +8027,11 @@ export interface components {
             note: string;
         };
         /**
+         * RentalIncomeStart
+         * @enum {string}
+         */
+        RentalIncomeStart: "immediate" | "from_handover" | "not_applicable";
+        /**
          * ReportSummary
          * @description Aggregate over the entire filtered set, ignoring `limit`/`offset` --
          *     what the stat tiles render, always in sync with the table's true totals
@@ -7831,6 +8043,22 @@ export interface components {
             /** Total Count */
             total_count: number;
         };
+        /**
+         * ReraApplicability
+         * @enum {string}
+         */
+        ReraApplicability: "applicable" | "exemption_claimed" | "unsure";
+        /** ReraReviewRequest */
+        ReraReviewRequest: {
+            /** Note */
+            note?: string | null;
+            status: components["schemas"]["ReraVerificationStatus"];
+        };
+        /**
+         * ReraVerificationStatus
+         * @enum {string}
+         */
+        ReraVerificationStatus: "not_reviewed" | "verified" | "mismatch" | "exemption_verified";
         /** ResendOtpRequest */
         ResendOtpRequest: {
             /** Mobile */
@@ -7872,6 +8100,16 @@ export interface components {
             /** Reset Token */
             reset_token: string;
         };
+        /**
+         * ResidentialConfiguration
+         * @enum {string}
+         */
+        ResidentialConfiguration: "1_bhk" | "2_bhk" | "3_bhk" | "4_bhk" | "5_plus_bhk" | "studio";
+        /**
+         * SaleType
+         * @enum {string}
+         */
+        SaleType: "new_sale" | "resale";
         /** SetPasswordRequest */
         SetPasswordRequest: {
             /** Confirm Password */
@@ -7881,6 +8119,11 @@ export interface components {
             /** Registration Token */
             registration_token: string;
         };
+        /**
+         * SiteAreaUnit
+         * @enum {string}
+         */
+        SiteAreaUnit: "sqft" | "sqyd";
         /** SiteVisitCreate */
         SiteVisitCreate: {
             /** City */
@@ -8091,12 +8334,8 @@ export interface components {
             category: components["schemas"]["PropertyCategory"];
             /** City */
             city: string;
-            construction_status: components["schemas"]["ConstructionStatus"];
-            /** Details */
-            details?: {
-                [key: string]: unknown;
-            };
-            furnishing: components["schemas"]["Furnishing"];
+            construction_status?: components["schemas"]["ConstructionStatus"] | null;
+            furnishing?: components["schemas"]["Furnishing"] | null;
             /** Locality */
             locality: string;
             /** Location */
@@ -8110,8 +8349,13 @@ export interface components {
             /** Price Paise */
             price_paise: number;
             property_subtype: components["schemas"]["PropertySubtype"];
+            rera_applicability: components["schemas"]["ReraApplicability"];
             /** Rera Number */
-            rera_number: string;
+            rera_number?: string | null;
+            /** State */
+            state: string;
+            /** Structured Details */
+            structured_details: components["schemas"]["ProjectResidenceDetails"] | components["schemas"]["IndividualPropertyDetails"] | components["schemas"]["CommercialPropertyDetails"] | components["schemas"]["PlotDetails"] | components["schemas"]["AgriculturalLandDetails"];
             /** Title */
             title: string;
             /** Type */
@@ -8182,7 +8426,7 @@ export interface components {
             category: components["schemas"]["PropertyCategory"];
             /** City */
             city: string;
-            construction_status: components["schemas"]["ConstructionStatus"];
+            construction_status: components["schemas"]["ConstructionStatus"] | null;
             /**
              * Created At
              * Format: date-time
@@ -8192,7 +8436,9 @@ export interface components {
             details: {
                 [key: string]: unknown;
             };
-            furnishing: components["schemas"]["Furnishing"];
+            /** Details Version */
+            details_version: number | null;
+            furnishing: components["schemas"]["Furnishing"] | null;
             /**
              * Id
              * Format: uuid
@@ -8213,15 +8459,23 @@ export interface components {
             /** Price Paise */
             price_paise: number;
             property_subtype: components["schemas"]["PropertySubtype"] | null;
+            rera_applicability: components["schemas"]["ReraApplicability"];
             /** Rera Number */
-            rera_number: string;
+            rera_number: string | null;
+            rera_verification_status: components["schemas"]["ReraVerificationStatus"];
+            /** Rera Verified At */
+            rera_verified_at: string | null;
             /** Review Note */
             review_note: string | null;
             /** Reviewed At */
             reviewed_at: string | null;
             /** Reviewed By Uuid */
             reviewed_by_uuid: string | null;
+            /** State */
+            state: string | null;
             status: components["schemas"]["SubmissionStatus"];
+            /** Structured Details */
+            structured_details: (components["schemas"]["ProjectResidenceDetails"] | components["schemas"]["IndividualPropertyDetails"] | components["schemas"]["CommercialPropertyDetails"] | components["schemas"]["PlotDetails"] | components["schemas"]["AgriculturalLandDetails"]) | null;
             /**
              * Submitter Uuid
              * Format: uuid
@@ -8267,12 +8521,8 @@ export interface components {
             category: components["schemas"]["PropertyCategory"];
             /** City */
             city: string;
-            construction_status: components["schemas"]["ConstructionStatus"];
-            /** Details */
-            details?: {
-                [key: string]: unknown;
-            };
-            furnishing: components["schemas"]["Furnishing"];
+            construction_status?: components["schemas"]["ConstructionStatus"] | null;
+            furnishing?: components["schemas"]["Furnishing"] | null;
             /** Locality */
             locality: string;
             /** Location */
@@ -8284,8 +8534,13 @@ export interface components {
             /** Price Paise */
             price_paise: number;
             property_subtype: components["schemas"]["PropertySubtype"];
+            rera_applicability: components["schemas"]["ReraApplicability"];
             /** Rera Number */
-            rera_number: string;
+            rera_number?: string | null;
+            /** State */
+            state: string;
+            /** Structured Details */
+            structured_details: components["schemas"]["ProjectResidenceDetails"] | components["schemas"]["IndividualPropertyDetails"] | components["schemas"]["CommercialPropertyDetails"] | components["schemas"]["PlotDetails"] | components["schemas"]["AgriculturalLandDetails"];
             /** Title */
             title: string;
             /** Type */
@@ -9025,6 +9280,11 @@ export interface components {
              */
             status: string;
         };
+        /**
+         * YesNoUnknown
+         * @enum {string}
+         */
+        YesNoUnknown: "yes" | "no" | "unknown";
     };
     responses: never;
     parameters: never;
@@ -15419,6 +15679,41 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["RejectRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SubmissionRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    record_rera_review_api_v1_property_submissions__submission_id__rera_review_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                submission_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReraReviewRequest"];
             };
         };
         responses: {

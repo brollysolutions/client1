@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { PropertyActionDialog } from "@/features/real-estate/property-action-dialog";
 import { PropertyMediaDialog } from "@/components/property-media-dialog";
+import { PropertyDetailsDialog } from "@/components/property-details-dialog";
 import { useBookmarks, useCompare } from "@/features/real-estate/store";
 import type { REListing } from "@/lib/real-estate";
 import { cn } from "@/lib/utils";
@@ -107,8 +108,8 @@ export function PropertyCard({ listing, fluid = false }: { listing: REListing; f
           {listing.location}
         </p>
         {listing.meta ? <p className="text-sm text-text-secondary">{listing.meta}</p> : null}
-        {listing.reraNumber ? (
-          <p className="text-xs text-text-secondary">RERA: {listing.reraNumber}</p>
+        {listing.reraNumber && listing.reraVerificationStatus === "verified" ? (
+          <p className="text-xs text-text-secondary">RERA verified · {listing.reraNumber}</p>
         ) : null}
       </CardHeader>
 
@@ -117,6 +118,7 @@ export function PropertyCard({ listing, fluid = false }: { listing: REListing; f
       </CardContent>
 
       <CardFooter className="flex flex-col gap-2 pt-5">
+        <PropertyDetailsDialog title={listing.title} details={listing.structuredDetails} />
         {listing.media?.length ? (
           <PropertyMediaDialog title={listing.title} media={listing.media} />
         ) : null}

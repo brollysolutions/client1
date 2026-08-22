@@ -11,6 +11,7 @@ const product: FinancialProduct = {
   category: "loan",
   display_order: 1,
   form_version: 1,
+  last_updated_at: "2026-08-21T00:00:00Z",
   form_schema: {
     sections: [
       {

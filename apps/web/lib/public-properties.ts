@@ -30,6 +30,8 @@ export function mapPublicListing(raw: Schemas["PublicPropertyRead"]): PropertyLi
       (raw.image?.startsWith("/") ? raw.image : undefined),
     media: media.length > 0 ? media : undefined,
     reraNumber: raw.rera_number,
+    reraVerificationStatus: raw.rera_verification_status,
+    ...(raw.structured_details ? { structuredDetails: raw.structured_details } : {}),
   };
 }
 

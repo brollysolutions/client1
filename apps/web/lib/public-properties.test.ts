@@ -26,6 +26,8 @@ function wireListing(overrides: Partial<Schemas["PublicPropertyRead"]> = {}): Sc
     category: "apartments",
     property_subtype: "standalone_apartment",
     rera_number: "RERA/KA/2024/1234",
+    rera_verification_status: "verified",
+    structured_details: null,
     ...overrides,
   };
 }
@@ -48,6 +50,7 @@ describe("mapPublicListing()", () => {
       meta: "2 bed · 1,120 sqft",
       image: "/illustrations/properties/apartment-1.svg",
       reraNumber: "RERA/KA/2024/1234",
+      reraVerificationStatus: "verified",
     });
   });
 

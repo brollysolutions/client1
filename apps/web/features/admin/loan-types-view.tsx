@@ -31,6 +31,7 @@ import {
   type ProductCategory,
   type ProductFormDefinition,
 } from "@/lib/loan-config-api";
+import { formatLastUpdated } from "@/lib/format";
 import { FinancialProductFormBuilder } from "./financial-product-form-builder";
 import { useLoanTypes } from "./use-loan-types";
 
@@ -216,6 +217,9 @@ export function LoanTypesView() {
                         ? "Not used yet"
                         : `${submissions} submission${submissions === 1 ? "" : "s"}`}
                     </p>
+                    <p className="mt-0.5 text-xs text-text-secondary">
+                      {formatLastUpdated(product.updated_at)}
+                    </p>
                   </div>
                   <Badge variant={product.active ? "secondary" : "outline"} className="shrink-0">
                     {product.active ? "Active" : "Disabled"}
@@ -291,6 +295,7 @@ export function LoanTypesView() {
                 <DialogDescription>
                   Workflow: {CATEGORY_LABEL[active.category]}. Saving a form change publishes a new
                   version to the Client dashboard.
+                  <span className="mt-1 block">{formatLastUpdated(active.updated_at)}</span>
                 </DialogDescription>
               </DialogHeader>
               <div className="grid gap-4 sm:grid-cols-[1fr_10rem]">
