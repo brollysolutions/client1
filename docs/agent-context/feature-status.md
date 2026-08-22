@@ -732,8 +732,9 @@ work than several completed UI requirements.
 
 ## Current work
 
-**Done — Homepage information-flow refinement (public UI; PR pending; no
-requirement or completion-percentage change):** the Home page again presents
+**Done — [PR #217](https://github.com/brollysolutions/client1/pull/217) —
+Homepage information-flow refinement (public UI; no requirement or
+completion-percentage change):** the Home page again presents
 the established Loans band, followed by the Properties band and then the four
 fixed calculators. The calculator band no longer has the planning-tools
 eyebrow and now uses the shared cream `bg-background` outer surface; its white
