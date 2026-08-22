@@ -9,6 +9,58 @@ Evidence baseline: `abcc1fd`
 verified Admin operational-visibility work in
 [PR #173](https://github.com/brollysolutions/client1/pull/173).
 
+**Done - Financial Services discovery redesign
+([PR TBD](https://github.com/brollysolutions/client1/pulls); FR-12.x public
+presentation follow-up; completion coverage unchanged):** the public
+`/loans` catalogue is now a live discovery surface rather than a submit-gated
+form. Results filter as the reader types (300 ms debounce) and when a category
+pill is chosen; the "Show results" button and the section eyebrow are removed.
+The filter rail is sticky at `top-16` beneath the 64 px site header at `z-30`,
+below the header's `z-40` mega-menu, and uses a tinted translucent glass rail
+instead of an opaque white panel.
+
+Filtering stays server-authoritative. The client island owns only the input's
+local text and the debounce, then rewrites the URL with `router.replace(...,
+{ scroll: false })`; `/loans` re-reads `searchParams` and re-fetches the
+catalogue API, so deep links, pagination, SEO, and ISR are unchanged. The rail
+is a real GET form and the category pills are real links, so filtering still
+works with JavaScript disabled. Category pills carry exact per-category counts
+from single-row `total` reads, which stay correct past the endpoint's 100-row
+page cap; a pill that would return nothing is dimmed and inert rather than a
+route into a dead empty state.
+
+Card artwork no longer breaks. `equipment-financing` is Admin-published but is
+not a marketing product, so it previously fell through to a bare icon beside
+fully illustrated neighbours; it now has a reviewed 4:3 repository SVG in the
+existing illustration family, resolved through a catalogue-only map that leaves
+`LOAN_PRODUCTS`, the navbar mega-menu, and the locked 11/4/1 band split
+untouched. Any still-unmapped slug renders a designed category plate matching
+the family's backdrop disc and ground shadow. Illustrations fill the 4:3 plate
+edge to edge instead of being letterboxed inside it, and a zero provider count
+is no longer rendered as a "0 providers" badge.
+
+Fresh evidence: 388 web unit tests pass, including new coverage for the
+button-free sticky rail, the removed eyebrow, no-JS category links, the
+`equipment-financing` illustration resolution, and the unmapped-slug plate.
+`pnpm lint` and `pnpm typecheck` pass, and all three
+`e2e/financial-services.spec.ts` Playwright tests pass, including a new one
+asserting the rail pins at the header offset, that typing alone rewrites the
+URL and narrows the grid, and that clearing restores it. Desktop (1440x900)
+and mobile (390x844) browser verification covered the sticky rail, live
+typing, category filtering, live pill counts, the empty state, and the clear
+paths. No API, migration, contract, authorization, or RLS surface changed.
+
+Unverified command: `pnpm build` did not complete on this Windows host. It
+compiled, passed lint/type validity, collected page data, and generated all
+93 static pages, then failed in `Collecting build traces` with repeated
+`EPERM: operation not permitted, symlink` while writing
+`.next/standalone/node_modules`. Creating symlinks needs Developer Mode or an
+elevated shell on Windows, so this is a host limitation in the
+`output: "standalone"` packaging step and is independent of this change. The
+dev container cannot substitute: it mounts only `apps/web`, so the
+`@contracts/*` path alias is unresolvable there and its type stage is invalid.
+A Linux or elevated-Windows `pnpm build` should be re-run before merge.
+
 **Done - public property detail and authentication intent handoff
 ([PR #216](https://github.com/brollysolutions/client1/pull/216); FR-7.1, FR-7.2,
 and FR-17.1 follow-up; completion coverage unchanged):** approved property discovery stays

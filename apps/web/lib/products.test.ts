@@ -4,7 +4,12 @@ import { fileURLToPath } from "node:url";
 
 import { describe, expect, it } from "vitest";
 
-import { LOAN_PRODUCT_BANDS, LOAN_PRODUCTS, LOAN_TRUST } from "@/lib/products";
+import {
+  catalogueIllustration,
+  LOAN_PRODUCT_BANDS,
+  LOAN_PRODUCTS,
+  LOAN_TRUST,
+} from "@/lib/products";
 
 // Locks the data contract that both /loans (via ProductPage) and the navbar
 // mega-menu (via components/navbars/financial-services-menu.ts) are built on.
@@ -74,6 +79,28 @@ describe("LOAN_PRODUCTS", () => {
         true,
       );
     }
+  });
+});
+
+describe("catalogueIllustration", () => {
+  // The /loans catalogue is Admin-driven, so its slugs are a superset of the
+  // marketing products. Any published slug without art falls back to the
+  // category plate; these cases lock the ones we do ship art for.
+  it("resolves marketing products through LOAN_PRODUCTS", () => {
+    expect(catalogueIllustration("personal-loan")).toBe(
+      "/illustrations/products/personal-loan.svg",
+    );
+  });
+
+  it("covers equipment-financing, which is published but is not a marketing product", () => {
+    expect(LOAN_PRODUCTS.some((p) => p.id === "equipment-financing")).toBe(false);
+    const resolved = catalogueIllustration("equipment-financing");
+    expect(resolved).toBe("/illustrations/products/equipment-financing.svg");
+    expect(existsSync(join(PUBLIC_DIR, resolved!.replace(/^\//, "")))).toBe(true);
+  });
+
+  it("returns undefined for an unknown slug rather than a dead image path", () => {
+    expect(catalogueIllustration("not-a-real-service")).toBeUndefined();
   });
 });
 
