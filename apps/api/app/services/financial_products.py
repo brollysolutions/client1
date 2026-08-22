@@ -5,10 +5,17 @@ from __future__ import annotations
 from decimal import Decimal
 from uuid import UUID
 
+from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.loan import FinancialServiceEnquiry, LoanApplication, LoanType
+from app.models.loan import (
+    Bank,
+    FinancialProductProviderOffer,
+    FinancialServiceEnquiry,
+    LoanApplication,
+    LoanType,
+)
 from app.schemas.financial_products import (
     FormAnswers,
     FormAnswersValidationError,
@@ -46,6 +53,56 @@ class InvalidFormAnswers(FinancialProductError):
 
 class ActiveLoanApplicationExists(FinancialProductError):
     pass
+
+
+class ProviderOfferUnavailable(FinancialProductError):
+    pass
+
+
+async def _provider_offer_preference(
+    db: AsyncSession,
+    *,
+    product: LoanType,
+    provider_offer_id: UUID | None,
+) -> tuple[UUID | None, dict[str, object] | None]:
+    if provider_offer_id is None:
+        return None, None
+    row = (
+        await db.execute(
+            select(FinancialProductProviderOffer, Bank)
+            .join(Bank, Bank.id == FinancialProductProviderOffer.bank_id)
+            .where(
+                FinancialProductProviderOffer.id == provider_offer_id,
+                FinancialProductProviderOffer.loan_type_id == product.id,
+                FinancialProductProviderOffer.published.is_(True),
+                FinancialProductProviderOffer.last_verified_at.is_not(None),
+                Bank.active.is_(True),
+            )
+        )
+    ).one_or_none()
+    if row is None or not product.public_visible:
+        raise ProviderOfferUnavailable(
+            "That provider option is no longer published. Continue without it or choose another."
+        )
+    offer, provider = row
+    return offer.id, {
+        "offer_id": str(offer.id),
+        "provider_id": str(provider.id),
+        "provider_name": provider.name,
+        "provider_type": provider.provider_type,
+        "offer_name": offer.offer_name,
+        "min_amount": str(offer.min_amount) if offer.min_amount is not None else None,
+        "max_amount": str(offer.max_amount) if offer.max_amount is not None else None,
+        "min_interest_rate": (
+            str(offer.min_interest_rate) if offer.min_interest_rate is not None else None
+        ),
+        "max_interest_rate": (
+            str(offer.max_interest_rate) if offer.max_interest_rate is not None else None
+        ),
+        "min_tenure_months": offer.min_tenure_months,
+        "max_tenure_months": offer.max_tenure_months,
+        "last_verified_at": offer.last_verified_at.isoformat(),
+    }
 
 
 def starter_form_for(category: ProductCategory) -> ProductFormDefinition:
@@ -127,6 +184,7 @@ async def create_loan_application(
     answers: FormAnswers,
     client_profile_uuid: UUID,
     mobile: str,
+    provider_offer_id: UUID | None = None,
 ) -> LoanApplication:
     product = await db.get(LoanType, product_id)
     if product is None or not product.active:
@@ -137,6 +195,9 @@ async def create_loan_application(
     definition, normalized = _validated_submission(
         product, form_version=form_version, answers=answers
     )
+    selected_offer_id, selected_offer_snapshot = await _provider_offer_preference(
+        db, product=product, provider_offer_id=provider_offer_id
+    )
     amount_requested = Decimal(str(normalized["requested_amount"]))
     lead_id = await resolve_loans_lead(mobile, client_profile_uuid)
     application = LoanApplication(
@@ -144,6 +205,8 @@ async def create_loan_application(
         client_profile_uuid=client_profile_uuid,
         business_line="loans",
         loan_type_id=product.id,
+        preferred_provider_offer_id=selected_offer_id,
+        provider_offer_snapshot=selected_offer_snapshot,
         amount_requested=amount_requested,
         form_version=product.form_version,
         form_schema_snapshot=serialize_form(definition),
@@ -166,6 +229,7 @@ async def create_service_enquiry(
     answers: FormAnswers,
     client_profile_uuid: UUID,
     mobile: str,
+    provider_offer_id: UUID | None = None,
 ) -> FinancialServiceEnquiry:
     product = await db.get(LoanType, product_id)
     if product is None or not product.active:
@@ -176,6 +240,9 @@ async def create_service_enquiry(
     definition, normalized = _validated_submission(
         product, form_version=form_version, answers=answers
     )
+    selected_offer_id, selected_offer_snapshot = await _provider_offer_preference(
+        db, product=product, provider_offer_id=provider_offer_id
+    )
     lead_id = await resolve_loans_lead(mobile, client_profile_uuid)
     enquiry = FinancialServiceEnquiry(
         lead_uuid=lead_id,
@@ -183,6 +250,8 @@ async def create_service_enquiry(
         business_line="loans",
         product_id=product.id,
         product_category=product.category,
+        preferred_provider_offer_id=selected_offer_id,
+        provider_offer_snapshot=selected_offer_snapshot,
         form_version=product.form_version,
         form_schema_snapshot=serialize_form(definition),
         form_answers=normalized,

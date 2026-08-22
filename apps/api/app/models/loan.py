@@ -10,6 +10,7 @@ only (requested/sanctioned amount, rate, fee), never a repayment schedule.
 import enum
 import uuid
 from datetime import date, datetime
+from decimal import Decimal
 from typing import TYPE_CHECKING, Any, Optional
 
 from sqlalchemy import Boolean, Date, DateTime, ForeignKey, Integer, Numeric, String, Text
@@ -63,6 +64,18 @@ class LoanType(Base):
     # Validated ProductFormDefinition serialized as JSONB. Never accept or use
     # this value without parsing it through schemas.financial_products.
     custom_fields: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
+    # Public marketing is an explicit publication boundary. ``active`` alone
+    # only means the authenticated Client form is available; an Admin must also
+    # opt a product into the anonymous catalogue.
+    public_visible: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    public_summary: Mapped[str | None] = mapped_column(String(280), nullable=True)
+    public_description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    public_highlights: Mapped[list[str]] = mapped_column(JSONB, nullable=False, default=list)
+    public_eligibility: Mapped[list[str]] = mapped_column(JSONB, nullable=False, default=list)
+    public_documents: Mapped[list[str]] = mapped_column(JSONB, nullable=False, default=list)
+    public_faq: Mapped[list[dict[str, str]]] = mapped_column(JSONB, nullable=False, default=list)
+    homepage_featured: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    homepage_feature_order: Mapped[int] = mapped_column(Integer, nullable=False, default=1000)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, default=datetime.utcnow
     )
@@ -76,7 +89,16 @@ class Bank(Base):
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     name: Mapped[str] = mapped_column(String, nullable=False)
+    legal_name: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    # Legacy table name retained for contract compatibility. Public copy calls
+    # these financial providers because the catalogue also contains NBFCs,
+    # HFCs, small-finance banks, and fintech brands.
+    provider_type: Mapped[str] = mapped_column(String(32), nullable=False, default="bank")
     logo_key: Mapped[str | None] = mapped_column(String, nullable=True)
+    logo_source: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    logo_verified_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, default=datetime.utcnow
@@ -116,6 +138,52 @@ class BankLoanTypeAvailability(Base):
     )
 
 
+class FinancialProductProviderOffer(Base):
+    """Explicit public product/provider relationship and informational terms.
+
+    This is intentionally separate from ``BankLoanTypeAvailability``. The
+    operational matrix uses a permissive missing-row default for staff
+    assignment, while anonymous publication must always fail closed.
+    """
+
+    __tablename__ = "financial_product_provider_offers"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    loan_type_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("loan_types.id", ondelete="RESTRICT"), nullable=False
+    )
+    bank_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("banks.id", ondelete="RESTRICT"), nullable=False
+    )
+    offer_name: Mapped[str] = mapped_column(String(160), nullable=False)
+    summary: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    published: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    display_order: Mapped[int] = mapped_column(Integer, nullable=False, default=1000)
+    min_amount: Mapped[Decimal | None] = mapped_column(Numeric(14, 2), nullable=True)
+    max_amount: Mapped[Decimal | None] = mapped_column(Numeric(14, 2), nullable=True)
+    min_interest_rate: Mapped[Decimal | None] = mapped_column(Numeric(6, 3), nullable=True)
+    max_interest_rate: Mapped[Decimal | None] = mapped_column(Numeric(6, 3), nullable=True)
+    min_tenure_months: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    max_tenure_months: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    processing_fee_text: Mapped[str | None] = mapped_column(String(240), nullable=True)
+    eligibility_summary: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    last_verified_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    created_by_uuid: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("auth_users.id", ondelete="SET NULL"), nullable=True
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=datetime.utcnow
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow
+    )
+
+    product: Mapped["LoanType"] = relationship("LoanType")
+    provider: Mapped["Bank"] = relationship("Bank")
+
+
 class LoanApplication(Base):
     __tablename__ = "loan_applications"
 
@@ -133,6 +201,14 @@ class LoanApplication(Base):
     bank_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("banks.id", ondelete="SET NULL"), nullable=True
     )
+    preferred_provider_offer_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("financial_product_provider_offers.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    # Immutable informational snapshot of the option selected by the Client.
+    # It never assigns ``bank_id`` or implies provider approval.
+    provider_offer_snapshot: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
     # Explicit precision/scale (not bare Numeric): an unconstrained NUMERIC round-trips
     # through asyncpg as a Decimal in scientific notation for whole-rupee values
     # (e.g. "5E+5" instead of "500000.00"), which is wrong to hand a client verbatim.
@@ -185,6 +261,12 @@ class FinancialServiceEnquiry(Base):
     product_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("loan_types.id"), nullable=False, index=True
     )
+    preferred_provider_offer_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("financial_product_provider_offers.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    provider_offer_snapshot: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
     product_category: Mapped[str] = mapped_column(String(20), nullable=False)
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="submitted")
     form_version: Mapped[int] = mapped_column(Integer, nullable=False)

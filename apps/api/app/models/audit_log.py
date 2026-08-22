@@ -77,6 +77,8 @@ class AuditAction(enum.StrEnum):
     BANK_CREATED = "bank_created"
     BANK_UPDATED = "bank_updated"
     BANK_AVAILABILITY_UPDATED = "bank_availability_updated"
+    FINANCIAL_PRODUCT_OFFER_CREATED = "financial_product_offer_created"
+    FINANCIAL_PRODUCT_OFFER_UPDATED = "financial_product_offer_updated"
     COMMISSION_ENTERED = "commission_entered"
     COMMISSION_CANCELLED = "commission_cancelled"
     FEE_CASHBACK_ENTERED = "fee_cashback_entered"

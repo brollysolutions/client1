@@ -151,6 +151,16 @@ const ACTION_META: Record<AuditAction, { label: string; icon: LucideIcon; tone: 
     icon: Landmark,
     tone: "bg-loans-soft text-loans-accent",
   },
+  financial_product_offer_created: {
+    label: "Provider offer added",
+    icon: SlidersHorizontal,
+    tone: "bg-loans-soft text-loans-accent",
+  },
+  financial_product_offer_updated: {
+    label: "Provider offer updated",
+    icon: SlidersHorizontal,
+    tone: "bg-loans-soft text-loans-accent",
+  },
   commission_entered: {
     label: "Commission entered",
     icon: IndianRupee,

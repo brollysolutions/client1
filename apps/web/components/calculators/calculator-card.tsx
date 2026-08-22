@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
+import React from "react";
 
 import { calculatorIcon } from "@/lib/calculators/icons";
 import type { CalculatorDef } from "@/lib/calculators/types";

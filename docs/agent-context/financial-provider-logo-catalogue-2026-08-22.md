@@ -370,7 +370,11 @@ between them remains an offer-level/Admin configuration detail.
 Group F contains domestic and international variants that may be offer
 attributes rather than separate providers.
 
-## 4. Current implementation reconciliation
+## 4. Reconciliation at ingestion time
+
+The following observations describe the repository when this material was
+first ingested. Section 7 records the later implementation; these source-time
+notes are retained rather than silently rewritten.
 
 - apps/api/app/models/loan.py defines Bank with name, optional logo_key, and
   active, but no canonical legal name, provider kind, logo asset relation,
@@ -420,3 +424,25 @@ attributes rather than separate providers.
   migration is generated.
 - Decide whether Admin can upload new logos or only select pre-reviewed assets
   from the managed library.
+
+## 7. Implementation update (2026-08-22)
+
+- The public Financial Services catalogue now derives from the Admin-managed
+  Financial Products source and requires explicit product publication.
+- Explicit product/provider offer rows control public provider display; the
+  operational availability matrix is not used as a publication default.
+- Provider records now retain legal name, provider type, logo provenance, and
+  verification time. Admin can upload JPEG, PNG, or WebP logos through private
+  staging, malware checks, canonicalization, and managed public storage.
+- Raw SVG upload remains disabled. Repository SVGs require an exact reviewed
+  manifest entry in the same change as the asset; that manifest is intentionally
+  empty until canonical identity and brand provenance are approved.
+- Public catalogue/detail pages use neutral initials when no verified logo is
+  available. Search, filters, sorting, and pagination are internal to
+  Dhanadhara, and provider offers contain no external destination field.
+- Provider selection is retained only as a non-binding immutable snapshot on
+  an internal application or enquiry. It does not assign the operational bank.
+- The raw Groups A-G remain unseeded. Canonical identity, Group E segmentation,
+  and the incomplete Group G entry are still unresolved.
+- The prior upload-versus-picker decision is resolved as a hybrid: managed
+  raster upload for Admin plus code-reviewed repository SVG assets.

@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import uuid
+from datetime import UTC, datetime
+
 import pytest
 from httpx import AsyncClient
 from sqlalchemy import text
@@ -29,6 +32,47 @@ def _credit_card_answers() -> dict[str, object]:
         "current_pincode": "560001",
         "preferred_benefits": ["cashback", "travel"],
     }
+
+
+async def _seed_public_provider_offer(product_id: str) -> tuple[uuid.UUID, uuid.UUID, str]:
+    import app.db.session as session_module
+
+    provider_id = uuid.uuid4()
+    offer_id = uuid.uuid4()
+    provider_name = f"Preference Provider {uuid.uuid4().hex[:8]}"
+    now = datetime.now(UTC)
+    async with session_module.AsyncSessionLocal() as db:
+        await db.execute(
+            text(
+                """
+                INSERT INTO banks (
+                    id, name, provider_type, active, logo_verified_at, created_at, updated_at
+                ) VALUES (:provider_id, :name, 'nbfc', true, :now, :now, :now)
+                """
+            ),
+            {"provider_id": provider_id, "name": provider_name, "now": now},
+        )
+        await db.execute(
+            text(
+                """
+                INSERT INTO financial_product_provider_offers (
+                    id, loan_type_id, bank_id, offer_name, published, display_order,
+                    min_interest_rate, max_interest_rate, last_verified_at, created_at, updated_at
+                ) VALUES (
+                    :offer_id, :product_id, :provider_id, 'Preferred option', true, 1,
+                    9.5, 13.25, :now, :now, :now
+                )
+                """
+            ),
+            {
+                "offer_id": offer_id,
+                "product_id": uuid.UUID(product_id),
+                "provider_id": provider_id,
+                "now": now,
+            },
+        )
+        await db.commit()
+    return offer_id, provider_id, provider_name
 
 
 @pytest.mark.asyncio
@@ -104,6 +148,78 @@ async def test_credit_card_uses_enquiry_workflow_and_private_cache_headers(
     assert listed.status_code == 200
     assert listed.headers["cache-control"] == "private, no-store"
     assert [item["id"] for item in listed.json()["enquiries"]] == [response.json()["id"]]
+
+
+@pytest.mark.asyncio
+async def test_application_snapshots_internal_provider_preference_and_rejects_stale_offer(
+    client: AsyncClient,
+) -> None:
+    token, _ = await full_registration(client, lines=["loans"])
+    payload = await loan_application_payload(client, token)
+    offer_id, provider_id, provider_name = await _seed_public_provider_offer(
+        payload["loan_type_id"]
+    )
+    try:
+        created = await client.post(
+            "/api/v1/loans/applications",
+            headers={"Authorization": f"Bearer {token}"},
+            json={**payload, "provider_offer_id": str(offer_id)},
+        )
+        assert created.status_code == 201, created.text
+        snapshot = created.json()["provider_offer_snapshot"]
+        assert snapshot["offer_id"] == str(offer_id)
+        assert snapshot["provider_id"] == str(provider_id)
+        assert snapshot["provider_name"] == provider_name
+        assert snapshot["offer_name"] == "Preferred option"
+
+        import app.db.session as session_module
+
+        async with session_module.AsyncSessionLocal() as db:
+            stored = (
+                await db.execute(
+                    text(
+                        "SELECT bank_id, preferred_provider_offer_id "
+                        "FROM loan_applications WHERE id = :id"
+                    ),
+                    {"id": uuid.UUID(created.json()["id"])},
+                )
+            ).one()
+            assert stored.bank_id is None
+            assert stored.preferred_provider_offer_id == offer_id
+            await db.execute(
+                text(
+                    "UPDATE financial_product_provider_offers SET published = false WHERE id = :id"
+                ),
+                {"id": offer_id},
+            )
+            await db.commit()
+
+        second_token, _ = await full_registration(client, lines=["loans"])
+        second_payload = await loan_application_payload(client, second_token)
+        stale = await client.post(
+            "/api/v1/loans/applications",
+            headers={"Authorization": f"Bearer {second_token}"},
+            json={**second_payload, "provider_offer_id": str(offer_id)},
+        )
+        assert stale.status_code == 409
+        assert "no longer published" in stale.json()["detail"]
+    finally:
+        import app.db.session as session_module
+
+        async with session_module.AsyncSessionLocal() as db:
+            await db.execute(
+                text(
+                    "UPDATE loan_applications SET preferred_provider_offer_id = NULL "
+                    "WHERE preferred_provider_offer_id = :id"
+                ),
+                {"id": offer_id},
+            )
+            await db.execute(
+                text("DELETE FROM financial_product_provider_offers WHERE id = :id"),
+                {"id": offer_id},
+            )
+            await db.execute(text("DELETE FROM banks WHERE id = :id"), {"id": provider_id})
+            await db.commit()
 
 
 @pytest.mark.asyncio

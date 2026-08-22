@@ -305,6 +305,7 @@ async def create_loan_application(
             answers=req.answers,
             client_profile_uuid=current_user.client_profile_uuid,
             mobile=current_user.mobile,
+            provider_offer_id=req.provider_offer_id,
         )
     except financial_products.ProductNotFound as exc:
         raise HTTPException(
@@ -325,6 +326,8 @@ async def create_loan_application(
             status_code=status.HTTP_409_CONFLICT,
             detail="You already have an active loan application in progress.",
         ) from None
+    except financial_products.ProviderOfferUnavailable as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
 
     # Capture the id before expiring: application.id itself becomes a stale
     # attribute below, and accessing it post-expire would trigger an
@@ -389,6 +392,7 @@ async def create_service_enquiry(
             answers=req.answers,
             client_profile_uuid=current_user.client_profile_uuid,
             mobile=current_user.mobile,
+            provider_offer_id=req.provider_offer_id,
         )
     except financial_products.ProductNotFound as exc:
         raise HTTPException(
@@ -404,6 +408,8 @@ async def create_service_enquiry(
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(exc)
         ) from exc
+    except financial_products.ProviderOfferUnavailable as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
 
     enquiry_id = enquiry.id
     db.expire(enquiry)

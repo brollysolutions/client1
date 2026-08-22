@@ -1,10 +1,13 @@
 import type { Metadata } from "next";
 
 import { HeroCarousel } from "@/components/hero-carousel";
+import { FinancialServicesCatalogue } from "@/components/financial-services-catalogue";
 import { ProductPage } from "@/components/product-page";
+import { TrustStrip } from "@/components/trust-strip";
 import { faqPageJsonLd, LOAN_FAQ_ITEMS } from "@/lib/faq";
+import { getPublicFinancialProducts } from "@/lib/financial-catalog";
 import { getHeroBanners } from "@/lib/public-banners";
-import { LOAN_JOURNEY, LOAN_PRODUCT_BANDS, LOAN_TRUST } from "@/lib/products";
+import { LOAN_JOURNEY, LOAN_TRUST } from "@/lib/products";
 import { SITE_NAME, SITE_URL } from "@/lib/site";
 
 // First server-side data fetch on this page. Matches /real-estate's ISR
@@ -15,9 +18,9 @@ import { SITE_NAME, SITE_URL } from "@/lib/site";
 export const revalidate = 300;
 
 export const metadata: Metadata = {
-  title: "Loans, Credit Cards & Insurance: 16 Products, One Place",
+  title: "Curated Loans, Credit Cards & Insurance",
   description:
-    "Explore personal, business, home, car, vehicle, education, and other loans, plus credit cards and life, health, property, and travel insurance, all matched to you by KYC-verified partners. See how applying works.",
+    "Search Dhanadhara's Admin-curated financial services, compare verified provider snapshots, and apply or enquire through an internal guided journey.",
   keywords: [
     "personal loan",
     "business loan",
@@ -39,9 +42,9 @@ export const metadata: Metadata = {
   ],
   alternates: { canonical: "/loans" },
   openGraph: {
-    title: "Loans, Credit Cards & Insurance: 16 Products, One Place",
+    title: "Curated Financial Services in One Place",
     description:
-      "Compare loans, credit cards, and insurance from KYC-verified partners, and see exactly what happens when you apply.",
+      "Explore published services and provider options, then apply or enquire without an external lender redirect.",
     type: "website",
   },
 };
@@ -66,8 +69,28 @@ const loansJsonLd = {
   publisher: { "@type": "Organization", name: SITE_NAME, url: SITE_URL },
 };
 
-export default async function LoansPage() {
-  const banners = await getHeroBanners("financial_services");
+type LoansSearchParams = Promise<Record<string, string | string[] | undefined>>;
+
+function one(value: string | string[] | undefined): string | undefined {
+  return Array.isArray(value) ? value[0] : value;
+}
+
+export default async function LoansPage({ searchParams }: { searchParams: LoansSearchParams }) {
+  const params = await searchParams;
+  const q = one(params.q)?.trim() || undefined;
+  const categoryValue = one(params.category);
+  const category =
+    categoryValue === "loan" ||
+    categoryValue === "credit_card" ||
+    categoryValue === "insurance"
+      ? categoryValue
+      : undefined;
+  const requestedPage = Number(one(params.page) ?? "1");
+  const page = Number.isInteger(requestedPage) && requestedPage > 0 ? requestedPage : 1;
+  const [banners, catalogue] = await Promise.all([
+    getHeroBanners("financial_services"),
+    getPublicFinancialProducts({ q, category, page, pageSize: 12 }),
+  ]);
 
   return (
     <>
@@ -88,12 +111,12 @@ export default async function LoansPage() {
             />
           ) : null
         }
-        productsHeading="Explore our financial services"
-        productsSubheading="Sixteen products across loans, credit cards, and insurance. Pick one to see how it works, or ask us and we will point you right."
-        productColumns={4}
-        productDoodles
-        productBands={LOAN_PRODUCT_BANDS}
-        productsTrust={{ eyebrow: "Why people trust us", points: LOAN_TRUST }}
+        beforeJourney={
+          <>
+            <FinancialServicesCatalogue catalogue={catalogue} query={{ q, category, page }} />
+            <TrustStrip eyebrow="Why people trust us" points={LOAN_TRUST} />
+          </>
+        }
         journeyHeading="What happens when you apply?"
         journey={LOAN_JOURNEY}
         journeyTimeline

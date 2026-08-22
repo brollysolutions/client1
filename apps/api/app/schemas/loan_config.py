@@ -13,6 +13,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
+from app.schemas.financial_catalog import ProviderType, PublicFaqItem, PublicTextList
 from app.schemas.financial_products import (
     ProductCategory,
     ProductFormDefinition,
@@ -29,6 +30,15 @@ class AdminLoanTypeRead(BaseModel):
     display_order: int
     form_version: int
     form_schema: ProductFormDefinition
+    public_visible: bool
+    public_summary: str | None
+    public_description: str | None
+    public_highlights: list[str]
+    public_eligibility: list[str]
+    public_documents: list[str]
+    public_faq: list[PublicFaqItem]
+    homepage_featured: bool
+    homepage_feature_order: int
     created_at: datetime
     updated_at: datetime
     application_count: int
@@ -65,6 +75,15 @@ class LoanTypeUpdate(BaseModel):
     active: bool | None = None
     display_order: Annotated[int | None, Field(default=None, ge=0, le=10000)] = None
     form_schema: ProductFormDefinition | None = None
+    public_visible: bool | None = None
+    public_summary: str | None = Field(default=None, max_length=280)
+    public_description: str | None = Field(default=None, max_length=4000)
+    public_highlights: PublicTextList | None = None
+    public_eligibility: PublicTextList | None = None
+    public_documents: PublicTextList | None = None
+    public_faq: Annotated[list[PublicFaqItem] | None, Field(default=None, max_length=10)] = None
+    homepage_featured: bool | None = None
+    homepage_feature_order: Annotated[int | None, Field(default=None, ge=0, le=10000)] = None
 
     @field_validator("label")
     @classmethod
@@ -78,12 +97,7 @@ class LoanTypeUpdate(BaseModel):
 
     @model_validator(mode="after")
     def _at_least_one_field(self) -> LoanTypeUpdate:
-        if (
-            self.label is None
-            and self.active is None
-            and self.display_order is None
-            and self.form_schema is None
-        ):
+        if not self.model_fields_set:
             raise ValueError("Provide at least one field to update.")
         return self
 
@@ -91,7 +105,12 @@ class LoanTypeUpdate(BaseModel):
 class AdminBankRead(BaseModel):
     id: UUID
     name: str
+    legal_name: str | None
+    provider_type: ProviderType
     logo_key: str | None
+    logo_url: str | None
+    logo_source: str | None
+    logo_verified_at: datetime | None
     active: bool
     created_at: datetime
     updated_at: datetime
@@ -104,18 +123,59 @@ class AdminBankListResponse(BaseModel):
 
 class BankCreate(BaseModel):
     name: str = Field(min_length=1, max_length=200)
+    legal_name: str | None = Field(default=None, max_length=200)
+    provider_type: ProviderType = ProviderType.BANK
     logo_key: str | None = Field(default=None, max_length=500)
+    logo_source: str | None = Field(default=None, max_length=500)
+
+    @field_validator("name")
+    @classmethod
+    def _trim_name(cls, value: str) -> str:
+        normalized = value.strip()
+        if not normalized:
+            raise ValueError("Provider name cannot be blank.")
+        return normalized
+
+    @model_validator(mode="after")
+    def _logo_has_provenance(self) -> BankCreate:
+        if self.logo_key is not None and not (self.logo_source and self.logo_source.strip()):
+            raise ValueError("A reviewed logo key requires its official or licensed source.")
+        if self.logo_key is None and self.logo_source is not None:
+            raise ValueError("A logo source requires a logo key.")
+        return self
 
 
 class BankUpdate(BaseModel):
     name: str | None = Field(default=None, min_length=1, max_length=200)
+    legal_name: str | None = Field(default=None, max_length=200)
+    provider_type: ProviderType | None = None
     logo_key: str | None = Field(default=None, max_length=500)
+    logo_source: str | None = Field(default=None, max_length=500)
     active: bool | None = None
+
+    @field_validator("name")
+    @classmethod
+    def _trim_name(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        normalized = value.strip()
+        if not normalized:
+            raise ValueError("Provider name cannot be blank.")
+        return normalized
 
     @model_validator(mode="after")
     def _at_least_one_field(self) -> BankUpdate:
-        if self.name is None and self.logo_key is None and self.active is None:
+        if not self.model_fields_set:
             raise ValueError("Provide at least one field to update.")
+        if (
+            "logo_key" in self.model_fields_set
+            and self.logo_key is not None
+            and (
+                "logo_source" not in self.model_fields_set
+                or not (self.logo_source and self.logo_source.strip())
+            )
+        ):
+            raise ValueError("A reviewed logo key requires its official or licensed source.")
         return self
 
 

@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -72,6 +73,20 @@ function cloneForm(form: ProductFormDefinition): ProductFormDefinition {
   return JSON.parse(JSON.stringify(form)) as ProductFormDefinition;
 }
 
+function textLines(value: string): string[] {
+  return value.split("\n").map((line) => line.trim()).filter(Boolean);
+}
+
+function faqLines(value: string): Array<{ question: string; answer: string }> {
+  return textLines(value).flatMap((line) => {
+    const separator = line.indexOf("|");
+    if (separator < 1) return [];
+    const question = line.slice(0, separator).trim();
+    const answer = line.slice(separator + 1).trim();
+    return question && answer ? [{ question, answer }] : [];
+  });
+}
+
 export function LoanTypesView() {
   const { items, loading, error, reload } = useLoanTypes();
   const [active, setActive] = React.useState<AdminLoanType | null>(null);
@@ -83,6 +98,15 @@ export function LoanTypesView() {
   const [draftActive, setDraftActive] = React.useState(true);
   const [draftOrder, setDraftOrder] = React.useState("1000");
   const [draftForm, setDraftForm] = React.useState<ProductFormDefinition | null>(null);
+  const [draftPublicVisible, setDraftPublicVisible] = React.useState(false);
+  const [draftSummary, setDraftSummary] = React.useState("");
+  const [draftDescription, setDraftDescription] = React.useState("");
+  const [draftHighlights, setDraftHighlights] = React.useState("");
+  const [draftEligibility, setDraftEligibility] = React.useState("");
+  const [draftDocuments, setDraftDocuments] = React.useState("");
+  const [draftFaq, setDraftFaq] = React.useState("");
+  const [draftFeatured, setDraftFeatured] = React.useState(false);
+  const [draftFeaturedOrder, setDraftFeaturedOrder] = React.useState("1000");
   const [busy, setBusy] = React.useState(false);
 
   function openEdit(product: AdminLoanType) {
@@ -91,6 +115,15 @@ export function LoanTypesView() {
     setDraftActive(product.active);
     setDraftOrder(String(product.display_order));
     setDraftForm(cloneForm(product.form_schema));
+    setDraftPublicVisible(product.public_visible);
+    setDraftSummary(product.public_summary ?? "");
+    setDraftDescription(product.public_description ?? "");
+    setDraftHighlights(product.public_highlights.join("\n"));
+    setDraftEligibility(product.public_eligibility.join("\n"));
+    setDraftDocuments(product.public_documents.join("\n"));
+    setDraftFaq(product.public_faq.map((item) => `${item.question} | ${item.answer}`).join("\n"));
+    setDraftFeatured(product.homepage_featured);
+    setDraftFeaturedOrder(String(product.homepage_feature_order));
   }
 
   async function onCreate(event: React.FormEvent) {
@@ -139,7 +172,48 @@ export function LoanTypesView() {
     const activeChanged = draftActive !== active.active;
     const orderChanged = order !== active.display_order;
     const formChanged = JSON.stringify(draftForm) !== JSON.stringify(active.form_schema);
-    if (!labelChanged && !activeChanged && !orderChanged && !formChanged) {
+    const featuredOrder = Number(draftFeaturedOrder);
+    if (!Number.isInteger(featuredOrder) || featuredOrder < 0 || featuredOrder > 10000) {
+      toast.error("Homepage order must be between 0 and 10,000");
+      return;
+    }
+    if (draftPublicVisible && (!draftSummary.trim() || !draftDescription.trim())) {
+      toast.error("Public products need a summary and description");
+      return;
+    }
+    if (draftFeatured && !draftPublicVisible) {
+      toast.error("Publish the product before featuring it on Home");
+      return;
+    }
+    const faqSourceLines = textLines(draftFaq);
+    const parsedFaq = faqLines(draftFaq);
+    if (parsedFaq.length !== faqSourceLines.length) {
+      toast.error("Format every FAQ as Question | Answer");
+      return;
+    }
+    const marketing = {
+      public_visible: draftPublicVisible,
+      public_summary: draftSummary.trim() || null,
+      public_description: draftDescription.trim() || null,
+      public_highlights: textLines(draftHighlights),
+      public_eligibility: textLines(draftEligibility),
+      public_documents: textLines(draftDocuments),
+      public_faq: parsedFaq,
+      homepage_featured: draftFeatured,
+      homepage_feature_order: featuredOrder,
+    };
+    const marketingChanged = JSON.stringify(marketing) !== JSON.stringify({
+      public_visible: active.public_visible,
+      public_summary: active.public_summary,
+      public_description: active.public_description,
+      public_highlights: active.public_highlights,
+      public_eligibility: active.public_eligibility,
+      public_documents: active.public_documents,
+      public_faq: active.public_faq,
+      homepage_featured: active.homepage_featured,
+      homepage_feature_order: active.homepage_feature_order,
+    });
+    if (!labelChanged && !activeChanged && !orderChanged && !formChanged && !marketingChanged) {
       setActive(null);
       return;
     }
@@ -149,6 +223,7 @@ export function LoanTypesView() {
       active: activeChanged ? draftActive : undefined,
       display_order: orderChanged ? order : undefined,
       form_schema: formChanged ? draftForm : undefined,
+      ...(marketingChanged ? marketing : {}),
     });
     setBusy(false);
     if (res.ok) {
@@ -221,9 +296,14 @@ export function LoanTypesView() {
                       {formatLastUpdated(product.updated_at)}
                     </p>
                   </div>
-                  <Badge variant={product.active ? "secondary" : "outline"} className="shrink-0">
-                    {product.active ? "Active" : "Disabled"}
-                  </Badge>
+                  <div className="flex shrink-0 flex-col items-end gap-1">
+                    <Badge variant={product.active ? "secondary" : "outline"}>
+                      {product.active ? "Active" : "Disabled"}
+                    </Badge>
+                    <Badge variant={product.public_visible ? "default" : "outline"}>
+                      {product.public_visible ? "Public" : "Dashboard only"}
+                    </Badge>
+                  </div>
                 </button>
               </li>
             );
@@ -328,6 +408,64 @@ export function LoanTypesView() {
                   <Label htmlFor="edit-product-active" className="font-normal">
                     Active and visible to clients
                   </Label>
+                </div>
+              </div>
+
+              <div className="border-t border-border pt-5">
+                <h3 className="font-heading text-lg font-semibold text-text-primary">
+                  Public service page
+                </h3>
+                <p className="mt-1 text-sm text-text-secondary">
+                  Publishing creates the catalogue card and internal detail page. Use one item per
+                  line for highlights, eligibility, and documents.
+                </p>
+                <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                  <div className="flex items-center gap-2 sm:col-span-2">
+                    <Checkbox
+                      id="edit-product-public"
+                      checked={draftPublicVisible}
+                      onCheckedChange={(checked) => {
+                        const visible = checked === true;
+                        setDraftPublicVisible(visible);
+                        if (!visible) setDraftFeatured(false);
+                      }}
+                    />
+                    <Label htmlFor="edit-product-public" className="font-normal">
+                      Publish on Financial Services and create its detail page
+                    </Label>
+                  </div>
+                  <div className="grid gap-1.5 sm:col-span-2">
+                    <Label htmlFor="edit-product-summary">Card summary</Label>
+                    <Input id="edit-product-summary" value={draftSummary} onChange={(event) => setDraftSummary(event.target.value)} maxLength={280} />
+                  </div>
+                  <div className="grid gap-1.5 sm:col-span-2">
+                    <Label htmlFor="edit-product-description">Page description</Label>
+                    <Textarea id="edit-product-description" value={draftDescription} onChange={(event) => setDraftDescription(event.target.value)} maxLength={4000} rows={4} />
+                  </div>
+                  <div className="grid gap-1.5">
+                    <Label htmlFor="edit-product-highlights">Highlights</Label>
+                    <Textarea id="edit-product-highlights" value={draftHighlights} onChange={(event) => setDraftHighlights(event.target.value)} rows={5} />
+                  </div>
+                  <div className="grid gap-1.5">
+                    <Label htmlFor="edit-product-eligibility">General eligibility</Label>
+                    <Textarea id="edit-product-eligibility" value={draftEligibility} onChange={(event) => setDraftEligibility(event.target.value)} rows={5} />
+                  </div>
+                  <div className="grid gap-1.5">
+                    <Label htmlFor="edit-product-documents">Documents to prepare</Label>
+                    <Textarea id="edit-product-documents" value={draftDocuments} onChange={(event) => setDraftDocuments(event.target.value)} rows={5} />
+                  </div>
+                  <div className="grid gap-1.5">
+                    <Label htmlFor="edit-product-faq">FAQs (Question | Answer)</Label>
+                    <Textarea id="edit-product-faq" value={draftFaq} onChange={(event) => setDraftFaq(event.target.value)} rows={5} />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Checkbox id="edit-product-featured" checked={draftFeatured} onCheckedChange={(checked) => setDraftFeatured(checked === true)} />
+                    <Label htmlFor="edit-product-featured" className="font-normal">Feature on Home</Label>
+                  </div>
+                  <div className="grid gap-1.5">
+                    <Label htmlFor="edit-product-feature-order">Homepage order</Label>
+                    <Input id="edit-product-feature-order" type="number" min={0} max={10000} value={draftFeaturedOrder} onChange={(event) => setDraftFeaturedOrder(event.target.value)} />
+                  </div>
                 </div>
               </div>
 

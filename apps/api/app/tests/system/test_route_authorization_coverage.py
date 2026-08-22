@@ -63,6 +63,9 @@ PUBLIC_ROUTES = frozenset(
         "GET /api/v1/public/properties",
         "GET /api/v1/public/content-blocks",
         "GET /api/v1/public/content-blocks/{slug}",
+        "GET /api/v1/public/financial-products",
+        "GET /api/v1/public/financial-products/{slug}",
+        "GET /api/v1/public/financial-products/{slug}/providers",
         # Anonymous lead capture from the public site.
         "POST /api/v1/leads",
         # Bearer-token-in-URL invitation lookup; the token is the authorization.
