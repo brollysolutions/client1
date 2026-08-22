@@ -505,6 +505,7 @@ export const DASHBOARD_ROUTE_RULES: readonly DashboardRouteRule[] = [
   },
   { path: "/dashboard/earnings", exact: true, capabilities: ["agent"] },
   { path: "/dashboard/enquiries", exact: true, capabilities: ["clientRealEstate"] },
+  { path: "/dashboard/properties", capabilities: ["client"] },
   { path: "/dashboard/explore", capabilities: ["client"] },
   { path: "/dashboard/fee-cashbacks", exact: true, capabilities: ["admin"] },
   { path: "/dashboard/leads", capabilities: ["agent", "telecaller"] },

@@ -101,3 +101,38 @@ class PublicPropertyRead(BaseModel):
 
 class PublicPropertyListResponse(BaseModel):
     properties: list[PublicPropertyRead]
+
+
+class PublicPropertyDetailRead(BaseModel):
+    """Anonymous detail shape for one Admin-published property.
+
+    This remains deliberately separate from ``PropertyRead``. The detail page
+    exposes useful buyer facets, but never internal publication state, exact
+    minor-unit pricing, reviewer identity, or timestamps.
+    """
+
+    id: UUID
+    title: str
+    type: str
+    location: str
+    price_display: str
+    meta: str | None
+    image: str | None
+    media_urls: list[str] = Field(default_factory=list)
+    media: list[PropertyMediaRead] = Field(default_factory=list)
+    category: PropertyCategory
+    property_subtype: PropertySubtype | None
+    city: str
+    locality: str
+    state: str | None
+    pincode: str
+    bhk: int
+    area_sqft: int
+    furnishing: Furnishing | None
+    construction_status: ConstructionStatus | None
+    amenities: list[str]
+    age_years: int
+    rera_applicability: ReraApplicability
+    rera_number: str | None
+    rera_verification_status: ReraVerificationStatus
+    structured_details: PropertyStructuredDetails | None

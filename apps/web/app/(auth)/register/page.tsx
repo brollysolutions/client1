@@ -37,7 +37,11 @@ import {
 import type { ServiceLine } from "@/lib/auth";
 import { formatMobile, isValidMobile, toE164 } from "@/lib/phone";
 import { isValidReferralCodeFormat, normalizeReferralCode } from "@/lib/referral-share";
-import { isSafeLocalHref } from "@/lib/safe-local-href";
+import {
+  dashboardReturnTo,
+  isPropertyReturnTo,
+  registrationServiceLinesForReturn,
+} from "@/lib/auth-return";
 
 // Defense-in-depth: never render a dev OTP hint in a production build, even if
 // the backend (which is the real gate) were ever misconfigured to send one (L3).
@@ -153,18 +157,8 @@ export default function RegisterPage() {
 function RegisterPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const requestedReturnTo = searchParams.get("return_to");
-  const isDashboardReturnPath =
-    requestedReturnTo === "/dashboard" ||
-    requestedReturnTo?.startsWith("/dashboard/") ||
-    requestedReturnTo?.startsWith("/dashboard?") ||
-    requestedReturnTo?.startsWith("/dashboard#");
-  const returnTo =
-    requestedReturnTo &&
-    isDashboardReturnPath &&
-    isSafeLocalHref(requestedReturnTo)
-      ? requestedReturnTo
-      : "/dashboard";
+  const returnTo = dashboardReturnTo(searchParams.get("return_to"));
+  const propertyIntent = isPropertyReturnTo(returnTo);
   const loginHref =
     returnTo === "/dashboard" ? "/login" : `/login?return_to=${encodeURIComponent(returnTo)}`;
   const { setSession, isAuthenticated, isLoading } = useAuth();
@@ -177,7 +171,9 @@ function RegisterPageContent() {
     referralCode: "",
   });
   const [profileEmail, setProfileEmail] = React.useState("");
-  const [serviceLines, setServiceLines] = React.useState<ServiceLine[]>([]);
+  const [serviceLines, setServiceLines] = React.useState<ServiceLine[]>(
+    registrationServiceLinesForReturn(returnTo),
+  );
   const [serviceLineError, setServiceLineError] = React.useState("");
   const [optionalProfile, setOptionalProfile] = React.useState(EMPTY_OPTIONAL_PROFILE);
   const [profileSaving, setProfileSaving] = React.useState(false);
@@ -273,6 +269,7 @@ function RegisterPageContent() {
   }
 
   function toggleServiceLine(line: ServiceLine) {
+    if (propertyIntent && line === "real_estate") return;
     setServiceLines((current) => {
       const next = current.includes(line)
         ? current.filter((value) => value !== line)
@@ -487,7 +484,9 @@ function RegisterPageContent() {
                 What can we help with?
               </legend>
               <p id="service-lines-help" className="text-sm text-text-secondary">
-                Choose one or both. Your account can use both services later.
+                {propertyIntent
+                  ? "Real Estate is selected so you can continue to this property. You can add Loans too."
+                  : "Choose one or both. Your account can use both services later."}
               </p>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 {([
@@ -500,7 +499,7 @@ function RegisterPageContent() {
                       key={line}
                       type="button"
                       aria-pressed={selected}
-                      disabled={submitting}
+                      disabled={submitting || (propertyIntent && line === "real_estate")}
                       onClick={() => toggleServiceLine(line)}
                       className={cn(
                         "h-12 rounded-lg border px-4 text-left text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",

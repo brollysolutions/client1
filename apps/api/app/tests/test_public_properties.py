@@ -42,6 +42,7 @@ async def _seed_property(
     title: str,
     category: str = "plots",
     property_subtype: str | None = None,
+    structured_details: dict | None = None,
 ) -> str:
     """Insert a property via the app superuser (bypasses RLS). Returns its id."""
     import app.db.session as _session_mod
@@ -74,6 +75,7 @@ async def _seed_property(
             rera_verification_status="verified",
             rera_verified_at=datetime.now(UTC),
             details={},
+            structured_details=structured_details,
         )
         db.add(prop)
         await db.commit()
@@ -141,6 +143,74 @@ async def test_inactive_hidden_from_anonymous(client: AsyncClient) -> None:
         assert inactive_id not in ids
     finally:
         await _delete_properties(inactive_id)
+
+
+@pytest.mark.asyncio
+async def test_public_detail_returns_active_listing_without_auth(client: AsyncClient) -> None:
+    active_id = await _seed_property(active=True, title="Public Detail Listing")
+    try:
+        resp = await client.get(f"/api/v1/public/properties/{active_id}")
+        assert resp.status_code == 200
+        row = resp.json()
+        assert row["id"] == active_id
+        assert row["title"] == "Public Detail Listing"
+        assert row["city"] == "Public City"
+        assert row["locality"] == "Public Locality"
+        assert row["pincode"] == "560001"
+        assert row["bhk"] == 2
+        assert row["area_sqft"] == 1100
+        assert row["amenities"] == ["lift", "gym"]
+        assert row["rera_number"] == "RERA/KA/2024/1234"
+        for internal_field in (
+            "active",
+            "business_line",
+            "created_at",
+            "updated_at",
+            "price_paise",
+            "rera_verified_at",
+            "rera_verified_by_uuid",
+            "details",
+        ):
+            assert internal_field not in row
+    finally:
+        await _delete_properties(active_id)
+
+
+@pytest.mark.asyncio
+async def test_public_detail_hides_inactive_and_unknown_listings(client: AsyncClient) -> None:
+    inactive_id = await _seed_property(active=False, title="Public Detail Hidden")
+    try:
+        hidden = await client.get(f"/api/v1/public/properties/{inactive_id}")
+        missing = await client.get(f"/api/v1/public/properties/{uuid.uuid4()}")
+        assert hidden.status_code == 404
+        assert missing.status_code == 404
+        assert hidden.json() == missing.json()
+    finally:
+        await _delete_properties(inactive_id)
+
+
+@pytest.mark.asyncio
+async def test_malformed_legacy_details_do_not_break_public_catalog(
+    client: AsyncClient,
+) -> None:
+    property_id = await _seed_property(
+        active=True,
+        title="Legacy Detail Listing",
+        structured_details={
+            "kind": "project_residence",
+            "amenities_description": None,
+        },
+    )
+    try:
+        detail = await client.get(f"/api/v1/public/properties/{property_id}")
+        catalog = await client.get("/api/v1/public/properties")
+        assert detail.status_code == 200
+        assert detail.json()["structured_details"] is None
+        assert catalog.status_code == 200
+        row = next(item for item in catalog.json()["properties"] if item["id"] == property_id)
+        assert row["structured_details"] is None
+    finally:
+        await _delete_properties(property_id)
 
 
 @pytest.mark.asyncio

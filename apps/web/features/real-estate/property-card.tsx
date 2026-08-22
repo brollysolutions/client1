@@ -47,7 +47,11 @@ export function PropertyCard({ listing, fluid = false }: { listing: REListing; f
         fluid ? "w-full" : "w-[280px] shrink-0 sm:w-[300px]",
       )}
     >
-      <div className="relative hidden aspect-[4/3] w-full bg-loans-soft/50 lg:block">
+      <Link
+        href={`/dashboard/properties/${listing.id}`}
+        aria-label={`View ${listing.title}`}
+        className="relative hidden aspect-[4/3] w-full bg-loans-soft/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-blue lg:block"
+      >
         {listing.image ? (
           <Image src={listing.image} alt="" aria-hidden fill sizes="300px" className="object-cover" />
         ) : (
@@ -58,29 +62,15 @@ export function PropertyCard({ listing, fluid = false }: { listing: REListing; f
         <span className="absolute bottom-3 left-3 rounded-full bg-card/90 px-2.5 py-1 text-xs font-medium text-text-primary ring-1 ring-border">
           {listing.type}
         </span>
-        <button
-          type="button"
-          onClick={() =>
-            bookmarks.toggle(listing.id, {
-              title: listing.title,
-              locality: listing.locality,
-              city: listing.city,
-            })
-          }
-          aria-label={bookmarked ? "Remove bookmark" : "Bookmark this property"}
-          aria-pressed={bookmarked}
-          className={cn(
-            "absolute right-3 top-3 grid h-9 w-9 cursor-pointer place-items-center rounded-full bg-card/90 shadow-sm ring-1 ring-border transition-colors hover:text-brand-cta focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue",
-            bookmarked ? "text-brand-cta" : "text-text-secondary",
-          )}
-        >
-          <Bookmark className={cn("h-4 w-4", bookmarked && "fill-current")} aria-hidden="true" />
-        </button>
-      </div>
+      </Link>
 
       <CardHeader className="flex-1 gap-2 pt-6">
         <div className="flex items-start justify-between gap-2 lg:hidden">
-          <CardTitle className="font-heading text-lg text-foreground">{listing.title}</CardTitle>
+          <CardTitle className="font-heading text-lg text-foreground">
+            <Link href={`/dashboard/properties/${listing.id}`} className="rounded-sm hover:text-brand-cta focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue">
+              {listing.title}
+            </Link>
+          </CardTitle>
           <button
             type="button"
             onClick={() =>
@@ -101,7 +91,9 @@ export function PropertyCard({ listing, fluid = false }: { listing: REListing; f
           </button>
         </div>
         <CardTitle className="hidden font-heading text-lg text-foreground lg:block">
-          {listing.title}
+          <Link href={`/dashboard/properties/${listing.id}`} className="rounded-sm hover:text-brand-cta focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue">
+            {listing.title}
+          </Link>
         </CardTitle>
         <p className="flex items-center gap-1.5 text-sm text-text-secondary">
           <MapPin className="h-3.5 w-3.5 shrink-0" aria-hidden />
@@ -169,7 +161,7 @@ export function PropertyCard({ listing, fluid = false }: { listing: REListing; f
 export function PropertyMiniCard({ listing }: { listing: REListing }) {
   return (
     <Link
-      href={`/dashboard/explore/${listing.category}`}
+      href={`/dashboard/properties/${listing.id}`}
       className="flex items-center gap-3 rounded-xl border border-border bg-card p-3 transition-colors hover:border-brand-cta focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue"
     >
       <div className="relative hidden h-16 w-16 shrink-0 overflow-hidden rounded-lg bg-loans-soft/50 lg:block">

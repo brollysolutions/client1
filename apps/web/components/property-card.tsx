@@ -1,9 +1,9 @@
+import * as React from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { MapPin } from "lucide-react";
 
 import { LeadDialog } from "@/components/lead-dialog";
-import { PropertyMediaDialog } from "@/components/property-media-dialog";
-import { PropertyDetailsDialog } from "@/components/property-details-dialog";
 import {
   Card,
   CardContent,
@@ -24,31 +24,38 @@ import type { PropertyListing } from "@/lib/properties";
 // Fixed width so the card sits inside the horizontal-scroll PropertyRow.
 
 export function PropertyCard({ listing }: { listing: PropertyListing }) {
+  const detailHref = `/real-estate/properties/${listing.id}`;
   return (
     <Card className="flex h-full w-[280px] shrink-0 flex-col gap-0 overflow-hidden pt-0 sm:w-[300px]">
-      <div className="relative aspect-[4/3] w-full bg-[var(--nav-tint)]/50">
-        {listing.image ? (
-          <Image
-            src={listing.image}
-            alt=""
-            aria-hidden
-            fill
-            sizes="300px"
-            className="object-cover"
-          />
-        ) : (
-          <span className="pointer-events-none absolute right-3 top-3 rounded border border-dashed border-border px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
-            Sample
+      <Link
+        href={detailHref}
+        aria-label={`View ${listing.title}`}
+        className="group relative aspect-[4/3] w-full bg-[var(--nav-tint)]/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--nav-primary)]"
+      >
+          {listing.image ? (
+            <Image
+              src={listing.image}
+              alt=""
+              aria-hidden
+              fill
+              sizes="300px"
+              className="object-cover transition-transform duration-300 motion-reduce:transition-none group-hover:scale-[1.02]"
+            />
+          ) : (
+            <span className="pointer-events-none absolute right-3 top-3 rounded border border-dashed border-border px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+              Sample
+            </span>
+          )}
+          <span className="absolute bottom-3 left-3 rounded-full bg-[var(--nav-bg)]/90 px-2.5 py-1 text-xs font-medium text-[var(--nav-text)] ring-1 ring-[var(--nav-border)]">
+            {listing.type}
           </span>
-        )}
-        <span className="absolute bottom-3 left-3 rounded-full bg-[var(--nav-bg)]/90 px-2.5 py-1 text-xs font-medium text-[var(--nav-text)] ring-1 ring-[var(--nav-border)]">
-          {listing.type}
-        </span>
-      </div>
+      </Link>
 
       <CardHeader className="flex-1 gap-2 pt-6">
         <CardTitle className="font-heading text-lg text-foreground">
-          {listing.title}
+          <Link href={detailHref} className="rounded-sm hover:text-[var(--nav-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nav-primary)]">
+            {listing.title}
+          </Link>
         </CardTitle>
         <p className="flex items-center gap-1.5 text-sm text-text-secondary">
           <MapPin className="h-3.5 w-3.5 shrink-0" aria-hidden />
@@ -69,10 +76,12 @@ export function PropertyCard({ listing }: { listing: PropertyListing }) {
       </CardContent>
 
       <CardFooter className="flex flex-col gap-2 pt-5">
-        <PropertyDetailsDialog title={listing.title} details={listing.structuredDetails} />
-        {listing.media?.length ? (
-          <PropertyMediaDialog title={listing.title} media={listing.media} />
-        ) : null}
+        <Link
+          href={detailHref}
+          className="inline-flex h-10 w-full items-center justify-center rounded-lg bg-[var(--nav-primary)] px-4 text-sm font-medium text-white transition-colors hover:bg-[var(--nav-primary-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nav-primary)] focus-visible:ring-offset-2"
+        >
+          View property
+        </Link>
         <LeadDialog
           businessLine="real_estate"
           product={`${listing.title}, ${listing.location}`}
@@ -81,6 +90,7 @@ export function PropertyCard({ listing }: { listing: PropertyListing }) {
           href={contactHref({
             line: "real_estate",
             product: `${listing.title}, ${listing.location}`,
+            propertyRef: listing.id,
           })}
         />
       </CardFooter>

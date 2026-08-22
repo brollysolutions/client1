@@ -6619,12 +6619,6 @@
       },
       "EnquiryCreate": {
         "properties": {
-          "city": {
-            "maxLength": 120,
-            "minLength": 1,
-            "title": "City",
-            "type": "string"
-          },
           "contact_mobile": {
             "pattern": "^\\+[1-9]\\d{6,14}$",
             "title": "Contact Mobile",
@@ -6634,12 +6628,6 @@
             "maxLength": 100,
             "minLength": 1,
             "title": "Contact Name",
-            "type": "string"
-          },
-          "locality": {
-            "maxLength": 120,
-            "minLength": 1,
-            "title": "Locality",
             "type": "string"
           },
           "message": {
@@ -6655,23 +6643,13 @@
             "title": "Message"
           },
           "property_ref": {
-            "maxLength": 80,
-            "minLength": 1,
+            "format": "uuid",
             "title": "Property Ref",
-            "type": "string"
-          },
-          "title": {
-            "maxLength": 200,
-            "minLength": 1,
-            "title": "Title",
             "type": "string"
           }
         },
         "required": [
           "property_ref",
-          "title",
-          "locality",
-          "city",
           "contact_name",
           "contact_mobile"
         ],
@@ -12814,6 +12792,18 @@
             ],
             "title": "Product"
           },
+          "property_ref": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Property Ref"
+          },
           "topic": {
             "enum": [
               "loans",
@@ -12917,6 +12907,224 @@
           "code"
         ],
         "title": "PublicOfferRead",
+        "type": "object"
+      },
+      "PublicPropertyDetailRead": {
+        "description": "Anonymous detail shape for one Admin-published property.\n\nThis remains deliberately separate from ``PropertyRead``. The detail page\nexposes useful buyer facets, but never internal publication state, exact\nminor-unit pricing, reviewer identity, or timestamps.",
+        "properties": {
+          "age_years": {
+            "title": "Age Years",
+            "type": "integer"
+          },
+          "amenities": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Amenities",
+            "type": "array"
+          },
+          "area_sqft": {
+            "title": "Area Sqft",
+            "type": "integer"
+          },
+          "bhk": {
+            "title": "Bhk",
+            "type": "integer"
+          },
+          "category": {
+            "$ref": "#/components/schemas/PropertyCategory"
+          },
+          "city": {
+            "title": "City",
+            "type": "string"
+          },
+          "construction_status": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ConstructionStatus"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "furnishing": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Furnishing"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "image": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Image"
+          },
+          "locality": {
+            "title": "Locality",
+            "type": "string"
+          },
+          "location": {
+            "title": "Location",
+            "type": "string"
+          },
+          "media": {
+            "items": {
+              "$ref": "#/components/schemas/PropertyMediaRead"
+            },
+            "title": "Media",
+            "type": "array"
+          },
+          "media_urls": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Media Urls",
+            "type": "array"
+          },
+          "meta": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meta"
+          },
+          "pincode": {
+            "title": "Pincode",
+            "type": "string"
+          },
+          "price_display": {
+            "title": "Price Display",
+            "type": "string"
+          },
+          "property_subtype": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PropertySubtype"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "rera_applicability": {
+            "$ref": "#/components/schemas/ReraApplicability"
+          },
+          "rera_number": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rera Number"
+          },
+          "rera_verification_status": {
+            "$ref": "#/components/schemas/ReraVerificationStatus"
+          },
+          "state": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "State"
+          },
+          "structured_details": {
+            "anyOf": [
+              {
+                "discriminator": {
+                  "mapping": {
+                    "agricultural_land": "#/components/schemas/AgriculturalLandDetails",
+                    "commercial_property": "#/components/schemas/CommercialPropertyDetails",
+                    "individual_property": "#/components/schemas/IndividualPropertyDetails",
+                    "plot": "#/components/schemas/PlotDetails",
+                    "project_residence": "#/components/schemas/ProjectResidenceDetails"
+                  },
+                  "propertyName": "kind"
+                },
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/ProjectResidenceDetails"
+                  },
+                  {
+                    "$ref": "#/components/schemas/IndividualPropertyDetails"
+                  },
+                  {
+                    "$ref": "#/components/schemas/CommercialPropertyDetails"
+                  },
+                  {
+                    "$ref": "#/components/schemas/PlotDetails"
+                  },
+                  {
+                    "$ref": "#/components/schemas/AgriculturalLandDetails"
+                  }
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Structured Details"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "type": {
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "type",
+          "location",
+          "price_display",
+          "meta",
+          "image",
+          "category",
+          "property_subtype",
+          "city",
+          "locality",
+          "state",
+          "pincode",
+          "bhk",
+          "area_sqft",
+          "furnishing",
+          "construction_status",
+          "amenities",
+          "age_years",
+          "rera_applicability",
+          "rera_number",
+          "rera_verification_status",
+          "structured_details"
+        ],
+        "title": "PublicPropertyDetailRead",
         "type": "object"
       },
       "PublicPropertyListResponse": {
@@ -14109,12 +14317,6 @@
       },
       "SiteVisitCreate": {
         "properties": {
-          "city": {
-            "maxLength": 120,
-            "minLength": 1,
-            "title": "City",
-            "type": "string"
-          },
           "contact_mobile": {
             "pattern": "^\\+[1-9]\\d{6,14}$",
             "title": "Contact Mobile",
@@ -14124,12 +14326,6 @@
             "maxLength": 100,
             "minLength": 1,
             "title": "Contact Name",
-            "type": "string"
-          },
-          "locality": {
-            "maxLength": 120,
-            "minLength": 1,
-            "title": "Locality",
             "type": "string"
           },
           "message": {
@@ -14182,23 +14378,13 @@
             "$ref": "#/components/schemas/SiteVisitTimeSlot"
           },
           "property_ref": {
-            "maxLength": 80,
-            "minLength": 1,
+            "format": "uuid",
             "title": "Property Ref",
-            "type": "string"
-          },
-          "title": {
-            "maxLength": 200,
-            "minLength": 1,
-            "title": "Title",
             "type": "string"
           }
         },
         "required": [
           "property_ref",
-          "title",
-          "locality",
-          "city",
           "contact_name",
           "contact_mobile",
           "preferred_date",
@@ -29314,6 +29500,49 @@
           }
         },
         "summary": "List Properties Public",
+        "tags": [
+          "public"
+        ]
+      }
+    },
+    "/api/v1/public/properties/{property_id}": {
+      "get": {
+        "operationId": "get_property_public_api_v1_public_properties__property_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "property_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Property Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicPropertyDetailRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Property Public",
         "tags": [
           "public"
         ]

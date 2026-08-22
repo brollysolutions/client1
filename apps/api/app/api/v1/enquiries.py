@@ -19,6 +19,7 @@ from app.db.session import get_db
 from app.models.enquiry import Enquiry
 from app.schemas.enquiries import EnquiryCreate, EnquiryListResponse, EnquiryRead
 from app.services.leads import ensure_client_line_lead_for_user
+from app.services.properties import get_active_property
 
 router = APIRouter()
 
@@ -53,6 +54,9 @@ async def create_enquiry(
     db: AsyncSession = Depends(get_db),
 ) -> EnquiryRead:
     _require_client(current_user)
+    property_listing = await get_active_property(db, req.property_ref)
+    if property_listing is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Property not found.")
     try:
         await ensure_client_line_lead_for_user(
             auth_user_uuid=current_user.id,
@@ -67,10 +71,10 @@ async def create_enquiry(
     enquiry = Enquiry(
         user_uuid=current_user.id,
         business_line="real_estate",
-        property_ref=req.property_ref,
-        title=req.title,
-        locality=req.locality,
-        city=req.city,
+        property_ref=str(property_listing.id),
+        title=property_listing.title,
+        locality=property_listing.locality,
+        city=property_listing.city,
         contact_name=req.contact_name,
         contact_mobile=req.contact_mobile,
         message=req.message,

@@ -28,12 +28,14 @@ export function ContactForm({
   initialLine,
   initialProduct,
   invitationToken,
+  propertyRef,
 }: {
   // Prefilled from the /contact query string when a visitor arrives via an
   // Enquire / callback CTA, so the telecaller sees what they came for.
   initialLine?: LeadTopic;
   initialProduct?: string;
   invitationToken?: string;
+  propertyRef?: string;
 } = {}) {
   const [topic, setTopic] = useState<LeadTopic>(initialLine ?? "loans");
   // When the visitor arrived via a category-specific CTA (?line=...), lock the
@@ -81,6 +83,7 @@ export function ContactForm({
       business_line: topic,
       origin: "contact",
       ...(initialProduct ? { product: initialProduct } : {}),
+      ...(propertyRef ? { property_ref: propertyRef } : {}),
       ...(email.trim() ? { email: email.trim() } : {}),
       ...(message.trim() ? { message: message.trim() } : {}),
       ...(company ? { company } : {}),

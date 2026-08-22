@@ -34,10 +34,7 @@ class VehicleArrangementClientRead(BaseModel):
 
 
 class SiteVisitCreate(BaseModel):
-    property_ref: Annotated[str, Field(min_length=1, max_length=80)]
-    title: Annotated[str, Field(min_length=1, max_length=200)]
-    locality: Annotated[str, Field(min_length=1, max_length=120)]
-    city: Annotated[str, Field(min_length=1, max_length=120)]
+    property_ref: UUID
     contact_name: Annotated[str, Field(min_length=1, max_length=100)]
     # Same E.164 pattern as PublicLeadCreate.mobile (schemas/leads.py).
     contact_mobile: Annotated[str, Field(pattern=r"^\+[1-9]\d{6,14}$")]
@@ -49,10 +46,6 @@ class SiteVisitCreate(BaseModel):
     pickup_at: datetime | None = None
 
     @field_validator(
-        "property_ref",
-        "title",
-        "locality",
-        "city",
         "contact_name",
         "message",
         "pickup_location",
@@ -61,7 +54,7 @@ class SiteVisitCreate(BaseModel):
     def _strip(cls, v: str | None) -> str | None:
         return v.strip() if isinstance(v, str) else v
 
-    @field_validator("property_ref", "title", "locality", "city", "contact_name")
+    @field_validator("contact_name")
     @classmethod
     def _not_blank(cls, v: str) -> str:
         if not v:

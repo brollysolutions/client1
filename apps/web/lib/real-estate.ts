@@ -20,9 +20,12 @@ export type REListing = Omit<BaseListing, "category" | "reraNumber"> & {
   ageYears: number;
   city: string;
   locality: string;
+  state?: string;
   bhk: number;
   areaSqft: number;
   priceLakhs: number;
+  constructionStatus?: ListingStatus | null;
+  reraApplicability?: components["schemas"]["ReraApplicability"];
   reraNumber?: string | null;
   reraVerificationStatus?: components["schemas"]["ReraVerificationStatus"];
   structuredDetails?: components["schemas"]["PropertyRead"]["structured_details"];

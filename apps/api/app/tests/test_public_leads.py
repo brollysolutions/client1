@@ -8,10 +8,12 @@ Requires: running Postgres + Redis (docker compose up -d).
 
 from __future__ import annotations
 
+import uuid
+
 import pytest
 import redis.asyncio as aioredis
 from httpx import AsyncClient
-from sqlalchemy import select
+from sqlalchemy import delete, select
 
 import app.db.session as db_session
 from app.cache.redis_keys import lead_rate_ip_key, lead_rate_mobile_key
@@ -39,6 +41,43 @@ async def _get_lead(mobile: str) -> Lead | None:
     # NullPool sessionmaker per test session (see _patch_db_null_pool).
     async with db_session.AsyncSessionLocal() as session:
         return await session.scalar(select(Lead).where(Lead.mobile == mobile))
+
+
+async def _seed_property(*, active: bool) -> str:
+    from app.models.property import Property
+
+    async with db_session.AsyncSessionLocal() as session:
+        property_listing = Property(
+            business_line="real_estate",
+            active=active,
+            title="Canonical Public Villa",
+            type="Villa",
+            location="Jubilee Hills, Hyderabad",
+            price_display="₹2 Cr",
+            category="villas",
+            city="Hyderabad",
+            locality="Jubilee Hills",
+            pincode="500033",
+            price_paise=2_000_000_000,
+            bhk=4,
+            area_sqft=2600,
+            amenities=[],
+            age_years=0,
+            rera_applicability="unsure",
+            rera_verification_status="not_reviewed",
+            details={},
+        )
+        session.add(property_listing)
+        await session.commit()
+        return str(property_listing.id)
+
+
+async def _delete_property(property_id: str) -> None:
+    from app.models.property import Property
+
+    async with db_session.AsyncSessionLocal() as session:
+        await session.execute(delete(Property).where(Property.id == uuid.UUID(property_id)))
+        await session.commit()
 
 
 @pytest.fixture(autouse=True)
@@ -69,6 +108,53 @@ async def test_create_lead_persists_row(client: AsyncClient) -> None:
     assert lead.requirement["page"] == "contact"
     assert lead.requirement["product"] == "Personal Loan"
     assert lead.requirement["message"] == "Need 5 lakh"
+
+
+async def test_property_lead_uses_canonical_listing_facts(client: AsyncClient) -> None:
+    property_id = await _seed_property(active=True)
+    mobile = unique_mobile()
+    try:
+        resp = await client.post(
+            "/api/v1/leads",
+            json=_payload(
+                mobile,
+                topic="real_estate",
+                property_ref=property_id,
+                product="Spoofed browser title",
+            ),
+        )
+        assert resp.status_code == 202
+
+        lead = await _get_lead(mobile)
+        assert lead is not None
+        assert lead.requirement["property_ref"] == property_id
+        assert lead.requirement["property_title"] == "Canonical Public Villa"
+        assert lead.requirement["property_location"] == "Jubilee Hills, Hyderabad"
+        assert lead.requirement["product"] == ("Canonical Public Villa, Jubilee Hills, Hyderabad")
+    finally:
+        await _delete_property(property_id)
+
+
+async def test_inactive_property_lead_stays_non_enumerating(client: AsyncClient) -> None:
+    property_id = await _seed_property(active=False)
+    mobile = unique_mobile()
+    try:
+        resp = await client.post(
+            "/api/v1/leads",
+            json=_payload(
+                mobile,
+                topic="real_estate",
+                property_ref=property_id,
+                product="Hidden title",
+            ),
+        )
+        assert resp.status_code == 202
+        lead = await _get_lead(mobile)
+        assert lead is not None
+        assert "property_ref" not in lead.requirement
+        assert "product" not in lead.requirement
+    finally:
+        await _delete_property(property_id)
 
 
 async def test_create_lead_enriches_open_existing(

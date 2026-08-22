@@ -3311,6 +3311,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/public/properties/{property_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Property Public */
+        get: operations["get_property_public_api_v1_public_properties__property_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/push/subscribe": {
         parameters: {
             query?: never;
@@ -6147,20 +6164,17 @@ export interface components {
         };
         /** EnquiryCreate */
         EnquiryCreate: {
-            /** City */
-            city: string;
             /** Contact Mobile */
             contact_mobile: string;
             /** Contact Name */
             contact_name: string;
-            /** Locality */
-            locality: string;
             /** Message */
             message?: string | null;
-            /** Property Ref */
+            /**
+             * Property Ref
+             * Format: uuid
+             */
             property_ref: string;
-            /** Title */
-            title: string;
         };
         /** EnquiryListResponse */
         EnquiryListResponse: {
@@ -8129,6 +8143,8 @@ export interface components {
             origin: string;
             /** Product */
             product?: string | null;
+            /** Property Ref */
+            property_ref?: string | null;
             /**
              * Topic
              * @enum {string}
@@ -8190,6 +8206,63 @@ export interface components {
             id: string;
             /** Title */
             title: string;
+        };
+        /**
+         * PublicPropertyDetailRead
+         * @description Anonymous detail shape for one Admin-published property.
+         *
+         *     This remains deliberately separate from ``PropertyRead``. The detail page
+         *     exposes useful buyer facets, but never internal publication state, exact
+         *     minor-unit pricing, reviewer identity, or timestamps.
+         */
+        PublicPropertyDetailRead: {
+            /** Age Years */
+            age_years: number;
+            /** Amenities */
+            amenities: string[];
+            /** Area Sqft */
+            area_sqft: number;
+            /** Bhk */
+            bhk: number;
+            category: components["schemas"]["PropertyCategory"];
+            /** City */
+            city: string;
+            construction_status: components["schemas"]["ConstructionStatus"] | null;
+            furnishing: components["schemas"]["Furnishing"] | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Image */
+            image: string | null;
+            /** Locality */
+            locality: string;
+            /** Location */
+            location: string;
+            /** Media */
+            media?: components["schemas"]["PropertyMediaRead"][];
+            /** Media Urls */
+            media_urls?: string[];
+            /** Meta */
+            meta: string | null;
+            /** Pincode */
+            pincode: string;
+            /** Price Display */
+            price_display: string;
+            property_subtype: components["schemas"]["PropertySubtype"] | null;
+            rera_applicability: components["schemas"]["ReraApplicability"];
+            /** Rera Number */
+            rera_number: string | null;
+            rera_verification_status: components["schemas"]["ReraVerificationStatus"];
+            /** State */
+            state: string | null;
+            /** Structured Details */
+            structured_details: (components["schemas"]["ProjectResidenceDetails"] | components["schemas"]["IndividualPropertyDetails"] | components["schemas"]["CommercialPropertyDetails"] | components["schemas"]["PlotDetails"] | components["schemas"]["AgriculturalLandDetails"]) | null;
+            /** Title */
+            title: string;
+            /** Type */
+            type: string;
         };
         /** PublicPropertyListResponse */
         PublicPropertyListResponse: {
@@ -8636,14 +8709,10 @@ export interface components {
         SiteAreaUnit: "sqft" | "sqyd";
         /** SiteVisitCreate */
         SiteVisitCreate: {
-            /** City */
-            city: string;
             /** Contact Mobile */
             contact_mobile: string;
             /** Contact Name */
             contact_name: string;
-            /** Locality */
-            locality: string;
             /** Message */
             message?: string | null;
             /** Pickup At */
@@ -8661,10 +8730,11 @@ export interface components {
              */
             preferred_date: string;
             preferred_time_slot: components["schemas"]["SiteVisitTimeSlot"];
-            /** Property Ref */
+            /**
+             * Property Ref
+             * Format: uuid
+             */
             property_ref: string;
-            /** Title */
-            title: string;
         };
         /** SiteVisitListResponse */
         SiteVisitListResponse: {
@@ -16627,6 +16697,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PublicPropertyListResponse"];
+                };
+            };
+        };
+    };
+    get_property_public_api_v1_public_properties__property_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                property_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicPropertyDetailRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

@@ -10,8 +10,9 @@ route drops the write while still answering 202.
 from __future__ import annotations
 
 from typing import Annotated, Literal
+from uuid import UUID
 
-from pydantic import BaseModel, EmailStr, Field, field_validator
+from pydantic import BaseModel, EmailStr, Field, field_validator, model_validator
 
 # Public sales enquiries must name one operational business line. Partner
 # applications use their dedicated OTP/KYC flow and already choose a line.
@@ -29,6 +30,7 @@ class PublicLeadCreate(BaseModel):
     topic: LeadTopic
     origin: LeadPage
     product: Annotated[str | None, Field(default=None, max_length=120)] = None
+    property_ref: UUID | None = None
     email: EmailStr | None = None
     message: Annotated[str | None, Field(default=None, max_length=1000)] = None
     # Honeypot: hidden on the real form, so any value = automation.
@@ -48,6 +50,12 @@ class PublicLeadCreate(BaseModel):
         if not v:
             raise ValueError("Name cannot be blank.")
         return v
+
+    @model_validator(mode="after")
+    def _property_requires_real_estate(self) -> PublicLeadCreate:
+        if self.property_ref is not None and self.topic != "real_estate":
+            raise ValueError("A property reference requires the real-estate topic.")
+        return self
 
 
 class PublicLeadResponse(BaseModel):

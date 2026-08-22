@@ -26,6 +26,7 @@ and doubles as the endpoint's only DoS backstop.
 from __future__ import annotations
 
 from collections.abc import Sequence
+from uuid import UUID
 
 from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -89,6 +90,21 @@ async def list_public_properties(db: AsyncSession) -> Sequence[Property]:
     )
     result = await db.execute(stmt)
     return result.scalars().all()
+
+
+async def get_public_property(db: AsyncSession, property_id: UUID) -> Property | None:
+    """Return one published property without relying on RLS.
+
+    Anonymous requests execute as the application superuser, so this explicit
+    predicate is the entire confidentiality boundary for inactive listings.
+    """
+
+    return await db.scalar(
+        select(Property).where(
+            Property.id == property_id,
+            Property.active.is_(True),
+        )
+    )
 
 
 async def list_public_banners(
