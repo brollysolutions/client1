@@ -1,14 +1,15 @@
 # Financial-provider candidates and reusable logo library
 
-Status: **User-supplied product direction with unresolved normalization**
+Status: **User-supplied product direction with approved group mapping and
+unresolved provider normalization**
 
 As of: **2026-08-22**
 
 Authority: **Authoritative for the requirement to make the supplied provider
 candidates available through an Admin-managed, reusable logo library and
-product/provider configuration. The spellings, duplicate handling, canonical
-legal identities, and exact product mapping are raw input pending explicit
-normalization approval.**
+product/provider configuration, and for the approved Group A through G product
+mapping. The spellings, duplicate handling, canonical legal identities, and
+offer-level segmentation remain raw input pending explicit normalization.**
 
 ## 1. Supplied direction
 
@@ -31,7 +32,7 @@ their display names are similar.
 
 The following transcription preserves supplied capitalization, spelling,
 ordering, and duplicates. Group letters are derived only from the separators in
-the message. They are not approved product mappings.
+the message; their product mappings were later confirmed in Section 3.
 
 ### Group A
 
@@ -349,11 +350,11 @@ BAJAJ(
 
 The final Group G entry is incomplete in the supplied message.
 
-## 3. Derived grouping hypothesis requiring confirmation
+## 3. Approved product-group mapping
 
-Annotations make the following mapping plausible, but it is not yet approved:
+The user explicitly confirmed this mapping on 2026-08-22:
 
-| Raw group | Possible product |
+| Raw group | Product |
 | --- | --- |
 | A | Personal Loan |
 | B | Business Loan |
@@ -363,7 +364,9 @@ Annotations make the following mapping plausible, but it is not yet approved:
 | F | Education Loan |
 | G | Equipment Loan |
 
-Group E may need separate New Car, Used Car, and broader Vehicle mappings.
+Group E is authoritative for the combined Car/Vehicle Loan scope. The current
+catalogue has separate Car Loan and Vehicle Loan products, so exact assignment
+between them remains an offer-level/Admin configuration detail.
 Group F contains domestic and international variants that may be offer
 attributes rather than separate providers.
 
@@ -410,9 +413,8 @@ attributes rather than separate providers.
 
 ## 6. Open decisions
 
-- Confirm the Group A through G product mapping.
-- Confirm whether Group E is one vehicle group or separate New Car, Used Car,
-  and other Vehicle groups.
+- Decide how Group E entries attach to the separate existing Car Loan and
+  Vehicle Loan products, including New Car and Used-only offer labels.
 - Supply the missing end of Group G after “BAJAJ(”.
 - Approve canonical provider names and distinct legal entities before any seed
   migration is generated.
