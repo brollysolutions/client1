@@ -50,9 +50,6 @@ export async function getEnquiries(): Promise<ApiResponse<Enquiry[]>> {
 
 export async function createEnquiry(input: {
   propertyRef: string;
-  title: string;
-  locality: string;
-  city: string;
   contactName: string;
   contactMobile: string;
   message?: string;
@@ -61,9 +58,6 @@ export async function createEnquiry(input: {
     method: "POST",
     body: {
       property_ref: input.propertyRef,
-      title: input.title,
-      locality: input.locality,
-      city: input.city,
       contact_name: input.contactName,
       contact_mobile: input.contactMobile,
       ...(input.message ? { message: input.message } : {}),

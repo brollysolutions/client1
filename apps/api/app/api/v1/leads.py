@@ -15,6 +15,7 @@ from __future__ import annotations
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.cache.redis_keys import (
     TTL_CONTACT_INVITATION_RATE,
@@ -27,10 +28,12 @@ from app.cache.redis_keys import (
 from app.core.client_ip import get_client_ip
 from app.core.config import settings
 from app.core.deps import get_cache
+from app.db.session import get_db
 from app.schemas.field_visibility import ContactInvitationRead
 from app.schemas.leads import PublicLeadCreate, PublicLeadResponse
 from app.services.field_visibility import consume_invitation, invitation_is_valid
 from app.services.leads import capture_lead
+from app.services.properties import get_active_property
 
 logger = logging.getLogger(__name__)
 
@@ -83,6 +86,7 @@ async def create_lead(
     req: PublicLeadCreate,
     request: Request,
     cache: RedisCache = Depends(get_cache),
+    db: AsyncSession = Depends(get_db),
 ) -> PublicLeadResponse:
     # Honeypot tripped: pretend success, write nothing, spend nothing.
     if req.company:
@@ -91,9 +95,21 @@ async def create_lead(
 
     await _check_lead_rates(cache, get_client_ip(request), req.mobile)
 
+    property_listing = (
+        await get_active_property(db, req.property_ref) if req.property_ref is not None else None
+    )
     requirement = {
         "page": req.origin,
-        **({"product": req.product} if req.product else {}),
+        **(
+            {
+                "property_ref": str(property_listing.id),
+                "property_title": property_listing.title,
+                "property_location": property_listing.location,
+                "product": f"{property_listing.title}, {property_listing.location}"[:120],
+            }
+            if property_listing is not None
+            else ({"product": req.product} if req.product and req.property_ref is None else {})
+        ),
         **({"email": req.email} if req.email else {}),
         **({"message": req.message} if req.message else {}),
     }

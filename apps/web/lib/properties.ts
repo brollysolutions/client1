@@ -44,6 +44,20 @@ export type PropertyListing = {
   structuredDetails?: PropertyStructuredDetails;
 };
 
+export type PropertyDetailListing = PropertyListing & {
+  city: string;
+  locality: string;
+  state?: string;
+  pincode: string;
+  bhk: number;
+  areaSqft: number;
+  furnishing: components["schemas"]["Furnishing"] | null;
+  constructionStatus: components["schemas"]["ConstructionStatus"] | null;
+  amenities: string[];
+  ageYears: number;
+  reraApplicability: components["schemas"]["ReraApplicability"];
+};
+
 const CATEGORY_COPY: Record<PropertyCategory, { label: string; blurb: string }> = {
   apartments: {
     label: "Apartments",

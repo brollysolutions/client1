@@ -7,9 +7,26 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.models.property import Property
 from app.models.property_media import PropertyMedia
 from app.schemas.properties import PropertyMediaRead
 from app.services import storage
+
+
+async def get_active_property(db: AsyncSession, property_id: UUID) -> Property | None:
+    """Resolve a canonical active listing for an authenticated action.
+
+    The session's RLS context still decides which rows the caller may see; the
+    explicit active predicate prevents staff-visible drafts from being used as
+    client action targets.
+    """
+
+    return await db.scalar(
+        select(Property).where(
+            Property.id == property_id,
+            Property.active.is_(True),
+        )
+    )
 
 
 async def media_urls_by_property(

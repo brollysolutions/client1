@@ -1,5 +1,6 @@
 "use client";
 
+import * as React from "react";
 import type { components } from "@contracts/generated/schema";
 
 import { Button } from "@/components/ui/button";

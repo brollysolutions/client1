@@ -29,15 +29,18 @@ export function mapProperty(raw: Schemas["PropertyRead"]): REListing {
     pincode: raw.pincode,
     furnishing: raw.furnishing,
     status: raw.construction_status,
+    constructionStatus: raw.construction_status,
     amenities: raw.amenities,
     ageYears: raw.age_years,
     city: raw.city,
     locality: raw.locality,
+    ...(raw.state ? { state: raw.state } : {}),
     bhk: raw.bhk,
     areaSqft: raw.area_sqft,
     priceLakhs: raw.price_paise / 10_000_000,
     reraNumber: raw.rera_number,
     reraVerificationStatus: raw.rera_verification_status,
+    reraApplicability: raw.rera_applicability,
     structuredDetails: raw.structured_details,
   };
 }

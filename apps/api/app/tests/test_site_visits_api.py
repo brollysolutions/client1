@@ -15,16 +15,56 @@ from datetime import date, timedelta
 
 import pytest
 from httpx import AsyncClient
+from sqlalchemy import delete
 
 from conftest import full_registration
 
 _TOMORROW = (date.today() + timedelta(days=1)).isoformat()
 _YESTERDAY = (date.today() - timedelta(days=1)).isoformat()
+_PROPERTY_ID = ""
+
+
+@pytest.fixture(autouse=True)
+async def _active_property() -> None:
+    import app.db.session as _session_mod
+    from app.models.property import Property
+
+    global _PROPERTY_ID
+    async with _session_mod.AsyncSessionLocal() as db:
+        property_listing = Property(
+            business_line="real_estate",
+            active=True,
+            title="Canonical 3BHK Villa",
+            type="Villa",
+            location="Verified Locality, Verified City",
+            price_display="₹1.2 Cr",
+            category="villas",
+            city="Verified City",
+            locality="Verified Locality",
+            pincode="560001",
+            price_paise=1_200_000_000,
+            bhk=3,
+            area_sqft=1800,
+            amenities=[],
+            age_years=0,
+            rera_applicability="unsure",
+            rera_verification_status="not_reviewed",
+            details={},
+        )
+        db.add(property_listing)
+        await db.commit()
+        _PROPERTY_ID = str(property_listing.id)
+    try:
+        yield
+    finally:
+        async with _session_mod.AsyncSessionLocal() as db:
+            await db.execute(delete(Property).where(Property.id == uuid.UUID(_PROPERTY_ID)))
+            await db.commit()
 
 
 def _payload(**overrides: object) -> dict:
     body = {
-        "property_ref": "prop-42",
+        "property_ref": _PROPERTY_ID,
         "title": "3BHK Villa",
         "locality": "Whitefield",
         "city": "Bengaluru",
@@ -73,7 +113,10 @@ async def test_create_then_list_own_visit(client: AsyncClient) -> None:
     assert created.status_code == 201, created.text
     body = created.json()
     assert body["status"] == "requested"
-    assert body["title"] == "3BHK Villa"
+    assert body["property_ref"] == _PROPERTY_ID
+    assert body["title"] == "Canonical 3BHK Villa"
+    assert body["locality"] == "Verified Locality"
+    assert body["city"] == "Verified City"
     assert body["preferred_time_slot"] == "morning"
     assert body["cancelled_at"] is None
 
@@ -131,6 +174,17 @@ async def test_past_preferred_date_is_422(client: AsyncClient) -> None:
         json=_payload(preferred_date=_YESTERDAY),
     )
     assert resp.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_unknown_property_is_404(client: AsyncClient) -> None:
+    token, _ = await full_registration(client, lines=["real_estate"])
+    resp = await client.post(
+        "/api/v1/site-visits",
+        headers={"Authorization": f"Bearer {token}"},
+        json=_payload(property_ref=str(uuid.uuid4())),
+    )
+    assert resp.status_code == 404
 
 
 @pytest.mark.asyncio

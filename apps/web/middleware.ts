@@ -21,7 +21,12 @@ import type { NextRequest } from "next/server";
 // AppGuard-only protection, which is safe, just not fast).
 export function middleware(request: NextRequest) {
   if (!request.cookies.has("session_hint")) {
-    return NextResponse.redirect(new URL("/login", request.url));
+    const loginUrl = new URL("/login", request.url);
+    loginUrl.searchParams.set(
+      "return_to",
+      `${request.nextUrl.pathname}${request.nextUrl.search}`,
+    );
+    return NextResponse.redirect(loginUrl);
   }
   return NextResponse.next();
 }

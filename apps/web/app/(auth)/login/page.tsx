@@ -26,7 +26,7 @@ import {
   RESET_MOBILE_KEY,
 } from "@/lib/auth";
 import { isValidMobile, normalizeMobile, toE164 } from "@/lib/phone";
-import { isSafeLocalHref } from "@/lib/safe-local-href";
+import { dashboardReturnTo } from "@/lib/auth-return";
 
 export default function LoginPage() {
   return (
@@ -40,18 +40,7 @@ function LoginPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { setSession } = useAuth();
-  const requestedReturnTo = searchParams.get("return_to");
-  const isDashboardReturnPath =
-    requestedReturnTo === "/dashboard" ||
-    requestedReturnTo?.startsWith("/dashboard/") ||
-    requestedReturnTo?.startsWith("/dashboard?") ||
-    requestedReturnTo?.startsWith("/dashboard#");
-  const returnTo =
-    requestedReturnTo &&
-    isDashboardReturnPath &&
-    isSafeLocalHref(requestedReturnTo)
-      ? requestedReturnTo
-      : "/dashboard";
+  const returnTo = dashboardReturnTo(searchParams.get("return_to"));
   const registerHref =
     returnTo === "/dashboard" ? "/register" : `/register?return_to=${encodeURIComponent(returnTo)}`;
   const [mobile, setMobile] = React.useState("");

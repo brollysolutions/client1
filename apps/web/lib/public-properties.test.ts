@@ -2,7 +2,12 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { components } from "@contracts/generated/schema";
 
-import { getPublicListings, mapPublicListing } from "@/lib/public-properties";
+import {
+  getPublicListings,
+  getPublicProperty,
+  mapPublicListing,
+  mapPublicPropertyDetail,
+} from "@/lib/public-properties";
 
 type Schemas = components["schemas"];
 
@@ -28,6 +33,26 @@ function wireListing(overrides: Partial<Schemas["PublicPropertyRead"]> = {}): Sc
     rera_number: "RERA/KA/2024/1234",
     rera_verification_status: "verified",
     structured_details: null,
+    ...overrides,
+  };
+}
+
+function wireDetail(
+  overrides: Partial<Schemas["PublicPropertyDetailRead"]> = {},
+): Schemas["PublicPropertyDetailRead"] {
+  return {
+    ...wireListing(),
+    city: "Pune",
+    locality: "Baner",
+    state: "Maharashtra",
+    pincode: "411045",
+    bhk: 2,
+    area_sqft: 1120,
+    furnishing: "semi",
+    construction_status: "ready",
+    amenities: ["lift", "gym"],
+    age_years: 3,
+    rera_applicability: "applicable",
     ...overrides,
   };
 }
@@ -131,5 +156,41 @@ describe("getPublicListings()", () => {
     }) as unknown as Response));
 
     expect(await getPublicListings()).toEqual([]);
+  });
+});
+
+describe("public property detail", () => {
+  it("maps the buyer facets used by the full-page experience", () => {
+    const detail = mapPublicPropertyDetail(wireDetail());
+    expect(detail).toMatchObject({
+      city: "Pune",
+      locality: "Baner",
+      state: "Maharashtra",
+      pincode: "411045",
+      bhk: 2,
+      areaSqft: 1120,
+      furnishing: "semi",
+      constructionStatus: "ready",
+      amenities: ["lift", "gym"],
+      ageYears: 3,
+      reraApplicability: "applicable",
+    });
+  });
+
+  it("requests the exact property and keeps the HTTP status", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => fakeResponse(200, wireDetail())));
+    const result = await getPublicProperty(
+      "11111111-1111-1111-1111-111111111111",
+    );
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.status).toBe(200);
+    expect(result.data.id).toBe("11111111-1111-1111-1111-111111111111");
+    expect(vi.mocked(fetch)).toHaveBeenCalledWith(
+      expect.stringContaining(
+        "/api/v1/public/properties/11111111-1111-1111-1111-111111111111",
+      ),
+      expect.objectContaining({ next: { revalidate: 0 } }),
+    );
   });
 });
