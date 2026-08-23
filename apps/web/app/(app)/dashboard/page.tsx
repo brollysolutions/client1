@@ -92,10 +92,5 @@ export default function DashboardPage() {
   // profiles may be empty briefly right after signup (backfilled by the scheduler);
   // the applications view still renders its own empty state, so nothing to gate on me here.
   void me;
-  return (
-    <>
-      <PersonalizedPlacements businessLine={activeLine} />
-      <LoansApplications />
-    </>
-  );
+  return <LoansApplications />;
 }

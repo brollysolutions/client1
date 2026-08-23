@@ -9,6 +9,84 @@ Evidence baseline: `abcc1fd`
 verified Admin operational-visibility work in
 [PR #173](https://github.com/brollysolutions/client1/pull/173).
 
+**Done - Loans client dashboard shell and home decluttering
+(branch `claude/20260823-211421-loans-client-page-dashbaord-1-side-navbar`;
+direct user-reported UI change, no requirement or completion-percentage
+change):** the authenticated desktop icon rail (`features/dashboard/app-shell.tsx`)
+no longer persists its expanded state to `localStorage` across reloads — it
+always starts collapsed, and the in-session expand/collapse toggle is
+unchanged. On the loans-Client dashboard home
+(`app/(app)/dashboard/page.tsx`'s loans-Client fallthrough branch), the
+`<PersonalizedPlacements>` "Dashboard highlights" banner/offers block is
+dropped so the page renders `<LoansApplications />` alone; the real-estate
+Client and Agent homes keep their `<PersonalizedPlacements>` call unchanged.
+`features/dashboard/loans-applications.tsx` also drops the `DashboardHeader`
+`eyebrow="Loans workspace"` prop, the four zero-count `MetricGrid` cards (and
+their now-orphaned `activeCount`/`attentionCount`/`completedCount`
+computations), and the empty-state decorative icon.
+
+`shell-state.ts` is untouched: `isDesktopSidebarExpanded`'s
+`role === "client" && clientPreference` check is still correct now that
+`clientPreference` (`railOpen`) is simply session-only rather than restored
+from storage. Three Playwright specs that asserted the old, persisted-rail /
+highlights-present behavior are updated to match: `dashboard-navigation.spec.ts`
+inverts its post-reload assertion from `"Collapse sidebar"` to
+`"Expand sidebar"` and adds home-page regressions asserting the
+`"Dashboard highlights"` region has zero count and that no "Loans workspace" or
+"Needs attention" text renders; `personalization.spec.ts` and the shared
+`logIn` helper in `loan-media.spec.ts` swap their `"Dashboard highlights"`
+visibility gate for the `"Your loan journey"` heading, which renders whether or
+not the account has applications yet. `loan-media.spec.ts`'s unrelated "Needs
+attention" assertion (the document-verification badge in `documents-view.tsx`)
+is untouched.
+
+No route, API, contract, migration, RLS, or operational-role (admin, sub_admin,
+telecaller, employee) behavior changed. Because rail persistence was keyed on
+`role === "client"` rather than business line, this affects Client accounts on
+both lines — there is no line-scoped hook available without introducing a new
+inner component, and this was accepted directly by the user.
+
+Fresh evidence: `pnpm lint`, `pnpm typecheck`, and all 413 web unit tests
+across 65 files pass, unchanged including `shell-state.test.ts`. `pnpm build`
+compiled, typechecked, and generated all 93 pages before the same
+pre-existing Windows-host `EPERM` standalone-symlink failure recorded
+elsewhere in this document. The `check_feature_tracking.py` co-change guard
+passes.
+
+Live browser verification on the restarted `client1-web-1` dev container at
+1440px against two demo Client accounts (`client.demo@example.com` and the
+referred-journey account) confirmed: the loans line home shows no highlights
+banner, no "Loans workspace" eyebrow, no zero-count metric row, and a
+populated applications table, with no console errors attributable to this
+change; the desktop rail starts collapsed ("Expand sidebar" visible),
+expands within the session, and returns to collapsed after a hard reload;
+switching the same account to the Real Estate line still renders its
+"Dashboard highlights" banner (`Demo Real Estate workspace`) unaffected. The
+empty-state icon removal was verified by code inspection only — both seeded
+demo Client accounts already have loan applications, so the true empty state
+was not directly observed live.
+
+`pnpm test:e2e` ran the three touched specs (plus their sibling tests in the
+same files) against the live Docker stack. The Client scenario in
+`dashboard-navigation.spec.ts` — carrying the new post-reload rail assertion
+and the new highlights/eyebrow/attention-text regressions — passes, as do
+the Agent, Telecaller, Employee, and Sub Admin scenarios, the "Sub Admin
+retains every authoring route" test, and the "Sub Admin CMS pages open
+accessible floating authoring workspaces" test. Both `personalization.spec.ts`
+tests pass, including the one asserting the new "Your loan journey"
+heading/highlights-absent gate. Two failures are recorded as pre-existing and
+unrelated: the Admin scenario in `dashboard-navigation.spec.ts` fails on a
+`Financial products` nav-link visibility assertion that shares no code path
+with this change (confirmed by rerunning it in isolation), and one
+`loan-media.spec.ts` test fails in its own `registerLoansClient` helper on
+"Password must not contain your mobile number" — that helper derives both
+`password` and `mobile` from `Date.now()` and can coincidentally collide,
+unrelated to the one-line `logIn` heading-gate edited here.
+
+No route, API, contract, migration, RLS, or operational-role behavior
+changed. Security, design, and maintainer review were not separately
+requested for this direct user-reported UI change.
+
 **Done - Property detail page decluttering, contain-fit gallery, and Similar
 Properties ([PR #221](https://github.com/brollysolutions/client1/pull/221);
 direct user-reported public/dashboard UI change, no requirement or
@@ -1277,7 +1355,9 @@ business-line segregation remain non-negotiable compatibility constraints.
   [PR #167](https://github.com/brollysolutions/client1/pull/167).
   Admin, Sub Admin, Telecaller, Employee, and Agent now receive a permanently
   expanded labeled desktop sidebar without a panel-toggle icon, while Clients
-  retain their remembered expand/collapse preference and every role retains the
+  retain an expand/collapse rail (later changed to always start collapsed per
+  session, dropping the remembered preference, by the loans-client home
+  decluttering follow-up below) and every role retains the
   mobile drawer. One semantic icon registry drives navigation and home
   shortcuts. Shared page-header, metric, queue, panel, status, and quick-action
   patterns give all six role homes a denser operational hierarchy without
