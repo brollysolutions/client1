@@ -823,6 +823,43 @@ work than several completed UI requirements.
 
 ## Current work
 
+**Done - [PR #220](https://github.com/brollysolutions/client1/pull/220) -
+Comprehensive local demo accounts and workflow data (developer experience; no
+requirement or completion-percentage change):** one development-only,
+idempotent command now provisions deterministic synthetic accounts for Admin,
+Sub Admin, Client, Agent, Telecaller, and Employee workspaces, with both Loans
+and Real Estate represented where the role is line-scoped. The dataset covers
+lead assignment and history, loan applications, property authoring/review and
+transactions, staff tasks, referral/commission/payout/cashback ledgers,
+personalization content, support, notifications, audit examples, and three
+managed-media paths. It preserves unrelated local rows and an established Main
+Admin, refuses non-development environments, stops on identity collisions, and
+does not call payment, email, voice, push, or other live providers.
+
+Fresh evidence: `python -m app.scripts.seed_demo` against the live local
+Postgres database, rerun for idempotency, and a third run with the new
+`--verify` flag that logs into all 11 demo accounts over real HTTP, confirms
+each JWT's role/business-line claims, and asserts each role's primary
+dashboard API returns non-empty, RLS-scoped data — all 11 passed. All 14
+focused `test_seed_helpers.py` cases pass; API Ruff and format pass across 471
+files; Alembic reports the single head `73f4c2a91d6e`. Interactive Chromium
+sessions (not just headless API calls) confirmed two representative roles end
+to end against the local Next dev container: Admin reaches `/dashboard` and
+renders "Admin overview" with the seeded pending-approvals queue and banner;
+Client reaches `/dashboard` and renders the seeded Personal/Home loan rows,
+the seeded offer, and the Loans/Real Estate workspace switcher. The remaining
+9 roles were not opened in a browser in this pass — their login, role/line
+claims, and RLS-scoped data are covered by the `--verify` run instead. The
+full `cd apps/api && uv run pytest -q` regression gate was started and ran to
+past 30 minutes without a final report on this Windows host's Docker
+container, consistent with the full-suite host timeouts already recorded
+elsewhere in this table; it is inconclusive rather than passing or failing,
+and no other change in this PR touches an existing production code path — it
+adds two new development-only scripts and one new test file. No API contract,
+migration, authorization, RLS policy, dependency, or production bootstrap
+behavior changed. Completion coverage remains **99.4%**; next priority returns
+to FR-2.2 controlled correction/audit.
+
 **Done — [PR #217](https://github.com/brollysolutions/client1/pull/217) —
 Homepage information-flow refinement (public UI; no requirement or
 completion-percentage change):** the Home page again presents
