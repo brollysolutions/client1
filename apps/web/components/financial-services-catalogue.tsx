@@ -13,7 +13,6 @@ import type {
 } from "@/lib/financial-catalog";
 import {
   CATALOGUE_ANCHOR,
-  CATEGORY_PILL_LABEL,
   catalogueAnchorHref,
   type CatalogueCategory,
   type CatalogueQuery,
@@ -56,9 +55,6 @@ function CardArtwork({ product }: { product: PublicFinancialProduct }) {
           </span>
         </div>
       )}
-      <span className="absolute left-3 top-3 rounded-full bg-surface/85 px-2.5 py-1 text-[0.7rem] font-semibold text-brand-blue ring-1 ring-inset ring-brand-blue/15 backdrop-blur-sm">
-        {CATEGORY_PILL_LABEL[product.category]}
-      </span>
     </div>
   );
 }
@@ -67,7 +63,7 @@ function ServiceCard({ product }: { product: PublicFinancialProduct }) {
   const href = `/loans/${product.slug}`;
 
   return (
-    <article className="group relative flex h-full flex-col overflow-hidden rounded-2xl border border-[var(--nav-border)] bg-surface shadow-sm transition duration-200 hover:-translate-y-1 hover:border-brand-blue/40 hover:shadow-lg motion-reduce:transition-none motion-reduce:hover:translate-y-0">
+    <article className="group relative flex h-full flex-col overflow-hidden rounded-2xl border border-[var(--nav-border)] bg-[var(--nav-bg)] shadow-sm transition duration-200 hover:-translate-y-1 hover:border-brand-blue/40 hover:shadow-lg motion-reduce:transition-none motion-reduce:hover:translate-y-0">
       <CardArtwork product={product} />
 
       <div className="flex flex-1 flex-col px-5 pt-5">
@@ -77,11 +73,6 @@ function ServiceCard({ product }: { product: PublicFinancialProduct }) {
         <p className="mt-2 line-clamp-3 text-sm leading-relaxed text-text-secondary">
           {product.summary}
         </p>
-        {product.provider_count > 0 ? (
-          <p className="mt-3 text-xs font-semibold text-brand-blue">
-            {product.provider_count} provider{product.provider_count === 1 ? "" : "s"} configured
-          </p>
-        ) : null}
       </div>
 
       <div className="mt-5 flex items-center justify-between gap-3 border-t border-[var(--nav-border)] px-5 py-4">

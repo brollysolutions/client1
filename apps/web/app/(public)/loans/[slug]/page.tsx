@@ -15,7 +15,6 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { LeadDialog } from "@/components/lead-dialog";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -228,16 +227,15 @@ export default async function FinancialServicePage({ params, searchParams }: Pag
           </Link>
           <div className="mt-8 grid items-center gap-10 lg:grid-cols-[1fr_24rem]">
             <div>
-              <Badge variant="secondary">{product.provider_count} configured providers</Badge>
-              <h1 className="mt-4 max-w-4xl font-heading text-4xl font-semibold text-foreground sm:text-5xl lg:text-6xl">
+              <h1 className="max-w-4xl font-heading text-4xl font-semibold text-foreground sm:text-5xl lg:text-6xl">
                 {product.label}
               </h1>
               <p className="mt-5 max-w-3xl text-xl text-text-secondary">{product.summary}</p>
               <p className="mt-4 max-w-3xl text-base leading-7 text-text-secondary">
                 {product.description}
               </p>
-              <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-                <Button asChild size="lg">
+              <div className="mt-8 grid grid-cols-1 gap-3 sm:max-w-md sm:grid-cols-2">
+                <Button asChild size="lg" className="w-full">
                   <Link href={applyHref(product.slug)}>
                     {product.category === "loan" ? "Apply inside Dhanadhara" : "Request a quote"}
                   </Link>
@@ -247,6 +245,7 @@ export default async function FinancialServicePage({ params, searchParams }: Pag
                   product={product.label}
                   triggerLabel="Enquire now"
                   triggerVariant="outline"
+                  size="lg"
                   origin="financial-service-detail"
                   href={contactHref({ line: "loans", product: product.label })}
                 />
@@ -256,10 +255,7 @@ export default async function FinancialServicePage({ params, searchParams }: Pag
               <div className="flex h-20 w-20 items-center justify-center rounded-3xl bg-brand-blue text-white shadow-lg shadow-brand-blue/20">
                 <BadgeIndianRupee className="h-10 w-10" aria-hidden />
               </div>
-              <p className="mt-8 text-sm font-semibold uppercase tracking-[0.14em] text-brand-blue">
-                One guided route
-              </p>
-              <p className="mt-2 font-heading text-2xl font-semibold text-foreground">
+              <p className="mt-8 font-heading text-2xl font-semibold text-foreground">
                 Compare here. Continue here.
               </p>
               <p className="mt-3 text-sm leading-6 text-text-secondary">
@@ -280,10 +276,7 @@ export default async function FinancialServicePage({ params, searchParams }: Pag
       <section id="providers" className="scroll-mt-20 bg-[var(--nav-bg)] px-4 py-16 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-7xl">
           <div className="max-w-3xl">
-            <p className="text-sm font-semibold uppercase tracking-[0.16em] text-brand-blue">
-              Provider explorer
-            </p>
-            <h2 className="mt-3 font-heading text-3xl font-semibold text-foreground sm:text-4xl">
+            <h2 className="font-heading text-3xl font-semibold text-foreground sm:text-4xl">
               Compare configured provider options
             </h2>
             <p className="mt-4 text-text-secondary">

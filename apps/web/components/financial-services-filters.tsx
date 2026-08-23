@@ -248,16 +248,10 @@ export function FinancialServicesFilters({
             })}
           </div>
 
-          {/* The pills already carry per-category counts, so the standalone
-              summary is desktop-only. The live region stays in the tree at
-              every width so assistive tech still hears the result change. */}
+          {/* The pills already carry per-category counts, so the aggregate
+              total is not shown visually. The live region stays in the tree
+              at every width so assistive tech still hears the result change. */}
           <p aria-live="polite" className="sr-only">
-            {countLabel}
-          </p>
-          <p
-            aria-hidden
-            className="hidden shrink-0 text-sm font-semibold tabular-nums text-brand-navy/70 lg:block"
-          >
             {countLabel}
           </p>
         </div>
