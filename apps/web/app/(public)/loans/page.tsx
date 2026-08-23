@@ -117,7 +117,7 @@ export default async function LoansPage({ searchParams }: { searchParams: LoansS
               facets={facets}
               query={{ q, category, page }}
             />
-            <TrustStrip eyebrow="Why people trust us" points={LOAN_TRUST} />
+            <TrustStrip points={LOAN_TRUST} />
           </>
         }
         journeyHeading="What happens when you apply?"

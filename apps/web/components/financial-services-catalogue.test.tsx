@@ -74,6 +74,10 @@ describe("Financial Services public discovery", () => {
     expect(markup).toMatch(/class="[^"]*sticky top-16 z-30[^"]*"/);
     // No opaque white panel behind the bar.
     expect(markup).not.toMatch(/class="[^"]*sticky top-16[^"]*bg-card[^"]*"/);
+    // The aggregate "N service(s)" total is announced to assistive tech but
+    // no longer shown visibly next to the bar.
+    expect(markup).toMatch(/class="sr-only">1 service</);
+    expect(markup).not.toMatch(/lg:block">1 service</);
 
     // Category filtering still degrades to real links without JS.
     expect(markup).toContain('href="/loans?category=insurance"');
@@ -100,9 +104,10 @@ describe("Financial Services public discovery", () => {
     // equipment-financing is Admin-published but is not a marketing product,
     // so it resolves through the catalogue-only illustration map.
     expect(markup).toContain("equipment-financing.svg");
-    // An unknown slug still gets the designed category plate, and a zero
-    // provider count is never rendered as a "0 providers" badge.
-    expect(markup).toContain(">Loans<");
+    // Cards carry no category tag badge (the pill's own "backdrop-blur-sm"
+    // class is otherwise unused) and no provider-count text at all, zero or
+    // otherwise.
+    expect(markup).not.toContain("backdrop-blur-sm");
     expect(markup).not.toContain("0 provider");
   });
 

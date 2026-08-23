@@ -2,12 +2,51 @@
 
 Status: **Derived living implementation ledger**
 
-As of: **2026-08-22**
+As of: **2026-08-23**
 
 Evidence baseline: `abcc1fd`
 ([PR #175](https://github.com/brollysolutions/client1/pull/175)), plus the
 verified Admin operational-visibility work in
 [PR #173](https://github.com/brollysolutions/client1/pull/173).
+
+**Done - Financial Services card and detail-page decluttering
+([PR TBD](https://github.com/brollysolutions/client1/pulls); direct
+user-reported public UI polish, no requirement or completion-percentage
+change):** on `/loans`, catalogue cards no longer carry a category tag badge
+on the artwork or a "N provider(s) configured" line, and the card body
+background changed from opaque white (`bg-surface`) to the section's own
+cream background (`var(--nav-bg)`) so cards read as bordered tiles rather than
+white panels sitting on the page. The sticky filter bar's aggregate "N
+services"/"N matches" total next to the search box is removed — the
+per-category pill counts already carry that signal — but the text stays in an
+`aria-live` region so assistive tech still hears result changes when filtering.
+
+On the per-service detail page (`/loans/[slug]`), the "N configured providers"
+badge above the `<h1>` and both small uppercase eyebrows ("One guided route",
+"Provider explorer") are removed. The "Apply inside Dhanadhara"/"Enquire now"
+button pair — previously mismatched because Enquire stretched to fill the flex
+row while Apply hugged its own text — now sits in an equal-width two-column
+grid (`sm:max-w-md`) with both buttons at the same `size="lg"` dimensions.
+`LeadDialog` gained an optional `size` prop forwarded to its underlying
+`Button` (undefined by default), so only this call site's sizing changed; every
+other `LeadDialog` consumer is unaffected. Real Estate's own `TrustStrip`
+eyebrow ("Why people trust us") and `ProductPage`'s hero eyebrow support are
+untouched — only the Loans page's `TrustStrip` call dropped its `eyebrow` prop.
+
+Fresh evidence: all 388 web unit tests pass, including updated
+`financial-services-catalogue.test.tsx` coverage asserting the removed tag
+badge, provider-count text, and visible aggregate count; `pnpm lint` and
+`pnpm typecheck` pass; all three `e2e/financial-services.spec.ts` Playwright
+tests pass. Desktop (1520x900) browser verification on the dev container
+(restarted to pick up the change) covered `/loans` (card artwork, sticky bar)
+and `/loans/personal-loan` (hero badge/eyebrows removed, button dimensions now
+equal) before and after the change, with before/after screenshots. `pnpm
+build` compiled, passed lint/type validity, and generated all 93 static pages,
+then failed in `Collecting build traces` with the same pre-existing
+`EPERM: operation not permitted, symlink` failure documented below for the
+prior Financial Services entry — a Windows-host `output: "standalone"`
+packaging limitation unrelated to this change, not a regression it introduced.
+No API, migration, contract, authorization, or RLS surface changed.
 
 **Done - Financial Services discovery redesign
 ([PR TBD](https://github.com/brollysolutions/client1/pulls); FR-12.x public
