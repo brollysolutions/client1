@@ -10,7 +10,8 @@ verified Admin operational-visibility work in
 [PR #173](https://github.com/brollysolutions/client1/pull/173).
 
 **Done - Loans client dashboard shell and home decluttering
-(branch `claude/20260823-211421-loans-client-page-dashbaord-1-side-navbar`;
+([PR #222](https://github.com/brollysolutions/client1/pull/222) on
+`claude/20260823-211421-loans-client-page-dashbaord-1-side-navbar`;
 direct user-reported UI change, no requirement or completion-percentage
 change):** the authenticated desktop icon rail (`features/dashboard/app-shell.tsx`)
 no longer persists its expanded state to `localStorage` across reloads — it
