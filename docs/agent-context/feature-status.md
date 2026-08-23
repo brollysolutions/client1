@@ -10,7 +10,7 @@ verified Admin operational-visibility work in
 [PR #173](https://github.com/brollysolutions/client1/pull/173).
 
 **Done - Property detail page decluttering, contain-fit gallery, and Similar
-Properties ([PR TBD](https://github.com/brollysolutions/client1/pulls);
+Properties ([PR #221](https://github.com/brollysolutions/client1/pull/221);
 direct user-reported public/dashboard UI change, no requirement or
 completion-percentage change):** the shared `PropertyDetailView`
 (`apps/web/components/property-detail-view.tsx`), used by both the public
