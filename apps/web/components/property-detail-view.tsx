@@ -14,9 +14,12 @@ import {
 } from "lucide-react";
 
 import { PanoramaViewer } from "@/components/panorama-viewer";
+import { PropertyDescription } from "@/components/property-description";
 import { PropertyDetailGallery } from "@/components/property-detail-gallery";
 import { PropertyDetailsSummary } from "@/components/property-details-dialog";
+import { SimilarPropertiesPanel, type SimilarPropertyCardData } from "@/components/similar-properties-panel";
 import type { PropertyDetailListing } from "@/lib/properties";
+import { propertyDescription } from "@/lib/property-details";
 
 function humanize(value: string): string {
   return value
@@ -36,12 +39,18 @@ export function PropertyDetailView({
   backLabel,
   actions,
   dashboard = false,
+  similar,
+  similarCta,
 }: {
   listing: PropertyDetailListing;
   backHref: string;
   backLabel: string;
   actions: React.ReactNode;
   dashboard?: boolean;
+  /** Ranked, display-ready recommendation cards for the right rail. Omitted or
+   * empty renders no section at all (see similar-properties-panel.tsx). */
+  similar?: SimilarPropertyCardData[];
+  similarCta?: { href: string; label: string };
 }) {
   const facts: Fact[] = [
     ...(listing.bhk > 0
@@ -79,6 +88,8 @@ export function PropertyDetailView({
       : []),
   ];
   const panoramas = listing.media?.filter((item) => item.kind === "panorama") ?? [];
+  const description = propertyDescription(listing.structuredDetails);
+  const hasSimilar = (similar?.length ?? 0) > 0;
 
   return (
     <div
@@ -104,17 +115,14 @@ export function PropertyDetailView({
         <div className="mt-7 grid gap-8 lg:grid-cols-[minmax(0,1fr)_340px] lg:items-start lg:gap-10">
           <article className="min-w-0 space-y-8">
             <header className="border-b border-border pb-7">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="rounded-full bg-[var(--nav-tint)] px-3 py-1 text-xs font-semibold text-[var(--nav-primary)]">
-                  {listing.type}
-                </span>
-                {listing.reraNumber && listing.reraVerificationStatus === "verified" ? (
+              {listing.reraNumber && listing.reraVerificationStatus === "verified" ? (
+                <div className="flex flex-wrap items-center gap-2">
                   <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800">
                     <ShieldCheck className="h-3.5 w-3.5" aria-hidden />
-                    RERA verified
+                    RERA verified · {listing.reraNumber}
                   </span>
-                ) : null}
-              </div>
+                </div>
+              ) : null}
               <h1 className="mt-4 max-w-4xl font-heading text-3xl font-semibold tracking-tight text-foreground sm:text-4xl lg:text-5xl">
                 {listing.title}
               </h1>
@@ -128,12 +136,26 @@ export function PropertyDetailView({
               {listing.meta ? (
                 <p className="mt-2 text-sm text-text-secondary">{listing.meta}</p>
               ) : null}
+              {listing.reraVerificationStatus === "exemption_verified" ? (
+                <p className="mt-2 text-sm font-medium text-text-secondary">RERA exemption reviewed by Admin.</p>
+              ) : null}
             </header>
+
+            {description ? (
+              <section aria-labelledby="description-heading">
+                <h2 id="description-heading" className="font-heading text-2xl font-semibold text-foreground">
+                  Description
+                </h2>
+                <div className="mt-4">
+                  <PropertyDescription text={description} />
+                </div>
+              </section>
+            ) : null}
 
             {facts.length > 0 ? (
               <section aria-labelledby="quick-facts-heading">
                 <h2 id="quick-facts-heading" className="font-heading text-2xl font-semibold text-foreground">
-                  Property at a glance
+                  Overview
                 </h2>
                 <dl className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                   {facts.map(({ label, value, icon: Icon }) => (
@@ -158,10 +180,9 @@ export function PropertyDetailView({
                   <h2 id="details-heading" className="font-heading text-2xl font-semibold text-foreground">
                     Property details
                   </h2>
-                  <p className="text-sm text-text-secondary">Admin-approved facts for this listing.</p>
                 </div>
               </div>
-              <PropertyDetailsSummary details={listing.structuredDetails} />
+              <PropertyDetailsSummary details={listing.structuredDetails} omitDescription />
             </section>
 
             {listing.amenities.length > 0 ? (
@@ -193,34 +214,28 @@ export function PropertyDetailView({
                 ))}
               </section>
             ) : null}
-
-            <section aria-labelledby="trust-heading" className="rounded-2xl border border-[var(--nav-border)] bg-[var(--nav-tint)] p-5 sm:p-6">
-              <h2 id="trust-heading" className="flex items-center gap-2 font-heading text-xl font-semibold text-foreground">
-                <ShieldCheck className="h-5 w-5 text-[var(--nav-primary)]" aria-hidden />
-                Listing checks
-              </h2>
-              <p className="mt-3 text-sm leading-6 text-text-secondary">
-                This property is visible because a Dhanadhara Admin approved it for the catalog. Our team can help you verify documents, arrange a visit, and understand the next steps before you decide.
-              </p>
-              {listing.reraNumber && listing.reraVerificationStatus === "verified" ? (
-                <p className="mt-3 text-sm font-medium text-foreground">
-                  RERA registration: {listing.reraNumber}
-                </p>
-              ) : listing.reraVerificationStatus === "exemption_verified" ? (
-                <p className="mt-3 text-sm font-medium text-foreground">RERA exemption reviewed by Admin.</p>
-              ) : null}
-            </section>
           </article>
 
-          <aside className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-card/95 p-3 shadow-[0_-8px_24px_rgba(15,23,42,0.10)] backdrop-blur lg:sticky lg:top-24 lg:z-10 lg:rounded-2xl lg:border lg:p-6 lg:shadow-sm">
-            <div className="hidden lg:block">
-              <p className="text-sm font-medium text-text-secondary">Interested in this property?</p>
-              <p className="mt-1 font-heading text-2xl font-semibold text-foreground">{listing.price}</p>
-              <p className="mt-2 text-sm leading-6 text-text-secondary">Connect with Dhanadhara for verified next steps and a guided visit.</p>
-            </div>
-            <div className="grid grid-cols-2 gap-2 lg:mt-5 lg:grid-cols-1 lg:gap-3">{actions}</div>
-            <p className="mt-4 hidden text-xs leading-5 text-text-secondary lg:block">No payment is required to ask about this property. Final availability and terms are confirmed by our team.</p>
-          </aside>
+          {/* Right rail. Below lg this wrapper is `display: contents`, so its
+              children are hoisted directly into the outer grid: the aside
+              stays `fixed` (a docked mobile action bar, out of the grid flow)
+              and the similar-properties panel becomes the next in-flow row
+              after the article. At lg+ the wrapper becomes the real sticky
+              rail column, stacking the contact card and the panel as one
+              scrolling unit. */}
+          <div className="contents lg:sticky lg:top-24 lg:block lg:self-start lg:space-y-6">
+            <aside className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-card/95 p-3 shadow-[0_-8px_24px_rgba(15,23,42,0.10)] backdrop-blur lg:static lg:z-10 lg:rounded-2xl lg:border lg:p-6 lg:shadow-sm">
+              <div className="hidden lg:block">
+                <p className="text-sm font-medium text-text-secondary">Interested in this property?</p>
+                <p className="mt-1 font-heading text-2xl font-semibold text-foreground">{listing.price}</p>
+                <p className="mt-2 text-sm leading-6 text-text-secondary">Connect with Dhanadhara for verified next steps and a guided visit.</p>
+              </div>
+              <div className="grid grid-cols-2 gap-2 lg:mt-5 lg:grid-cols-1 lg:gap-3">{actions}</div>
+              <p className="mt-4 hidden text-xs leading-5 text-text-secondary lg:block">No payment is required to ask about this property. Final availability and terms are confirmed by our team.</p>
+            </aside>
+
+            {hasSimilar ? <SimilarPropertiesPanel items={similar!} cta={similarCta} /> : null}
+          </div>
         </div>
       </div>
     </div>

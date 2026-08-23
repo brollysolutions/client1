@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Image from "next/image";
-import { Building2, ImageIcon } from "lucide-react";
+import { Building2, ChevronLeft, ChevronRight, ImageIcon } from "lucide-react";
 
 import type { PropertyMediaItem } from "@/lib/properties";
 import { cn } from "@/lib/utils";
@@ -24,18 +24,56 @@ export function PropertyDetailGallery({
   const [selected, setSelected] = React.useState(0);
   const activeImage = images[Math.min(selected, Math.max(images.length - 1, 0))];
 
+  const showPrev = React.useCallback(() => {
+    setSelected((current) => (current - 1 + images.length) % images.length);
+  }, [images.length]);
+  const showNext = React.useCallback(() => {
+    setSelected((current) => (current + 1) % images.length);
+  }, [images.length]);
+
+  function handleKeyDown(event: React.KeyboardEvent<HTMLDivElement>) {
+    if (images.length < 2) return;
+    if (event.key === "ArrowLeft") {
+      event.preventDefault();
+      showPrev();
+    } else if (event.key === "ArrowRight") {
+      event.preventDefault();
+      showNext();
+    }
+  }
+
   return (
     <section aria-label={`${title} photos`} className="space-y-3">
-      <div className="relative aspect-[16/10] overflow-hidden rounded-2xl bg-[var(--nav-tint)] sm:aspect-[2/1] lg:rounded-3xl">
+      <div
+        role={images.length > 1 ? "group" : undefined}
+        aria-roledescription={images.length > 1 ? "carousel" : undefined}
+        tabIndex={images.length > 1 ? 0 : undefined}
+        onKeyDown={handleKeyDown}
+        className="relative aspect-[16/10] overflow-hidden rounded-2xl bg-[var(--nav-tint)] sm:aspect-[2/1] lg:rounded-3xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nav-primary)]"
+      >
         {activeImage ? (
-          <Image
-            src={activeImage}
-            alt={`${title}, photo ${selected + 1}`}
-            fill
-            priority
-            sizes="(min-width: 1280px) 1200px, 100vw"
-            className="object-cover"
-          />
+          <>
+            {/* Blurred, scaled-up copy of the same photo fills the letterbox
+                bars left by object-contain below, so a portrait or odd-ratio
+                upload never has to be cropped to fill this wide frame, and the
+                frame never shows empty/flat space either. */}
+            <Image
+              src={activeImage}
+              alt=""
+              aria-hidden
+              fill
+              sizes="(min-width: 1280px) 1200px, 100vw"
+              className="scale-110 object-cover blur-2xl brightness-[0.55]"
+            />
+            <Image
+              src={activeImage}
+              alt={`${title}, photo ${selected + 1}`}
+              fill
+              priority
+              sizes="(min-width: 1280px) 1200px, 100vw"
+              className="object-contain"
+            />
+          </>
         ) : (
           <div className="absolute inset-0 grid place-items-center text-[var(--nav-primary)]">
             <div className="text-center">
@@ -44,6 +82,26 @@ export function PropertyDetailGallery({
             </div>
           </div>
         )}
+        {images.length > 1 ? (
+          <>
+            <button
+              type="button"
+              onClick={showPrev}
+              aria-label="Show previous photo"
+              className="absolute left-3 top-1/2 z-10 grid min-h-11 min-w-11 -translate-y-1/2 place-items-center rounded-full bg-card/90 text-[var(--nav-primary)] shadow-md ring-1 ring-[var(--nav-border)] transition hover:bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nav-primary)]"
+            >
+              <ChevronLeft className="h-5 w-5" aria-hidden />
+            </button>
+            <button
+              type="button"
+              onClick={showNext}
+              aria-label="Show next photo"
+              className="absolute right-3 top-1/2 z-10 grid min-h-11 min-w-11 -translate-y-1/2 place-items-center rounded-full bg-card/90 text-[var(--nav-primary)] shadow-md ring-1 ring-[var(--nav-border)] transition hover:bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nav-primary)]"
+            >
+              <ChevronRight className="h-5 w-5" aria-hidden />
+            </button>
+          </>
+        ) : null}
         {images.length > 0 ? (
           <span className="absolute bottom-4 right-4 inline-flex items-center gap-2 rounded-full bg-black/70 px-3 py-1.5 text-xs font-medium text-white">
             <ImageIcon className="h-3.5 w-3.5" aria-hidden />

@@ -9,6 +9,144 @@ Evidence baseline: `abcc1fd`
 verified Admin operational-visibility work in
 [PR #173](https://github.com/brollysolutions/client1/pull/173).
 
+**Done - Property detail page decluttering, contain-fit gallery, and Similar
+Properties ([PR TBD](https://github.com/brollysolutions/client1/pulls);
+direct user-reported public/dashboard UI change, no requirement or
+completion-percentage change):** the shared `PropertyDetailView`
+(`apps/web/components/property-detail-view.tsx`), used by both the public
+`/real-estate/properties/[propertyId]` page and the authenticated
+`/dashboard/properties/[propertyId]` page, gained six page-level changes and a
+new recommendation panel.
+
+`PropertyDetailGallery` switches its hero photo from `object-cover` to
+`object-contain` with a blurred, scaled, and dimmed backdrop copy of the same
+image filling the letterbox bars, so a portrait or odd-aspect upload is never
+cropped; round prev/next chevron buttons (rendered only when there is more
+than one photo, wrap-around, real `aria-label`s, `min-h-11`/`min-w-11` touch
+targets) and `ArrowLeft`/`ArrowRight` keyboard handling were added, reusing
+the visual treatment already established in `property-row.tsx`.
+
+The property-type badge pill, the "Admin-approved facts for this listing."
+sub-line, and the entire "Listing checks" section are removed from
+`property-detail-view.tsx`. The RERA verified/exemption statutory disclosure
+that previously lived only inside the deleted "Listing checks" box was moved
+into the header pill row (`RERA verified · {number}` matching the phrasing
+already used on `property-card.tsx`) so it is not lost. "Property at a
+glance" is renamed "Overview".
+
+A new `PropertyDescription` client island
+(`apps/web/components/property-description.tsx`) renders the
+`about_project`/`about_property` narrative with a word-boundary split into an
+always-visible head and an animated tail, using the same
+`grid-template-rows` `0fr`/`1fr` + `overflow-hidden` + `inert`/`aria-hidden`
+CSS toggle already established at
+`agent-application-form.tsx:598-624`; the full text stays in the DOM at all
+times (collapsed via CSS, not truncated), so it remains SEO-visible and
+screen-reader reachable when expanded. The narrative was extracted from
+`PropertyDetailsSummary`'s grid via a new `omitDescription` prop so it is not
+printed twice.
+
+A new dependency-free `apps/web/lib/similar-properties.ts` exports
+`rankSimilarProperties<T extends SimilarityFacets>()`, scoring candidates on
+subtype (50), category (30), locality (25), city (15), price proximity
+(0-20), area proximity (0-10), and matching BHK (5), with a category-only
+floor (`MIN_SIMILARITY_SCORE = 30`) that guarantees a plot can never appear as
+"similar" under an apartment. Every field on `SimilarityFacets` is optional,
+so the same generic call runs against both the public `PropertyListing` and
+the dashboard `REListing` shapes with zero adapters and zero casts (verified
+by a dedicated test asserting this in both directions). `price_display` is
+parsed back to lakhs via a regex tied by comment to the exact server format
+(`format_inr_display()` in `apps/api/app/services/property_submissions.py`);
+`meta` (agent-authored free text) is never parsed for area or BHK. Ranking is
+deterministic: ties break on price-gap then original array index, never
+`Math.random()`/`Date`, so SSR and client renders agree.
+
+`SimilarPropertiesPanel`/`SimilarPropertyCard`
+(`apps/web/components/similar-propert{ies-panel,y-card}.tsx`) render the
+ranked results as a single accessible `<ul>` of link-wrapped cards with a
+locality/city proximity chip and a Price/Area stat row that collapses to a
+single Price column when `area` is absent (the public list shape carries no
+`area_sqft`) rather than showing an empty cell. `PropertyDetailView` takes two
+new flat props, `similar?: SimilarPropertyCardData[]` and `similarCta?`,
+instead of a `ReactNode` slot, so it can omit the section entirely on an empty
+array and stay a plain Server Component testable with
+`renderToStaticMarkup`. The right rail was restructured into one
+`display: contents` (below `lg`) / `sticky` (at `lg`) wrapper holding both the
+existing contact card and the new panel, so on mobile the panel lands in
+normal document flow after the article instead of being trapped in the
+`fixed` mobile action bar, and at `lg` it scrolls with the contact card as one
+sticky unit (the `sticky` positioning was moved from the inner `<aside>` onto
+the wrapper to avoid a nested-sticky bug).
+
+The public page (`app/(public)/real-estate/properties/[propertyId]/page.tsx`)
+parallel-fetches the catalogue via the existing `getPublicListings()`, which
+never throws and collapses every failure to `[]`, so a catalogue outage cannot
+break or delay the detail render; its CTA links to
+`propertySubtypeHref()`/`/real-estate#{category}` (the only query parameter
+the public catalogue page actually reads). The dashboard wrapper
+(`features/real-estate/dashboard-property-detail.tsx`) reuses the existing
+`useProperties()` hook in parallel with, not folded into, the detail-loading
+effect, and deliberately ignores its own loading/error state so a slow or
+failing catalogue fetch cannot gate or break the primary detail render; its
+CTA links to `/dashboard/explore/{category}?city=...` (locality-exact-match
+would too often yield a one-result page). A defect found during browser
+verification — `propertyDescription()` lived in a `"use client"` file and was
+being invoked directly (not rendered as JSX) from the server
+`PropertyDetailView`, which React correctly rejects — was fixed by extracting
+the pure structured-details logic (`rows`, `label`, `money`,
+`propertyDescription`) into a new boundary-neutral `apps/web/lib/property-details.ts`
+that both the client dialog and the server detail view import from.
+
+Fresh evidence: three new test files
+(`lib/similar-properties.test.ts`, 13 tests, including exclusion-by-id,
+subtype-over-category and locality-over-city ranking, the category floor
+gate, `options.limit`/default, a comma-less-location false-positive guard,
+`parseDisplayPriceLakhs` cases, determinism, no em/en dash in `reason`
+strings, and the dual-shape generic-call test;
+`components/similar-properties-panel.test.tsx`, 6 tests;
+`components/property-description.test.tsx`, 2 tests) plus an expanded
+`components/property-detail-view.test.tsx` (1 → 4 `it` blocks, appended
+rather than rewritten so it merges cleanly with sibling work, covering the
+renamed heading, the relocated RERA copy, the absence of the removed badge
+and Listing-checks box, and the Similar Properties section's presence/absence
+and single-instance-heading-id guarantee). All 412 web unit tests across 65
+files pass; `pnpm lint` and `pnpm typecheck` pass; `pnpm build` compiled,
+typechecked, and generated all 93 pages before hitting the same pre-existing
+Windows-host `EPERM` standalone-symlink failure recorded elsewhere in this
+document.
+
+Live browser verification on the restarted `client1-web-1` dev container at
+1440px and 390px confirmed, on the public surface: the gallery's contain-fit
+plus blurred backdrop on a non-16:10 illustration, working prev/next
+chevrons; the type badge, "Admin-approved facts", and "Listing checks" box
+all absent while the RERA number still renders in the header; the "Overview"
+heading; the Similar Properties panel rendering with correct locality/city
+proximity chips and a working "See more {subtype}"/catalogue CTA when the
+subject's category has other members, and correctly rendering nothing when it
+does not (the single-listing Plots category); and a live click-through of the
+Description See more/See less toggle (verified against a temporarily
+lengthened `about_project` value on one existing dev-only seed row, reverted
+immediately after). On the authenticated dashboard surface, the same
+page-level changes and the panel's silent no-render-on-fetch-failure behavior
+were confirmed live via a demo Client account; the panel's populated
+dashboard rendering could not be directly observed because the dashboard
+catalogue-list fetch (`GET /api/v1/properties`) failed under a local
+dev-environment condition that was confirmed, via direct `curl` GET and CORS
+preflight checks returning correct `Access-Control-Allow-Origin` headers, to
+be a browser/environment-side issue rather than a server misconfiguration,
+and that reproduces identically on the pre-existing, unmodified
+`/dashboard/explore` page — an environment limitation, not a defect
+introduced by this change. `pnpm test:e2e` was not run: no property-detail
+Playwright spec exists, and this is a copy/layout/recommendation-panel change
+without a new user journey, so none was added.
+
+No backend endpoint, database schema, migration, OpenAPI contract, or RLS
+policy changed. Security, design, and diff review were not separately
+requested for this direct user-reported UI change; the reviewer should
+confirm the RERA-disclosure relocation still satisfies the statutory-display
+requirement from the property-detail feature this touches
+([PR #216](https://github.com/brollysolutions/client1/pull/216)).
+
 **Done - Financial Services card and detail-page decluttering
 ([PR TBD](https://github.com/brollysolutions/client1/pulls); direct
 user-reported public UI polish, no requirement or completion-percentage
