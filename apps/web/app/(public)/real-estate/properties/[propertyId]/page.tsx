@@ -4,9 +4,12 @@ import { notFound } from "next/navigation";
 import { ExternalLink, PhoneCall } from "lucide-react";
 
 import { PropertyDetailView } from "@/components/property-detail-view";
+import type { SimilarPropertyCardData } from "@/components/similar-properties-panel";
 import { Button } from "@/components/ui/button";
 import { contactHref } from "@/lib/leads";
-import { getPublicProperty } from "@/lib/public-properties";
+import { getPublicListings, getPublicProperty } from "@/lib/public-properties";
+import { propertySubtypeHref, propertySubtypeOption } from "@/lib/property-taxonomy";
+import { rankSimilarProperties } from "@/lib/similar-properties";
 import { SITE_URL } from "@/lib/site";
 
 type PageProps = { params: Promise<{ propertyId: string }> };
@@ -37,7 +40,15 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function PublicPropertyPage({ params }: PageProps) {
   const { propertyId } = await params;
-  const result = await getPublicProperty(propertyId);
+  // Parallel, not sequential: two independent 5s serverFetchJson timeouts
+  // should not stack on a single page render (same reasoning as the catalogue
+  // page, app/(public)/real-estate/page.tsx). getPublicListings() never
+  // throws and collapses every failure to [] (lib/public-properties.ts), so a
+  // catalogue outage cannot break or delay the detail render below.
+  const [result, catalogue] = await Promise.all([
+    getPublicProperty(propertyId),
+    getPublicListings(),
+  ]);
   if (!result.ok) {
     if (result.status === 404 || result.status === 422) notFound();
     return (
@@ -74,6 +85,23 @@ export default async function PublicPropertyPage({ params }: PageProps) {
     ...(property.image ? { image: property.image } : {}),
   };
 
+  const similar: SimilarPropertyCardData[] = rankSimilarProperties(property, catalogue).map(
+    ({ listing, reason }) => ({
+      id: listing.id,
+      href: `/real-estate/properties/${listing.id}`,
+      title: listing.title,
+      address: listing.location,
+      ...(reason ? { proximity: reason } : {}),
+      price: listing.price,
+      ...(listing.image ? { image: listing.image } : {}),
+      type: listing.type,
+    }),
+  );
+  const subtype = propertySubtypeOption(property.propertySubtype);
+  const similarCta = subtype
+    ? { href: propertySubtypeHref(subtype.value), label: `See more ${subtype.label.toLowerCase()}` }
+    : { href: `/real-estate#${property.category}`, label: "See all properties" };
+
   return (
     <>
       <script
@@ -86,6 +114,8 @@ export default async function PublicPropertyPage({ params }: PageProps) {
         listing={property}
         backHref="/real-estate"
         backLabel="Back to properties"
+        similar={similar}
+        similarCta={similarCta}
         actions={
           <>
             <Button asChild className="min-h-11 w-full bg-[var(--nav-primary)] text-white hover:bg-[var(--nav-primary-hover)]">

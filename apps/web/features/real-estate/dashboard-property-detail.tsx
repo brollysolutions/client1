@@ -4,11 +4,16 @@ import * as React from "react";
 import Link from "next/link";
 
 import { PropertyDetailView } from "@/components/property-detail-view";
+import type { SimilarPropertyCardData } from "@/components/similar-properties-panel";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useMe } from "@/features/dashboard/me-provider";
 import { PropertyDetailActions } from "@/features/real-estate/property-detail-actions";
+import { useProperties } from "@/features/real-estate/use-properties";
+import { isAllowedAssetUrl } from "@/lib/allowed-asset-url";
+import { formatNumber } from "@/lib/format";
 import { getProperty } from "@/lib/properties-api";
+import { rankSimilarProperties } from "@/lib/similar-properties";
 import type { REListing } from "@/lib/real-estate";
 
 export function DashboardPropertyDetail({ propertyId }: { propertyId: string }) {
@@ -17,6 +22,12 @@ export function DashboardPropertyDetail({ propertyId }: { propertyId: string }) 
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
   const [reloadKey, setReloadKey] = React.useState(0);
+  // Independent catalogue fetch for the similar-properties rail. Deliberately
+  // not folded into the effect below and deliberately not surfacing its own
+  // loading/error state: a recommendation panel must never gate or break the
+  // primary detail render. Loading -> the panel just isn't there yet; error
+  // -> it stays absent. Both are silent by design.
+  const { listings: catalogue } = useProperties();
 
   React.useEffect(() => {
     let active = true;
@@ -71,6 +82,30 @@ export function DashboardPropertyDetail({ propertyId }: { propertyId: string }) 
   const hasRealEstateProfile =
     me?.profiles.some((profile) => profile.businessLine === "real_estate") ?? false;
 
+  const similar: SimilarPropertyCardData[] = rankSimilarProperties(listing, catalogue).map(
+    ({ listing: item, reason }) => {
+      // mapProperty (lib/properties-api.ts) does not filter media hosts the
+      // way the public catalogue client does, so an unallowlisted host would
+      // otherwise throw inside next/image here.
+      const image = item.image && isAllowedAssetUrl(item.image) ? item.image : undefined;
+      return {
+        id: item.id,
+        href: `/dashboard/properties/${item.id}`,
+        title: item.title,
+        address: item.location,
+        ...(reason ? { proximity: reason } : {}),
+        price: item.price,
+        ...(item.areaSqft > 0 ? { area: `${formatNumber(item.areaSqft)} sq ft` } : {}),
+        ...(image ? { image } : {}),
+        type: item.type,
+      };
+    },
+  );
+  const similarCta = {
+    href: `/dashboard/explore/${listing.category}?city=${encodeURIComponent(listing.city)}`,
+    label: `More properties in ${listing.city}`,
+  };
+
   return (
     <PropertyDetailView
       listing={{
@@ -81,6 +116,8 @@ export function DashboardPropertyDetail({ propertyId }: { propertyId: string }) 
       backHref="/dashboard/explore"
       backLabel="Back to Explore"
       dashboard
+      similar={similar}
+      similarCta={similarCta}
       actions={
         <PropertyDetailActions
           listing={listing}
