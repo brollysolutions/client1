@@ -19,11 +19,11 @@ import { NotificationsProvider } from "./notifications-provider";
 import { ProfileMenu } from "./profile-menu";
 import { hasFixedDesktopSidebar, isDesktopSidebarExpanded } from "./shell-state";
 
-const RAIL_OPEN_KEY = "dashboard:rail-open";
-
-// Authenticated dashboard shell: Clients retain the remembered expandable icon
-// rail, while operational roles use an always-labeled desktop sidebar. Every
-// role gets the same mobile drawer and a top bar with line/account utilities.
+// Authenticated dashboard shell: Clients get a collapsible icon rail that
+// always starts collapsed (session-only expand/collapse, not remembered
+// across reloads), while operational roles use an always-labeled desktop
+// sidebar. Every role gets the same mobile drawer and a top bar with
+// line/account utilities.
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { session } = useAuth();
   const [mobileOpen, setMobileOpen] = React.useState(false);
@@ -31,22 +31,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const fixedDesktopSidebar = hasFixedDesktopSidebar(session?.role);
   const desktopSidebarExpanded = isDesktopSidebarExpanded(session?.role, railOpen);
 
-  // Restore the desktop rail state after mount (kept out of the initializer so
-  // SSR and first paint always agree on the collapsed default).
-  React.useEffect(() => {
-    if (typeof window === "undefined") return;
-    if (session?.role !== "client") return;
-    setRailOpen(window.localStorage.getItem(RAIL_OPEN_KEY) === "1");
-  }, [session?.role]);
-
   const toggleRail = React.useCallback(() => {
-    setRailOpen((open) => {
-      const next = !open;
-      if (typeof window !== "undefined") {
-        window.localStorage.setItem(RAIL_OPEN_KEY, next ? "1" : "0");
-      }
-      return next;
-    });
+    setRailOpen((open) => !open);
   }, []);
 
   return (

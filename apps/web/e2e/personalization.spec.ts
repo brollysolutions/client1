@@ -90,7 +90,9 @@ test.describe("authenticated personalization", () => {
     try {
       await logInThroughBrowser(page, account);
 
-      await expect(page.getByRole("region", { name: "Dashboard highlights" })).toBeVisible();
+      // The loans client home no longer shows the highlights banner/offers.
+      await expect(page.getByRole("heading", { name: "Your loan journey" })).toBeVisible();
+      await expect(page.getByRole("region", { name: "Dashboard highlights" })).toHaveCount(0);
       await page.goto("/dashboard/settings");
       await expect(page.getByRole("heading", { name: "Personalized dashboard" })).toBeVisible();
 
