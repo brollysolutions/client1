@@ -228,7 +228,9 @@ export function PropertyDetailView({
               <div className="hidden lg:block">
                 <p className="text-sm font-medium text-text-secondary">Interested in this property?</p>
                 <p className="mt-1 font-heading text-2xl font-semibold text-foreground">{listing.price}</p>
-                <p className="mt-2 text-sm leading-6 text-text-secondary">Connect with Dhanadhara for verified next steps and a guided visit.</p>
+                {dashboard ? null : (
+                  <p className="mt-2 text-sm leading-6 text-text-secondary">Connect with Dhanadhara for verified next steps and a guided visit.</p>
+                )}
               </div>
               <div className="grid grid-cols-2 gap-2 lg:mt-5 lg:grid-cols-1 lg:gap-3">{actions}</div>
               <p className="mt-4 hidden text-xs leading-5 text-text-secondary lg:block">No payment is required to ask about this property. Final availability and terms are confirmed by our team.</p>

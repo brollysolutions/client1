@@ -76,7 +76,13 @@ existing contact card and the new panel, so on mobile the panel lands in
 normal document flow after the article instead of being trapped in the
 `fixed` mobile action bar, and at `lg` it scrolls with the contact card as one
 sticky unit (the `sticky` positioning was moved from the inner `<aside>` onto
-the wrapper to avoid a nested-sticky bug).
+the wrapper to avoid a nested-sticky bug). Per direct user follow-up during
+review, the contact card's "Connect with Dhanadhara for verified next steps
+and a guided visit." blurb is now conditional on the existing `dashboard`
+prop and renders only on the public surface; the dashboard's authenticated
+action rail (Enquire/Book a visit/Save/Compare) already conveys next steps,
+so the line was redundant there. A new `it` block asserts the blurb is
+present on a public render and absent on a `dashboard` render.
 
 The public page (`app/(public)/real-estate/properties/[propertyId]/page.tsx`)
 parallel-fetches the catalogue via the existing `getPublicListings()`, which

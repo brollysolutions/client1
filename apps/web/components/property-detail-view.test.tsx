@@ -75,6 +75,28 @@ describe("PropertyDetailView", () => {
     expect(markup).not.toContain("This property is visible because a Dhanadhara Admin approved");
   });
 
+  it("shows the guided-visit blurb on the public surface but not on the dashboard", () => {
+    const publicMarkup = renderToStaticMarkup(
+      <PropertyDetailView
+        listing={DETAIL}
+        backHref="/real-estate"
+        backLabel="Back to properties"
+        actions={<Link href="/contact">Contact team</Link>}
+      />,
+    );
+    const dashboardMarkup = renderToStaticMarkup(
+      <PropertyDetailView
+        listing={DETAIL}
+        backHref="/dashboard/explore"
+        backLabel="Back to Explore"
+        dashboard
+        actions={<Link href="/contact">Contact team</Link>}
+      />,
+    );
+    expect(publicMarkup).toContain("Connect with Dhanadhara for verified next steps and a guided visit.");
+    expect(dashboardMarkup).not.toContain("Connect with Dhanadhara for verified next steps and a guided visit.");
+  });
+
   it("omits the similar-properties section when similar is absent or empty", () => {
     const withoutProp = renderToStaticMarkup(
       <PropertyDetailView
