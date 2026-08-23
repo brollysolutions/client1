@@ -225,11 +225,19 @@ test.describe("role-aware dashboard navigation", () => {
 
         const expandSidebar = page.getByRole("button", { name: "Expand sidebar" });
         if (scenario.name === "Client") {
+          // The rail always starts collapsed; it only expands within the
+          // current session and does not persist across reloads.
           await expect(expandSidebar).toBeVisible();
           await expandSidebar.click();
           await expect(page.getByRole("button", { name: "Collapse sidebar" })).toBeVisible();
           await page.reload();
-          await expect(page.getByRole("button", { name: "Collapse sidebar" })).toBeVisible();
+          await expect(page.getByRole("button", { name: "Expand sidebar" })).toBeVisible();
+
+          // The loans client home is decluttered: no highlights banner/offers,
+          // no workspace eyebrow, and no zero-count metric row.
+          await expect(page.getByRole("region", { name: "Dashboard highlights" })).toHaveCount(0);
+          await expect(page.getByText("Loans workspace")).toHaveCount(0);
+          await expect(page.getByText("Needs attention")).toHaveCount(0);
         } else {
           await expect(expandSidebar).toHaveCount(0);
           await expect(page.getByRole("button", { name: "Collapse sidebar" })).toHaveCount(0);

@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 import { getLoanApplications, type LoanApplication } from "@/lib/loans";
 
 import { DASHBOARD_ICONS } from "./dashboard-icons";
-import { DashboardHeader, DashboardPage, MetricCard, MetricGrid } from "./dashboard-ui";
+import { DashboardHeader, DashboardPage } from "./dashboard-ui";
 import { FetchError } from "./fetch-error";
 import { STATUS_STYLES, formatAmount, formatDate } from "./loan-format";
 
@@ -93,38 +93,17 @@ export function LoansApplications() {
     );
   }
 
-  const activeCount = applications.filter(
-    (application) => !["disbursed", "closed", "rejected"].includes(application.status),
-  ).length;
-  const attentionCount = applications.filter((application) =>
-    ["on_hold", "rejected"].includes(application.status),
-  ).length;
-  const completedCount = applications.filter((application) =>
-    ["disbursed", "closed"].includes(application.status),
-  ).length;
-
   return (
     <DashboardPage>
       <DashboardHeader
-        eyebrow="Loans workspace"
         title="Your loan journey"
         description="Track applications, see their latest status, and start a new request."
         actions={<ApplyCta />}
       />
 
-      <MetricGrid>
-        <MetricCard label="Applications" value={applications.length} icon={DASHBOARD_ICONS.loanApplications} />
-        <MetricCard label="Active" value={activeCount} icon={DASHBOARD_ICONS.loanApplications} />
-        <MetricCard label="Needs attention" value={attentionCount} icon={DASHBOARD_ICONS.loanApplications} attention={attentionCount > 0} />
-        <MetricCard label="Completed" value={completedCount} icon={DASHBOARD_ICONS.loanApplications} />
-      </MetricGrid>
-
       {applications.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-border bg-card px-6 py-16 text-center">
-          <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-xl bg-loans-soft text-loans-accent">
-            <DASHBOARD_ICONS.loanApplications className="h-6 w-6" aria-hidden="true" />
-          </span>
-          <h2 className="mt-5 text-lg font-semibold text-text-primary">No loan applications yet</h2>
+          <h2 className="text-lg font-semibold text-text-primary">No loan applications yet</h2>
           <p className="mx-auto mt-2 max-w-md text-sm text-text-secondary">
             When you apply, it shows up here right away with its live status, so you always know
             where things stand.

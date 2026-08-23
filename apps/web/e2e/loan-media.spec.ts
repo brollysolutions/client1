@@ -52,7 +52,9 @@ async function logIn(page: Page, account: RegisteredAccount): Promise<void> {
   await page.locator("input#password").fill(account.password);
   await page.getByRole("button", { name: "Login" }).click();
   await expect(page).toHaveURL(/\/dashboard$/, { timeout: 60_000 });
-  await expect(page.getByRole("region", { name: "Dashboard highlights" })).toBeVisible();
+  // The loans client home renders "Your loan journey" whether or not the
+  // account has applications yet; the highlights banner/offers no longer show.
+  await expect(page.getByRole("heading", { name: "Your loan journey" })).toBeVisible();
 }
 
 async function deleteAccount(
