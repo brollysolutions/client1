@@ -76,5 +76,6 @@ stops on any collision where a demo mobile, email, or deterministic UUID belongs
 to another account rather than taking that identity over.
 
 The output from `--verify` is the authoritative quick check: all eleven accounts
-must report a successful login and their expected role. A skipped or failed
+must report a successful login, their expected role and line, and non-empty
+representative data from their primary RLS-backed APIs. A skipped or failed
 verification is not a passing demo-data setup.
