@@ -4,9 +4,10 @@ import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { AddToCompareButton } from "@/features/loans/add-to-compare-button";
 import { isAllowedAssetUrl } from "@/lib/allowed-asset-url";
 import { formatINR } from "@/lib/format";
-import type { ProviderOfferQuery, PublicProviderOfferList } from "@/lib/financial-catalog";
+import type { ProductCategory, ProviderOfferQuery, PublicProviderOfferList } from "@/lib/financial-catalog";
 
 import { PROVIDER_TYPE_LABEL } from "./provider-offer-filters";
 
@@ -20,11 +21,11 @@ export function applyHref(productId: string, offerId?: string): string {
   return `/dashboard/apply?${params.toString()}`;
 }
 
-function formatAmount(value: string | null): string | null {
+export function formatAmount(value: string | null): string | null {
   return value === null ? null : formatINR(Number(value));
 }
 
-function formatVerifiedAt(value: string | null): string | null {
+export function formatVerifiedAt(value: string | null): string | null {
   if (!value) return null;
   return new Intl.DateTimeFormat("en-IN", {
     day: "numeric",
@@ -51,11 +52,15 @@ function offerPageHref(basePath: string, query: ProviderOfferQuery, page: number
 export function ProviderOfferList({
   offers,
   productId,
+  productSlug,
+  productCategory,
   basePath,
   query,
 }: {
   offers: PublicProviderOfferList;
   productId: string;
+  productSlug: string;
+  productCategory: ProductCategory;
   basePath: string;
   query: ProviderOfferQuery;
 }) {
@@ -159,10 +164,15 @@ export function ProviderOfferList({
                     </div>
                   ) : null}
                 </CardContent>
-                <CardFooter>
+                <CardFooter className="flex flex-col gap-3">
                   <Button asChild className="w-full">
                     <Link href={applyHref(productId, offer.id)}>Apply with this option</Link>
                   </Button>
+                  <AddToCompareButton
+                    offerId={offer.id}
+                    productSlug={productSlug}
+                    productCategory={productCategory}
+                  />
                 </CardFooter>
               </Card>
             );

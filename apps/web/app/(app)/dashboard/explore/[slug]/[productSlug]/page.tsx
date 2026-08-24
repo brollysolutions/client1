@@ -96,7 +96,14 @@ export default async function ExploreProductPage({ params, searchParams }: PageP
 
         <ProviderOfferFilters q={offerQuery.q} providerType={providerType} sort={sort} />
 
-        <ProviderOfferList offers={offers} productId={product.id} basePath={basePath} query={offerQuery} />
+        <ProviderOfferList
+          offers={offers}
+          productId={product.id}
+          productSlug={product.slug}
+          productCategory={product.category}
+          basePath={basePath}
+          query={offerQuery}
+        />
       </section>
     </DashboardPage>
   );

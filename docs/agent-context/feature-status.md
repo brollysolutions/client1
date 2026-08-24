@@ -1974,7 +1974,24 @@ The following requirements are complete on the evidence baseline:
   codes, Agent dashboards, and owned-lead visibility tests.
 - Loans: FR-6.1 through FR-6.6. Evidence includes public loan/calculator
   routes, application progression, configurable loan types/banks, Telecaller
-  transaction entry, documents, and processing-fee cashback.
+  transaction entry, documents, and processing-fee cashback. Compare Loan
+  Offers (`/dashboard/loan-offers`) was redesigned to resolve real,
+  Admin-published provider-offer data (interest rate, tenure, amount,
+  processing fee, eligibility) instead of the thin `loan_types`/`banks`
+  reference tables it previously read — sourced from the same anonymous
+  public financial-products catalogue Explore's product page already used
+  (`apps/web/lib/financial-catalog.ts`), via a new client-safe twin
+  (`apps/web/lib/financial-catalog-client.ts`) since the page must run
+  client-side to react to its localStorage shortlist
+  (`apps/web/features/loans/loan-offers-store.tsx`, now keyed on
+  `{offerId, productSlug}` rather than bank id). Offers are added to the
+  shortlist from a new checkbox on Explore's lender-offer cards
+  (`apps/web/features/loans/add-to-compare-button.tsx`, loan-category
+  products only), resolved fresh against the catalogue and rendered as a
+  side-by-side comparison table
+  (`apps/web/features/loans/loan-offers-view.tsx`) mirroring the real-estate
+  Bookmarks/Compare pattern. The prior placeholder metric grid (loan-type/bank
+  counts inflated by unbounded dev-DB seed data) was removed.
 - Real-estate core: FR-7.1 through FR-7.5. Evidence includes dedicated
   site-visit vehicle arrangements with Client request/read, Admin fulfilment,
   direct Employee assignment, audit/notifications, and owner/assignee RLS;
