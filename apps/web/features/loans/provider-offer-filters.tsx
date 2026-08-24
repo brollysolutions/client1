@@ -30,7 +30,7 @@ export function ProviderOfferFilters({
   sort: "recommended" | "interest_rate" | "amount" | "updated";
 }) {
   return (
-    <form className="rounded-2xl border border-border bg-card p-5 shadow-sm">
+    <form className="sticky top-14 z-10 rounded-2xl border border-border bg-card p-5 shadow-sm">
       <div className="grid gap-4 lg:grid-cols-[1fr_14rem_14rem_auto] lg:items-end">
         <div className="grid gap-1.5">
           <Label htmlFor="provider-search">Search lenders</Label>

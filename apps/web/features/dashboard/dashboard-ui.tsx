@@ -30,7 +30,7 @@ export function DashboardHeader({
   actions,
 }: {
   title: string;
-  description: string;
+  description?: string;
   eyebrow?: string;
   actions?: ReactNode;
 }) {
@@ -45,7 +45,9 @@ export function DashboardHeader({
         <h1 className="text-2xl font-semibold tracking-tight text-text-primary sm:text-[1.75rem]">
           {title}
         </h1>
-        <p className="mt-1.5 text-sm leading-6 text-text-secondary">{description}</p>
+        {description ? (
+          <p className="mt-1.5 text-sm leading-6 text-text-secondary">{description}</p>
+        ) : null}
       </div>
       {actions ? <div className="flex shrink-0 items-center gap-2">{actions}</div> : null}
     </header>
