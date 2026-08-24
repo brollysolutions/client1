@@ -9,6 +9,73 @@ Evidence baseline: `abcc1fd`
 verified Admin operational-visibility work in
 [PR #173](https://github.com/brollysolutions/client1/pull/173).
 
+**Done - Apply-page product picker removed; "Change product" and
+productless entry points now redirect to Explore by category
+([PR #226](https://github.com/brollysolutions/client1/pull/226), on
+`claude/20260824-113343-so-how-this-thing-works-is-when`; direct
+user-reported UI change, no requirement or completion-percentage change):**
+follow-up to the picker-hiding work below, once it was live in the browser
+and the user asked for the picker to be removed entirely rather than just
+hidden, and for "Change product" to leave `/dashboard/apply` for the right
+Explore surface instead of resetting local state back onto the same page.
+Four files. (1) `apply/page.tsx` deletes the entire "Choose a product"
+`DashboardPanel` block (category `fieldset`s, product tiles, empty-state
+message, "active loan in progress" note) along with the now-unused
+`chooseProduct()` handler and `CATEGORY_LABEL` map — there is no longer any
+path in this file that renders a product picker. `changeProduct()` is
+rewritten from a local-state reset into a redirect: it looks up
+`selectedProduct.category` against `EXPLORE_CATEGORIES`
+(`features/dashboard/explore-categories.ts`) and `router.push`es to
+`/dashboard/explore/${match.slug}` (`loans`, `insurance`, or `cards` — the
+last self-redirects to the sole flagship card product via the existing
+`shouldSkipCardsCategoryList`, unchanged from PR #225). A new effect
+`router.replace`s to `/dashboard/explore` once product-loading finishes
+(`status === "ready"`) with `selectedProduct` still null — covering a
+missing `?product=`, a stale/invalid id, and any future caller that forgets
+the query param — with the existing loading `Skeleton` shell rendered in the
+interim so nothing empty/broken flashes before the redirect lands. `products`,
+`getLoanTypes()`, the preselection effect, and `activeApplication`'s
+duplicate-loan submit guard are all unchanged; the form panel (including the
+"provider option selected" banner) is now the only content the page ever
+renders once a product resolves. (2) The two remaining callers that used to
+link to `/dashboard/apply` with no product — relying on the now-deleted
+picker to let the user choose one there — are repointed straight to
+`/dashboard/explore/loans`: Compare Loan Offers' "Apply for a loan" header
+button and "Next step" `MetricCard` (`features/loans/loan-offers-view.tsx`),
+and "Your loan journey"'s `ApplyCta` link (`features/dashboard/loans-applications.tsx`).
+Every other caller of `/dashboard/apply` already passes `?product=<id>` via
+`applyHref()` (`features/loans/provider-offer-list.tsx`) and is unaffected.
+(3) `e2e/dashboard-navigation.spec.ts`: the loans-workspace smoke loop's bare
+`/dashboard/apply` row now visits `/dashboard/apply?product=<id>` (a new
+`getLoanTypeId()` helper looks up the seeded "personal-loan" product's id via
+the loan-types API, since the picker's display `label` and the query
+param's `name` match are different fields and the bare path would otherwise
+redirect to Explore before the heading renders); the "Client submits a
+product-specific loan form" test no longer clicks a picker tile — it now
+navigates `/dashboard/explore/loans` → clicks the "Personal Loan"
+`ExploreArtCard` link → clicks the product page's "Apply" link, landing on
+the pre-selected form the way a real user now does, then continues its
+existing field-filling and submission assertions unchanged.
+`features/dashboard/nav-items.test.ts`'s `/dashboard/apply` assertions only
+exercise capability/route-rule access logic, not page content, and are
+unaffected.
+
+Fresh evidence: `pnpm lint` and `pnpm typecheck` pass; all 419 web unit tests
+across 66 files pass unchanged (no unit test covers `apply/page.tsx`
+directly — its only prior test-file reference besides the e2e spec above is
+an unrelated admin toast string in `provider-offers-view.tsx`). `pnpm build`
+compiled, typechecked, and generated all 93 pages (including
+`/dashboard/apply` and the `/dashboard/explore/*` tree) before the same
+pre-existing Windows-host `EPERM` standalone-symlink failure recorded
+elsewhere in this table — confirmed unrelated to this change; `output:
+"standalone"` in `next.config.ts` triggers a `node_modules` symlink copy this
+Windows host's account lacks privilege for, well after all 93 pages had
+already generated successfully. `pnpm test:e2e` was not run in this session
+(no live dev container/API stack was started); the updated
+`dashboard-navigation.spec.ts` assertions above were written and reasoned
+through against the actual component/route code but not exercised live in a
+browser, which is this change's one residual verification gap.
+
 **Done - Cards category always skips its list, apply-page product picker
 hides once selected, full-width application form
 ([PR #225](https://github.com/brollysolutions/client1/pull/225), on
