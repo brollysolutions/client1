@@ -10,8 +10,8 @@ verified Admin operational-visibility work in
 [PR #173](https://github.com/brollysolutions/client1/pull/173).
 
 **Done - Loans-Client Explore redesign: category catalogue, product detail,
-lender offers ([PR TBD](https://github.com/brollysolutions/client1/pulls) on
-`claude/20260824-075055-lets-design-explore-page-in-client-dashboa`; direct
+lender offers ([PR #223](https://github.com/brollysolutions/client1/pull/223)
+on `claude/20260824-075055-lets-design-explore-page-in-client-dashboa`; direct
 user-reported UI change, no requirement or completion-percentage change):**
 `/dashboard/explore` on the loans line now works like the public `/loans`
 financial-services catalogue, but built for the dashboard: a hub of Loans,
