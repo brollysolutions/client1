@@ -18,7 +18,7 @@ type Status = "loading" | "ready" | "error";
 function ApplyCta({ className }: { className?: string }) {
   return (
     <Link
-      href="/dashboard/apply"
+      href="/dashboard/explore/loans"
       className={cn(
         "inline-flex items-center gap-2 rounded-lg bg-loans-accent px-4 py-2 text-sm font-medium text-surface transition-colors hover:bg-loans-accent/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-loans-accent focus-visible:ring-offset-2",
         className,

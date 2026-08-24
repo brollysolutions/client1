@@ -211,6 +211,25 @@ async function createClientLoanApplication(
   return { id: application.id, label: loanType!.label };
 }
 
+// /dashboard/apply no longer accepts a bare visit (it redirects to Explore
+// once no product resolves from `?product=`), so tests that need to land on
+// the apply form directly look up a real product id first.
+async function getLoanTypeId(
+  request: APIRequestContext,
+  account: RegisteredAccount,
+  name: string,
+): Promise<string> {
+  const headers = { Authorization: `Bearer ${account.accessToken}` };
+  const typesResponse = await request.get(`${API_BASE_URL}/api/v1/loans/loan-types`, {
+    headers,
+  });
+  expect(typesResponse.ok(), await typesResponse.text()).toBeTruthy();
+  const types = (await typesResponse.json()) as { loan_types: { id: string; name: string }[] };
+  const loanType = types.loan_types.find((product) => product.name === name);
+  expect(loanType).toBeDefined();
+  return loanType!.id;
+}
+
 test.describe("role-aware dashboard navigation", () => {
   // A cold local Next.js dev container can spend more than a minute compiling
   // the login and dashboard routes before the role assertions begin.
@@ -379,6 +398,7 @@ test.describe("role-aware dashboard navigation", () => {
     const account = await registerClient(request, 400);
     try {
       const application = await createClientLoanApplication(request, account);
+      const personalLoanId = await getLoanTypeId(request, account, "personal-loan");
       await context.grantPermissions(["clipboard-read", "clipboard-write"], {
         origin: "http://localhost:3000",
       });
@@ -388,7 +408,7 @@ test.describe("role-aware dashboard navigation", () => {
         { path: "/dashboard", heading: "Your loan journey" },
         { path: `/dashboard/loans/${application.id}`, heading: application.label },
         { path: "/dashboard/explore", heading: "Explore" },
-        { path: "/dashboard/apply", heading: "Apply for a financial product" },
+        { path: `/dashboard/apply?product=${personalLoanId}`, heading: "Apply for a financial product" },
         { path: "/dashboard/documents", heading: "Loan media" },
         { path: "/dashboard/loan-offers", heading: "Compare Loan Offers" },
         { path: "/dashboard/loan-officer", heading: "My Loan Officer" },
@@ -481,12 +501,15 @@ test.describe("role-aware dashboard navigation", () => {
     const account = await registerClient(request, 450);
     try {
       await logIn(page, account);
-      await page.goto("/dashboard/apply");
+      // The apply page has no standalone product picker anymore -- reach it
+      // the way a real user now does, via the Explore product page's Apply CTA.
+      await page.goto("/dashboard/explore/loans");
+      await page.getByRole("link", { name: /^Personal Loan/ }).click();
+      await page.getByRole("link", { name: "Apply", exact: true }).click();
 
       await expect(
         page.getByRole("heading", { name: "Apply for a financial product", exact: true }),
       ).toBeVisible();
-      await page.getByRole("button", { name: "Personal Loan", exact: true }).click();
 
       await expect(page.getByLabel("Full Name")).toHaveValue("Navigation Browser");
       await expect(page.getByLabel("Registered Mobile Number")).toHaveValue(account.mobile);

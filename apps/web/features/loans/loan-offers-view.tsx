@@ -126,14 +126,14 @@ export function LoanOffersView() {
       <DashboardHeader
         title="Compare Loan Offers"
         description="Review participating banks by loan type and shortlist up to three options."
-        actions={<Button onClick={() => router.push("/dashboard/apply")}>Apply for a loan</Button>}
+        actions={<Button onClick={() => router.push("/dashboard/explore/loans")}>Apply for a loan</Button>}
       />
 
       <MetricGrid>
         <MetricCard label="Loan types" value={loanTypes.length} icon={DASHBOARD_ICONS.loanApplications} />
         <MetricCard label="Participating banks" value={allBanks.length} icon={Landmark} />
         <MetricCard label="Shortlisted" value={`${shortlisted.length}/3`} icon={DASHBOARD_ICONS.compare} />
-        <MetricCard label="Next step" value="Apply" hint="Rates follow profile review" icon={DASHBOARD_ICONS.applyForLoan} href="/dashboard/apply" />
+        <MetricCard label="Next step" value="Apply" hint="Rates follow profile review" icon={DASHBOARD_ICONS.applyForLoan} href="/dashboard/explore/loans" />
       </MetricGrid>
 
       <div className="flex items-start gap-2 rounded-xl border border-border bg-card px-4 py-3 text-sm text-text-secondary">
