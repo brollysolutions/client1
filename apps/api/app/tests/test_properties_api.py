@@ -20,7 +20,9 @@ from app.core.security import create_access_token
 from conftest import full_registration
 
 
-async def _seed_property(*, active: bool, title: str) -> str:
+async def _seed_property(
+    *, active: bool, title: str, structured_details: dict | None = None
+) -> str:
     """Insert a property via the app superuser (bypasses RLS). Returns its id."""
     import app.db.session as _session_mod
     from app.models.property import Property
@@ -48,6 +50,7 @@ async def _seed_property(*, active: bool, title: str) -> str:
             age_years=3,
             rera_number="RERA/KA/2024/1234",
             details={},
+            structured_details=structured_details,
         )
         db.add(prop)
         await db.commit()
@@ -120,6 +123,34 @@ async def test_list_returns_active_hides_inactive(client: AsyncClient) -> None:
     ids = {p["id"] for p in resp.json()["properties"]}
     assert active_id in ids
     assert inactive_id not in ids
+
+
+@pytest.mark.asyncio
+async def test_malformed_legacy_details_do_not_break_dashboard_catalog(
+    client: AsyncClient,
+) -> None:
+    """A stale row (structured_details predating a since-tightened field
+    requirement, e.g. project_residence's amenities_description) must not
+    500 the whole authenticated catalog for every Client/Agent/staff user —
+    mirrors test_public_properties.py's identically-named public-catalog
+    regression test for app/api/v1/public_catalog.py's _public_property_data.
+    """
+    property_id = await _seed_property(
+        active=True,
+        title="Legacy Detail Listing",
+        structured_details={"kind": "project_residence", "amenities_description": None},
+    )
+    token, _ = await full_registration(client, lines=["real_estate"])
+    headers = {"Authorization": f"Bearer {token}"}
+
+    detail = await client.get(f"/api/v1/properties/{property_id}", headers=headers)
+    assert detail.status_code == 200, detail.text
+    assert detail.json()["structured_details"] is None
+
+    catalog = await client.get("/api/v1/properties", headers=headers)
+    assert catalog.status_code == 200, catalog.text
+    row = next(item for item in catalog.json()["properties"] if item["id"] == property_id)
+    assert row["structured_details"] is None
 
 
 @pytest.mark.asyncio

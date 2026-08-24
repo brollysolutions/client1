@@ -10,9 +10,11 @@ there is no write endpoint here and only SELECT is granted to api_user.
 
 from __future__ import annotations
 
+import logging
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from pydantic import TypeAdapter, ValidationError
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -21,16 +23,40 @@ from app.db.session import get_db
 from app.models.audit_log import AuditAction
 from app.models.property import Property
 from app.schemas.properties import AdminPropertyStatusUpdate, PropertyListResponse, PropertyRead
+from app.schemas.property_details import PropertyStructuredDetails
 from app.services.audit_log import record as record_audit
 from app.services.properties import media_by_property, media_urls_by_property
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
+_PROPERTY_DETAILS_ADAPTER = TypeAdapter(PropertyStructuredDetails)
+
+
+def _property_data(prop: Property) -> dict:
+    """Project an ORM row while containing malformed legacy detail JSON.
+
+    Mirrors app/api/v1/public_catalog.py's _public_property_data, which this
+    authenticated catalog lacked: one stale row (structured_details that
+    predates a since-tightened field requirement, e.g. a legacy
+    project_residence row missing its now-required amenities_description)
+    must not 500 the whole dashboard catalog for every Client/Agent/staff
+    user. The typed common facts remain safe to serve and the invalid detail
+    block is omitted with an identifier-only warning for repair.
+    """
+    structured_details = prop.structured_details
+    if structured_details is not None:
+        try:
+            structured_details = _PROPERTY_DETAILS_ADAPTER.validate_python(structured_details)
+        except ValidationError:
+            logger.warning("property.invalid_structured_details property_id=%s", prop.id)
+            structured_details = None
+    return {**prop.__dict__, "structured_details": structured_details}
 
 
 async def _to_read(db: AsyncSession, prop: Property) -> PropertyRead:
     media = await media_urls_by_property(db, [prop.id])
     media_items = await media_by_property(db, [prop.id])
-    return PropertyRead.model_validate(prop, from_attributes=True).model_copy(
+    return PropertyRead.model_validate(_property_data(prop)).model_copy(
         update={"media_urls": media[prop.id], "media": media_items[prop.id]}
     )
 
@@ -49,7 +75,7 @@ async def list_properties(
     media_items = await media_by_property(db, [property.id for property in properties])
     return PropertyListResponse(
         properties=[
-            PropertyRead.model_validate(p, from_attributes=True).model_copy(
+            PropertyRead.model_validate(_property_data(p)).model_copy(
                 update={"media_urls": media[p.id], "media": media_items[p.id]}
             )
             for p in properties
