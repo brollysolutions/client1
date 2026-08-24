@@ -1,8 +1,8 @@
 import { DashboardHeader, DashboardPage, DashboardSection } from "@/features/dashboard/dashboard-ui";
 import { ExploreArtCard } from "@/features/dashboard/explore-cards";
-import { EXPLORE_CATEGORIES } from "@/features/dashboard/explore-categories";
+import { EXPLORE_CATEGORIES, shouldSkipCardsCategoryList } from "@/features/dashboard/explore-categories";
 import { ExploreLineSwitch } from "@/features/dashboard/explore-line-switch";
-import { getCatalogueFacets } from "@/lib/financial-catalog";
+import { getCatalogueFacets, getPublicFinancialProducts } from "@/lib/financial-catalog";
 
 // Product discovery hub. Loans line shows the Loans/Insurance/Credit Cards
 // tiles, each opening its category's Admin-published products
@@ -16,7 +16,17 @@ import { getCatalogueFacets } from "@/lib/financial-catalog";
 // server-only fetch wrapper); the real-estate branch is handed off to a
 // client component instead of being rendered here.
 export default async function ExplorePage() {
-  const facets = await getCatalogueFacets();
+  // The credit_card fetch below duplicates one of getCatalogueFacets' own
+  // requests (same URL/options), so Next dedupes it within this render --
+  // fetching it directly just recovers the product slug that facets discards
+  // (it keeps only `.total`), letting the Cards tile skip its category list.
+  const [facets, cardsCatalogue] = await Promise.all([
+    getCatalogueFacets(),
+    getPublicFinancialProducts({ category: "credit_card", pageSize: 1 }),
+  ]);
+  const soleCardProductSlug = shouldSkipCardsCategoryList("cards", cardsCatalogue.items.length)
+    ? cardsCatalogue.items[0].slug
+    : null;
 
   return (
     <ExploreLineSwitch
@@ -34,10 +44,14 @@ export default async function ExplorePage() {
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
               {EXPLORE_CATEGORIES.map((category) => {
                 const count = facets[category.category];
+                const href =
+                  category.slug === "cards" && soleCardProductSlug
+                    ? `/dashboard/explore/cards/${soleCardProductSlug}`
+                    : `/dashboard/explore/${category.slug}`;
                 return (
                   <ExploreArtCard
                     key={category.slug}
-                    href={`/dashboard/explore/${category.slug}`}
+                    href={href}
                     title={category.label}
                     blurb={category.blurb}
                     illustration={category.illustration}

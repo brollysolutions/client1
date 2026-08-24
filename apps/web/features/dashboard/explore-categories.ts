@@ -55,8 +55,11 @@ export function getExploreCategory(slug: string): ExploreCategory | undefined {
   return EXPLORE_CATEGORIES.find((c) => c.slug === slug);
 }
 
-// The "cards" category collapses straight to its one product instead of
-// showing a one-item list; any other item count (0 or >1) keeps the list.
-export function shouldRedirectToSoleProduct(categorySlug: string, itemCount: number): boolean {
-  return categorySlug === "cards" && itemCount === 1;
+// The "cards" category is a single flagship product line by design, so its
+// list view is always skipped in favor of going straight to a product --
+// unlike loans/insurance, which keep their list at any item count. There is
+// nothing to redirect to when the category has zero published products, so
+// that case still falls through to the empty state.
+export function shouldSkipCardsCategoryList(categorySlug: string, itemCount: number): boolean {
+  return categorySlug === "cards" && itemCount > 0;
 }

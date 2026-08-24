@@ -9,6 +9,87 @@ Evidence baseline: `abcc1fd`
 verified Admin operational-visibility work in
 [PR #173](https://github.com/brollysolutions/client1/pull/173).
 
+**Done - Cards category always skips its list, apply-page product picker
+hides once selected, full-width application form (PR TBD, on
+`claude/20260824-104244-1-cards-and-credit-cards-showing-same`; direct
+user-reported UI change, no requirement or completion-percentage change):**
+follow-up to the Explore trim below, once the sole-product redirect was live
+in the browser and the user asked for it to go further. Three changes. (1)
+`explore-categories.ts`'s `shouldRedirectToSoleProduct(categorySlug,
+itemCount)` (true only for `("cards", 1)`) is generalized to
+`shouldSkipCardsCategoryList(categorySlug, itemCount)` (true for any
+`("cards", itemCount > 0)`), per direct user decision that the Credit Cards
+line is a single flagship product by design and should never show a list,
+not just while the count happens to be exactly one; `explore/[slug]/page.tsx`
+calls the renamed predicate the same way. `explore/page.tsx` (the Explore
+hub, a server component) additionally fetches
+`getPublicFinancialProducts({ category: "credit_card", pageSize: 1 })`
+directly alongside its existing `getCatalogueFacets()` call — Next dedupes
+the identical in-flight request, so this recovers the sole product's `slug`
+(which facets discards, keeping only `.total`) at no extra network cost — and
+the "Credit Cards" hub tile links straight to
+`/dashboard/explore/cards/${slug}` instead of the category page whenever the
+predicate is true. The sidebar's Explore accordion (`app-sidebar.tsx`) is
+deliberately left linking to `/dashboard/explore/${slug}`: it is a client
+component rendered on every authenticated page, and adding a catalogue fetch
+there just to skip an already-invisible server `redirect()` (resolved before
+first paint, no list UI ever flashes) was judged not worth an extra request
+on every page load — noted as a scoped tradeoff rather than a silent
+deviation. (2) On `/dashboard/apply`, the "Choose a product" panel — previously
+always rendered above the form, even once a product was already selected via
+a `?product=` deep link — now only renders while `!selectedProduct`; a new
+`changeProduct()` handler (mirrors the existing `chooseProduct`, resetting
+`productId`/`providerOfferId`/`answers`/`answerErrors`/
+`submittedEnquiryLabel`) is wired to a "Change product" text button passed
+through `DashboardPanel`'s existing `action` prop on the form panel, so a
+user who arrived pre-selected (or picked wrong) can still back out. The
+"provider option selected" banner, previously dead-rendered inside the
+now-conditionally-hidden picker (it required `providerOfferId && selectedProduct`,
+which could never both hold once the picker only shows for `!selectedProduct`),
+was moved into the form panel where `selectedProduct` is guaranteed. Entry
+points with no product in the URL (Compare Loan Offers' "Apply for a loan",
+the dashboard loan-summary card) are unaffected — they still land on the
+picker until one is chosen, per direct user decision to avoid stranding
+those flows. (3) `apply/page.tsx` drops its `max-w-5xl` override on all three
+`DashboardPage` returns (loading/error/content), falling back to the shared
+`max-w-[1440px]` container every other dashboard page uses;
+`financial-product-form.tsx`'s dynamic per-product field grid widens from
+`sm:grid-cols-2` to `sm:grid-cols-2 xl:grid-cols-3` (matching the
+`xl:grid-cols-3` convention already used for the Explore hub/category card
+grids), with the textarea/multi-select full-width override changed from
+`sm:col-span-2` to `sm:col-span-2 xl:col-span-3` to still span the full row;
+the static 2-field "Registered applicant" grid is left at `sm:grid-cols-2`
+since a third column would just leave a permanent gap.
+
+Fresh evidence: `pnpm lint` and `pnpm typecheck` pass; all 419 web unit tests
+across 66 files pass, including the renamed/regeneralized
+`explore-categories.test.ts` predicate cases
+(`("cards", 1)`/`("cards", 2)` → true, `("cards", 0)`/`("loans", 1)` →
+false) and the pre-existing `financial-product-form.test.ts` (validation
+logic untouched). `pnpm build` compiled, typechecked, and generated all 93
+pages before the same pre-existing Windows-host `EPERM` standalone-symlink
+failure recorded elsewhere in this ledger. `client1-web-1` was restarted to
+clear stale JSX before verification. `pnpm exec playwright test
+e2e/dashboard-navigation.spec.ts e2e/financial-services.spec.ts` ran against
+the restarted container: 11/15 pass, including the cards-catalogue coverage
+in `financial-services.spec.ts`. The 4 failures are all pre-existing and
+unrelated to this diff: the Admin nav-visibility assertion and the
+real-estate "Baner"/"Baner Heights" location-search ambiguity touch files
+this change never modified (`nav-items.ts`/scenario config,
+`CategoryBrowser`'s location autocomplete); the other two — one of which is
+"Client submits a product-specific loan form without inline KYC uploads",
+the spec that actually exercises the changed apply-page flow — failed inside
+the shared `registerClient` test helper itself with "Too many OTP requests
+from this network" (the per-IP hourly OTP cap, `OTP_RATE_LIMIT_PER_IP` in
+`apps/api/app/services/otp.py`, already exhausted by this session's earlier
+registrations), before ever reaching the modified page; this is an
+environmental rate limit, not a regression, but it means that spec's actual
+coverage of the apply-page change is a residual, undischarged verification
+gap rather than a passing result — a retry was not attempted given the
+hourly window was very unlikely to have reset. Security, design, and
+maintainer review were not separately requested for this direct
+user-reported UI change.
+
 **Done - Explore product-journey trim: cards collapse, copy cleanup, sticky
 filters ([PR #224](https://github.com/brollysolutions/client1/pull/224), on
 `claude/20260824-092753-1-remove-explore-page-as-we-only`; direct
