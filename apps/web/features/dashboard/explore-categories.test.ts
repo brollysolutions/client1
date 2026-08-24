@@ -7,7 +7,7 @@ import { describe, expect, it } from "vitest";
 import {
   EXPLORE_CATEGORIES,
   getExploreCategory,
-  shouldRedirectToSoleProduct,
+  shouldSkipCardsCategoryList,
 } from "./explore-categories";
 
 // Locks the data contract the Explore hub, its sidebar accordion, and the
@@ -55,11 +55,11 @@ describe("EXPLORE_CATEGORIES", () => {
   });
 });
 
-describe("shouldRedirectToSoleProduct", () => {
-  it("redirects only the cards category, and only when it has exactly one product", () => {
-    expect(shouldRedirectToSoleProduct("cards", 1)).toBe(true);
-    expect(shouldRedirectToSoleProduct("cards", 0)).toBe(false);
-    expect(shouldRedirectToSoleProduct("cards", 2)).toBe(false);
-    expect(shouldRedirectToSoleProduct("loans", 1)).toBe(false);
+describe("shouldSkipCardsCategoryList", () => {
+  it("skips the list for the cards category whenever it has at least one product", () => {
+    expect(shouldSkipCardsCategoryList("cards", 1)).toBe(true);
+    expect(shouldSkipCardsCategoryList("cards", 2)).toBe(true);
+    expect(shouldSkipCardsCategoryList("cards", 0)).toBe(false);
+    expect(shouldSkipCardsCategoryList("loans", 1)).toBe(false);
   });
 });

@@ -108,7 +108,7 @@ export function FinancialProductFormFields({
           {section.description ? (
             <p className="text-sm text-text-secondary">{section.description}</p>
           ) : null}
-          <div className="grid gap-5 sm:grid-cols-2">
+          <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
             {section.fields.map((field) => {
               if (!isVisible(field, answers)) return null;
               const id = `product-field-${field.key}`;
@@ -122,7 +122,7 @@ export function FinancialProductFormFields({
               return (
                 <div
                   key={field.key}
-                  className={field.input_type === "textarea" || field.input_type === "multi_select" ? "grid gap-1.5 sm:col-span-2" : "grid gap-1.5"}
+                  className={field.input_type === "textarea" || field.input_type === "multi_select" ? "grid gap-1.5 sm:col-span-2 xl:col-span-3" : "grid gap-1.5"}
                 >
                   <Label id={`${id}-label`} htmlFor={field.input_type === "multi_select" ? undefined : id}>
                     {field.label}
