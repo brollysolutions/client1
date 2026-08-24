@@ -27,7 +27,6 @@ export function RealEstateHome() {
 
   const heading = (
     <DashboardHeader
-      eyebrow="Real Estate workspace"
       title="Find your next property"
       description="Search by locality, city, PIN code, or property name, then save and compare the best matches."
     />

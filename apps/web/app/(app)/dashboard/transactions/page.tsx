@@ -96,7 +96,6 @@ export default function TransactionsPage() {
   return (
     <DashboardPage>
       <DashboardHeader
-        eyebrow="Financial activity"
         title="Transactions"
         description="Track cashback, referral bonuses, commissions, and any settlement reversals."
       />

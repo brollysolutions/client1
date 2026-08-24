@@ -56,7 +56,6 @@ export default function NotificationsPage() {
   return (
     <DashboardPage>
       <DashboardHeader
-        eyebrow="Workspace updates"
         title="Notifications"
         description="Review application, payout, assignment, property, and account updates in one place."
         actions={

@@ -9,6 +9,81 @@ Evidence baseline: `abcc1fd`
 verified Admin operational-visibility work in
 [PR #173](https://github.com/brollysolutions/client1/pull/173).
 
+**Done - Loans-Client Explore redesign: category catalogue, product detail,
+lender offers ([PR #223](https://github.com/brollysolutions/client1/pull/223)
+on `claude/20260824-075055-lets-design-explore-page-in-client-dashboa`; direct
+user-reported UI change, no requirement or completion-percentage change):**
+`/dashboard/explore` on the loans line now works like the public `/loans`
+financial-services catalogue, but built for the dashboard: a hub of Loans,
+Insurance, and Credit Cards illustration cards
+(`features/dashboard/explore-cards.tsx`, `explore-categories.ts`) leads to a
+category page listing that category's Admin-published products
+(`app/(app)/dashboard/explore/[slug]/page.tsx`), and a new product page
+(`app/(app)/dashboard/explore/[slug]/[productSlug]/page.tsx`) shows product
+facts (highlights/eligibility/documents/FAQ) plus a searchable, provider-type-
+filterable, sortable list of published lender offers
+(`features/loans/provider-offer-filters.tsx`,
+`features/loans/provider-offer-list.tsx`), each with an Apply action that
+deep-links into `/dashboard/apply?product=<id>&offer=<offerId>` (the existing
+preselection contract). No lender destination URL or redirect exists, matching
+the catalogue's established no-off-platform-redirect invariant. All three
+pages read the same anonymous, ISR-cached public financial-products endpoints
+the marketing site already uses (`lib/financial-catalog.ts`,
+`/api/v1/public/financial-products*`, from PR #215/#211) — **no API, contract,
+migration, or RLS change**. `explore/page.tsx` and `explore/[slug]/page.tsx`
+became server components for this (that module throws if imported into a
+Client Component); the pre-existing client-side real-estate Explore hub was
+moved unchanged into a new `ExploreLineSwitch` client component that receives
+the server-rendered loans hub as a prop, since a client component cannot
+render an async server child directly.
+
+Per direct user decision, every `DashboardHeader` eyebrow across the
+Client-visible dashboard surfaces was removed — both lines, plus the two
+routes shared with staff (`transactions`, `notifications`) — and the
+now-redundant "Financial products" sidebar entry
+(`/dashboard/apply`) was dropped from `nav-items.ts` (the route itself stays
+reachable as the Apply deep-link target, used by every public and dashboard
+Apply/Request-a-quote button). The Explore sidebar accordion's active-state
+check changed from an exact match to a prefix match so a loans category stays
+highlighted while browsing its product pages. The now-unreferenced
+`features/dashboard/coming-soon.tsx` was deleted.
+
+Fresh evidence: `pnpm lint` and `pnpm typecheck` pass; all 418 web unit tests
+across 66 files pass, including a new `explore-categories.test.ts` (5 tests:
+hub order, slug shape, category-to-`ProductCategory` mapping, every
+illustration file exists on disk, slug resolution). `pnpm build` compiled,
+typechecked, and generated all 93 pages against a live Docker API backend —
+so the new loans-line Explore route tree (hub, category, and the new product
+page) was exercised with real published-product data during static
+generation, not mocked — before hitting the same pre-existing Windows-host
+`EPERM` standalone-symlink failure recorded elsewhere in this ledger,
+reproduced with the sandbox disabled to confirm it is an OS/environment
+limitation rather than a defect in this change.
+
+`pnpm test:e2e -- dashboard-navigation.spec.ts` ran against the restarted
+`client1-web-1` container: the Client-role and Client-mobile-drawer scenarios
+pass, including this change's updated assertions ("Financial products" no
+longer offered; "Explore" present instead). The Admin scenario fails on a
+pre-existing, unrelated bug that predates this branch — the Admin
+"Financial products" exclusion assertion was never updated when
+`admin-loan-config`'s nav label changed to "Financial products" in `a92eec4`,
+confirmed by `git log -p` on that line; this test was already broken before
+this change and is unrelated to it. The full-workspace Client scenario and two
+further Client-registration scenarios could not complete because the shared
+dev stack's per-network OTP-initiation rate limit (`OTP_RATE_LIMIT_PER_IP`, a
+security control) was exhausted by this and the prior verification run's
+repeated test-account registrations; per `SECURITY.md`/`AGENTS.md` this was
+not reset or bypassed to force a pass. The one page-content assertion that
+failed mid-run (`/dashboard/loan-offers`'s "Compare Loan Offers" heading, on a
+cold Turbopack compile) was confirmed by direct source inspection to be
+unaffected by this diff — `loan-offers-view.tsx`'s `title="Compare Loan
+Offers"` is unchanged; only its `eyebrow` prop was removed. Separately, `curl`
+against the running API confirmed real Admin-published loan products flow
+through `GET /api/v1/public/financial-products` with the expected shape, and
+the dev container's request log shows the new and changed routes compiling
+and returning 200. Security, design, and maintainer review were not
+separately requested for this direct user-reported UI change.
+
 **Done - Loans client dashboard shell and home decluttering
 ([PR #222](https://github.com/brollysolutions/client1/pull/222) on
 `claude/20260823-211421-loans-client-page-dashbaord-1-side-navbar`;

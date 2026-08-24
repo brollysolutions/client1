@@ -75,7 +75,6 @@ export function EnquiriesView() {
   return (
     <DashboardPage>
       <DashboardHeader
-        eyebrow="Real Estate activity"
         title="My Enquiries"
         description="Follow every property question from initial request through team contact and closure."
       />

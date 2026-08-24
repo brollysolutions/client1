@@ -85,7 +85,6 @@ function LoanDetail({ application: a }: { application: LoanApplication }) {
   return (
     <div className="space-y-6">
       <DashboardHeader
-        eyebrow="Loan application"
         title={a.loanTypeLabel}
         description={`Applied on ${formatDate(a.openedOn)}. Follow the current decision and next stage below.`}
         actions={

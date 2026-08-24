@@ -110,14 +110,6 @@ export const NAV_ITEMS: readonly NavItem[] = [
     section: "workspace",
   },
   {
-    key: "apply",
-    label: "Financial products",
-    href: "/dashboard/apply",
-    icon: DASHBOARD_ICONS.applyForLoan,
-    capability: "clientLoans",
-    section: "workspace",
-  },
-  {
     key: "documents",
     label: "Loan media",
     href: "/dashboard/documents",

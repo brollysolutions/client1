@@ -122,7 +122,6 @@ export function SiteVisitsView() {
   return (
     <DashboardPage>
       <DashboardHeader
-        eyebrow="Real Estate activity"
         title="Site Visits"
         description="Track visit confirmation, preferred slots, pickup arrangements, and completion."
       />
