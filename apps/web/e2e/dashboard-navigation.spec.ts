@@ -264,7 +264,7 @@ test.describe("role-aware dashboard navigation", () => {
         const navigation = page.locator('nav[aria-label="Workspace"]:visible');
         await expect(navigation).toBeVisible();
 
-        await page.getByRole("button", { name: /Notifications/ }).hover();
+        await page.getByRole("button", { name: /Notifications/ }).click();
         await expect(page.getByRole("link", { name: "View all notifications" })).toBeVisible();
 
         for (const label of scenario.expected) {
