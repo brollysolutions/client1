@@ -9,6 +9,69 @@ Evidence baseline: `abcc1fd`
 verified Admin operational-visibility work in
 [PR #173](https://github.com/brollysolutions/client1/pull/173).
 
+**Done - Notification dropdown and page redesign: click-to-open, neutral
+icons, unread/type/date/search filters, pagination
+([PR TBD](https://github.com/brollysolutions/client1/pulls), on
+`claude/20260824-123331-lets-design-notification-panel-and-dropdow`; direct
+user-reported UI change, no requirement or completion-percentage change):**
+the notification bell dropdown and `/dashboard/notifications` page had four
+reported problems, fixed across four files with no backend/API/contract
+change. (1) The dropdown was hover-triggered with a custom 180ms close-timer
+bridging the `PopoverTrigger` button and `PopoverContent` (a `sideOffset={10}`
+gap between them had no hover handler, so a fast mouse movement through that
+dead zone re-armed the open timer and the dropdown appeared stuck open).
+`notification-bell.tsx` drops `closeTimer`/`showPreview`/`scheduleClose` and
+every `onMouseEnter`/`onMouseLeave`/`onFocus` handler entirely; the
+already-correct `Popover open={open} onOpenChange={...}` wiring (which already
+calls `loadPreview()` on every transition to open) is all that remains, so
+Radix's own built-in outside-click/Escape dismissal — never modified — now
+governs closing with no custom logic in front of it. (2) Every blue
+`brand-cta`/`loans-accent` token (`bg-brand-cta-tint`, `text-brand-cta`,
+`bg-loans-soft`, `text-loans-accent`) is replaced with neutral `bg-muted`
+circular icon badges and plain `text-text-primary` (near-black) icons/dots,
+in both the dropdown and the page's notification rows, per the app's own
+`globals.css` ADR-0007 comment that dashboards should stay neutral/navy, not
+CTA blue. (3) A compact "Mark all as read" icon button (`CheckCheck`,
+`aria-label="Mark all as read"`) was added to the dropdown header itself —
+previously only the full page had this control. (4) The page's redundant
+stats block ("All updates / Unread / Action links / Read" `MetricGrid`) and
+its supporting `listedUnreadCount`/`linkedCount`/`DASHBOARD_ICONS` dead code
+are deleted. In its place, a new filter toolbar (Unread/All `Tabs`, a
+notification-type `Select` fed by a new `NOTIFICATION_TYPE_LABEL` map added
+to `notification-presenter.ts`, a `created_at` date range, and a title/body
+search `Input`) filters client-side over the existing ≤100-row capped feed —
+reusing `isInDateRange`/`AdminPagination`/`ADMIN_PAGE_SIZE` from
+`features/admin/admin-list-tools.tsx` unmodified, per direct user decision to
+keep this client-side rather than add backend query-param support (the API's
+`GET /api/v1/notifications` has none today, only a hardcoded 100-row cap).
+Switching the new Unread tab makes read items disappear from view, which is
+what actually resolves the "mark all as read still shows notifications"
+report — the mutation itself (`markAllNotificationsReadInSnapshot` in
+`lib/notification-state.ts`, optimistic + shared across dropdown and page via
+`NotificationsProvider`) was already correct; the gap was purely the absence
+of a way to hide already-read items. `e2e/dashboard-navigation.spec.ts`'s one
+assertion touching this UI (`.hover()` on the bell button) is updated to
+`.click()` to match the new interaction model.
+
+Fresh evidence: `pnpm lint` and `pnpm typecheck` pass; all 419 web unit tests
+across 66 files pass unchanged (no unit test covers `notification-bell.tsx`
+or the notifications page directly; `lib/notification-state.test.ts`, which
+covers the untouched mutation helpers, stays green). `pnpm build` compiled,
+typechecked, and generated all 93 pages before the same pre-existing
+Windows-host `EPERM` standalone-symlink failure recorded elsewhere in this
+document. Live interactive browser verification was **not** performed in
+this session: the app requires OTP-based registration with no static dev
+login credentials available, and standing up a fresh account/session for a
+manual click-through was judged out of proportion to this change; the
+`client1-web-1` dev container was restarted (to clear stale JSX per this
+repo's known caching behavior) but not driven through a browser. This is the
+one residual verification gap — a manual or Playwright pass against a logged-in
+session confirming the click-to-open/outside-click/Escape behavior and the
+neutral color redesign is recommended before merge. `pnpm test:e2e` was not
+run this session. Security, design, and maintainer review were not separately
+requested for this direct user-reported UI change; no backend, API, RLS,
+contract, or migration surface was touched.
+
 **Done - Apply-page product picker removed; "Change product" and
 productless entry points now redirect to Explore by category
 ([PR #226](https://github.com/brollysolutions/client1/pull/226), on

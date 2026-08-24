@@ -43,6 +43,29 @@ export const NOTIFICATION_TYPE_ICON: Record<NotificationType, LucideIcon> = {
   vehicle_arrangement_updated: CarFront,
 };
 
+export const NOTIFICATION_TYPE_LABEL: Record<NotificationType, string> = {
+  site_visit_requested: "Site visit requested",
+  site_visit_cancelled: "Site visit cancelled",
+  support_ticket_received: "Support ticket received",
+  support_ticket_resolved: "Support ticket resolved",
+  lead_assigned: "Lead assigned",
+  lead_released: "Lead released",
+  agent_lead_expired: "Lead expired",
+  task_assigned: "Task assigned",
+  loan_status_updated: "Loan status updated",
+  property_deal_status_updated: "Property deal updated",
+  referral_converted: "Referral converted",
+  document_review_updated: "Document review updated",
+  admin_payout_reviewed: "Payout reviewed",
+  admin_account_action: "Account action",
+  admin_retention_purged: "Data retention purge",
+  admin_broadcast: "Announcement",
+  mobile_change_requested: "Mobile change requested",
+  mobile_changed: "Mobile number changed",
+  mobile_change_rejected: "Mobile change rejected",
+  vehicle_arrangement_updated: "Vehicle arrangement updated",
+};
+
 export function formatNotificationTime(iso: string): string {
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return "";

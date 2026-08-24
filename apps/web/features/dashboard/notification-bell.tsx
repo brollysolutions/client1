@@ -2,9 +2,10 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { Bell, ChevronRight, Loader2 } from "lucide-react";
+import { Bell, CheckCheck, ChevronRight, Loader2 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { isSafeLocalHref } from "@/lib/safe-local-href";
 import { cn } from "@/lib/utils";
@@ -16,33 +17,28 @@ const PREVIEW_LIMIT = 5;
 
 // Shared top-bar notification control for every role. The cheap unread count
 // loads on mount; the bounded owner-scoped feed loads only when the preview is
-// first opened by hover, focus, or click. The full page remains authoritative.
+// first opened by click. The full page remains authoritative.
 export function NotificationBell() {
   const [open, setOpen] = React.useState(false);
-  const { items, unreadCount: count, feedStatus: previewStatus, loadNotifications } = useNotifications();
-  const closeTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [markingAll, setMarkingAll] = React.useState(false);
+  const {
+    items,
+    unreadCount: count,
+    feedStatus: previewStatus,
+    loadNotifications,
+    markAllRead,
+  } = useNotifications();
 
   const loadPreview = React.useCallback(async () => {
     await loadNotifications();
   }, [loadNotifications]);
 
-  const showPreview = React.useCallback(() => {
-    if (closeTimer.current) clearTimeout(closeTimer.current);
-    setOpen(true);
-    void loadPreview();
-  }, [loadPreview]);
-
-  const scheduleClose = React.useCallback(() => {
-    if (closeTimer.current) clearTimeout(closeTimer.current);
-    closeTimer.current = setTimeout(() => setOpen(false), 180);
-  }, []);
-
-  React.useEffect(
-    () => () => {
-      if (closeTimer.current) clearTimeout(closeTimer.current);
-    },
-    [],
-  );
+  async function handleMarkAllRead() {
+    if (markingAll || count === 0) return;
+    setMarkingAll(true);
+    await markAllRead();
+    setMarkingAll(false);
+  }
 
   return (
     <Popover
@@ -56,10 +52,7 @@ export function NotificationBell() {
         <button
           type="button"
           aria-label={count > 0 ? `Notifications, ${count} unread` : "Notifications"}
-          className="relative rounded-md p-1.5 text-text-secondary transition-colors hover:bg-brand-cta-tint hover:text-brand-cta focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue"
-          onMouseEnter={showPreview}
-          onMouseLeave={scheduleClose}
-          onFocus={showPreview}
+          className="relative rounded-md p-1.5 text-text-secondary transition-colors hover:bg-muted hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue"
         >
           <Bell className="h-5 w-5" />
           {count > 0 && (
@@ -77,19 +70,32 @@ export function NotificationBell() {
         align="end"
         sideOffset={10}
         className="w-[min(24rem,calc(100vw-2rem))] overflow-hidden"
-        onMouseEnter={showPreview}
-        onMouseLeave={scheduleClose}
       >
-        <div className="flex items-center justify-between border-b border-border px-4 py-3">
-          <div>
+        <div className="flex items-center justify-between gap-2 border-b border-border px-4 py-3">
+          <div className="min-w-0">
             <p className="font-semibold text-text-primary">Notifications</p>
             <p className="text-xs text-text-secondary">
               {count > 0 ? `${count} unread update${count === 1 ? "" : "s"}` : "You are all caught up"}
             </p>
           </div>
-          <span className="grid h-9 w-9 place-items-center rounded-lg bg-brand-cta-tint text-brand-cta">
-            <Bell className="h-4 w-4" aria-hidden="true" />
-          </span>
+          <div className="flex shrink-0 items-center gap-1">
+            {count > 0 && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                aria-label="Mark all as read"
+                disabled={markingAll}
+                onClick={handleMarkAllRead}
+                className="h-8 w-8"
+              >
+                <CheckCheck className="h-4 w-4" aria-hidden="true" />
+              </Button>
+            )}
+            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-muted text-text-primary">
+              <Bell className="h-4 w-4" aria-hidden="true" />
+            </span>
+          </div>
         </div>
 
         {previewStatus === "loading" || previewStatus === "idle" ? (
@@ -101,7 +107,7 @@ export function NotificationBell() {
             <p className="text-sm text-text-secondary">Couldn&apos;t load notification previews.</p>
             <button
               type="button"
-              className="mt-2 text-sm font-medium text-brand-cta hover:underline"
+              className="mt-2 text-sm font-medium text-text-primary hover:underline"
               onClick={() => {
                 void loadNotifications(true);
               }}
@@ -120,7 +126,7 @@ export function NotificationBell() {
               const Icon = NOTIFICATION_TYPE_ICON[notification.type];
               const content = (
                 <>
-                  <span className="mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-brand-cta-tint text-brand-cta">
+                  <span className="mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-muted text-text-primary">
                     <Icon className="h-4 w-4" aria-hidden="true" />
                   </span>
                   <span className="min-w-0 flex-1">
@@ -135,7 +141,7 @@ export function NotificationBell() {
                     </span>
                   </span>
                   {!notification.readAt ? (
-                    <span className="mt-2 h-2 w-2 shrink-0 rounded-full bg-brand-cta" aria-label="Unread" />
+                    <span className="mt-2 h-2 w-2 shrink-0 rounded-full bg-text-primary" aria-label="Unread" />
                   ) : null}
                 </>
               );
@@ -151,7 +157,7 @@ export function NotificationBell() {
                       {content}
                     </Link>
                   ) : (
-                    <div className={cn("flex gap-3 px-4 py-3", !notification.readAt && "bg-brand-cta-tint/20")}>
+                    <div className={cn("flex gap-3 px-4 py-3", !notification.readAt && "bg-muted/40")}>
                       {content}
                     </div>
                   )}
@@ -164,7 +170,7 @@ export function NotificationBell() {
         <Link
           href="/dashboard/notifications"
           onClick={() => setOpen(false)}
-          className="flex items-center justify-center gap-1.5 border-t border-border px-4 py-3 text-sm font-medium text-brand-cta transition-colors hover:bg-brand-cta-tint focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-blue"
+          className="flex items-center justify-center gap-1.5 border-t border-border px-4 py-3 text-sm font-medium text-text-primary transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-blue"
         >
           View all notifications
           <ChevronRight className="h-4 w-4" aria-hidden="true" />
