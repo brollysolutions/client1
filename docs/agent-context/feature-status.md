@@ -9,6 +9,74 @@ Evidence baseline: `abcc1fd`
 verified Admin operational-visibility work in
 [PR #173](https://github.com/brollysolutions/client1/pull/173).
 
+**Done - Explore product-journey trim: cards collapse, copy cleanup, sticky
+filters ([PR #224](https://github.com/brollysolutions/client1/pull/224), on
+`claude/20260824-092753-1-remove-explore-page-as-we-only`; direct
+user-reported UI change, no requirement or completion-percentage change):**
+follow-up to the Explore redesign below, once it was live in the browser.
+Six changes to `app/(app)/dashboard/explore/[slug]/page.tsx` and
+`app/(app)/dashboard/explore/[slug]/[productSlug]/page.tsx`: (1) the "cards"
+category page now redirects straight to its one published product instead of
+showing a one-item list — `explore-categories.ts` gains a small exported
+`shouldRedirectToSoleProduct(categorySlug, itemCount)` pure predicate (true
+only for `("cards", 1)`), called from `LoansCategoryProducts` via
+`next/navigation`'s `redirect()` right after the catalogue fetch; 0 or >1
+items still render the existing empty-state/grid unchanged, so the redirect
+self-disables the moment a second card product is published. (2) the product
+page's one-line tagline under the `<h1>` (`product.summary`, passed as
+`DashboardHeader`'s `description`) is dropped — `DashboardHeader`'s
+`description` prop became optional (`dashboard-ui.tsx`, conditionally
+rendered like the existing `eyebrow`) rather than touching its shared
+paragraph markup, since 31 other call sites across the app still pass and
+rely on it. (3) the "Why consider it / General eligibility / Documents to
+prepare" 3-card `ProductFacts` grid was deleted outright (function and call
+site), per direct user confirmation that only the facts grid goes and the
+longer `product.description` paragraph above it stays. (4) the "Questions
+about {product}" FAQ `<details>` section was deleted. (5) the standalone
+`{product.description}` paragraph between the header and "Compare lenders"
+was also deleted — initially kept per the user's first answer describing it
+as the "longer description paragraph," but live verification against the
+seeded dev database showed it reads "Understand the journey, review
+configured providers, and apply or enquire inside Dhanadhara. Provider terms
+are informational and subject to review." for every checked demo product,
+i.e. exactly the sentence the user had quoted for removal (seed data from
+the immutable Alembic migration `73f4c2a91d6e_public_financial_catalogue.py`
+under `apps/api/alembic/versions/`, not application code); flagged back to
+the user, who confirmed removing it too. (6) the lender-offer search/filter
+bar (`features/loans/provider-offer-filters.tsx`) gained `sticky top-14
+z-10` on its `<form>`, seated just under the dashboard shell's own `sticky
+top-0 z-20 h-14` top bar (`app-shell.tsx`) — mirrors the public site's
+`financial-services-filters.tsx` sticky-rail pattern, minus the glass/blur
+treatment (`bg-card` is already opaque, so no bleed-through to mask).
+
+Fresh evidence: `pnpm lint` and `pnpm typecheck` pass; all 419 web unit tests
+across 66 files pass (up from 418 — `explore-categories.test.ts` gained 4
+cases for the new predicate). `pnpm build` compiled, typechecked, and
+generated all 93 pages before the same pre-existing Windows-host `EPERM`
+standalone-symlink failure recorded elsewhere in this ledger (reproduced
+identically on the prior Explore-redesign entry; unrelated to this change).
+Live browser verification via Playwright MCP against the restarted
+`client1-web-1` container, logged in as the existing seeded Client account
+("Diya Client"): `/dashboard/explore/cards` redirects to
+`/dashboard/explore/cards/credit-cards` (its sole product) with a 200,
+confirming the sole-product collapse; both `/dashboard/explore/cards/credit-
+cards` and `/dashboard/explore/loans/personal-loan` render with no tagline
+under the `<h1>`, no description paragraph, no facts grid, no FAQ section,
+and the filter bar present with the sticky classes applied (re-verified
+after a container restart and cold Turbopack recompile, following the
+description-paragraph removal requested mid-review). The sticky-while-scrolling behavior itself
+was not visually exercised — both checked products have 0 published lender
+offers in the seeded dev data, so neither page is tall enough to scroll;
+this is a residual manual-verification gap, not a code concern (the CSS
+class matches an established, already-shipped sticky pattern in the
+codebase). `pnpm test:e2e` was not run — no existing spec visits any Explore
+category or product page (confirmed by inspection of
+`e2e/dashboard-navigation.spec.ts` before this change), so there was no
+existing coverage to protect and none was added given the OTP-registration
+rate-limit exhaustion recorded on the entry below. Security, design, and
+maintainer review were not separately requested for this direct
+user-reported UI change.
+
 **Done - Loans-Client Explore redesign: category catalogue, product detail,
 lender offers ([PR #223](https://github.com/brollysolutions/client1/pull/223)
 on `claude/20260824-075055-lets-design-explore-page-in-client-dashboa`; direct
