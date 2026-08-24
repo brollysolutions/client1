@@ -7,7 +7,7 @@ import { ExploreArtCard } from "@/features/dashboard/explore-cards";
 import {
   EXPLORE_CATEGORIES,
   getExploreCategory,
-  shouldRedirectToSoleProduct,
+  shouldSkipCardsCategoryList,
 } from "@/features/dashboard/explore-categories";
 import { CategoryBrowser } from "@/features/real-estate/category-browser";
 import { getPublicFinancialProducts } from "@/lib/financial-catalog";
@@ -75,7 +75,7 @@ async function LoansCategoryProducts({
 }) {
   const catalogue = await getPublicFinancialProducts({ category: category.category, pageSize: 100 });
 
-  if (shouldRedirectToSoleProduct(category.slug, catalogue.items.length)) {
+  if (shouldSkipCardsCategoryList(category.slug, catalogue.items.length)) {
     redirect(`/dashboard/explore/${category.slug}/${catalogue.items[0].slug}`);
   }
 
