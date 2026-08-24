@@ -321,7 +321,12 @@ function SidebarExplore({
         <div className="overflow-hidden">
           <div className="ml-[1.375rem] mt-1 flex flex-col gap-1 border-l border-dash-border pl-3">
             {categories.map(({ slug, label: subLabel, icon: SubIcon }) => {
-              const subActive = pathname === `/dashboard/explore/${slug}`;
+              // Prefix match so a loans category stays highlighted while the
+              // user is on one of its product pages
+              // (/dashboard/explore/loans/personal-loan).
+              const categoryHref = `/dashboard/explore/${slug}`;
+              const subActive =
+                pathname === categoryHref || pathname.startsWith(`${categoryHref}/`);
               return (
                 <Link
                   key={slug}

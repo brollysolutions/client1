@@ -52,7 +52,6 @@ export function AgentView() {
   return (
     <DashboardPage>
       <DashboardHeader
-        eyebrow="Real Estate support"
         title="My Agent"
         description="See who owns your active property deal and use the secure support route to connect."
       />

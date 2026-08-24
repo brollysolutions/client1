@@ -5,7 +5,6 @@ export default function DocumentsPage() {
   return (
     <DashboardPage>
       <DashboardHeader
-        eyebrow="Loans workspace"
         title="Loan media"
         description="Upload and review private photos, documents, and videos grouped by application."
       />

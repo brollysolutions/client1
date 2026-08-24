@@ -190,7 +190,6 @@ function ApplyPageContent() {
   return (
     <DashboardPage className="max-w-5xl">
       <DashboardHeader
-        eyebrow="Financial Services"
         title="Apply for a financial product"
         description="Choose a product and complete the questions configured for it."
       />

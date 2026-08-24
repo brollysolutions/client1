@@ -24,7 +24,7 @@ type RoleScenario = {
 const scenarios: readonly RoleScenario[] = [
   {
     name: "Client",
-    expected: ["Financial products", "Loan media", "Compare Loan Offers", "Referrals"],
+    expected: ["Explore", "Loan media", "Compare Loan Offers", "Referrals"],
     excluded: ["Leads", "Tasks", "Website content"],
     deniedPath: "/dashboard/property-submit",
   },
@@ -361,7 +361,7 @@ test.describe("role-aware dashboard navigation", () => {
       await page.getByRole("button", { name: "Open menu" }).click();
 
       const navigation = page.locator('nav[aria-label="Workspace"]:visible');
-      await expect(navigation.getByRole("link", { name: "Financial products" })).toBeVisible();
+      await expect(navigation.getByRole("link", { name: "Explore" })).toBeVisible();
       await expect(navigation.getByRole("link", { name: "Loan media" })).toBeVisible();
       await expect(navigation.getByRole("link", { name: "Leads", exact: true })).toHaveCount(0);
       await expect(navigation.getByRole("link", { name: "Tasks", exact: true })).toHaveCount(0);

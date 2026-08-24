@@ -124,7 +124,6 @@ export function LoanOffersView() {
   return (
     <DashboardPage>
       <DashboardHeader
-        eyebrow="Loans marketplace"
         title="Compare Loan Offers"
         description="Review participating banks by loan type and shortlist up to three options."
         actions={<Button onClick={() => router.push("/dashboard/apply")}>Apply for a loan</Button>}

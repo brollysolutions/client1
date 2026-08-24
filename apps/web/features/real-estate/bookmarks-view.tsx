@@ -31,7 +31,6 @@ export function BookmarksView() {
 
   const heading = (
     <DashboardHeader
-      eyebrow="Real Estate shortlist"
       title="Bookmarks"
       description="Search, filter, and compare the properties you saved for later."
     />

@@ -89,7 +89,6 @@ describe("role-aware dashboard navigation", () => {
     expect(navKeys(context("client", null, "loans"))).toEqual([
       "home",
       "explore",
-      "apply",
       "documents",
       "loan-offers",
       "loan-officer",
