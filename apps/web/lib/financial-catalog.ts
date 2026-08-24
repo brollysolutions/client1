@@ -11,6 +11,7 @@ export type PublicFinancialProductList = Schemas["PublicFinancialProductListResp
 export type PublicProviderOffer = Schemas["PublicProviderOfferRead"];
 export type PublicProviderOfferList = Schemas["PublicProviderOfferListResponse"];
 export type ProviderType = Schemas["ProviderType"];
+export type ProductCategory = Schemas["ProductCategory"];
 
 export type ProductCatalogueQuery = {
   q?: string;

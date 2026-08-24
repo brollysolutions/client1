@@ -1,48 +1,74 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Info, Landmark } from "lucide-react";
+import { Info, Scale, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { LoanOfferCard } from "@/features/loans/loan-offer-card";
-import { useLoanCompare } from "@/features/loans/loan-offers-store";
-import { DASHBOARD_ICONS } from "@/features/dashboard/dashboard-icons";
-import { DashboardHeader, DashboardPage, DashboardPanel, MetricCard, MetricGrid } from "@/features/dashboard/dashboard-ui";
+import { useLoanCompare, type ShortlistedOffer } from "@/features/loans/loan-offers-store";
+import { DashboardHeader, DashboardPage, DashboardPanel } from "@/features/dashboard/dashboard-ui";
 import { FetchError } from "@/features/dashboard/fetch-error";
-import { getBanks, getLoanTypes, type Bank, type LoanTypeOption } from "@/lib/loans";
-import { formatLastUpdated } from "@/lib/format";
+import { applyHref, formatAmount, formatVerifiedAt } from "@/features/loans/provider-offer-list";
+import { PROVIDER_TYPE_LABEL } from "@/features/loans/provider-offer-filters";
+import {
+  getPublicFinancialProductClient,
+  getPublicProviderOffersClient,
+} from "@/lib/financial-catalog-client";
+import type { PublicFinancialProduct, PublicProviderOffer } from "@/lib/financial-catalog";
 
 type Status = "loading" | "ready" | "error";
 
-type BanksByType = Record<string, Bank[]>;
+type CatalogEntry = { product: PublicFinancialProduct | null; offers: PublicProviderOffer[] };
 
-// GET /loans/loan-types has no cap (unlike every public_catalog list, which
-// caps per category as a DoS backstop) -- fine for a handful of real
-// products, but this app's shared dev/test Postgres has accumulated
-// thousands of test-seeded rows (never truncated, see memory
-// shared-test-db-accumulation-gotcha), and one GET /loans/banks fetch per
-// type would fan out into that many concurrent requests. Cap how many
-// sections this page fans out bank-fetches for so a polluted reference
-// table degrades gracefully instead of exhausting browser connections.
-const RENDERED_LOAN_TYPES_LIMIT = 12;
-const BANK_PREVIEW_LIMIT = 12;
+export type ResolvedCompareOffer = {
+  offerId: string;
+  productSlug: string;
+  productId: string;
+  productLabel: string;
+  offer: PublicProviderOffer;
+};
 
-export function selectLoanComparisonTypes(types: LoanTypeOption[]): LoanTypeOption[] {
-  return types
-    .filter((type) => type.category === "loan")
-    .slice(0, RENDERED_LOAN_TYPES_LIMIT);
+// Matches each shortlisted {offerId, productSlug} against the per-product
+// catalog fetched for this load, dropping anything that can no longer be
+// resolved: the product 404'd, it's not a loan product (defense in depth --
+// AddToCompareButton already only renders for category "loan"), or the
+// specific offer is no longer in that product's published list. Exported and
+// kept pure so it's unit-testable without mocking fetch.
+export function resolveShortlistedOffers(
+  shortlist: ShortlistedOffer[],
+  catalog: Record<string, CatalogEntry>,
+): { resolved: ResolvedCompareOffer[]; droppedOfferIds: string[] } {
+  const resolved: ResolvedCompareOffer[] = [];
+  const droppedOfferIds: string[] = [];
+  for (const item of shortlist) {
+    const entry = catalog[item.productSlug];
+    const product = entry?.product ?? null;
+    const offer = entry?.offers.find((candidate) => candidate.id === item.offerId) ?? null;
+    if (!product || product.category !== "loan" || !offer) {
+      droppedOfferIds.push(item.offerId);
+      continue;
+    }
+    resolved.push({
+      offerId: item.offerId,
+      productSlug: item.productSlug,
+      productId: product.id,
+      productLabel: product.label,
+      offer,
+    });
+  }
+  return { resolved, droppedOfferIds };
 }
 
-export function banksForDisplay(banks: Bank[], expanded: boolean): Bank[] {
-  return expanded ? banks : banks.slice(0, BANK_PREVIEW_LIMIT);
-}
-
-// Loans line's "Compare Loan Offers" -> real participating banks per loan
-// type (GET /loans/banks?loan_type_id=). No fabricated interest rates,
-// tenures, or fees: loan_types/banks are reference tables only, a rate only
-// ever exists once a real loan_application is reviewed. feature-status §2-7.
+// Loans line's "Compare Loan Offers" -> a side-by-side comparison of up to 3
+// real, Admin-published provider offers shortlisted from Explore
+// (features/loans/add-to-compare-button.tsx). Sourced from the same
+// anonymous public financial-products catalogue Explore's product page uses
+// (lib/financial-catalog-client.ts, the client-safe twin of
+// lib/financial-catalog.ts), resolved fresh against the shortlist's
+// {offerId, productSlug} pairs on every load -- nothing about the offer
+// itself is cached in localStorage. feature-status §2-7.
 export function LoanOffersView() {
   const router = useRouter();
   const compare = useLoanCompare();
@@ -51,9 +77,8 @@ export function LoanOffersView() {
   const [error, setError] = React.useState<string | null>(null);
   const [errorStatus, setErrorStatus] = React.useState<number | null>(null);
   const [reloadKey, setReloadKey] = React.useState(0);
-  const [loanTypes, setLoanTypes] = React.useState<LoanTypeOption[]>([]);
-  const [banksByType, setBanksByType] = React.useState<BanksByType>({});
-  const [expandedTypeIds, setExpandedTypeIds] = React.useState<Set<string>>(new Set());
+  const [resolved, setResolved] = React.useState<ResolvedCompareOffer[]>([]);
+  const [droppedCount, setDroppedCount] = React.useState(0);
 
   const retry = React.useCallback(() => {
     setStatus("loading");
@@ -62,52 +87,72 @@ export function LoanOffersView() {
     setReloadKey((k) => k + 1);
   }, []);
 
+  // Keyed on the shortlist's actual contents (not the `compare` object
+  // identity, which changes on every store re-render) so the fetch only
+  // re-runs when an offer is actually added or removed.
+  const items = compare.items;
+  const shortlistKey = items
+    .map((item) => `${item.productSlug}:${item.offerId}`)
+    .sort()
+    .join("|");
+
   React.useEffect(() => {
+    // Wait for localStorage hydration -- otherwise this runs once against
+    // the pre-hydration empty array and flashes "Nothing to compare yet"
+    // before the real shortlist loads.
+    if (!compare.hydrated) return;
+
     let active = true;
     const run = async () => {
-      const typesRes = await getLoanTypes();
-      if (!active) return;
-      if (!typesRes.ok) {
-        setError(typesRes.error);
-        setErrorStatus(typesRes.status);
-        setStatus("error");
+      if (items.length === 0) {
+        setResolved([]);
+        setDroppedCount(0);
+        setStatus("ready");
         return;
       }
-      const renderedTypes = selectLoanComparisonTypes(typesRes.data);
-      const bankResults = await Promise.all(renderedTypes.map((type) => getBanks(type.id)));
+      const slugs = Array.from(new Set(items.map((item) => item.productSlug)));
+      const entries = await Promise.all(
+        slugs.map(async (slug): Promise<[string, CatalogEntry]> => {
+          const [productRes, offersRes] = await Promise.all([
+            getPublicFinancialProductClient(slug),
+            getPublicProviderOffersClient(slug, { pageSize: 100 }),
+          ]);
+          return [
+            slug,
+            {
+              product: productRes.ok ? productRes.data : null,
+              offers: offersRes.ok ? offersRes.data.items : [],
+            },
+          ];
+        }),
+      );
       if (!active) return;
-      const firstFailure = bankResults.find((r) => !r.ok);
-      if (firstFailure && !firstFailure.ok) {
-        setError(firstFailure.error);
-        setErrorStatus(firstFailure.status);
-        setStatus("error");
-        return;
-      }
-      const byType: BanksByType = {};
-      renderedTypes.forEach((type, i) => {
-        const result = bankResults[i];
-        byType[type.id] = result.ok ? result.data : [];
-      });
-      setLoanTypes(renderedTypes);
-      setBanksByType(byType);
+      const catalog: Record<string, CatalogEntry> = Object.fromEntries(entries);
+      const { resolved: nextResolved, droppedOfferIds } = resolveShortlistedOffers(items, catalog);
+      droppedOfferIds.forEach((offerId) => compare.remove(offerId));
+      setResolved(nextResolved);
+      setDroppedCount(droppedOfferIds.length);
       setStatus("ready");
     };
     void run();
     return () => {
       active = false;
     };
-  }, [reloadKey]);
+    // items/compare.remove intentionally excluded: shortlistKey already
+    // captures every content change this effect cares about, and re-running
+    // on compare.remove's own identity would loop against the prune above.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [shortlistKey, compare.hydrated, reloadKey]);
 
-  const allBanks = Object.values(banksByType).flat();
-  const shortlisted = compare.ids
-    .map((id) => allBanks.find((b) => b.id === id))
-    .filter((b): b is Bank => Boolean(b));
+  function removeOffer(offerId: string) {
+    compare.remove(offerId);
+    setResolved((prev) => prev.filter((item) => item.offerId !== offerId));
+  }
 
   if (status === "loading") {
     return (
       <DashboardPage>
         <Skeleton className="h-9 w-2/3" />
-        <Skeleton className="h-40 rounded-xl" />
         <Skeleton className="h-40 rounded-xl" />
       </DashboardPage>
     );
@@ -125,96 +170,181 @@ export function LoanOffersView() {
     <DashboardPage>
       <DashboardHeader
         title="Compare Loan Offers"
-        description="Review participating banks by loan type and shortlist up to three options."
+        description="Shortlist published lender offers from Explore, then compare them side by side before you apply."
         actions={<Button onClick={() => router.push("/dashboard/explore/loans")}>Apply for a loan</Button>}
       />
-
-      <MetricGrid>
-        <MetricCard label="Loan types" value={loanTypes.length} icon={DASHBOARD_ICONS.loanApplications} />
-        <MetricCard label="Participating banks" value={allBanks.length} icon={Landmark} />
-        <MetricCard label="Shortlisted" value={`${shortlisted.length}/3`} icon={DASHBOARD_ICONS.compare} />
-        <MetricCard label="Next step" value="Apply" hint="Rates follow profile review" icon={DASHBOARD_ICONS.applyForLoan} href="/dashboard/explore/loans" />
-      </MetricGrid>
 
       <div className="flex items-start gap-2 rounded-xl border border-border bg-card px-4 py-3 text-sm text-text-secondary">
         <Info className="mt-0.5 h-4 w-4 shrink-0 text-brand-blue" aria-hidden="true" />
         <p>
-          Interest rates, tenure, and processing fees are quoted to you after your application is
-          reviewed, once a bank is matched to your profile.
+          Terms are informational snapshots last verified by Dhanadhara. Final pricing,
+          eligibility, documents, and approval come from the selected lender after review.
         </p>
       </div>
 
-      {shortlisted.length > 0 && (
-        <DashboardPanel title={`Your shortlist (${shortlisted.length}/3)`} action={
-          <button
-            type="button"
-            onClick={compare.clear}
-            className="cursor-pointer text-sm text-text-secondary transition-colors hover:text-brand-cta focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue"
+      {droppedCount > 0 ? (
+        <div className="flex items-start gap-2 rounded-xl border border-warning/35 bg-warning/10 px-4 py-3 text-sm text-text-secondary">
+          <Info className="mt-0.5 h-4 w-4 shrink-0 text-warning" aria-hidden="true" />
+          <p>
+            {droppedCount} offer{droppedCount === 1 ? "" : "s"} in your comparison{" "}
+            {droppedCount === 1 ? "is" : "are"} no longer available and{" "}
+            {droppedCount === 1 ? "was" : "were"} removed.
+          </p>
+        </div>
+      ) : null}
+
+      {resolved.length === 0 ? (
+        <div className="rounded-2xl border border-dashed border-border bg-card px-6 py-14 text-center">
+          <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-muted text-text-secondary">
+            <Scale className="h-6 w-6" />
+          </span>
+          <h2 className="mt-5 text-lg font-semibold text-text-primary">Nothing to compare yet</h2>
+          <p className="mx-auto mt-2 max-w-md text-sm text-text-secondary">
+            Check &quot;Add to compare&quot; on any lender offer on Explore to see it here.
+          </p>
+          <Link
+            href="/dashboard/explore/loans"
+            className="mt-4 inline-block text-sm font-semibold text-brand-cta hover:underline"
           >
-            Clear all
-          </button>
-        }>
-          <div className="flex items-center justify-between gap-3">
-            <p className="text-sm text-text-secondary">Banks saved for this comparison session.</p>
+            Explore loan offers
+          </Link>
+        </div>
+      ) : (
+        <DashboardPanel
+          title={`Your comparison (${resolved.length}/3)`}
+          description="Remove an offer at any time to make room for another."
+          action={
+            <button
+              type="button"
+              onClick={compare.clear}
+              className="cursor-pointer text-sm text-text-secondary transition-colors hover:text-brand-cta focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue"
+            >
+              Clear all
+            </button>
+          }
+        >
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm">
+              <thead>
+                <tr className="border-b border-border">
+                  <th scope="col" className="w-40 px-5 py-3 text-xs font-medium uppercase tracking-wide text-text-secondary" />
+                  {resolved.map((item) => (
+                    <th key={item.offerId} scope="col" className="min-w-[220px] px-5 py-3 align-top">
+                      <div className="flex items-start justify-between gap-2">
+                        <span className="font-semibold text-text-primary">{item.offer.offer_name}</span>
+                        <button
+                          type="button"
+                          aria-label={`Remove ${item.offer.offer_name} from compare`}
+                          onClick={() => removeOffer(item.offerId)}
+                          className="grid h-6 w-6 shrink-0 cursor-pointer place-items-center rounded-full text-text-secondary transition-colors hover:text-brand-cta focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue"
+                        >
+                          <X className="h-3.5 w-3.5" aria-hidden="true" />
+                        </button>
+                      </div>
+                      <Button asChild size="sm" className="mt-2 w-full">
+                        <Link href={applyHref(item.productId, item.offerId)}>Apply with this option</Link>
+                      </Button>
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                <tr className="border-b border-border">
+                  <th scope="row" className="px-5 py-4 text-xs font-medium uppercase tracking-wide text-text-secondary">
+                    Provider
+                  </th>
+                  {resolved.map((item) => (
+                    <td key={item.offerId} className="px-5 py-4 text-text-primary">
+                      {item.offer.provider.name}
+                      <span className="mt-0.5 block text-xs text-text-secondary">
+                        {PROVIDER_TYPE_LABEL[item.offer.provider.provider_type]}
+                      </span>
+                    </td>
+                  ))}
+                </tr>
+                <tr className="border-b border-border">
+                  <th scope="row" className="px-5 py-4 text-xs font-medium uppercase tracking-wide text-text-secondary">
+                    Product
+                  </th>
+                  {resolved.map((item) => (
+                    <td key={item.offerId} className="px-5 py-4 text-text-primary">
+                      {item.productLabel}
+                    </td>
+                  ))}
+                </tr>
+                <tr className="border-b border-border">
+                  <th scope="row" className="px-5 py-4 text-xs font-medium uppercase tracking-wide text-text-secondary">
+                    Interest rate
+                  </th>
+                  {resolved.map((item) => (
+                    <td key={item.offerId} className="px-5 py-4 font-heading font-semibold text-brand-blue">
+                      {item.offer.min_interest_rate !== null
+                        ? `${item.offer.min_interest_rate}%${item.offer.max_interest_rate !== null ? ` - ${item.offer.max_interest_rate}%` : "+"}`
+                        : "Ask us"}
+                    </td>
+                  ))}
+                </tr>
+                <tr className="border-b border-border">
+                  <th scope="row" className="px-5 py-4 text-xs font-medium uppercase tracking-wide text-text-secondary">
+                    Tenure
+                  </th>
+                  {resolved.map((item) => (
+                    <td key={item.offerId} className="px-5 py-4 text-text-primary">
+                      {item.offer.min_tenure_months !== null
+                        ? `${item.offer.min_tenure_months}${item.offer.max_tenure_months !== null ? ` - ${item.offer.max_tenure_months}` : "+"} months`
+                        : "Ask us"}
+                    </td>
+                  ))}
+                </tr>
+                <tr className="border-b border-border">
+                  <th scope="row" className="px-5 py-4 text-xs font-medium uppercase tracking-wide text-text-secondary">
+                    Amount
+                  </th>
+                  {resolved.map((item) => {
+                    const minAmount = formatAmount(item.offer.min_amount);
+                    const maxAmount = formatAmount(item.offer.max_amount);
+                    return (
+                      <td key={item.offerId} className="px-5 py-4 text-text-primary">
+                        {minAmount && maxAmount ? `${minAmount} - ${maxAmount}` : (maxAmount ?? minAmount ?? "Ask us")}
+                      </td>
+                    );
+                  })}
+                </tr>
+                <tr className="border-b border-border">
+                  <th scope="row" className="px-5 py-4 text-xs font-medium uppercase tracking-wide text-text-secondary">
+                    Processing fee
+                  </th>
+                  {resolved.map((item) => (
+                    <td key={item.offerId} className="px-5 py-4 text-text-primary">
+                      {item.offer.processing_fee_text ?? "Lender assessed"}
+                    </td>
+                  ))}
+                </tr>
+                <tr className="border-b border-border">
+                  <th scope="row" className="px-5 py-4 text-xs font-medium uppercase tracking-wide text-text-secondary">
+                    Eligibility
+                  </th>
+                  {resolved.map((item) => (
+                    <td key={item.offerId} className="px-5 py-4 text-text-primary">
+                      {item.offer.eligibility_summary ?? "—"}
+                    </td>
+                  ))}
+                </tr>
+                <tr className="last:border-0">
+                  <th scope="row" className="px-5 py-4 text-xs font-medium uppercase tracking-wide text-text-secondary">
+                    Last verified
+                  </th>
+                  {resolved.map((item) => (
+                    <td key={item.offerId} className="px-5 py-4 text-text-secondary">
+                      {formatVerifiedAt(item.offer.last_verified_at) ?? "—"}
+                    </td>
+                  ))}
+                </tr>
+              </tbody>
+            </table>
           </div>
-          <ul className="mt-3 flex flex-wrap gap-2">
-            {shortlisted.map((bank) => (
-              <li
-                key={bank.id}
-                className="flex items-center gap-1.5 rounded-full bg-loans-soft px-3 py-1 text-xs font-medium text-loans-accent"
-              >
-                <Landmark className="h-3 w-3" aria-hidden="true" />
-                {bank.name}
-              </li>
-            ))}
-          </ul>
         </DashboardPanel>
       )}
-
-      <div className="space-y-8">
-        {loanTypes.map((type) => {
-          const banks = banksByType[type.id] ?? [];
-          const expanded = expandedTypeIds.has(type.id);
-          const visibleBanks = banksForDisplay(banks, expanded);
-          return (
-            <section key={type.id}>
-              <h2 className="font-heading text-xl font-semibold text-text-primary">
-                {type.label}
-              </h2>
-              <p className="mt-1 text-xs text-text-secondary">{formatLastUpdated(type.last_updated_at)}</p>
-              {banks.length === 0 ? (
-                <p className="mt-3 text-sm text-text-secondary">
-                  No participating banks for this loan type yet.
-                </p>
-              ) : (
-                <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                  {visibleBanks.map((bank) => (
-                    <LoanOfferCard key={bank.id} bank={bank} />
-                  ))}
-                </div>
-              )}
-              {banks.length > BANK_PREVIEW_LIMIT ? (
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="mt-4"
-                  aria-expanded={expanded}
-                  onClick={() => {
-                    setExpandedTypeIds((current) => {
-                      const next = new Set(current);
-                      if (expanded) next.delete(type.id);
-                      else next.add(type.id);
-                      return next;
-                    });
-                  }}
-                >
-                  {expanded ? "Show fewer lenders" : `Show all ${banks.length} lenders`}
-                </Button>
-              ) : null}
-            </section>
-          );
-        })}
-      </div>
     </DashboardPage>
   );
 }
