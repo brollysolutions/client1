@@ -1991,7 +1991,26 @@ The following requirements are complete on the evidence baseline:
   side-by-side comparison table
   (`apps/web/features/loans/loan-offers-view.tsx`) mirroring the real-estate
   Bookmarks/Compare pattern. The prior placeholder metric grid (loan-type/bank
-  counts inflated by unbounded dev-DB seed data) was removed.
+  counts inflated by unbounded dev-DB seed data) was removed. Fresh evidence
+  ([PR #228](https://github.com/brollysolutions/client1/pull/228)): `pnpm
+  lint`, `pnpm typecheck`, and all 421 web unit tests across 66 files pass,
+  including 5 new tests for the extracted `resolveShortlistedOffers` pure
+  function; `pnpm build` compiles, typechecks, and generates all 93 pages
+  before the same pre-existing Windows-host `EPERM` standalone-symlink
+  failure recorded elsewhere in this table, confirmed pre-existing here via a
+  stash-and-rebuild check; the feature-tracking co-change guard passes. Live
+  verification via Playwright MCP against the restarted `client1-web-1`
+  container and the seeded demo Client account confirmed the real flow end
+  to end: adding a real offer to compare from an Explore product page, the
+  Compare page rendering the correct provider/interest-rate/tenure/amount/
+  processing-fee/last-verified data and Apply link, removing the offer, and
+  the empty state — zero console errors throughout. `pnpm test:e2e --
+  dashboard-navigation.spec.ts` ran against the same container (2 passed, 10
+  failed in 11.4m); every failure traces to the shared dev stack's
+  already-exhausted `OTP_RATE_LIMIT_PER_IP` blocking the shared
+  `registerClient`/`logIn` helper before reaching any changed code, the same
+  pre-existing infrastructure limitation recorded against PR #223/#225/#226,
+  not a regression from this change.
 - Real-estate core: FR-7.1 through FR-7.5. Evidence includes dedicated
   site-visit vehicle arrangements with Client request/read, Admin fulfilment,
   direct Employee assignment, audit/notifications, and owner/assignee RLS;
