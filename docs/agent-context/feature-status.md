@@ -10,7 +10,7 @@ verified Admin operational-visibility work in
 [PR #173](https://github.com/brollysolutions/client1/pull/173).
 
 **Done - Explore product-journey trim: cards collapse, copy cleanup, sticky
-filters (PR pending, on
+filters ([PR #224](https://github.com/brollysolutions/client1/pull/224), on
 `claude/20260824-092753-1-remove-explore-page-as-we-only`; direct
 user-reported UI change, no requirement or completion-percentage change):**
 follow-up to the Explore redesign below, once it was live in the browser.
