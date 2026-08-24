@@ -52,7 +52,6 @@ export function LoanOfficerView() {
   return (
     <DashboardPage>
       <DashboardHeader
-        eyebrow="Loans support"
         title="My Loan Officer"
         description="See who owns your application and use the secure support route to get connected."
       />

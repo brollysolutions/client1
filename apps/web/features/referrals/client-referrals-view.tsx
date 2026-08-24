@@ -15,7 +15,6 @@ export function ClientReferralsView() {
   return (
     <DashboardPage>
       <DashboardHeader
-        eyebrow="Rewards"
         title="Referrals"
         description="Share your personal code and track every eligible conversion and reward."
       />

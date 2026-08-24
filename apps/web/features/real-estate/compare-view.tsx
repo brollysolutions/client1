@@ -40,7 +40,6 @@ export function CompareView() {
   return (
     <DashboardPage>
       <DashboardHeader
-        eyebrow="Real Estate shortlist"
         title="Compare properties"
         description="Review up to three saved properties side by side using the same core details."
         actions={listings.length > 0 ? (
