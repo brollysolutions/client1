@@ -54,3 +54,9 @@ export const EXPLORE_CATEGORIES: ExploreCategory[] = [
 export function getExploreCategory(slug: string): ExploreCategory | undefined {
   return EXPLORE_CATEGORIES.find((c) => c.slug === slug);
 }
+
+// The "cards" category collapses straight to its one product instead of
+// showing a one-item list; any other item count (0 or >1) keeps the list.
+export function shouldRedirectToSoleProduct(categorySlug: string, itemCount: number): boolean {
+  return categorySlug === "cards" && itemCount === 1;
+}

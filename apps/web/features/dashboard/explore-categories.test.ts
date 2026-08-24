@@ -4,7 +4,11 @@ import { fileURLToPath } from "node:url";
 
 import { describe, expect, it } from "vitest";
 
-import { EXPLORE_CATEGORIES, getExploreCategory } from "./explore-categories";
+import {
+  EXPLORE_CATEGORIES,
+  getExploreCategory,
+  shouldRedirectToSoleProduct,
+} from "./explore-categories";
 
 // Locks the data contract the Explore hub, its sidebar accordion, and the
 // [slug] category page are all built on (see explore-categories.ts's header
@@ -48,5 +52,14 @@ describe("EXPLORE_CATEGORIES", () => {
   it("resolves categories by slug and returns undefined for an unknown one", () => {
     expect(getExploreCategory("loans")?.label).toBe("Loans");
     expect(getExploreCategory("not-a-real-category")).toBeUndefined();
+  });
+});
+
+describe("shouldRedirectToSoleProduct", () => {
+  it("redirects only the cards category, and only when it has exactly one product", () => {
+    expect(shouldRedirectToSoleProduct("cards", 1)).toBe(true);
+    expect(shouldRedirectToSoleProduct("cards", 0)).toBe(false);
+    expect(shouldRedirectToSoleProduct("cards", 2)).toBe(false);
+    expect(shouldRedirectToSoleProduct("loans", 1)).toBe(false);
   });
 });
