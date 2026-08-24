@@ -2018,7 +2018,18 @@ The following requirements are complete on the evidence baseline:
   private/public
   media lifecycle, property deals, site visits, employee tasks/documents,
   client progress surfaces, and the absence of any property-payment collection
-  path.
+  path. `GET /api/v1/properties` (`apps/api/app/api/v1/properties.py`) is
+  hardened against legacy `structured_details` rows that predate a
+  since-tightened field requirement (e.g. `project_residence` rows missing
+  the now-required `amenities_description`): one such dev-DB row was
+  raising an unhandled `pydantic.ValidationError` on every list/detail
+  request, 500ing the whole authenticated catalog for every Client/Agent/
+  staff user. `_property_data` mirrors `app/api/v1/public_catalog.py`'s
+  pre-existing `_public_property_data` fix for the anonymous catalog:
+  validate `structured_details` separately and fall back to `null` with a
+  logged warning rather than failing the whole row. Covered by a new
+  regression test, `test_malformed_legacy_details_do_not_break_dashboard_catalog`
+  in `test_properties_api.py`.
 - Money programs: FR-8.1 through FR-8.3; FR-9.1 through FR-9.5; FR-10.1,
   FR-10.2, and FR-10.4. Evidence includes manual commission agreements,
   client-only referral attribution, controlled payout creation/approval,
