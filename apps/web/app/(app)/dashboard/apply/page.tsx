@@ -16,6 +16,7 @@ import {
   type ProductAnswers,
 } from "@/features/dashboard/financial-product-form";
 import { useMe } from "@/features/dashboard/me-provider";
+import { EXPLORE_CATEGORIES } from "@/features/dashboard/explore-categories";
 import {
   createFinancialServiceEnquiry,
   createLoanApplication,
@@ -25,15 +26,8 @@ import {
   type LoanApplication,
 } from "@/lib/loans";
 import { formatLastUpdated } from "@/lib/format";
-import { cn } from "@/lib/utils";
 
 type PageStatus = "loading" | "ready" | "error";
-
-const CATEGORY_LABEL: Record<FinancialProduct["category"], string> = {
-  loan: "Loans & Funding",
-  credit_card: "Credit Cards",
-  insurance: "Insurance",
-};
 
 function findActiveApplication(applications: LoanApplication[]): LoanApplication | null {
   return applications.find((application) => application.status !== "closed" && application.status !== "rejected") ?? null;
@@ -107,20 +101,19 @@ function ApplyPageContent() {
     };
   }, [reloadKey, requestedOffer, requestedProduct]);
 
-  function chooseProduct(product: FinancialProduct) {
-    setProductId(product.id);
-    setProviderOfferId(undefined);
-    setAnswers({});
-    setAnswerErrors({});
-    setSubmittedEnquiryLabel(null);
-  }
+  // No dedicated product picker anymore: a missing or invalid `?product=`
+  // sends the user back to Explore to choose one instead.
+  React.useEffect(() => {
+    if (status === "ready" && !selectedProduct) {
+      router.replace("/dashboard/explore");
+    }
+  }, [status, selectedProduct, router]);
 
   function changeProduct() {
-    setProductId("");
-    setProviderOfferId(undefined);
-    setAnswers({});
-    setAnswerErrors({});
-    setSubmittedEnquiryLabel(null);
+    const category = selectedProduct
+      ? EXPLORE_CATEGORIES.find((entry) => entry.category === selectedProduct.category)
+      : undefined;
+    router.push(category ? `/dashboard/explore/${category.slug}` : "/dashboard/explore");
   }
 
   async function handleSubmit(event: React.FormEvent) {
@@ -195,6 +188,17 @@ function ApplyPageContent() {
     );
   }
 
+  if (!selectedProduct) {
+    // Redirecting to Explore (see the effect above) -- render the same
+    // loading shell so nothing empty or broken flashes in the meantime.
+    return (
+      <DashboardPage>
+        <Skeleton className="h-9 w-2/3" />
+        <Skeleton className="h-72 rounded-xl" />
+      </DashboardPage>
+    );
+  }
+
   return (
     <DashboardPage>
       <DashboardHeader
@@ -217,65 +221,7 @@ function ApplyPageContent() {
         </div>
       ) : null}
 
-      {!selectedProduct ? (
-        <DashboardPanel
-          title="Choose a product"
-          description="Active Admin products appear here in the configured order."
-        >
-          <div className="space-y-6">
-            {(["loan", "credit_card", "insurance"] as const).map((category) => {
-              const categoryProducts = products.filter((product) => product.category === category);
-              if (categoryProducts.length === 0) return null;
-              return (
-                <fieldset key={category} className="grid min-w-0 gap-3 border-0 p-0">
-                  <legend className="text-sm font-semibold text-text-primary">{CATEGORY_LABEL[category]}</legend>
-                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                    {categoryProducts.map((product) => {
-                      const blocked = category === "loan" && activeApplication !== null;
-                      return (
-                        <button
-                          key={product.id}
-                          type="button"
-                          aria-pressed={productId === product.id}
-                          aria-describedby={blocked ? "active-loan-note" : undefined}
-                          onClick={() => chooseProduct(product)}
-                          disabled={submitting || blocked}
-                          className={cn(
-                            "min-h-12 cursor-pointer rounded-lg border px-3 py-2 text-sm font-medium transition-colors",
-                            "focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-brand-cta/50",
-                            "disabled:cursor-not-allowed disabled:opacity-50",
-                            productId === product.id
-                              ? "border-brand-cta bg-brand-cta text-white"
-                              : "border-border bg-transparent text-foreground hover:bg-brand-cta-tint",
-                          )}
-                        >
-                          <span className="block">{product.label}</span>
-                          <span className={`mt-0.5 block text-[11px] font-normal ${productId === product.id ? "text-white/80" : "text-text-secondary"}`}>
-                            {formatLastUpdated(product.last_updated_at)}
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </fieldset>
-              );
-            })}
-            {products.length === 0 ? (
-              <p role="status" className="rounded-lg border border-dashed border-border p-5 text-sm text-text-secondary">
-                No financial products are available right now. Please check again later.
-              </p>
-            ) : null}
-            {activeApplication ? (
-              <div id="active-loan-note" className="rounded-lg border border-border bg-muted/35 p-4 text-sm text-text-secondary">
-                You already have a loan application in progress. You can still request a credit card
-                or insurance product, or <button type="button" className="font-medium text-brand-cta underline" onClick={() => router.push(`/dashboard/loans/${activeApplication.id}`)}>view the active loan</button>.
-              </div>
-            ) : null}
-          </div>
-        </DashboardPanel>
-      ) : null}
-
-      {selectedProduct && me ? (
+      {me ? (
         <DashboardPanel
           title={selectedProduct.label}
           description={
