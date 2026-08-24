@@ -11,7 +11,7 @@ verified Admin operational-visibility work in
 
 **Done - Apply-page product picker removed; "Change product" and
 productless entry points now redirect to Explore by category
-([PR #TBD](https://github.com/brollysolutions/client1/pulls), on
+([PR #226](https://github.com/brollysolutions/client1/pull/226), on
 `claude/20260824-113343-so-how-this-thing-works-is-when`; direct
 user-reported UI change, no requirement or completion-percentage change):**
 follow-up to the picker-hiding work below, once it was live in the browser
