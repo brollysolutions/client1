@@ -10,7 +10,8 @@ verified Admin operational-visibility work in
 [PR #173](https://github.com/brollysolutions/client1/pull/173).
 
 **Done - Cards category always skips its list, apply-page product picker
-hides once selected, full-width application form (PR TBD, on
+hides once selected, full-width application form
+([PR #225](https://github.com/brollysolutions/client1/pull/225), on
 `claude/20260824-104244-1-cards-and-credit-cards-showing-same`; direct
 user-reported UI change, no requirement or completion-percentage change):**
 follow-up to the Explore trim below, once the sole-product redirect was live
