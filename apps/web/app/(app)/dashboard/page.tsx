@@ -79,13 +79,13 @@ export default function DashboardPage() {
   }
 
   if (activeLine === "real_estate") {
+    // No placement banner here: search is the primary action on this home, and
+    // the promotional slot pushed it below the fold. The loans client home made
+    // the same call. Agents (above) keep their placements.
     return (
-      <>
-        <PersonalizedPlacements businessLine={activeLine} />
-        <Suspense fallback={<Skeleton className="h-64 rounded-2xl" />}>
-          <RealEstateHome />
-        </Suspense>
-      </>
+      <Suspense fallback={<Skeleton className="h-64 rounded-2xl" />}>
+        <RealEstateHome />
+      </Suspense>
     );
   }
 

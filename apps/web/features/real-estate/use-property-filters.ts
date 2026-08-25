@@ -11,6 +11,13 @@ import {
 } from "nuqs";
 
 import {
+  FURNISHING_VALUES,
+  RE_CATEGORY_VALUES,
+  RE_SUBTYPE_VALUES,
+  SORT_VALUES,
+  STATUS_VALUES,
+} from "@/lib/property-facets";
+import {
   filterListings,
   hasActiveFilters,
   countActiveFilters,
@@ -20,13 +27,9 @@ import {
   type PropertyFilters,
   type RECategory,
   type REListing,
+  type RESubtype,
   type SortOrder,
 } from "@/lib/real-estate";
-
-const RE_CATEGORY_VALUES = ["houses", "apartments", "villas", "plots", "commercial"] as const;
-const STATUS_VALUES = ["ready", "under_construction"] as const;
-const FURNISHING_VALUES = ["unfurnished", "semi", "furnished"] as const;
-const SORT_VALUES = ["relevance", "price_asc", "price_desc", "newest"] as const;
 
 // One hook owns every search + filter facet in the URL query string, mirroring
 // the nuqs pattern already used by the calculator islands
@@ -36,6 +39,7 @@ const SORT_VALUES = ["relevance", "price_asc", "price_desc", "newest"] as const;
 const PARSERS = {
   q: parseAsString,
   categories: parseAsArrayOf(parseAsStringLiteral(RE_CATEGORY_VALUES)),
+  subtypes: parseAsArrayOf(parseAsStringLiteral(RE_SUBTYPE_VALUES)),
   bhk: parseAsArrayOf(parseAsInteger),
   priceMin: parseAsInteger,
   priceMax: parseAsInteger,
@@ -54,6 +58,7 @@ function toPropertyFilters(state: Values<typeof PARSERS>): PropertyFilters {
   return {
     q: state.q ?? undefined,
     categories: (state.categories ?? undefined) as RECategory[] | undefined,
+    subtypes: (state.subtypes ?? undefined) as RESubtype[] | undefined,
     bhk: state.bhk ?? undefined,
     priceMin: state.priceMin ?? undefined,
     priceMax: state.priceMax ?? undefined,

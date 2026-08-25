@@ -16,6 +16,7 @@ const LISTINGS = [
     price: "₹78 L",
     type: "Apartment",
     category: "apartments",
+    propertySubtype: "standalone_apartment",
     meta: "2 bed · 1,120 sqft",
     pincode: "100001",
     furnishing: "semi",
@@ -35,6 +36,7 @@ const LISTINGS = [
     price: "₹1.2 Cr",
     type: "Apartment",
     category: "apartments",
+    propertySubtype: "gated_community_apartment",
     meta: "3 bed · 1,750 sqft",
     pincode: "200002",
     furnishing: "furnished",
@@ -54,6 +56,7 @@ const LISTINGS = [
     price: "₹1.5 Cr",
     type: "Villa",
     category: "villas",
+    propertySubtype: "villa",
     meta: "4 bed · 2,400 sqft",
     pincode: "100002",
     furnishing: "furnished",
@@ -92,6 +95,7 @@ const LISTINGS = [
     price: "₹95 L",
     type: "Shop",
     category: "commercial",
+    propertySubtype: "locked_space",
     meta: "650 sqft",
     pincode: "300001",
     furnishing: "unfurnished",
@@ -155,6 +159,33 @@ describe("filterListings()", () => {
     expect(filterListings(LISTINGS, { pincode: "200003" })).toEqual([LISTINGS[3]]);
   });
 
+  it("applies the property-subtype facet", () => {
+    expect(filterListings(LISTINGS, { subtypes: ["villa"] })).toEqual([LISTINGS[2]]);
+    expect(
+      filterListings(LISTINGS, { subtypes: ["standalone_apartment", "locked_space"] }),
+    ).toEqual([LISTINGS[0], LISTINGS[4]]);
+  });
+
+  it("excludes listings with no subtype when a subtype is requested", () => {
+    // plot-one predates the subtype taxonomy. "Plots" still matches it, but
+    // "plot subtype" is a narrower question it cannot answer.
+    expect(LISTINGS[3].propertySubtype).toBeUndefined();
+    expect(filterListings(LISTINGS, { categories: ["plots"] })).toEqual([LISTINGS[3]]);
+    expect(filterListings(LISTINGS, { subtypes: ["plot"] })).toEqual([]);
+  });
+
+  it("intersects the subtype facet with the category facet", () => {
+    expect(
+      filterListings(LISTINGS, { categories: ["apartments"], subtypes: ["villa"] }),
+    ).toEqual([]);
+    expect(
+      filterListings(LISTINGS, {
+        categories: ["apartments"],
+        subtypes: ["gated_community_apartment"],
+      }),
+    ).toEqual([LISTINGS[1]]);
+  });
+
   it("combines facets with AND semantics and returns empty for no match", () => {
     expect(
       filterListings(LISTINGS, {
@@ -197,5 +228,11 @@ describe("hasActiveFilters() / countActiveFilters()", () => {
     expect(countActiveFilters({ bhk: [] })).toBe(0);
     expect(hasActiveFilters({ city: "City Alpha" })).toBe(true);
     expect(countActiveFilters({ bhk: [2, 3, 4], city: "City Alpha" })).toBe(2);
+  });
+
+  it("counts the subtype facet", () => {
+    expect(hasActiveFilters({ subtypes: [] })).toBe(false);
+    expect(hasActiveFilters({ subtypes: ["villa"] })).toBe(true);
+    expect(countActiveFilters({ subtypes: ["villa"], categories: ["villas"] })).toBe(2);
   });
 });
