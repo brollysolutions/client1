@@ -1,11 +1,11 @@
 "use client";
 
 import * as React from "react";
-import { Building2, LayoutGrid, MapPin, Search, X } from "lucide-react";
+import { Search, X } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Command, CommandInput } from "@/components/ui/command";
 import { Popover, PopoverAnchor, PopoverContent } from "@/components/ui/popover";
 import {
   Select,
@@ -15,8 +15,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { PropertyFilterSheet } from "@/features/real-estate/property-filter-sheet";
+import { SuggestionsList, useSuggestionMatches } from "@/features/real-estate/property-suggestions";
+import {
+  SEARCH_FIELD_BUTTON_MOTION_CLASS,
+  SEARCH_FIELD_CLEAR_BUTTON_CLASS,
+  SEARCH_FIELD_SHELL_CLASS,
+  SearchFieldIcon,
+} from "@/features/real-estate/search-field-chrome";
 import { useDebounce } from "@/hooks/use-debounce";
-import { subtypeGroupsFor } from "@/lib/property-facet-map";
 import {
   AMENITIES,
   BHK_OPTIONS,
@@ -35,8 +41,6 @@ import {
   type SortOrder,
 } from "@/lib/real-estate";
 import { cn } from "@/lib/utils";
-
-const MAX_SUGGESTIONS_PER_GROUP = 4;
 
 type Chip = { key: string; label: string; onRemove: () => void };
 
@@ -200,43 +204,7 @@ export function PropertySearchBar({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debouncedText]);
 
-  // Same rule the Filters sheet uses, so the omnibox never offers a subtype the
-  // sheet withholds: only categories their subtype actually subdivides, and
-  // only subtypes present in this result ceiling.
-  const subtypeOptions = React.useMemo(
-    () =>
-      subtypeGroupsFor(
-        lockedCategory ? [lockedCategory] : undefined,
-        suggestionIndex.subtypes,
-      ).flatMap((group) => group.items),
-    [lockedCategory, suggestionIndex.subtypes],
-  );
-
-  const query = text.trim().toLowerCase();
-  const matches = React.useMemo(() => {
-    if (!query) return null;
-    const contains = (value: string) => value.toLowerCase().includes(query);
-    return {
-      localities: suggestionIndex.localities.filter(contains).slice(0, MAX_SUGGESTIONS_PER_GROUP),
-      cities: suggestionIndex.cities.filter(contains).slice(0, MAX_SUGGESTIONS_PER_GROUP),
-      pincodes: suggestionIndex.pincodes.filter(contains).slice(0, MAX_SUGGESTIONS_PER_GROUP),
-      subtypes: subtypeOptions
-        .filter((item) => contains(item.label))
-        .slice(0, MAX_SUGGESTIONS_PER_GROUP),
-      properties: suggestionIndex.properties
-        .filter((p) => contains(p.title))
-        .slice(0, MAX_SUGGESTIONS_PER_GROUP),
-    };
-  }, [query, suggestionIndex, subtypeOptions]);
-
-  const hasMatches = Boolean(
-    matches &&
-      (matches.localities.length ||
-        matches.cities.length ||
-        matches.pincodes.length ||
-        matches.subtypes.length ||
-        matches.properties.length),
-  );
+  const { matches, hasMatches } = useSuggestionMatches(text, suggestionIndex, lockedCategory);
 
   function pickLocality(value: string) {
     syncingFromFilters.current = true;
@@ -321,11 +289,14 @@ export function PropertySearchBar({
           of squeezing the search box thin. */}
       <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
         <Command shouldFilter={false} className="flex-1 overflow-visible bg-transparent sm:min-w-[280px]">
-          <Popover open={open && query.length > 0} onOpenChange={setOpen}>
+          <Popover open={open && matches !== null} onOpenChange={setOpen}>
             <PopoverAnchor asChild>
               {/* One field: input, clear affordance, and the primary action
-                  share a single border and a single focus ring. */}
-              <div className="flex h-14 items-center rounded-xl border border-border bg-card pl-1 transition-colors focus-within:border-brand-cta focus-within:ring-2 focus-within:ring-brand-cta/25">
+                  share a single border and a single focus ring -- same shell,
+                  icon, and animation as the Home quick search
+                  (search-field-chrome.tsx). */}
+              <div className={SEARCH_FIELD_SHELL_CLASS}>
+                <SearchFieldIcon />
                 <CommandInput
                   ref={inputRef}
                   value={text}
@@ -338,7 +309,9 @@ export function PropertySearchBar({
                   // narrow viewports and disappears once the user types.
                   aria-label="Search properties"
                   placeholder="Search by locality, city, PIN code, or property name..."
-                  wrapperClassName="h-full min-w-0 flex-1 border-b-0 px-3"
+                  // CommandInput's own built-in icon is hidden: SearchFieldIcon
+                  // above is the one leading icon this field shows.
+                  wrapperClassName="h-full min-w-0 flex-1 border-b-0 px-3 [&>svg]:hidden"
                   className="h-full text-base"
                 />
                 {text ? (
@@ -346,14 +319,14 @@ export function PropertySearchBar({
                     type="button"
                     onClick={clearText}
                     aria-label="Clear search"
-                    className="mr-1 flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-lg text-text-secondary transition-colors hover:bg-muted hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cta/40"
+                    className={cn("mr-1", SEARCH_FIELD_CLEAR_BUTTON_CLASS)}
                   >
                     <X className="h-4 w-4" aria-hidden="true" />
                   </button>
                 ) : null}
                 <Button
                   type="button"
-                  className="m-1.5 h-11 shrink-0 rounded-lg px-5"
+                  className={cn("m-1.5 h-11 shrink-0 rounded-lg px-5", SEARCH_FIELD_BUTTON_MOTION_CLASS)}
                   onClick={submitSearch}
                 >
                   <Search className="h-4 w-4" aria-hidden="true" />
@@ -366,59 +339,16 @@ export function PropertySearchBar({
               onOpenAutoFocus={(e) => e.preventDefault()}
               className="w-[var(--radix-popper-anchor-width)] p-0"
             >
-              <CommandList>
-                {!hasMatches ? <CommandEmpty>No matches for &quot;{text}&quot;</CommandEmpty> : null}
-                {matches?.localities.length ? (
-                  <CommandGroup heading="Localities">
-                    {matches.localities.map((value) => (
-                      <CommandItem key={value} value={value} onSelect={() => pickLocality(value)}>
-                        <MapPin /> {value}
-                      </CommandItem>
-                    ))}
-                  </CommandGroup>
-                ) : null}
-                {matches?.cities.length ? (
-                  <CommandGroup heading="Cities">
-                    {matches.cities.map((value) => (
-                      <CommandItem key={value} value={value} onSelect={() => pickCity(value)}>
-                        <MapPin /> {value}
-                      </CommandItem>
-                    ))}
-                  </CommandGroup>
-                ) : null}
-                {matches?.pincodes.length ? (
-                  <CommandGroup heading="PIN codes">
-                    {matches.pincodes.map((value) => (
-                      <CommandItem key={value} value={value} onSelect={() => pickPincode(value)}>
-                        <MapPin /> {value}
-                      </CommandItem>
-                    ))}
-                  </CommandGroup>
-                ) : null}
-                {matches?.subtypes.length ? (
-                  <CommandGroup heading="Property types">
-                    {matches.subtypes.map((item) => (
-                      <CommandItem
-                        key={item.value}
-                        value={item.label}
-                        onSelect={() => pickSubtype(item.value)}
-                      >
-                        <LayoutGrid /> {item.label}
-                      </CommandItem>
-                    ))}
-                  </CommandGroup>
-                ) : null}
-                {matches?.properties.length ? (
-                  <CommandGroup heading="Properties">
-                    {matches.properties.map((p) => (
-                      <CommandItem key={p.id} value={p.title} onSelect={() => pickProperty(p.title)}>
-                        <Building2 /> {p.title}
-                        <span className="ml-auto text-xs text-text-secondary">{p.locality}</span>
-                      </CommandItem>
-                    ))}
-                  </CommandGroup>
-                ) : null}
-              </CommandList>
+              <SuggestionsList
+                matches={matches}
+                hasMatches={hasMatches}
+                queryText={text}
+                onPickLocality={pickLocality}
+                onPickCity={pickCity}
+                onPickPincode={pickPincode}
+                onPickSubtype={pickSubtype}
+                onPickProperty={pickProperty}
+              />
             </PopoverContent>
           </Popover>
         </Command>

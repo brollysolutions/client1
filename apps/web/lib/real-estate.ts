@@ -42,36 +42,47 @@ export const RE_CATEGORIES: {
   label: string;
   icon: LucideIcon;
   blurb: string;
+  // Purpose-drawn category art, reused from the public mega-menu's per-subtype
+  // set (components/navbars/properties-menu.ts) so the dashboard never forks
+  // its own illustration family for the same five categories. One
+  // representative subtype stands in for a category with more than one
+  // (apartments -> gated community, commercial -> unlocked space).
+  illustration: string;
 }[] = [
   {
     key: "houses",
     label: "Residential Houses",
     icon: Home,
     blurb: "Independent houses and row houses on their own plot.",
+    illustration: "/illustrations/menu/properties/individual_house.svg",
   },
   {
     key: "apartments",
     label: "Apartments",
     icon: Building2,
     blurb: "Flats and apartment homes, ready to move or under construction.",
+    illustration: "/illustrations/menu/properties/gated_community_apartment.svg",
   },
   {
     key: "villas",
     label: "Villas",
     icon: TreePine,
     blurb: "Gated-community villas with private gardens and amenities.",
+    illustration: "/illustrations/menu/properties/villa.svg",
   },
   {
     key: "plots",
     label: "Plots and Land",
     icon: LandPlot,
     blurb: "Residential plots and farm land to build on or hold for later.",
+    illustration: "/illustrations/menu/properties/plot.svg",
   },
   {
     key: "commercial",
     label: "Commercial",
     icon: Warehouse,
     blurb: "Offices, shops, and commercial spaces for your business.",
+    illustration: "/illustrations/menu/properties/unlocked_space.svg",
   },
 ];
 
