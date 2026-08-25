@@ -4,8 +4,62 @@
 import {
   type Furnishing,
   type ListingStatus,
+  type RECategory,
   type REListing,
+  type RESubtype,
 } from "@/lib/real-estate";
+
+// nuqs needs literal tuples to build its parsers, but a tuple is exactly the
+// place a contract union drifts unnoticed: `satisfies readonly RECategory[]`
+// only proves every entry is valid, never that every value is present, so a
+// category the backend adds later would parse as invalid and silently never
+// render.
+//
+// This closes that gap. The tuple type is inferred from the argument, so the
+// exhaustiveness check runs against the literal members: when one is missing the
+// parameter type gains a `__missingFromTuple` property the tuple cannot have,
+// and the compiler reports the missing value by name. (A `satisfies` clause
+// cannot do this — the type argument there is the declared `readonly U[]`, not
+// the literal tuple, which makes the Exclude vacuously `never`.)
+const exhaustive =
+  <U extends string>() =>
+  <T extends readonly U[]>(
+    values: T &
+      ([Exclude<U, T[number]>] extends [never]
+        ? unknown
+        : { __missingFromTuple: Exclude<U, T[number]> }),
+  ): T =>
+    values;
+
+export const RE_CATEGORY_VALUES = exhaustive<RECategory>()([
+  "houses",
+  "apartments",
+  "villas",
+  "plots",
+  "commercial",
+] as const);
+
+export const RE_SUBTYPE_VALUES = exhaustive<RESubtype>()([
+  "individual_house",
+  "standalone_apartment",
+  "gated_community_apartment",
+  "villa",
+  "locked_space",
+  "unlocked_space",
+  "plot",
+  "farmland",
+  "agriland",
+] as const);
+
+export const STATUS_VALUES = exhaustive<ListingStatus>()(["ready", "under_construction"] as const);
+
+export const FURNISHING_VALUES = exhaustive<Furnishing>()([
+  "unfurnished",
+  "semi",
+  "furnished",
+] as const);
+
+export const SORT_VALUES = ["relevance", "price_asc", "price_desc", "newest"] as const;
 
 export const BHK_OPTIONS: { value: number; label: string }[] = [
   { value: 1, label: "1 BHK" },
@@ -78,6 +132,10 @@ export type SuggestionIndex = {
   localities: string[];
   cities: string[];
   pincodes: string[];
+  // Subtypes actually present in this result ceiling, in RE_SUBTYPE_VALUES
+  // order. Same discipline as localities/cities: never offer a facet that
+  // cannot match anything in the current source.
+  subtypes: RESubtype[];
   properties: { id: string; title: string; locality: string; city: string }[];
   priceBounds: { min: number; max: number };
   areaBounds: { min: number; max: number };
@@ -86,10 +144,14 @@ export type SuggestionIndex = {
 // Grouped, de-duplicated suggestion source for the search omnibox. Every value
 // is derived from the authenticated property API response supplied by callers.
 export function buildSuggestionIndex(listings: REListing[]): SuggestionIndex {
+  const presentSubtypes = new Set(
+    listings.map((l) => l.propertySubtype).filter((v): v is RESubtype => Boolean(v)),
+  );
   return {
     localities: Array.from(new Set(listings.map((l) => l.locality))).sort(),
     cities: Array.from(new Set(listings.map((l) => l.city))).sort(),
     pincodes: Array.from(new Set(listings.map((l) => l.pincode))).sort(),
+    subtypes: RE_SUBTYPE_VALUES.filter((value) => presentSubtypes.has(value)),
     properties: listings.map((l) => ({ id: l.id, title: l.title, locality: l.locality, city: l.city })),
     priceBounds: priceBounds(listings),
     areaBounds: areaBounds(listings),

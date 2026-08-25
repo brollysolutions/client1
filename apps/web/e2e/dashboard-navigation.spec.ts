@@ -580,6 +580,33 @@ test.describe("role-aware dashboard navigation", () => {
                 rera_number: "P52100000001",
                 title: "Baner Heights",
                 type: "Apartment",
+                property_subtype: "standalone_apartment",
+              },
+              {
+                id: "22222222-2222-4222-8222-222222222222",
+                active: true,
+                age_years: 1,
+                amenities: ["parking"],
+                area_sqft: 2400,
+                bhk: 4,
+                category: "apartments",
+                city: "Pune",
+                construction_status: "ready_to_move",
+                created_at: "2026-08-11T08:00:00Z",
+                furnishing: "semi_furnished",
+                image: null,
+                locality: "Wakad",
+                location: "Wakad, Pune",
+                media: [],
+                media_urls: [],
+                meta: "4 bed · 2,400 sqft",
+                pincode: "411057",
+                price_display: "₹1.6 Cr",
+                price_paise: 1600000000,
+                rera_number: "P52100000002",
+                title: "Wakad Gardens",
+                type: "Apartment",
+                property_subtype: "gated_community_apartment",
               },
             ],
           }),
@@ -588,6 +615,15 @@ test.describe("role-aware dashboard navigation", () => {
 
       await page.goto("/dashboard");
       await expect(page.getByRole("heading", { name: "Find your next property" })).toBeVisible();
+      // The real-estate client home no longer carries a placement banner, so the
+      // seeded demo campaign must not reach this screen.
+      await expect(page.getByText("Demo Real Estate workspace")).toHaveCount(0);
+      // Every published category stays reachable from the strip, including the
+      // ones with no listings whose carousel renders nothing.
+      await expect(
+        page.getByRole("link", { name: /Residential Houses/ }).first(),
+      ).toBeVisible();
+      await expect(page.getByText("No listings yet").first()).toBeVisible();
       for (const removedMetric of [
         "Available properties",
         "Saved properties",
@@ -610,6 +646,21 @@ test.describe("role-aware dashboard navigation", () => {
       await expect(filterDialog.getByRole("button", { name: /current location/i })).toHaveCount(0);
       await expect(filterDialog.getByText("City", { exact: true })).toBeVisible();
       await expect(filterDialog.getByText("Area / Locality", { exact: true })).toBeVisible();
+
+      // Subtype narrows further than category: both stubbed listings are
+      // apartments, only one is a gated community. Drop the locality first so
+      // the subtype is doing the narrowing on its own.
+      await expect(filterDialog.getByText("Property subtype", { exact: true })).toBeVisible();
+      await filterDialog.getByRole("button", { name: "Clear all", exact: true }).click();
+      await expect(page).not.toHaveURL(/locality=Baner/);
+      await filterDialog
+        .getByRole("button", { name: "Gated community apartments", exact: true })
+        .click();
+      await expect(page).toHaveURL(/subtypes=gated_community_apartment/);
+      await filterDialog.getByRole("button", { name: /^Show 1 home/ }).click();
+      await expect(page.getByText("1 property found")).toBeVisible();
+      await expect(page.getByText("Wakad Gardens").first()).toBeVisible();
+      await expect(page.getByText("Baner Heights")).toHaveCount(0);
     } finally {
       await deleteAccount(request, account);
     }

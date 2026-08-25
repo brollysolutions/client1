@@ -4,9 +4,15 @@ import type { components } from "@contracts/generated/schema";
 
 import type { PropertyListing as BaseListing } from "@/lib/properties";
 
-export type RECategory = "houses" | "apartments" | "villas" | "plots" | "commercial";
-export type Furnishing = "unfurnished" | "semi" | "furnished";
-export type ListingStatus = "ready" | "under_construction";
+// Derived from the generated contract, never hand-declared: a category,
+// furnishing state, or construction status the backend adds later must surface
+// as a compile error here (and in RE_CATEGORIES / the parser tuples in
+// lib/property-facets.ts), not as a value the dashboard silently never renders.
+type Schemas = components["schemas"];
+export type RECategory = Schemas["PropertyCategory"];
+export type RESubtype = Schemas["PropertySubtype"];
+export type Furnishing = Schemas["Furnishing"];
+export type ListingStatus = Schemas["ConstructionStatus"];
 
 // Dashboard listings are populated from the authenticated property API. Keep
 // this module limited to types and pure filtering so production search never
@@ -78,6 +84,7 @@ export type SortOrder = "relevance" | "price_asc" | "price_desc" | "newest";
 export type PropertyFilters = {
   q?: string;
   categories?: RECategory[];
+  subtypes?: RESubtype[];
   bhk?: number[];
   priceMin?: number;
   priceMax?: number;
@@ -94,6 +101,7 @@ export type PropertyFilters = {
 
 const FACET_KEYS = [
   "categories",
+  "subtypes",
   "bhk",
   "priceMin",
   "priceMax",
@@ -111,6 +119,15 @@ export function filterListings(listings: REListing[], filters: PropertyFilters):
   const query = filters.q?.trim().toLowerCase();
   return listings.filter((listing) => {
     if (filters.categories?.length && !filters.categories.includes(listing.category)) return false;
+    // Legacy rows carry no subtype. Asking for a subtype is a narrower question
+    // than asking for its category, so an unclassified listing cannot answer it
+    // and is excluded rather than assumed to match.
+    if (
+      filters.subtypes?.length &&
+      (!listing.propertySubtype || !filters.subtypes.includes(listing.propertySubtype))
+    ) {
+      return false;
+    }
     if (filters.bhk?.length && !filters.bhk.includes(listing.bhk)) return false;
     if (filters.priceMin != null && listing.priceLakhs < filters.priceMin) return false;
     if (filters.priceMax != null && listing.priceLakhs > filters.priceMax) return false;

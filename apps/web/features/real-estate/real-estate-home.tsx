@@ -6,6 +6,7 @@ import { SearchX } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DashboardHeader, DashboardPage } from "@/features/dashboard/dashboard-ui";
 import { FetchError } from "@/features/dashboard/fetch-error";
+import { CategoryStrip } from "@/features/real-estate/category-strip";
 import { PropertyCard } from "@/features/real-estate/property-card";
 import { PropertyRow } from "@/features/real-estate/property-row";
 import { PropertySearchBar } from "@/features/real-estate/property-search-bar";
@@ -77,7 +78,9 @@ export function RealEstateHome() {
           </div>
         ) : (
           <div>
-            <p className="mb-4 text-sm text-text-secondary">
+            {/* Filter changes rewrite this count without moving focus, so it is
+                announced rather than left to be discovered by re-reading. */}
+            <p className="mb-4 text-sm text-text-secondary" aria-live="polite">
               {resultCount} propert{resultCount === 1 ? "y" : "ies"} found
             </p>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -90,6 +93,7 @@ export function RealEstateHome() {
       ) : null}
       {active ? null : (
         <div className="space-y-8">
+          <CategoryStrip listings={listings} />
           {RE_CATEGORIES.map((cat) => (
             <PropertyRow
               key={cat.key}

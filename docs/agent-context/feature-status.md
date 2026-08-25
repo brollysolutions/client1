@@ -1401,6 +1401,61 @@ work than several completed UI requirements.
 
 ## Current work
 
+**In progress - `claude/20260825-realestate-home-search-filters` - Real-estate
+client dashboard home rework (direct user-reported UI change; no requirement or
+completion-percentage change):** the real-estate Client home now leads with
+search instead of a promotional slot, filters follow the property taxonomy the
+platform actually publishes, and every category stays discoverable.
+
+Four defects were reported and confirmed against the running local stack before
+any edit. First, the "Demo Real Estate workspace / Synthetic campaign for
+checking property journeys / Explore properties" banner is not code: it is a
+`seed_demo.py` row surfaced through the generic `PersonalizedPlacements` slot
+that the loans Client home already dropped. Second, dashboard search and filters
+knew only the five coarse `PropertyCategory` values, while the API, generated
+contract, public nav, and per-category submit forms all carry nine
+`PropertySubtype` values, and `mapProperty` already wrote `propertySubtype` onto
+every `REListing` for the UI to ignore; per-category filtering was a single
+`RESIDENTIAL_CATEGORIES` boolean. Third, `property-row.tsx` returns `null` for a
+category with no listings, so `houses` and `commercial` (0 active rows each,
+against apartments 288, villas 7, plots 1 in the local database) vanished from
+the page with no trace. Fourth, `RECategory` was hand-declared in
+`lib/real-estate.ts` and re-listed again in `use-property-filters.ts`, so a
+backend category addition raised a compile error in `lib/properties.ts` but was
+silent in both dashboard copies.
+
+Implemented slice: the placement slot is removed from the real-estate Client
+branch of `app/(app)/dashboard/page.tsx` (Agents keep theirs); `RECategory`,
+`RESubtype`, `Furnishing`, and `ListingStatus` are now aliases of the generated
+contract, and the nuqs parser tuples are built through an inference-based
+`exhaustive<U>()` helper in `lib/property-facets.ts` that fails compilation and
+names any contract value missing from a tuple; a `subtypes` facet runs through
+`PropertyFilters`, `FACET_KEYS`, `filterListings`, the URL query state, the chip
+row, and the omnibox; new `lib/property-facet-map.ts` replaces the residential
+boolean with a per-category applicability map (plots drop bedrooms, furnishing,
+and construction status; commercial drops only bedrooms; multi-select takes the
+union) and withholds subtypes that are the sole subtype of their category, so no
+two controls in one panel read "Villas" and return different counts; the filter
+sheet is regrouped into an accordion whose collapsed triggers still summarise
+what they constrain; the search field and its primary action are now one control
+with a clear affordance, one-tap category pills, and accessible names on the
+search input and sort trigger; and a new `category-strip.tsx` keeps all five
+categories linked to Explore, marking empty ones "No listings yet".
+
+Fresh evidence: `pnpm lint`, `pnpm typecheck`, and `pnpm test` (68 files, 442
+tests) pass. The exhaustiveness guard was verified by deliberately deleting
+`"commercial"` from `RE_CATEGORY_VALUES` and confirming
+`tsc` reports the missing member by name, then restoring it. `pnpm build`
+compiles and generates all 93 static pages; it then fails only in
+`output: "standalone"` trace copying with Windows `EPERM` on `node_modules`
+symlinks, an unchanged host limitation with no source involvement. Browser
+behaviour was confirmed by the extended Playwright spec at a 390px viewport:
+the demo banner is absent from `/dashboard`, the category strip renders the
+zero-count categories, and selecting the "Gated community apartments" subtype
+writes `subtypes=gated_community_apartment` to the URL and narrows two stubbed
+apartments to one. No API, contract, or migration change, so `pytest`, `ruff`,
+and `alembic heads` do not apply to this slice.
+
 **Done - [PR #220](https://github.com/brollysolutions/client1/pull/220) -
 Comprehensive local demo accounts and workflow data (developer experience; no
 requirement or completion-percentage change):** one development-only,
