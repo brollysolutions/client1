@@ -1401,7 +1401,7 @@ work than several completed UI requirements.
 
 ## Current work
 
-**In progress - `claude/20260825-realestate-home-search-filters` - Real-estate
+**Done - [PR #231](https://github.com/brollysolutions/client1/pull/231) - Real-estate
 client dashboard home rework (direct user-reported UI change; no requirement or
 completion-percentage change):** the real-estate Client home now leads with
 search instead of a promotional slot, filters follow the property taxonomy the
