@@ -47,7 +47,7 @@ export function PropertyFilterSheet({
         {/* Light-blue (sky) hover, no blue focus-border. */}
         <Button
           variant="outline"
-          className="h-12 gap-2 rounded-lg px-5 hover:border-brand-cta hover:bg-brand-cta-tint hover:text-brand-cta focus-visible:ring-brand-cta"
+          className="h-14 gap-2 rounded-xl px-5 hover:border-brand-cta hover:bg-brand-cta-tint hover:text-brand-cta focus-visible:ring-brand-cta"
         >
           <SlidersHorizontal className="h-4 w-4" />
           Filters

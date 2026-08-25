@@ -28,6 +28,7 @@ describe("buildSuggestionIndex", () => {
       localities: ["Live locality"],
       cities: ["Live city"],
       pincodes: ["123456"],
+      subtypes: [],
       properties: [
         {
           id: "api-property",
@@ -43,9 +44,33 @@ describe("buildSuggestionIndex", () => {
       localities: [],
       cities: [],
       pincodes: [],
+      subtypes: [],
       properties: [],
       priceBounds: { min: 0, max: 500 },
       areaBounds: { min: 0, max: 5000 },
     });
+  });
+
+  it("offers only subtypes present in the supplied listings, in taxonomy order", () => {
+    const villa = {
+      ...apiListing,
+      id: "villa",
+      category: "villas",
+      propertySubtype: "villa",
+    } satisfies REListing;
+    const gated = {
+      ...apiListing,
+      id: "gated",
+      propertySubtype: "gated_community_apartment",
+    } satisfies REListing;
+
+    // gated_community_apartment precedes villa in RE_SUBTYPE_VALUES, so the
+    // index is taxonomy-ordered rather than listing-ordered.
+    expect(buildSuggestionIndex([villa, gated]).subtypes).toEqual([
+      "gated_community_apartment",
+      "villa",
+    ]);
+    // Duplicates collapse, and legacy rows carrying no subtype contribute none.
+    expect(buildSuggestionIndex([villa, villa, apiListing]).subtypes).toEqual(["villa"]);
   });
 });
