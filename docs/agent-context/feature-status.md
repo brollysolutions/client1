@@ -1401,7 +1401,7 @@ work than several completed UI requirements.
 
 ## Current work
 
-**Done - [PR TBD](https://github.com/brollysolutions/client1/pulls) - Real-estate
+**Done - [PR #233](https://github.com/brollysolutions/client1/pull/233) - Real-estate
 dashboard search-bar redesign: shared animated omnibox, Explore's "Browse by
 property type" strip removed, Home's category pills become illustrated cards
 (direct user-reported UI change; no requirement or completion-percentage
