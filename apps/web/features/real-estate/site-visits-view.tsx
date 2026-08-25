@@ -9,7 +9,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { FetchError } from "@/features/dashboard/fetch-error";
 import { DASHBOARD_ICONS } from "@/features/dashboard/dashboard-icons";
 import { DashboardHeader, DashboardPage, DashboardPanel, MetricCard, MetricGrid } from "@/features/dashboard/dashboard-ui";
-import { cancelSiteVisit, getSiteVisits, type SiteVisit, type SiteVisitStatus } from "@/lib/site-visits";
+import { useSiteVisits } from "@/features/real-estate/use-site-visits";
+import { cancelSiteVisit, type SiteVisit, type SiteVisitStatus } from "@/lib/site-visits";
 import { cn } from "@/lib/utils";
 
 const STATUS_STYLE: Record<SiteVisitStatus, string> = {
@@ -60,45 +61,13 @@ function formatDateTime(iso: string): string {
       });
 }
 
-type Status = "loading" | "ready" | "error";
-
 // Scheduled site visits, requested via the "Book a site visit" action on a
 // property card. Backed by the real site-visits API (RLS-scoped to the
 // logged-in client); a visit can be cancelled from here until it's done.
 export function SiteVisitsView() {
-  const [visits, setVisits] = React.useState<SiteVisit[]>([]);
-  const [status, setStatus] = React.useState<Status>("loading");
-  const [error, setError] = React.useState<string | null>(null);
-  const [errorStatus, setErrorStatus] = React.useState<number | null>(null);
-  const [reloadKey, setReloadKey] = React.useState(0);
+  const { siteVisits: visits, setSiteVisits: setVisits, status, error, errorStatus, retry } =
+    useSiteVisits();
   const [cancellingId, setCancellingId] = React.useState<string | null>(null);
-
-  const retry = React.useCallback(() => {
-    setStatus("loading");
-    setError(null);
-    setErrorStatus(null);
-    setReloadKey((k) => k + 1);
-  }, []);
-
-  React.useEffect(() => {
-    let active = true;
-    const run = async () => {
-      const res = await getSiteVisits();
-      if (!active) return;
-      if (res.ok) {
-        setVisits(res.data);
-        setStatus("ready");
-        return;
-      }
-      setError(res.error);
-      setErrorStatus(res.status);
-      setStatus("error");
-    };
-    void run();
-    return () => {
-      active = false;
-    };
-  }, [reloadKey]);
 
   async function handleCancel(id: string) {
     if (cancellingId) return;
@@ -137,7 +106,7 @@ export function SiteVisitsView() {
           </span>
           <h2 className="mt-5 text-lg font-semibold text-text-primary">No site visits yet</h2>
           <p className="mx-auto mt-2 max-w-md text-sm text-text-secondary">
-            Book a visit on a property from Explore or Home to see it here.
+            Book a visit on a property from Explore to see it here.
           </p>
         </div>
       ) : (

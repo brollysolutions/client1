@@ -613,25 +613,53 @@ test.describe("role-aware dashboard navigation", () => {
         });
       });
 
+      // Home is a personal status view now, not a second catalog browser: a
+      // freshly registered account has zero bookmarks/enquiries/site-visits,
+      // so this exercises the real empty-state path against the live API
+      // (only /api/v1/properties is stubbed, for the Explore assertions below).
       await page.goto("/dashboard");
-      await expect(page.getByRole("heading", { name: "Find your next property" })).toBeVisible();
+      await expect(page.getByRole("heading", { name: "Your property journey" })).toBeVisible();
+      await expect(page.getByRole("heading", { name: "Find your next property" })).toHaveCount(0);
       // The real-estate client home no longer carries a placement banner, so the
       // seeded demo campaign must not reach this screen.
       await expect(page.getByText("Demo Real Estate workspace")).toHaveCount(0);
-      // Every published category stays reachable from the strip, including the
-      // ones with no listings whose carousel renders nothing.
+      // Scoped to <main>: the sidebar already has its own "Bookmarks" /
+      // "My Enquiries" / "Site Visits" nav links, which would otherwise
+      // collide with these same-ish names on the Metric cards.
+      const homeMain = page.getByRole("main");
+      await expect(homeMain.getByRole("link", { name: "Browse properties" })).toBeVisible();
+      await expect(homeMain.getByRole("link", { name: "Bookmarks" })).toBeVisible();
+      await expect(homeMain.getByRole("link", { name: "Enquiries" })).toBeVisible();
+      await expect(homeMain.getByRole("link", { name: "Site visits" })).toBeVisible();
+      await expect(homeMain.getByText("Save properties you like")).toBeVisible();
+      await expect(homeMain.getByText("No open enquiries")).toBeVisible();
+      await expect(homeMain.getByText("No visits scheduled")).toBeVisible();
+      // Category quick-links stay lightweight (no live counts -- those belong
+      // to Explore's own CategoryStrip) but every category is still reachable,
+      // including the ones with zero listings.
+      await expect(homeMain.getByRole("link", { name: /Residential Houses/ })).toBeVisible();
+      await expect(homeMain.getByRole("link", { name: /Commercial/ })).toBeVisible();
+      // Home no longer fetches the property catalog at all, so none of its
+      // former catalog-browsing UI should appear here.
+      await expect(page.getByPlaceholder(/Search by locality, city, PIN code/)).toHaveCount(0);
+      await expect(page.getByRole("button", { name: /^Filters/ })).toHaveCount(0);
+      await expect(page.getByText("No listings yet")).toHaveCount(0);
+
+      // The quick search hands off to Explore rather than filtering in place.
+      await page.getByRole("textbox", { name: "Search properties" }).fill("Wakad");
+      await page.getByRole("button", { name: "Search", exact: true }).click();
+      await expect(page).toHaveURL(/\/dashboard\/explore\?q=Wakad/);
+      await expect(page.getByText("Wakad Gardens").first()).toBeVisible();
+      await expect(page.getByText("Baner Heights")).toHaveCount(0);
+
+      // Explore is now where the catalog-browsing surface lives: the category
+      // strip (moved here from the old Home) and per-category carousels.
+      await page.goto("/dashboard/explore");
+      await expect(page.getByRole("heading", { name: "Explore properties" })).toBeVisible();
       await expect(
         page.getByRole("link", { name: /Residential Houses/ }).first(),
       ).toBeVisible();
       await expect(page.getByText("No listings yet").first()).toBeVisible();
-      for (const removedMetric of [
-        "Available properties",
-        "Saved properties",
-        "Cities",
-        "Property categories",
-      ]) {
-        await expect(page.getByText(removedMetric, { exact: true })).toHaveCount(0);
-      }
       await expect(
         page.getByRole("combobox", { name: "Choose property location" }),
       ).toHaveCount(0);
