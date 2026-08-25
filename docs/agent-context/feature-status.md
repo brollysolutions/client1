@@ -1401,7 +1401,7 @@ work than several completed UI requirements.
 
 ## Current work
 
-**Done (PR TBD) - Real-estate Home/Explore differentiation (direct
+**Done - [PR #232](https://github.com/brollysolutions/client1/pull/232) - Real-estate Home/Explore differentiation (direct
 user-reported UI change; no requirement or completion-percentage change):**
 Home and Explore rendered as near-identical UI for a real-estate client --
 same catalog fetch, same search bar, same category-browsing idle state --
