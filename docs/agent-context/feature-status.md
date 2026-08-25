@@ -1401,6 +1401,80 @@ work than several completed UI requirements.
 
 ## Current work
 
+**Done (PR TBD) - Real-estate Home/Explore differentiation (direct
+user-reported UI change; no requirement or completion-percentage change):**
+Home and Explore rendered as near-identical UI for a real-estate client --
+same catalog fetch, same search bar, same category-browsing idle state --
+because neither page had ever been given a distinct job. PR #223 moved the
+real-estate Explore hub "unchanged" when loans Explore was redesigned, and PR
+#231 (below) redesigned Home in isolation; neither pass asked what each page
+should uniquely do.
+
+Fixed by mirroring the loans line, which already solves this correctly (Home =
+personal application-status table, Explore = catalog discovery hub). Rebuilt
+`RealEstateHome` (`apps/web/features/real-estate/real-estate-home.tsx`) as a
+personal "my property journey" status view: `MetricCard` summaries for
+bookmarks/enquiries/site-visits (real, already-RLS-scoped APIs that already
+back their own full dashboard pages), a compact quick-search `<form>` that
+hands off to `/dashboard/explore?q=...` (same nuqs `q` key Explore already
+reads) rather than re-implementing its omnibox/filter engine, and lightweight
+category quick-link pills with no live counts. Home no longer fetches the
+property catalog at all. Home's former catalog-browsing content
+(`CategoryStrip` + one `PropertyRow` carousel per category) moved onto
+Explore's idle state (`RealEstateHub` in
+`apps/web/features/dashboard/explore-line-switch.tsx`), replacing its
+lower-fidelity local `CategoryTile` grid and single arbitrary "Featured
+properties" row. Extracted `useEnquiries`/`useSiteVisits` hooks (mirroring
+`use-properties.ts`'s shape) out of `enquiries-view.tsx`/`site-visits-view.tsx`
+so Home and their existing full-page views share one fetch implementation,
+with `useSiteVisits` exposing `setSiteVisits` so the existing cancel-visit
+optimistic update keeps working with zero behavior change (JSX in both view
+files is otherwise untouched).
+
+Found and fixed a real bug during browser verification, not just a test gap:
+`MetricCard` renders `value` inside a `<p>` (`dashboard-ui.tsx`), and the
+shared `Skeleton` component renders a `<div>` -- nesting a block element
+inside a paragraph is invalid HTML. It broke hydration and, less obviously,
+silently broke the quick-search form's click handler entirely (confirmed via
+Playwright MCP: React DOM-nesting console errors appeared, then the Search
+button stopped triggering navigation on every attempt until fixed). Fixed
+with an inline `<span>`-based skeleton local to `real-estate-home.tsx`
+instead of reusing the shared block-level one.
+
+Fresh evidence: `pnpm lint`, `pnpm typecheck`, and `pnpm test` (69 files, 446
+tests, including new `use-site-visits.test.ts` covering the extracted
+`nextUpcomingVisit` pure helper) all pass. Browser-verified end to end via
+Playwright MCP against the live local stack after a `docker restart
+client1-web-1`: `/dashboard` shows the personal status view with zero
+bookmark/enquiry/site-visit counts and correct empty-state hints for a
+freshly registered account, with no hydration errors; typing a locality into
+the quick search and submitting lands on `/dashboard/explore?q=<value>` with
+results already filtered by that query; `/dashboard/explore` independently
+shows "Explore properties" with the category strip (live counts from real
+seeded data) and per-category carousels, no console errors beyond
+pre-existing, unrelated MinIO image-proxy 500s already present before this
+change. The extended Playwright spec ("Client can search locations manually
+across dashboard property surfaces", `e2e/dashboard-navigation.spec.ts`)
+passes in isolation with a fresh OTP quota, covering this flow plus the PR
+#231 subtype-facet filtering. The full spec's other failures in that same run
+are the pre-existing `OTP_RATE_LIMIT_PER_IP=10` dev-environment exhaustion
+already documented against PR #231 (registration itself fails before reaching
+any page under test); one blocked test ("Client retains the redesigned Loans
+and Real Estate workspaces") was inspected by hand and asserts nothing this
+change touches. `pnpm build` was not re-run this pass -- no build-relevant
+surface (routing, server components, config) was touched, and the pre-existing
+Windows `output: "standalone"` symlink limitation is already documented
+against PR #231 with no bearing on this diff. Untested at the unit level:
+`use-enquiries.ts` (mechanical extraction, no new logic, same untested
+precedent as `use-properties.ts`) and `RealEstateHome` itself (stateful,
+context-dependent -- no `jsdom` dependency is installed in this repo to
+support hook/DOM rendering tests, and adding one was judged out of scope for
+a UI-focused change); both are covered by the e2e flow above instead. Ran
+`design-review`: no blocking findings; two minor, deliberately-unfixed notes
+(a CTA touch target that intentionally mirrors the existing `ApplyCta`
+convention, and a section lacking a landmark `aria-label` while still having
+a visible heading) recorded in the PR body.
+
 **Done - [PR #231](https://github.com/brollysolutions/client1/pull/231) - Real-estate
 client dashboard home rework (direct user-reported UI change; no requirement or
 completion-percentage change):** the real-estate Client home now leads with
