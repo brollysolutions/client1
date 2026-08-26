@@ -22,15 +22,18 @@ export function AgentIntroduceLeadForm() {
   const [name, setName] = React.useState("");
   const [notes, setNotes] = React.useState("");
   const [saving, setSaving] = React.useState(false);
+  const [mobileError, setMobileError] = React.useState<string | null>(null);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!isValidMobile(mobile)) {
+      setMobileError("Enter a 10-digit Indian mobile number.");
       toast.error("Enter a valid mobile number", {
         description: "Enter a 10-digit Indian mobile number.",
       });
       return;
     }
+    setMobileError(null);
     setSaving(true);
     const res = await introduceAgentLead({
       mobile: toE164(mobile),
@@ -58,8 +61,27 @@ export function AgentIntroduceLeadForm() {
       <form className="space-y-6" onSubmit={(e) => void onSubmit(e)}>
         <DashboardFormSection title="Contact">
           <div>
-            <Label htmlFor="mobile">Mobile number</Label>
-            <MobileInput id="mobile" value={mobile} onChange={(e) => setMobile(e.target.value)} placeholder="98765 43210" />
+            <Label htmlFor="mobile">
+              Mobile number
+              <span aria-hidden="true"> *</span>
+              <span className="sr-only"> (required)</span>
+            </Label>
+            <MobileInput
+              id="mobile"
+              value={mobile}
+              onChange={(e) => {
+                setMobile(e.target.value);
+                if (mobileError) setMobileError(null);
+              }}
+              placeholder="98765 43210"
+              aria-invalid={!!mobileError}
+              aria-describedby={mobileError ? "mobile-error" : undefined}
+            />
+            {mobileError ? (
+              <p id="mobile-error" role="alert" className="mt-1.5 text-sm text-destructive">
+                {mobileError}
+              </p>
+            ) : null}
           </div>
           <div>
             <Label htmlFor="name">Name (optional)</Label>

@@ -121,7 +121,7 @@ export function AgentLeadDetailView({ leadId }: { leadId: string }) {
         </p>
         {!lead.registered ? (
           <Button
-            className="mt-3"
+            className="mt-3 min-w-[13rem] justify-center"
             type="button"
             size="sm"
             variant="outline"

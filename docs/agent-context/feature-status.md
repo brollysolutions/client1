@@ -145,9 +145,38 @@ recommended residual verification step before merge. `apps/api`'s pytest
 suite was not re-run for the seed-only change — no test asserts on
 `seed_demo.py`'s banner rows directly (confirmed: no reference to the two
 removed banner ids exists outside that file), so this is a documentation-only
-confirmation rather than a gap. Security, design, and maintainer review were
-not separately requested for this direct user-reported UI/bug-fix batch; no
-API, contract, migration, or RLS surface changed.
+confirmation rather than a gap. Security and maintainer review were not
+separately requested for this direct user-reported UI/bug-fix batch; no API,
+contract, migration, or RLS surface changed.
+
+**Apple-design skill review pass** (per direct user request to apply it
+across the touched agent dashboard surfaces): reviewed
+`agent-home.tsx`/`agent-leads-view.tsx`/`agent-lead-detail-view.tsx`/
+`agent-earnings-view.tsx`/`agent-introduce-lead-form.tsx`/`notification-bell.tsx`
+against the accessibility, layout, feedback, and entering-data guideline
+references. Found and fixed three concrete issues: (1)
+`agent-introduce-lead-form.tsx`'s Mobile field had no visual required-field
+indicator and no inline per-field error state — unlike its sibling forms
+converted in this same PR (`lead-dialog.tsx`/`property-action-dialog.tsx`),
+which already show `aria-invalid`/`aria-describedby`-wired inline errors —
+now added (asterisk + `sr-only` "(required)" label, a `mobileError` state
+wired to `aria-invalid`/`aria-describedby`, cleared on next keystroke). (2)
+The notification bell header's "Mark all as read" icon button was `h-8 w-8`
+(32px) while the adjacent bell-icon badge span is `h-9 w-9` (36px) — a
+same-row sizing inconsistency, also below the desktop-comfortable target
+size next to a larger neighbor; both are now `h-9 w-9`. (3) The
+copy-registration-link button's "Copy registration link" → "Copied" label
+swap had no fixed width, causing a visible layout shift as the button
+shrank; added `min-w-[13rem] justify-center` to hold its footprint steady.
+Other findings were judged pre-existing, consistent-with-the-rest-of-the-app
+patterns not worth a one-off deviation in this PR: status pills across
+Leads/Earnings/Transactions convey state by color+text only (no icon/shape
+differentiator), matching the badge convention already established and
+reviewed elsewhere in the app; the unread dot in the bell dropdown is now
+technically redundant (every previewed row is unread by construction) but
+harmless and left as reinforcing, not misleading, feedback. Fresh evidence
+after these three fixes: `pnpm lint`, `pnpm typecheck`, and `pnpm test` (72
+files, 468 tests) all pass unchanged.
 
 **Done - Real-estate Client dashboard property presentation** on
 `claude/20260825-211218-remove-browse-by-type-section-in-explore` (PR #233

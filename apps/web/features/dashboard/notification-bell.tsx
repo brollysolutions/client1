@@ -92,7 +92,7 @@ export function NotificationBell() {
                 aria-label="Mark all as read"
                 disabled={markingAll}
                 onClick={handleMarkAllRead}
-                className="h-8 w-8"
+                className="h-9 w-9"
               >
                 <CheckCheck className="h-4 w-4" aria-hidden="true" />
               </Button>
