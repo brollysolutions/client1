@@ -12,11 +12,12 @@ verified Admin operational-visibility work in
 **Done - Agent dashboard UI overhaul: demo banner removal, dashboard-primitive
 migration, copy-link UX, notification-bell dropdown unread filter, +91 phone
 default across application forms** on `claude/20260826-agent-dashboard-ui-overhaul`
-(branched fresh from `upstream/main` via a sibling worktree, since the prior
-task branch had unrelated uncommitted property-card/docs changes the user
-asked to leave untouched; direct user-reported UI/bug-fix batch, no
-requirement or completion-percentage change): seven changes across the agent
-dashboard, no auth/RLS/payout/migration/contract surface touched.
+([PR #235](https://github.com/brollysolutions/client1/pull/235); branched
+fresh from `upstream/main` via a sibling worktree, since the prior task
+branch had unrelated uncommitted property-card/docs changes the user asked
+to leave untouched; direct user-reported UI/bug-fix batch, no requirement or
+completion-percentage change): seven changes across the agent dashboard, no
+auth/RLS/payout/migration/contract surface touched.
 
 (1) `apps/api/app/scripts/seed_demo.py`: the "Demo Loans workspace" and "Demo
 Real Estate workspace" `LIVE`-status seed banners are deleted outright (the
