@@ -1,5 +1,6 @@
 "use client";
 
+import { MobileInput } from "@/components/auth/mobile-input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,6 +13,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import type { FinancialProduct } from "@/lib/loans";
+import { isValidMobile } from "@/lib/phone";
 
 export type ProductAnswers = Record<string, string | string[]>;
 export type ProductAnswerErrors = Record<string, string>;
@@ -40,7 +42,7 @@ export function validateProductAnswers(
       if (empty || Array.isArray(value)) continue;
       if (field.input_type === "pincode" && !/^[1-9][0-9]{5}$/.test(value)) {
         errors[field.key] = "Enter a valid 6-digit PIN code.";
-      } else if (field.input_type === "phone" && !/^[6-9][0-9]{9}$/.test(value)) {
+      } else if (field.input_type === "phone" && !isValidMobile(value)) {
         errors[field.key] = "Enter a valid 10-digit mobile number.";
       } else if (field.input_type === "currency" && (!Number.isFinite(Number(value)) || Number(value) <= 0)) {
         errors[field.key] = "Enter a valid positive amount.";
@@ -200,21 +202,32 @@ export function FinancialProductFormFields({
                         );
                       })}
                     </div>
+                  ) : field.input_type === "phone" ? (
+                    <MobileInput
+                      id={id}
+                      value={typeof value === "string" ? value : ""}
+                      disabled={disabled}
+                      required={field.required}
+                      aria-invalid={Boolean(errors[field.key])}
+                      aria-describedby={describedBy}
+                      placeholder={field.placeholder ?? undefined}
+                      onChange={(event) => update(field.key, event.target.value)}
+                    />
                   ) : (
                     <Input
                       id={id}
-                      type={field.input_type === "date" ? "date" : field.input_type === "phone" ? "tel" : "text"}
+                      type={field.input_type === "date" ? "date" : "text"}
                       inputMode={
                         field.input_type === "currency"
                           ? "decimal"
-                          : field.input_type === "integer" || field.input_type === "pincode" || field.input_type === "phone"
+                          : field.input_type === "integer" || field.input_type === "pincode"
                             ? "numeric"
                             : undefined
                       }
                       value={typeof value === "string" ? value : ""}
                       disabled={disabled}
                       required={field.required}
-                      maxLength={field.input_type === "pincode" ? 6 : field.input_type === "phone" ? 10 : 200}
+                      maxLength={field.input_type === "pincode" ? 6 : 200}
                       aria-invalid={Boolean(errors[field.key])}
                       aria-describedby={describedBy}
                       placeholder={field.placeholder ?? undefined}

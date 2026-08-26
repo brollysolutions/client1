@@ -39,3 +39,15 @@ export function markAllNotificationsReadInSnapshot(
     unreadCount: 0,
   };
 }
+
+// Preview-only projection for the bell dropdown: unread items only, capped at
+// `limit`. The full snapshot (`items`) is untouched — the /dashboard/notifications
+// history page reads the same snapshot and must keep showing read+unread rows.
+// Filters before slicing so a read item never displaces an unread one from the
+// capped preview.
+export function selectUnreadPreview(
+  items: AppNotification[],
+  limit: number,
+): AppNotification[] {
+  return items.filter((item) => item.readAt === null).slice(0, limit);
+}

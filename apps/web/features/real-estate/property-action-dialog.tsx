@@ -3,6 +3,7 @@
 import * as React from "react";
 import { toast } from "sonner";
 
+import { MobileInput } from "@/components/auth/mobile-input";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -203,10 +204,8 @@ export function PropertyActionDialog({
 
           <div className="grid gap-2">
             <Label htmlFor="pad-phone">Mobile number</Label>
-            <Input
+            <MobileInput
               id="pad-phone"
-              type="tel"
-              inputMode="numeric"
               value={phone}
               onChange={(event) => setPhone(event.target.value)}
               autoComplete="tel"

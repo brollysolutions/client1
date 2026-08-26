@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DASHBOARD_ICONS } from "@/features/dashboard/dashboard-icons";
 import {
@@ -77,13 +78,12 @@ export function AgentHome() {
         title="Agent workspace"
         description="Monitor introduced leads, registration standing, and commission progress."
         actions={
-        <Link
-          href="/dashboard/leads/new"
-          className="inline-flex items-center gap-2 rounded-lg bg-brand-cta px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-cta/90"
-        >
-          <DASHBOARD_ICONS.leads className="h-4 w-4" aria-hidden="true" />
-          Introduce a lead
-        </Link>
+          <Button asChild className="bg-brand-cta text-white hover:bg-brand-cta/90">
+            <Link href="/dashboard/leads/new">
+              <DASHBOARD_ICONS.leads className="h-4 w-4" aria-hidden="true" />
+              Introduce a lead
+            </Link>
+          </Button>
         }
       />
 

@@ -7,6 +7,7 @@ import * as React from "react";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { MobileInput } from "@/components/auth/mobile-input";
 import { Button, type ButtonProps } from "@/components/ui/button";
 import {
   Dialog,
@@ -271,10 +272,8 @@ export function LeadDialog({
 
           <div className="grid gap-2">
             <Label htmlFor="lead-mobile">Mobile number</Label>
-            <Input
+            <MobileInput
               id="lead-mobile"
-              type="tel"
-              inputMode="numeric"
               value={mobile}
               onChange={(event) => setMobile(event.target.value)}
               autoComplete="tel"
