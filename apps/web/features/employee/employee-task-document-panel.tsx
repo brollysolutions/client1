@@ -15,6 +15,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
+import { DashboardPanel } from "@/features/dashboard/dashboard-ui";
 import { DOC_TYPE_LABEL, DOC_TYPE_OPTIONS } from "@/lib/doc-types";
 import type { DocType } from "@/lib/employee-api";
 
@@ -54,9 +55,7 @@ export function EmployeeTaskDocumentPanel({
   }
 
   return (
-    <div className="rounded-2xl border border-border bg-card p-5">
-      <h2 className="text-sm font-semibold text-text-primary">Documents</h2>
-
+    <DashboardPanel title="Documents">
       {!disabled && (
         <div className="mt-3 flex flex-wrap items-end gap-3">
           <div className="w-48">
@@ -160,6 +159,6 @@ export function EmployeeTaskDocumentPanel({
           </ul>
         )}
       </div>
-    </div>
+    </DashboardPanel>
   );
 }

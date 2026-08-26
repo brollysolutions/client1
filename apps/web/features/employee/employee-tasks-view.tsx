@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { ClipboardList } from "lucide-react";
+import { ChevronRight, ClipboardList } from "lucide-react";
 
 import {
   Select,
@@ -12,6 +12,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
+import { DashboardHeader, DashboardPage, DashboardPanel } from "@/features/dashboard/dashboard-ui";
 import { FetchError } from "@/features/dashboard/fetch-error";
 import { cn } from "@/lib/utils";
 
@@ -59,17 +60,15 @@ export function EmployeeTasksView() {
   );
 
   return (
-    <div className="mx-auto w-full max-w-5xl space-y-6 px-4 sm:px-6 lg:px-10">
-      <div>
-        <h1 className="text-2xl font-semibold text-text-primary">Tasks</h1>
-        <p className="text-sm text-text-secondary">
-          Field and background-check tasks assigned to you.
-        </p>
-      </div>
+    <DashboardPage>
+      <DashboardHeader
+        title="Tasks"
+        description="Field and background-check tasks assigned to you."
+      />
 
-      <div className="flex flex-wrap gap-3">
+      <div className="grid gap-2 rounded-xl border border-border bg-card p-3 sm:grid-cols-2">
         <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-44">
+          <SelectTrigger aria-label="Filter by status">
             <SelectValue placeholder="Status" />
           </SelectTrigger>
           <SelectContent>
@@ -83,7 +82,7 @@ export function EmployeeTasksView() {
         </Select>
 
         <Select value={typeFilter} onValueChange={setTypeFilter}>
-          <SelectTrigger className="w-52">
+          <SelectTrigger aria-label="Filter by task type">
             <SelectValue placeholder="Task type" />
           </SelectTrigger>
           <SelectContent>
@@ -112,59 +111,71 @@ export function EmployeeTasksView() {
           </p>
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-border bg-card">
-          <table className="w-full text-left text-sm">
-            <thead className="border-b border-border text-xs uppercase tracking-wide text-text-secondary">
-              <tr>
-                <th className="px-5 py-3 font-medium">Lead</th>
-                <th className="px-5 py-3 font-medium">Type</th>
-                <th className="px-5 py-3 font-medium">Status</th>
-                <th className="px-5 py-3 font-medium">Due</th>
-              </tr>
-            </thead>
-            <tbody>
-              {items.map((task) => (
-                <tr
-                  key={task.id}
-                  role="link"
-                  tabIndex={0}
-                  onClick={() => router.push(`/dashboard/tasks/${task.id}`)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") router.push(`/dashboard/tasks/${task.id}`);
-                  }}
-                  className="cursor-pointer border-b border-border transition-colors last:border-0 hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue"
-                >
-                  <td className="px-5 py-4">
-                    <p className="font-medium text-text-primary">
-                      {task.lead_name ?? "Assigned lead"}
-                    </p>
-                    <p className="text-xs text-text-secondary">
-                      {task.lead_mobile ??
-                        (task.lead_contact_mode === "share_link"
-                          ? "Contact via secure invitation"
-                          : "Contact details hidden")}
-                    </p>
-                  </td>
-                  <td className="px-5 py-4 text-text-secondary">
-                    {TYPE_LABEL[task.task_type] ?? task.task_type}
-                  </td>
-                  <td className="px-5 py-4">
-                    <span
-                      className={cn(
-                        "inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium",
-                        STATUS_STYLE[task.status] ?? "bg-muted text-text-secondary",
-                      )}
-                    >
-                      {STATUS_LABEL[task.status] ?? task.status}
-                    </span>
-                  </td>
-                  <td className="px-5 py-4 text-text-secondary">{formatDateTime(task.due_at)}</td>
+        <DashboardPanel title="Assigned tasks" description={`${items.length} tasks`}>
+          <div className="animate-in fade-in-0 overflow-x-auto duration-200 motion-reduce:animate-none">
+            <table className="w-full text-left text-sm">
+              <thead className="border-b border-border text-xs uppercase tracking-wide text-text-secondary">
+                <tr>
+                  <th className="px-5 py-3 font-medium">Lead</th>
+                  <th className="px-5 py-3 font-medium">Type</th>
+                  <th className="px-5 py-3 font-medium">Status</th>
+                  <th className="px-5 py-3 font-medium">Due</th>
+                  {/* Trailing affordance column — no header label. */}
+                  <th className="w-10 px-3 py-3">
+                    <span className="sr-only">Open task</span>
+                  </th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {items.map((task) => (
+                  <tr
+                    key={task.id}
+                    role="link"
+                    tabIndex={0}
+                    onClick={() => router.push(`/dashboard/tasks/${task.id}`)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") router.push(`/dashboard/tasks/${task.id}`);
+                    }}
+                    className="group cursor-pointer border-b border-border transition-colors last:border-0 hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-blue"
+                  >
+                    <td className="px-5 py-4">
+                      <p className="font-medium text-text-primary transition-colors group-hover:text-brand-cta">
+                        {task.lead_name ?? "Assigned lead"}
+                      </p>
+                      <p className="text-xs text-text-secondary">
+                        {task.lead_mobile ??
+                          (task.lead_contact_mode === "share_link"
+                            ? "Contact via secure invitation"
+                            : "Contact details hidden")}
+                      </p>
+                    </td>
+                    <td className="px-5 py-4 text-text-secondary">
+                      {TYPE_LABEL[task.task_type] ?? task.task_type}
+                    </td>
+                    <td className="px-5 py-4">
+                      <span
+                        className={cn(
+                          "inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium",
+                          STATUS_STYLE[task.status] ?? "bg-muted text-text-secondary",
+                        )}
+                      >
+                        {STATUS_LABEL[task.status] ?? task.status}
+                      </span>
+                    </td>
+                    <td className="px-5 py-4 text-text-secondary">{formatDateTime(task.due_at)}</td>
+                    <td className="px-3 py-4">
+                      <ChevronRight
+                        className="h-4 w-4 text-text-secondary/60 transition-all group-hover:translate-x-0.5 group-hover:text-brand-cta"
+                        aria-hidden="true"
+                      />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </DashboardPanel>
       )}
-    </div>
+    </DashboardPage>
   );
 }

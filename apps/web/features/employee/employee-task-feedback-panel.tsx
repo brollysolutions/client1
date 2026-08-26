@@ -6,6 +6,7 @@ import { Camera, Download, FileText, ImageIcon, Loader2, Trash2, Upload } from "
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import { DashboardPanel } from "@/features/dashboard/dashboard-ui";
 
 import { useEmployeeTaskFeedback } from "./use-employee-task-feedback";
 
@@ -28,15 +29,11 @@ export function EmployeeTaskFeedbackPanel({ taskId, disabled }: { taskId: string
   }
 
   return (
-    <section className="rounded-2xl border border-border bg-card p-5" aria-labelledby="visit-feedback">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h2 id="visit-feedback" className="text-sm font-semibold text-text-primary">Visit feedback</h2>
-          <p className="mt-1 text-xs text-text-secondary">
-            Private photos or PDFs for Admin review. Up to 5 attachments, 5 MiB each.
-          </p>
-        </div>
-        {!disabled ? (
+    <DashboardPanel
+      title="Visit feedback"
+      description="Private photos or PDFs for Admin review. Up to 5 attachments, 5 MiB each."
+      action={
+        !disabled ? (
           <div className="flex gap-2">
             <input ref={fileRef} type="file" accept={ACCEPT} className="hidden" onChange={(event) => void chosen(event)} />
             <input ref={cameraRef} type="file" accept={CAMERA_ACCEPT} capture="environment" className="hidden" onChange={(event) => void chosen(event)} />
@@ -48,19 +45,19 @@ export function EmployeeTaskFeedbackPanel({ taskId, disabled }: { taskId: string
               <Camera className="h-4 w-4" /> Photo
             </Button>
           </div>
-        ) : null}
-      </div>
-
+        ) : undefined
+      }
+    >
       {loading ? (
-        <div className="mt-4 flex justify-center py-6"><Loader2 className="h-5 w-5 animate-spin" /></div>
+        <div className="flex justify-center py-6"><Loader2 className="h-5 w-5 animate-spin" /></div>
       ) : error ? (
-        <div className="mt-4 text-sm text-destructive">
+        <div className="text-sm text-destructive">
           {error} <button type="button" className="underline" onClick={reload}>Try again</button>
         </div>
       ) : items.length === 0 ? (
-        <p className="mt-4 text-sm text-text-secondary">No feedback attachments yet.</p>
+        <p className="text-sm text-text-secondary">No feedback attachments yet.</p>
       ) : (
-        <ul className="mt-4 grid gap-3 sm:grid-cols-2">
+        <ul className="grid gap-3 sm:grid-cols-2">
           {items.map((item, index) => (
             <li key={item.id} className="overflow-hidden rounded-xl border border-border">
               {item.preview_url ? (
@@ -86,6 +83,6 @@ export function EmployeeTaskFeedbackPanel({ taskId, disabled }: { taskId: string
           ))}
         </ul>
       )}
-    </section>
+    </DashboardPanel>
   );
 }
