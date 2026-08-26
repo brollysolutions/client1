@@ -304,6 +304,65 @@ deviation here. Security and maintainer review were not separately
 requested for this direct user-reported UI redesign; no auth, RLS, payout,
 migration, or contract surface changed.
 
+**Done - Clickable-row affordance and Employee task screens brought onto
+`DashboardPanel`** on `claude/20260826-155030-switch-to-main-and-pull-changes`
+([PR #238](https://github.com/brollysolutions/client1/pull/238); direct
+user-reported follow-up to PR #237 — "there is no way a telecaller can know
+to click on leads" plus "even same for employees"; no requirement or
+completion-percentage change): PR #237 shipped the telecaller leads
+table/detail redesign but left rows with only a subtle `hover:bg-muted/50`
+tint and a `cursor-pointer` as the sole clickability signal — genuinely too
+weak, confirmed by re-inspecting the live app via Playwright MCP (which
+regained sandbox network access mid-session, so this pass could
+browser-verify where PR #237 could not). Added a trailing chevron
+(`ChevronRight`) to every row that slides right on hover
+(`group-hover:translate-x-0.5`) and tints `text-brand-cta`, reusing the exact
+micro-interaction already established by `DashboardQuickAction` in
+`dashboard-ui.tsx` — not a new pattern. Applied to both
+`telecaller-leads-view.tsx` and, per the "even same for employees" follow-up,
+`employee-tasks-view.tsx` (previously untouched by PR #237, still on the
+pre-migration hand-rolled `max-w-5xl` layout). `employee-tasks-view.tsx` and
+`employee-task-detail-view.tsx` are migrated onto `DashboardPage`/
+`DashboardHeader`/`DashboardBackLink`/`DashboardPanel`, mirroring the
+telecaller pattern: a visually-hidden page `<h1>`, the same raw-phone-display
+bug fixed (`formatMobile`/`toE164` from `lib/phone.ts`, replacing
+`{task.lead_mobile}`/`tel:${task.lead_mobile}`), and the task-type/status/
+outcome badges moved into the header panel's `action` slot. The two
+sub-panels `employee-task-document-panel.tsx` and
+`employee-task-feedback-panel.tsx` get the same outer-wrapper-only
+`DashboardPanel` swap already applied to telecaller's three sub-sections in
+PR #237 (no functional change); the feedback panel's header — title +
+description + upload/photo buttons — maps directly onto `DashboardPanel`'s
+`title`/`description`/`action` props. All functional logic (task status
+transitions, `ALLOWED_TRANSITIONS`, contact-share-link creation, document
+upload/delete) is untouched. A live Playwright pass over the redesigned
+telecaller lead-detail page (login as the seeded demo Telecaller, "Charan
+Client" lead) found no actual rendering defect — computed styles, a cropped
+element screenshot, and checks at 1440px/390px widths all matched the
+intended design; an earlier read of a heavily-downscaled full-page screenshot
+had been misleading (a nested `bg-muted/25` box briefly looked dark in the
+compressed thumbnail but rendered correctly at native resolution, confirmed
+via `getComputedStyle`), noted here so a future pass doesn't re-chase the
+same non-issue (that live pass was against the code already merged in PR
+#237, checked out in the primary repo's running container — not this
+session's own worktree). Fresh evidence: `npm run typecheck` (clean), `npm
+run lint` (clean), `npm run test` (73 files, 477 tests, unchanged — no new
+test surface, this pass is UI-structure/affordance only) all pass. The
+chevron/hover affordance and the Employee screen migration themselves were
+**not** live-verified in a browser this pass: this worktree's running
+`client1-web-1` container bind-mounts the primary checkout
+(`D:\dhanadhara\client1\apps\web`), not this worktree, so edits made here
+only become visible in that container after this branch merges to `main` and
+someone pulls + restarts it there — confirmed by `docker exec client1-web-1
+grep ChevronRight ...` returning no match immediately after writing this
+change. Verified instead via `getComputedStyle`-level review against the
+already-live PR #237 code for the underlying patterns being reused
+(`DashboardPanel`, the `DashboardQuickAction` hover-chevron micro-interaction
+copied verbatim) plus typecheck/lint/tests. Live browser verification of
+this specific change is the recommended follow-up once merged and pulled.
+No auth, RLS, payout, migration, or contract surface changed; scope is
+`apps/web` only.
+
 **Done - Real-estate Client dashboard property presentation** on
 `claude/20260825-211218-remove-browse-by-type-section-in-explore` (PR #233
 update; direct user-reported UI change, no requirement or

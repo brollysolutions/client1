@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { ArrowDown, ArrowUp, ArrowUpDown, PhoneCall, X } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpDown, ChevronRight, PhoneCall, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -192,6 +192,11 @@ export function TelecallerLeadsView() {
                       {COLUMNS.map((column) => (
                         <SortableHeader key={column.key} column={column} sort={sort} onSort={onSort} />
                       ))}
+                      {/* Trailing affordance column — no header label, just the
+                          chevron every row ends in, so it isn't sortable. */}
+                      <th className="w-10 px-3 py-3">
+                        <span className="sr-only">Open lead</span>
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
@@ -204,10 +209,12 @@ export function TelecallerLeadsView() {
                         onKeyDown={(e) => {
                           if (e.key === "Enter") router.push(`/dashboard/leads/${lead.id}`);
                         }}
-                        className="cursor-pointer border-b border-border transition-colors last:border-0 hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue"
+                        className="group cursor-pointer border-b border-border transition-colors last:border-0 hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-blue"
                       >
                         <td className="px-5 py-4">
-                          <p className="font-medium text-text-primary">{lead.name ?? "Unnamed lead"}</p>
+                          <p className="font-medium text-text-primary transition-colors group-hover:text-brand-cta">
+                            {lead.name ?? "Unnamed lead"}
+                          </p>
                           <p className="text-xs text-text-secondary">{formatMobile(lead.mobile)}</p>
                         </td>
                         <td className="px-5 py-4">
@@ -224,6 +231,12 @@ export function TelecallerLeadsView() {
                           {lead.last_disposition ? DISPOSITION_LABEL[lead.last_disposition] : "Not called yet"}
                         </td>
                         <td className="px-5 py-4 text-text-secondary">{formatDateTime(lead.next_follow_up_at)}</td>
+                        <td className="px-3 py-4">
+                          <ChevronRight
+                            className="h-4 w-4 text-text-secondary/60 transition-all group-hover:translate-x-0.5 group-hover:text-brand-cta"
+                            aria-hidden="true"
+                          />
+                        </td>
                       </tr>
                     ))}
                   </tbody>
