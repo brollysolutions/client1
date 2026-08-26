@@ -11,7 +11,7 @@ verified Admin operational-visibility work in
 
 **Done - Real-estate browse-card redesign** on
 `claude/20260825-211218-remove-browse-by-type-section-in-explore` ([PR
-#234](https://github.com/brollysolutions/client1/pull/234) follow-up): the
+#236](https://github.com/brollysolutions/client1/pull/236)): the
 user-approved compact card now uses a 16:9 media band, available-only comparison
 facts, price, compact bookmark/compare controls, a verified-only RERA corner,
 and View details as its sole primary action. Failed approved media falls back to
