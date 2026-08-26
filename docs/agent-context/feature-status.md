@@ -181,7 +181,7 @@ files, 468 tests) all pass unchanged.
 **Done - Telecaller leads table and lead detail redesign: `DashboardPanel`
 migration, advanced filters, sortable columns, call-history timeline** on
 `claude/20260826-155030-switch-to-main-and-pull-changes`
-([PR TBD](https://github.com/brollysolutions/client1/pulls); direct user-reported UI
+([PR #237](https://github.com/brollysolutions/client1/pull/237); direct user-reported UI
 overhaul request — "make it clean and state of the art, add animations, add
 advanced filters" for the leads table, "change the entire UI" for the lead
 form — no requirement or completion-percentage change): the telecaller leads
