@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { DashboardPanel } from "@/features/dashboard/dashboard-ui";
 import { LoanProgressForm } from "@/features/loans/loan-progress-form";
 import { FormAnswerSummary } from "@/features/loans/form-answer-summary";
 import { formatINR } from "@/lib/format";
@@ -141,17 +142,15 @@ export function TelecallerLoanAppsSection({
 }) {
   if (applications.length === 0) {
     return (
-      <div className="rounded-2xl border border-border bg-card p-5">
-        <h2 className="text-lg font-semibold text-text-primary">Loan applications</h2>
-        <p className="mt-3 text-sm text-text-secondary">No loan application on this lead yet.</p>
-      </div>
+      <DashboardPanel title="Loan applications">
+        <p className="text-sm text-text-secondary">No loan application on this lead yet.</p>
+      </DashboardPanel>
     );
   }
 
   return (
-    <div className="rounded-2xl border border-border bg-card p-5">
-      <h2 className="text-lg font-semibold text-text-primary">Loan applications</h2>
-      <div className="mt-4 space-y-5">
+    <DashboardPanel title="Loan applications">
+      <div className="space-y-5">
         {applications.map((application) => (
           <div key={application.id} className="rounded-xl border border-border p-4">
             <div className="flex flex-wrap items-center justify-between gap-2">
@@ -218,6 +217,6 @@ export function TelecallerLoanAppsSection({
           </div>
         ))}
       </div>
-    </div>
+    </DashboardPanel>
   );
 }

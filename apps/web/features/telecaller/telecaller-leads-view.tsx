@@ -2,62 +2,106 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { PhoneCall } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpDown, PhoneCall, X } from "lucide-react";
 
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
+import { DashboardHeader, DashboardPage, DashboardPanel } from "@/features/dashboard/dashboard-ui";
+import { useLine } from "@/features/dashboard/line-provider";
 import { FetchError } from "@/features/dashboard/fetch-error";
+import { formatMobile } from "@/lib/phone";
 import { cn } from "@/lib/utils";
 
+import {
+  DEFAULT_TELECALLER_LEAD_FILTERS,
+  DEFAULT_TELECALLER_LEAD_SORT,
+  filterTelecallerLeads,
+  sortTelecallerLeads,
+  type TelecallerLeadFilters,
+  type TelecallerLeadSort,
+  type TelecallerLeadSortKey,
+} from "./telecaller-lead-filters";
+import { DISPOSITION_LABEL, STATUS_LABEL, STATUS_STYLE, formatDateTime } from "./telecaller-lead-status";
 import { useTelecallerLeads } from "./use-telecaller-leads";
 
-const STATUS_STYLE: Record<string, string> = {
-  new: "bg-muted text-text-secondary",
-  assigned: "bg-brand-cta-tint text-brand-cta",
-  working: "bg-warning/10 text-warning",
-  converted: "bg-success/10 text-success",
-  closed: "bg-muted text-text-secondary",
-  released: "bg-muted text-text-secondary",
-};
+const STATUS_FILTER_OPTIONS = ["new", "assigned", "working", "converted", "closed", "released"] as const;
 
-const STATUS_LABEL: Record<string, string> = {
-  new: "New",
-  assigned: "Assigned",
-  working: "Working",
-  converted: "Converted",
-  closed: "Closed",
-  released: "Released",
-};
+const COLUMNS: { key: TelecallerLeadSortKey; label: string }[] = [
+  { key: "name", label: "Lead" },
+  { key: "status", label: "Status" },
+  { key: "last_disposition", label: "Last disposition" },
+  { key: "next_follow_up_at", label: "Next follow-up" },
+];
 
-const DISPOSITION_LABEL: Record<string, string> = {
-  connected: "Connected",
-  no_answer: "No answer",
-  busy: "Busy",
-  switched_off: "Switched off",
-  wrong_number: "Wrong number",
-  callback_requested: "Callback requested",
-  not_interested: "Not interested",
-};
-
-function formatDateTime(iso: string | null | undefined): string {
-  if (!iso) return "-";
-  const d = new Date(iso);
-  return Number.isNaN(d.getTime())
-    ? "-"
-    : d.toLocaleString("en-IN", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" });
+function SortableHeader({
+  column,
+  sort,
+  onSort,
+}: {
+  column: { key: TelecallerLeadSortKey; label: string };
+  sort: TelecallerLeadSort;
+  onSort: (key: TelecallerLeadSortKey) => void;
+}) {
+  const active = sort.key === column.key;
+  const Icon = active ? (sort.dir === "asc" ? ArrowUp : ArrowDown) : ArrowUpDown;
+  return (
+    <th
+      className="p-0 font-medium"
+      aria-sort={active ? (sort.dir === "asc" ? "ascending" : "descending") : "none"}
+    >
+      {/* Full-cell button, not just the label — keeps the sort control's hit
+          target at a comfortable size rather than the label text's own
+          line-height. */}
+      <button
+        type="button"
+        onClick={() => onSort(column.key)}
+        className="group flex w-full items-center gap-1.5 px-5 py-3 text-xs font-medium uppercase tracking-wide text-text-secondary transition-colors hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-blue"
+      >
+        {column.label}
+        <Icon
+          className={cn(
+            "h-3.5 w-3.5 shrink-0 transition-colors",
+            active ? "text-brand-cta" : "text-text-secondary/70 group-hover:text-text-secondary",
+          )}
+          aria-hidden="true"
+        />
+      </button>
+    </th>
+  );
 }
 
 // The telecaller's assigned-lead list. Row click opens the lead detail page,
 // where a call gets logged and status/requirement updated.
 export function TelecallerLeadsView() {
   const router = useRouter();
+  const { activeLine } = useLine();
   const { items, loading, error, reload } = useTelecallerLeads();
+  const [filters, setFilters] = React.useState<TelecallerLeadFilters>(DEFAULT_TELECALLER_LEAD_FILTERS);
+  const [sort, setSort] = React.useState<TelecallerLeadSort>(DEFAULT_TELECALLER_LEAD_SORT);
+
+  const filtered = React.useMemo(() => filterTelecallerLeads(items, filters), [items, filters]);
+  const sorted = React.useMemo(() => sortTelecallerLeads(filtered, sort), [filtered, sort]);
+
+  const filtersActive =
+    filters.search !== "" || filters.status !== "all" || filters.followUpFrom !== "" || filters.followUpTo !== "";
+
+  function onSort(key: TelecallerLeadSortKey) {
+    setSort((prev) => (prev.key === key ? { key, dir: prev.dir === "asc" ? "desc" : "asc" } : { key, dir: "asc" }));
+  }
+
+  function clearFilters() {
+    setFilters(DEFAULT_TELECALLER_LEAD_FILTERS);
+  }
 
   return (
-    <div className="mx-auto w-full max-w-5xl space-y-6 px-4 sm:px-6 lg:px-10">
-      <div>
-        <h1 className="text-2xl font-semibold text-text-primary">Leads</h1>
-        <p className="text-sm text-text-secondary">Leads assigned to you. Open one to log a call.</p>
-      </div>
+    <DashboardPage>
+      <DashboardHeader
+        eyebrow={activeLine === "real_estate" ? "Real Estate pipeline" : "Loans pipeline"}
+        title="Leads"
+        description="Leads assigned to you. Open one to log a call."
+      />
 
       {loading ? (
         <Skeleton className="h-40 rounded-xl" />
@@ -74,54 +118,121 @@ export function TelecallerLeadsView() {
           </p>
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-border bg-card">
-          <table className="w-full text-left text-sm">
-            <thead className="border-b border-border text-xs uppercase tracking-wide text-text-secondary">
-              <tr>
-                <th className="px-5 py-3 font-medium">Lead</th>
-                <th className="px-5 py-3 font-medium">Status</th>
-                <th className="px-5 py-3 font-medium">Last disposition</th>
-                <th className="px-5 py-3 font-medium">Next follow-up</th>
-              </tr>
-            </thead>
-            <tbody>
-              {items.map((lead) => (
-                <tr
-                  key={lead.id}
-                  role="link"
-                  tabIndex={0}
-                  onClick={() => router.push(`/dashboard/leads/${lead.id}`)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") router.push(`/dashboard/leads/${lead.id}`);
-                  }}
-                  className="cursor-pointer border-b border-border transition-colors last:border-0 hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue"
-                >
-                  <td className="px-5 py-4">
-                    <p className="font-medium text-text-primary">{lead.name ?? "Unnamed lead"}</p>
-                    <p className="text-xs text-text-secondary">{lead.mobile}</p>
-                  </td>
-                  <td className="px-5 py-4">
-                    <span
-                      className={cn(
-                        "inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium",
-                        STATUS_STYLE[lead.status] ?? "bg-muted text-text-secondary",
-                      )}
-                    >
-                      {STATUS_LABEL[lead.status] ?? lead.status}
-                    </span>
-                  </td>
-                  <td className="px-5 py-4 text-text-secondary">
-                    {lead.last_disposition ? DISPOSITION_LABEL[lead.last_disposition] : "Not called yet"}
-                  </td>
-                  <td className="px-5 py-4 text-text-secondary">
-                    {formatDateTime(lead.next_follow_up_at)}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <>
+          <div className="grid gap-2 rounded-xl border border-border bg-card p-3 sm:grid-cols-2 lg:grid-cols-4">
+            <Input
+              aria-label="Search leads"
+              placeholder="Name or mobile"
+              value={filters.search}
+              onChange={(e) => setFilters((f) => ({ ...f, search: e.target.value }))}
+            />
+            <Select value={filters.status} onValueChange={(v) => setFilters((f) => ({ ...f, status: v }))}>
+              <SelectTrigger aria-label="Filter by status">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All statuses</SelectItem>
+                {STATUS_FILTER_OPTIONS.map((s) => (
+                  <SelectItem key={s} value={s}>
+                    {STATUS_LABEL[s]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Input
+              aria-label="Follow-up from date"
+              type="date"
+              value={filters.followUpFrom}
+              onChange={(e) => setFilters((f) => ({ ...f, followUpFrom: e.target.value }))}
+            />
+            <Input
+              aria-label="Follow-up to date"
+              type="date"
+              min={filters.followUpFrom || undefined}
+              value={filters.followUpTo}
+              onChange={(e) => setFilters((f) => ({ ...f, followUpTo: e.target.value }))}
+            />
+          </div>
+
+          {sorted.length === 0 ? (
+            <div className="flex flex-col items-center rounded-2xl border border-dashed border-border bg-card px-6 py-14 text-center">
+              <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-muted text-text-secondary">
+                <PhoneCall className="h-6 w-6" aria-hidden="true" />
+              </span>
+              <h2 className="mt-5 text-lg font-semibold text-text-primary">No leads match your filters</h2>
+              <p className="mx-auto mt-2 max-w-md text-sm text-text-secondary">
+                Try a different search, status, or follow-up range.
+              </p>
+              {filtersActive ? (
+                <Button variant="outline" size="sm" className="mt-4" onClick={clearFilters}>
+                  <X className="h-4 w-4" aria-hidden="true" />
+                  Clear filters
+                </Button>
+              ) : null}
+            </div>
+          ) : (
+            <DashboardPanel
+              title="Assigned leads"
+              description={
+                filtersActive ? `${sorted.length} of ${items.length} leads` : `${items.length} leads`
+              }
+              action={
+                filtersActive ? (
+                  <Button variant="ghost" size="sm" onClick={clearFilters}>
+                    <X className="h-4 w-4" aria-hidden="true" />
+                    Clear filters
+                  </Button>
+                ) : undefined
+              }
+            >
+              <div className="animate-in fade-in-0 overflow-x-auto duration-200 motion-reduce:animate-none">
+                <table className="w-full text-left text-sm">
+                  <thead className="border-b border-border text-text-secondary">
+                    <tr>
+                      {COLUMNS.map((column) => (
+                        <SortableHeader key={column.key} column={column} sort={sort} onSort={onSort} />
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {sorted.map((lead) => (
+                      <tr
+                        key={lead.id}
+                        role="link"
+                        tabIndex={0}
+                        onClick={() => router.push(`/dashboard/leads/${lead.id}`)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") router.push(`/dashboard/leads/${lead.id}`);
+                        }}
+                        className="cursor-pointer border-b border-border transition-colors last:border-0 hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue"
+                      >
+                        <td className="px-5 py-4">
+                          <p className="font-medium text-text-primary">{lead.name ?? "Unnamed lead"}</p>
+                          <p className="text-xs text-text-secondary">{formatMobile(lead.mobile)}</p>
+                        </td>
+                        <td className="px-5 py-4">
+                          <span
+                            className={cn(
+                              "inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium",
+                              STATUS_STYLE[lead.status] ?? "bg-muted text-text-secondary",
+                            )}
+                          >
+                            {STATUS_LABEL[lead.status] ?? lead.status}
+                          </span>
+                        </td>
+                        <td className="px-5 py-4 text-text-secondary">
+                          {lead.last_disposition ? DISPOSITION_LABEL[lead.last_disposition] : "Not called yet"}
+                        </td>
+                        <td className="px-5 py-4 text-text-secondary">{formatDateTime(lead.next_follow_up_at)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </DashboardPanel>
+          )}
+        </>
       )}
-    </div>
+    </DashboardPage>
   );
 }

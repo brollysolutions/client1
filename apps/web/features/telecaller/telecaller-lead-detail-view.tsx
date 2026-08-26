@@ -15,50 +15,30 @@ import {
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  DashboardBackLink,
+  DashboardFormSection,
+  DashboardPage,
+  DashboardPanel,
+} from "@/features/dashboard/dashboard-ui";
 import { FetchError } from "@/features/dashboard/fetch-error";
+import { formatMobile, toE164, toWaHref } from "@/lib/phone";
 import type { LeadActivityCreate } from "@/lib/telecaller-api";
 import { cn } from "@/lib/utils";
 
+import {
+  DISPOSITION_LABEL,
+  DISPOSITION_OPTIONS,
+  INTEREST_OPTIONS,
+  LEAD_STATUS_OPTIONS,
+  STATUS_LABEL,
+  dispositionDotClass,
+  formatDateTime,
+} from "./telecaller-lead-status";
 import { TelecallerLoanAppsSection } from "./telecaller-loan-apps-section";
 import { TelecallerPropertyDealsSection } from "./telecaller-property-deals-section";
 import { TelecallerTasksSection } from "./telecaller-tasks-section";
 import { useTelecallerLeadDetail } from "./use-telecaller-lead-detail";
-
-const DISPOSITION_OPTIONS: { value: LeadActivityCreate["disposition"]; label: string }[] = [
-  { value: "connected", label: "Connected" },
-  { value: "no_answer", label: "No answer" },
-  { value: "busy", label: "Busy" },
-  { value: "switched_off", label: "Switched off" },
-  { value: "wrong_number", label: "Wrong number" },
-  { value: "callback_requested", label: "Callback requested" },
-  { value: "not_interested", label: "Not interested" },
-];
-
-const INTEREST_OPTIONS: { value: NonNullable<LeadActivityCreate["interest_level"]>; label: string }[] = [
-  { value: "hot", label: "Hot" },
-  { value: "warm", label: "Warm" },
-  { value: "cold", label: "Cold" },
-];
-
-const STATUS_OPTIONS: { value: "working" | "converted" | "closed"; label: string }[] = [
-  { value: "working", label: "Working" },
-  { value: "converted", label: "Converted" },
-  { value: "closed", label: "Closed" },
-];
-
-const DISPOSITION_LABEL = Object.fromEntries(DISPOSITION_OPTIONS.map((o) => [o.value, o.label]));
-
-function toWaHref(mobile: string): string {
-  return `https://wa.me/${mobile.replace(/[^\d]/g, "")}`;
-}
-
-function formatDateTime(iso: string | null | undefined): string {
-  if (!iso) return "-";
-  const d = new Date(iso);
-  return Number.isNaN(d.getTime())
-    ? "-"
-    : d.toLocaleString("en-IN", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" });
-}
 
 export function TelecallerLeadDetailView({ leadId }: { leadId: string }) {
   const {
@@ -84,19 +64,25 @@ export function TelecallerLeadDetailView({ leadId }: { leadId: string }) {
   const [followUpAt, setFollowUpAt] = React.useState("");
   const [loggingCall, setLoggingCall] = React.useState(false);
   const [updatingStatus, setUpdatingStatus] = React.useState(false);
+  const [dispositionError, setDispositionError] = React.useState<string | null>(null);
+  const [interestError, setInterestError] = React.useState<string | null>(null);
 
   async function onLogCall(e: React.FormEvent) {
     e.preventDefault();
     if (!disposition) {
+      setDispositionError("Choose a call outcome.");
       toast.error("Choose a call outcome");
       return;
     }
+    setDispositionError(null);
     if (disposition === "connected" && !interestLevel) {
+      setInterestError("Choose an interest level.");
       toast.error("Choose an interest level", {
         description: "Required when the call connected.",
       });
       return;
     }
+    setInterestError(null);
     setLoggingCall(true);
     const res = await logCall({
       disposition,
@@ -145,31 +131,44 @@ export function TelecallerLeadDetailView({ leadId }: { leadId: string }) {
   }
 
   return (
-    <div className="mx-auto w-full max-w-3xl space-y-6 px-4 sm:px-6 lg:px-10">
-      <div className="rounded-2xl border border-border bg-card p-5">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <h1 className="text-xl font-semibold text-text-primary">{lead.name ?? "Unnamed lead"}</h1>
-            <p className="text-sm text-text-secondary">{lead.mobile}</p>
-          </div>
-          <div className="flex gap-2">
-            <Button asChild variant="outline" size="sm">
-              <a href={`tel:${lead.mobile}`}>
-                <Phone className="h-4 w-4" />
-                Call
-              </a>
-            </Button>
-            <Button asChild variant="outline" size="sm">
-              <a href={toWaHref(lead.mobile)} target="_blank" rel="noopener noreferrer">
-                <MessageCircle className="h-4 w-4" />
-                WhatsApp
-              </a>
-            </Button>
-          </div>
+    <DashboardPage className="max-w-3xl">
+      <DashboardBackLink href="/dashboard/leads">Back to leads</DashboardBackLink>
+
+      {/* DashboardPanel titles below render as <h2> — give the page an <h1>
+          so screen-reader heading navigation has a top-level landmark. */}
+      <h1 className="sr-only">{lead.name ?? "Unnamed lead"}</h1>
+
+      <DashboardPanel
+        title={lead.name ?? "Unnamed lead"}
+        description={formatMobile(lead.mobile)}
+        action={
+          <span
+            className={cn(
+              "shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium",
+              lead.status === "converted" ? "bg-success/10 text-success" : "bg-muted text-text-secondary",
+            )}
+          >
+            {STATUS_LABEL[lead.status] ?? lead.status}
+          </span>
+        }
+      >
+        <div className="flex flex-wrap gap-2">
+          <Button asChild variant="outline" size="sm">
+            <a href={`tel:${toE164(lead.mobile)}`}>
+              <Phone className="h-4 w-4" aria-hidden="true" />
+              Call
+            </a>
+          </Button>
+          <Button asChild variant="outline" size="sm">
+            <a href={toWaHref(lead.mobile)} target="_blank" rel="noopener noreferrer">
+              <MessageCircle className="h-4 w-4" aria-hidden="true" />
+              WhatsApp
+            </a>
+          </Button>
         </div>
 
         <div className="mt-4 flex flex-wrap items-center gap-2">
-          {STATUS_OPTIONS.map((o) => (
+          {LEAD_STATUS_OPTIONS.map((o) => (
             <Button
               key={o.value}
               type="button"
@@ -181,111 +180,136 @@ export function TelecallerLeadDetailView({ leadId }: { leadId: string }) {
               {o.label}
             </Button>
           ))}
-          <span
-            className={cn(
-              "ml-auto rounded-full px-2.5 py-0.5 text-xs font-medium",
-              lead.status === "converted"
-                ? "bg-success/10 text-success"
-                : "bg-muted text-text-secondary",
-            )}
-          >
-            Current: {lead.status}
-          </span>
         </div>
-      </div>
+      </DashboardPanel>
 
-      <div className="rounded-2xl border border-border bg-card p-5">
-        <h2 className="text-lg font-semibold text-text-primary">Log a call</h2>
-        <form className="mt-4 space-y-4" onSubmit={(e) => void onLogCall(e)}>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div>
-              <Label htmlFor="disposition">Outcome</Label>
-              <Select value={disposition} onValueChange={(v) => setDisposition(v as typeof disposition)}>
-                <SelectTrigger id="disposition" className="w-full">
-                  <SelectValue placeholder="Choose an outcome" />
-                </SelectTrigger>
-                <SelectContent>
-                  {DISPOSITION_OPTIONS.map((o) => (
-                    <SelectItem key={o.value} value={o.value}>
-                      {o.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            {disposition === "connected" ? (
+      <DashboardPanel title="Log a call" description="Record the outcome and schedule a follow-up.">
+        <form className="space-y-6" onSubmit={(e) => void onLogCall(e)}>
+          <DashboardFormSection title="Call outcome">
+            <div className="grid gap-4 sm:grid-cols-2">
               <div>
-                <Label htmlFor="interest_level">Interest level</Label>
+                <Label htmlFor="disposition">
+                  Outcome
+                  <span aria-hidden="true"> *</span>
+                  <span className="sr-only"> (required)</span>
+                </Label>
                 <Select
-                  value={interestLevel}
-                  onValueChange={(v) => setInterestLevel(v as typeof interestLevel)}
+                  value={disposition}
+                  onValueChange={(v) => {
+                    setDisposition(v as typeof disposition);
+                    if (dispositionError) setDispositionError(null);
+                  }}
                 >
-                  <SelectTrigger id="interest_level" className="w-full">
-                    <SelectValue placeholder="Choose a level" />
+                  <SelectTrigger
+                    id="disposition"
+                    className="w-full"
+                    aria-invalid={!!dispositionError}
+                    aria-describedby={dispositionError ? "disposition-error" : undefined}
+                  >
+                    <SelectValue placeholder="Choose an outcome" />
                   </SelectTrigger>
                   <SelectContent>
-                    {INTEREST_OPTIONS.map((o) => (
+                    {DISPOSITION_OPTIONS.map((o) => (
                       <SelectItem key={o.value} value={o.value}>
                         {o.label}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
+                {dispositionError ? (
+                  <p id="disposition-error" role="alert" className="mt-1.5 text-sm text-destructive">
+                    {dispositionError}
+                  </p>
+                ) : null}
               </div>
-            ) : (
-              <div>
-                <Label htmlFor="follow_up_at">Follow up at (optional)</Label>
-                <input
-                  id="follow_up_at"
-                  type="datetime-local"
-                  value={followUpAt}
-                  onChange={(e) => setFollowUpAt(e.target.value)}
-                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
-                />
-              </div>
-            )}
-          </div>
+              {disposition === "connected" ? (
+                <div>
+                  <Label htmlFor="interest_level">
+                    Interest level
+                    <span aria-hidden="true"> *</span>
+                    <span className="sr-only"> (required)</span>
+                  </Label>
+                  <Select
+                    value={interestLevel}
+                    onValueChange={(v) => {
+                      setInterestLevel(v as typeof interestLevel);
+                      if (interestError) setInterestError(null);
+                    }}
+                  >
+                    <SelectTrigger
+                      id="interest_level"
+                      className="w-full"
+                      aria-invalid={!!interestError}
+                      aria-describedby={interestError ? "interest-error" : undefined}
+                    >
+                      <SelectValue placeholder="Choose a level" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {INTEREST_OPTIONS.map((o) => (
+                        <SelectItem key={o.value} value={o.value}>
+                          {o.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {interestError ? (
+                    <p id="interest-error" role="alert" className="mt-1.5 text-sm text-destructive">
+                      {interestError}
+                    </p>
+                  ) : null}
+                </div>
+              ) : null}
+            </div>
+          </DashboardFormSection>
 
-          {disposition === "connected" ? (
+          <DashboardFormSection title="Follow-up & notes">
             <div className="sm:w-1/2">
-              <Label htmlFor="follow_up_at_connected">Follow up at (optional)</Label>
+              <Label htmlFor="follow_up_at">Follow up at (optional)</Label>
               <input
-                id="follow_up_at_connected"
+                id="follow_up_at"
                 type="datetime-local"
                 value={followUpAt}
                 onChange={(e) => setFollowUpAt(e.target.value)}
                 className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
               />
             </div>
-          ) : null}
-
-          <div>
-            <Label htmlFor="notes">Notes</Label>
-            <Textarea
-              id="notes"
-              rows={3}
-              maxLength={1000}
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="What did the lead say?"
-            />
-          </div>
+            <div>
+              <Label htmlFor="notes">Notes</Label>
+              <Textarea
+                id="notes"
+                rows={3}
+                maxLength={1000}
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="What did the lead say?"
+              />
+            </div>
+          </DashboardFormSection>
 
           <Button type="submit" disabled={loggingCall}>
             {loggingCall ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
             Log call
           </Button>
         </form>
-      </div>
+      </DashboardPanel>
 
-      <div className="rounded-2xl border border-border bg-card p-5">
-        <h2 className="text-lg font-semibold text-text-primary">Call history</h2>
+      <DashboardPanel
+        title="Call history"
+        description={lead.activities.length === 0 ? undefined : `${lead.activities.length} calls logged`}
+      >
         {lead.activities.length === 0 ? (
-          <p className="mt-3 text-sm text-text-secondary">No calls logged yet.</p>
+          <p className="text-sm text-text-secondary">No calls logged yet.</p>
         ) : (
-          <ul className="mt-4 space-y-3">
+          <ol className="relative space-y-5 border-l border-border pl-6">
             {lead.activities.map((a) => (
-              <li key={a.id} className="rounded-xl border border-border p-3">
+              <li key={a.id} className="relative">
+                <span
+                  className={cn(
+                    "absolute -left-[29px] top-1 h-3 w-3 rounded-full ring-4 ring-card",
+                    dispositionDotClass(a.disposition),
+                  )}
+                  aria-hidden="true"
+                />
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <span className="font-medium text-text-primary">
                     {DISPOSITION_LABEL[a.disposition] ?? a.disposition}
@@ -301,9 +325,9 @@ export function TelecallerLeadDetailView({ leadId }: { leadId: string }) {
                 ) : null}
               </li>
             ))}
-          </ul>
+          </ol>
         )}
-      </div>
+      </DashboardPanel>
 
       {lead.business_line === "loans" ? (
         <TelecallerLoanAppsSection
@@ -323,6 +347,6 @@ export function TelecallerLeadDetailView({ leadId }: { leadId: string }) {
       ) : null}
 
       <TelecallerTasksSection tasks={lead.tasks} onRaiseTask={raiseTask} />
-    </div>
+    </DashboardPage>
   );
 }

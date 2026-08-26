@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { formatMobile, isValidMobile, normalizeMobile, toE164 } from "./phone";
+import { formatMobile, isValidMobile, normalizeMobile, toE164, toWaHref } from "./phone";
 
 describe("normalizeMobile", () => {
   it("strips internal spaces from a pasted bare number", () => {
@@ -56,5 +56,15 @@ describe("formatMobile", () => {
 
   it("falls back to the raw input when not a 10-digit number", () => {
     expect(formatMobile("123")).toBe("123");
+  });
+});
+
+describe("toWaHref", () => {
+  it("builds a wa.me deep link from a bare 10-digit number", () => {
+    expect(toWaHref("9876543210")).toBe("https://wa.me/919876543210");
+  });
+
+  it("normalizes a +91-prefixed or spaced number before building the link", () => {
+    expect(toWaHref("+91 98765 43210")).toBe("https://wa.me/919876543210");
   });
 });
