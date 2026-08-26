@@ -428,6 +428,41 @@ container doesn't yet have this source change; confidence rests on
 compositing pattern. No auth, RLS, payout, migration, or contract surface
 changed; scope is `apps/web` only.
 
+**Done - Telecaller lead-detail page rebuilt as a two-column layout, dropping
+the `max-w-3xl` single-column cap** on
+`claude/20260826-155030-switch-to-main-and-pull-changes`
+([PR #240](https://github.com/brollysolutions/client1/pull/240); direct user-reported
+follow-up after live-verifying the previous hero-treatment entry — "Still
+same its not full width"; no requirement or completion-percentage change):
+the previous entry's avatar/accent/animation polish landed inside a page
+still capped at `max-w-3xl`, so at desktop width most of the page was empty
+gray background — a real, valid complaint distinct from "add more visual
+flourish." Rather than just widen that single column edge-to-edge (which
+would have stretched the "Log a call" form fields uncomfortably wide),
+the page now splits into `grid items-start gap-4
+xl:grid-cols-[22rem_minmax(0,1fr)]` at the `xl` breakpoint — the exact
+grid-template-columns value `DashboardFormPage` already uses for its own
+main+aside layout, reused rather than invented. The 22rem sidebar holds the
+lead-identity hero card (avatar, contact actions, status toggle); the
+flexible main column holds "Log a call" and "Call history" stacked. Below
+that grid, the business-line section (`TelecallerLoanAppsSection`/
+`TelecallerPropertyDealsSection`) and `TelecallerTasksSection` stay full
+width, unchanged — those have their own internal `sm:grid-cols-2`/
+`sm:grid-cols-4` layouts that need the full page width to breathe, not a
+narrow sidebar. `DashboardPage`'s loading and error branches, previously
+their own hand-rolled `max-w-3xl` divs, are now plain `<DashboardPage>` calls
+too, so there's no width jump when the real content replaces the skeleton.
+Below `xl`, the grid collapses to the original single-column stack (sidebar
+first, then Log a call / Call history) since Tailwind's `xl:` prefix only
+takes effect at that breakpoint. Fresh evidence: `npm run typecheck`
+(clean), `npm run lint` (clean), `npm run test` (73 files, 477 tests,
+unchanged) all pass. Not live-browser-verified this pass — same structural
+limitation as the three entries before it (this worktree's running container
+still doesn't have this specific source change); confidence rests on the
+`xl:grid-cols-[22rem_minmax(0,1fr)]` value being copied verbatim from an
+already-live layout rather than invented fresh. No auth, RLS, payout,
+migration, or contract surface changed; scope is `apps/web` only.
+
 **Done - Real-estate Client dashboard property presentation** on
 `claude/20260825-211218-remove-browse-by-type-section-in-explore` (PR #233
 update; direct user-reported UI change, no requirement or
