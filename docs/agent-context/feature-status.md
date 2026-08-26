@@ -384,7 +384,7 @@ only.
 **Done - Telecaller lead-detail header given a hero treatment: avatar,
 status-accent border, entrance animation** on
 `claude/20260826-155030-switch-to-main-and-pull-changes`
-([PR TBD](https://github.com/brollysolutions/client1/pulls); direct user-reported
+([PR #239](https://github.com/brollysolutions/client1/pull/239); direct user-reported
 follow-up — "I was talking UI changes for the lead detail page", clarifying
 that the "still same"/"looks broken" reports from a few turns back were about
 this page specifically, not the leads table (which PR #238's chevron already
