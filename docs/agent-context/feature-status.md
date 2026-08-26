@@ -353,7 +353,7 @@ No auth, RLS, payout, migration, or contract surface changed; scope is
 
 **Done - Chevron affordance live-confirmed; Call/WhatsApp actions converted
 to icon-only buttons** on `claude/20260826-155030-switch-to-main-and-pull-changes`
-([PR TBD](https://github.com/brollysolutions/client1/pulls); direct
+([PR #239](https://github.com/brollysolutions/client1/pull/239); direct
 user-reported follow-up — "the UI didn't change for the leads, still same"
 turned out to be the user's browser tab holding a stale bundle from before
 the PR #238 merge/restart (confirmed live via a fresh Playwright navigation
