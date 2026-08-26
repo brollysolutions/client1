@@ -654,18 +654,14 @@ test.describe("role-aware dashboard navigation", () => {
       await expect(page.getByText("Wakad Gardens").first()).toBeVisible();
       await expect(page.getByText("Baner Heights")).toHaveCount(0);
 
-      // Explore is now where the catalog-browsing surface lives: one carousel
-      // per category (moved here from the old Home), with no separate "Browse
-      // by property type" grid above them. A zero-listing category (houses,
-      // in this stub) still renders its own "No listings yet" state with a
-      // link into the category page, so it stays reachable instead of the row
-      // vanishing outright.
+      // Explore is where the live catalog-browsing surface lives: no separate
+      // Browse-by-type grid and no empty category bands. Home still carries
+      // the permanent category navigation cards, while Explore shows only
+      // categories represented by the live response.
       await page.goto("/dashboard/explore");
       await expect(page.getByRole("heading", { name: "Explore properties" })).toBeVisible();
-      await expect(
-        page.getByRole("link", { name: /Residential Houses/ }).first(),
-      ).toBeVisible();
-      await expect(page.getByText("No listings yet").first()).toBeVisible();
+      await expect(page.getByRole("heading", { name: "Residential Houses" })).toHaveCount(0);
+      await expect(page.getByText("No listings yet")).toHaveCount(0);
       await expect(
         page.getByRole("combobox", { name: "Choose property location" }),
       ).toHaveCount(0);

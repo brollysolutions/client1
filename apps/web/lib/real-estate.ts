@@ -3,6 +3,7 @@ import type { LucideIcon } from "lucide-react";
 import type { components } from "@contracts/generated/schema";
 
 import type { PropertyListing as BaseListing } from "@/lib/properties";
+import { categoryArtwork } from "@/lib/property-artwork";
 
 // Derived from the generated contract, never hand-declared: a category,
 // furnishing state, or construction status the backend adds later must surface
@@ -42,11 +43,9 @@ export const RE_CATEGORIES: {
   label: string;
   icon: LucideIcon;
   blurb: string;
-  // Purpose-drawn category art, reused from the public mega-menu's per-subtype
-  // set (components/navbars/properties-menu.ts) so the dashboard never forks
-  // its own illustration family for the same five categories. One
-  // representative subtype stands in for a category with more than one
-  // (apartments -> gated community, commercial -> unlocked space).
+  // Local generated representative artwork for the dashboard's category cards.
+  // One subtype stands in for a category with more than one (apartments ->
+  // gated community, commercial -> unlocked space).
   illustration: string;
 }[] = [
   {
@@ -54,40 +53,47 @@ export const RE_CATEGORIES: {
     label: "Residential Houses",
     icon: Home,
     blurb: "Independent houses and row houses on their own plot.",
-    illustration: "/illustrations/menu/properties/individual_house.svg",
+    illustration: categoryArtwork("houses"),
   },
   {
     key: "apartments",
     label: "Apartments",
     icon: Building2,
     blurb: "Flats and apartment homes, ready to move or under construction.",
-    illustration: "/illustrations/menu/properties/gated_community_apartment.svg",
+    illustration: categoryArtwork("apartments"),
   },
   {
     key: "villas",
     label: "Villas",
     icon: TreePine,
     blurb: "Gated-community villas with private gardens and amenities.",
-    illustration: "/illustrations/menu/properties/villa.svg",
+    illustration: categoryArtwork("villas"),
   },
   {
     key: "plots",
     label: "Plots and Land",
     icon: LandPlot,
     blurb: "Residential plots and farm land to build on or hold for later.",
-    illustration: "/illustrations/menu/properties/plot.svg",
+    illustration: categoryArtwork("plots"),
   },
   {
     key: "commercial",
     label: "Commercial",
     icon: Warehouse,
     blurb: "Offices, shops, and commercial spaces for your business.",
-    illustration: "/illustrations/menu/properties/unlocked_space.svg",
+    illustration: categoryArtwork("commercial"),
   },
 ];
 
 export function getRECategory(key: string): (typeof RE_CATEGORIES)[number] | undefined {
   return RE_CATEGORIES.find((category) => category.key === key);
+}
+
+export function populatedPropertyCategories(listings: REListing[]) {
+  return RE_CATEGORIES.flatMap((category) => {
+    const categoryListings = listings.filter((listing) => listing.category === category.key);
+    return categoryListings.length > 0 ? [{ category, listings: categoryListings }] : [];
+  });
 }
 
 export type SortOrder = "relevance" | "price_asc" | "price_desc" | "newest";
