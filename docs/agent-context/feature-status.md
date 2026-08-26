@@ -1401,6 +1401,129 @@ work than several completed UI requirements.
 
 ## Current work
 
+**Done - [PR #233](https://github.com/brollysolutions/client1/pull/233) - Real-estate
+dashboard search-bar redesign: shared animated omnibox, Explore's "Browse by
+property type" strip removed, Home's category pills become illustrated cards
+(direct user-reported UI change; no requirement or completion-percentage
+change):** follow-up to PR #232, filed once it was live in the browser. Three
+requests, plus a fourth found mid-review: (1) remove Explore's "Browse by
+property type" grid; (2) give Home's quick-search field a nicer, animated
+design, reused identically everywhere the property search bar appears; (3)
+replace Home's category pill buttons with illustrated cards; (4) the user
+noticed Home's search showed no location/property suggestions while Explore's
+did, and asked for that gap closed too as part of the same consistency ask.
+
+A new `features/real-estate/search-field-chrome.tsx` is now the single visual/
+animation source for every property search field: `SEARCH_FIELD_SHELL_CLASS`
+(hover lift, a focus-triggered glow, and a `.search-field-shell` CSS class in
+`globals.css` that sweeps a soft diagonal sheen across the field's own
+`background-position` while it holds focus -- plain CSS because Tailwind has
+no utility for animating that property), `SearchFieldIcon` (a tinted badge
+that fills solid and pops on focus-within), and shared clear-button/Search-
+button motion classes. Both `PropertySearchBar`'s omnibox (Explore, category
+pages, Bookmarks) and Home's quick search now render through this one module
+instead of each carrying its own container styling.
+
+A new `features/real-estate/property-suggestions.tsx` extracts the
+"what matches this query" derivation (`useSuggestionMatches`) and the grouped
+Localities/Cities/PIN codes/Property types/Properties popover
+(`SuggestionsList`) that previously lived only inside `PropertySearchBar`, so
+`PropertySearchBar` itself is refactored to consume the shared module (no
+behavior change there -- same matching, same limits, same groups) and Home's
+quick search gains the identical popover for the first time. Home has no
+filter state or results grid of its own, so picking a suggestion there hands
+off straight to `/dashboard/explore?<facet>=<value>` (`locality=`, `city=`,
+`pincode=`, `subtypes=`, or `q=`, matching the exact nuqs keys
+`use-property-filters.ts` reads) instead of setting a local filter. This means
+Home now calls `useProperties()` again -- solely to build the suggestion
+index; `loading`/`error` are deliberately left unread, the same tradeoff
+already established for `dashboard-property-detail.tsx`'s parallel catalog
+fetch, so a slow or failing fetch only leaves suggestions empty and can never
+gate or break Home's own personal-status content. Home still renders no
+results grid, filters, or live category counts -- that richness stays on
+Explore.
+
+`RE_CATEGORIES` (`lib/real-estate.ts`) gained an `illustration` field, reusing
+the existing purpose-drawn per-subtype mega-menu SVGs
+(`public/illustrations/menu/properties/*.svg`, already used by
+`components/navbars/properties-menu.ts`) rather than commissioning new art --
+one representative subtype standing in for a category with more than one
+(`gated_community_apartment` for Apartments, `unlocked_space` for Commercial).
+Home's category section now renders `ExploreArtCard` (the illustration-led
+card already established on the loans-line Explore hub) instead of pill
+`<Link>`s, still with no live counts and no active/selected state (pure
+navigation, matching the design PR #232 already set for this section).
+
+`CategoryStrip` (Explore's "Browse by property type" grid, plus its test) is
+deleted outright rather than left in place unused. Removing it with no
+replacement would have silently reintroduced the exact defect PR #231 fixed:
+`property-row.tsx` returned `null` for a category with zero listings, so
+`houses`/`commercial` (0 active rows each against apartments' hundreds)
+vanished from Explore with no trace -- `CategoryStrip` was the workaround that
+kept them reachable from outside. Instead, `PropertyRow` itself now renders a
+"No listings yet." state with a "Browse {category}" link for a zero-count
+category, so every category stays reachable directly from Explore's own
+per-category rows with no separate grid above them.
+`features/dashboard/explore-line-switch.tsx`'s `RealEstateHub` passes each
+category's `/dashboard/explore/{key}` href through for this.
+
+`components/ui/input.tsx`'s `Input` gained explicit `ref` forwarding (React
+19's ref-as-prop -- no `forwardRef` wrapper needed, this repo runs React
+19.2.7) so Home's new clear button can refocus the field after clearing,
+mirroring `PropertySearchBar`'s pre-existing `inputRef` pattern; no other
+`Input` consumer passes a ref today, so this is purely additive.
+
+Fresh evidence: `pnpm lint` and `pnpm typecheck` pass; all 447 web unit tests
+across 70 files pass (up from 446/69 -- net of deleting `category-strip.tsx`'s
+3-test file and adding `lib/real-estate.test.ts`, 2 tests guarding every
+`RE_CATEGORIES` illustration file exists on disk, and
+`features/real-estate/property-row.test.tsx`, 2 tests locking in the
+zero-listing empty-state/reachability behavior). `pnpm build` compiled,
+typechecked, and generated all 93 pages before the same pre-existing
+Windows-host `EPERM` standalone-symlink failure recorded elsewhere in this
+document.
+
+Live browser verification via Playwright MCP against the restarted
+`client1-web-1` container, logged in as the seeded demo Client account
+("Charan Client"): Home's search field renders the new animated shell and
+icon; typing a real seeded locality opens the same grouped suggestion popover
+Explore's omnibox shows, and clicking the "Baner" locality suggestion
+navigates straight to `/dashboard/explore?locality=Baner` with the "Baner"
+filter chip and 5 matching properties already applied -- confirming the
+hand-off, not just the visuals. Home's "Browse by property type" section
+renders as illustrated `ExploreArtCard`s (Residential Houses, Apartments,
+Villas, Plots and Land, Commercial), each linking into its category page.
+`/dashboard/explore`'s idle state shows no "Browse by property type" heading
+anywhere on the page; its two zero-count categories in the seeded data
+(Residential Houses, Commercial) each render their own "No listings yet."
+message with a working "Browse {category}" link, confirming reachability
+survived the strip's removal. No console errors beyond the pre-existing,
+unrelated `next/image` LCP-priority hint and MinIO image-proxy noise already
+present before this change.
+
+`pnpm exec playwright test e2e/dashboard-navigation.spec.ts -g "Client can
+search locations manually across dashboard property surfaces"` passes (48.7s)
+on a warm run. A first attempt, run immediately after a container restart,
+failed on the default 5-second `toHaveURL` assertion timeout after clicking
+Home's Search button; the saved failure screenshot showed `/dashboard/explore`
+already fully rendered with "Wakad Gardens" and "1 property found" -- the
+navigation had in fact completed, just slower than the assertion's default
+timeout during a cold Turbopack compile of the newly-touched route tree, the
+same class of flake already documented elsewhere in this ledger for this exact
+spec. The warm re-run confirms this was a timing artifact, not a functional
+regression. That spec's locator for Home's field is updated from
+`getByRole("textbox", ...)` to `getByRole("combobox", ...)`, since cmdk's
+`CommandInput` (now used by Home too, not only Explore) exposes combobox
+semantics rather than a plain textbox role -- a locator fix, not a behavior
+change. The broader role-scenario suite in the same file was not re-run in
+full, to conserve the shared dev stack's per-IP OTP registration quota
+(`OTP_RATE_LIMIT_PER_IP`) for future work; none of its other scenarios touch
+real-estate Home or Explore. `design-review` was not separately invoked this
+pass; the specific design intent behind this change (one consistent animated
+search chrome, illustrated category cards, preserved zero-count reachability)
+was instead verified directly against the live app as described above. No
+API, contract, migration, or RLS surface changed.
+
 **Done - [PR #232](https://github.com/brollysolutions/client1/pull/232) - Real-estate Home/Explore differentiation (direct
 user-reported UI change; no requirement or completion-percentage change):**
 Home and Explore rendered as near-identical UI for a real-estate client --
