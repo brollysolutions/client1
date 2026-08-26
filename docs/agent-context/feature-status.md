@@ -419,7 +419,7 @@ changed; scope is `apps/web` only.
 **Done - Telecaller lead-detail page rebuilt as a two-column layout, dropping
 the `max-w-3xl` single-column cap** on
 `claude/20260826-155030-switch-to-main-and-pull-changes`
-([PR TBD](https://github.com/brollysolutions/client1/pulls); direct user-reported
+([PR #240](https://github.com/brollysolutions/client1/pull/240); direct user-reported
 follow-up after live-verifying the previous hero-treatment entry — "Still
 same its not full width"; no requirement or completion-percentage change):
 the previous entry's avatar/accent/animation polish landed inside a page
