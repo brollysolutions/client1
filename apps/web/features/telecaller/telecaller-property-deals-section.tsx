@@ -14,6 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { DashboardPanel } from "@/features/dashboard/dashboard-ui";
 import {
   PropertyDealProgressControls,
   STATUS_LABEL,
@@ -110,13 +111,11 @@ export function TelecallerPropertyDealsSection({
   ) => Promise<ApiResponse<unknown>>;
 }) {
   return (
-    <div className="rounded-2xl border border-border bg-card p-5">
-      <h2 className="text-lg font-semibold text-text-primary">Property deals</h2>
-
+    <DashboardPanel title="Property deals">
       {deals.length === 0 ? (
-        <p className="mt-3 text-sm text-text-secondary">No property deal opened on this lead yet.</p>
+        <p className="text-sm text-text-secondary">No property deal opened on this lead yet.</p>
       ) : (
-        <div className="mt-4 space-y-5">
+        <div className="space-y-5">
           {deals.map((deal) => (
             <div key={deal.id} className="rounded-xl border border-border p-4">
               <div className="flex flex-wrap items-center justify-between gap-2">
@@ -136,6 +135,6 @@ export function TelecallerPropertyDealsSection({
       )}
 
       <CreateDealForm leadId={leadId} onCreate={onCreateDeal} />
-    </div>
+    </DashboardPanel>
   );
 }

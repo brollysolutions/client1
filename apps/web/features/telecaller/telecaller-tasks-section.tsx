@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { DashboardPanel } from "@/features/dashboard/dashboard-ui";
 import type { ApiResponse } from "@/lib/api/client";
 import type { Task, TaskCreate } from "@/lib/telecaller-api";
 
@@ -63,13 +64,11 @@ export function TelecallerTasksSection({
   }
 
   return (
-    <div className="rounded-2xl border border-border bg-card p-5">
-      <h2 className="text-lg font-semibold text-text-primary">Field tasks</h2>
-      <p className="mt-1 text-sm text-text-secondary">
-        Raise a document-collection visit for automatic Employee assignment.
-      </p>
-
-      <form className="mt-4 space-y-3" onSubmit={(e) => void onSubmit(e)}>
+    <DashboardPanel
+      title="Field tasks"
+      description="Raise a document-collection visit for automatic Employee assignment."
+    >
+      <form className="space-y-3" onSubmit={(e) => void onSubmit(e)}>
         <div>
           <Label htmlFor="task-notes">What&apos;s needed</Label>
           <Textarea
@@ -123,6 +122,6 @@ export function TelecallerTasksSection({
           </ul>
         )}
       </div>
-    </div>
+    </DashboardPanel>
   );
 }

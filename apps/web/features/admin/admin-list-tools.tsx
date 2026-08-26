@@ -1,13 +1,9 @@
 import { Button } from "@/components/ui/button";
+import { isInDateRange } from "@/lib/date-range";
+
+export { isInDateRange };
 
 export const ADMIN_PAGE_SIZE = 25;
-
-export function isInDateRange(value: string | null | undefined, from: string, to: string): boolean {
-  if (!from && !to) return true;
-  if (!value) return false;
-  const date = value.slice(0, 10);
-  return (!from || date >= from) && (!to || date <= to);
-}
 
 export function AdminPagination({
   page,
