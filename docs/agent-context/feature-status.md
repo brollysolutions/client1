@@ -381,6 +381,41 @@ across eight already-live files is the basis for confidence here. No auth,
 RLS, payout, migration, or contract surface changed; scope is `apps/web`
 only.
 
+**Done - Telecaller lead-detail header given a hero treatment: avatar,
+status-accent border, entrance animation** on
+`claude/20260826-155030-switch-to-main-and-pull-changes`
+([PR TBD](https://github.com/brollysolutions/client1/pulls); direct user-reported
+follow-up — "I was talking UI changes for the lead detail page", clarifying
+that the "still same"/"looks broken" reports from a few turns back were about
+this page specifically, not the leads table (which PR #238's chevron already
+addressed and was confirmed live); no requirement or completion-percentage
+change): the structural `DashboardPanel` migration in PR #237 was correct and
+matched the design system, but read as too incremental against the original
+"change the Entire UI" ask — this pass adds genuine visual distinctiveness
+rather than more structure. The header card is no longer a `<DashboardPanel>`
+call: it's hand-composed with DashboardPanel's exact classes copied verbatim
+(so it stays pixel-consistent with every other panel on the page) because
+DashboardPanel's `title` prop is a plain string everywhere else in the app,
+and this is the one place that needed more than text there — a `UserAvatar`
+(`components/user-avatar.tsx`, the same deterministic letter-tile already
+used for the staff sidebar identity, size `lg`) now sits beside the lead's
+name. The header card also gains a `border-l-4` status-accent border (new
+`statusAccentBorderClass()` in `telecaller-lead-status.ts`: warning/success/
+brand-cta/border, mirroring `STATUS_STYLE`'s existing color vocabulary) and,
+along with the "Log a call" and "Call history" panels, a restrained
+`animate-in fade-in-0 duration-200 motion-reduce:animate-none` entrance
+(the same pattern already proven live on the leads table in PR #237/#238).
+No functional change — call logging, status transitions, and the business-
+line sub-sections are untouched. Fresh evidence: `npm run typecheck`
+(clean), `npm run lint` (clean), `npm run test` (73 files, 477 tests,
+unchanged) all pass. Not live-browser-verified this pass, for the same
+structural reason as the prior two entries — this worktree's running
+container doesn't yet have this source change; confidence rests on
+`UserAvatar` being an already-proven, already-live component and
+`border-l-4`-over-`border` being a standard, widely-documented Tailwind
+compositing pattern. No auth, RLS, payout, migration, or contract surface
+changed; scope is `apps/web` only.
+
 **Done - Real-estate Client dashboard property presentation** on
 `claude/20260825-211218-remove-browse-by-type-section-in-explore` (PR #233
 update; direct user-reported UI change, no requirement or
