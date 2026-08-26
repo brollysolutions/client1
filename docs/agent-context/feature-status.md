@@ -1843,8 +1843,9 @@ work than several completed UI requirements.
 ## Current work
 
 **Done - application-wide form validation consistency** on
-`codex/20260826-231901-add-validation-for-all-form-fields-anywher` (PR pending;
-direct user instruction; no requirement or completion-percentage change): all
+`codex/20260826-231901-add-validation-for-all-form-fields-anywher`
+([PR #241](https://github.com/brollysolutions/client1/pull/241); direct user
+instruction; no requirement or completion-percentage change): all
 113 non-primitive input-bearing web surfaces are now explicitly registered as
 mutation, filter, calculator, or composite surfaces. The structural Vitest scan
 covers standard/native fields plus command-search, searchable-select, slider,
