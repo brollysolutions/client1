@@ -662,6 +662,10 @@ test.describe("role-aware dashboard navigation", () => {
       await expect(page.getByRole("heading", { name: "Explore properties" })).toBeVisible();
       await expect(page.getByRole("heading", { name: "Residential Houses" })).toHaveCount(0);
       await expect(page.getByText("No listings yet")).toHaveCount(0);
+      await expect(page.getByRole("link", { name: "View details" }).first()).toBeVisible();
+      await expect(page.getByRole("button", { name: "Add to compare" }).first()).toBeVisible();
+      await expect(page.getByText("Property preview")).toHaveCount(0);
+      await expect(page.getByRole("button", { name: "Enquire" })).toHaveCount(0);
       await expect(
         page.getByRole("combobox", { name: "Choose property location" }),
       ).toHaveCount(0);

@@ -9,6 +9,18 @@ Evidence baseline: `abcc1fd`
 verified Admin operational-visibility work in
 [PR #173](https://github.com/brollysolutions/client1/pull/173).
 
+**Done - Real-estate browse-card redesign** on
+`claude/20260825-211218-remove-browse-by-type-section-in-explore` ([PR
+#234](https://github.com/brollysolutions/client1/pull/234) follow-up): the
+user-approved compact card now uses a 16:9 media band, available-only comparison
+facts, price, compact bookmark/compare controls, a verified-only RERA corner,
+and View details as its sole primary action. Failed approved media falls back to
+local subtype artwork. Enquiry, site-visit booking, media, full specifications,
+and the RERA number remain on the existing details page. Playwright verified the
+desktop/mobile composition and navigation; 72 Vitest files / 454 tests, lint,
+and typecheck pass. The build completed compilation, type validation, and 93/93
+page generation before the documented Windows standalone-symlink `EPERM`.
+
 **Done - Real-estate Client dashboard property presentation** on
 `claude/20260825-211218-remove-browse-by-type-section-in-explore` (PR #233
 update; direct user-reported UI change, no requirement or
