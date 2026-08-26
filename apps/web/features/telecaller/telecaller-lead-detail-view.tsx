@@ -117,246 +117,256 @@ export function TelecallerLeadDetailView({ leadId }: { leadId: string }) {
 
   if (status === "loading") {
     return (
-      <div className="mx-auto w-full max-w-3xl space-y-5 px-4 sm:px-6 lg:px-10">
+      <DashboardPage className="space-y-5">
         <Skeleton className="h-9 w-64 rounded-lg" />
         <Skeleton className="h-48 rounded-2xl" />
-      </div>
+      </DashboardPage>
     );
   }
 
   if (status === "error" || !lead) {
     return (
-      <div className="mx-auto w-full max-w-3xl px-4 sm:px-6 lg:px-10">
+      <DashboardPage>
         <FetchError status={errorStatus} message={error} onRetry={retry} />
-      </div>
+      </DashboardPage>
     );
   }
 
   return (
-    <DashboardPage className="max-w-3xl">
+    <DashboardPage>
       <DashboardBackLink href="/dashboard/leads">Back to leads</DashboardBackLink>
 
       {/* DashboardPanel titles below render as <h2> — give the page an <h1>
           so screen-reader heading navigation has a top-level landmark. */}
       <h1 className="sr-only">{lead.name ?? "Unnamed lead"}</h1>
 
-      {/* Hand-composed, not <DashboardPanel>, so the header row can carry a
-          UserAvatar next to the name — DashboardPanel's title stays a plain
-          string everywhere else in the app, and this is the one place that
-          needs more than text there. Classes below are copied verbatim from
-          DashboardPanel so it stays pixel-consistent with every other panel
-          on this page. */}
-      <section
-        className={cn(
-          "animate-in fade-in-0 overflow-hidden rounded-xl border border-l-4 border-border bg-card shadow-sm duration-200 motion-reduce:animate-none",
-          statusAccentBorderClass(lead.status),
-        )}
-      >
-        <div className="flex flex-wrap items-start justify-between gap-3 border-b border-border px-5 py-4">
-          <div className="flex items-center gap-3">
-            <UserAvatar name={lead.name} size="lg" />
-            <div>
-              <h2 className="text-base font-semibold text-text-primary">
-                {lead.name ?? "Unnamed lead"}
-              </h2>
-              <p className="mt-0.5 text-sm text-text-secondary">{formatMobile(lead.mobile)}</p>
+      {/* Sidebar (lead identity/actions) + main (call log, history) side by
+          side once there's room — the page previously stayed capped at
+          max-w-3xl like a single narrow form, which read as "not full
+          width" against the rest of the app. The 22rem sidebar column
+          reuses the exact grid-template-columns DashboardFormPage already
+          uses for its own main+aside layout. */}
+      <div className="grid items-start gap-4 xl:grid-cols-[22rem_minmax(0,1fr)]">
+        {/* Hand-composed, not <DashboardPanel>, so the header row can carry a
+            UserAvatar next to the name — DashboardPanel's title stays a plain
+            string everywhere else in the app, and this is the one place that
+            needs more than text there. Classes below are copied verbatim from
+            DashboardPanel so it stays pixel-consistent with every other panel
+            on this page. */}
+        <section
+          className={cn(
+            "animate-in fade-in-0 overflow-hidden rounded-xl border border-l-4 border-border bg-card shadow-sm duration-200 motion-reduce:animate-none",
+            statusAccentBorderClass(lead.status),
+          )}
+        >
+          <div className="flex flex-wrap items-start justify-between gap-3 border-b border-border px-5 py-4">
+            <div className="flex items-center gap-3">
+              <UserAvatar name={lead.name} size="lg" />
+              <div>
+                <h2 className="text-base font-semibold text-text-primary">
+                  {lead.name ?? "Unnamed lead"}
+                </h2>
+                <p className="mt-0.5 text-sm text-text-secondary">{formatMobile(lead.mobile)}</p>
+              </div>
+            </div>
+            <span
+              className={cn(
+                "shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium",
+                lead.status === "converted" ? "bg-success/10 text-success" : "bg-muted text-text-secondary",
+              )}
+            >
+              {STATUS_LABEL[lead.status] ?? lead.status}
+            </span>
+          </div>
+
+          <div className="p-5">
+            {/* Icon-only, not labeled buttons — a "Call" action is a phone
+                affordance (tel: only actually does anything on a device that
+                can dial), so on the web dashboard it stays available but
+                doesn't masquerade as a primary web action. */}
+            <div className="flex gap-2">
+              <Button asChild variant="outline" size="icon" aria-label="Call" title="Call">
+                <a href={`tel:${toE164(lead.mobile)}`}>
+                  <Phone className="h-4 w-4" aria-hidden="true" />
+                </a>
+              </Button>
+              <Button asChild variant="outline" size="icon" aria-label="WhatsApp" title="WhatsApp">
+                <a href={toWaHref(lead.mobile)} target="_blank" rel="noopener noreferrer">
+                  <MessageCircle className="h-4 w-4" aria-hidden="true" />
+                </a>
+              </Button>
+            </div>
+
+            <div className="mt-4 flex flex-wrap items-center gap-2">
+              {LEAD_STATUS_OPTIONS.map((o) => (
+                <Button
+                  key={o.value}
+                  type="button"
+                  size="sm"
+                  variant={lead.status === o.value ? "default" : "outline"}
+                  disabled={updatingStatus || lead.status === o.value}
+                  onClick={() => void onStatusChange(o.value)}
+                >
+                  {o.label}
+                </Button>
+              ))}
             </div>
           </div>
-          <span
-            className={cn(
-              "shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium",
-              lead.status === "converted" ? "bg-success/10 text-success" : "bg-muted text-text-secondary",
-            )}
+        </section>
+
+        <div className="space-y-4">
+          <DashboardPanel
+            title="Log a call"
+            description="Record the outcome and schedule a follow-up."
+            className="animate-in fade-in-0 duration-200 motion-reduce:animate-none"
           >
-            {STATUS_LABEL[lead.status] ?? lead.status}
-          </span>
-        </div>
-
-        <div className="p-5">
-          {/* Icon-only, not labeled buttons — a "Call" action is a phone
-              affordance (tel: only actually does anything on a device that
-              can dial), so on the web dashboard it stays available but
-              doesn't masquerade as a primary web action. */}
-          <div className="flex gap-2">
-            <Button asChild variant="outline" size="icon" aria-label="Call" title="Call">
-              <a href={`tel:${toE164(lead.mobile)}`}>
-                <Phone className="h-4 w-4" aria-hidden="true" />
-              </a>
-            </Button>
-            <Button asChild variant="outline" size="icon" aria-label="WhatsApp" title="WhatsApp">
-              <a href={toWaHref(lead.mobile)} target="_blank" rel="noopener noreferrer">
-                <MessageCircle className="h-4 w-4" aria-hidden="true" />
-              </a>
-            </Button>
-          </div>
-
-          <div className="mt-4 flex flex-wrap items-center gap-2">
-            {LEAD_STATUS_OPTIONS.map((o) => (
-              <Button
-                key={o.value}
-                type="button"
-                size="sm"
-                variant={lead.status === o.value ? "default" : "outline"}
-                disabled={updatingStatus || lead.status === o.value}
-                onClick={() => void onStatusChange(o.value)}
-              >
-                {o.label}
-              </Button>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <DashboardPanel
-        title="Log a call"
-        description="Record the outcome and schedule a follow-up."
-        className="animate-in fade-in-0 duration-200 motion-reduce:animate-none"
-      >
-        <form className="space-y-6" onSubmit={(e) => void onLogCall(e)}>
-          <DashboardFormSection title="Call outcome">
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div>
-                <Label htmlFor="disposition">
-                  Outcome
-                  <span aria-hidden="true"> *</span>
-                  <span className="sr-only"> (required)</span>
-                </Label>
-                <Select
-                  value={disposition}
-                  onValueChange={(v) => {
-                    setDisposition(v as typeof disposition);
-                    if (dispositionError) setDispositionError(null);
-                  }}
-                >
-                  <SelectTrigger
-                    id="disposition"
-                    className="w-full"
-                    aria-invalid={!!dispositionError}
-                    aria-describedby={dispositionError ? "disposition-error" : undefined}
-                  >
-                    <SelectValue placeholder="Choose an outcome" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {DISPOSITION_OPTIONS.map((o) => (
-                      <SelectItem key={o.value} value={o.value}>
-                        {o.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {dispositionError ? (
-                  <p id="disposition-error" role="alert" className="mt-1.5 text-sm text-destructive">
-                    {dispositionError}
-                  </p>
-                ) : null}
-              </div>
-              {disposition === "connected" ? (
-                <div>
-                  <Label htmlFor="interest_level">
-                    Interest level
-                    <span aria-hidden="true"> *</span>
-                    <span className="sr-only"> (required)</span>
-                  </Label>
-                  <Select
-                    value={interestLevel}
-                    onValueChange={(v) => {
-                      setInterestLevel(v as typeof interestLevel);
-                      if (interestError) setInterestError(null);
-                    }}
-                  >
-                    <SelectTrigger
-                      id="interest_level"
-                      className="w-full"
-                      aria-invalid={!!interestError}
-                      aria-describedby={interestError ? "interest-error" : undefined}
+            <form className="space-y-6" onSubmit={(e) => void onLogCall(e)}>
+              <DashboardFormSection title="Call outcome">
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <Label htmlFor="disposition">
+                      Outcome
+                      <span aria-hidden="true"> *</span>
+                      <span className="sr-only"> (required)</span>
+                    </Label>
+                    <Select
+                      value={disposition}
+                      onValueChange={(v) => {
+                        setDisposition(v as typeof disposition);
+                        if (dispositionError) setDispositionError(null);
+                      }}
                     >
-                      <SelectValue placeholder="Choose a level" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {INTEREST_OPTIONS.map((o) => (
-                        <SelectItem key={o.value} value={o.value}>
-                          {o.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {interestError ? (
-                    <p id="interest-error" role="alert" className="mt-1.5 text-sm text-destructive">
-                      {interestError}
-                    </p>
+                      <SelectTrigger
+                        id="disposition"
+                        className="w-full"
+                        aria-invalid={!!dispositionError}
+                        aria-describedby={dispositionError ? "disposition-error" : undefined}
+                      >
+                        <SelectValue placeholder="Choose an outcome" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {DISPOSITION_OPTIONS.map((o) => (
+                          <SelectItem key={o.value} value={o.value}>
+                            {o.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {dispositionError ? (
+                      <p id="disposition-error" role="alert" className="mt-1.5 text-sm text-destructive">
+                        {dispositionError}
+                      </p>
+                    ) : null}
+                  </div>
+                  {disposition === "connected" ? (
+                    <div>
+                      <Label htmlFor="interest_level">
+                        Interest level
+                        <span aria-hidden="true"> *</span>
+                        <span className="sr-only"> (required)</span>
+                      </Label>
+                      <Select
+                        value={interestLevel}
+                        onValueChange={(v) => {
+                          setInterestLevel(v as typeof interestLevel);
+                          if (interestError) setInterestError(null);
+                        }}
+                      >
+                        <SelectTrigger
+                          id="interest_level"
+                          className="w-full"
+                          aria-invalid={!!interestError}
+                          aria-describedby={interestError ? "interest-error" : undefined}
+                        >
+                          <SelectValue placeholder="Choose a level" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {INTEREST_OPTIONS.map((o) => (
+                            <SelectItem key={o.value} value={o.value}>
+                              {o.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {interestError ? (
+                        <p id="interest-error" role="alert" className="mt-1.5 text-sm text-destructive">
+                          {interestError}
+                        </p>
+                      ) : null}
+                    </div>
                   ) : null}
                 </div>
-              ) : null}
-            </div>
-          </DashboardFormSection>
+              </DashboardFormSection>
 
-          <DashboardFormSection title="Follow-up & notes">
-            <div className="sm:w-1/2">
-              <Label htmlFor="follow_up_at">Follow up at (optional)</Label>
-              <input
-                id="follow_up_at"
-                type="datetime-local"
-                value={followUpAt}
-                onChange={(e) => setFollowUpAt(e.target.value)}
-                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
-              />
-            </div>
-            <div>
-              <Label htmlFor="notes">Notes</Label>
-              <Textarea
-                id="notes"
-                rows={3}
-                maxLength={1000}
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder="What did the lead say?"
-              />
-            </div>
-          </DashboardFormSection>
-
-          <Button type="submit" disabled={loggingCall}>
-            {loggingCall ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-            Log call
-          </Button>
-        </form>
-      </DashboardPanel>
-
-      <DashboardPanel
-        title="Call history"
-        description={lead.activities.length === 0 ? undefined : `${lead.activities.length} calls logged`}
-        className="animate-in fade-in-0 duration-200 motion-reduce:animate-none"
-      >
-        {lead.activities.length === 0 ? (
-          <p className="text-sm text-text-secondary">No calls logged yet.</p>
-        ) : (
-          <ol className="relative space-y-5 border-l border-border pl-6">
-            {lead.activities.map((a) => (
-              <li key={a.id} className="relative">
-                <span
-                  className={cn(
-                    "absolute -left-[29px] top-1 h-3 w-3 rounded-full ring-4 ring-card",
-                    dispositionDotClass(a.disposition),
-                  )}
-                  aria-hidden="true"
-                />
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <span className="font-medium text-text-primary">
-                    {DISPOSITION_LABEL[a.disposition] ?? a.disposition}
-                    {a.interest_level ? ` · ${a.interest_level}` : ""}
-                  </span>
-                  <span className="text-xs text-text-secondary">{formatDateTime(a.created_at)}</span>
+              <DashboardFormSection title="Follow-up & notes">
+                <div className="sm:w-1/2">
+                  <Label htmlFor="follow_up_at">Follow up at (optional)</Label>
+                  <input
+                    id="follow_up_at"
+                    type="datetime-local"
+                    value={followUpAt}
+                    onChange={(e) => setFollowUpAt(e.target.value)}
+                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                  />
                 </div>
-                {a.notes ? <p className="mt-1 text-sm text-text-secondary">{a.notes}</p> : null}
-                {a.follow_up_at ? (
-                  <p className="mt-1 text-xs text-text-secondary">
-                    Follow up: {formatDateTime(a.follow_up_at)}
-                  </p>
-                ) : null}
-              </li>
-            ))}
-          </ol>
-        )}
-      </DashboardPanel>
+                <div>
+                  <Label htmlFor="notes">Notes</Label>
+                  <Textarea
+                    id="notes"
+                    rows={3}
+                    maxLength={1000}
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    placeholder="What did the lead say?"
+                  />
+                </div>
+              </DashboardFormSection>
+
+              <Button type="submit" disabled={loggingCall}>
+                {loggingCall ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                Log call
+              </Button>
+            </form>
+          </DashboardPanel>
+
+          <DashboardPanel
+            title="Call history"
+            description={lead.activities.length === 0 ? undefined : `${lead.activities.length} calls logged`}
+            className="animate-in fade-in-0 duration-200 motion-reduce:animate-none"
+          >
+            {lead.activities.length === 0 ? (
+              <p className="text-sm text-text-secondary">No calls logged yet.</p>
+            ) : (
+              <ol className="relative space-y-5 border-l border-border pl-6">
+                {lead.activities.map((a) => (
+                  <li key={a.id} className="relative">
+                    <span
+                      className={cn(
+                        "absolute -left-[29px] top-1 h-3 w-3 rounded-full ring-4 ring-card",
+                        dispositionDotClass(a.disposition),
+                      )}
+                      aria-hidden="true"
+                    />
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <span className="font-medium text-text-primary">
+                        {DISPOSITION_LABEL[a.disposition] ?? a.disposition}
+                        {a.interest_level ? ` · ${a.interest_level}` : ""}
+                      </span>
+                      <span className="text-xs text-text-secondary">{formatDateTime(a.created_at)}</span>
+                    </div>
+                    {a.notes ? <p className="mt-1 text-sm text-text-secondary">{a.notes}</p> : null}
+                    {a.follow_up_at ? (
+                      <p className="mt-1 text-xs text-text-secondary">
+                        Follow up: {formatDateTime(a.follow_up_at)}
+                      </p>
+                    ) : null}
+                  </li>
+                ))}
+              </ol>
+            )}
+          </DashboardPanel>
+        </div>
+      </div>
 
       {lead.business_line === "loans" ? (
         <TelecallerLoanAppsSection
