@@ -294,7 +294,7 @@ migration, or contract surface changed.
 
 **Done - Clickable-row affordance and Employee task screens brought onto
 `DashboardPanel`** on `claude/20260826-155030-switch-to-main-and-pull-changes`
-([PR TBD](https://github.com/brollysolutions/client1/pulls); direct
+([PR #238](https://github.com/brollysolutions/client1/pull/238); direct
 user-reported follow-up to PR #237 — "there is no way a telecaller can know
 to click on leads" plus "even same for employees"; no requirement or
 completion-percentage change): PR #237 shipped the telecaller leads
