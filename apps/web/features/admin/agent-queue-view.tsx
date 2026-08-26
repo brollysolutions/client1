@@ -6,6 +6,7 @@ import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { FieldError } from "@/components/ui/field-error";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
@@ -17,6 +18,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
+import { requiredTextError } from "@/lib/form-validation";
 import {
   approveAgentApplication,
   rejectAgentApplication,
@@ -58,6 +60,7 @@ export function AgentQueueView() {
   } = useAgentApplicationDetail(active?.id ?? null);
   const [rejecting, setRejecting] = React.useState(false);
   const [note, setNote] = React.useState("");
+  const [noteError, setNoteError] = React.useState<string>();
   const [busy, setBusy] = React.useState(false);
   const [approved, setApproved] = React.useState<{
     mobile: string;
@@ -84,10 +87,9 @@ export function AgentQueueView() {
   }
 
   async function onReject(app: AgentApplication) {
-    if (note.trim().length === 0) {
-      toast.error("Add a reason", { description: "Tell the applicant why this was rejected." });
-      return;
-    }
+    const error = requiredTextError(note, "Rejection reason", 1000);
+    setNoteError(error);
+    if (error) return;
     setBusy(true);
     const res = await rejectAgentApplication(app.id, note.trim());
     setBusy(false);
@@ -96,6 +98,7 @@ export function AgentQueueView() {
       setActive(null);
       setRejecting(false);
       setNote("");
+      setNoteError(undefined);
       void reload();
     } else {
       toast.error("Could not reject", { description: res.error });
@@ -111,7 +114,7 @@ export function AgentQueueView() {
         </p>
       </div>
       <div className="grid gap-2 rounded-xl border border-border bg-card p-3 sm:grid-cols-2 lg:grid-cols-4">
-        <Input aria-label="Search agent applications" placeholder="Name or RERA code" value={search} onChange={(event) => setSearch(event.target.value)} />
+        <Input aria-label="Search agent applications" placeholder="Name or RERA code" value={search} maxLength={100} onChange={(event) => setSearch(event.target.value)} />
         <Select value={line} onValueChange={setLine}><SelectTrigger aria-label="Filter agent applications by line"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All lines</SelectItem><SelectItem value="loans">Loans</SelectItem><SelectItem value="real_estate">Real Estate</SelectItem></SelectContent></Select>
         <Input aria-label="Agent applications from date" type="date" value={dateFrom} onChange={(event) => setDateFrom(event.target.value)} />
         <Input aria-label="Agent applications to date" type="date" min={dateFrom || undefined} value={dateTo} onChange={(event) => setDateTo(event.target.value)} />
@@ -160,8 +163,9 @@ export function AgentQueueView() {
                 type="button"
                 onClick={() => {
                   setActive(app);
-                  setRejecting(false);
-                  setNote("");
+                   setRejecting(false);
+                   setNote("");
+                   setNoteError(undefined);
                 }}
                 className="flex w-full items-center justify-between gap-4 rounded-2xl border border-border bg-card p-4 text-left transition-colors hover:border-brand-cta"
               >
@@ -258,12 +262,22 @@ export function AgentQueueView() {
                 </div>
 
                 {rejecting ? (
-                  <Textarea
-                    value={note}
-                    onChange={(e) => setNote(e.target.value)}
-                    placeholder="Reason for rejection"
-                    rows={3}
-                  />
+                  <div>
+                    <Textarea
+                      aria-label="Reason for rejection"
+                      value={note}
+                      onChange={(e) => {
+                        setNote(e.target.value);
+                        setNoteError(undefined);
+                      }}
+                      placeholder="Reason for rejection"
+                      rows={3}
+                      maxLength={1000}
+                      aria-invalid={Boolean(noteError)}
+                      aria-describedby={noteError ? "agent-rejection-note-error" : undefined}
+                    />
+                    <FieldError id="agent-rejection-note-error">{noteError}</FieldError>
+                  </div>
                 ) : null}
               </div>
 

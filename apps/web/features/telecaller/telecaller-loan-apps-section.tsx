@@ -83,6 +83,7 @@ function AddTxnForm({
           value={bankName}
           onChange={(e) => setBankName(e.target.value)}
           placeholder="Bank name"
+          maxLength={200}
         />
       </div>
       <div>

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 
 import { Input } from "@/components/ui/input";
+import { FieldError } from "@/components/ui/field-error";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { cn } from "@/lib/utils";
@@ -67,14 +68,22 @@ export function SliderField({
   // enter a number below `min` mid-edit, etc.) without every keystroke
   // being clamped out from under them. Clamping happens on blur/Enter.
   const [text, setText] = useState(String(value));
+  const [error, setError] = useState<string>();
 
   useEffect(() => {
     setText(String(value));
+    setError(undefined);
   }, [value]);
 
   function commit(raw: string) {
-    const bounded = boundCommit(parseFloat(raw));
+    const parsed = Number(raw);
+    if (!raw.trim() || !Number.isFinite(parsed)) {
+      setError(`${label} must be a valid number.`);
+      return;
+    }
+    const bounded = boundCommit(parsed);
     setText(String(bounded));
+    setError(undefined);
     onChange(bounded);
   }
 
@@ -97,19 +106,25 @@ export function SliderField({
             inputMode="decimal"
             value={text}
             min={min}
+            max={allowAboveMax ? undefined : max}
             step={step}
-            onChange={(event) => setText(event.target.value)}
+            onChange={(event) => { setText(event.target.value); setError(undefined); }}
             onBlur={(event) => commit(event.target.value)}
             onKeyDown={(event) => {
               if (event.key === "Enter") commit(event.currentTarget.value);
             }}
             className="h-6 w-24 border-0 p-0 text-right font-heading text-base font-semibold shadow-none focus-visible:ring-0"
+            aria-invalid={Boolean(error)}
+            aria-describedby={error ? `${id}-error` : undefined}
           />
           {suffix ? (
             <span className="whitespace-nowrap text-sm text-text-secondary">{suffix}</span>
           ) : null}
         </div>
       </div>
+      <FieldError id={`${id}-error`} className="text-right text-xs">
+        {error}
+      </FieldError>
       <Slider
         value={[Math.min(max, Math.max(min, value))]}
         min={min}

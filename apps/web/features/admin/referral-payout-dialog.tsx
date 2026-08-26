@@ -13,19 +13,17 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import type { AdminReferral, ReferralPayoutRequest } from "@/lib/admin-referrals-api";
 import type { ApiResponse } from "@/lib/api/client";
+import { apiIssuesToFieldErrors, focusFirstInvalidField } from "@/lib/form-validation";
 import { formatPaise } from "@/lib/format";
 import {
   buildReferralPayoutPayload,
-  DESTINATION_OPTIONS,
   EMPTY_REFERRAL_PAYOUT_FORM,
   validateReferralPayoutForm,
   type ReferralPayoutFormState,
 } from "@/lib/referral-payout-form";
+import { PayoutDestinationFields } from "./payout-destination-fields";
 
 export function ReferralPayoutDialog({
   referral,
@@ -42,6 +40,7 @@ export function ReferralPayoutDialog({
   const [form, setForm] = React.useState<ReferralPayoutFormState>(EMPTY_REFERRAL_PAYOUT_FORM);
   const [errors, setErrors] = React.useState<Record<string, string>>({});
   const [busy, setBusy] = React.useState(false);
+  const contentRef = React.useRef<HTMLDivElement>(null);
 
   function resetAndClose() {
     setForm(EMPTY_REFERRAL_PAYOUT_FORM);
@@ -54,12 +53,27 @@ export function ReferralPayoutDialog({
     value: ReferralPayoutFormState[K],
   ) {
     setForm((f) => ({ ...f, [key]: value }));
+    setErrors((current) => {
+      if (!current[key]) return current;
+      const next = { ...current };
+      delete next[key];
+      return next;
+    });
+  }
+
+  function showErrors(next: Record<string, string>) {
+    setErrors(next);
+    if (Object.keys(next).length > 0) {
+      requestAnimationFrame(() => {
+        if (contentRef.current) focusFirstInvalidField(contentRef.current);
+      });
+    }
   }
 
   async function onSubmit() {
     if (!referral) return;
     const errs = validateReferralPayoutForm(form);
-    setErrors(errs);
+    showErrors(errs);
     if (Object.keys(errs).length > 0) return;
 
     const payload = buildReferralPayoutPayload(form);
@@ -79,6 +93,13 @@ export function ReferralPayoutDialog({
       });
       return;
     }
+    const serverErrors = apiIssuesToFieldErrors(res.issues, {
+      destination_type: "destinationType",
+      "destination.vpa": "vpa",
+      "destination.ifsc": "ifsc",
+      "destination.account_number": "accountNumber",
+    });
+    if (Object.keys(serverErrors).length > 0) showErrors(serverErrors);
     toast.error("Could not raise the payout", { description: res.error });
   }
 
@@ -93,7 +114,7 @@ export function ReferralPayoutDialog({
       open={referral !== null && amountPaise !== null}
       onOpenChange={(o) => (o ? undefined : resetAndClose())}
     >
-      <DialogContent className="max-w-lg">
+      <DialogContent ref={contentRef} className="max-w-lg">
         {referral !== null && amountPaise !== null ? (
           <>
             <DialogHeader>
@@ -110,68 +131,13 @@ export function ReferralPayoutDialog({
                 only where the money should go.
               </p>
 
-              <div className="space-y-1.5">
-                <Label>Destination</Label>
-                <RadioGroup
-                  value={form.destinationType}
-                  onValueChange={(v) =>
-                    set("destinationType", v as ReferralPayoutFormState["destinationType"])
-                  }
-                  className="grid-cols-1 sm:grid-cols-3"
-                >
-                  {DESTINATION_OPTIONS.map((o) => (
-                    <div key={o.value} className="flex items-center gap-2">
-                      <RadioGroupItem value={o.value} id={`ref-dest-${o.value}`} />
-                      <Label htmlFor={`ref-dest-${o.value}`} className="font-normal">
-                        {o.label}
-                      </Label>
-                    </div>
-                  ))}
-                </RadioGroup>
-                {errors.destinationType ? (
-                  <p className="text-xs text-destructive">{errors.destinationType}</p>
-                ) : null}
-              </div>
-
-              {form.destinationType === "vpa" ? (
-                <div className="space-y-1.5">
-                  <Label htmlFor="ref-payout-vpa">UPI VPA</Label>
-                  <Input
-                    id="ref-payout-vpa"
-                    placeholder="name@bank"
-                    value={form.vpa}
-                    onChange={(e) => set("vpa", e.target.value)}
-                  />
-                  {errors.vpa ? <p className="text-xs text-destructive">{errors.vpa}</p> : null}
-                </div>
-              ) : form.destinationType === "bank_account" ? (
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1.5">
-                    <Label htmlFor="ref-payout-ifsc">IFSC</Label>
-                    <Input
-                      id="ref-payout-ifsc"
-                      value={form.ifsc}
-                      onChange={(e) => set("ifsc", e.target.value)}
-                    />
-                    {errors.ifsc ? <p className="text-xs text-destructive">{errors.ifsc}</p> : null}
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="ref-payout-account">Account number</Label>
-                    <Input
-                      id="ref-payout-account"
-                      value={form.accountNumber}
-                      onChange={(e) => set("accountNumber", e.target.value)}
-                    />
-                    {errors.accountNumber ? (
-                      <p className="text-xs text-destructive">{errors.accountNumber}</p>
-                    ) : null}
-                  </div>
-                </div>
-              ) : form.destinationType === "cheque" ? (
-                <p className="rounded-lg bg-muted p-3 text-xs text-text-secondary">
-                  The cheque reference is recorded only after approval and issuance.
-                </p>
-              ) : null}
+              <PayoutDestinationFields
+                idPrefix="referral-payout"
+                form={form}
+                errors={errors}
+                onChange={set}
+                disabled={busy}
+              />
             </div>
 
             <DialogFooter>

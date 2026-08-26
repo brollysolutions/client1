@@ -5,6 +5,7 @@ import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import { FieldError } from "@/components/ui/field-error";
 import {
   Dialog,
   DialogContent,
@@ -19,6 +20,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { formatPaise } from "@/lib/format";
 import { rupeesToPaise } from "@/lib/payout-form";
 import type { ApiResponse } from "@/lib/api/client";
+import { apiIssuesToFieldErrors } from "@/lib/form-validation";
 import type {
   EligibleFeeApplication,
   FeeCashbackCreate,
@@ -43,6 +45,7 @@ export function FeeCashbackEntryDialog({
   const [amountRupees, setAmountRupees] = React.useState("");
   const [notes, setNotes] = React.useState("");
   const [error, setError] = React.useState<string | null>(null);
+  const [notesError, setNotesError] = React.useState<string>();
   const [busy, setBusy] = React.useState(false);
 
   // Prefilled from the processing fee itself — the common case is refunding
@@ -57,6 +60,7 @@ export function FeeCashbackEntryDialog({
     setAmountRupees("");
     setNotes("");
     setError(null);
+    setNotesError(undefined);
     onOpenChange(false);
   }
 
@@ -69,6 +73,10 @@ export function FeeCashbackEntryDialog({
     }
     if (amountPaise > application.processing_fee_paise) {
       setError("Cashback amount cannot exceed the processing fee charged.");
+      return;
+    }
+    if (notes.trim().length > 1000) {
+      setNotesError("Notes must be 1000 characters or fewer.");
       return;
     }
     setError(null);
@@ -95,6 +103,12 @@ export function FeeCashbackEntryDialog({
       });
       return;
     }
+    const serverErrors = apiIssuesToFieldErrors(res.issues, {
+      amount_paise: "amount",
+      notes: "notes",
+    });
+    if (serverErrors.amount) setError(serverErrors.amount);
+    if (serverErrors.notes) setNotesError(serverErrors.notes);
     toast.error("Could not enter the cashback", { description: res.error });
   }
 
@@ -125,13 +139,15 @@ export function FeeCashbackEntryDialog({
               inputMode="decimal"
               placeholder="0.00"
               value={amountRupees}
-              onChange={(e) => setAmountRupees(e.target.value)}
+              onChange={(e) => { setAmountRupees(e.target.value); setError(null); }}
               autoFocus
+              aria-invalid={Boolean(error)}
+              aria-describedby={error ? "cashback-amount-error" : undefined}
             />
             {previewPaise !== null ? (
               <p className="text-xs text-text-secondary">{formatPaise(previewPaise)}</p>
             ) : null}
-            {error ? <p className="text-xs text-destructive">{error}</p> : null}
+            <FieldError id="cashback-amount-error" className="text-xs">{error ?? undefined}</FieldError>
           </div>
 
           <div className="space-y-1.5">
@@ -140,9 +156,13 @@ export function FeeCashbackEntryDialog({
               id="cashback-notes"
               placeholder="Why a partial amount, if not the full fee"
               value={notes}
-              onChange={(e) => setNotes(e.target.value)}
+              onChange={(e) => { setNotes(e.target.value); setNotesError(undefined); }}
               rows={3}
+              maxLength={1000}
+              aria-invalid={Boolean(notesError)}
+              aria-describedby={notesError ? "cashback-notes-error" : undefined}
             />
+            <FieldError id="cashback-notes-error" className="text-xs">{notesError}</FieldError>
           </div>
         </div>
 

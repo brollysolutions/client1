@@ -89,7 +89,7 @@ export function CmsFilterBar({
   return (
     <section className="rounded-xl border border-border bg-card p-3" aria-label="Advanced filters">
       <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-        <Input aria-label={searchLabel} placeholder="Search" value={value.search} onChange={(event) => set({ search: event.target.value })} />
+        <Input aria-label={searchLabel} placeholder="Search" value={value.search} maxLength={100} onChange={(event) => set({ search: event.target.value })} />
         {showStatus ? <Select value={value.status} onValueChange={(status) => set({ status })}>
           <SelectTrigger aria-label="Filter by status"><SelectValue /></SelectTrigger>
           <SelectContent><SelectItem value="all">All statuses</SelectItem>{statusOptions.map((option) => <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>)}</SelectContent>

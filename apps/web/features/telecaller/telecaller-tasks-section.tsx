@@ -6,10 +6,12 @@ import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { FieldError } from "@/components/ui/field-error";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { DashboardPanel } from "@/features/dashboard/dashboard-ui";
 import type { ApiResponse } from "@/lib/api/client";
+import { apiIssuesToFieldErrors, optionalTextError } from "@/lib/form-validation";
 import type { Task, TaskCreate } from "@/lib/telecaller-api";
 
 const STATUS_LABEL: Record<string, string> = {
@@ -43,22 +45,46 @@ export function TelecallerTasksSection({
   onRaiseTask: (payload: TaskCreate) => Promise<ApiResponse<unknown>>;
 }) {
   const [notes, setNotes] = React.useState("");
+  const [notesError, setNotesError] = React.useState<string>();
   const [dueAt, setDueAt] = React.useState("");
+  const [dueAtError, setDueAtError] = React.useState<string>();
   const [saving, setSaving] = React.useState(false);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
+    const parsedDueAt = dueAt ? new Date(dueAt) : null;
+    const nextNotesError = optionalTextError(notes, "Task notes", 1000);
+    const nextDueAtError =
+      parsedDueAt && Number.isNaN(parsedDueAt.getTime())
+        ? "Enter a valid due date and time."
+        : undefined;
+    setNotesError(nextNotesError);
+    setDueAtError(nextDueAtError);
+    if (nextNotesError || nextDueAtError) {
+      requestAnimationFrame(() =>
+        document.getElementById(nextNotesError ? "task-notes" : "task-due")?.focus(),
+      );
+      return;
+    }
     setSaving(true);
     const res = await onRaiseTask({
       notes: notes.trim() || null,
-      due_at: dueAt ? new Date(dueAt).toISOString() : null,
+      due_at: parsedDueAt?.toISOString() ?? null,
     });
     setSaving(false);
     if (res.ok) {
       toast.success("Field task raised");
       setNotes("");
+      setNotesError(undefined);
       setDueAt("");
+      setDueAtError(undefined);
     } else {
+      const serverErrors = apiIssuesToFieldErrors(res.issues, {
+        notes: "notes",
+        due_at: "dueAt",
+      });
+      setNotesError(serverErrors.notes);
+      setDueAtError(serverErrors.dueAt);
       toast.error("Couldn't raise task", { description: (res as { error?: string }).error });
     }
   }
@@ -76,9 +102,15 @@ export function TelecallerTasksSection({
             rows={2}
             maxLength={1000}
             value={notes}
-            onChange={(e) => setNotes(e.target.value)}
+            onChange={(e) => {
+              setNotes(e.target.value);
+              setNotesError(undefined);
+            }}
             placeholder="e.g. Collect salary slips and bank statements"
+            aria-invalid={Boolean(notesError)}
+            aria-describedby={notesError ? "task-notes-error" : undefined}
           />
+          <FieldError id="task-notes-error">{notesError}</FieldError>
         </div>
         <div className="sm:w-1/2">
           <Label htmlFor="task-due">Due by (optional)</Label>
@@ -86,9 +118,15 @@ export function TelecallerTasksSection({
             id="task-due"
             type="datetime-local"
             value={dueAt}
-            onChange={(e) => setDueAt(e.target.value)}
+            onChange={(e) => {
+              setDueAt(e.target.value);
+              setDueAtError(undefined);
+            }}
+            aria-invalid={Boolean(dueAtError)}
+            aria-describedby={dueAtError ? "task-due-error" : undefined}
             className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
           />
+          <FieldError id="task-due-error">{dueAtError}</FieldError>
         </div>
         <Button type="submit" size="sm" disabled={saving}>
           {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}

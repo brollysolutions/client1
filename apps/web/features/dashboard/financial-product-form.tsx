@@ -28,6 +28,7 @@ function isVisible(
 export function validateProductAnswers(
   product: FinancialProduct,
   answers: ProductAnswers,
+  today = new Date(),
 ): ProductAnswerErrors {
   const errors: ProductAnswerErrors = {};
   for (const section of product.form_schema.sections) {
@@ -39,17 +40,94 @@ export function validateProductAnswers(
         errors[field.key] = `${field.label} is required.`;
         continue;
       }
-      if (empty || Array.isArray(value)) continue;
+      if (empty) continue;
+      if (field.input_type === "multi_select") {
+        const allowed = new Set((field.options ?? []).map((option) => option.value));
+        if (
+          !Array.isArray(value) ||
+          value.length > 10 ||
+          new Set(value).size !== value.length ||
+          value.some((option) => !allowed.has(option.trim()))
+        ) {
+          errors[field.key] = `Choose valid options for ${field.label}.`;
+        }
+        continue;
+      }
+      if (Array.isArray(value)) {
+        errors[field.key] = `${field.label} must be text.`;
+        continue;
+      }
+      const maxLength = field.input_type === "textarea" ? 2000 : 200;
+      if (value.trim().length > maxLength) {
+        errors[field.key] = `${field.label} must be ${maxLength} characters or fewer.`;
+        continue;
+      }
       if (field.input_type === "pincode" && !/^[1-9][0-9]{5}$/.test(value)) {
         errors[field.key] = "Enter a valid 6-digit PIN code.";
       } else if (field.input_type === "phone" && !isValidMobile(value)) {
         errors[field.key] = "Enter a valid 10-digit mobile number.";
-      } else if (field.input_type === "currency" && (!Number.isFinite(Number(value)) || Number(value) <= 0)) {
-        errors[field.key] = "Enter a valid positive amount.";
-      } else if (field.input_type === "integer" && !/^[0-9]+$/.test(value)) {
-        errors[field.key] = "Enter a valid whole number.";
+      } else if (field.input_type === "currency") {
+        const amount = Number(value);
+        if (!Number.isFinite(amount) || amount <= 0) {
+          errors[field.key] = "Enter a valid positive amount.";
+        } else if (
+          !/^\d+(?:\.\d{1,2})?$/.test(value.trim()) ||
+          amount > 999_999_999_999.99
+        ) {
+          errors[field.key] =
+            `${field.label} must be a positive amount no greater than ` +
+            "999999999999.99 with up to 2 decimal places.";
+        }
+      } else if (
+        field.input_type === "integer" &&
+        (!/^[0-9]+$/.test(value.trim()) || Number(value) > 999_999_999)
+      ) {
+        errors[field.key] = `${field.label} must be a whole number no greater than 999999999.`;
+      } else if (field.input_type === "date") {
+        const normalized = value.trim();
+        const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(normalized);
+        const parsed = match
+          ? new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3])))
+          : null;
+        const valid =
+          parsed !== null &&
+          parsed.getUTCFullYear() === Number(match?.[1]) &&
+          parsed.getUTCMonth() === Number(match?.[2]) - 1 &&
+          parsed.getUTCDate() === Number(match?.[3]);
+        if (!valid) {
+          errors[field.key] = `Enter a valid ${field.label.toLowerCase()}.`;
+        } else if (field.key.endsWith("date_of_birth") && parsed) {
+          const age =
+            today.getUTCFullYear() -
+            parsed.getUTCFullYear() -
+            (today.getUTCMonth() < parsed.getUTCMonth() ||
+            (today.getUTCMonth() === parsed.getUTCMonth() &&
+              today.getUTCDate() < parsed.getUTCDate())
+              ? 1
+              : 0);
+          if (age < 18 || age > 100) {
+            errors[field.key] =
+              `${field.label} must correspond to an age between 18 and 100.`;
+          }
+        }
+      } else if (
+        field.input_type === "select" &&
+        !(field.options ?? []).some((option) => option.value === value)
+      ) {
+        errors[field.key] = `Choose a valid option for ${field.label}.`;
       }
     }
+  }
+  const departure = answers.departure_date;
+  const returnDate = answers.return_date;
+  if (
+    typeof departure === "string" &&
+    typeof returnDate === "string" &&
+    !errors.departure_date &&
+    !errors.return_date &&
+    departure > returnDate
+  ) {
+    errors.return_date = "Return Date must be on or after Departure Date.";
   }
   return errors;
 }
@@ -176,6 +254,7 @@ export function FinancialProductFormFields({
                       role="group"
                       aria-labelledby={`${id}-label`}
                       aria-describedby={describedBy}
+                      data-invalid={Boolean(errors[field.key]) || undefined}
                     >
                       {(field.options ?? []).map((option) => {
                         const selected = Array.isArray(value) ? value : [];
@@ -183,6 +262,8 @@ export function FinancialProductFormFields({
                         return (
                           <div key={option.value} className="flex items-center gap-2">
                             <Checkbox
+                              aria-required={field.required}
+                              aria-invalid={Boolean(errors[field.key])}
                               id={`${id}-${option.value}`}
                               checked={checked}
                               disabled={disabled}

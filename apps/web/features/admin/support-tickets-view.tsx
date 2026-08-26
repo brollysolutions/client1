@@ -6,6 +6,7 @@ import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { FieldError } from "@/components/ui/field-error";
 import {
   Dialog,
   DialogContent,
@@ -22,6 +23,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { optionalTextError } from "@/lib/form-validation";
 import { advanceSupportTicket, type SupportTicketAdmin } from "@/lib/admin-api";
 import { CATEGORY_LABEL, STATUS_STYLES, type SupportStatus } from "@/lib/support-tickets";
 import { cn } from "@/lib/utils";
@@ -60,11 +62,15 @@ export function SupportTicketsView() {
   const [statusFilter, setStatusFilter] = React.useState("open");
   const [active, setActive] = React.useState<SupportTicketAdmin | null>(null);
   const [note, setNote] = React.useState("");
+  const [noteError, setNoteError] = React.useState<string>();
   const [busyStatus, setBusyStatus] = React.useState<SupportStatus | null>(null);
 
   const visible = statusFilter ? items.filter((t) => t.status === statusFilter) : items;
 
   async function onAdvance(ticket: SupportTicketAdmin, target: SupportStatus) {
+    const validationError = optionalTextError(note, "Resolution note", 2000);
+    setNoteError(validationError);
+    if (validationError) return;
     setBusyStatus(target);
     const res = await advanceSupportTicket(ticket.id, {
       status: target,
@@ -75,6 +81,7 @@ export function SupportTicketsView() {
       toast.success(`Ticket marked ${STATUS_STYLES[target].label.toLowerCase()}`);
       setActive(null);
       setNote("");
+      setNoteError(undefined);
       void reload();
     } else {
       toast.error("Could not update ticket", { description: res.error });
@@ -135,6 +142,7 @@ export function SupportTicketsView() {
                   onClick={() => {
                     setActive(t);
                     setNote("");
+                    setNoteError(undefined);
                   }}
                   className="flex w-full items-center justify-between gap-4 rounded-2xl border border-border bg-card p-4 text-left transition-colors hover:border-brand-cta"
                 >
@@ -182,12 +190,18 @@ export function SupportTicketsView() {
                 ) : null}
 
                 {TRANSITIONS[active.status].length > 0 ? (
-                  <Textarea
-                    value={note}
-                    onChange={(e) => setNote(e.target.value)}
-                    placeholder="What did you tell the requester? (optional, staff-only)"
-                    rows={3}
-                  />
+                  <div>
+                    <Textarea
+                      value={note}
+                      onChange={(e) => { setNote(e.target.value); setNoteError(undefined); }}
+                      placeholder="What did you tell the requester? (optional, staff-only)"
+                      rows={3}
+                      maxLength={2000}
+                      aria-invalid={Boolean(noteError)}
+                      aria-describedby={noteError ? "support-resolution-note-error" : undefined}
+                    />
+                    <FieldError id="support-resolution-note-error">{noteError}</FieldError>
+                  </div>
                 ) : null}
               </div>
 

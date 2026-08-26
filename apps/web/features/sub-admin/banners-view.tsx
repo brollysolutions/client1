@@ -17,6 +17,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/components/auth/session-provider";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { FieldError, RequiredIndicator } from "@/components/ui/field-error";
 import { Dialog, DialogContent, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -28,6 +29,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  apiIssuesToFieldErrors,
+  integerError,
+  focusFirstInvalidField,
+  optionalTextError,
+  requiredTextError,
+  type FieldErrors,
+} from "@/lib/form-validation";
 import { AdminPagination, ADMIN_PAGE_SIZE } from "@/features/admin/admin-list-tools";
 import { DASHBOARD_ICONS } from "@/features/dashboard/dashboard-icons";
 import {
@@ -56,6 +65,7 @@ import {
 } from "@/lib/banner-properties";
 import { listOffers, type Offer } from "@/lib/offers-api";
 import { getAdminProperties, type AdminProperty } from "@/lib/properties-api";
+import { isSafeLocalHref } from "@/lib/safe-local-href";
 
 import { audienceSummary } from "./audience-rule-fields";
 import { BannerForm } from "./banner-form";
@@ -148,10 +158,14 @@ export function BannersView() {
   const [properties, setProperties] = React.useState<AdminProperty[]>([]);
   const [rejecting, setRejecting] = React.useState(false);
   const [note, setNote] = React.useState("");
+  const [fieldErrors, setFieldErrors] = React.useState<
+    FieldErrors<keyof Draft | "reviewNote" | "schedule">
+  >({});
   const [busy, setBusy] = React.useState(false);
   const [device, setDevice] = React.useState<PreviewDevice>("desktop");
   const [createOpen, setCreateOpen] = React.useState(false);
   const [createDirty, setCreateDirty] = React.useState(false);
+  const dialogRef = React.useRef<HTMLDivElement>(null);
 
   React.useEffect(() => {
     void Promise.all([listBannerTemplates(false), listOffers(), getAdminProperties()]).then(
@@ -211,18 +225,46 @@ export function BannersView() {
     setDraft(toDraft(banner));
     setRejecting(false);
     setNote("");
+    setFieldErrors({});
   }
 
   async function save(banner: Banner) {
-    if (!draft?.title.trim()) return void toast.error("Title cannot be empty.");
-    if (draft.startsAt && draft.endsAt && new Date(draft.endsAt) <= new Date(draft.startsAt)) {
-      return void toast.error("The archive time must be after the go-live time.");
+    if (!draft) return;
+    const errors: FieldErrors<keyof Draft | "reviewNote" | "schedule"> = {
+      title: requiredTextError(draft.title, "Title", 500),
+      subtitle: optionalTextError(draft.subtitle, "Subtitle", 300),
+      ctaLabel: optionalTextError(draft.ctaLabel, "Button label", 40),
+      deepLink:
+        draft.deepLink.trim() && !isSafeLocalHref(draft.deepLink.trim())
+          ? "Use a same-site path beginning with one slash."
+          : optionalTextError(draft.deepLink, "Internal destination", 1000),
+      priority: integerError(draft.priority, "Priority", {
+        required: true,
+        min: 0,
+        max: 2_147_483_647,
+      }),
+      templateId:
+        banner.placement !== "dashboard" && !draft.templateId
+          ? "Artwork template is required."
+          : undefined,
+      offerId: categoryNeedsOffer && !draft.offerId ? "Linked Offer is required." : undefined,
+    };
+    if (
+      (draft.startsAt && Number.isNaN(new Date(draft.startsAt).getTime())) ||
+      (draft.endsAt && Number.isNaN(new Date(draft.endsAt).getTime())) ||
+      (draft.startsAt && draft.endsAt && new Date(draft.endsAt) <= new Date(draft.startsAt))
+    ) {
+      errors.schedule = "The archive time must be a valid date after the go-live time.";
     }
-    if (banner.placement !== "dashboard" && !draft.templateId) {
-      return void toast.error("Choose an active artwork template.");
-    }
-    if (categoryNeedsOffer && !draft.offerId) {
-      return void toast.error("Choose the linked Offer.");
+    const nextErrors = Object.fromEntries(
+      Object.entries(errors).filter(([, validationError]) => validationError),
+    ) as typeof fieldErrors;
+    setFieldErrors(nextErrors);
+    if (Object.keys(nextErrors).length > 0) {
+      requestAnimationFrame(() => {
+        if (dialogRef.current) focusFirstInvalidField(dialogRef.current);
+      });
+      return;
     }
     setBusy(true);
     const result = await updateBanner(banner.id, {
@@ -239,11 +281,25 @@ export function BannersView() {
     });
     setBusy(false);
     if (!result.ok) {
+      const serverErrors = apiIssuesToFieldErrors(result.issues, {
+        title: "title",
+        subtitle: "subtitle",
+        cta_label: "ctaLabel",
+        deep_link: "deepLink",
+        template_id: "templateId",
+        offer_id: "offerId",
+        property_id: "propertyId",
+        priority: "priority",
+        starts_at: "schedule",
+        ends_at: "schedule",
+      });
+      if (Object.keys(serverErrors).length > 0) setFieldErrors(serverErrors);
       return void toast.error("Could not update banner", { description: result.error });
     }
     toast.success("Banner updated");
     setActive(result.data);
     setDraft(toDraft(result.data));
+    setFieldErrors({});
     void reload();
   }
 
@@ -263,7 +319,14 @@ export function BannersView() {
   }
 
   async function reject(banner: Banner) {
-    if (!note.trim()) return void toast.error("Add a reason for the Sub Admin.");
+    const validationError = requiredTextError(note, "Rejection reason", 1000);
+    setFieldErrors((current) => ({ ...current, reviewNote: validationError }));
+    if (validationError) {
+      requestAnimationFrame(() => {
+        if (dialogRef.current) focusFirstInvalidField(dialogRef.current);
+      });
+      return;
+    }
     setBusy(true);
     const result = await rejectBanner(banner.id, note.trim());
     setBusy(false);
@@ -372,7 +435,7 @@ export function BannersView() {
       )}
 
       <Dialog open={active !== null} onOpenChange={closeWorkspace}>
-        <DialogContent showCloseButton={false} className={CMS_WORKSPACE_DIALOG_CLASS}>
+        <DialogContent ref={dialogRef} showCloseButton={false} className={CMS_WORKSPACE_DIALOG_CLASS}>
           {active && draft ? (
             <>
               <CmsWorkspaceHeader
@@ -384,17 +447,20 @@ export function BannersView() {
                   <div className="space-y-5">
                     <section className="space-y-4 rounded-xl border border-border p-4">
                       <div>
-                        <Label htmlFor="banner-title">Title</Label>
-                        <Input id="banner-title" value={draft.title} disabled={!EDITABLE.has(active.status)} onChange={(event) => setDraft({ ...draft, title: event.target.value })} />
+                        <Label htmlFor="banner-title">Title <RequiredIndicator /></Label>
+                        <Input id="banner-title" value={draft.title} disabled={!EDITABLE.has(active.status)} maxLength={500} onChange={(event) => { setDraft({ ...draft, title: event.target.value }); setFieldErrors((current) => ({ ...current, title: undefined })); }} aria-invalid={Boolean(fieldErrors.title)} aria-describedby={fieldErrors.title ? "banner-edit-title-error" : undefined} />
+                        <FieldError id="banner-edit-title-error">{fieldErrors.title}</FieldError>
                       </div>
                       <div>
                         <Label htmlFor="banner-subtitle">Subtitle</Label>
-                        <Input id="banner-subtitle" value={draft.subtitle} disabled={!EDITABLE.has(active.status)} onChange={(event) => setDraft({ ...draft, subtitle: event.target.value })} />
+                        <Input id="banner-subtitle" value={draft.subtitle} disabled={!EDITABLE.has(active.status)} maxLength={300} onChange={(event) => { setDraft({ ...draft, subtitle: event.target.value }); setFieldErrors((current) => ({ ...current, subtitle: undefined })); }} aria-invalid={Boolean(fieldErrors.subtitle)} aria-describedby={fieldErrors.subtitle ? "banner-edit-subtitle-error" : undefined} />
+                        <FieldError id="banner-edit-subtitle-error">{fieldErrors.subtitle}</FieldError>
                       </div>
                       <div className="grid gap-4 sm:grid-cols-2">
                         <div>
                           <Label htmlFor="banner-cta">Button label</Label>
-                          <Input id="banner-cta" value={draft.ctaLabel} disabled={!EDITABLE.has(active.status)} onChange={(event) => setDraft({ ...draft, ctaLabel: event.target.value })} />
+                          <Input id="banner-cta" value={draft.ctaLabel} disabled={!EDITABLE.has(active.status)} maxLength={40} onChange={(event) => { setDraft({ ...draft, ctaLabel: event.target.value }); setFieldErrors((current) => ({ ...current, ctaLabel: undefined })); }} aria-invalid={Boolean(fieldErrors.ctaLabel)} aria-describedby={fieldErrors.ctaLabel ? "banner-edit-cta-error" : undefined} />
+                          <FieldError id="banner-edit-cta-error">{fieldErrors.ctaLabel}</FieldError>
                         </div>
                         <div>
                           <Label htmlFor="banner-link">Internal destination</Label>
@@ -402,32 +468,38 @@ export function BannersView() {
                             id="banner-link"
                             value={selectedProperty ? propertyCampaignHref(selectedProperty) : draft.deepLink}
                             disabled={!EDITABLE.has(active.status) || Boolean(selectedProperty)}
-                            onChange={(event) => setDraft({ ...draft, deepLink: event.target.value })}
+                            maxLength={1000}
+                            onChange={(event) => { setDraft({ ...draft, deepLink: event.target.value }); setFieldErrors((current) => ({ ...current, deepLink: undefined })); }}
+                            aria-invalid={Boolean(fieldErrors.deepLink)}
+                            aria-describedby={fieldErrors.deepLink ? "banner-edit-link-error" : undefined}
                           />
+                          <FieldError id="banner-edit-link-error">{fieldErrors.deepLink}</FieldError>
                         </div>
                       </div>
                       {active.placement !== "dashboard" ? (
                         <div>
-                          <Label htmlFor="edit-template">Artwork template</Label>
-                          <Select value={draft.templateId || undefined} disabled={!EDITABLE.has(active.status)} onValueChange={(templateId) => setDraft({ ...draft, templateId, offerId: "", propertyId: "" })}>
-                            <SelectTrigger id="edit-template"><SelectValue placeholder="Choose a template" /></SelectTrigger>
+                          <Label htmlFor="edit-template">Artwork template <RequiredIndicator /></Label>
+                          <Select value={draft.templateId || undefined} disabled={!EDITABLE.has(active.status)} onValueChange={(templateId) => { setDraft({ ...draft, templateId, offerId: "", propertyId: "" }); setFieldErrors((current) => ({ ...current, templateId: undefined })); }}>
+                            <SelectTrigger id="edit-template" aria-required="true" aria-invalid={Boolean(fieldErrors.templateId)} aria-describedby={fieldErrors.templateId ? "banner-edit-template-error" : undefined}><SelectValue placeholder="Choose a template" /></SelectTrigger>
                             <SelectContent>
                               {editableTemplates.map((template) => (
                                 <SelectItem key={template.id} value={template.id}>{template.label} · version {template.version}</SelectItem>
                               ))}
                             </SelectContent>
                           </Select>
+                          <FieldError id="banner-edit-template-error">{fieldErrors.templateId}</FieldError>
                         </div>
                       ) : null}
                       {categoryNeedsOffer ? (
                         <div>
-                          <Label htmlFor="edit-offer">Linked Offer</Label>
-                          <Select value={draft.offerId || undefined} disabled={!EDITABLE.has(active.status)} onValueChange={(offerId) => setDraft({ ...draft, offerId })}>
-                            <SelectTrigger id="edit-offer"><SelectValue placeholder="Choose an Offer" /></SelectTrigger>
+                          <Label htmlFor="edit-offer">Linked Offer <RequiredIndicator /></Label>
+                          <Select value={draft.offerId || undefined} disabled={!EDITABLE.has(active.status)} onValueChange={(offerId) => { setDraft({ ...draft, offerId }); setFieldErrors((current) => ({ ...current, offerId: undefined })); }}>
+                            <SelectTrigger id="edit-offer" aria-required="true" aria-invalid={Boolean(fieldErrors.offerId)} aria-describedby={fieldErrors.offerId ? "banner-edit-offer-error" : undefined}><SelectValue placeholder="Choose an Offer" /></SelectTrigger>
                             <SelectContent>
                               {editableOffers.map((offer) => <SelectItem key={offer.id} value={offer.id}>{offer.title}</SelectItem>)}
                             </SelectContent>
                           </Select>
+                          <FieldError id="banner-edit-offer-error">{fieldErrors.offerId}</FieldError>
                         </div>
                       ) : null}
                       {categoryAllowsProperty ? (
@@ -448,19 +520,21 @@ export function BannersView() {
                       <div className="grid gap-4 sm:grid-cols-3">
                         <div>
                           <Label htmlFor="banner-priority">Priority</Label>
-                          <Input id="banner-priority" inputMode="numeric" value={draft.priority} disabled={!EDITABLE.has(active.status)} onChange={(event) => setDraft({ ...draft, priority: event.target.value.replace(/\D/g, "") })} />
+                          <Input id="banner-priority" inputMode="numeric" value={draft.priority} disabled={!EDITABLE.has(active.status)} onChange={(event) => { setDraft({ ...draft, priority: event.target.value.replace(/\D/g, "") }); setFieldErrors((current) => ({ ...current, priority: undefined })); }} aria-invalid={Boolean(fieldErrors.priority)} aria-describedby={fieldErrors.priority ? "banner-edit-priority-error" : undefined} />
+                          <FieldError id="banner-edit-priority-error">{fieldErrors.priority}</FieldError>
                         </div>
                         <div>
                           <Label htmlFor="banner-start">Goes live at</Label>
-                          <Input id="banner-start" type="datetime-local" value={draft.startsAt} disabled={!EDITABLE.has(active.status)} onChange={(event) => setDraft({ ...draft, startsAt: event.target.value })} />
+                          <Input id="banner-start" type="datetime-local" value={draft.startsAt} disabled={!EDITABLE.has(active.status)} onChange={(event) => { setDraft({ ...draft, startsAt: event.target.value }); setFieldErrors((current) => ({ ...current, schedule: undefined })); }} aria-invalid={Boolean(fieldErrors.schedule)} aria-describedby={fieldErrors.schedule ? "banner-edit-schedule-error" : undefined} />
                         </div>
                         <div>
                           <Label htmlFor="banner-end">Archives at</Label>
-                          <Input id="banner-end" type="datetime-local" value={draft.endsAt} disabled={!EDITABLE.has(active.status)} onChange={(event) => setDraft({ ...draft, endsAt: event.target.value })} />
+                          <Input id="banner-end" type="datetime-local" value={draft.endsAt} disabled={!EDITABLE.has(active.status)} onChange={(event) => { setDraft({ ...draft, endsAt: event.target.value }); setFieldErrors((current) => ({ ...current, schedule: undefined })); }} aria-invalid={Boolean(fieldErrors.schedule)} aria-describedby={fieldErrors.schedule ? "banner-edit-schedule-error" : undefined} />
                         </div>
                       </div>
+                      <FieldError id="banner-edit-schedule-error">{fieldErrors.schedule}</FieldError>
                       {active.review_note ? <p className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">Review note: {active.review_note}</p> : null}
-                      {rejecting ? <Textarea value={note} onChange={(event) => setNote(event.target.value)} placeholder="Reason for rejection" /> : null}
+                      {rejecting ? <div><Textarea aria-label="Reason for rejection" value={note} maxLength={1000} onChange={(event) => { setNote(event.target.value); setFieldErrors((current) => ({ ...current, reviewNote: undefined })); }} placeholder="Reason for rejection" aria-invalid={Boolean(fieldErrors.reviewNote)} aria-describedby={fieldErrors.reviewNote ? "banner-review-note-error" : undefined} /><FieldError id="banner-review-note-error">{fieldErrors.reviewNote}</FieldError></div> : null}
                     </section>
                     <DialogFooter className="flex-wrap">
                       {isAdmin && active.status === "pending_approval" ? (

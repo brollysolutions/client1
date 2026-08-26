@@ -28,6 +28,7 @@ import {
 } from "@/lib/financial-catalog";
 import { isAllowedAssetUrl } from "@/lib/allowed-asset-url";
 import { contactHref } from "@/lib/leads";
+import { boundedNumberFilter } from "@/lib/form-validation";
 import { SITE_NAME, SITE_URL } from "@/lib/site";
 
 type PageProps = {
@@ -151,12 +152,17 @@ export default async function FinancialServicePage({ params, searchParams }: Pag
       : "recommended";
   const requestedPage = Number(one(raw.provider_page) ?? "1");
   const providerPage = Number.isInteger(requestedPage) && requestedPage > 0 ? requestedPage : 1;
+  const providerQuery = one(raw.provider_q)?.trim().slice(0, 100) || undefined;
   const offerQuery: ProviderOfferQuery = {
-    q: one(raw.provider_q)?.trim() || undefined,
+    q: providerQuery,
     providerType,
-    amount: one(raw.amount)?.trim() || undefined,
-    interestRateMax: one(raw.interest_rate_max)?.trim() || undefined,
-    tenureMonths: one(raw.tenure_months)?.trim() || undefined,
+    amount: boundedNumberFilter(one(raw.amount), { min: 0, max: 99_999_999_999 }),
+    interestRateMax: boundedNumberFilter(one(raw.interest_rate_max), { min: 0, max: 100 }),
+    tenureMonths: boundedNumberFilter(one(raw.tenure_months), {
+      min: 1,
+      max: 600,
+      integer: true,
+    }),
     sort,
     page: providerPage,
     pageSize: 9,
@@ -295,6 +301,7 @@ export default async function FinancialServicePage({ params, searchParams }: Pag
                     id="provider-search"
                     name="provider_q"
                     defaultValue={offerQuery.q}
+                    maxLength={100}
                     placeholder="Provider or offer name"
                     className="pl-9"
                   />

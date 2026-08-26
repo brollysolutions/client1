@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { FieldError, RequiredIndicator } from "@/components/ui/field-error";
 import {
   Dialog,
   DialogContent,
@@ -33,6 +34,11 @@ import {
   type ProductFormDefinition,
 } from "@/lib/loan-config-api";
 import { formatLastUpdated } from "@/lib/format";
+import { focusFirstInvalidField, integerError, requiredTextError } from "@/lib/form-validation";
+import {
+  validateProductFormDefinition,
+  type ProductFormDefinitionErrors,
+} from "@/lib/financial-product-form-definition";
 import { FinancialProductFormBuilder } from "./financial-product-form-builder";
 import { useLoanTypes } from "./use-loan-types";
 
@@ -87,6 +93,18 @@ function faqLines(value: string): Array<{ question: string; answer: string }> {
   });
 }
 
+function publicListError(value: string, label: string): string | undefined {
+  const items = textLines(value);
+  if (items.length > 12) return `${label} may contain at most 12 items.`;
+  if (items.some((item) => item.length < 2 || item.length > 180)) {
+    return `Each ${label.toLowerCase()} item must be between 2 and 180 characters.`;
+  }
+  if (new Set(items.map((item) => item.toLocaleLowerCase("en-IN"))).size !== items.length) {
+    return `${label} items must be unique.`;
+  }
+  return undefined;
+}
+
 export function LoanTypesView() {
   const { items, loading, error, reload } = useLoanTypes();
   const [active, setActive] = React.useState<AdminLoanType | null>(null);
@@ -108,6 +126,11 @@ export function LoanTypesView() {
   const [draftFeatured, setDraftFeatured] = React.useState(false);
   const [draftFeaturedOrder, setDraftFeaturedOrder] = React.useState("1000");
   const [busy, setBusy] = React.useState(false);
+  const [createErrors, setCreateErrors] = React.useState<Record<string, string>>({});
+  const [editErrors, setEditErrors] = React.useState<Record<string, string>>({});
+  const [builderErrors, setBuilderErrors] = React.useState<ProductFormDefinitionErrors>({});
+  const createFormRef = React.useRef<HTMLFormElement>(null);
+  const editDialogRef = React.useRef<HTMLDivElement>(null);
 
   function openEdit(product: AdminLoanType) {
     setActive(product);
@@ -124,17 +147,23 @@ export function LoanTypesView() {
     setDraftFaq(product.public_faq.map((item) => `${item.question} | ${item.answer}`).join("\n"));
     setDraftFeatured(product.homepage_featured);
     setDraftFeaturedOrder(String(product.homepage_feature_order));
+    setEditErrors({});
+    setBuilderErrors({});
   }
 
   async function onCreate(event: React.FormEvent) {
     event.preventDefault();
     const order = Number(newOrder);
-    if (newLabel.trim().length === 0) {
-      toast.error("Product name can't be empty");
-      return;
-    }
-    if (!Number.isInteger(order) || order < 0 || order > 10000) {
-      toast.error("Display order must be between 0 and 10,000");
+    const next: Record<string, string> = {};
+    const labelError = requiredTextError(newLabel, "Product name", 200);
+    const orderError = integerError(newOrder, "Display order", { required: true, min: 0, max: 10_000 });
+    if (labelError) next.label = labelError;
+    if (orderError) next.order = orderError;
+    setCreateErrors(next);
+    if (Object.keys(next).length > 0) {
+      requestAnimationFrame(() => {
+        if (createFormRef.current) focusFirstInvalidField(createFormRef.current);
+      });
       return;
     }
     setBusy(true);
@@ -160,35 +189,55 @@ export function LoanTypesView() {
   async function onSaveEdit() {
     if (!active || !draftForm) return;
     const order = Number(draftOrder);
-    if (draftLabel.trim().length === 0) {
-      toast.error("Product name can't be empty");
-      return;
-    }
-    if (!Number.isInteger(order) || order < 0 || order > 10000) {
-      toast.error("Display order must be between 0 and 10,000");
-      return;
-    }
+    const next: Record<string, string> = {};
+    const labelError = requiredTextError(draftLabel, "Product name", 200);
+    const orderError = integerError(draftOrder, "Display order", { required: true, min: 0, max: 10_000 });
+    if (labelError) next.label = labelError;
+    if (orderError) next.order = orderError;
     const labelChanged = draftLabel.trim() !== active.label;
     const activeChanged = draftActive !== active.active;
     const orderChanged = order !== active.display_order;
     const formChanged = JSON.stringify(draftForm) !== JSON.stringify(active.form_schema);
     const featuredOrder = Number(draftFeaturedOrder);
-    if (!Number.isInteger(featuredOrder) || featuredOrder < 0 || featuredOrder > 10000) {
-      toast.error("Homepage order must be between 0 and 10,000");
-      return;
-    }
+    const featuredOrderError = integerError(draftFeaturedOrder, "Homepage order", { required: true, min: 0, max: 10_000 });
+    if (featuredOrderError) next.featuredOrder = featuredOrderError;
     if (draftPublicVisible && (!draftSummary.trim() || !draftDescription.trim())) {
-      toast.error("Public products need a summary and description");
-      return;
+      if (!draftSummary.trim()) next.summary = "Card summary is required for public products.";
+      if (!draftDescription.trim()) next.description = "Page description is required for public products.";
     }
     if (draftFeatured && !draftPublicVisible) {
-      toast.error("Publish the product before featuring it on Home");
-      return;
+      next.featured = "Publish the product before featuring it on Home.";
     }
     const faqSourceLines = textLines(draftFaq);
     const parsedFaq = faqLines(draftFaq);
     if (parsedFaq.length !== faqSourceLines.length) {
-      toast.error("Format every FAQ as Question | Answer");
+      next.faq = "Format every FAQ as Question | Answer.";
+    } else if (parsedFaq.length > 10) {
+      next.faq = "Add at most 10 FAQs.";
+    } else if (
+      parsedFaq.some(
+        (item) =>
+          item.question.length < 3 ||
+          item.question.length > 180 ||
+          item.answer.length < 3 ||
+          item.answer.length > 800,
+      )
+    ) {
+      next.faq = "FAQ questions must be 3-180 characters and answers 3-800 characters.";
+    }
+    const highlightsError = publicListError(draftHighlights, "Highlights");
+    const eligibilityError = publicListError(draftEligibility, "Eligibility");
+    const documentsError = publicListError(draftDocuments, "Documents");
+    if (highlightsError) next.highlights = highlightsError;
+    if (eligibilityError) next.eligibility = eligibilityError;
+    if (documentsError) next.documents = documentsError;
+    const nextBuilderErrors = validateProductFormDefinition(active.category, draftForm);
+    setEditErrors(next);
+    setBuilderErrors(nextBuilderErrors);
+    if (Object.keys(next).length > 0 || Object.keys(nextBuilderErrors).length > 0) {
+      requestAnimationFrame(() => {
+        if (editDialogRef.current) focusFirstInvalidField(editDialogRef.current);
+      });
       return;
     }
     const marketing = {
@@ -320,16 +369,19 @@ export function LoanTypesView() {
               after creation.
             </DialogDescription>
           </DialogHeader>
-          <form className="space-y-4" onSubmit={(event) => void onCreate(event)}>
+          <form ref={createFormRef} className="space-y-4" onSubmit={(event) => void onCreate(event)} noValidate>
             <div className="grid gap-1.5">
-              <Label htmlFor="new-product-label">Product name</Label>
+              <Label htmlFor="new-product-label">Product name<RequiredIndicator /></Label>
               <Input
                 id="new-product-label"
                 value={newLabel}
-                onChange={(event) => setNewLabel(event.target.value)}
+                onChange={(event) => { setNewLabel(event.target.value); setCreateErrors((current) => { const next = { ...current }; delete next.label; return next; }); }}
                 placeholder="Education Loan"
                 maxLength={200}
+                aria-invalid={Boolean(createErrors.label)}
+                aria-describedby={createErrors.label ? "new-product-label-error" : undefined}
               />
+              <FieldError id="new-product-label-error">{createErrors.label}</FieldError>
             </div>
             <div className="grid gap-1.5">
               <Label htmlFor="new-product-category">Workflow</Label>
@@ -346,15 +398,18 @@ export function LoanTypesView() {
               </Select>
             </div>
             <div className="grid gap-1.5">
-              <Label htmlFor="new-product-order">Display order</Label>
+              <Label htmlFor="new-product-order">Display order<RequiredIndicator /></Label>
               <Input
                 id="new-product-order"
                 type="number"
                 min={0}
                 max={10000}
                 value={newOrder}
-                onChange={(event) => setNewOrder(event.target.value)}
+                onChange={(event) => { setNewOrder(event.target.value); setCreateErrors((current) => { const next = { ...current }; delete next.order; return next; }); }}
+                aria-invalid={Boolean(createErrors.order)}
+                aria-describedby={createErrors.order ? "new-product-order-error" : undefined}
               />
+              <FieldError id="new-product-order-error">{createErrors.order}</FieldError>
             </div>
             <DialogFooter>
               <Button type="submit" disabled={busy}>
@@ -367,7 +422,7 @@ export function LoanTypesView() {
       </Dialog>
 
       <Dialog open={active !== null} onOpenChange={(open) => !open && setActive(null)}>
-        <DialogContent className="max-h-[92vh] max-w-5xl overflow-y-auto">
+        <DialogContent ref={editDialogRef} className="max-h-[92vh] max-w-5xl overflow-y-auto">
           {active && draftForm ? (
             <>
               <DialogHeader>
@@ -380,24 +435,30 @@ export function LoanTypesView() {
               </DialogHeader>
               <div className="grid gap-4 sm:grid-cols-[1fr_10rem]">
                 <div className="grid gap-1.5">
-                  <Label htmlFor="edit-product-label">Product name</Label>
+                  <Label htmlFor="edit-product-label">Product name<RequiredIndicator /></Label>
                   <Input
                     id="edit-product-label"
                     value={draftLabel}
-                    onChange={(event) => setDraftLabel(event.target.value)}
+                    onChange={(event) => { setDraftLabel(event.target.value); setEditErrors((current) => { const next = { ...current }; delete next.label; return next; }); }}
                     maxLength={200}
+                    aria-invalid={Boolean(editErrors.label)}
+                    aria-describedby={editErrors.label ? "edit-product-label-error" : undefined}
                   />
+                  <FieldError id="edit-product-label-error">{editErrors.label}</FieldError>
                 </div>
                 <div className="grid gap-1.5">
-                  <Label htmlFor="edit-product-order">Display order</Label>
+                  <Label htmlFor="edit-product-order">Display order<RequiredIndicator /></Label>
                   <Input
                     id="edit-product-order"
                     type="number"
                     min={0}
                     max={10000}
                     value={draftOrder}
-                    onChange={(event) => setDraftOrder(event.target.value)}
+                    onChange={(event) => { setDraftOrder(event.target.value); setEditErrors((current) => { const next = { ...current }; delete next.order; return next; }); }}
+                    aria-invalid={Boolean(editErrors.order)}
+                    aria-describedby={editErrors.order ? "edit-product-order-error" : undefined}
                   />
+                  <FieldError id="edit-product-order-error">{editErrors.order}</FieldError>
                 </div>
                 <div className="flex items-center gap-2 sm:col-span-2">
                   <Checkbox
@@ -436,35 +497,43 @@ export function LoanTypesView() {
                   </div>
                   <div className="grid gap-1.5 sm:col-span-2">
                     <Label htmlFor="edit-product-summary">Card summary</Label>
-                    <Input id="edit-product-summary" value={draftSummary} onChange={(event) => setDraftSummary(event.target.value)} maxLength={280} />
+                    <Input id="edit-product-summary" value={draftSummary} onChange={(event) => { setDraftSummary(event.target.value); setEditErrors((current) => { const next = { ...current }; delete next.summary; return next; }); }} maxLength={280} aria-invalid={Boolean(editErrors.summary)} aria-describedby={editErrors.summary ? "edit-product-summary-error" : undefined} />
+                    <FieldError id="edit-product-summary-error">{editErrors.summary}</FieldError>
                   </div>
                   <div className="grid gap-1.5 sm:col-span-2">
                     <Label htmlFor="edit-product-description">Page description</Label>
-                    <Textarea id="edit-product-description" value={draftDescription} onChange={(event) => setDraftDescription(event.target.value)} maxLength={4000} rows={4} />
+                    <Textarea id="edit-product-description" value={draftDescription} onChange={(event) => { setDraftDescription(event.target.value); setEditErrors((current) => { const next = { ...current }; delete next.description; return next; }); }} maxLength={4000} rows={4} aria-invalid={Boolean(editErrors.description)} aria-describedby={editErrors.description ? "edit-product-description-error" : undefined} />
+                    <FieldError id="edit-product-description-error">{editErrors.description}</FieldError>
                   </div>
                   <div className="grid gap-1.5">
                     <Label htmlFor="edit-product-highlights">Highlights</Label>
-                    <Textarea id="edit-product-highlights" value={draftHighlights} onChange={(event) => setDraftHighlights(event.target.value)} rows={5} />
+                    <Textarea id="edit-product-highlights" value={draftHighlights} onChange={(event) => { setDraftHighlights(event.target.value); setEditErrors((current) => { const next = { ...current }; delete next.highlights; return next; }); }} rows={5} maxLength={5000} aria-invalid={Boolean(editErrors.highlights)} aria-describedby={editErrors.highlights ? "edit-product-highlights-error" : undefined} />
+                    <FieldError id="edit-product-highlights-error">{editErrors.highlights}</FieldError>
                   </div>
                   <div className="grid gap-1.5">
                     <Label htmlFor="edit-product-eligibility">General eligibility</Label>
-                    <Textarea id="edit-product-eligibility" value={draftEligibility} onChange={(event) => setDraftEligibility(event.target.value)} rows={5} />
+                    <Textarea id="edit-product-eligibility" value={draftEligibility} onChange={(event) => { setDraftEligibility(event.target.value); setEditErrors((current) => { const next = { ...current }; delete next.eligibility; return next; }); }} rows={5} maxLength={5000} aria-invalid={Boolean(editErrors.eligibility)} aria-describedby={editErrors.eligibility ? "edit-product-eligibility-error" : undefined} />
+                    <FieldError id="edit-product-eligibility-error">{editErrors.eligibility}</FieldError>
                   </div>
                   <div className="grid gap-1.5">
                     <Label htmlFor="edit-product-documents">Documents to prepare</Label>
-                    <Textarea id="edit-product-documents" value={draftDocuments} onChange={(event) => setDraftDocuments(event.target.value)} rows={5} />
+                    <Textarea id="edit-product-documents" value={draftDocuments} onChange={(event) => { setDraftDocuments(event.target.value); setEditErrors((current) => { const next = { ...current }; delete next.documents; return next; }); }} rows={5} maxLength={5000} aria-invalid={Boolean(editErrors.documents)} aria-describedby={editErrors.documents ? "edit-product-documents-error" : undefined} />
+                    <FieldError id="edit-product-documents-error">{editErrors.documents}</FieldError>
                   </div>
                   <div className="grid gap-1.5">
                     <Label htmlFor="edit-product-faq">FAQs (Question | Answer)</Label>
-                    <Textarea id="edit-product-faq" value={draftFaq} onChange={(event) => setDraftFaq(event.target.value)} rows={5} />
+                    <Textarea id="edit-product-faq" value={draftFaq} onChange={(event) => { setDraftFaq(event.target.value); setEditErrors((current) => { const next = { ...current }; delete next.faq; return next; }); }} rows={5} maxLength={10000} aria-invalid={Boolean(editErrors.faq)} aria-describedby={editErrors.faq ? "edit-product-faq-error" : undefined} />
+                    <FieldError id="edit-product-faq-error">{editErrors.faq}</FieldError>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Checkbox id="edit-product-featured" checked={draftFeatured} onCheckedChange={(checked) => setDraftFeatured(checked === true)} />
+                    <Checkbox id="edit-product-featured" checked={draftFeatured} onCheckedChange={(checked) => { setDraftFeatured(checked === true); setEditErrors((current) => { const next = { ...current }; delete next.featured; return next; }); }} aria-invalid={Boolean(editErrors.featured)} aria-describedby={editErrors.featured ? "edit-product-featured-error" : undefined} />
                     <Label htmlFor="edit-product-featured" className="font-normal">Feature on Home</Label>
+                    <FieldError id="edit-product-featured-error">{editErrors.featured}</FieldError>
                   </div>
                   <div className="grid gap-1.5">
                     <Label htmlFor="edit-product-feature-order">Homepage order</Label>
-                    <Input id="edit-product-feature-order" type="number" min={0} max={10000} value={draftFeaturedOrder} onChange={(event) => setDraftFeaturedOrder(event.target.value)} />
+                    <Input id="edit-product-feature-order" type="number" min={0} max={10000} value={draftFeaturedOrder} onChange={(event) => { setDraftFeaturedOrder(event.target.value); setEditErrors((current) => { const next = { ...current }; delete next.featuredOrder; return next; }); }} aria-invalid={Boolean(editErrors.featuredOrder)} aria-describedby={editErrors.featuredOrder ? "edit-product-feature-order-error" : undefined} />
+                    <FieldError id="edit-product-feature-order-error">{editErrors.featuredOrder}</FieldError>
                   </div>
                 </div>
               </div>
@@ -481,8 +550,9 @@ export function LoanTypesView() {
                   <FinancialProductFormBuilder
                     category={active.category}
                     value={draftForm}
-                    onChange={setDraftForm}
+                    onChange={(next) => { setDraftForm(next); setBuilderErrors({}); }}
                     disabled={busy}
+                    errors={builderErrors}
                   />
                 </div>
               </div>

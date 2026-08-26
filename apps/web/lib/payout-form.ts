@@ -44,6 +44,11 @@ export type PayoutFormState = {
   accountName: string;
 };
 
+export type PayoutDestinationFormState = Pick<
+  PayoutFormState,
+  "destinationType" | "vpa" | "ifsc" | "accountNumber" | "accountName"
+>;
+
 export const EMPTY_PAYOUT_FORM: PayoutFormState = {
   recipient: null,
   type: "",
@@ -111,7 +116,7 @@ export function buildPayoutPayload(form: PayoutFormState, idempotencyKey: string
 }
 
 export function validatePayoutForm(form: PayoutFormState): Record<string, string> {
-  const errs: Record<string, string> = {};
+  const errs = validatePayoutDestinationForm(form);
 
   if (form.recipient === null) errs.recipient = "Choose a recipient.";
   if (form.type === "") errs.type = "Choose a payout type.";
@@ -121,19 +126,39 @@ export function validatePayoutForm(form: PayoutFormState): Record<string, string
     errs.amountRupees = "Enter an amount greater than 0 (up to two decimals).";
   }
 
+  return errs;
+}
+
+export function validatePayoutDestinationForm(
+  form: PayoutDestinationFormState,
+): Record<string, string> {
+  const errs: Record<string, string> = {};
   if (form.destinationType === "") {
     errs.destinationType = "Choose a destination.";
   } else if (form.destinationType === "vpa") {
-    if (!form.vpa.trim() || !form.vpa.includes("@")) {
+    const vpa = form.vpa.trim();
+    if (!vpa || !vpa.includes("@")) {
       errs.vpa = "Enter a valid UPI VPA (name@bank).";
+    } else if (vpa.length > 100) {
+      errs.vpa = "UPI VPA must be 100 characters or fewer.";
     }
   } else if (form.destinationType === "bank_account") {
-    if (!form.ifsc.trim()) errs.ifsc = "IFSC is required.";
-    if (form.accountNumber.trim().length < 6) {
-      errs.accountNumber = "Account number must be at least 6 digits.";
+    const ifsc = form.ifsc.trim();
+    const accountNumber = form.accountNumber.trim();
+    if (!ifsc) {
+      errs.ifsc = "IFSC is required.";
+    } else if (ifsc.length > 20) {
+      errs.ifsc = "IFSC must be 20 characters or fewer.";
+    }
+    if (accountNumber.length < 6) {
+      errs.accountNumber = "Account number must be at least 6 characters.";
+    } else if (accountNumber.length > 40) {
+      errs.accountNumber = "Account number must be 40 characters or fewer.";
+    }
+    if (form.accountName.trim().length > 120) {
+      errs.accountName = "Account name must be 120 characters or fewer.";
     }
   }
-
   return errs;
 }
 

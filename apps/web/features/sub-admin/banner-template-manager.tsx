@@ -9,6 +9,7 @@ import type { components } from "@contracts/generated/schema";
 import { FileField } from "@/components/apply-as-agent/file-field";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { FieldError, RequiredIndicator } from "@/components/ui/field-error";
 import { Dialog, DialogContent, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import {
@@ -69,6 +70,8 @@ export function BannerTemplateManager() {
   const [templates, setTemplates] = React.useState<BannerTemplate[]>([]);
   const [selectedId, setSelectedId] = React.useState("");
   const [file, setFile] = React.useState<File | null>(null);
+  const [categoryError, setCategoryError] = React.useState<string>();
+  const [fileError, setFileError] = React.useState<string>();
   const [loading, setLoading] = React.useState(false);
 
   const activeTemplates = React.useMemo(
@@ -91,7 +94,9 @@ export function BannerTemplateManager() {
   }, [load, open]);
 
   async function replaceTemplate() {
-    if (!selected || !file) return void toast.error("Choose a category and replacement image.");
+    setCategoryError(selected ? undefined : "Category is required.");
+    setFileError(file ? undefined : "Replacement artwork is required.");
+    if (!selected || !file) return;
     setLoading(true);
     const presign = await getBannerTemplateImageUploadUrl({
       content_type: file.type as Schemas["BannerImageUploadRequest"]["content_type"],
@@ -154,9 +159,9 @@ export function BannerTemplateManager() {
           <div className="grid min-h-0 gap-6 overflow-y-auto py-3 lg:grid-cols-[minmax(20rem,0.8fr)_minmax(24rem,1.2fr)]">
             <section className="space-y-4 rounded-xl border border-border p-4">
               <div>
-                <Label htmlFor="template-category">Category</Label>
-                <Select value={selectedId || undefined} onValueChange={setSelectedId} disabled={loading}>
-                  <SelectTrigger id="template-category">
+                <Label htmlFor="template-category">Category <RequiredIndicator /></Label>
+                <Select value={selectedId || undefined} onValueChange={(value) => { setSelectedId(value); setCategoryError(undefined); }} disabled={loading}>
+                  <SelectTrigger id="template-category" aria-required="true" aria-invalid={Boolean(categoryError)} aria-describedby={categoryError ? "template-category-error" : undefined}>
                     <SelectValue placeholder={loading ? "Loading…" : "Choose a template"} />
                   </SelectTrigger>
                   <SelectContent>
@@ -167,15 +172,17 @@ export function BannerTemplateManager() {
                     ))}
                   </SelectContent>
                 </Select>
+                <FieldError id="template-category-error">{categoryError}</FieldError>
               </div>
               <FileField
                 id="replacement-template-image"
                 label="Replacement artwork"
                 icon={ImageIcon}
                 value={file}
-                onChange={setFile}
+                onChange={(value) => { setFile(value); setFileError(undefined); }}
                 accept={IMAGE_ACCEPT}
                 maxBytes={IMAGE_MAX_BYTES}
+                error={fileError}
                 hint={
                   selectedGuidance
                     ? `JPG, PNG or WEBP · ${selectedGuidance.dimensions}`
@@ -188,7 +195,7 @@ export function BannerTemplateManager() {
                   "Artwork guidance changes with the selected public placement."}
               </p>
               <DialogFooter>
-                <Button disabled={loading || !selected || !file} onClick={() => void replaceTemplate()}>
+                <Button disabled={loading} onClick={() => void replaceTemplate()}>
                   {loading ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : null}
                   Create new version
                 </Button>

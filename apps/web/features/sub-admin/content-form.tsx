@@ -6,6 +6,7 @@ import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import { FieldError, RequiredIndicator } from "@/components/ui/field-error";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -21,6 +22,7 @@ import {
   DashboardFormSection,
 } from "@/features/dashboard/dashboard-ui";
 import { createContentBlock } from "@/lib/content-api";
+import { apiIssuesToFieldErrors, focusFirstInvalidField } from "@/lib/form-validation";
 import { ContentGuideCard } from "./content-guide";
 import { ContentPreview } from "./cms-previews";
 import { CmsPreviewFrame, type PreviewDevice } from "./cms-workspace";
@@ -59,6 +61,7 @@ export function ContentForm({ embedded = false, onCreated, onDirtyChange }: { em
   const [titleError, setTitleError] = React.useState<string | undefined>();
   const [submitting, setSubmitting] = React.useState(false);
   const [previewDevice, setPreviewDevice] = React.useState<PreviewDevice>("desktop");
+  const formRef = React.useRef<HTMLFormElement>(null);
   const dirty = Boolean(slug || section || title || body || businessLine !== GLOBAL);
   React.useEffect(() => onDirtyChange?.(dirty), [dirty, onDirtyChange]);
 
@@ -91,7 +94,12 @@ export function ContentForm({ embedded = false, onCreated, onDirtyChange }: { em
       setTitleError(undefined);
     }
 
-    if (hasError) return;
+    if (hasError) {
+      requestAnimationFrame(() => {
+        if (formRef.current) focusFirstInvalidField(formRef.current);
+      });
+      return;
+    }
 
     setSubmitting(true);
     const res = await createContentBlock({
@@ -112,6 +120,14 @@ export function ContentForm({ embedded = false, onCreated, onDirtyChange }: { em
       setSlugError("That slug is already taken. Pick another one.");
       toast.error("Slug already in use");
     } else {
+      const serverErrors = apiIssuesToFieldErrors(res.issues, {
+        slug: "slug",
+        section: "section",
+        title: "title",
+      });
+      if (serverErrors.slug) setSlugError(serverErrors.slug);
+      if (serverErrors.section) setSectionError(serverErrors.section);
+      if (serverErrors.title) setTitleError(serverErrors.title);
       toast.error("Could not create content block", { description: res.error });
     }
   }
@@ -128,57 +144,62 @@ export function ContentForm({ embedded = false, onCreated, onDirtyChange }: { em
       embedded={embedded}
       aside={<><ContentGuideCard /><CmsPreviewFrame title="Public content preview" description="The generic public content-section presentation for this draft." device={previewDevice} onDeviceChange={setPreviewDevice}><ContentPreview block={{ title, body: body || null }} /></CmsPreviewFrame></>}
     >
-      <form className="space-y-6" onSubmit={onSubmit}>
+      <form ref={formRef} className="space-y-6" onSubmit={onSubmit} noValidate>
         <DashboardFormSection
           title="Placement"
           description="Define the internal key, website section, and audience line before writing the copy."
         >
           <div>
-            <Label htmlFor="title">Title</Label>
+            <Label htmlFor="title">Title<RequiredIndicator /></Label>
             <Input
               id="title"
               value={title}
               onChange={(event) => {
                 setTitle(event.target.value);
+                setTitleError(undefined);
                 if (slug.length === 0 || slug === slugify(title)) {
                   setSlug(slugify(event.target.value));
                 }
               }}
               maxLength={500}
+              aria-invalid={Boolean(titleError)}
+              aria-describedby={titleError ? "title-error" : undefined}
             />
-            {titleError ? <p className="mt-1 text-sm text-destructive">{titleError}</p> : null}
+            <FieldError id="title-error" className="mt-1">{titleError}</FieldError>
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
-              <Label htmlFor="slug">Slug</Label>
+              <Label htmlFor="slug">Slug<RequiredIndicator /></Label>
               <Input
                 id="slug"
                 value={slug}
-                onChange={(event) => setSlug(event.target.value.toLowerCase())}
+                onChange={(event) => { setSlug(event.target.value.toLowerCase()); setSlugError(undefined); }}
                 maxLength={200}
                 placeholder="homepage-hero-copy"
+                aria-invalid={Boolean(slugError)}
+                aria-describedby={["slug-help", slugError ? "slug-error" : undefined].filter(Boolean).join(" ")}
               />
-              <p className="mt-1 text-xs text-text-secondary">
+              <p id="slug-help" className="mt-1 text-xs text-text-secondary">
                 Immutable key used by the website to locate this block.
               </p>
-              {slugError ? <p className="mt-1 text-sm text-destructive">{slugError}</p> : null}
+              <FieldError id="slug-error" className="mt-1">{slugError}</FieldError>
             </div>
             <div>
-              <Label htmlFor="section">Section</Label>
+              <Label htmlFor="section">Section<RequiredIndicator /></Label>
               <Input
                 id="section"
                 value={section}
-                onChange={(event) => setSection(event.target.value)}
+                onChange={(event) => { setSection(event.target.value); setSectionError(undefined); }}
                 maxLength={200}
                 placeholder="homepage-hero"
+                aria-invalid={Boolean(sectionError)}
+                aria-describedby={["section-help", sectionError ? "section-error" : undefined].filter(Boolean).join(" ")}
               />
-              <p className="mt-1 text-xs text-text-secondary">
+              <p id="section-help" className="mt-1 text-xs text-text-secondary">
                 Identifies where this block appears.
               </p>
-              {sectionError ? (
-                <p className="mt-1 text-sm text-destructive">{sectionError}</p>
-              ) : null}
+              <FieldError id="section-error" className="mt-1">{sectionError}</FieldError>
             </div>
           </div>
 

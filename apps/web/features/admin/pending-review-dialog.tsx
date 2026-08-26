@@ -60,6 +60,7 @@ export function PendingReviewDialog({
             aria-label="Search review items"
             placeholder="Search title"
             value={filters.search}
+            maxLength={100}
             onChange={(event) => setFilters((current) => ({ ...current, search: event.target.value }))}
           />
           <Select value={filters.kind ?? "all"} onValueChange={(kind) => setFilters((current) => ({ ...current, kind: kind as PendingReviewFilters["kind"] }))}>

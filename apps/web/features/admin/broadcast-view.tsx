@@ -5,6 +5,7 @@ import { Loader2, Megaphone, Send, Users } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import { FieldError, RequiredIndicator } from "@/components/ui/field-error";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -20,6 +21,12 @@ import {
   sendBroadcast,
   type BroadcastAudience,
 } from "@/lib/admin-broadcast-api";
+import {
+  apiIssuesToFieldErrors,
+  focusFirstInvalidField,
+  requiredTextError,
+} from "@/lib/form-validation";
+import { isSafeLocalHref } from "@/lib/safe-local-href";
 
 const AUDIENCE_LABEL: Record<BroadcastAudience, string> = {
   admins: "Admins",
@@ -46,6 +53,17 @@ export function BroadcastView() {
   const [previewing, setPreviewing] = React.useState(false);
   const [sending, setSending] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = React.useState<Record<string, string>>({});
+  const composerRef = React.useRef<HTMLDivElement>(null);
+
+  function showFieldErrors(next: Record<string, string>) {
+    setFieldErrors(next);
+    if (Object.keys(next).length > 0) {
+      requestAnimationFrame(() => {
+        if (composerRef.current) focusFirstInvalidField(composerRef.current);
+      });
+    }
+  }
 
   // Any field change invalidates a prior preview — the count must always
   // reflect the audience/line the admin is about to actually send to.
@@ -67,8 +85,16 @@ export function BroadcastView() {
 
   async function handleSend() {
     if (previewCount === null) return;
-    if (!title.trim() || !body.trim()) {
-      setError("Title and message are required.");
+    const next: Record<string, string> = {};
+    const titleError = requiredTextError(title, "Title", 200);
+    const bodyError = requiredTextError(body, "Message", 2000);
+    if (titleError) next.title = titleError;
+    if (bodyError) next.body = bodyError;
+    if (href.trim() && !isSafeLocalHref(href.trim())) {
+      next.href = "Use a same-site path beginning with one slash.";
+    }
+    showFieldErrors(next);
+    if (Object.keys(next).length > 0) {
       return;
     }
     const confirmed = window.confirm(
@@ -87,6 +113,12 @@ export function BroadcastView() {
     });
     setSending(false);
     if (!res.ok) {
+      const serverErrors = apiIssuesToFieldErrors(res.issues, {
+        title: "title",
+        body: "body",
+        href: "href",
+      });
+      if (Object.keys(serverErrors).length > 0) showFieldErrors(serverErrors);
       setError(res.error || "Broadcast failed to send.");
       return;
     }
@@ -116,7 +148,7 @@ export function BroadcastView() {
         </div>
       </div>
 
-      <div className="rounded-2xl border border-border bg-card p-4 sm:p-6">
+      <div ref={composerRef} className="rounded-2xl border border-border bg-card p-4 sm:p-6">
         <div className="grid gap-6 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]">
           <section className="space-y-5 rounded-xl border border-border bg-muted/20 p-4" aria-labelledby="broadcast-audience-heading">
             <div>
@@ -168,26 +200,32 @@ export function BroadcastView() {
               <h2 id="broadcast-message-heading" className="mt-1 font-semibold text-text-primary">Write the notification</h2>
             </div>
             <div className="grid gap-2">
-          <Label htmlFor="broadcast-title">Title</Label>
+          <Label htmlFor="broadcast-title">Title<RequiredIndicator /></Label>
           <Input
             id="broadcast-title"
             value={title}
-            onChange={(e) => setTitle(e.target.value)}
+            onChange={(e) => { setTitle(e.target.value); setFieldErrors((current) => { const next = { ...current }; delete next.title; return next; }); }}
             maxLength={200}
             placeholder="e.g. Scheduled maintenance tonight"
+            aria-invalid={Boolean(fieldErrors.title)}
+            aria-describedby={fieldErrors.title ? "broadcast-title-error" : undefined}
           />
+          <FieldError id="broadcast-title-error">{fieldErrors.title}</FieldError>
         </div>
 
         <div className="grid gap-2">
-          <Label htmlFor="broadcast-body">Message</Label>
+          <Label htmlFor="broadcast-body">Message<RequiredIndicator /></Label>
           <Textarea
             id="broadcast-body"
             value={body}
-            onChange={(e) => setBody(e.target.value)}
+            onChange={(e) => { setBody(e.target.value); setFieldErrors((current) => { const next = { ...current }; delete next.body; return next; }); }}
             maxLength={2000}
             rows={4}
             placeholder="What do they need to know?"
+            aria-invalid={Boolean(fieldErrors.body)}
+            aria-describedby={fieldErrors.body ? "broadcast-body-error" : undefined}
           />
+          <FieldError id="broadcast-body-error">{fieldErrors.body}</FieldError>
         </div>
 
         <div className="grid gap-2">
@@ -195,15 +233,18 @@ export function BroadcastView() {
           <Input
             id="broadcast-href"
             value={href}
-            onChange={(e) => setHref(e.target.value)}
+            onChange={(e) => { setHref(e.target.value); setFieldErrors((current) => { const next = { ...current }; delete next.href; return next; }); }}
             maxLength={300}
             placeholder="/dashboard/..."
+            aria-invalid={Boolean(fieldErrors.href)}
+            aria-describedby={fieldErrors.href ? "broadcast-href-error" : undefined}
           />
+          <FieldError id="broadcast-href-error">{fieldErrors.href}</FieldError>
         </div>
           </section>
         </div>
 
-        {error && <p className="text-sm text-error">{error}</p>}
+        {error && <p role="alert" className="text-sm text-error">{error}</p>}
 
         <div className="mt-6 flex flex-wrap items-center gap-3 border-t border-border pt-4">
           <Button
@@ -219,7 +260,7 @@ export function BroadcastView() {
           <Button
             type="button"
             onClick={handleSend}
-            disabled={previewCount === null || sending || !title.trim() || !body.trim()}
+            disabled={previewCount === null || sending}
             className="ml-auto"
           >
             {sending ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : null}

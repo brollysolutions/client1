@@ -9,7 +9,7 @@
 
 import type { components } from "@contracts/generated/schema";
 
-import { apiRequest, type ApiResponse } from "@/lib/api/client";
+import { apiRequest, type ApiResponse, type ApiValidationIssue } from "@/lib/api/client";
 
 type Schemas = components["schemas"];
 
@@ -30,7 +30,7 @@ export const RESET_MOBILE_KEY = "auth:reset-mobile";
 // to the caller's default "check your details" hint.
 export type AuthResult<T = undefined> =
   | { ok: true; data: T }
-  | { ok: false; error: string; status: number };
+  | { ok: false; error: string; status: number; issues?: ApiValidationIssue[] };
 
 // Map an HTTP status to a description that matches the real failure. Returns
 // undefined for credential/validation errors (400/401/422) so the caller keeps
@@ -128,7 +128,7 @@ export type AuthTokens = {
 // payload on success and passing the friendly error string through on failure.
 function toResult<T, U>(res: ApiResponse<T>, map: (data: T) => U): AuthResult<U> {
   if (res.ok) return { ok: true, data: map(res.data) };
-  return { ok: false, error: res.error, status: res.status };
+  return { ok: false, error: res.error, status: res.status, issues: res.issues };
 }
 
 type OtpDeliveryResponse =

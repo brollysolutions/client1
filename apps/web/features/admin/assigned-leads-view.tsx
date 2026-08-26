@@ -49,7 +49,7 @@ export function AssignedLeadsView() {
       </div>
 
       <div className="grid gap-2 rounded-xl border border-border bg-card p-3 sm:grid-cols-2 lg:grid-cols-5">
-        <Input aria-label="Search lead assignments" placeholder="Lead or Telecaller" value={search} onChange={(event) => setSearch(event.target.value)} />
+        <Input aria-label="Search lead assignments" placeholder="Lead or Telecaller" value={search} maxLength={100} onChange={(event) => setSearch(event.target.value)} />
         <Select value={businessLine} onValueChange={setBusinessLine}><SelectTrigger aria-label="Filter lead assignments by line"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All lines</SelectItem><SelectItem value="loans">Loans</SelectItem><SelectItem value="real_estate">Real Estate</SelectItem></SelectContent></Select>
         <Select value={status} onValueChange={setStatus}><SelectTrigger aria-label="Filter lead assignments by status"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All statuses</SelectItem><SelectItem value="assigned">Assigned</SelectItem><SelectItem value="working">Working</SelectItem></SelectContent></Select>
         <Input aria-label="Lead assignments from date" type="date" value={dateFrom} onChange={(event) => setDateFrom(event.target.value)} />

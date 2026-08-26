@@ -124,6 +124,7 @@ export function TelecallerLeadsView() {
               aria-label="Search leads"
               placeholder="Name or mobile"
               value={filters.search}
+              maxLength={100}
               onChange={(e) => setFilters((f) => ({ ...f, search: e.target.value }))}
             />
             <Select value={filters.status} onValueChange={(v) => setFilters((f) => ({ ...f, status: v }))}>

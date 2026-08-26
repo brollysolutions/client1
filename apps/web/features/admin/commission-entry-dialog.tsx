@@ -5,6 +5,7 @@ import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import { FieldError } from "@/components/ui/field-error";
 import {
   Dialog,
   DialogContent,
@@ -19,6 +20,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { formatPaise } from "@/lib/format";
 import { rupeesToPaise } from "@/lib/payout-form";
 import type { ApiResponse } from "@/lib/api/client";
+import { apiIssuesToFieldErrors } from "@/lib/form-validation";
 import type { CommissionCreate, CommissionRead, EligibleDeal } from "@/lib/admin-commissions-api";
 
 const LINE_LABEL: Record<string, string> = { loans: "Loans", real_estate: "Real Estate" };
@@ -35,12 +37,14 @@ export function CommissionEntryDialog({
   const [amountRupees, setAmountRupees] = React.useState("");
   const [notes, setNotes] = React.useState("");
   const [error, setError] = React.useState<string | null>(null);
+  const [notesError, setNotesError] = React.useState<string>();
   const [busy, setBusy] = React.useState(false);
 
   function resetAndClose() {
     setAmountRupees("");
     setNotes("");
     setError(null);
+    setNotesError(undefined);
     onOpenChange(false);
   }
 
@@ -49,6 +53,10 @@ export function CommissionEntryDialog({
     const amountPaise = rupeesToPaise(amountRupees);
     if (amountPaise === null) {
       setError("Enter a valid amount greater than zero.");
+      return;
+    }
+    if (notes.trim().length > 1000) {
+      setNotesError("Notes must be 1000 characters or fewer.");
       return;
     }
     setError(null);
@@ -74,6 +82,12 @@ export function CommissionEntryDialog({
       });
       return;
     }
+    const serverErrors = apiIssuesToFieldErrors(res.issues, {
+      agreed_amount_paise: "amount",
+      notes: "notes",
+    });
+    if (serverErrors.amount) setError(serverErrors.amount);
+    if (serverErrors.notes) setNotesError(serverErrors.notes);
     toast.error("Could not enter the commission", { description: res.error });
   }
 
@@ -101,13 +115,15 @@ export function CommissionEntryDialog({
               inputMode="decimal"
               placeholder="0.00"
               value={amountRupees}
-              onChange={(e) => setAmountRupees(e.target.value)}
+              onChange={(e) => { setAmountRupees(e.target.value); setError(null); }}
               autoFocus
+              aria-invalid={Boolean(error)}
+              aria-describedby={error ? "commission-amount-error" : undefined}
             />
             {previewPaise !== null ? (
               <p className="text-xs text-text-secondary">{formatPaise(previewPaise)}</p>
             ) : null}
-            {error ? <p className="text-xs text-destructive">{error}</p> : null}
+            <FieldError id="commission-amount-error" className="text-xs">{error ?? undefined}</FieldError>
           </div>
 
           <div className="space-y-1.5">
@@ -116,9 +132,13 @@ export function CommissionEntryDialog({
               id="commission-notes"
               placeholder="How the amount was negotiated"
               value={notes}
-              onChange={(e) => setNotes(e.target.value)}
+              onChange={(e) => { setNotes(e.target.value); setNotesError(undefined); }}
               rows={3}
+              maxLength={1000}
+              aria-invalid={Boolean(notesError)}
+              aria-describedby={notesError ? "commission-notes-error" : undefined}
             />
+            <FieldError id="commission-notes-error" className="text-xs">{notesError}</FieldError>
           </div>
         </div>
 

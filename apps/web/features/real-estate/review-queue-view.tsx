@@ -7,6 +7,7 @@ import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { FieldError, RequiredIndicator } from "@/components/ui/field-error";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PanoramaViewer } from "@/components/panorama-viewer";
@@ -20,6 +21,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
+import { optionalTextError, requiredTextError } from "@/lib/form-validation";
 import { formatPaiseCompact } from "@/lib/format";
 import {
   approveSubmission,
@@ -49,6 +51,8 @@ export function ReviewQueueView() {
   const [rejecting, setRejecting] = React.useState(false);
   const [note, setNote] = React.useState("");
   const [reraNote, setReraNote] = React.useState("");
+  const [noteError, setNoteError] = React.useState<string>();
+  const [reraNoteError, setReraNoteError] = React.useState<string>();
   const [busy, setBusy] = React.useState(false);
   const [mediaUrls, setMediaUrls] = React.useState<Record<string, string>>({});
   const [mediaLoading, setMediaLoading] = React.useState(false);
@@ -119,10 +123,9 @@ export function ReviewQueueView() {
   }
 
   async function onReject(sub: Submission) {
-    if (note.trim().length === 0) {
-      toast.error("Add a reason", { description: "Tell the submitter why this was rejected." });
-      return;
-    }
+    const validationError = requiredTextError(note, "Rejection reason", 1000);
+    setNoteError(validationError);
+    if (validationError) return;
     setBusy(true);
     const res = await rejectSubmission(sub.id, note.trim());
     setBusy(false);
@@ -141,12 +144,11 @@ export function ReviewQueueView() {
     sub: Submission,
     status: "verified" | "mismatch" | "exemption_verified",
   ) {
-    if (status !== "verified" && reraNote.trim().length === 0) {
-      toast.error("Add a RERA review note", {
-        description: "Record the registry mismatch or the basis for the exemption.",
-      });
-      return;
-    }
+    const validationError = status === "verified"
+      ? optionalTextError(reraNote, "RERA review note", 1000)
+      : requiredTextError(reraNote, "RERA review note", 1000);
+    setReraNoteError(validationError);
+    if (validationError) return;
     setBusy(true);
     const result = await reviewSubmissionRera(sub.id, {
       status,
@@ -181,7 +183,7 @@ export function ReviewQueueView() {
       </section>
 
       <div className="grid gap-2 rounded-xl border border-border bg-card p-3 sm:grid-cols-3">
-        <Input aria-label="Search property approvals" placeholder="Listing or location" value={search} onChange={(event) => setSearch(event.target.value)} />
+        <Input aria-label="Search property approvals" placeholder="Listing or location" value={search} maxLength={100} onChange={(event) => setSearch(event.target.value)} />
         <Input aria-label="Property approvals from date" type="date" value={dateFrom} onChange={(event) => setDateFrom(event.target.value)} />
         <Input aria-label="Property approvals to date" type="date" min={dateFrom || undefined} value={dateTo} onChange={(event) => setDateTo(event.target.value)} />
       </div>
@@ -216,6 +218,8 @@ export function ReviewQueueView() {
                   setRejecting(false);
                   setNote("");
                   setReraNote("");
+                  setNoteError(undefined);
+                  setReraNoteError(undefined);
                 }}
                 className="flex w-full items-center justify-between gap-4 rounded-2xl border border-border bg-card p-4 text-left transition-colors hover:border-brand-cta"
               >
@@ -349,11 +353,14 @@ export function ReviewQueueView() {
                     name="rera-review-note"
                     className="mt-1"
                     value={reraNote}
-                    onChange={(event) => setReraNote(event.target.value)}
+                    onChange={(event) => { setReraNote(event.target.value); setReraNoteError(undefined); }}
                     placeholder="Record the registry result for the audit trail"
                     rows={2}
                     maxLength={1000}
+                    aria-invalid={Boolean(reraNoteError)}
+                    aria-describedby={reraNoteError ? "rera-review-note-error" : undefined}
                   />
+                  <FieldError id="rera-review-note-error">{reraNoteError}</FieldError>
                   <div className="mt-3 flex flex-wrap gap-2">
                     {active.rera_applicability === "applicable" ? (
                       <Button type="button" size="sm" variant="outline" disabled={busy || !active.rera_number} onClick={() => void onReraReview(active, "verified")}>
@@ -379,18 +386,22 @@ export function ReviewQueueView() {
                 {rejecting ? (
                   <div>
                     <Label htmlFor="property-rejection-reason">
-                      Reason for rejection
+                      Reason for rejection <RequiredIndicator />
                     </Label>
                     <Textarea
                       id="property-rejection-reason"
                       name="property-rejection-reason"
                       className="mt-1"
                       value={note}
-                      onChange={(e) => setNote(e.target.value)}
+                      onChange={(e) => { setNote(e.target.value); setNoteError(undefined); }}
                       placeholder="Explain what the submitter needs to correct"
                       rows={3}
+                      maxLength={1000}
+                      aria-invalid={Boolean(noteError)}
+                      aria-describedby={noteError ? "property-rejection-reason-error" : "property-rejection-reason-help"}
                     />
-                    <p className="mt-1 text-xs text-text-secondary">
+                    <FieldError id="property-rejection-reason-error">{noteError}</FieldError>
+                    <p id="property-rejection-reason-help" className="mt-1 text-xs text-text-secondary">
                       This reason is shown to the submitter.
                     </p>
                   </div>

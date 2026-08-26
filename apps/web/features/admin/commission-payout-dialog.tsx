@@ -13,19 +13,17 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import type { ApiResponse } from "@/lib/api/client";
+import { apiIssuesToFieldErrors, focusFirstInvalidField } from "@/lib/form-validation";
 import { formatPaise } from "@/lib/format";
 import {
   buildCommissionPayoutPayload,
-  DESTINATION_OPTIONS,
   EMPTY_COMMISSION_PAYOUT_FORM,
   validateCommissionPayoutForm,
   type CommissionPayoutFormState,
 } from "@/lib/commission-payout-form";
 import type { CommissionPayoutRequest, CommissionRead } from "@/lib/admin-commissions-api";
+import { PayoutDestinationFields } from "./payout-destination-fields";
 
 export function CommissionPayoutDialog({
   commission,
@@ -39,6 +37,7 @@ export function CommissionPayoutDialog({
   const [form, setForm] = React.useState<CommissionPayoutFormState>(EMPTY_COMMISSION_PAYOUT_FORM);
   const [errors, setErrors] = React.useState<Record<string, string>>({});
   const [busy, setBusy] = React.useState(false);
+  const contentRef = React.useRef<HTMLDivElement>(null);
 
   function resetAndClose() {
     setForm(EMPTY_COMMISSION_PAYOUT_FORM);
@@ -51,12 +50,27 @@ export function CommissionPayoutDialog({
     value: CommissionPayoutFormState[K],
   ) {
     setForm((f) => ({ ...f, [key]: value }));
+    setErrors((current) => {
+      if (!current[key]) return current;
+      const next = { ...current };
+      delete next[key];
+      return next;
+    });
+  }
+
+  function showErrors(next: Record<string, string>) {
+    setErrors(next);
+    if (Object.keys(next).length > 0) {
+      requestAnimationFrame(() => {
+        if (contentRef.current) focusFirstInvalidField(contentRef.current);
+      });
+    }
   }
 
   async function onSubmit() {
     if (!commission) return;
     const errs = validateCommissionPayoutForm(form);
-    setErrors(errs);
+    showErrors(errs);
     if (Object.keys(errs).length > 0) return;
 
     const payload = buildCommissionPayoutPayload(form);
@@ -76,6 +90,13 @@ export function CommissionPayoutDialog({
       });
       return;
     }
+    const serverErrors = apiIssuesToFieldErrors(res.issues, {
+      destination_type: "destinationType",
+      "destination.vpa": "vpa",
+      "destination.ifsc": "ifsc",
+      "destination.account_number": "accountNumber",
+    });
+    if (Object.keys(serverErrors).length > 0) showErrors(serverErrors);
     toast.error("Could not raise the payout", { description: res.error });
   }
 
@@ -84,7 +105,7 @@ export function CommissionPayoutDialog({
       open={commission !== null}
       onOpenChange={(o) => (o ? undefined : resetAndClose())}
     >
-      <DialogContent className="max-w-lg">
+      <DialogContent ref={contentRef} className="max-w-lg">
         {commission !== null ? (
           <>
             <DialogHeader>
@@ -100,68 +121,13 @@ export function CommissionPayoutDialog({
                 only where the money should go.
               </p>
 
-              <div className="space-y-1.5">
-                <Label>Destination</Label>
-                <RadioGroup
-                  value={form.destinationType}
-                  onValueChange={(v) =>
-                    set("destinationType", v as CommissionPayoutFormState["destinationType"])
-                  }
-                  className="grid-cols-1 sm:grid-cols-3"
-                >
-                  {DESTINATION_OPTIONS.map((o) => (
-                    <div key={o.value} className="flex items-center gap-2">
-                      <RadioGroupItem value={o.value} id={`com-dest-${o.value}`} />
-                      <Label htmlFor={`com-dest-${o.value}`} className="font-normal">
-                        {o.label}
-                      </Label>
-                    </div>
-                  ))}
-                </RadioGroup>
-                {errors.destinationType ? (
-                  <p className="text-xs text-destructive">{errors.destinationType}</p>
-                ) : null}
-              </div>
-
-              {form.destinationType === "vpa" ? (
-                <div className="space-y-1.5">
-                  <Label htmlFor="com-payout-vpa">UPI VPA</Label>
-                  <Input
-                    id="com-payout-vpa"
-                    placeholder="name@bank"
-                    value={form.vpa}
-                    onChange={(e) => set("vpa", e.target.value)}
-                  />
-                  {errors.vpa ? <p className="text-xs text-destructive">{errors.vpa}</p> : null}
-                </div>
-              ) : form.destinationType === "bank_account" ? (
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1.5">
-                    <Label htmlFor="com-payout-ifsc">IFSC</Label>
-                    <Input
-                      id="com-payout-ifsc"
-                      value={form.ifsc}
-                      onChange={(e) => set("ifsc", e.target.value)}
-                    />
-                    {errors.ifsc ? <p className="text-xs text-destructive">{errors.ifsc}</p> : null}
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="com-payout-account">Account number</Label>
-                    <Input
-                      id="com-payout-account"
-                      value={form.accountNumber}
-                      onChange={(e) => set("accountNumber", e.target.value)}
-                    />
-                    {errors.accountNumber ? (
-                      <p className="text-xs text-destructive">{errors.accountNumber}</p>
-                    ) : null}
-                  </div>
-                </div>
-              ) : form.destinationType === "cheque" ? (
-                <p className="rounded-lg bg-muted p-3 text-xs text-text-secondary">
-                  The cheque reference is recorded only after approval and issuance.
-                </p>
-              ) : null}
+              <PayoutDestinationFields
+                idPrefix="commission-payout"
+                form={form}
+                errors={errors}
+                onChange={set}
+                disabled={busy}
+              />
             </div>
 
             <DialogFooter>
