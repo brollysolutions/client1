@@ -634,9 +634,9 @@ test.describe("role-aware dashboard navigation", () => {
       await expect(homeMain.getByText("Save properties you like")).toBeVisible();
       await expect(homeMain.getByText("No open enquiries")).toBeVisible();
       await expect(homeMain.getByText("No visits scheduled")).toBeVisible();
-      // Category quick-links stay lightweight (no live counts -- those belong
-      // to Explore's own CategoryStrip) but every category is still reachable,
-      // including the ones with zero listings.
+      // Category quick-links stay lightweight (illustrated cards, no live
+      // counts -- those belong to Explore's own per-category rows) but every
+      // category is still reachable, including the ones with zero listings.
       await expect(homeMain.getByRole("link", { name: /Residential Houses/ })).toBeVisible();
       await expect(homeMain.getByRole("link", { name: /Commercial/ })).toBeVisible();
       // Home no longer fetches the property catalog at all, so none of its
@@ -646,14 +646,20 @@ test.describe("role-aware dashboard navigation", () => {
       await expect(page.getByText("No listings yet")).toHaveCount(0);
 
       // The quick search hands off to Explore rather than filtering in place.
-      await page.getByRole("textbox", { name: "Search properties" }).fill("Wakad");
+      // It now shares Explore's omnibox (cmdk's Command input renders role
+      // "combobox", not "textbox") for the location/property suggestions.
+      await page.getByRole("combobox", { name: "Search properties" }).fill("Wakad");
       await page.getByRole("button", { name: "Search", exact: true }).click();
       await expect(page).toHaveURL(/\/dashboard\/explore\?q=Wakad/);
       await expect(page.getByText("Wakad Gardens").first()).toBeVisible();
       await expect(page.getByText("Baner Heights")).toHaveCount(0);
 
-      // Explore is now where the catalog-browsing surface lives: the category
-      // strip (moved here from the old Home) and per-category carousels.
+      // Explore is now where the catalog-browsing surface lives: one carousel
+      // per category (moved here from the old Home), with no separate "Browse
+      // by property type" grid above them. A zero-listing category (houses,
+      // in this stub) still renders its own "No listings yet" state with a
+      // link into the category page, so it stays reachable instead of the row
+      // vanishing outright.
       await page.goto("/dashboard/explore");
       await expect(page.getByRole("heading", { name: "Explore properties" })).toBeVisible();
       await expect(

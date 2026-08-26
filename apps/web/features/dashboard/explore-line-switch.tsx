@@ -6,7 +6,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { FetchError } from "@/features/dashboard/fetch-error";
 import { DashboardHeader, DashboardPage } from "@/features/dashboard/dashboard-ui";
 import { useLine } from "@/features/dashboard/line-provider";
-import { CategoryStrip } from "@/features/real-estate/category-strip";
 import { PropertyBrowser } from "@/features/real-estate/property-browser";
 import { PropertyRow } from "@/features/real-estate/property-row";
 import { useProperties } from "@/features/real-estate/use-properties";
@@ -70,23 +69,25 @@ function RealEstateExplore() {
   );
 }
 
-// Real-estate idle state: the category strip (live counts, honest
-// "No listings yet" for an empty category) plus one carousel per category.
-// This is exactly the content Home used to own -- Home is now a personal
-// status view instead, and this is the catalog-browsing home Explore is
-// meant to be, richer than the single "Featured properties" row it had
-// before (that row was an arbitrary top-10 slice; per-category rows let a
-// client actually browse).
+// Real-estate idle state: one carousel per category. This is exactly the
+// content Home used to own -- Home is now a personal status view instead, and
+// this is the catalog-browsing home Explore is meant to be, richer than the
+// single "Featured properties" row it had before (that row was an arbitrary
+// top-10 slice; per-category rows let a client actually browse). No separate
+// "Browse by property type" grid precedes these rows (that lives on Home now,
+// as illustrated cards); PropertyRow itself keeps every category reachable
+// (including a zero-count one) by rendering an honest "No listings yet" state
+// with a link into the category page instead of vanishing.
 function RealEstateHub({ listings }: { listings: REListing[] }) {
   return (
     <div className="space-y-8">
-      <CategoryStrip listings={listings} />
       {RE_CATEGORIES.map((category) => (
         <PropertyRow
           key={category.key}
           id={category.key}
           heading={category.label}
           blurb={category.blurb}
+          href={`/dashboard/explore/${category.key}`}
           listings={listings.filter((listing) => listing.category === category.key)}
         />
       ))}
