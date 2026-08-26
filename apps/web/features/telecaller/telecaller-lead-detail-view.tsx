@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
+import { UserAvatar } from "@/components/user-avatar";
 import {
   DashboardBackLink,
   DashboardFormSection,
@@ -34,6 +35,7 @@ import {
   STATUS_LABEL,
   dispositionDotClass,
   formatDateTime,
+  statusAccentBorderClass,
 } from "./telecaller-lead-status";
 import { TelecallerLoanAppsSection } from "./telecaller-loan-apps-section";
 import { TelecallerPropertyDealsSection } from "./telecaller-property-deals-section";
@@ -138,10 +140,28 @@ export function TelecallerLeadDetailView({ leadId }: { leadId: string }) {
           so screen-reader heading navigation has a top-level landmark. */}
       <h1 className="sr-only">{lead.name ?? "Unnamed lead"}</h1>
 
-      <DashboardPanel
-        title={lead.name ?? "Unnamed lead"}
-        description={formatMobile(lead.mobile)}
-        action={
+      {/* Hand-composed, not <DashboardPanel>, so the header row can carry a
+          UserAvatar next to the name — DashboardPanel's title stays a plain
+          string everywhere else in the app, and this is the one place that
+          needs more than text there. Classes below are copied verbatim from
+          DashboardPanel so it stays pixel-consistent with every other panel
+          on this page. */}
+      <section
+        className={cn(
+          "animate-in fade-in-0 overflow-hidden rounded-xl border border-l-4 border-border bg-card shadow-sm duration-200 motion-reduce:animate-none",
+          statusAccentBorderClass(lead.status),
+        )}
+      >
+        <div className="flex flex-wrap items-start justify-between gap-3 border-b border-border px-5 py-4">
+          <div className="flex items-center gap-3">
+            <UserAvatar name={lead.name} size="lg" />
+            <div>
+              <h2 className="text-base font-semibold text-text-primary">
+                {lead.name ?? "Unnamed lead"}
+              </h2>
+              <p className="mt-0.5 text-sm text-text-secondary">{formatMobile(lead.mobile)}</p>
+            </div>
+          </div>
           <span
             className={cn(
               "shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium",
@@ -150,40 +170,48 @@ export function TelecallerLeadDetailView({ leadId }: { leadId: string }) {
           >
             {STATUS_LABEL[lead.status] ?? lead.status}
           </span>
-        }
-      >
-        <div className="flex flex-wrap gap-2">
-          <Button asChild variant="outline" size="sm">
-            <a href={`tel:${toE164(lead.mobile)}`}>
-              <Phone className="h-4 w-4" aria-hidden="true" />
-              Call
-            </a>
-          </Button>
-          <Button asChild variant="outline" size="sm">
-            <a href={toWaHref(lead.mobile)} target="_blank" rel="noopener noreferrer">
-              <MessageCircle className="h-4 w-4" aria-hidden="true" />
-              WhatsApp
-            </a>
-          </Button>
         </div>
 
-        <div className="mt-4 flex flex-wrap items-center gap-2">
-          {LEAD_STATUS_OPTIONS.map((o) => (
-            <Button
-              key={o.value}
-              type="button"
-              size="sm"
-              variant={lead.status === o.value ? "default" : "outline"}
-              disabled={updatingStatus || lead.status === o.value}
-              onClick={() => void onStatusChange(o.value)}
-            >
-              {o.label}
+        <div className="p-5">
+          {/* Icon-only, not labeled buttons — a "Call" action is a phone
+              affordance (tel: only actually does anything on a device that
+              can dial), so on the web dashboard it stays available but
+              doesn't masquerade as a primary web action. */}
+          <div className="flex gap-2">
+            <Button asChild variant="outline" size="icon" aria-label="Call" title="Call">
+              <a href={`tel:${toE164(lead.mobile)}`}>
+                <Phone className="h-4 w-4" aria-hidden="true" />
+              </a>
             </Button>
-          ))}
-        </div>
-      </DashboardPanel>
+            <Button asChild variant="outline" size="icon" aria-label="WhatsApp" title="WhatsApp">
+              <a href={toWaHref(lead.mobile)} target="_blank" rel="noopener noreferrer">
+                <MessageCircle className="h-4 w-4" aria-hidden="true" />
+              </a>
+            </Button>
+          </div>
 
-      <DashboardPanel title="Log a call" description="Record the outcome and schedule a follow-up.">
+          <div className="mt-4 flex flex-wrap items-center gap-2">
+            {LEAD_STATUS_OPTIONS.map((o) => (
+              <Button
+                key={o.value}
+                type="button"
+                size="sm"
+                variant={lead.status === o.value ? "default" : "outline"}
+                disabled={updatingStatus || lead.status === o.value}
+                onClick={() => void onStatusChange(o.value)}
+              >
+                {o.label}
+              </Button>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <DashboardPanel
+        title="Log a call"
+        description="Record the outcome and schedule a follow-up."
+        className="animate-in fade-in-0 duration-200 motion-reduce:animate-none"
+      >
         <form className="space-y-6" onSubmit={(e) => void onLogCall(e)}>
           <DashboardFormSection title="Call outcome">
             <div className="grid gap-4 sm:grid-cols-2">
@@ -296,6 +324,7 @@ export function TelecallerLeadDetailView({ leadId }: { leadId: string }) {
       <DashboardPanel
         title="Call history"
         description={lead.activities.length === 0 ? undefined : `${lead.activities.length} calls logged`}
+        className="animate-in fade-in-0 duration-200 motion-reduce:animate-none"
       >
         {lead.activities.length === 0 ? (
           <p className="text-sm text-text-secondary">No calls logged yet.</p>

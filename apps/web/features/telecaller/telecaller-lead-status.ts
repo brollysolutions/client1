@@ -61,6 +61,15 @@ export function dispositionDotClass(disposition: string | null | undefined): str
   return "bg-muted-foreground";
 }
 
+// Left-edge accent border on the lead detail header, echoing the status pill
+// color at a glance — the same status vocabulary STATUS_STYLE already uses.
+export function statusAccentBorderClass(status: string): string {
+  if (status === "working") return "border-l-warning";
+  if (status === "converted") return "border-l-success";
+  if (status === "assigned") return "border-l-brand-cta";
+  return "border-l-border";
+}
+
 export function formatDateTime(iso: string | null | undefined): string {
   if (!iso) return "-";
   const d = new Date(iso);

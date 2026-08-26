@@ -363,6 +363,71 @@ this specific change is the recommended follow-up once merged and pulled.
 No auth, RLS, payout, migration, or contract surface changed; scope is
 `apps/web` only.
 
+**Done - Chevron affordance live-confirmed; Call/WhatsApp actions converted
+to icon-only buttons** on `claude/20260826-155030-switch-to-main-and-pull-changes`
+([PR #239](https://github.com/brollysolutions/client1/pull/239); direct
+user-reported follow-up — "the UI didn't change for the leads, still same"
+turned out to be the user's browser tab holding a stale bundle from before
+the PR #238 merge/restart (confirmed live via a fresh Playwright navigation
+against the running local stack immediately after their report: the chevron
+column and per-row `>` were present in the DOM and screenshot, so no code
+change was needed there — a hard refresh was the fix); then "Remove call
+from web, let it stay on phone, add whatsapp icon and phone icon"; no
+requirement or completion-percentage change): `telecaller-lead-detail-view.tsx`'s
+Call/WhatsApp actions were full text-labeled `Button`s
+(`variant="outline" size="sm"`, icon + "Call"/"WhatsApp" label) — a `tel:`
+link only does anything on a device that can actually dial, so presenting it
+as a primary labeled web action was the wrong affordance. Both are now
+icon-only (`size="icon"`, the same `h-9 w-9` variant already used in eight
+other files across the app — `notification-bell.tsx` among them — so this
+isn't a new pattern), each with `aria-label`/`title` since there's no longer
+visible text for screen readers or a mouse-hover hint. Applied the same
+icon-only treatment to `employee-task-detail-view.tsx`'s lone Call button for
+consistency (no WhatsApp exists on that screen, so no icon was added there —
+out of scope, not requested). Fresh evidence: `npm run typecheck` (clean),
+`npm run lint` (clean); `npm run test` unaffected (no logic changed, pure
+button markup). Not live-browser-verified this pass, for the same structural
+reason as the previous entry — this worktree's running container doesn't yet
+have this source change; the `size="icon"` variant being reused verbatim
+across eight already-live files is the basis for confidence here. No auth,
+RLS, payout, migration, or contract surface changed; scope is `apps/web`
+only.
+
+**Done - Telecaller lead-detail header given a hero treatment: avatar,
+status-accent border, entrance animation** on
+`claude/20260826-155030-switch-to-main-and-pull-changes`
+([PR #239](https://github.com/brollysolutions/client1/pull/239); direct user-reported
+follow-up — "I was talking UI changes for the lead detail page", clarifying
+that the "still same"/"looks broken" reports from a few turns back were about
+this page specifically, not the leads table (which PR #238's chevron already
+addressed and was confirmed live); no requirement or completion-percentage
+change): the structural `DashboardPanel` migration in PR #237 was correct and
+matched the design system, but read as too incremental against the original
+"change the Entire UI" ask — this pass adds genuine visual distinctiveness
+rather than more structure. The header card is no longer a `<DashboardPanel>`
+call: it's hand-composed with DashboardPanel's exact classes copied verbatim
+(so it stays pixel-consistent with every other panel on the page) because
+DashboardPanel's `title` prop is a plain string everywhere else in the app,
+and this is the one place that needed more than text there — a `UserAvatar`
+(`components/user-avatar.tsx`, the same deterministic letter-tile already
+used for the staff sidebar identity, size `lg`) now sits beside the lead's
+name. The header card also gains a `border-l-4` status-accent border (new
+`statusAccentBorderClass()` in `telecaller-lead-status.ts`: warning/success/
+brand-cta/border, mirroring `STATUS_STYLE`'s existing color vocabulary) and,
+along with the "Log a call" and "Call history" panels, a restrained
+`animate-in fade-in-0 duration-200 motion-reduce:animate-none` entrance
+(the same pattern already proven live on the leads table in PR #237/#238).
+No functional change — call logging, status transitions, and the business-
+line sub-sections are untouched. Fresh evidence: `npm run typecheck`
+(clean), `npm run lint` (clean), `npm run test` (73 files, 477 tests,
+unchanged) all pass. Not live-browser-verified this pass, for the same
+structural reason as the prior two entries — this worktree's running
+container doesn't yet have this source change; confidence rests on
+`UserAvatar` being an already-proven, already-live component and
+`border-l-4`-over-`border` being a standard, widely-documented Tailwind
+compositing pattern. No auth, RLS, payout, migration, or contract surface
+changed; scope is `apps/web` only.
+
 **Done - Real-estate Client dashboard property presentation** on
 `claude/20260825-211218-remove-browse-by-type-section-in-explore` (PR #233
 update; direct user-reported UI change, no requirement or
