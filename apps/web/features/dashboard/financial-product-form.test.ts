@@ -53,6 +53,26 @@ const product: FinancialProduct = {
   },
 };
 
+const productWithPhone: FinancialProduct = {
+  ...product,
+  form_schema: {
+    sections: [
+      {
+        ...product.form_schema.sections[0],
+        fields: [
+          ...product.form_schema.sections[0].fields,
+          {
+            key: "contact_number",
+            label: "Contact Number",
+            input_type: "phone",
+            required: true,
+          },
+        ],
+      },
+    ],
+  },
+};
+
 describe("validateProductAnswers", () => {
   it("reports required and format errors for active fields", () => {
     expect(
@@ -76,5 +96,27 @@ describe("validateProductAnswers", () => {
         requested_amount: "500000",
       }),
     ).toEqual({});
+  });
+
+  it("validates a phone field, tolerating a pasted number with internal spaces", () => {
+    expect(
+      validateProductAnswers(productWithPhone, {
+        income_source: "self_employed",
+        current_pincode: "411045",
+        requested_amount: "500000",
+        contact_number: "98765 43210",
+      }),
+    ).toEqual({});
+  });
+
+  it("rejects a phone field that is still invalid after normalization", () => {
+    expect(
+      validateProductAnswers(productWithPhone, {
+        income_source: "self_employed",
+        current_pincode: "411045",
+        requested_amount: "500000",
+        contact_number: "12345",
+      }).contact_number,
+    ).toBe("Enter a valid 10-digit mobile number.");
   });
 });

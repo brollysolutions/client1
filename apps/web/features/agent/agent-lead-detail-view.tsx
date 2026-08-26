@@ -1,14 +1,16 @@
 "use client";
 
 import * as React from "react";
-import { Copy, Loader2 } from "lucide-react";
+import { Check, Copy, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
+import { DashboardPanel } from "@/features/dashboard/dashboard-ui";
 import { FetchError } from "@/features/dashboard/fetch-error";
+import { formatMobile } from "@/lib/phone";
 import { cn } from "@/lib/utils";
 
 import { useAgentLeadDetail } from "./use-agent-lead-detail";
@@ -28,6 +30,8 @@ export function AgentLeadDetailView({ leadId }: { leadId: string }) {
   const { lead, status, error, errorStatus, retry, update } = useAgentLeadDetail(leadId);
   const [notes, setNotes] = React.useState("");
   const [saving, setSaving] = React.useState(false);
+  const [copied, setCopied] = React.useState(false);
+  const copyTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   const editable = lead?.editable ?? false;
 
   React.useEffect(() => {
@@ -36,6 +40,12 @@ export function AgentLeadDetailView({ leadId }: { leadId: string }) {
       if (typeof value === "string") setNotes(value);
     }
   }, [lead]);
+
+  React.useEffect(() => {
+    return () => {
+      if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current);
+    };
+  }, []);
 
   async function onSave(e: React.FormEvent) {
     e.preventDefault();
@@ -52,7 +62,13 @@ export function AgentLeadDetailView({ leadId }: { leadId: string }) {
   async function copyRegistrationLink() {
     try {
       await navigator.clipboard.writeText(`${window.location.origin}/register`);
+      setCopied(true);
+      // Keep the toast alongside the button's own state swap below — it gives
+      // screen-reader users a live-region announcement even if they miss the
+      // visual icon/label change.
       toast.success("Registration link copied");
+      if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current);
+      copyTimeoutRef.current = setTimeout(() => setCopied(false), 2000);
     } catch {
       toast.error("Couldn't copy the registration link");
     }
@@ -84,22 +100,21 @@ export function AgentLeadDetailView({ leadId }: { leadId: string }) {
 
   return (
     <div className="mx-auto w-full max-w-3xl space-y-6 px-4 sm:px-6 lg:px-10">
-      <div className="rounded-2xl border border-border bg-card p-5">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <h1 className="text-xl font-semibold text-text-primary">{lead.name ?? "Unnamed lead"}</h1>
-            <p className="text-sm text-text-secondary">{lead.mobile}</p>
-          </div>
+      <DashboardPanel
+        title={lead.name ?? "Unnamed lead"}
+        description={formatMobile(lead.mobile)}
+        action={
           <span
             className={cn(
-              "rounded-full px-2.5 py-0.5 text-xs font-medium",
+              "shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium",
               lead.status === "converted" ? "bg-success/10 text-success" : "bg-muted text-text-secondary",
             )}
           >
             {STATUS_LABEL[lead.status] ?? lead.status}
           </span>
-        </div>
-        <p className="mt-3 text-sm text-text-secondary">
+        }
+      >
+        <p className="text-sm text-text-secondary">
           {lead.registered
             ? "This person has created an account."
             : "Not registered on the platform yet."}
@@ -112,19 +127,18 @@ export function AgentLeadDetailView({ leadId }: { leadId: string }) {
             variant="outline"
             onClick={() => void copyRegistrationLink()}
           >
-            <Copy className="h-4 w-4" aria-hidden="true" />
-            Copy registration link
+            {copied ? <Check className="h-4 w-4" aria-hidden="true" /> : <Copy className="h-4 w-4" aria-hidden="true" />}
+            <span aria-live="polite">{copied ? "Copied" : "Copy registration link"}</span>
           </Button>
         ) : null}
-        <p className="mt-2 text-sm font-medium text-text-primary">
+        <p className="mt-3 text-sm font-medium text-text-primary">
           {formatAgentLeadExpiry(lead.status, lead.expires_at, lead.expired_at)}
         </p>
-      </div>
+      </DashboardPanel>
 
-      <div className="rounded-2xl border border-border bg-card p-5">
-        <h2 className="text-lg font-semibold text-text-primary">Requirement</h2>
+      <DashboardPanel title="Requirement">
         {editable ? (
-          <form className="mt-4 space-y-3" onSubmit={(e) => void onSave(e)}>
+          <form className="space-y-3" onSubmit={(e) => void onSave(e)}>
             <div>
               <Label htmlFor="notes">What are they looking for?</Label>
               <Textarea
@@ -142,11 +156,11 @@ export function AgentLeadDetailView({ leadId }: { leadId: string }) {
           </form>
         ) : (
           <>
-            <p className="mt-3 text-sm text-text-secondary">{notes || "No requirement notes."}</p>
+            <p className="text-sm text-text-secondary">{notes || "No requirement notes."}</p>
             <p className="mt-3 text-xs text-text-secondary">{readOnlyReason}</p>
           </>
         )}
-      </div>
+      </DashboardPanel>
     </div>
   );
 }

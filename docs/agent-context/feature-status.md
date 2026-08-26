@@ -9,6 +9,145 @@ Evidence baseline: `abcc1fd`
 verified Admin operational-visibility work in
 [PR #173](https://github.com/brollysolutions/client1/pull/173).
 
+**Done - Agent dashboard UI overhaul: demo banner removal, dashboard-primitive
+migration, copy-link UX, notification-bell dropdown unread filter, +91 phone
+default across application forms** on `claude/20260826-agent-dashboard-ui-overhaul`
+(branched fresh from `upstream/main` via a sibling worktree, since the prior
+task branch had unrelated uncommitted property-card/docs changes the user
+asked to leave untouched; direct user-reported UI/bug-fix batch, no
+requirement or completion-percentage change): seven changes across the agent
+dashboard, no auth/RLS/payout/migration/contract surface touched.
+
+(1) `apps/api/app/scripts/seed_demo.py`: the "Demo Loans workspace" and "Demo
+Real Estate workspace" `LIVE`-status seed banners are deleted outright (the
+`banner:pending` `PENDING_APPROVAL` row stays — it feeds the Sub Admin
+approval-queue UI, not the agent dashboard). `PersonalizedPlacements`
+(`apps/web/features/dashboard/personalized-placements.tsx`) already falls
+back to real, role-aware, non-synthetic copy (`fallbackBanner()`) when no live
+banner exists, so the agent dashboard now shows that fallback instead of the
+two demo cards, with no component change needed.
+
+(2) Leads (`agent-leads-view.tsx`), Earnings (`agent-earnings-view.tsx`), and
+Introduce-a-lead (`agent-introduce-lead-form.tsx`) — none of which previously
+used the shared `dashboard-ui.tsx` layout primitives Transactions/Agent Home
+already use — are migrated onto `DashboardPage`/`DashboardHeader`/
+`DashboardPanel`/`DashboardFormPage`/`DashboardFormSection`. Leads' table is
+re-homed inside a `DashboardPanel`, reusing Transactions' proven table-shell
+classes verbatim rather than extracting a new shared `DataTable` component
+(only two structurally-different table call sites exist; not enough to
+justify a generic abstraction yet). Earnings drops its local `StatTile`
+helper (which duplicated `MetricCard`) for a bespoke 3-column grid reusing
+`MetricCard` directly — `MetricGrid` itself is a fixed `sm:2/xl:4` layout and
+a 3-card row would leave an uneven cell, so Earnings keeps its own
+`grid gap-3 sm:grid-cols-3` wrapper around three `MetricCard`s instead,
+documented inline. Its empty state now matches the icon-in-circle
+convention Leads/Transactions already use, via `DASHBOARD_ICONS.earnings`
+instead of a direct `lucide-react` import. Introduce-a-lead moves onto
+`DashboardFormPage`/`DashboardFormSection` (the pattern already established
+in `features/sub-admin/offer-form.tsx`). Agent Home's and Leads' duplicated
+hand-rolled "Introduce a lead" CTA `<Link>` (raw `bg-brand-cta` classes) is
+normalized to `Button asChild` wrapping the same `Link`, preserving the exact
+brand-cta color via `className` (not the `Button` `cta` variant, which is a
+different token/color) so no visual regression.
+
+(3) `agent-lead-detail-view.tsx`'s `copyRegistrationLink` gains a temporary
+in-button "Copied" state: a `copied` boolean flips true on a successful
+`navigator.clipboard.writeText`, the button's icon/label swap (`Copy`/`Check`
+from `lucide-react`, label text) for ~2s via a cleanup-safe `setTimeout` (ref
+cleared on unmount), and the label is wrapped in `aria-live="polite"` so
+screen readers get the state change even if they miss the toast. The existing
+`sonner` toast is kept alongside it, not replaced. The copied URL itself
+(`${window.location.origin}/register`, generic, unpersonalized) is unchanged
+— no referral/ref-code work was in scope. Both of this view's hand-rolled
+`rounded-2xl border ... p-5` cards are wrapped in `DashboardPanel` in the same
+pass (the status pill moves into `DashboardPanel`'s `action` slot).
+
+(4) Notification bell dropdown preview: previously `notification-bell.tsx`
+rendered `items.slice(0, PREVIEW_LIMIT)` directly, so after "mark all as
+read" the preview kept showing the same (now-read) rows — a real, separate
+gap from the one the notification redesign entry below already fixed for the
+*full* `/dashboard/notifications` page (that page's Unread/All tab). A new
+pure helper `selectUnreadPreview(items, limit)` in `lib/notification-state.ts`
+filters to `readAt === null` *before* slicing (not after — a slice-then-filter
+would under-fill the preview if a read row occupied one of the first `limit`
+slots; a dedicated test locks this down). `notification-bell.tsx` now renders
+`selectUnreadPreview(items, PREVIEW_LIMIT)`; since every previewed row is
+unread by construction, the per-row `!notification.readAt` conditionals
+(unread dot, `bg-muted/40` highlight) simplify to unconditional. A new "You
+are all caught up" empty state (reusing the header subtitle's exact existing
+copy) is distinct from the true "No notifications yet" state. The shared
+`NotificationSnapshot`/`markAllNotificationsReadInSnapshot` mutation model in
+`notifications-provider.tsx`/`notification-state.ts` is untouched — it still
+flips `readAt` in place rather than removing items, since the full history
+page depends on that. `NotificationBell`/`NotificationsProvider` are each
+mounted exactly once in `app-shell.tsx`, so this is a single global fix
+already applied to every page, per direct user confirmation that only the
+dropdown preview (not the full history page) needed to empty out.
+
+(5)-(7) Every remaining user/agent-facing form missing the shared `+91`
+`MobileInput` UI (`components/auth/mobile-input.tsx`, already used by
+login/register/change-mobile/contact-form/agent-application-form) is
+converted: the public "Get a callback" dialog (`lead-dialog.tsx`), the
+real-estate Enquire/Book-a-site-visit dialog (`property-action-dialog.tsx`),
+the agent "Introduce a lead" form, and the dynamic loan-application `phone`
+field type (`financial-product-form.tsx`). The first two already had correct
+bare-digits state and `isValidMobile`/`normalizeMobile`/`toE164` usage under
+the hood — only the input UI needed swapping. `agent-introduce-lead-form.tsx`
+previously kept full E.164 state validated by a local
+`MOBILE_PATTERN = /^\+[1-9]\d{6,14}$/` with no digit-normalization at all
+(a second, independent paste-with-spaces exposure beyond the one below); it
+now holds bare digits and converts with `toE164()` at submit, matching every
+other converted form's pattern, since the backend `AgentLeadCreate.mobile`
+schema genuinely requires E.164. `financial-product-form.tsx`'s dynamic phone
+field is where the actual reported bug lived: it was validated with a raw
+regex (`/^[6-9][0-9]{9}$/`) against the *unnormalized* string and capped input
+at `maxLength={10}` **characters**, not digits — so pasting `"98765 43210"`
+(with a space) truncated to 10 chars including the space and then failed the
+anchored regex, a genuine false-negative. `validateProductAnswers` now calls
+`isValidMobile()` (which normalizes first), and the field gets its own
+`MobileInput`-backed branch ahead of the generic `<Input>` catch-all (which
+no longer handles `"phone"` in its `type`/`inputMode`/`maxLength` ternaries).
+No `toE164()` conversion was added here — this field is a generic
+`answers: Record<string, string>` blob forwarded as-is, not a dedicated
+contract field, so bare digits remain correct. Admin-only ops forms
+(`user-provisioning-view.tsx`, `vehicle-arrangements-view.tsx`) are
+explicitly out of scope per direct user decision — they're internal
+free-form E.164 entry tools, not self-service application forms.
+
+New/extended tests: `apps/web/lib/phone.test.ts` (new — `lib/phone.ts` had no
+dedicated test file before this change) covers `normalizeMobile`/
+`isValidMobile`/`toE164`/`formatMobile` against space-containing and
+`+91`-prefixed pasted inputs, the actual crux of the reported bug.
+`financial-product-form.test.ts` gains a `productWithPhone` fixture (kept
+separate from the existing `product` fixture to avoid coupling unrelated
+assertions) and two new cases: a pasted-with-spaces phone value validates,
+and a too-short one still correctly errors after normalization.
+`notification-state.test.ts` gains a `selectUnreadPreview` describe block:
+filters read items, returns `[]` once everything is read, and — the
+regression case that actually matters — caps at `limit` *after* filtering
+with 6 unread + 1 read item ahead of them, not before.
+
+Fresh evidence: `pnpm lint` (0 errors, 0 warnings — one interim `MetricGrid`
+unused-import warning surfaced and was fixed before the final run), `pnpm
+typecheck` (clean), and `pnpm test` (72 files, 468 tests, all passing,
+including the three new/extended files above) all pass. `pnpm build`
+generated all 93 pages successfully, then hit the same pre-existing
+Windows-host `output: "standalone"` symlink `EPERM` failure recorded
+repeatedly elsewhere in this document (reproduced identically, confirmed
+unrelated to this change — the failure is in the post-generation
+"Collecting build traces" copy step, after every page had already compiled
+and generated). Live interactive browser verification was not performed in
+this session (no running dev container); the `apple-design` skill's targeted
+review pass and a Playwright/manual click-through of the six changed agent
+surfaces plus the bell dropdown's empty/all-caught-up states is the
+recommended residual verification step before merge. `apps/api`'s pytest
+suite was not re-run for the seed-only change — no test asserts on
+`seed_demo.py`'s banner rows directly (confirmed: no reference to the two
+removed banner ids exists outside that file), so this is a documentation-only
+confirmation rather than a gap. Security, design, and maintainer review were
+not separately requested for this direct user-reported UI/bug-fix batch; no
+API, contract, migration, or RLS surface changed.
+
 **Done - Real-estate Client dashboard property presentation** on
 `claude/20260825-211218-remove-browse-by-type-section-in-explore` (PR #233
 update; direct user-reported UI change, no requirement or
