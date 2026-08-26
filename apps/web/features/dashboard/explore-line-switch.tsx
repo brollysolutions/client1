@@ -9,7 +9,7 @@ import { useLine } from "@/features/dashboard/line-provider";
 import { PropertyBrowser } from "@/features/real-estate/property-browser";
 import { PropertyRow } from "@/features/real-estate/property-row";
 import { useProperties } from "@/features/real-estate/use-properties";
-import { RE_CATEGORIES, type REListing } from "@/lib/real-estate";
+import { populatedPropertyCategories, type REListing } from "@/lib/real-estate";
 
 // Line switch for /dashboard/explore. The loans hub is a server component
 // (its data comes from the anonymous public financial-products catalogue via
@@ -75,20 +75,18 @@ function RealEstateExplore() {
 // single "Featured properties" row it had before (that row was an arbitrary
 // top-10 slice; per-category rows let a client actually browse). No separate
 // "Browse by property type" grid precedes these rows (that lives on Home now,
-// as illustrated cards); PropertyRow itself keeps every category reachable
-// (including a zero-count one) by rendering an honest "No listings yet" state
-// with a link into the category page instead of vanishing.
+// as illustrated cards). Empty category bands add no browsing value, so Home
+// remains their discoverable entry point while Explore shows only live stock.
 function RealEstateHub({ listings }: { listings: REListing[] }) {
   return (
     <div className="space-y-8">
-      {RE_CATEGORIES.map((category) => (
+      {populatedPropertyCategories(listings).map(({ category, listings: categoryListings }) => (
         <PropertyRow
           key={category.key}
           id={category.key}
           heading={category.label}
           blurb={category.blurb}
-          href={`/dashboard/explore/${category.key}`}
-          listings={listings.filter((listing) => listing.category === category.key)}
+          listings={categoryListings}
         />
       ))}
     </div>

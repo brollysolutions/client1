@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 
 import { describe, expect, it } from "vitest";
 
-import { RE_CATEGORIES } from "./real-estate";
+import { populatedPropertyCategories, RE_CATEGORIES, type REListing } from "./real-estate";
 
 // Locks the data contract the dashboard Home card grid
 // (features/real-estate/real-estate-home.tsx) and Explore/category rows are
@@ -26,5 +26,13 @@ describe("RE_CATEGORIES", () => {
       const path = join(PUBLIC_DIR, relative);
       expect(existsSync(path), `missing illustration: ${category.illustration}`).toBe(true);
     }
+  });
+
+  it("keeps empty categories out of Explore rows", () => {
+    const listings = [{ category: "villas" }, { category: "villas" }, { category: "plots" }] as REListing[];
+    const groups = populatedPropertyCategories(listings);
+
+    expect(groups.map(({ category }) => category.key)).toEqual(["villas", "plots"]);
+    expect(groups.map(({ listings: rows }) => rows)).toHaveLength(2);
   });
 });

@@ -9,6 +9,28 @@ Evidence baseline: `abcc1fd`
 verified Admin operational-visibility work in
 [PR #173](https://github.com/brollysolutions/client1/pull/173).
 
+**Done - Real-estate Client dashboard property presentation** on
+`claude/20260825-211218-remove-browse-by-type-section-in-explore` (PR #233
+update; direct user-reported UI change, no requirement or
+completion-percentage change): nine generated local property-subtype artwork
+assets now cover every generated-contract subtype. A typed display resolver
+keeps approved uploaded imagery first, falls back to subtype art, then uses a
+category representative for legacy no-subtype rows; fallback art stays outside
+managed media and photo counts. Home’s Browse cards reuse the same visual
+family. Explore now suppresses zero-listing category rows; Home preserves
+category discovery. Dashboard full/mini cards use a consistent media/content/
+footer template, and an accessible folded corner appears only for the existing
+server-proven `verified` RERA status, while the registration number remains in
+the card content. `pnpm lint`, `pnpm typecheck`, focused property regressions,
+and the full `pnpm test` suite pass. `pnpm build` compiled, typechecked, and
+generated all 93 pages before the known Windows standalone-symlink `EPERM`
+tail; its host static fetches also cannot resolve Docker-only `api`. Focused
+Playwright was attempted twice after restarting the local web container, but
+local login/API connectivity failed before either run reached the changed
+dashboard surfaces. Design, security, and maintainer diff review found no
+actionable issue. API, contract, RLS, data, upload authority, and migrations
+are unchanged.
+
 **Done - Notification dropdown and page redesign: click-to-open, neutral
 icons, unread/type/date/search filters, pagination
 ([PR TBD](https://github.com/brollysolutions/client1/pulls), on
