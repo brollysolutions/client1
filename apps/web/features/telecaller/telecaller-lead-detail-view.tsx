@@ -152,17 +152,19 @@ export function TelecallerLeadDetailView({ leadId }: { leadId: string }) {
           </span>
         }
       >
-        <div className="flex flex-wrap gap-2">
-          <Button asChild variant="outline" size="sm">
+        {/* Icon-only, not labeled buttons — a "Call" action is a phone
+            affordance (tel: only actually does anything on a device that can
+            dial), so on the web dashboard it stays available but doesn't
+            masquerade as a primary web action. */}
+        <div className="flex gap-2">
+          <Button asChild variant="outline" size="icon" aria-label="Call" title="Call">
             <a href={`tel:${toE164(lead.mobile)}`}>
               <Phone className="h-4 w-4" aria-hidden="true" />
-              Call
             </a>
           </Button>
-          <Button asChild variant="outline" size="sm">
+          <Button asChild variant="outline" size="icon" aria-label="WhatsApp" title="WhatsApp">
             <a href={toWaHref(lead.mobile)} target="_blank" rel="noopener noreferrer">
               <MessageCircle className="h-4 w-4" aria-hidden="true" />
-              WhatsApp
             </a>
           </Button>
         </div>

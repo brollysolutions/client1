@@ -206,10 +206,9 @@ export function EmployeeTaskDetailView({ taskId }: { taskId: string }) {
         {task.lead_contact_mode === "allow" && task.lead_mobile ? (
           <div className="flex flex-wrap items-center gap-3">
             <span className="text-sm text-text-secondary">{formatMobile(task.lead_mobile)}</span>
-            <Button asChild size="sm" variant="outline">
+            <Button asChild size="icon" variant="outline" aria-label="Call" title="Call">
               <a href={`tel:${toE164(task.lead_mobile)}`}>
                 <Phone className="h-4 w-4" aria-hidden="true" />
-                Call
               </a>
             </Button>
           </div>

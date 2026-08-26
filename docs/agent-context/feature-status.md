@@ -351,6 +351,36 @@ this specific change is the recommended follow-up once merged and pulled.
 No auth, RLS, payout, migration, or contract surface changed; scope is
 `apps/web` only.
 
+**Done - Chevron affordance live-confirmed; Call/WhatsApp actions converted
+to icon-only buttons** on `claude/20260826-155030-switch-to-main-and-pull-changes`
+([PR TBD](https://github.com/brollysolutions/client1/pulls); direct
+user-reported follow-up — "the UI didn't change for the leads, still same"
+turned out to be the user's browser tab holding a stale bundle from before
+the PR #238 merge/restart (confirmed live via a fresh Playwright navigation
+against the running local stack immediately after their report: the chevron
+column and per-row `>` were present in the DOM and screenshot, so no code
+change was needed there — a hard refresh was the fix); then "Remove call
+from web, let it stay on phone, add whatsapp icon and phone icon"; no
+requirement or completion-percentage change): `telecaller-lead-detail-view.tsx`'s
+Call/WhatsApp actions were full text-labeled `Button`s
+(`variant="outline" size="sm"`, icon + "Call"/"WhatsApp" label) — a `tel:`
+link only does anything on a device that can actually dial, so presenting it
+as a primary labeled web action was the wrong affordance. Both are now
+icon-only (`size="icon"`, the same `h-9 w-9` variant already used in eight
+other files across the app — `notification-bell.tsx` among them — so this
+isn't a new pattern), each with `aria-label`/`title` since there's no longer
+visible text for screen readers or a mouse-hover hint. Applied the same
+icon-only treatment to `employee-task-detail-view.tsx`'s lone Call button for
+consistency (no WhatsApp exists on that screen, so no icon was added there —
+out of scope, not requested). Fresh evidence: `npm run typecheck` (clean),
+`npm run lint` (clean); `npm run test` unaffected (no logic changed, pure
+button markup). Not live-browser-verified this pass, for the same structural
+reason as the previous entry — this worktree's running container doesn't yet
+have this source change; the `size="icon"` variant being reused verbatim
+across eight already-live files is the basis for confidence here. No auth,
+RLS, payout, migration, or contract surface changed; scope is `apps/web`
+only.
+
 **Done - Real-estate Client dashboard property presentation** on
 `claude/20260825-211218-remove-browse-by-type-section-in-explore` (PR #233
 update; direct user-reported UI change, no requirement or
