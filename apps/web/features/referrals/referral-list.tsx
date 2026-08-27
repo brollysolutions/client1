@@ -3,6 +3,7 @@
 import { Users } from "lucide-react";
 
 import { formatPaise } from "@/lib/format";
+import { ListPagination, useListPagination } from "@/features/dashboard/list-pagination";
 import type { Referral } from "@/lib/referrals-api";
 import { cn } from "@/lib/utils";
 
@@ -39,6 +40,8 @@ function formatDate(iso: string | null): string {
 }
 
 export function ReferralList({ referrals, embedded = false }: { referrals: Referral[]; embedded?: boolean }) {
+  const { page, pageItems, setPage } = useListPagination(referrals);
+
   if (referrals.length === 0) {
     return (
       <div className={cn("rounded-2xl border border-dashed border-border px-6 py-14 text-center", embedded ? "bg-muted/20" : "bg-card")}>
@@ -55,6 +58,7 @@ export function ReferralList({ referrals, embedded = false }: { referrals: Refer
   }
 
   return (
+    <div className="space-y-3">
     <div className={cn("overflow-x-auto", !embedded && "rounded-xl border border-border bg-card")}>
       <table className="w-full text-left text-sm">
         <thead className="border-b border-border text-xs uppercase tracking-wide text-text-secondary">
@@ -67,7 +71,7 @@ export function ReferralList({ referrals, embedded = false }: { referrals: Refer
           </tr>
         </thead>
         <tbody>
-          {referrals.map((r) => (
+          {pageItems.map((r) => (
             <tr key={r.id} className="border-b border-border last:border-0">
               <td className="px-5 py-4 font-medium text-text-primary">
                 {r.referred_mobile_masked}
@@ -95,6 +99,8 @@ export function ReferralList({ referrals, embedded = false }: { referrals: Refer
           ))}
         </tbody>
       </table>
+    </div>
+    <ListPagination page={page} total={referrals.length} onPageChange={setPage} label="Referrals pages" />
     </div>
   );
 }

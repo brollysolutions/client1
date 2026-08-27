@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
+import { ListPagination, useListPagination } from "@/features/dashboard/list-pagination";
 import { formatPaise } from "@/lib/format";
 import type { EligibleFeeApplication, FeeCashbackRead } from "@/lib/admin-fee-cashbacks-api";
 
@@ -173,6 +174,13 @@ export function FeeCashbacksView() {
   const [cancelTarget, setCancelTarget] = React.useState<FeeCashbackRead | null>(null);
   const [cancelReason, setCancelReason] = React.useState("");
   const [cancelling, setCancelling] = React.useState(false);
+  const eligiblePagination = useListPagination(eligible);
+  const cashbackPagination = useListPagination(cashbacks);
+  const setCashbackPage = cashbackPagination.setPage;
+
+  React.useEffect(() => {
+    setCashbackPage(0);
+  }, [statusFilter, setCashbackPage]);
 
   function closeCancelDialog() {
     setCancelTarget(null);
@@ -228,8 +236,9 @@ export function FeeCashbacksView() {
                 </p>
               </div>
             ) : (
+              <div className="space-y-3">
               <ul className="space-y-3">
-                {eligible.map((application) => (
+                {eligiblePagination.pageItems.map((application) => (
                   <li key={application.loan_application_uuid}>
                     <EligibleApplicationRow
                       application={application}
@@ -238,6 +247,8 @@ export function FeeCashbacksView() {
                   </li>
                 ))}
               </ul>
+              <ListPagination page={eligiblePagination.page} total={eligible.length} onPageChange={eligiblePagination.setPage} label="Eligible cashback applications pages" />
+              </div>
             )}
           </TabsContent>
 
@@ -270,8 +281,9 @@ export function FeeCashbacksView() {
                 </p>
               </div>
             ) : (
+              <div className="space-y-3">
               <ul className="space-y-3">
-                {cashbacks.map((c) => (
+                {cashbackPagination.pageItems.map((c) => (
                   <li key={c.id}>
                     <FeeCashbackRow
                       cashback={c}
@@ -281,6 +293,8 @@ export function FeeCashbacksView() {
                   </li>
                 ))}
               </ul>
+              <ListPagination page={cashbackPagination.page} total={cashbacks.length} onPageChange={cashbackPagination.setPage} label="Fee cashbacks pages" />
+              </div>
             )}
           </TabsContent>
         </Tabs>

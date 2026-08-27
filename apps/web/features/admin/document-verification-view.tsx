@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { ListPagination, useListPagination } from "@/features/dashboard/list-pagination";
 import { FieldError } from "@/components/ui/field-error";
 import {
   Dialog,
@@ -125,6 +126,11 @@ export function DocumentVerificationView() {
   }
 
   const groups = groupByLead(subjects);
+  const { page, pageItems, setPage } = useListPagination(groups);
+
+  React.useEffect(() => {
+    setPage(0);
+  }, [onlyUnverified, setPage]);
   const activeKey = activeSubject
     ? subjectKey(activeSubject.source, activeSubject.subject_uuid)
     : null;
@@ -170,8 +176,9 @@ export function DocumentVerificationView() {
           </p>
         </div>
       ) : (
+        <div className="space-y-3">
         <ul className="space-y-3">
-          {groups.map((group) => (
+          {pageItems.map((group) => (
             <li
               key={group.leadUuid}
               className="rounded-2xl border border-border bg-card p-4"
@@ -218,6 +225,8 @@ export function DocumentVerificationView() {
             </li>
           ))}
         </ul>
+        <ListPagination page={page} total={groups.length} onPageChange={setPage} label="Document verification pages" />
+        </div>
       )}
 
       <Dialog open={activeSubject !== null} onOpenChange={(o) => !o && closeSubject()}>

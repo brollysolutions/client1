@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
+import { ListPagination, useListPagination } from "@/features/dashboard/list-pagination";
 import { formatPaise } from "@/lib/format";
 import type { CommissionRead, EligibleDeal } from "@/lib/admin-commissions-api";
 
@@ -163,6 +164,13 @@ export function CommissionsView() {
   const [cancelTarget, setCancelTarget] = React.useState<CommissionRead | null>(null);
   const [cancelReason, setCancelReason] = React.useState("");
   const [cancelling, setCancelling] = React.useState(false);
+  const eligiblePagination = useListPagination(eligible);
+  const commissionPagination = useListPagination(commissions);
+  const setCommissionPage = commissionPagination.setPage;
+
+  React.useEffect(() => {
+    setCommissionPage(0);
+  }, [statusFilter, setCommissionPage]);
 
   function closeCancelDialog() {
     setCancelTarget(null);
@@ -218,13 +226,16 @@ export function CommissionsView() {
                 </p>
               </div>
             ) : (
+              <div className="space-y-3">
               <ul className="space-y-3">
-                {eligible.map((deal) => (
+                {eligiblePagination.pageItems.map((deal) => (
                   <li key={`${deal.deal_type}:${deal.deal_uuid}`}>
                     <EligibleDealRow deal={deal} onPick={() => setActiveDeal(deal)} />
                   </li>
                 ))}
               </ul>
+              <ListPagination page={eligiblePagination.page} total={eligible.length} onPageChange={eligiblePagination.setPage} label="Eligible commission deals pages" />
+              </div>
             )}
           </TabsContent>
 
@@ -257,8 +268,9 @@ export function CommissionsView() {
                 </p>
               </div>
             ) : (
+              <div className="space-y-3">
               <ul className="space-y-3">
-                {commissions.map((c) => (
+                {commissionPagination.pageItems.map((c) => (
                   <li key={c.id}>
                     <CommissionRow
                       commission={c}
@@ -268,6 +280,8 @@ export function CommissionsView() {
                   </li>
                 ))}
               </ul>
+              <ListPagination page={commissionPagination.page} total={commissions.length} onPageChange={commissionPagination.setPage} label="Commissions pages" />
+              </div>
             )}
           </TabsContent>
         </Tabs>

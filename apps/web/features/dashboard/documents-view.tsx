@@ -17,6 +17,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { FetchError } from "@/features/dashboard/fetch-error";
 import { DashboardPanel } from "@/features/dashboard/dashboard-ui";
+import { ListPagination, useListPagination } from "@/features/dashboard/list-pagination";
 import { STATUS_STYLES, formatDate } from "@/features/dashboard/loan-format";
 import { DOC_TYPE_LABEL, DOC_TYPE_OPTIONS, type DocTypeValue } from "@/lib/doc-types";
 import { groupLoanMedia, LOAN_CAMERA_ACCEPT, LOAN_MEDIA_ACCEPT } from "@/lib/loan-media";
@@ -50,6 +51,7 @@ export function DocumentsView() {
     () => groupLoanMedia(applications, documents),
     [applications, documents],
   );
+  const { page, pageItems, setPage } = useListPagination(groups);
 
   async function handleFileChosen(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
@@ -177,7 +179,7 @@ export function DocumentsView() {
         </div>
       ) : (
         <div className="space-y-5">
-          {groups.map((group) => {
+          {pageItems.map((group) => {
             const application = group.application;
             const applicationStatus = application ? STATUS_STYLES[application.status] : null;
             const headingId = `loan-media-${group.applicationId}`;
@@ -319,6 +321,7 @@ export function DocumentsView() {
               </section>
             );
           })}
+          <ListPagination page={page} total={groups.length} onPageChange={setPage} label="Loan media application pages" />
         </div>
       )}
     </div>

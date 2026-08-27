@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DashboardHeader, DashboardPage, DashboardPanel } from "@/features/dashboard/dashboard-ui";
+import { ListPagination, useListPagination } from "@/features/dashboard/list-pagination";
 import { FetchError } from "@/features/dashboard/fetch-error";
 import { cn } from "@/lib/utils";
 
@@ -58,6 +59,11 @@ export function EmployeeTasksView() {
     statusFilter === "all" ? undefined : statusFilter,
     typeFilter === "all" ? undefined : typeFilter,
   );
+  const { page, pageItems, setPage } = useListPagination(items);
+
+  React.useEffect(() => {
+    setPage(0);
+  }, [statusFilter, typeFilter, setPage]);
 
   return (
     <DashboardPage>
@@ -127,7 +133,7 @@ export function EmployeeTasksView() {
                 </tr>
               </thead>
               <tbody>
-                {items.map((task) => (
+                {pageItems.map((task) => (
                   <tr
                     key={task.id}
                     role="link"
@@ -174,6 +180,7 @@ export function EmployeeTasksView() {
               </tbody>
             </table>
           </div>
+          <ListPagination page={page} total={items.length} onPageChange={setPage} label="Assigned tasks pages" />
         </DashboardPanel>
       )}
     </DashboardPage>

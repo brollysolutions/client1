@@ -1,8 +1,10 @@
 "use client";
 
+import * as React from "react";
 import { ArrowDown, ArrowUp, ArrowUpDown, Inbox, Loader2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { ListPagination, useListPagination } from "@/features/dashboard/list-pagination";
 import { cn } from "@/lib/utils";
 import type { SortDir } from "@/lib/reports-api";
 
@@ -42,6 +44,12 @@ export function ReportTable<Row>({
   onRetry: () => void;
   emptyMessage: string;
 }) {
+  const { page, pageItems, setPage } = useListPagination(rows);
+
+  React.useEffect(() => {
+    setPage(0);
+  }, [sortBy, sortDir, setPage]);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center rounded-2xl border border-border bg-card py-16">
@@ -71,6 +79,7 @@ export function ReportTable<Row>({
   }
 
   return (
+    <div className="space-y-3">
     <div className="overflow-x-auto rounded-2xl border border-border bg-card">
       <table className="w-full min-w-[640px] text-sm">
         <thead>
@@ -112,7 +121,7 @@ export function ReportTable<Row>({
           </tr>
         </thead>
         <tbody>
-          {rows.map((row) => (
+          {pageItems.map((row) => (
             <tr key={rowKey(row)} className="border-b border-border last:border-0">
               {columns.map((col) => (
                 <td
@@ -129,6 +138,8 @@ export function ReportTable<Row>({
           ))}
         </tbody>
       </table>
+    </div>
+    <ListPagination page={page} total={rows.length} onPageChange={setPage} label="Report rows pages" />
     </div>
   );
 }

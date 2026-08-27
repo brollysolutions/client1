@@ -8,6 +8,7 @@ import { PhoneCall } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DashboardHeader, DashboardPage, DashboardPanel } from "@/features/dashboard/dashboard-ui";
+import { ListPagination, useListPagination } from "@/features/dashboard/list-pagination";
 import { FetchError } from "@/features/dashboard/fetch-error";
 import { formatMobile } from "@/lib/phone";
 import { cn } from "@/lib/utils";
@@ -40,6 +41,7 @@ const STATUS_LABEL: Record<string, string> = {
 export function AgentLeadsView() {
   const router = useRouter();
   const { items, loading, error, reload } = useAgentLeads();
+  const { page, pageItems, setPage } = useListPagination(items);
 
   return (
     <DashboardPage>
@@ -83,7 +85,7 @@ export function AgentLeadsView() {
                 </tr>
               </thead>
               <tbody>
-                {items.map((lead) => (
+                {pageItems.map((lead) => (
                   <tr
                     key={lead.id}
                     role="link"
@@ -119,6 +121,7 @@ export function AgentLeadsView() {
               </tbody>
             </table>
           </div>
+          <ListPagination page={page} total={items.length} onPageChange={setPage} label="Introduced leads pages" />
         </DashboardPanel>
       )}
     </DashboardPage>

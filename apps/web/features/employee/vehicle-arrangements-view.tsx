@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { FetchError } from "@/features/dashboard/fetch-error";
+import { ListPagination, useListPagination } from "@/features/dashboard/list-pagination";
 import {
   listEmployeeVehicleArrangements,
   updateEmployeeVehicleArrangement,
@@ -41,6 +42,11 @@ export function EmployeeVehicleArrangementsView() {
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
   const [busyId, setBusyId] = React.useState<string | null>(null);
+  const { page, pageItems, setPage } = useListPagination(items);
+
+  React.useEffect(() => {
+    setPage(0);
+  }, [filter, setPage]);
 
   const load = React.useCallback(async () => {
     setLoading(true);
@@ -100,8 +106,9 @@ export function EmployeeVehicleArrangementsView() {
           <p className="mt-3 font-medium">No pickups assigned</p>
         </div>
       ) : (
+        <div className="space-y-4">
         <ul className="space-y-4">
-          {items.map((item) => (
+          {pageItems.map((item) => (
             <li key={item.id} className="rounded-2xl border border-border bg-card p-5">
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div className="space-y-1">
@@ -139,6 +146,8 @@ export function EmployeeVehicleArrangementsView() {
             </li>
           ))}
         </ul>
+        <ListPagination page={page} total={items.length} onPageChange={setPage} label="Vehicle arrangements pages" />
+        </div>
       )}
     </div>
   );

@@ -12,6 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { ListPagination, useListPagination } from "@/features/dashboard/list-pagination";
 import { LINE_LABEL, STATUS_LABEL, STATUS_STYLE } from "@/features/referrals/referral-list";
 import { formatPaise } from "@/lib/format";
 
@@ -48,6 +49,11 @@ export function ReferralPayoutsView() {
   const { items, loading, error, statusFilter, setStatusFilter, reload, payBonus } =
     useReferralPayouts();
   const [active, setActive] = React.useState<AdminReferral | null>(null);
+  const { page, pageItems, setPage } = useListPagination(items);
+
+  React.useEffect(() => {
+    setPage(0);
+  }, [statusFilter, setPage]);
 
   return (
     <div className="mx-auto w-full max-w-5xl space-y-6 px-4 sm:px-6 lg:px-10">
@@ -93,8 +99,9 @@ export function ReferralPayoutsView() {
           </p>
         </div>
       ) : (
+        <div className="space-y-3">
         <ul className="space-y-3">
-          {items.map((r) => {
+          {pageItems.map((r) => {
             // reward_payout_uuid set but conversion_status still "accrued" is
             // the real state between "Pay bonus" raising a payout and that
             // payout being approved — approval is what flips it to "paid".
@@ -144,6 +151,8 @@ export function ReferralPayoutsView() {
             return <li key={r.id}>{card}</li>;
           })}
         </ul>
+        <ListPagination page={page} total={items.length} onPageChange={setPage} label="Referral payouts pages" />
+        </div>
       )}
 
       <ReferralPayoutDialog

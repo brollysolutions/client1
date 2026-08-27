@@ -9,6 +9,36 @@ Evidence baseline: `abcc1fd`
 verified Admin operational-visibility work in
 [PR #173](https://github.com/brollysolutions/client1/pull/173).
 
+**Done - explicit pagination for growing dashboard lists** on
+`codex/20260827-065108-the-lead-details-page-ui-its-kinda` ([PR
+#243](https://github.com/brollysolutions/client1/pull/243); direct user instruction;
+no requirement or completion-percentage change): the audit confirmed that the
+application had no infinite-scroll implementation. A shared accessible 25-row
+Previous/Next control now bounds every identified primary growing dashboard
+history or work queue that previously rendered its full fetched collection:
+Client loan applications, transactions, support tickets, referrals, property
+submissions, and loan-media application groups; Agent leads and commission
+history; Telecaller leads; Employee tasks and vehicle arrangements; and Admin
+commission/cashback/referral/support queues, financial products, document
+verification groups, and all report tables. Existing Admin/Sub Admin paginated
+surfaces reuse the compatible shared control. Pages clamp safely after a
+collection shrinks, and filter/sort changes reset affected views to page one.
+
+No API, generated contract, authorization, RLS, business-line scope, query
+ordering, filter semantics, totals, or money-transition behavior changed.
+Finite child lists tied to one lead/application, intentionally capped dashboard
+previews, fixed configuration matrices, and already server-paginated catalogue
+or audit views remain unchanged. Fresh evidence: web lint and typecheck pass;
+all 80 Vitest files / 510 tests pass, including four focused helper tests. The
+production build compiled, typechecked, and generated 93/93 pages before the
+established Windows standalone-symlink `EPERM`; unrelated public API fetches
+timed out during static generation and used their existing fallbacks. A
+source-level design/accessibility review found no actionable issue. Live
+Playwright could reach the local web app but the prior authenticated session had
+expired (`/api/v1/auth/refresh` returned 401), and the environment had no
+synthetic 26-row role dataset, so interactive Next-page verification remains the
+documented residual gap rather than mutating seed data solely for proof.
+
 **Done - Telecaller Lead Details validation and workflow hierarchy** on
 `codex/20260827-065108-the-lead-details-page-ui-its-kinda` ([PR
 #242](https://github.com/brollysolutions/client1/pull/242);

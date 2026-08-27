@@ -11,6 +11,7 @@ import { getLoanApplications, type LoanApplication } from "@/lib/loans";
 import { DASHBOARD_ICONS } from "./dashboard-icons";
 import { DashboardHeader, DashboardPage } from "./dashboard-ui";
 import { FetchError } from "./fetch-error";
+import { ListPagination, useListPagination } from "./list-pagination";
 import { STATUS_STYLES, formatAmount, formatDate } from "./loan-format";
 
 type Status = "loading" | "ready" | "error";
@@ -36,6 +37,7 @@ export function LoansApplications() {
   const [error, setError] = React.useState<string | null>(null);
   const [errorStatus, setErrorStatus] = React.useState<number | null>(null);
   const [reloadKey, setReloadKey] = React.useState(0);
+  const { page, pageItems, setPage } = useListPagination(applications);
 
   const retry = React.useCallback(() => {
     setStatus("loading");
@@ -125,7 +127,7 @@ export function LoansApplications() {
               </tr>
             </thead>
             <tbody>
-              {applications.map((a) => {
+              {pageItems.map((a) => {
                 const s = STATUS_STYLES[a.status];
                 return (
                   <tr
@@ -173,6 +175,14 @@ export function LoansApplications() {
               })}
             </tbody>
           </table>
+          <div className="px-5 pb-4">
+            <ListPagination
+              page={page}
+              total={applications.length}
+              onPageChange={setPage}
+              label="Loan applications pages"
+            />
+          </div>
         </div>
       )}
     </DashboardPage>

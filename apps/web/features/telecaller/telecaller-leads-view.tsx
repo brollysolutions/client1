@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DashboardHeader, DashboardPage, DashboardPanel } from "@/features/dashboard/dashboard-ui";
+import { ListPagination, useListPagination } from "@/features/dashboard/list-pagination";
 import { useLine } from "@/features/dashboard/line-provider";
 import { FetchError } from "@/features/dashboard/fetch-error";
 import { formatMobile } from "@/lib/phone";
@@ -83,6 +84,11 @@ export function TelecallerLeadsView() {
 
   const filtered = React.useMemo(() => filterTelecallerLeads(items, filters), [items, filters]);
   const sorted = React.useMemo(() => sortTelecallerLeads(filtered, sort), [filtered, sort]);
+  const { page, pageItems, setPage } = useListPagination(sorted);
+
+  React.useEffect(() => {
+    setPage(0);
+  }, [filters, sort, setPage]);
 
   const filtersActive =
     filters.search !== "" || filters.status !== "all" || filters.followUpFrom !== "" || filters.followUpTo !== "";
@@ -201,7 +207,7 @@ export function TelecallerLeadsView() {
                     </tr>
                   </thead>
                   <tbody>
-                    {sorted.map((lead) => (
+                    {pageItems.map((lead) => (
                       <tr
                         key={lead.id}
                         role="link"
@@ -243,6 +249,12 @@ export function TelecallerLeadsView() {
                   </tbody>
                 </table>
               </div>
+              <ListPagination
+                page={page}
+                total={sorted.length}
+                onPageChange={setPage}
+                label="Assigned leads pages"
+              />
             </DashboardPanel>
           )}
         </>

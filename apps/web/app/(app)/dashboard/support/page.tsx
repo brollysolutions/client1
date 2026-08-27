@@ -18,6 +18,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { FetchError } from "@/features/dashboard/fetch-error";
+import { ListPagination, useListPagination } from "@/features/dashboard/list-pagination";
 import { apiIssuesToFieldErrors, focusFirstInvalidField, requiredTextError } from "@/lib/form-validation";
 import { cn } from "@/lib/utils";
 import {
@@ -45,6 +46,7 @@ export default function SupportPage() {
   const [error, setError] = React.useState<string | null>(null);
   const [errorStatus, setErrorStatus] = React.useState<number | null>(null);
   const [reloadKey, setReloadKey] = React.useState(0);
+  const { page, pageItems, setPage } = useListPagination(tickets);
 
   const retry = React.useCallback(() => {
     setStatus("loading");
@@ -115,8 +117,9 @@ export default function SupportPage() {
             </p>
           </div>
         ) : (
+          <div className="space-y-3">
           <ul className="space-y-3">
-            {tickets.map((t) => {
+            {pageItems.map((t) => {
               const s = STATUS_STYLES[t.status];
               return (
                 <li key={t.id} className="rounded-xl border border-border bg-card p-4">
@@ -141,6 +144,8 @@ export default function SupportPage() {
               );
             })}
           </ul>
+          <ListPagination page={page} total={tickets.length} onPageChange={setPage} label="Support tickets pages" />
+          </div>
         )}
       </section>
     </div>
