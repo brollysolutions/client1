@@ -23,6 +23,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { ListPagination, useListPagination } from "@/features/dashboard/list-pagination";
 import { optionalTextError } from "@/lib/form-validation";
 import { advanceSupportTicket, type SupportTicketAdmin } from "@/lib/admin-api";
 import { CATEGORY_LABEL, STATUS_STYLES, type SupportStatus } from "@/lib/support-tickets";
@@ -66,6 +67,11 @@ export function SupportTicketsView() {
   const [busyStatus, setBusyStatus] = React.useState<SupportStatus | null>(null);
 
   const visible = statusFilter ? items.filter((t) => t.status === statusFilter) : items;
+  const { page, pageItems, setPage } = useListPagination(visible);
+
+  React.useEffect(() => {
+    setPage(0);
+  }, [statusFilter, setPage]);
 
   async function onAdvance(ticket: SupportTicketAdmin, target: SupportStatus) {
     const validationError = optionalTextError(note, "Resolution note", 2000);
@@ -132,8 +138,9 @@ export function SupportTicketsView() {
           </p>
         </div>
       ) : (
+        <div className="space-y-3">
         <ul className="space-y-3">
-          {visible.map((t) => {
+          {pageItems.map((t) => {
             const s = STATUS_STYLES[t.status];
             return (
               <li key={t.id}>
@@ -158,6 +165,8 @@ export function SupportTicketsView() {
             );
           })}
         </ul>
+        <ListPagination page={page} total={visible.length} onPageChange={setPage} label="Admin support tickets pages" />
+        </div>
       )}
 
       <Dialog open={active !== null} onOpenChange={(o) => !o && setActive(null)}>

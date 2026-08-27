@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/dialog";
 import { DASHBOARD_ICONS } from "@/features/dashboard/dashboard-icons";
 import { DashboardHeader, DashboardPage, DashboardPanel, MetricCard, MetricGrid } from "@/features/dashboard/dashboard-ui";
+import { ListPagination, useListPagination } from "@/features/dashboard/list-pagination";
 import { formatPaiseCompact } from "@/lib/format";
 import { withdrawSubmission, type Submission } from "@/lib/property-submissions-api";
 import { useMySubmissions } from "./use-my-submissions";
@@ -38,6 +39,7 @@ export function MySubmissionsView() {
   const { items, loading, error, reload } = useMySubmissions();
   const [withdrawing, setWithdrawing] = React.useState<Submission | null>(null);
   const [busy, setBusy] = React.useState(false);
+  const { page, pageItems, setPage } = useListPagination(items);
   const pendingCount = items.filter((item) => item.status === "pending").length;
   const approvedCount = items.filter((item) => item.status === "approved").length;
   const rejectedCount = items.filter((item) => item.status === "rejected").length;
@@ -98,7 +100,7 @@ export function MySubmissionsView() {
         </MetricGrid>
         <DashboardPanel title="Submission history" description="Media counts, review state, and reviewer feedback for your listings.">
         <ul className="divide-y divide-border">
-          {items.map((s) => (
+          {pageItems.map((s) => (
             <li key={s.id} className="py-4 first:pt-0 last:pb-0">
               <div className="flex items-start justify-between gap-4">
                 <div>
@@ -147,6 +149,7 @@ export function MySubmissionsView() {
             </li>
           ))}
         </ul>
+        <ListPagination page={page} total={items.length} onPageChange={setPage} label="Listing submissions pages" />
         </DashboardPanel>
         </>
       )}

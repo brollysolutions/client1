@@ -1,5 +1,6 @@
 "use client";
 
+import * as React from "react";
 import Link from "next/link";
 
 import { Badge } from "@/components/ui/badge";
@@ -12,6 +13,7 @@ import {
   MetricCard,
 } from "@/features/dashboard/dashboard-ui";
 import { FetchError } from "@/features/dashboard/fetch-error";
+import { ListPagination, useListPagination } from "@/features/dashboard/list-pagination";
 import { formatPaise } from "@/lib/format";
 
 import { useAgentEarnings } from "./use-agent-earnings";
@@ -40,6 +42,8 @@ function formatDate(iso: string | null | undefined): string {
 
 export function AgentEarningsView() {
   const { earnings, status, error, errorStatus, retry } = useAgentEarnings();
+  const rows = earnings?.rows ?? [];
+  const { page, pageItems, setPage } = useListPagination(rows);
 
   if (status === "loading") {
     return (
@@ -102,7 +106,7 @@ export function AgentEarningsView() {
       ) : (
         <DashboardPanel title="Commission history" description="Deals Admin has recorded a commission against.">
           <ul className="space-y-3">
-            {earnings.rows.map((row) => (
+            {pageItems.map((row) => (
               <li
                 key={row.id}
                 className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-card p-4"
@@ -135,6 +139,7 @@ export function AgentEarningsView() {
               </li>
             ))}
           </ul>
+          <ListPagination page={page} total={rows.length} onPageChange={setPage} label="Commission history pages" />
         </DashboardPanel>
       )}
     </DashboardPage>

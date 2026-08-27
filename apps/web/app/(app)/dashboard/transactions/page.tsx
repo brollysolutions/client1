@@ -8,6 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { FetchError } from "@/features/dashboard/fetch-error";
 import { DASHBOARD_ICONS } from "@/features/dashboard/dashboard-icons";
 import { DashboardHeader, DashboardPage, DashboardPanel, MetricCard, MetricGrid } from "@/features/dashboard/dashboard-ui";
+import { ListPagination, useListPagination } from "@/features/dashboard/list-pagination";
 import { formatPaise } from "@/lib/format";
 import {
   getTransactions,
@@ -55,6 +56,7 @@ export default function TransactionsPage() {
   const [error, setError] = React.useState<string | null>(null);
   const [errorStatus, setErrorStatus] = React.useState<number | null>(null);
   const [reloadKey, setReloadKey] = React.useState(0);
+  const { page, pageItems, setPage } = useListPagination(transactions);
 
   const retry = React.useCallback(() => {
     setStatus("loading");
@@ -135,7 +137,7 @@ export default function TransactionsPage() {
                 </tr>
               </thead>
               <tbody>
-                {transactions.map((t) => {
+                {pageItems.map((t) => {
                   // A clawback (post-settlement reversal, e.g. a bank-side
                   // reject days after payout) posts as a negative-amount row
                   // with the same "paid" status as a normal credit — flag it
@@ -186,6 +188,7 @@ export default function TransactionsPage() {
               </tbody>
             </table>
           </div>
+          <ListPagination page={page} total={transactions.length} onPageChange={setPage} label="Transactions pages" />
           </DashboardPanel>
         </>
       )}

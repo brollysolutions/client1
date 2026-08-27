@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { ListPagination, useListPagination } from "@/features/dashboard/list-pagination";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
@@ -107,6 +108,7 @@ function publicListError(value: string, label: string): string | undefined {
 
 export function LoanTypesView() {
   const { items, loading, error, reload } = useLoanTypes();
+  const { page, pageItems, setPage } = useListPagination(items);
   const [active, setActive] = React.useState<AdminLoanType | null>(null);
   const [creating, setCreating] = React.useState(false);
   const [newLabel, setNewLabel] = React.useState("");
@@ -321,8 +323,9 @@ export function LoanTypesView() {
           </p>
         </div>
       ) : (
+        <div className="space-y-3">
         <ul className="space-y-3">
-          {items.map((product) => {
+          {pageItems.map((product) => {
             const submissions = product.application_count + product.enquiry_count;
             return (
               <li key={product.id}>
@@ -358,6 +361,8 @@ export function LoanTypesView() {
             );
           })}
         </ul>
+        <ListPagination page={page} total={items.length} onPageChange={setPage} label="Financial products pages" />
+        </div>
       )}
 
       <Dialog open={creating} onOpenChange={setCreating}>
