@@ -10,7 +10,8 @@ verified Admin operational-visibility work in
 [PR #173](https://github.com/brollysolutions/client1/pull/173).
 
 **Done - Telecaller Lead Details validation and workflow hierarchy** on
-`codex/20260827-065108-the-lead-details-page-ui-its-kinda` (PR pending;
+`codex/20260827-065108-the-lead-details-page-ui-its-kinda` ([PR
+#242](https://github.com/brollysolutions/client1/pull/242);
 direct user-reported defect and UI follow-up; no requirement or completion-
 percentage change): loan transaction creation now requires a trimmed bank,
 positive amount, 0-100% interest rate, and date at both web and FastAPI
