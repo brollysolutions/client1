@@ -52,8 +52,8 @@ const scenarios: readonly RoleScenario[] = [
   {
     name: "Sub Admin",
     promote: ["sub_admin"],
-    expected: ["Property listings", "Referral rules", "Banners", "Offers", "Website content"],
-    excluded: ["Financial products", "Leads", "Tasks"],
+    expected: ["Property listings", "Referral rules", "Banners", "Offers"],
+    excluded: ["Financial products", "Leads", "Tasks", "Website content"],
     deniedPath: "/dashboard/admin-leads",
   },
   {
@@ -311,7 +311,7 @@ test.describe("role-aware dashboard navigation", () => {
     });
   }
 
-  test("Sub Admin retains every authoring route", async ({ page, request }) => {
+  test("Sub Admin retains the supported authoring routes", async ({ page, request }) => {
     const account = await registerClient(request, 200);
     try {
       promoteAccount(account, scenarios[4]);
@@ -319,7 +319,6 @@ test.describe("role-aware dashboard navigation", () => {
       for (const authoringRoute of [
         { path: "/dashboard/banners/new", heading: "New banner", hasBackLink: true },
         { path: "/dashboard/offers/new", heading: "New offer", hasBackLink: true },
-        { path: "/dashboard/content/new", heading: "New content block", hasBackLink: true },
         { path: "/dashboard/property-submit", heading: "Submit a property", hasBackLink: true },
         {
           path: "/dashboard/referral-rules",
@@ -352,7 +351,6 @@ test.describe("role-aware dashboard navigation", () => {
       for (const workspace of [
         { path: "/dashboard/banners", button: "New banner", heading: "New banner" },
         { path: "/dashboard/offers", button: "New offer", heading: "New offer" },
-        { path: "/dashboard/content", button: "New block", heading: "New content block" },
         { path: "/dashboard/referral-rules", button: "New rule", heading: "New bonus rule" },
       ]) {
         await page.goto(workspace.path);
@@ -364,9 +362,6 @@ test.describe("role-aware dashboard navigation", () => {
         await expect(dialog).toBeHidden();
       }
 
-      await page.goto("/dashboard/content");
-      await page.getByRole("button", { name: "Content guide", exact: true }).click();
-      await expect(page.getByRole("heading", { name: "Website content guide", exact: true })).toBeVisible();
     } finally {
       await deleteAccount(request, account);
     }

@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { DashboardFormSection } from "@/features/dashboard/dashboard-ui";
 
 type Schemas = components["schemas"];
 export type AudienceRules = Schemas["AudienceRules"];
@@ -144,12 +145,12 @@ export function AudienceRuleFields({
   }
 
   return (
-    <fieldset className="space-y-5 rounded-xl border border-border bg-muted/20 p-4" disabled={disabled}>
-      <legend className="text-sm font-semibold text-text-primary">Audience targeting</legend>
-      <p className="mt-1 text-xs text-text-secondary">
-        Different sections are combined. Multiple choices inside one section are alternatives.
-        {required ? " Select at least one user type." : " Leave user types empty for everyone."}
-      </p>
+    <fieldset className="min-w-0" disabled={disabled}>
+      <legend className="sr-only">Audience targeting</legend>
+      <DashboardFormSection
+        title="Audience targeting"
+        description={`Different sections are combined. Multiple choices inside one section are alternatives.${required ? " Select at least one user type." : " Leave user types empty for everyone."}`}
+      >
 
       <div className="space-y-2">
         <p className="text-sm font-medium text-text-primary">User type</p>
@@ -268,6 +269,7 @@ export function AudienceRuleFields({
           </div>
         ))}
       </div>
+      </DashboardFormSection>
     </fieldset>
   );
 }

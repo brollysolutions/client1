@@ -18,7 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { DashboardFormPage } from "@/features/dashboard/dashboard-ui";
+import { DashboardFormPage, DashboardFormSection } from "@/features/dashboard/dashboard-ui";
 import {
   createBanner,
   listBannerTemplates,
@@ -309,6 +309,10 @@ export function BannerForm({
       }
     >
       <form ref={formRef} className="space-y-6" onSubmit={onSubmit} noValidate>
+        <DashboardFormSection
+          title="Campaign placement"
+          description="Choose where the campaign appears and which governed artwork or record it uses."
+        >
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
             <Label htmlFor="placement">Placement</Label>
@@ -417,7 +421,12 @@ export function BannerForm({
             </p>
           </div>
         ) : null}
+        </DashboardFormSection>
 
+        <DashboardFormSection
+          title="Campaign copy"
+          description="Write the public message and its safe, same-site destination."
+        >
         <div>
           <Label htmlFor="title">Title<RequiredIndicator /></Label>
           <Input id="title" value={title} onChange={(event) => { setTitle(event.target.value); setFieldErrors((current) => { const next = { ...current }; delete next.title; return next; }); }} maxLength={500} aria-invalid={Boolean(fieldErrors.title)} aria-describedby={fieldErrors.title ? "banner-title-error" : undefined} />
@@ -452,6 +461,7 @@ export function BannerForm({
             : "Use a same-site path beginning with one slash. Unsafe or incomplete links do not render a button."}
         </p>
         <FieldError id="deep-link-error">{fieldErrors.deepLink}</FieldError>
+        </DashboardFormSection>
 
         {placement === "dashboard" && bannerType === "personalized" ? (
           <div aria-invalid={Boolean(fieldErrors.audience)} aria-describedby={fieldErrors.audience ? "banner-audience-error" : undefined}>
@@ -460,6 +470,10 @@ export function BannerForm({
           </div>
         ) : null}
 
+        <DashboardFormSection
+          title="Priority and schedule"
+          description="Set campaign order and the scheduler window that applies after Admin approval."
+        >
         <div className="grid gap-4 sm:grid-cols-3">
           <div>
             <Label htmlFor="priority">Priority</Label>
@@ -479,6 +493,7 @@ export function BannerForm({
           Leave the dates blank to publish on the next scheduler tick after approval with no automatic end.
         </p>
         <FieldError id="banner-schedule-error">{scheduleError ?? fieldErrors.schedule}</FieldError>
+        </DashboardFormSection>
 
         <Button type="submit" disabled={submitting || catalogLoading} className="w-full sm:w-auto">
           {submitting ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : null}

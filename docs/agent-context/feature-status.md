@@ -86,6 +86,48 @@ page retained its meaningful row without the two blank rows. The aggregate API
 run reached 19% before the unchanged Admin coverage-contract failure for
 `financial_product_provider_offers`, reproduced with `--lf -x`. Security,
 design/accessibility, and maintainer review found no change-owned issue.
+**In progress - Admin/Sub Admin dashboard overhaul Phase 9: remaining CMS
+queues, property submissions, and staff Website content removal** on
+`claude/20260827-admin-subadmin-ui-foundation` (direct user instruction;
+completion coverage remains 99.4% pending a formal SRS revision): Banners and
+offers now use the full-width dashboard shell and the shared `FilterBar`,
+`DataTable`, status badge, loading/empty/error states, pagination, and row-open
+workspace interaction. Admin can still approve, reject, archive, and inspect
+banner records but cannot edit draft/rejected fields; the Admin offers view is
+read-only. Sub Admin retains the existing banner/offer authoring actions,
+replacement rules, schedules, audience grammar, raster-media validation,
+approval lifecycle, and dirty-close protections. Referral and banner authoring
+now use the shared form-section hierarchy, as do audience targeting fields.
+
+My property submissions moves from a card list to the shared data table and
+opens a centred record dialog containing its state, listing details, reviewer
+note, and the existing Edit and irreversible Withdraw actions. Property
+submission and subtype-detail forms now use shared form sections without
+changing taxonomy, validation, RERA, media, edit, or withdrawal behavior.
+
+The final direct product instruction removes Website content management from
+both staff roles. The Admin/Sub Admin navigation and route grants, Sub Admin
+home metric/quick action, `/dashboard/content` pages, staff content queue/form,
+guide, preview, filter, API client, form-registry entries, and browser/unit
+expectations have been removed. Direct navigation now returns 404 for both
+roles. This does not delete existing content records or public-site copy:
+public content-block rendering and tests remain, and backend content endpoints,
+authorization, data, and lifecycle rules are unchanged. Earlier ledger entries
+describing the former Sub Admin content workspace remain historical evidence
+and are superseded only as to current staff UI availability.
+
+Fresh evidence: `pnpm lint`, `pnpm typecheck`, and all 81 web test files / 515
+tests pass. Browser verification covered Admin and Sub Admin at desktop and 390
+x 844, including the banner, offer, referral-rule, property-submission, and new
+property workspaces; it confirmed Admin read-only fields, the new form-section
+hierarchy, both-role content-route 404s, and no submitted mutation. Root/body
+overflow is clipped horizontally, and wide nested tables preserve scrolling
+while reporting hidden horizontal scrollbar chrome. The normal Docker web
+service was restored healthy. The requested `design-review` skill was not
+installed, so the responsive review used the repository design primitives
+directly and found no remaining change-owned issue. No API contract, migration,
+auth, RLS, approval, payout, media, or public-rendering behavior changed.
+
 **In progress - Admin/Sub Admin dashboard overhaul Phase 8: Analytics,
 Broadcast, and immutable Audit log** on
 `claude/20260827-admin-subadmin-ui-foundation` (direct user instruction; no

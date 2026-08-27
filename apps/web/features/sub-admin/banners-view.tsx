@@ -6,7 +6,6 @@ import {
   CheckCircle2,
   CopyPlus,
   Inbox,
-  Loader2,
   Plus,
   Send,
   Trash2,
@@ -15,7 +14,6 @@ import {
 import { toast } from "sonner";
 
 import { useAuth } from "@/components/auth/session-provider";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { FieldError, RequiredIndicator } from "@/components/ui/field-error";
 import { Dialog, DialogContent, DialogFooter } from "@/components/ui/dialog";
@@ -37,14 +35,20 @@ import {
   requiredTextError,
   type FieldErrors,
 } from "@/lib/form-validation";
-import { AdminPagination, ADMIN_PAGE_SIZE } from "@/features/admin/admin-list-tools";
 import { DASHBOARD_ICONS } from "@/features/dashboard/dashboard-icons";
 import {
   DashboardHeader,
   DashboardPage,
+  DashboardPanel,
   MetricCard,
   MetricGrid,
 } from "@/features/dashboard/dashboard-ui";
+import { DataTable, DataTablePrimaryCell, type DataColumn } from "@/features/dashboard/data-table";
+import { FetchError } from "@/features/dashboard/fetch-error";
+import { EMPTY_FILTERS, FilterBar, type FilterBarValue } from "@/features/dashboard/filter-bar";
+import { ListEmptyState, ListLoadingState, ListPagination } from "@/features/dashboard/list-states";
+import { StatusBadge, type StatusTone } from "@/features/dashboard/status-badge";
+import { useFilteredPage } from "@/features/dashboard/use-filtered-page";
 import {
   approveBanner,
   archiveBanner,
@@ -70,10 +74,9 @@ import { isSafeLocalHref } from "@/lib/safe-local-href";
 import { audienceSummary } from "./audience-rule-fields";
 import { BannerForm } from "./banner-form";
 import { BannerTemplateManager } from "./banner-template-manager";
-import { filterBanners, type QueueFilters } from "./cms-filters";
+import { filterBanners } from "./cms-filters";
 import { BannerPreview, formatOfferBadge } from "./cms-previews";
 import {
-  CmsFilterBar,
   CmsPreviewFrame,
   CmsWorkspaceHeader,
   CmsWorkspaceLayout,
@@ -91,21 +94,13 @@ const STATUS_LABEL: Record<Banner["status"], string> = {
   rejected: "Rejected",
   archived: "Archived",
 };
-const STATUS_VARIANT: Record<Banner["status"], "secondary" | "outline" | "destructive"> = {
-  draft: "outline",
-  pending_approval: "secondary",
-  approved: "secondary",
-  live: "secondary",
-  rejected: "destructive",
-  archived: "outline",
-};
-const EMPTY_FILTERS: QueueFilters = {
-  search: "",
-  status: "all",
-  line: "all",
-  kind: "all",
-  from: "",
-  to: "",
+const STATUS_TONE: Record<Banner["status"], StatusTone> = {
+  draft: "neutral",
+  pending_approval: "warning",
+  approved: "info",
+  live: "success",
+  rejected: "danger",
+  archived: "neutral",
 };
 const EDITABLE = new Set<Banner["status"]>(["draft", "rejected"]);
 const REPLACEABLE = new Set<Banner["status"]>(["approved", "live", "archived"]);
@@ -149,8 +144,7 @@ export function BannersView() {
   const { session } = useAuth();
   const isAdmin = session?.role === "admin";
   const { items, loading, error, reload } = useBannerQueue();
-  const [filters, setFilters] = React.useState(EMPTY_FILTERS);
-  const [page, setPage] = React.useState(0);
+  const [filters, setFilters] = React.useState<FilterBarValue>(EMPTY_FILTERS);
   const [active, setActive] = React.useState<Banner | null>(null);
   const [draft, setDraft] = React.useState<Draft | null>(null);
   const [templates, setTemplates] = React.useState<BannerTemplate[]>([]);
@@ -178,9 +172,50 @@ export function BannersView() {
   }, []);
 
   const filtered = React.useMemo(() => filterBanners(items, filters), [filters, items]);
-  React.useEffect(() => setPage(0), [filters]);
-  const pageItems = filtered.slice(page * ADMIN_PAGE_SIZE, (page + 1) * ADMIN_PAGE_SIZE);
-  const dirty = Boolean(active && draft && JSON.stringify(draft) !== JSON.stringify(toDraft(active)));
+  const bannersPage = useFilteredPage(filtered, filters);
+  const canEdit = Boolean(active && !isAdmin && EDITABLE.has(active.status));
+  const dirty = Boolean(canEdit && active && draft && JSON.stringify(draft) !== JSON.stringify(toDraft(active)));
+
+  const columns = React.useMemo<readonly DataColumn<Banner>[]>(
+    () => [
+      {
+        key: "banner",
+        header: "Banner",
+        render: (banner) => (
+          <DataTablePrimaryCell
+            title={banner.title}
+            subtitle={banner.category_key?.replaceAll("-", " ") ?? banner.banner_type}
+          />
+        ),
+      },
+      {
+        key: "placement",
+        header: "Placement",
+        render: (banner) => (
+          <span className="capitalize">{banner.placement.replaceAll("_", " ")}</span>
+        ),
+      },
+      {
+        key: "line",
+        header: "Line",
+        render: (banner) => banner.business_line === "both" ? "Both lines" : banner.business_line === "real_estate" ? "Real Estate" : "Loans",
+      },
+      { key: "priority", header: "Priority", align: "right", render: (banner) => banner.priority },
+      {
+        key: "updated",
+        header: "Updated",
+        render: (banner) => new Date(banner.updated_at).toLocaleDateString("en-IN"),
+      },
+      {
+        key: "state",
+        header: "State",
+        render: (banner) => (
+          <StatusBadge tone={STATUS_TONE[banner.status]}>{STATUS_LABEL[banner.status]}</StatusBadge>
+        ),
+      },
+    ],
+    [],
+  );
 
   const selectedTemplate = templates.find((template) => template.id === draft?.templateId);
   const selectedOffer = offers.find((offer) => offer.id === draft?.offerId);
@@ -387,50 +422,54 @@ export function BannersView() {
         <MetricCard label="Waiting for approval" value={items.filter((item) => item.status === "pending_approval").length} icon={DASHBOARD_ICONS.documentVerification} attention={items.some((item) => item.status === "pending_approval")} />
         <MetricCard label="Live" value={items.filter((item) => item.status === "live").length} icon={DASHBOARD_ICONS.analytics} />
       </MetricGrid>
-      <CmsFilterBar
+      <FilterBar
         value={filters}
         onChange={setFilters}
         searchLabel="Search banners"
+        searchPlaceholder="Title or subtitle"
         statusOptions={Object.entries(STATUS_LABEL).map(([value, label]) => ({ value, label }))}
+        statusLabel="banner states"
         kindLabel="banner types"
         kindOptions={[
           { value: "default", label: "Default" },
           { value: "action", label: "Action" },
           { value: "personalized", label: "Personalized" },
         ]}
+        note="Filters apply to the records already loaded for your authorized role."
       />
-      {loading ? (
-        <Loading />
-      ) : error ? (
-        <ErrorState error={error} reload={reload} />
-      ) : filtered.length === 0 ? (
-        <Empty filtered={items.length > 0} />
+      {error ? (
+        <FetchError status={null} message={error} onRetry={() => void reload()} />
       ) : (
-        <>
-          <p className="text-sm text-text-secondary">
-            {filtered.length} {filtered.length === 1 ? "banner" : "banners"} shown
-          </p>
-          <ul className="space-y-3">
-            {pageItems.map((banner) => (
-              <li key={banner.id}>
-                <button
-                  type="button"
-                  onClick={() => openBanner(banner)}
-                  className="flex w-full items-center justify-between gap-4 rounded-xl border border-border bg-card p-4 text-left transition-colors hover:border-brand-cta focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue"
-                >
-                  <div className="min-w-0">
-                    <p className="truncate font-medium text-text-primary">{banner.title}</p>
-                    <p className="mt-0.5 truncate text-xs capitalize text-text-secondary">
-                      {banner.placement.replaceAll("_", " ")} · {banner.category_key?.replaceAll("-", " ") ?? banner.banner_type} · Priority {banner.priority}
-                    </p>
-                  </div>
-                  <Badge variant={STATUS_VARIANT[banner.status]}>{STATUS_LABEL[banner.status]}</Badge>
-                </button>
-              </li>
-            ))}
-          </ul>
-          <AdminPagination page={page} total={filtered.length} onPageChange={setPage} />
-        </>
+        <DashboardPanel
+          title="Campaign library"
+          description={`${filtered.length} ${filtered.length === 1 ? "banner" : "banners"} shown.`}
+          bodyClassName="p-0"
+        >
+          {loading ? (
+            <div className="p-5"><ListLoadingState rows={5} /></div>
+          ) : filtered.length === 0 ? (
+            <ListEmptyState
+              icon={Inbox}
+              title={items.length ? "No banners match these filters" : "No banners yet"}
+              description={items.length ? "Clear or adjust the filters." : "Create the first banner draft to get started."}
+              className="m-5"
+            />
+          ) : (
+            <>
+              <DataTable
+                columns={columns}
+                rows={bannersPage.pageRows}
+                rowKey={(banner) => banner.id}
+                onRowClick={openBanner}
+                rowActionLabel="Open banner workspace"
+                minWidth="min-w-[900px]"
+              />
+              <div className="px-5 pb-5">
+                <ListPagination page={bannersPage.page} total={bannersPage.total} onPageChange={bannersPage.setPage} />
+              </div>
+            </>
+          )}
+        </DashboardPanel>
       )}
 
       <Dialog open={active !== null} onOpenChange={closeWorkspace}>
@@ -447,18 +486,18 @@ export function BannersView() {
                     <section className="space-y-4 rounded-xl border border-border p-4">
                       <div>
                         <Label htmlFor="banner-title">Title <RequiredIndicator /></Label>
-                        <Input id="banner-title" value={draft.title} disabled={!EDITABLE.has(active.status)} maxLength={500} onChange={(event) => { setDraft({ ...draft, title: event.target.value }); setFieldErrors((current) => ({ ...current, title: undefined })); }} aria-invalid={Boolean(fieldErrors.title)} aria-describedby={fieldErrors.title ? "banner-edit-title-error" : undefined} />
+                        <Input id="banner-title" value={draft.title} disabled={!canEdit} maxLength={500} onChange={(event) => { setDraft({ ...draft, title: event.target.value }); setFieldErrors((current) => ({ ...current, title: undefined })); }} aria-invalid={Boolean(fieldErrors.title)} aria-describedby={fieldErrors.title ? "banner-edit-title-error" : undefined} />
                         <FieldError id="banner-edit-title-error">{fieldErrors.title}</FieldError>
                       </div>
                       <div>
                         <Label htmlFor="banner-subtitle">Subtitle</Label>
-                        <Input id="banner-subtitle" value={draft.subtitle} disabled={!EDITABLE.has(active.status)} maxLength={300} onChange={(event) => { setDraft({ ...draft, subtitle: event.target.value }); setFieldErrors((current) => ({ ...current, subtitle: undefined })); }} aria-invalid={Boolean(fieldErrors.subtitle)} aria-describedby={fieldErrors.subtitle ? "banner-edit-subtitle-error" : undefined} />
+                        <Input id="banner-subtitle" value={draft.subtitle} disabled={!canEdit} maxLength={300} onChange={(event) => { setDraft({ ...draft, subtitle: event.target.value }); setFieldErrors((current) => ({ ...current, subtitle: undefined })); }} aria-invalid={Boolean(fieldErrors.subtitle)} aria-describedby={fieldErrors.subtitle ? "banner-edit-subtitle-error" : undefined} />
                         <FieldError id="banner-edit-subtitle-error">{fieldErrors.subtitle}</FieldError>
                       </div>
                       <div className="grid gap-4 sm:grid-cols-2">
                         <div>
                           <Label htmlFor="banner-cta">Button label</Label>
-                          <Input id="banner-cta" value={draft.ctaLabel} disabled={!EDITABLE.has(active.status)} maxLength={40} onChange={(event) => { setDraft({ ...draft, ctaLabel: event.target.value }); setFieldErrors((current) => ({ ...current, ctaLabel: undefined })); }} aria-invalid={Boolean(fieldErrors.ctaLabel)} aria-describedby={fieldErrors.ctaLabel ? "banner-edit-cta-error" : undefined} />
+                          <Input id="banner-cta" value={draft.ctaLabel} disabled={!canEdit} maxLength={40} onChange={(event) => { setDraft({ ...draft, ctaLabel: event.target.value }); setFieldErrors((current) => ({ ...current, ctaLabel: undefined })); }} aria-invalid={Boolean(fieldErrors.ctaLabel)} aria-describedby={fieldErrors.ctaLabel ? "banner-edit-cta-error" : undefined} />
                           <FieldError id="banner-edit-cta-error">{fieldErrors.ctaLabel}</FieldError>
                         </div>
                         <div>
@@ -466,7 +505,7 @@ export function BannersView() {
                           <Input
                             id="banner-link"
                             value={selectedProperty ? propertyCampaignHref(selectedProperty) : draft.deepLink}
-                            disabled={!EDITABLE.has(active.status) || Boolean(selectedProperty)}
+                            disabled={!canEdit || Boolean(selectedProperty)}
                             maxLength={1000}
                             onChange={(event) => { setDraft({ ...draft, deepLink: event.target.value }); setFieldErrors((current) => ({ ...current, deepLink: undefined })); }}
                             aria-invalid={Boolean(fieldErrors.deepLink)}
@@ -478,7 +517,7 @@ export function BannersView() {
                       {active.placement !== "dashboard" ? (
                         <div>
                           <Label htmlFor="edit-template">Artwork template <RequiredIndicator /></Label>
-                          <Select value={draft.templateId || undefined} disabled={!EDITABLE.has(active.status)} onValueChange={(templateId) => { setDraft({ ...draft, templateId, offerId: "", propertyId: "" }); setFieldErrors((current) => ({ ...current, templateId: undefined })); }}>
+                          <Select value={draft.templateId || undefined} disabled={!canEdit} onValueChange={(templateId) => { setDraft({ ...draft, templateId, offerId: "", propertyId: "" }); setFieldErrors((current) => ({ ...current, templateId: undefined })); }}>
                             <SelectTrigger id="edit-template" aria-required="true" aria-invalid={Boolean(fieldErrors.templateId)} aria-describedby={fieldErrors.templateId ? "banner-edit-template-error" : undefined}><SelectValue placeholder="Choose a template" /></SelectTrigger>
                             <SelectContent>
                               {editableTemplates.map((template) => (
@@ -492,7 +531,7 @@ export function BannersView() {
                       {categoryNeedsOffer ? (
                         <div>
                           <Label htmlFor="edit-offer">Linked Offer <RequiredIndicator /></Label>
-                          <Select value={draft.offerId || undefined} disabled={!EDITABLE.has(active.status)} onValueChange={(offerId) => { setDraft({ ...draft, offerId }); setFieldErrors((current) => ({ ...current, offerId: undefined })); }}>
+                          <Select value={draft.offerId || undefined} disabled={!canEdit} onValueChange={(offerId) => { setDraft({ ...draft, offerId }); setFieldErrors((current) => ({ ...current, offerId: undefined })); }}>
                             <SelectTrigger id="edit-offer" aria-required="true" aria-invalid={Boolean(fieldErrors.offerId)} aria-describedby={fieldErrors.offerId ? "banner-edit-offer-error" : undefined}><SelectValue placeholder="Choose an Offer" /></SelectTrigger>
                             <SelectContent>
                               {editableOffers.map((offer) => <SelectItem key={offer.id} value={offer.id}>{offer.title}</SelectItem>)}
@@ -509,7 +548,7 @@ export function BannersView() {
                             properties={propertyOptions}
                             value={draft.propertyId}
                             onChange={(propertyId) => setDraft({ ...draft, propertyId })}
-                            disabled={!EDITABLE.has(active.status)}
+                            disabled={!canEdit}
                           />
                           <p className="mt-1 text-xs text-text-secondary">
                             Property cover art, enquiry destination, and RERA verification are server-controlled.
@@ -519,16 +558,16 @@ export function BannersView() {
                       <div className="grid gap-4 sm:grid-cols-3">
                         <div>
                           <Label htmlFor="banner-priority">Priority</Label>
-                          <Input id="banner-priority" inputMode="numeric" value={draft.priority} disabled={!EDITABLE.has(active.status)} onChange={(event) => { setDraft({ ...draft, priority: event.target.value.replace(/\D/g, "") }); setFieldErrors((current) => ({ ...current, priority: undefined })); }} aria-invalid={Boolean(fieldErrors.priority)} aria-describedby={fieldErrors.priority ? "banner-edit-priority-error" : undefined} />
+                          <Input id="banner-priority" inputMode="numeric" value={draft.priority} disabled={!canEdit} onChange={(event) => { setDraft({ ...draft, priority: event.target.value.replace(/\D/g, "") }); setFieldErrors((current) => ({ ...current, priority: undefined })); }} aria-invalid={Boolean(fieldErrors.priority)} aria-describedby={fieldErrors.priority ? "banner-edit-priority-error" : undefined} />
                           <FieldError id="banner-edit-priority-error">{fieldErrors.priority}</FieldError>
                         </div>
                         <div>
                           <Label htmlFor="banner-start">Goes live at</Label>
-                          <Input id="banner-start" type="datetime-local" value={draft.startsAt} disabled={!EDITABLE.has(active.status)} onChange={(event) => { setDraft({ ...draft, startsAt: event.target.value }); setFieldErrors((current) => ({ ...current, schedule: undefined })); }} aria-invalid={Boolean(fieldErrors.schedule)} aria-describedby={fieldErrors.schedule ? "banner-edit-schedule-error" : undefined} />
+                          <Input id="banner-start" type="datetime-local" value={draft.startsAt} disabled={!canEdit} onChange={(event) => { setDraft({ ...draft, startsAt: event.target.value }); setFieldErrors((current) => ({ ...current, schedule: undefined })); }} aria-invalid={Boolean(fieldErrors.schedule)} aria-describedby={fieldErrors.schedule ? "banner-edit-schedule-error" : undefined} />
                         </div>
                         <div>
                           <Label htmlFor="banner-end">Archives at</Label>
-                          <Input id="banner-end" type="datetime-local" value={draft.endsAt} disabled={!EDITABLE.has(active.status)} onChange={(event) => { setDraft({ ...draft, endsAt: event.target.value }); setFieldErrors((current) => ({ ...current, schedule: undefined })); }} aria-invalid={Boolean(fieldErrors.schedule)} aria-describedby={fieldErrors.schedule ? "banner-edit-schedule-error" : undefined} />
+                          <Input id="banner-end" type="datetime-local" value={draft.endsAt} disabled={!canEdit} onChange={(event) => { setDraft({ ...draft, endsAt: event.target.value }); setFieldErrors((current) => ({ ...current, schedule: undefined })); }} aria-invalid={Boolean(fieldErrors.schedule)} aria-describedby={fieldErrors.schedule ? "banner-edit-schedule-error" : undefined} />
                         </div>
                       </div>
                       <FieldError id="banner-edit-schedule-error">{fieldErrors.schedule}</FieldError>
@@ -606,16 +645,4 @@ export function BannersView() {
       ) : null}
     </DashboardPage>
   );
-}
-
-function Loading() {
-  return <div className="flex min-h-64 items-center justify-center rounded-xl border border-border bg-card"><Loader2 className="h-6 w-6 animate-spin text-brand-navy" /></div>;
-}
-
-function ErrorState({ error, reload }: { error: string; reload: () => Promise<void> }) {
-  return <div className="rounded-xl border border-border bg-card p-8 text-center"><p className="text-sm text-text-secondary">{error}</p><Button variant="outline" className="mt-4" onClick={() => void reload()}>Try again</Button></div>;
-}
-
-function Empty({ filtered }: { filtered: boolean }) {
-  return <div className="flex min-h-56 flex-col items-center justify-center rounded-xl border border-border bg-card p-8 text-center"><Inbox className="h-8 w-8 text-text-secondary" /><p className="mt-3 font-medium">{filtered ? "No banners match these filters" : "No banners yet"}</p><p className="mt-1 text-sm text-text-secondary">{filtered ? "Clear or adjust the advanced filters." : "Create the first banner draft to get started."}</p></div>;
 }

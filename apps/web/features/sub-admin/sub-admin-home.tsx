@@ -24,7 +24,7 @@ import { PendingApprovalList } from "./pending-approval-list";
 type Status = "loading" | "ready" | "error";
 
 // Sub Admin's composed landing page (spec §6.1): pending-approval queue ->
-// live banners/offers -> content drafts -> recent referral payouts, backed by
+// live banners/offers -> recent referral payouts, backed by
 // one aggregated GET (services.sub_admin.get_sub_admin_home). Domain cards
 // stay as the secondary navigation into each surface.
 export function SubAdminHome() {
@@ -83,7 +83,7 @@ export function SubAdminHome() {
     <DashboardPage>
       <DashboardHeader
         title="Sub Admin workspace"
-        description="Create content, monitor approval status, and manage cross-line promotions."
+        description="Monitor approval status and manage cross-line promotions."
         actions={<DashboardTextLink href="/dashboard/banners/new">Create banner</DashboardTextLink>}
       />
 
@@ -96,7 +96,6 @@ export function SubAdminHome() {
         />
         <MetricCard label="Live banners" value={home.live_banners_count} icon={DASHBOARD_ICONS.banners} href="/dashboard/banners" />
         <MetricCard label="Active offers" value={home.live_offers_count} icon={DASHBOARD_ICONS.offers} href="/dashboard/offers" />
-        <MetricCard label="Content drafts" value={home.content_drafts_count} icon={DASHBOARD_ICONS.websiteContent} href="/dashboard/content" />
       </MetricGrid>
 
       {/* Full width, in DOM order, rather than a 1.4fr/1fr pair of 310px boxes:
@@ -141,7 +140,6 @@ export function SubAdminHome() {
         <DashboardQuickAction href="/dashboard/banners" title="Banners" description="Create drafts and submit them for Admin approval." icon={DASHBOARD_ICONS.banners} />
         <DashboardQuickAction href="/dashboard/property-submit" title="Property listings" description="Submit a managed property listing for review." icon={DASHBOARD_ICONS.propertyListings} />
         <DashboardQuickAction href="/dashboard/offers" title="Offers" description="Create and schedule customer promotions." icon={DASHBOARD_ICONS.offers} />
-        <DashboardQuickAction href="/dashboard/content" title="Website content" description="Write and publish approved public-site copy." icon={DASHBOARD_ICONS.websiteContent} />
         <DashboardQuickAction href="/dashboard/referral-rules" title="Referral bonus" description="Manage bonus rules and review payout activity." icon={DASHBOARD_ICONS.referrals} />
       </QuickActionGrid>
     </DashboardPage>
