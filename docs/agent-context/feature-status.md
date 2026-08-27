@@ -11,7 +11,7 @@ verified Admin operational-visibility work in
 
 **Done - explicit pagination for growing dashboard lists** on
 `codex/20260827-065108-the-lead-details-page-ui-its-kinda` ([PR
-TBD](https://github.com/brollysolutions/client1/pulls); direct user instruction;
+#243](https://github.com/brollysolutions/client1/pull/243); direct user instruction;
 no requirement or completion-percentage change): the audit confirmed that the
 application had no infinite-scroll implementation. A shared accessible 25-row
 Previous/Next control now bounds every identified primary growing dashboard
