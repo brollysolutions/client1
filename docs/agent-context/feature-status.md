@@ -10,8 +10,9 @@ verified Admin operational-visibility work in
 [PR #173](https://github.com/brollysolutions/client1/pull/173).
 
 **Done - concise server-fetch timeout diagnostics** on
-`codex/20260827-065108-the-lead-details-page-ui-its-kinda` (PR pending; direct
-user-reported Docker log noise; no requirement or completion-percentage change): the
+`codex/20260827-065108-the-lead-details-page-ui-its-kinda` ([PR
+#245](https://github.com/brollysolutions/client1/pull/245); direct user-reported
+Docker log noise; no requirement or completion-percentage change): the
 five-second anonymous server-fetch guard, typed failure result, and fail-soft
 homepage behavior are unchanged. Network exceptions are now logged as a
 bounded name/message string instead of a raw Node `DOMException`,
