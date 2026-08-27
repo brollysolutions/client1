@@ -35,7 +35,13 @@ function errorMessage(status: number): string {
 
 export async function serverFetchJson<TResponse>(
   path: string,
-  { revalidate }: { revalidate: number },
+  {
+    revalidate,
+    expectedStatuses = [],
+  }: {
+    revalidate: number;
+    expectedStatuses?: readonly number[];
+  },
 ): Promise<ApiResponse<TResponse>> {
   let res: Response;
   try {
@@ -57,7 +63,9 @@ export async function serverFetchJson<TResponse>(
   }
 
   if (!res.ok) {
-    console.error("serverFetchJson.http_error", path, res.status);
+    if (!expectedStatuses.includes(res.status)) {
+      console.error("serverFetchJson.http_error", path, res.status);
+    }
     return { ok: false, status: res.status, error: errorMessage(res.status) };
   }
 

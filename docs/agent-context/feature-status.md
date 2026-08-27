@@ -9,6 +9,23 @@ Evidence baseline: `abcc1fd`
 verified Admin operational-visibility work in
 [PR #173](https://github.com/brollysolutions/client1/pull/173).
 
+**Done - optional public content-block 404 log classification** on
+`codex/20260827-065108-the-lead-details-page-ui-its-kinda` ([PR
+#244](https://github.com/brollysolutions/client1/pull/244); direct user-reported
+operational noise; no requirement or completion-percentage change): PostgreSQL
+checkpoint completion and PgBouncer login-attempt entries are normal. The
+public API intentionally retains `404` for a missing or
+unpublished optional block, while the server-only fetch wrapper now lets this
+specific caller declare that status expected without changing its typed failure
+result. Unexpected `404`/`500`, network, and parse failures remain logged.
+Fresh evidence: the focused 11-test regression and neighboring 44-test public
+fetch set pass; ESLint and strict typecheck pass; all 80 web test files / 511
+tests pass. Live Docker verification records the API's intentional
+`homepage-closing` `404` as INFO, the homepage as `200`, and no matching web
+`serverFetchJson.http_error`. The production build compiled, typechecked, and
+generated 93/93 pages before the unchanged Windows standalone-symlink `EPERM`;
+host-side Docker-only `api` DNS failures continued to fall back and log.
+
 **Done - explicit pagination for growing dashboard lists** on
 `codex/20260827-065108-the-lead-details-page-ui-its-kinda` ([PR
 #243](https://github.com/brollysolutions/client1/pull/243); direct user instruction;
