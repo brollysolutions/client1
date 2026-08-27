@@ -6,6 +6,7 @@ import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { FieldError, RequiredIndicator } from "@/components/ui/field-error";
 import {
   Dialog,
   DialogContent,
@@ -16,6 +17,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { requiredTextError } from "@/lib/form-validation";
 import {
   getOperationalUsers,
   setOperationalUserStatus,
@@ -42,6 +44,7 @@ export function OperationalUsersPanel() {
   const [query, setQuery] = React.useState("");
   const [pendingUser, setPendingUser] = React.useState<AdminUser | null>(null);
   const [reason, setReason] = React.useState("");
+  const [reasonError, setReasonError] = React.useState<string>();
 
   const load = React.useCallback(async () => {
     setLoading(true);
@@ -69,16 +72,16 @@ export function OperationalUsersPanel() {
 
   function beginUpdate(user: AdminUser) {
     setReason("");
+    setReasonError(undefined);
     setPendingUser(user);
   }
 
   async function confirmUpdate() {
     if (!pendingUser) return;
     const status = pendingUser.status === "suspended" ? "active" : "suspended";
-    if (!reason.trim()) {
-      toast.error("Add a reason", { description: "The account-status audit record requires context." });
-      return;
-    }
+    const validationError = requiredTextError(reason, "Reason", 500);
+    setReasonError(validationError);
+    if (validationError) return;
     setBusy(pendingUser.id);
     const result = await setOperationalUserStatus(pendingUser.id, { status, reason: reason.trim() });
     setBusy(null);
@@ -104,7 +107,7 @@ export function OperationalUsersPanel() {
     <>
       <div className="space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="relative w-full sm:w-72"><Search className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-text-secondary" aria-hidden="true" /><Input aria-label="Search accounts on this page" className="pl-9" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search this page" /></div>
+          <div className="relative w-full sm:w-72"><Search className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-text-secondary" aria-hidden="true" /><Input aria-label="Search accounts on this page" className="pl-9" value={query} maxLength={100} onChange={(event) => setQuery(event.target.value)} placeholder="Search this page" /></div>
           <p className="text-xs text-text-secondary">{total === 0 ? "No accounts" : `Showing ${offset + 1}-${offset + users.length} of ${total}`}</p>
         </div>
         {filteredUsers.length === 0 ? <p className="py-8 text-center text-sm text-text-secondary">No accounts match this page.</p> : (
@@ -118,7 +121,7 @@ export function OperationalUsersPanel() {
         <div className="flex justify-end gap-2"><Button size="sm" variant="outline" disabled={offset === 0} onClick={() => setOffset((current) => Math.max(0, current - PAGE_SIZE))}>Previous</Button><Button size="sm" variant="outline" disabled={offset + users.length >= total} onClick={() => setOffset((current) => current + PAGE_SIZE)}>Next</Button></div>
       </div>
       <Dialog open={pendingUser !== null} onOpenChange={(open) => !open && setPendingUser(null)}>
-        <DialogContent>{pendingUser ? <><DialogHeader><DialogTitle>{pendingUser.status === "suspended" ? "Reactivate account" : "Suspend account"}</DialogTitle><DialogDescription>{pendingUser.first_name} {pendingUser.last_name} {pendingUser.status === "suspended" ? "will be able to sign in again." : "will immediately lose active sessions and cannot sign in."}</DialogDescription></DialogHeader><div className="grid gap-2"><Label htmlFor="account-status-reason">Reason</Label><Input id="account-status-reason" value={reason} onChange={(event) => setReason(event.target.value)} maxLength={500} placeholder="Why is this status changing?" autoFocus /></div><DialogFooter><Button variant="outline" onClick={() => setPendingUser(null)}>Cancel</Button><Button variant={pendingUser.status === "suspended" ? "default" : "destructive"} onClick={() => void confirmUpdate()} disabled={busy === pendingUser.id}>{busy === pendingUser.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldAlert className="h-4 w-4" />}Confirm</Button></DialogFooter></> : null}</DialogContent>
+        <DialogContent>{pendingUser ? <><DialogHeader><DialogTitle>{pendingUser.status === "suspended" ? "Reactivate account" : "Suspend account"}</DialogTitle><DialogDescription>{pendingUser.first_name} {pendingUser.last_name} {pendingUser.status === "suspended" ? "will be able to sign in again." : "will immediately lose active sessions and cannot sign in."}</DialogDescription></DialogHeader><div className="grid gap-2"><Label htmlFor="account-status-reason">Reason <RequiredIndicator /></Label><Input id="account-status-reason" value={reason} onChange={(event) => { setReason(event.target.value); setReasonError(undefined); }} maxLength={500} placeholder="Why is this status changing?" autoFocus aria-invalid={Boolean(reasonError)} aria-describedby={reasonError ? "account-status-reason-error" : undefined} /><FieldError id="account-status-reason-error">{reasonError}</FieldError></div><DialogFooter><Button variant="outline" onClick={() => setPendingUser(null)}>Cancel</Button><Button variant={pendingUser.status === "suspended" ? "default" : "destructive"} onClick={() => void confirmUpdate()} disabled={busy === pendingUser.id}>{busy === pendingUser.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldAlert className="h-4 w-4" />}Confirm</Button></DialogFooter></> : null}</DialogContent>
       </Dialog>
     </>
   );

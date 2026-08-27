@@ -6,6 +6,7 @@ import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { FieldError, RequiredIndicator } from "@/components/ui/field-error";
 import {
   Dialog,
   DialogContent,
@@ -24,6 +25,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  apiIssuesToFieldErrors,
+  focusFirstInvalidField,
+  piiFreeOperationalTextError,
+  requiredTextError,
+  type FieldErrors,
+} from "@/lib/form-validation";
 import {
   completeMobileChange,
   listMobileChangeRequests,
@@ -79,7 +87,12 @@ export function MobileChangeQueue() {
   const [attestation, setAttestation] = React.useState("");
   const [password, setPassword] = React.useState("");
   const [reason, setReason] = React.useState("");
+  const [fieldErrors, setFieldErrors] = React.useState<
+    FieldErrors<"proof" | "attestation" | "password" | "reason">
+  >({});
+  const [formError, setFormError] = React.useState<string | null>(null);
   const [busy, setBusy] = React.useState<"verify" | "complete" | "reject" | null>(null);
+  const dialogRef = React.useRef<HTMLDivElement>(null);
 
   const load = React.useCallback(async () => {
     setLoading(true);
@@ -102,10 +115,41 @@ export function MobileChangeQueue() {
     setAttestation("");
     setPassword("");
     setReason("");
+    setFieldErrors({});
+    setFormError(null);
   }
 
   async function act(kind: "verify" | "complete" | "reject") {
     if (!active || busy) return;
+    const errors: FieldErrors<"proof" | "attestation" | "password" | "reason"> = {
+      password: requiredTextError(password, "Current Admin password", 128),
+    };
+    if (kind === "verify") {
+      errors.proof = proof ? undefined : "Identity proof is required.";
+      errors.attestation = piiFreeOperationalTextError(attestation, "Internal reference", {
+        required: true,
+        minLength: 3,
+        maxLength: 300,
+      });
+    }
+    if (kind === "reject") {
+      errors.reason = piiFreeOperationalTextError(reason, "Rejection reason", {
+        required: true,
+        minLength: 3,
+        maxLength: 500,
+      });
+    }
+    const nextErrors = Object.fromEntries(
+      Object.entries(errors).filter(([, validationError]) => validationError),
+    ) as typeof fieldErrors;
+    setFieldErrors(nextErrors);
+    setFormError(null);
+    if (Object.keys(nextErrors).length > 0) {
+      requestAnimationFrame(() => {
+        if (dialogRef.current) focusFirstInvalidField(dialogRef.current);
+      });
+      return;
+    }
     setBusy(kind);
     const response =
       kind === "verify"
@@ -119,6 +163,15 @@ export function MobileChangeQueue() {
           : await rejectMobileChange(active.id, reason.trim(), password);
     setBusy(null);
     if (!response.ok) {
+      setFieldErrors(
+        apiIssuesToFieldErrors(response.issues, {
+          proof_method: "proof",
+          proof_attestation: "attestation",
+          current_password: "password",
+          reason: "reason",
+        }),
+      );
+      setFormError(response.error);
       toast.error("Could not update this request", { description: response.error });
       return;
     }
@@ -197,7 +250,7 @@ export function MobileChangeQueue() {
       )}
 
       <Dialog open={active !== null} onOpenChange={(open) => !open && close()}>
-        <DialogContent className="max-w-xl">
+        <DialogContent ref={dialogRef} className="max-w-xl">
           {active ? (
             <>
               <DialogHeader>
@@ -225,12 +278,15 @@ export function MobileChangeQueue() {
                 {active.status === "pending_review" ? (
                   <>
                     <div className="space-y-2">
-                      <Label htmlFor="proof-method">Identity proof used</Label>
+                      <Label htmlFor="proof-method">Identity proof used <RequiredIndicator /></Label>
                       <Select
                         value={proof}
-                        onValueChange={(value) => setProof(value as MobileChangeProof)}
+                        onValueChange={(value) => {
+                          setProof(value as MobileChangeProof);
+                          setFieldErrors((current) => ({ ...current, proof: undefined }));
+                        }}
                       >
-                        <SelectTrigger id="proof-method">
+                        <SelectTrigger id="proof-method" aria-required="true" aria-invalid={Boolean(fieldErrors.proof)} aria-describedby={fieldErrors.proof ? "proof-method-error" : undefined}>
                           <SelectValue placeholder="Choose an approved proof" />
                         </SelectTrigger>
                         <SelectContent>
@@ -241,16 +297,20 @@ export function MobileChangeQueue() {
                           ))}
                         </SelectContent>
                       </Select>
+                      <FieldError id="proof-method-error">{fieldErrors.proof}</FieldError>
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="attestation">PII-free internal reference</Label>
+                      <Label htmlFor="attestation">PII-free internal reference <RequiredIndicator /></Label>
                       <Textarea
                         id="attestation"
                         value={attestation}
-                        onChange={(event) => setAttestation(event.target.value)}
+                        onChange={(event) => { setAttestation(event.target.value); setFieldErrors((current) => ({ ...current, attestation: undefined })); }}
                         placeholder="Example: branch-visit-case-84 (no phone, email, or KYC number)"
                         maxLength={300}
+                        aria-invalid={Boolean(fieldErrors.attestation)}
+                        aria-describedby={fieldErrors.attestation ? "attestation-error" : undefined}
                       />
+                      <FieldError id="attestation-error">{fieldErrors.attestation}</FieldError>
                     </div>
                   </>
                 ) : (
@@ -265,17 +325,21 @@ export function MobileChangeQueue() {
                 )}
 
                 <div className="space-y-2">
-                  <Label htmlFor="admin-password">Your current Admin password</Label>
+                  <Label htmlFor="admin-password">Your current Admin password <RequiredIndicator /></Label>
                   <Input
                     id="admin-password"
                     type="password"
                     value={password}
-                    onChange={(event) => setPassword(event.target.value)}
+                    onChange={(event) => { setPassword(event.target.value); setFieldErrors((current) => ({ ...current, password: undefined })); }}
                     autoComplete="current-password"
+                    maxLength={128}
+                    aria-invalid={Boolean(fieldErrors.password)}
+                    aria-describedby={fieldErrors.password ? "admin-password-error" : "admin-password-help"}
                   />
-                  <p className="text-xs text-text-secondary">
+                  <p id="admin-password-help" className="text-xs text-text-secondary">
                     Required for identity verification and final completion.
                   </p>
+                  <FieldError id="admin-password-error">{fieldErrors.password}</FieldError>
                 </div>
 
                 <div className="space-y-2 border-t border-border pt-4">
@@ -283,18 +347,22 @@ export function MobileChangeQueue() {
                   <Textarea
                     id="reject-reason"
                     value={reason}
-                    onChange={(event) => setReason(event.target.value)}
+                    onChange={(event) => { setReason(event.target.value); setFieldErrors((current) => ({ ...current, reason: undefined })); }}
                     placeholder="Required only when rejecting; do not include contact or KYC details"
                     maxLength={500}
+                    aria-invalid={Boolean(fieldErrors.reason)}
+                    aria-describedby={fieldErrors.reason ? "reject-reason-error" : undefined}
                   />
+                  <FieldError id="reject-reason-error">{fieldErrors.reason}</FieldError>
                 </div>
+                {formError ? <p className="text-sm text-destructive" role="alert">{formError}</p> : null}
               </div>
 
               <DialogFooter className="gap-2 sm:gap-2">
                 <Button
                   variant="outline"
                   onClick={() => void act("reject")}
-                  disabled={busy !== null || reason.trim().length < 3 || !password}
+                  disabled={busy !== null}
                 >
                   {busy === "reject" ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
                   Reject
@@ -304,10 +372,7 @@ export function MobileChangeQueue() {
                     onClick={() => void act("verify")}
                     disabled={
                       busy !== null ||
-                      active.conflicts.length > 0 ||
-                      !proof ||
-                      attestation.trim().length < 3 ||
-                      !password
+                      active.conflicts.length > 0
                     }
                   >
                     {busy === "verify" ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
@@ -316,7 +381,7 @@ export function MobileChangeQueue() {
                 ) : (
                   <Button
                     onClick={() => void act("complete")}
-                    disabled={busy !== null || active.conflicts.length > 0 || !password}
+                    disabled={busy !== null || active.conflicts.length > 0}
                   >
                     {busy === "complete" ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
                     Complete and revoke sessions

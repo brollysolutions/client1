@@ -183,6 +183,7 @@ export function ReportFilterBar({
               <Input
                 placeholder="Search agents"
                 value={agentQuery}
+                maxLength={100}
                 onChange={(e) => setAgentQuery(e.target.value)}
                 className="mb-2"
               />

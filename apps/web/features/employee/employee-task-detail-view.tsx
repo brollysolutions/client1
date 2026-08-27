@@ -6,6 +6,7 @@ import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { FieldError, RequiredIndicator } from "@/components/ui/field-error";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -74,6 +75,8 @@ export function EmployeeTaskDetailView({ taskId }: { taskId: string }) {
   const { task, status, error, errorStatus, retry, updateTask } = useEmployeeTaskDetail(taskId);
   const [notes, setNotes] = React.useState("");
   const [outcome, setOutcome] = React.useState<string>("");
+  const [notesError, setNotesError] = React.useState<string>();
+  const [outcomeError, setOutcomeError] = React.useState<string>();
   const [actingStatus, setActingStatus] = React.useState<string | null>(null);
   const [shareLink, setShareLink] = React.useState<ContactShareLink | null>(null);
   const [sharing, setSharing] = React.useState(false);
@@ -158,11 +161,11 @@ export function EmployeeTaskDetailView({ taskId }: { taskId: string }) {
     opts?: { requireOutcome?: boolean; requireNotes?: boolean },
   ) {
     if (opts?.requireOutcome && !outcome) {
-      toast.error("Choose an outcome before completing this check.");
+      setOutcomeError("Outcome is required to complete this check.");
       return;
     }
     if (opts?.requireNotes && !notes.trim()) {
-      toast.error("Add a note explaining the no-show before continuing.");
+      setNotesError("A note explaining the no-show is required.");
       return;
     }
     setActingStatus(nextStatus ?? "notes");
@@ -266,17 +269,21 @@ export function EmployeeTaskDetailView({ taskId }: { taskId: string }) {
           maxLength={1000}
           value={notes}
           disabled={isTerminal}
-          onChange={(e) => setNotes(e.target.value)}
+          onChange={(e) => { setNotes(e.target.value); setNotesError(undefined); }}
           placeholder="Add details about this task"
+          aria-label="Task notes"
+          aria-invalid={Boolean(notesError)}
+          aria-describedby={notesError ? "employee-task-notes-error" : undefined}
         />
+        <FieldError id="employee-task-notes-error">{notesError}</FieldError>
 
         {!isTerminal && (
           <div className="mt-4 flex flex-wrap items-end gap-3">
             {isBackgroundCheck && wantsCompletion ? (
               <div className="w-48">
-                <Label htmlFor="outcome">Outcome</Label>
-                <Select value={outcome} onValueChange={setOutcome}>
-                  <SelectTrigger id="outcome">
+                <Label htmlFor="outcome">Outcome <RequiredIndicator /></Label>
+                <Select value={outcome} onValueChange={(value) => { setOutcome(value); setOutcomeError(undefined); }}>
+                  <SelectTrigger id="outcome" aria-required="true" aria-invalid={Boolean(outcomeError)} aria-describedby={outcomeError ? "employee-task-outcome-error" : undefined}>
                     <SelectValue placeholder="Choose outcome" />
                   </SelectTrigger>
                   <SelectContent>
@@ -287,6 +294,7 @@ export function EmployeeTaskDetailView({ taskId }: { taskId: string }) {
                     ))}
                   </SelectContent>
                 </Select>
+                <FieldError id="employee-task-outcome-error">{outcomeError}</FieldError>
               </div>
             ) : null}
 

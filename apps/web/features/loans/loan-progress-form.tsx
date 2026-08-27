@@ -11,6 +11,7 @@ import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import { FieldError, RequiredIndicator } from "@/components/ui/field-error";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -122,6 +123,7 @@ export function LoanProgressForm({
   const [processingFee, setProcessingFee] = React.useState(application.processing_fee ?? "");
   const [feeOutcome, setFeeOutcome] = React.useState(application.fee_outcome ?? "");
   const [saving, setSaving] = React.useState(false);
+  const [reasonError, setReasonError] = React.useState<string>();
 
   React.useEffect(() => {
     let active = true;
@@ -154,9 +156,10 @@ export function LoanProgressForm({
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (requiresReason && reason.trim().length === 0) {
-      toast.error("A reason is required for this status.");
+      setReasonError("A reason is required for this status.");
       return;
     }
+    setReasonError(undefined);
     const payload: LoanProgressUpdatePayload = {};
     if (status) payload.status = status;
     if (reason.trim()) payload.status_reason = reason.trim();
@@ -214,15 +217,18 @@ export function LoanProgressForm({
         </div>
         {requiresReason ? (
           <div>
-            <Label htmlFor={`reason-${application.id}`}>Reason (required)</Label>
+            <Label htmlFor={`reason-${application.id}`}>Reason<RequiredIndicator /></Label>
             <Textarea
               id={`reason-${application.id}`}
               rows={1}
               maxLength={1000}
               value={reason}
-              onChange={(e) => setReason(e.target.value)}
+              onChange={(e) => { setReason(e.target.value); setReasonError(undefined); }}
               placeholder="Why is this on hold or rejected?"
+              aria-invalid={Boolean(reasonError)}
+              aria-describedby={reasonError ? `reason-${application.id}-error` : undefined}
             />
+            <FieldError id={`reason-${application.id}-error`}>{reasonError}</FieldError>
           </div>
         ) : null}
       </div>

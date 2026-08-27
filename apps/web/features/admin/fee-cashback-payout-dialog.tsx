@@ -13,19 +13,17 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import type { ApiResponse } from "@/lib/api/client";
+import { apiIssuesToFieldErrors, focusFirstInvalidField } from "@/lib/form-validation";
 import { formatPaise } from "@/lib/format";
 import {
   buildFeeCashbackPayoutPayload,
-  DESTINATION_OPTIONS,
   EMPTY_FEE_CASHBACK_PAYOUT_FORM,
   validateFeeCashbackPayoutForm,
   type FeeCashbackPayoutFormState,
 } from "@/lib/fee-cashback-payout-form";
 import type { FeeCashbackPayoutRequest, FeeCashbackRead } from "@/lib/admin-fee-cashbacks-api";
+import { PayoutDestinationFields } from "./payout-destination-fields";
 
 export function FeeCashbackPayoutDialog({
   cashback,
@@ -41,6 +39,7 @@ export function FeeCashbackPayoutDialog({
   );
   const [errors, setErrors] = React.useState<Record<string, string>>({});
   const [busy, setBusy] = React.useState(false);
+  const contentRef = React.useRef<HTMLDivElement>(null);
 
   function resetAndClose() {
     setForm(EMPTY_FEE_CASHBACK_PAYOUT_FORM);
@@ -53,12 +52,27 @@ export function FeeCashbackPayoutDialog({
     value: FeeCashbackPayoutFormState[K],
   ) {
     setForm((f) => ({ ...f, [key]: value }));
+    setErrors((current) => {
+      if (!current[key]) return current;
+      const next = { ...current };
+      delete next[key];
+      return next;
+    });
+  }
+
+  function showErrors(next: Record<string, string>) {
+    setErrors(next);
+    if (Object.keys(next).length > 0) {
+      requestAnimationFrame(() => {
+        if (contentRef.current) focusFirstInvalidField(contentRef.current);
+      });
+    }
   }
 
   async function onSubmit() {
     if (!cashback) return;
     const errs = validateFeeCashbackPayoutForm(form);
-    setErrors(errs);
+    showErrors(errs);
     if (Object.keys(errs).length > 0) return;
 
     const payload = buildFeeCashbackPayoutPayload(form);
@@ -78,12 +92,19 @@ export function FeeCashbackPayoutDialog({
       });
       return;
     }
+    const serverErrors = apiIssuesToFieldErrors(res.issues, {
+      destination_type: "destinationType",
+      "destination.vpa": "vpa",
+      "destination.ifsc": "ifsc",
+      "destination.account_number": "accountNumber",
+    });
+    if (Object.keys(serverErrors).length > 0) showErrors(serverErrors);
     toast.error("Could not raise the payout", { description: res.error });
   }
 
   return (
     <Dialog open={cashback !== null} onOpenChange={(o) => (o ? undefined : resetAndClose())}>
-      <DialogContent className="max-w-lg">
+      <DialogContent ref={contentRef} className="max-w-lg">
         {cashback !== null ? (
           <>
             <DialogHeader>
@@ -97,68 +118,13 @@ export function FeeCashbackPayoutDialog({
                 only where the money should go.
               </p>
 
-              <div className="space-y-1.5">
-                <Label>Destination</Label>
-                <RadioGroup
-                  value={form.destinationType}
-                  onValueChange={(v) =>
-                    set("destinationType", v as FeeCashbackPayoutFormState["destinationType"])
-                  }
-                  className="grid-cols-1 sm:grid-cols-3"
-                >
-                  {DESTINATION_OPTIONS.map((o) => (
-                    <div key={o.value} className="flex items-center gap-2">
-                      <RadioGroupItem value={o.value} id={`fcb-dest-${o.value}`} />
-                      <Label htmlFor={`fcb-dest-${o.value}`} className="font-normal">
-                        {o.label}
-                      </Label>
-                    </div>
-                  ))}
-                </RadioGroup>
-                {errors.destinationType ? (
-                  <p className="text-xs text-destructive">{errors.destinationType}</p>
-                ) : null}
-              </div>
-
-              {form.destinationType === "vpa" ? (
-                <div className="space-y-1.5">
-                  <Label htmlFor="fcb-payout-vpa">UPI VPA</Label>
-                  <Input
-                    id="fcb-payout-vpa"
-                    placeholder="name@bank"
-                    value={form.vpa}
-                    onChange={(e) => set("vpa", e.target.value)}
-                  />
-                  {errors.vpa ? <p className="text-xs text-destructive">{errors.vpa}</p> : null}
-                </div>
-              ) : form.destinationType === "bank_account" ? (
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1.5">
-                    <Label htmlFor="fcb-payout-ifsc">IFSC</Label>
-                    <Input
-                      id="fcb-payout-ifsc"
-                      value={form.ifsc}
-                      onChange={(e) => set("ifsc", e.target.value)}
-                    />
-                    {errors.ifsc ? <p className="text-xs text-destructive">{errors.ifsc}</p> : null}
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="fcb-payout-account">Account number</Label>
-                    <Input
-                      id="fcb-payout-account"
-                      value={form.accountNumber}
-                      onChange={(e) => set("accountNumber", e.target.value)}
-                    />
-                    {errors.accountNumber ? (
-                      <p className="text-xs text-destructive">{errors.accountNumber}</p>
-                    ) : null}
-                  </div>
-                </div>
-              ) : form.destinationType === "cheque" ? (
-                <p className="rounded-lg bg-muted p-3 text-xs text-text-secondary">
-                  The cheque reference is recorded only after approval and issuance.
-                </p>
-              ) : null}
+              <PayoutDestinationFields
+                idPrefix="cashback-payout"
+                form={form}
+                errors={errors}
+                onChange={set}
+                disabled={busy}
+              />
             </div>
 
             <DialogFooter>

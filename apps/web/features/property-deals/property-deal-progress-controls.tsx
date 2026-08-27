@@ -14,6 +14,7 @@ import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { FieldError, RequiredIndicator } from "@/components/ui/field-error";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -98,6 +99,9 @@ export function PropertyDealProgressControls({
   const [bookingAmount, setBookingAmount] = React.useState(deal.booking_amount ?? "");
   const [savingStatus, setSavingStatus] = React.useState(false);
   const [savingTerms, setSavingTerms] = React.useState(false);
+  const [statusError, setStatusError] = React.useState<string>();
+  const [reasonError, setReasonError] = React.useState<string>();
+  const controlId = React.useId();
 
   const options = nextStatusOptions(deal.status);
   // on_hold/rejected have no ORDER position; fall back to -1 (most restrictive),
@@ -108,13 +112,15 @@ export function PropertyDealProgressControls({
   async function onStatusSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!nextStatus) {
-      toast.error("Choose a status");
+      setStatusError("Choose a status.");
       return;
     }
     if (SIDE_BRANCH.includes(nextStatus) && !reason.trim()) {
-      toast.error("Add a reason", { description: "Required for rejected or on hold." });
+      setReasonError("A reason is required for rejected or on hold.");
       return;
     }
+    setStatusError(undefined);
+    setReasonError(undefined);
     setSavingStatus(true);
     const res = await onUpdate({ status: nextStatus, status_reason: reason.trim() || null });
     setSavingStatus(false);
@@ -157,9 +163,9 @@ export function PropertyDealProgressControls({
     <div className="mt-3 space-y-4">
       <form className="flex flex-wrap items-end gap-3" onSubmit={(e) => void onStatusSubmit(e)}>
         <div>
-          <Label>Move to</Label>
-          <Select value={nextStatus} onValueChange={(v) => setNextStatus(v as PropertyDealStatus)}>
-            <SelectTrigger className="w-48">
+          <Label htmlFor={`${controlId}-status`}>Move to<RequiredIndicator /></Label>
+          <Select value={nextStatus} onValueChange={(v) => { setNextStatus(v as PropertyDealStatus); setStatusError(undefined); setReasonError(undefined); }}>
+            <SelectTrigger id={`${controlId}-status`} className="w-48" aria-required="true" aria-invalid={Boolean(statusError)} aria-describedby={statusError ? `${controlId}-status-error` : undefined}>
               <SelectValue placeholder="Choose next status" />
             </SelectTrigger>
             <SelectContent>
@@ -170,16 +176,22 @@ export function PropertyDealProgressControls({
               ))}
             </SelectContent>
           </Select>
+          <FieldError id={`${controlId}-status-error`} className="mt-1">{statusError}</FieldError>
         </div>
         {nextStatus && SIDE_BRANCH.includes(nextStatus) ? (
           <div className="min-w-48 flex-1">
-            <Label>Reason</Label>
+            <Label htmlFor={`${controlId}-reason`}>Reason<RequiredIndicator /></Label>
             <Textarea
+              id={`${controlId}-reason`}
               value={reason}
-              onChange={(e) => setReason(e.target.value)}
+              onChange={(e) => { setReason(e.target.value); setReasonError(undefined); }}
               rows={1}
+              maxLength={1000}
               placeholder="Why?"
+              aria-invalid={Boolean(reasonError)}
+              aria-describedby={reasonError ? `${controlId}-reason-error` : undefined}
             />
+            <FieldError id={`${controlId}-reason-error`} className="mt-1">{reasonError}</FieldError>
           </div>
         ) : null}
         <Button type="submit" size="sm" disabled={savingStatus}>

@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import type { components } from "@contracts/generated/schema";
 
 import { Button } from "@/components/ui/button";
+import { FieldError, RequiredIndicator } from "@/components/ui/field-error";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -32,6 +33,8 @@ import {
 } from "@/lib/banner-properties";
 import { listOffers, type Offer } from "@/lib/offers-api";
 import { getAdminProperties, type AdminProperty } from "@/lib/properties-api";
+import { apiIssuesToFieldErrors, focusFirstInvalidField, integerError } from "@/lib/form-validation";
+import { isSafeLocalHref } from "@/lib/safe-local-href";
 import { AudienceRuleFields, emptyAudienceRules } from "./audience-rule-fields";
 import { BannerPreview, formatOfferBadge } from "./cms-previews";
 import { CmsPreviewFrame, type PreviewDevice } from "./cms-workspace";
@@ -116,8 +119,10 @@ export function BannerForm({
   const [startsAt, setStartsAt] = React.useState("");
   const [endsAt, setEndsAt] = React.useState("");
   const [scheduleError, setScheduleError] = React.useState<string>();
+  const [fieldErrors, setFieldErrors] = React.useState<Record<string, string>>({});
   const [submitting, setSubmitting] = React.useState(false);
   const [previewDevice, setPreviewDevice] = React.useState<PreviewDevice>("desktop");
+  const formRef = React.useRef<HTMLFormElement>(null);
 
   React.useEffect(() => {
     let cancelled = false;
@@ -199,17 +204,34 @@ export function BannerForm({
 
   async function onSubmit(event: React.FormEvent) {
     event.preventDefault();
-    if (!title.trim()) return void toast.error("Title is required.");
-    if (isPublic && !templateId) return void toast.error("Choose a template.");
-    if (needsOffer && !offerId) return void toast.error("Choose the Offer this banner promotes.");
+    const next: Record<string, string> = {};
+    if (!title.trim()) next.title = "Title is required.";
+    if (isPublic && !templateId) next.templateId = "Choose a template.";
+    if (needsOffer && !offerId) next.offerId = "Choose the Offer this banner promotes.";
+    if (deepLink.trim() && !isSafeLocalHref(deepLink.trim())) {
+      next.deepLink = "Use a same-site path beginning with one slash.";
+    }
+    const priorityError = integerError(priority, "Priority", {
+      required: true,
+      min: 0,
+      max: 2_147_483_647,
+    });
+    if (priorityError) next.priority = priorityError;
     if (startsAt && endsAt && new Date(endsAt) <= new Date(startsAt)) {
       setScheduleError("End must be after start.");
+      next.schedule = "End must be after start.";
+    }
+    if (bannerType === "personalized" && !audienceRules.user_types?.length) {
+      next.audience = "Choose who should see this personalized banner.";
+    }
+    setFieldErrors(next);
+    if (Object.keys(next).length > 0) {
+      requestAnimationFrame(() => {
+        if (formRef.current) focusFirstInvalidField(formRef.current);
+      });
       return;
     }
     setScheduleError(undefined);
-    if (bannerType === "personalized" && !audienceRules.user_types?.length) {
-      return void toast.error("Choose who should see this personalized banner.");
-    }
 
     setSubmitting(true);
     const result = await createBanner({
@@ -231,6 +253,16 @@ export function BannerForm({
     });
     setSubmitting(false);
     if (!result.ok) {
+      const serverErrors = apiIssuesToFieldErrors(result.issues, {
+        title: "title",
+        template_id: "templateId",
+        offer_id: "offerId",
+        deep_link: "deepLink",
+        priority: "priority",
+        starts_at: "schedule",
+        ends_at: "schedule",
+      });
+      if (Object.keys(serverErrors).length > 0) setFieldErrors(serverErrors);
       toast.error("Could not create banner", { description: result.error });
       return;
     }
@@ -277,7 +309,7 @@ export function BannerForm({
         </CmsPreviewFrame>
       }
     >
-      <form className="space-y-6" onSubmit={onSubmit}>
+      <form ref={formRef} className="space-y-6" onSubmit={onSubmit} noValidate>
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
             <Label htmlFor="placement">Placement</Label>
@@ -312,17 +344,18 @@ export function BannerForm({
 
         {isPublic ? (
           <div>
-            <Label htmlFor="banner-template">Artwork template</Label>
+            <Label htmlFor="banner-template">Artwork template<RequiredIndicator /></Label>
             <Select
               value={templateId || undefined}
               onValueChange={(value) => {
                 setTemplateId(value);
                 setOfferId("");
                 setPropertyId("");
+                setFieldErrors((current) => { const next = { ...current }; delete next.templateId; return next; });
               }}
               disabled={catalogLoading}
             >
-              <SelectTrigger id="banner-template">
+              <SelectTrigger id="banner-template" aria-required="true" aria-invalid={Boolean(fieldErrors.templateId)} aria-describedby={fieldErrors.templateId ? "banner-template-error" : undefined}>
                 <SelectValue placeholder={catalogLoading ? "Loading templates…" : "Choose a category"} />
               </SelectTrigger>
               <SelectContent>
@@ -333,6 +366,7 @@ export function BannerForm({
                 ))}
               </SelectContent>
             </Select>
+            <FieldError id="banner-template-error" className="mt-1">{fieldErrors.templateId}</FieldError>
             <p className="mt-1 text-xs text-text-secondary">
               Artwork is controlled by Admin. Your title, subtitle, and button remain editable HTML.
             </p>
@@ -353,15 +387,16 @@ export function BannerForm({
 
         {needsOffer ? (
           <div>
-            <Label htmlFor="linked-offer">Linked Offer</Label>
-            <Select value={offerId || undefined} onValueChange={setOfferId}>
-              <SelectTrigger id="linked-offer"><SelectValue placeholder="Choose an active or scheduled Offer" /></SelectTrigger>
+            <Label htmlFor="linked-offer">Linked Offer<RequiredIndicator /></Label>
+            <Select value={offerId || undefined} onValueChange={(value) => { setOfferId(value); setFieldErrors((current) => { const next = { ...current }; delete next.offerId; return next; }); }}>
+              <SelectTrigger id="linked-offer" aria-required="true" aria-invalid={Boolean(fieldErrors.offerId)} aria-describedby={fieldErrors.offerId ? "linked-offer-error" : undefined}><SelectValue placeholder="Choose an active or scheduled Offer" /></SelectTrigger>
               <SelectContent>
                 {matchingOffers.map((offer) => (
                   <SelectItem key={offer.id} value={offer.id}>{offer.title}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
+            <FieldError id="linked-offer-error" className="mt-1">{fieldErrors.offerId}</FieldError>
             <p className="mt-1 text-xs text-text-secondary">
               The public badge is generated from this Offer and disappears if the Offer is no longer active.
             </p>
@@ -385,8 +420,9 @@ export function BannerForm({
         ) : null}
 
         <div>
-          <Label htmlFor="title">Title</Label>
-          <Input id="title" value={title} onChange={(event) => setTitle(event.target.value)} maxLength={500} />
+          <Label htmlFor="title">Title<RequiredIndicator /></Label>
+          <Input id="title" value={title} onChange={(event) => { setTitle(event.target.value); setFieldErrors((current) => { const next = { ...current }; delete next.title; return next; }); }} maxLength={500} aria-invalid={Boolean(fieldErrors.title)} aria-describedby={fieldErrors.title ? "banner-title-error" : undefined} />
+          <FieldError id="banner-title-error" className="mt-1">{fieldErrors.title}</FieldError>
         </div>
         <div>
           <Label htmlFor="subtitle">Subtitle</Label>
@@ -403,40 +439,47 @@ export function BannerForm({
               id="deep-link"
               placeholder="/loans"
               value={selectedProperty ? propertyCampaignHref(selectedProperty) : deepLink}
-              onChange={(event) => setDeepLink(event.target.value)}
+              onChange={(event) => { setDeepLink(event.target.value); setFieldErrors((current) => { const next = { ...current }; delete next.deepLink; return next; }); }}
               maxLength={1000}
               disabled={Boolean(selectedProperty)}
+              aria-invalid={Boolean(fieldErrors.deepLink)}
+              aria-describedby={["deep-link-help", fieldErrors.deepLink ? "deep-link-error" : undefined].filter(Boolean).join(" ")}
             />
           </div>
         </div>
-        <p className="-mt-3 text-xs text-text-secondary">
+        <p id="deep-link-help" className="-mt-3 text-xs text-text-secondary">
           {selectedProperty
             ? "Property enquiries always use the server-generated contact destination."
             : "Use a same-site path beginning with one slash. Unsafe or incomplete links do not render a button."}
         </p>
+        <FieldError id="deep-link-error">{fieldErrors.deepLink}</FieldError>
 
         {placement === "dashboard" && bannerType === "personalized" ? (
-          <AudienceRuleFields value={audienceRules} onChange={setAudienceRules} required disabled={submitting} />
+          <div aria-invalid={Boolean(fieldErrors.audience)} aria-describedby={fieldErrors.audience ? "banner-audience-error" : undefined}>
+            <AudienceRuleFields value={audienceRules} onChange={(next) => { setAudienceRules(next); setFieldErrors((current) => { const updated = { ...current }; delete updated.audience; return updated; }); }} required disabled={submitting} />
+            <FieldError id="banner-audience-error">{fieldErrors.audience}</FieldError>
+          </div>
         ) : null}
 
         <div className="grid gap-4 sm:grid-cols-3">
           <div>
             <Label htmlFor="priority">Priority</Label>
-            <Input id="priority" inputMode="numeric" value={priority} onChange={(event) => setPriority(event.target.value.replace(/\D/g, ""))} />
+            <Input id="priority" inputMode="numeric" value={priority} onChange={(event) => { setPriority(event.target.value.replace(/\D/g, "")); setFieldErrors((current) => { const next = { ...current }; delete next.priority; return next; }); }} aria-invalid={Boolean(fieldErrors.priority)} aria-describedby={fieldErrors.priority ? "banner-priority-error" : undefined} />
+            <FieldError id="banner-priority-error" className="mt-1">{fieldErrors.priority}</FieldError>
           </div>
           <div>
             <Label htmlFor="starts-at">Goes live at</Label>
-            <Input id="starts-at" type="datetime-local" value={startsAt} onChange={(event) => setStartsAt(event.target.value)} />
+            <Input id="starts-at" type="datetime-local" value={startsAt} onChange={(event) => { setStartsAt(event.target.value); setScheduleError(undefined); setFieldErrors((current) => { const next = { ...current }; delete next.schedule; return next; }); }} aria-invalid={Boolean(fieldErrors.schedule)} aria-describedby={fieldErrors.schedule ? "banner-schedule-error" : undefined} />
           </div>
           <div>
             <Label htmlFor="ends-at">Archives at</Label>
-            <Input id="ends-at" type="datetime-local" value={endsAt} onChange={(event) => setEndsAt(event.target.value)} />
+            <Input id="ends-at" type="datetime-local" value={endsAt} onChange={(event) => { setEndsAt(event.target.value); setScheduleError(undefined); setFieldErrors((current) => { const next = { ...current }; delete next.schedule; return next; }); }} aria-invalid={Boolean(fieldErrors.schedule)} aria-describedby={fieldErrors.schedule ? "banner-schedule-error" : undefined} />
           </div>
         </div>
         <p className="-mt-3 text-xs text-text-secondary">
           Leave the dates blank to publish on the next scheduler tick after approval with no automatic end.
         </p>
-        {scheduleError ? <p className="text-sm text-destructive">{scheduleError}</p> : null}
+        <FieldError id="banner-schedule-error">{scheduleError ?? fieldErrors.schedule}</FieldError>
 
         <Button type="submit" disabled={submitting || catalogLoading} className="w-full sm:w-auto">
           {submitting ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : null}

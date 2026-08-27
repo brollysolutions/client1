@@ -6,6 +6,7 @@ import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { FieldError, RequiredIndicator } from "@/components/ui/field-error";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -31,6 +32,13 @@ import {
   type StaffCreateRequest,
   type StaffCreateResponse,
 } from "@/lib/admin-api";
+import {
+  apiIssuesToFieldErrors,
+  e164PhoneError,
+  emailError,
+  focusFirstInvalidField,
+  requiredTextError,
+} from "@/lib/form-validation";
 
 import { TempCredentialPanel } from "./temp-credential-panel";
 import { OperationalUsersPanel } from "./operational-users-panel";
@@ -71,6 +79,8 @@ export function UserProvisioningView() {
   const [access, setAccess] = React.useState<StaffAccessList | null>(null);
   const [accessStatus, setAccessStatus] = React.useState<AccessStatus>("loading");
   const [featureBusy, setFeatureBusy] = React.useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = React.useState<Record<string, string>>({});
+  const formRef = React.useRef<HTMLFormElement>(null);
 
   const needsLine = form.role !== "admin" && form.role !== "sub_admin";
   const visibleRoleOptions = access
@@ -95,13 +105,30 @@ export function UserProvisioningView() {
 
   function setField<K extends keyof typeof form>(key: K, value: (typeof form)[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
+    setFieldErrors((current) => {
+      if (!current[key]) return current;
+      const next = { ...current };
+      delete next[key];
+      return next;
+    });
   }
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (needsLine && !form.business_line) {
-      toast.error("Choose a business line", {
-        description: "Telecaller and Employee accounts must be assigned a line scope.",
+    const next: Record<string, string> = {};
+    const firstNameError = requiredTextError(form.first_name, "First name", 100);
+    const lastNameError = requiredTextError(form.last_name, "Last name", 100);
+    const mobileError = e164PhoneError(form.mobile, { required: true });
+    const nextEmailError = emailError(form.email, { required: true });
+    if (firstNameError) next.first_name = firstNameError;
+    if (lastNameError) next.last_name = lastNameError;
+    if (mobileError) next.mobile = mobileError;
+    if (nextEmailError) next.email = nextEmailError;
+    if (needsLine && !form.business_line) next.business_line = "Choose a business line.";
+    setFieldErrors(next);
+    if (Object.keys(next).length > 0) {
+      requestAnimationFrame(() => {
+        if (formRef.current) focusFirstInvalidField(formRef.current);
       });
       return;
     }
@@ -123,6 +150,15 @@ export function UserProvisioningView() {
       setForm(EMPTY_FORM);
       void refreshAccess();
     } else {
+      const serverErrors = apiIssuesToFieldErrors(res.issues, {
+        first_name: "first_name",
+        last_name: "last_name",
+        mobile: "mobile",
+        email: "email",
+        role: "role",
+        business_line: "business_line",
+      });
+      if (Object.keys(serverErrors).length > 0) setFieldErrors(serverErrors);
       toast.error("Could not create account", { description: res.error });
     }
   }
@@ -192,33 +228,39 @@ export function UserProvisioningView() {
             {result ? (
               <ProvisioningResult result={result} onReset={() => setResult(null)} />
             ) : (
-              <form className="space-y-5" onSubmit={(event) => void onSubmit(event)}>
+              <form ref={formRef} className="space-y-5" onSubmit={(event) => void onSubmit(event)} noValidate>
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div>
-                    <Label htmlFor="first_name">First name</Label>
+                    <Label htmlFor="first_name">First name<RequiredIndicator /></Label>
                     <Input
                       id="first_name"
                       required
                       maxLength={100}
                       value={form.first_name}
                       onChange={(event) => setField("first_name", event.target.value)}
+                      aria-invalid={Boolean(fieldErrors.first_name)}
+                      aria-describedby={fieldErrors.first_name ? "first-name-error" : undefined}
                     />
+                    <FieldError id="first-name-error" className="mt-1">{fieldErrors.first_name}</FieldError>
                   </div>
                   <div>
-                    <Label htmlFor="last_name">Last name</Label>
+                    <Label htmlFor="last_name">Last name<RequiredIndicator /></Label>
                     <Input
                       id="last_name"
                       required
                       maxLength={100}
                       value={form.last_name}
                       onChange={(event) => setField("last_name", event.target.value)}
+                      aria-invalid={Boolean(fieldErrors.last_name)}
+                      aria-describedby={fieldErrors.last_name ? "last-name-error" : undefined}
                     />
+                    <FieldError id="last-name-error" className="mt-1">{fieldErrors.last_name}</FieldError>
                   </div>
                 </div>
 
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div>
-                    <Label htmlFor="mobile">Mobile number</Label>
+                    <Label htmlFor="mobile">Mobile number<RequiredIndicator /></Label>
                     <Input
                       id="mobile"
                       required
@@ -227,17 +269,24 @@ export function UserProvisioningView() {
                       pattern="^\+[1-9]\d{6,14}$"
                       value={form.mobile}
                       onChange={(event) => setField("mobile", event.target.value)}
+                      aria-invalid={Boolean(fieldErrors.mobile)}
+                      aria-describedby={fieldErrors.mobile ? "staff-mobile-error" : undefined}
                     />
+                    <FieldError id="staff-mobile-error" className="mt-1">{fieldErrors.mobile}</FieldError>
                   </div>
                   <div>
-                    <Label htmlFor="email">Email</Label>
+                    <Label htmlFor="email">Email<RequiredIndicator /></Label>
                     <Input
                       id="email"
                       type="email"
                       required
+                      maxLength={254}
                       value={form.email}
                       onChange={(event) => setField("email", event.target.value)}
+                      aria-invalid={Boolean(fieldErrors.email)}
+                      aria-describedby={fieldErrors.email ? "staff-email-error" : undefined}
                     />
+                    <FieldError id="staff-email-error" className="mt-1">{fieldErrors.email}</FieldError>
                   </div>
                 </div>
 
@@ -275,7 +324,7 @@ export function UserProvisioningView() {
 
                   {needsLine ? (
                     <div>
-                      <Label htmlFor="business_line">Business line</Label>
+                        <Label htmlFor="business_line">Business line<RequiredIndicator /></Label>
                       <Select
                         value={form.business_line}
                         onValueChange={(value) =>
@@ -285,7 +334,7 @@ export function UserProvisioningView() {
                           )
                         }
                       >
-                        <SelectTrigger id="business_line">
+                          <SelectTrigger id="business_line" aria-required="true" aria-invalid={Boolean(fieldErrors.business_line)} aria-describedby={fieldErrors.business_line ? "business-line-error" : undefined}>
                           <SelectValue placeholder="Choose a line" />
                         </SelectTrigger>
                         <SelectContent>
@@ -295,7 +344,8 @@ export function UserProvisioningView() {
                             </SelectItem>
                           ))}
                         </SelectContent>
-                      </Select>
+                        </Select>
+                        <FieldError id="business-line-error" className="mt-1">{fieldErrors.business_line}</FieldError>
                     </div>
                   ) : (
                     <div className="rounded-lg border border-border bg-muted/40 px-3 py-2 text-xs leading-5 text-text-secondary">

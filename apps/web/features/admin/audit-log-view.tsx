@@ -400,7 +400,7 @@ export function AuditLogView() {
               <SelectItem value="real_estate">Real Estate</SelectItem>
             </SelectContent>
           </Select>
-          <Input aria-label="Filter activity by record type" placeholder="Record type" value={entityType} onChange={(event) => setEntityType(event.target.value)} />
+          <Input aria-label="Filter activity by record type" placeholder="Record type" value={entityType} maxLength={100} onChange={(event) => setEntityType(event.target.value)} />
           <Input aria-label="Filter activity from date" type="date" value={dateFrom} onChange={(event) => setDateFrom(event.target.value)} />
           <Input aria-label="Filter activity to date" type="date" min={dateFrom || undefined} value={dateTo} onChange={(event) => setDateTo(event.target.value)} />
         </div>

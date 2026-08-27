@@ -423,6 +423,7 @@ export function OperationalRecordsView() {
                   aria-label="Search operational records on this page"
                   placeholder="Search this page"
                   value={search}
+                  maxLength={100}
                   onChange={(event) => setSearch(event.target.value)}
                 />
                 <Select value={statusFilter} onValueChange={setStatusFilter}>

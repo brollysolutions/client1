@@ -5,7 +5,11 @@
 // kept as its own file rather than shared, since the payout types are
 // otherwise unrelated call sites and a shared base would obscure more than
 // it saves for two fields.
-import { DESTINATION_OPTIONS, type PayoutDestination } from "@/lib/payout-form";
+import {
+  DESTINATION_OPTIONS,
+  validatePayoutDestinationForm,
+  type PayoutDestination,
+} from "@/lib/payout-form";
 import type { FeeCashbackPayoutRequest } from "@/lib/admin-fee-cashbacks-api";
 
 export { DESTINATION_OPTIONS };
@@ -29,22 +33,7 @@ export const EMPTY_FEE_CASHBACK_PAYOUT_FORM: FeeCashbackPayoutFormState = {
 export function validateFeeCashbackPayoutForm(
   form: FeeCashbackPayoutFormState,
 ): Record<string, string> {
-  const errs: Record<string, string> = {};
-
-  if (form.destinationType === "") {
-    errs.destinationType = "Choose a destination.";
-  } else if (form.destinationType === "vpa") {
-    if (!form.vpa.trim() || !form.vpa.includes("@")) {
-      errs.vpa = "Enter a valid UPI VPA (name@bank).";
-    }
-  } else if (form.destinationType === "bank_account") {
-    if (!form.ifsc.trim()) errs.ifsc = "IFSC is required.";
-    if (form.accountNumber.trim().length < 6) {
-      errs.accountNumber = "Account number must be at least 6 digits.";
-    }
-  }
-
-  return errs;
+  return validatePayoutDestinationForm(form);
 }
 
 export function buildFeeCashbackPayoutPayload(

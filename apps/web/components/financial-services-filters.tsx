@@ -168,6 +168,7 @@ export function FinancialServicesFilters({
             type="search"
             name="q"
             value={text}
+            maxLength={100}
             onChange={(event) => setText(event.target.value)}
             aria-label="Search financial services"
             aria-keyshortcuts={FOCUS_KEY}

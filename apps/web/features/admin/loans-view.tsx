@@ -71,7 +71,7 @@ export function AdminLoansView() {
           </p>
         </div>
         <div className="grid w-full gap-2 sm:grid-cols-2 lg:w-auto lg:grid-cols-4">
-          <Input aria-label="Search loan applications" placeholder="Customer, loan type, or bank" value={search} onChange={(event) => setSearch(event.target.value)} />
+          <Input aria-label="Search loan applications" placeholder="Customer, loan type, or bank" value={search} maxLength={100} onChange={(event) => setSearch(event.target.value)} />
         <Select
           value={statusFilter || "all"}
           onValueChange={(v) => setStatusFilter(v === "all" ? "" : v)}

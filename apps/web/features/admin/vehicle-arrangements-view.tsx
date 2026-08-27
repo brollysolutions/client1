@@ -6,6 +6,7 @@ import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { FieldError, RequiredIndicator } from "@/components/ui/field-error";
 import {
   Dialog,
   DialogContent,
@@ -16,6 +17,12 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  e164PhoneError,
+  focusFirstInvalidField,
+  requiredTextError,
+  type FieldErrors,
+} from "@/lib/form-validation";
 import {
   Select,
   SelectContent,
@@ -66,6 +73,10 @@ export function AdminVehicleArrangementsView() {
   const [registration, setRegistration] = React.useState("");
   const [driver, setDriver] = React.useState("");
   const [driverMobile, setDriverMobile] = React.useState("");
+  const [fieldErrors, setFieldErrors] = React.useState<
+    FieldErrors<"vehicle" | "registration" | "driver" | "driverMobile">
+  >({});
+  const dialogRef = React.useRef<HTMLDivElement>(null);
   const [busyId, setBusyId] = React.useState<string | null>(null);
 
   const load = React.useCallback(async () => {
@@ -100,11 +111,25 @@ export function AdminVehicleArrangementsView() {
     setRegistration(item.vehicle_registration ?? "");
     setDriver(item.driver_name ?? "");
     setDriverMobile(item.driver_mobile ?? "");
+    setFieldErrors({});
   }
 
   async function arrange() {
-    if (!active || !vehicle.trim() || !registration.trim() || !driver.trim() || !driverMobile) {
-      toast.error("Enter all vehicle and driver details.");
+    if (!active) return;
+    const errors = {
+      vehicle: requiredTextError(vehicle, "Vehicle make and model", 160),
+      registration: requiredTextError(registration, "Registration number", 40),
+      driver: requiredTextError(driver, "Driver name", 120),
+      driverMobile: e164PhoneError(driverMobile, { required: true }),
+    };
+    const nextErrors = Object.fromEntries(
+      Object.entries(errors).filter(([, error]) => error),
+    ) as typeof fieldErrors;
+    setFieldErrors(nextErrors);
+    if (Object.keys(nextErrors).length > 0) {
+      requestAnimationFrame(() => {
+        if (dialogRef.current) focusFirstInvalidField(dialogRef.current);
+      });
       return;
     }
     setBusyId(active.id);
@@ -113,7 +138,7 @@ export function AdminVehicleArrangementsView() {
       vehicle_make_model: vehicle.trim(),
       vehicle_registration: registration.trim(),
       driver_name: driver.trim(),
-      driver_mobile: driverMobile,
+      driver_mobile: driverMobile.trim(),
     });
     setBusyId(null);
     if (!result.ok) {
@@ -151,7 +176,7 @@ export function AdminVehicleArrangementsView() {
       </div>
 
       <div className="grid gap-2 rounded-xl border border-border bg-card p-3 sm:grid-cols-2 lg:grid-cols-4">
-        <Input aria-label="Search vehicle arrangements" placeholder="Property, city, or Employee" value={search} onChange={(event) => setSearch(event.target.value)} />
+        <Input aria-label="Search vehicle arrangements" placeholder="Property, city, or Employee" value={search} maxLength={100} onChange={(event) => setSearch(event.target.value)} />
         <Select value={filter} onValueChange={(value) => setFilter(value as typeof filter)}><SelectTrigger aria-label="Filter vehicle arrangements by status"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All statuses</SelectItem>{Object.entries(STATUS_LABEL).map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent></Select>
         <Input aria-label="Vehicle arrangements from pickup date" type="date" value={dateFrom} onChange={(event) => setDateFrom(event.target.value)} />
         <Input aria-label="Vehicle arrangements to pickup date" type="date" min={dateFrom || undefined} value={dateTo} onChange={(event) => setDateTo(event.target.value)} />
@@ -219,37 +244,47 @@ export function AdminVehicleArrangementsView() {
       {!loading && !error && filteredItems.length > 0 ? <AdminPagination page={page} total={filteredItems.length} onPageChange={setPage} /> : null}
 
       <Dialog open={active !== null} onOpenChange={(open) => !open && setActive(null)}>
-        <DialogContent>
+        <DialogContent ref={dialogRef}>
           <DialogHeader>
             <DialogTitle>Arrange vehicle</DialogTitle>
             <DialogDescription>Enter the confirmed vehicle and driver details.</DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="grid gap-2">
-              <Label htmlFor="vehicle-model">Vehicle make and model</Label>
-              <Input id="vehicle-model" value={vehicle} onChange={(e) => setVehicle(e.target.value)} />
+              <Label htmlFor="vehicle-model">Vehicle make and model <RequiredIndicator /></Label>
+              <Input id="vehicle-model" value={vehicle} maxLength={160} onChange={(e) => { setVehicle(e.target.value); setFieldErrors((current) => ({ ...current, vehicle: undefined })); }} aria-invalid={Boolean(fieldErrors.vehicle)} aria-describedby={fieldErrors.vehicle ? "vehicle-model-error" : undefined} />
+              <FieldError id="vehicle-model-error">{fieldErrors.vehicle}</FieldError>
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="vehicle-registration">Registration number</Label>
+              <Label htmlFor="vehicle-registration">Registration number <RequiredIndicator /></Label>
               <Input
                 id="vehicle-registration"
                 value={registration}
-                onChange={(e) => setRegistration(e.target.value)}
+                maxLength={40}
+                onChange={(e) => { setRegistration(e.target.value); setFieldErrors((current) => ({ ...current, registration: undefined })); }}
+                aria-invalid={Boolean(fieldErrors.registration)}
+                aria-describedby={fieldErrors.registration ? "vehicle-registration-error" : undefined}
               />
+              <FieldError id="vehicle-registration-error">{fieldErrors.registration}</FieldError>
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="driver-name">Driver name</Label>
-              <Input id="driver-name" value={driver} onChange={(e) => setDriver(e.target.value)} />
+              <Label htmlFor="driver-name">Driver name <RequiredIndicator /></Label>
+              <Input id="driver-name" value={driver} maxLength={120} onChange={(e) => { setDriver(e.target.value); setFieldErrors((current) => ({ ...current, driver: undefined })); }} aria-invalid={Boolean(fieldErrors.driver)} aria-describedby={fieldErrors.driver ? "driver-name-error" : undefined} />
+              <FieldError id="driver-name-error">{fieldErrors.driver}</FieldError>
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="driver-mobile">Driver mobile (E.164)</Label>
+              <Label htmlFor="driver-mobile">Driver mobile (E.164) <RequiredIndicator /></Label>
               <Input
                 id="driver-mobile"
                 type="tel"
                 placeholder="+919876543210"
                 value={driverMobile}
-                onChange={(e) => setDriverMobile(e.target.value)}
+                maxLength={16}
+                onChange={(e) => { setDriverMobile(e.target.value); setFieldErrors((current) => ({ ...current, driverMobile: undefined })); }}
+                aria-invalid={Boolean(fieldErrors.driverMobile)}
+                aria-describedby={fieldErrors.driverMobile ? "driver-mobile-error" : undefined}
               />
+              <FieldError id="driver-mobile-error">{fieldErrors.driverMobile}</FieldError>
             </div>
           </div>
           <DialogFooter>

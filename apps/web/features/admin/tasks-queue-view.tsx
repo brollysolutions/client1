@@ -89,7 +89,7 @@ export function TasksQueueView() {
       </div>
 
       <div className="grid gap-2 rounded-xl border border-border bg-card p-3 sm:grid-cols-2 lg:grid-cols-3">
-        <Input aria-label="Search field assignments" placeholder="Lead, Telecaller, or Employee" value={search} onChange={(event) => setSearch(event.target.value)} />
+        <Input aria-label="Search field assignments" placeholder="Lead, Telecaller, or Employee" value={search} maxLength={100} onChange={(event) => setSearch(event.target.value)} />
         <Select value={line} onValueChange={setLine}><SelectTrigger aria-label="Filter field assignments by line"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All lines</SelectItem><SelectItem value="loans">Loans</SelectItem><SelectItem value="real_estate">Real Estate</SelectItem></SelectContent></Select>
         <Select value={taskType} onValueChange={setTaskType}><SelectTrigger aria-label="Filter field assignments by type"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All task types</SelectItem>{Object.entries(TASK_TYPE_LABEL).map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent></Select>
         <Select value={status} onValueChange={setStatus}><SelectTrigger aria-label="Filter field assignments by status"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All statuses</SelectItem><SelectItem value="unassigned">Unassigned</SelectItem><SelectItem value="assigned">Assigned</SelectItem><SelectItem value="in_progress">In progress</SelectItem><SelectItem value="blocked">Blocked</SelectItem><SelectItem value="completed">Completed</SelectItem><SelectItem value="cancelled">Cancelled</SelectItem></SelectContent></Select>

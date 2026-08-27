@@ -6,6 +6,7 @@ import { Loader2, Headset } from "lucide-react";
 import { toast } from "sonner";
 
 import { Input } from "@/components/ui/input";
+import { FieldError, RequiredIndicator } from "@/components/ui/field-error";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -17,6 +18,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { FetchError } from "@/features/dashboard/fetch-error";
+import { apiIssuesToFieldErrors, focusFirstInvalidField, requiredTextError } from "@/lib/form-validation";
 import { cn } from "@/lib/utils";
 import {
   CATEGORIES,
@@ -150,13 +152,37 @@ function NewTicketForm({ onCreated }: { onCreated: (ticket: SupportTicket) => vo
   const [subject, setSubject] = React.useState("");
   const [body, setBody] = React.useState("");
   const [submitting, setSubmitting] = React.useState(false);
+  const [fieldErrors, setFieldErrors] = React.useState<Record<string, string>>({});
+  const formRef = React.useRef<HTMLFormElement>(null);
 
-  const canSubmit =
-    category !== "" && subject.trim() !== "" && body.trim() !== "" && !submitting;
+  function validate() {
+    const next: Record<string, string> = {};
+    if (!category) next.category = "Choose a support topic.";
+    const subjectError = requiredTextError(subject, "Subject", 200);
+    const bodyError = requiredTextError(body, "Details", 4000);
+    if (subjectError) next.subject = subjectError;
+    if (bodyError) next.body = bodyError;
+    setFieldErrors(next);
+    if (Object.keys(next).length > 0) {
+      requestAnimationFrame(() => {
+        if (formRef.current) focusFirstInvalidField(formRef.current);
+      });
+    }
+    return Object.keys(next).length === 0;
+  }
+
+  function clearError(field: string) {
+    setFieldErrors((current) => {
+      if (!current[field]) return current;
+      const next = { ...current };
+      delete next[field];
+      return next;
+    });
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!canSubmit) return; // canSubmit narrows category to a real SupportCategory
+    if (submitting || !validate() || !category) return;
     setSubmitting(true);
     const res = await createSupportTicket({
       category,
@@ -173,6 +199,12 @@ function NewTicketForm({ onCreated }: { onCreated: (ticket: SupportTicket) => vo
         description: "Our team will get back to you soon.",
       });
     } else {
+      const serverErrors = apiIssuesToFieldErrors(res.issues, {
+        category: "category",
+        subject: "subject",
+        body: "body",
+      });
+      if (Object.keys(serverErrors).length > 0) setFieldErrors(serverErrors);
       toast.error(res.error || "Couldn't raise your ticket.", {
         description: "Please try again in a moment.",
       });
@@ -180,11 +212,11 @@ function NewTicketForm({ onCreated }: { onCreated: (ticket: SupportTicket) => vo
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-5 rounded-2xl border border-border bg-card p-6">
+    <form ref={formRef} onSubmit={handleSubmit} noValidate className="space-y-5 rounded-2xl border border-border bg-card p-6">
       <div className="space-y-2">
-        <Label htmlFor="category">What do you need help with?</Label>
-        <Select value={category} onValueChange={(v) => setCategory(v as SupportCategory)}>
-          <SelectTrigger id="category" className="w-full">
+        <Label htmlFor="category">What do you need help with?<RequiredIndicator /></Label>
+        <Select value={category} onValueChange={(v) => { setCategory(v as SupportCategory); clearError("category"); }}>
+          <SelectTrigger id="category" className="w-full" aria-required="true" aria-invalid={Boolean(fieldErrors.category)} aria-describedby={fieldErrors.category ? "category-error" : undefined}>
             <SelectValue placeholder="Choose a topic" />
           </SelectTrigger>
           <SelectContent>
@@ -195,34 +227,50 @@ function NewTicketForm({ onCreated }: { onCreated: (ticket: SupportTicket) => vo
             ))}
           </SelectContent>
         </Select>
+        <FieldError id="category-error">{fieldErrors.category}</FieldError>
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="subject">Subject</Label>
+        <Label htmlFor="subject">Subject<RequiredIndicator /></Label>
         <Input
           id="subject"
           value={subject}
-          onChange={(e) => setSubject(e.target.value)}
+          onChange={(e) => { setSubject(e.target.value); clearError("subject"); }}
+          onBlur={() => {
+            const error = requiredTextError(subject, "Subject", 200);
+            setFieldErrors((current) => ({ ...current, subject: error ?? "" }));
+          }}
           maxLength={200}
+          aria-invalid={Boolean(fieldErrors.subject)}
+          aria-describedby={fieldErrors.subject ? "subject-error" : undefined}
           placeholder="A short summary"
         />
+        <FieldError id="subject-error">{fieldErrors.subject}</FieldError>
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="body">Details</Label>
+        <Label htmlFor="body">Details<RequiredIndicator /></Label>
         <Textarea
           id="body"
           rows={4}
           value={body}
-          onChange={(e) => setBody(e.target.value)}
+          onChange={(e) => { setBody(e.target.value); clearError("body"); }}
+          onBlur={() => {
+            const error = requiredTextError(body, "Details", 4000);
+            setFieldErrors((current) => ({ ...current, body: error ?? "" }));
+          }}
+          maxLength={4000}
+          aria-invalid={Boolean(fieldErrors.body)}
+          aria-describedby={fieldErrors.body ? "body-error" : undefined}
           placeholder="Tell us what happened so we can help."
         />
+        <FieldError id="body-error">{fieldErrors.body}</FieldError>
       </div>
 
       <div className="flex justify-end">
         <button
           type="submit"
-          disabled={!canSubmit}
+          disabled={submitting}
           className="inline-flex items-center justify-center gap-2 rounded-lg bg-loans-accent px-5 py-2.5 text-sm font-medium text-surface transition-colors hover:bg-loans-accent/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-loans-accent focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {submitting && <Loader2 className="h-4 w-4 animate-spin" />}

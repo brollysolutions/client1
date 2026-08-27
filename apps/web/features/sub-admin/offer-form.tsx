@@ -6,6 +6,7 @@ import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import { FieldError, RequiredIndicator } from "@/components/ui/field-error";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -20,6 +21,7 @@ import {
   DashboardFormSection,
 } from "@/features/dashboard/dashboard-ui";
 import { createOffer } from "@/lib/offers-api";
+import { apiIssuesToFieldErrors, focusFirstInvalidField, integerError } from "@/lib/form-validation";
 
 import { AudienceRuleFields, emptyAudienceRules } from "./audience-rule-fields";
 import { OfferPreview } from "./cms-previews";
@@ -56,9 +58,11 @@ export function OfferForm({ embedded = false, onCreated, onDirtyChange }: { embe
   const [titleError, setTitleError] = React.useState<string | undefined>();
   const [discountError, setDiscountError] = React.useState<string | undefined>();
   const [scheduleError, setScheduleError] = React.useState<string | undefined>();
+  const [priorityError, setPriorityError] = React.useState<string | undefined>();
   const [submitting, setSubmitting] = React.useState(false);
   const [previewContext, setPreviewContext] = React.useState("public");
   const [previewDevice, setPreviewDevice] = React.useState<PreviewDevice>("desktop");
+  const formRef = React.useRef<HTMLFormElement>(null);
   const dirty = Boolean(title || description || discountValue || code || startsAt || endsAt || priority !== "0" || businessLine !== "loans" || discountType !== "percentage");
   React.useEffect(() => onDirtyChange?.(dirty), [dirty, onDirtyChange]);
 
@@ -87,7 +91,19 @@ export function OfferForm({ embedded = false, onCreated, onDirtyChange }: { embe
     } else {
       setScheduleError(undefined);
     }
-    if (hasError) return;
+    const nextPriorityError = integerError(priority, "Priority", {
+      required: true,
+      min: 0,
+      max: 2_147_483_647,
+    });
+    setPriorityError(nextPriorityError);
+    if (nextPriorityError) hasError = true;
+    if (hasError) {
+      requestAnimationFrame(() => {
+        if (formRef.current) focusFirstInvalidField(formRef.current);
+      });
+      return;
+    }
 
     setSubmitting(true);
     const res = await createOffer({
@@ -110,6 +126,19 @@ export function OfferForm({ embedded = false, onCreated, onDirtyChange }: { embe
       if (onCreated) onCreated();
       else router.push("/dashboard/offers");
     } else {
+      const serverErrors = apiIssuesToFieldErrors(res.issues, {
+        title: "title",
+        discount_value: "discountValue",
+        priority: "priority",
+        starts_at: "startsAt",
+        ends_at: "endsAt",
+      });
+      if (serverErrors.title) setTitleError(serverErrors.title);
+      if (serverErrors.discountValue) setDiscountError(serverErrors.discountValue);
+      if (serverErrors.priority) setPriorityError(serverErrors.priority);
+      if (serverErrors.startsAt || serverErrors.endsAt) {
+        setScheduleError(serverErrors.endsAt ?? serverErrors.startsAt);
+      }
       toast.error("Could not create offer", { description: res.error });
     }
   }
@@ -138,20 +167,22 @@ export function OfferForm({ embedded = false, onCreated, onDirtyChange }: { embe
         </CmsPreviewFrame>
       }
     >
-      <form className="space-y-6" onSubmit={(event) => void onSubmit(event)}>
+      <form ref={formRef} className="space-y-6" onSubmit={(event) => void onSubmit(event)} noValidate>
         <DashboardFormSection
           title="Offer details"
           description="Name the promotion and define its commercial value."
         >
           <div>
-            <Label htmlFor="title">Title</Label>
+            <Label htmlFor="title">Title<RequiredIndicator /></Label>
             <Input
               id="title"
               value={title}
-              onChange={(event) => setTitle(event.target.value)}
+              onChange={(event) => { setTitle(event.target.value); setTitleError(undefined); }}
               maxLength={500}
+              aria-invalid={Boolean(titleError)}
+              aria-describedby={titleError ? "offer-title-error" : undefined}
             />
-            {titleError ? <p className="mt-1 text-sm text-destructive">{titleError}</p> : null}
+            <FieldError id="offer-title-error" className="mt-1">{titleError}</FieldError>
           </div>
 
           <div>
@@ -212,13 +243,11 @@ export function OfferForm({ embedded = false, onCreated, onDirtyChange }: { embe
                 id="discount-value"
                 inputMode="decimal"
                 value={discountValue}
-                onChange={(event) =>
-                  setDiscountValue(event.target.value.replace(/[^0-9.]/g, ""))
-                }
+                onChange={(event) => { setDiscountValue(event.target.value.replace(/[^0-9.]/g, "")); setDiscountError(undefined); }}
+                aria-invalid={Boolean(discountError)}
+                aria-describedby={discountError ? "discount-value-error" : undefined}
               />
-              {discountError ? (
-                <p className="mt-1 text-sm text-destructive">{discountError}</p>
-              ) : null}
+              <FieldError id="discount-value-error" className="mt-1">{discountError}</FieldError>
             </div>
             <div>
               <Label htmlFor="code">Promo code</Label>
@@ -236,9 +265,12 @@ export function OfferForm({ embedded = false, onCreated, onDirtyChange }: { embe
                 id="priority"
                 inputMode="numeric"
                 value={priority}
-                onChange={(event) => setPriority(event.target.value.replace(/\D/g, ""))}
+                onChange={(event) => { setPriority(event.target.value.replace(/\D/g, "")); setPriorityError(undefined); }}
+                aria-invalid={Boolean(priorityError)}
+                aria-describedby={["priority-help", priorityError ? "priority-error" : undefined].filter(Boolean).join(" ")}
               />
-              <p className="mt-1 text-xs text-text-secondary">Higher appears first.</p>
+              <p id="priority-help" className="mt-1 text-xs text-text-secondary">Higher appears first.</p>
+              <FieldError id="priority-error" className="mt-1">{priorityError}</FieldError>
             </div>
           </div>
         </DashboardFormSection>
@@ -266,7 +298,9 @@ export function OfferForm({ embedded = false, onCreated, onDirtyChange }: { embe
                 id="starts-at"
                 type="datetime-local"
                 value={startsAt}
-                onChange={(event) => setStartsAt(event.target.value)}
+                onChange={(event) => { setStartsAt(event.target.value); setScheduleError(undefined); }}
+                aria-invalid={Boolean(scheduleError)}
+                aria-describedby={scheduleError ? "offer-schedule-error" : undefined}
               />
             </div>
             <div>
@@ -275,11 +309,13 @@ export function OfferForm({ embedded = false, onCreated, onDirtyChange }: { embe
                 id="ends-at"
                 type="datetime-local"
                 value={endsAt}
-                onChange={(event) => setEndsAt(event.target.value)}
+                onChange={(event) => { setEndsAt(event.target.value); setScheduleError(undefined); }}
+                aria-invalid={Boolean(scheduleError)}
+                aria-describedby={scheduleError ? "offer-schedule-error" : undefined}
               />
             </div>
           </div>
-          {scheduleError ? <p className="text-sm text-destructive">{scheduleError}</p> : null}
+          <FieldError id="offer-schedule-error">{scheduleError}</FieldError>
         </DashboardFormSection>
 
         <Button type="submit" disabled={submitting} className="w-full sm:w-auto">

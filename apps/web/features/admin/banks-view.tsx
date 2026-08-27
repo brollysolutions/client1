@@ -17,6 +17,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { FieldError, RequiredIndicator } from "@/components/ui/field-error";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -34,6 +35,7 @@ import {
 } from "@/lib/loan-config-api";
 import { isAllowedAssetUrl } from "@/lib/allowed-asset-url";
 import { formatLastUpdated } from "@/lib/format";
+import { apiIssuesToFieldErrors, requiredTextError } from "@/lib/form-validation";
 import { useBanks } from "./use-banks";
 
 const PROVIDERS_PER_PAGE = 24;
@@ -52,6 +54,8 @@ export function BanksView() {
   const [logoFile, setLogoFile] = React.useState<File | null>(null);
   const [logoSource, setLogoSource] = React.useState("");
   const [busy, setBusy] = React.useState(false);
+  const [createErrors, setCreateErrors] = React.useState<Record<string, string>>({});
+  const [editErrors, setEditErrors] = React.useState<Record<string, string>>({});
   const [providerQuery, setProviderQuery] = React.useState("");
   const [providerPage, setProviderPage] = React.useState(1);
 
@@ -81,12 +85,14 @@ export function BanksView() {
     setDraftActive(bank.active);
     setLogoFile(null);
     setLogoSource("");
+    setEditErrors({});
   }
 
   async function onCreate(e: React.FormEvent) {
     e.preventDefault();
-    if (newName.trim().length === 0) {
-      toast.error("Name can't be empty");
+    const nameError = requiredTextError(newName, "Display name", 200);
+    if (nameError) {
+      setCreateErrors({ name: nameError });
       return;
     }
     setBusy(true);
@@ -104,14 +110,21 @@ export function BanksView() {
       setCreating(false);
       void reload();
     } else {
+      const serverErrors = apiIssuesToFieldErrors(res.issues, {
+        name: "name",
+        legal_name: "legalName",
+        provider_type: "providerType",
+      });
+      if (Object.keys(serverErrors).length > 0) setCreateErrors(serverErrors);
       toast.error("Couldn't add bank", { description: res.error });
     }
   }
 
   async function onSaveEdit() {
     if (!active) return;
-    if (draftName.trim().length === 0) {
-      toast.error("Name can't be empty");
+    const nameError = requiredTextError(draftName, "Display name", 200);
+    if (nameError) {
+      setEditErrors({ name: nameError });
       return;
     }
     const nameChanged = draftName.trim() !== active.name;
@@ -125,7 +138,7 @@ export function BanksView() {
       return;
     }
     if (logoFile && logoSource.trim().length < 3) {
-      toast.error("Add the official or licensed source for this logo");
+      setEditErrors({ logoSource: "Add the official or licensed source for this logo." });
       return;
     }
     setBusy(true);
@@ -138,6 +151,12 @@ export function BanksView() {
       });
       if (!res.ok) {
         setBusy(false);
+        const serverErrors = apiIssuesToFieldErrors(res.issues, {
+          name: "name",
+          legal_name: "legalName",
+          provider_type: "providerType",
+        });
+        if (Object.keys(serverErrors).length > 0) setEditErrors(serverErrors);
         toast.error("Couldn't update provider", { description: res.error });
         return;
       }
@@ -151,6 +170,7 @@ export function BanksView() {
       setActive(null);
       void reload();
     } else {
+      setEditErrors({ logo: logoResult.error });
       toast.error("Provider details saved, but the logo was not updated", {
         description: logoResult.error,
       });
@@ -177,6 +197,7 @@ export function BanksView() {
             id="provider-library-search"
             type="search"
             value={providerQuery}
+            maxLength={100}
             onChange={(event) => {
               setProviderQuery(event.target.value);
               setProviderPage(1);
@@ -293,14 +314,17 @@ export function BanksView() {
           </DialogHeader>
           <form className="space-y-4" onSubmit={(e) => void onCreate(e)}>
             <div>
-                <Label htmlFor="new-bank-name">Display name</Label>
+                <Label htmlFor="new-bank-name">Display name<RequiredIndicator /></Label>
               <Input
                 id="new-bank-name"
                 value={newName}
-                onChange={(ev) => setNewName(ev.target.value)}
+                onChange={(ev) => { setNewName(ev.target.value); setCreateErrors((current) => { const next = { ...current }; delete next.name; return next; }); }}
                 placeholder="Enter provider name"
                 maxLength={200}
+                aria-invalid={Boolean(createErrors.name)}
+                aria-describedby={createErrors.name ? "new-bank-name-error" : undefined}
               />
+              <FieldError id="new-bank-name-error" className="mt-1">{createErrors.name}</FieldError>
             </div>
             <div>
               <Label htmlFor="new-bank-legal-name">Legal name (optional)</Label>
@@ -345,13 +369,16 @@ export function BanksView() {
               </DialogHeader>
               <div className="space-y-4">
                 <div>
-                  <Label htmlFor="edit-bank-name">Display name</Label>
+                  <Label htmlFor="edit-bank-name">Display name<RequiredIndicator /></Label>
                   <Input
                     id="edit-bank-name"
                     value={draftName}
-                    onChange={(e) => setDraftName(e.target.value)}
+                    onChange={(e) => { setDraftName(e.target.value); setEditErrors((current) => { const next = { ...current }; delete next.name; return next; }); }}
                     maxLength={200}
+                    aria-invalid={Boolean(editErrors.name)}
+                    aria-describedby={editErrors.name ? "edit-bank-name-error" : undefined}
                   />
+                  <FieldError id="edit-bank-name-error" className="mt-1">{editErrors.name}</FieldError>
                 </div>
                 <div>
                   <Label htmlFor="edit-bank-legal-name">Legal name (optional)</Label>
@@ -384,10 +411,20 @@ export function BanksView() {
                     accept="image/jpeg,image/png,image/webp"
                     onChange={(event) => {
                       const nextFile = event.target.files?.[0] ?? null;
+                      if (nextFile && !["image/jpeg", "image/png", "image/webp"].includes(nextFile.type)) {
+                        setLogoFile(null);
+                        setEditErrors((current) => ({ ...current, logo: "Choose a JPEG, PNG, or WebP logo." }));
+                        event.currentTarget.value = "";
+                        return;
+                      }
                       setLogoFile(nextFile);
+                      setEditErrors((current) => { const next = { ...current }; delete next.logo; return next; });
                       if (nextFile) setLogoSource("");
                     }}
+                    aria-invalid={Boolean(editErrors.logo)}
+                    aria-describedby={editErrors.logo ? "edit-bank-logo-error" : undefined}
                   />
+                  <FieldError id="edit-bank-logo-error" className="text-xs">{editErrors.logo}</FieldError>
                   {active.logo_source ? (
                     <p className="break-all text-xs text-text-secondary">
                       Current source: {active.logo_source}
@@ -397,11 +434,14 @@ export function BanksView() {
                   <Input
                     id="edit-bank-logo-source"
                     value={logoSource}
-                    onChange={(event) => setLogoSource(event.target.value)}
+                    onChange={(event) => { setLogoSource(event.target.value); setEditErrors((current) => { const next = { ...current }; delete next.logoSource; return next; }); }}
                     placeholder="Official brand portal or user-supplied licence reference"
                     maxLength={500}
                     disabled={!logoFile}
+                    aria-invalid={Boolean(editErrors.logoSource)}
+                    aria-describedby={editErrors.logoSource ? "edit-bank-logo-source-error" : undefined}
                   />
+                  <FieldError id="edit-bank-logo-source-error" className="text-xs">{editErrors.logoSource}</FieldError>
                   <p className="text-xs text-text-secondary">
                     Raw SVG upload is disabled. Repository-reviewed SVGs may be assigned by
                     engineering after source verification.

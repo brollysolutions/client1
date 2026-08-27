@@ -2,7 +2,7 @@
 
 Status: **Derived living implementation ledger**
 
-As of: **2026-08-23**
+As of: **2026-08-27**
 
 Evidence baseline: `abcc1fd`
 ([PR #175](https://github.com/brollysolutions/client1/pull/175)), plus the
@@ -1876,6 +1876,68 @@ an estimate of calendar time: a single security-sensitive gap can require more
 work than several completed UI requirements.
 
 ## Current work
+
+**Done - application-wide form validation consistency** on
+`codex/20260826-231901-add-validation-for-all-form-fields-anywher`
+([PR #241](https://github.com/brollysolutions/client1/pull/241); direct user
+instruction; no requirement or completion-percentage change): all
+113 non-primitive input-bearing web surfaces are now explicitly registered as
+mutation, filter, calculator, or composite surfaces. The structural Vitest scan
+covers standard/native fields plus command-search, searchable-select, slider,
+switch, and toggle controls and fails when a future surface lacks a decision.
+
+The implementation adds dependency-free typed text/email/E.164/numeric/date/
+PII-free validators, one accessible `FieldError`/required indicator, bounded
+filter normalization, first-invalid focus, and allowlisted FastAPI 422 field
+issues. The API client caps and sanitizes locations/messages and deliberately
+never carries Pydantic's rejected `input`; callers may map only named server
+locations to local fields. Profile/registration, support, Admin provisioning,
+banks, broadcasts, approvals/rejections, payout creation and manual cheque
+actions, provider offers, mobile-change review, vehicle arrangements, employee/
+telecaller outcomes, loan/property progress, Sub Admin CMS create/edit forms,
+and public/dash filters now expose bounded input and accessible inline errors
+instead of silent disabled-submit or toast-only failure. Existing strong auth,
+agent application, property submission, uploads, and role workflows were
+audited and retained rather than duplicated.
+
+The dynamic Financial Product renderer mirrors the authoritative Pydantic
+schema for form topology, canonical `requested_amount`, choice membership,
+conditional order, text/array cardinality, PIN/mobile/currency/integer/date/DOB
+rules, and travel date ordering. Shared payout-destination validation is reused
+by generic, commission, referral, and cashback payout dialogs without changing
+the strict rupee-to-paise conversion or idempotency-key lifecycle. Filters and
+calculators cap text/numeric ranges and reject NaN without turning optional
+exploration controls into required fields. Upload MIME/size/count checks remain
+fail-closed on both existing client hooks and the server.
+
+Fresh evidence: `pnpm lint` and `pnpm typecheck` pass; all 499 Vitest tests in
+78 files pass, including 42 focused validation/API/payout/dynamic/coverage
+tests. `pnpm build` compiled, typechecked, and generated 93/93 pages before the
+repository's established Windows standalone packaging failure (`EPERM` while
+creating `.next/standalone` symlinks). Against a local web server, two mocked
+registration/profile/lead Playwright scenarios pass. Three public Financial
+Services scenarios could not obtain catalogue data because the Docker-only
+`api` hostname was unavailable; the first also encounters the pre-existing
+strict-locator duplicate of the page heading. Those failures are environment/
+baseline evidence, not changed-path validation regressions.
+
+The repository wrapper passed seven feature-tracking tests, eleven migration/
+RLS tests, API Ruff and format checks; `uv run alembic heads` reports the sole
+`73f4c2a91d6e` head. The aggregate API suite reached 24% after a long stream of
+service-dependent skips, then one existing coverage failure and cascading
+fixture errors made it inconclusive. `uv run pytest -q --lf -x` isolates the
+unchanged failure: `test_every_mapped_table_has_an_admin_coverage_decision`
+reports `financial_product_provider_offers` missing from
+`ADMIN_OPERATIONAL_COVERAGE`. No API file changed in this slice.
+
+Security review found no new authorization or data boundary: no API, contract,
+migration, auth, RLS, business-line, or dependency change; rejected values and
+PII/KYC are not echoed; payout server gates/idempotency and upload validation
+remain authoritative. Design/accessibility review fixed scoped error focus,
+combobox required semantics, inline CMS edit errors, and invalid multiselect
+ARIA; maintainer diff review found no remaining change-owned issue. The next
+priority returns to the queued FR-2.2 approved-listing correction and seven
+append-only audit-event families.
 
 **Done - [PR #233](https://github.com/brollysolutions/client1/pull/233) - Real-estate
 dashboard search-bar redesign: shared animated omnibox, Explore's "Browse by

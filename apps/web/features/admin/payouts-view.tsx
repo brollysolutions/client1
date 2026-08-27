@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/components/auth/session-provider";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { FieldError, RequiredIndicator } from "@/components/ui/field-error";
 import {
   Dialog,
   DialogContent,
@@ -108,11 +109,13 @@ export function PayoutsView() {
   const [active, setActive] = React.useState<Payout | null>(null);
   const [rejecting, setRejecting] = React.useState(false);
   const [reason, setReason] = React.useState("");
+  const [reasonError, setReasonError] = React.useState<string>();
   const [busy, setBusy] = React.useState(false);
   const [createOpen, setCreateOpen] = React.useState(false);
   const [manualActive, setManualActive] = React.useState<Payout | null>(null);
   const [manualFailure, setManualFailure] = React.useState(false);
   const [manualValue, setManualValue] = React.useState("");
+  const [manualError, setManualError] = React.useState<string>();
   const [search, setSearch] = React.useState("");
   const [typeFilter, setTypeFilter] = React.useState("all");
   const [dateFrom, setDateFrom] = React.useState("");
@@ -130,18 +133,21 @@ export function PayoutsView() {
     setActive(payout);
     setRejecting(false);
     setReason("");
+    setReasonError(undefined);
   }
 
   function openManualAction(payout: Payout) {
     setManualActive(payout);
     setManualFailure(false);
     setManualValue("");
+    setManualError(undefined);
   }
 
   function closeManualAction() {
     setManualActive(null);
     setManualFailure(false);
     setManualValue("");
+    setManualError(undefined);
   }
 
   async function onApprove(payout: Payout) {
@@ -158,9 +164,11 @@ export function PayoutsView() {
 
   async function onReject(payout: Payout) {
     if (reason.trim().length === 0) {
-      toast.error("Add a reason", { description: "Explain why this payout is being rejected." });
+      setReasonError("Explain why this payout is being rejected.");
+      requestAnimationFrame(() => document.getElementById("payout-rejection-reason")?.focus());
       return;
     }
+    setReasonError(undefined);
     setBusy(true);
     const res = await reject(payout.id, reason.trim());
     setBusy(false);
@@ -177,13 +185,16 @@ export function PayoutsView() {
   async function onManualAction(payout: Payout) {
     const value = manualValue.trim();
     if (payout.status === "approved" && value.length < 4) {
-      toast.error("Enter the cheque reference");
+      setManualError("Cheque reference must be at least 4 characters.");
+      requestAnimationFrame(() => document.getElementById("manual-cheque-reference")?.focus());
       return;
     }
     if ((manualFailure || payout.status === "paid") && value.length === 0) {
-      toast.error("Add a reason for this action");
+      setManualError("Add a reason for this action.");
+      requestAnimationFrame(() => document.getElementById("manual-cheque-reason")?.focus());
       return;
     }
+    setManualError(undefined);
 
     setBusy(true);
     const res =
@@ -221,7 +232,7 @@ export function PayoutsView() {
           </p>
         </div>
         <div className="grid w-full gap-2 sm:grid-cols-2 lg:w-auto lg:grid-cols-5">
-          <Input aria-label="Search payouts" placeholder="Recipient or maker" value={search} onChange={(event) => setSearch(event.target.value)} />
+          <Input aria-label="Search payouts" placeholder="Recipient or maker" value={search} maxLength={100} onChange={(event) => setSearch(event.target.value)} />
           <Select value={statusFilter || "all"} onValueChange={(v) => setStatusFilter(v === "all" ? "" : v)}>
             <SelectTrigger className="w-48">
               <SelectValue placeholder="Awaiting approval" />
@@ -376,13 +387,22 @@ export function PayoutsView() {
                 </p>
 
                 {rejecting ? (
-                  <Textarea
-                    value={reason}
-                    onChange={(e) => setReason(e.target.value)}
-                    placeholder="Reason for rejection"
-                    rows={3}
-                    maxLength={200}
-                  />
+                  <div className="space-y-1.5">
+                    <label htmlFor="payout-rejection-reason" className="text-sm font-medium">
+                      Reason<RequiredIndicator />
+                    </label>
+                    <Textarea
+                      id="payout-rejection-reason"
+                      value={reason}
+                      onChange={(e) => { setReason(e.target.value); setReasonError(undefined); }}
+                      placeholder="Reason for rejection"
+                      rows={3}
+                      maxLength={200}
+                      aria-invalid={Boolean(reasonError)}
+                      aria-describedby={reasonError ? "payout-rejection-reason-error" : undefined}
+                    />
+                    <FieldError id="payout-rejection-reason-error">{reasonError}</FieldError>
+                  </div>
                 ) : null}
               </div>
 
@@ -453,19 +473,22 @@ export function PayoutsView() {
                 {manualActive.status === "approved" ? (
                   <div className="space-y-1.5">
                     <label htmlFor="manual-cheque-reference" className="text-sm font-medium">
-                      Cheque reference
+                      Cheque reference<RequiredIndicator />
                     </label>
                     <Input
                       id="manual-cheque-reference"
                       value={manualValue}
-                      onChange={(event) => setManualValue(event.target.value)}
+                      onChange={(event) => { setManualValue(event.target.value); setManualError(undefined); }}
                       placeholder="CHQ-2026-0001"
                       maxLength={64}
                       autoComplete="off"
+                      aria-invalid={Boolean(manualError)}
+                      aria-describedby={manualError ? "manual-cheque-reference-error" : "manual-cheque-reference-help"}
                     />
-                    <p className="text-xs text-text-secondary">
+                    <p id="manual-cheque-reference-help" className="text-xs text-text-secondary">
                       Only a masked reference and deduplication fingerprint are retained.
                     </p>
+                    <FieldError id="manual-cheque-reference-error">{manualError}</FieldError>
                   </div>
                 ) : manualActive.status === "processing" && !manualFailure ? (
                   <p className="rounded-lg bg-muted p-3 text-sm text-text-secondary">
@@ -482,7 +505,7 @@ export function PayoutsView() {
                     <Textarea
                       id="manual-cheque-reason"
                       value={manualValue}
-                      onChange={(event) => setManualValue(event.target.value)}
+                      onChange={(event) => { setManualValue(event.target.value); setManualError(undefined); }}
                       placeholder={
                         manualActive.status === "paid"
                           ? "Reason for reversal"
@@ -490,7 +513,10 @@ export function PayoutsView() {
                       }
                       rows={3}
                       maxLength={200}
+                      aria-invalid={Boolean(manualError)}
+                      aria-describedby={manualError ? "manual-cheque-reason-error" : undefined}
                     />
+                    <FieldError id="manual-cheque-reason-error">{manualError}</FieldError>
                   </div>
                 )}
               </div>

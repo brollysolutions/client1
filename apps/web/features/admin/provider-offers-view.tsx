@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { FieldError, RequiredIndicator } from "@/components/ui/field-error";
 import {
   Dialog,
   DialogContent,
@@ -19,31 +20,26 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
+  apiIssuesToFieldErrors,
+  fieldErrorProps,
+  focusFirstInvalidField,
+  type FieldErrors,
+} from "@/lib/form-validation";
+import {
   createProviderOffer,
   listProviderOffers,
   updateProviderOffer,
   type AdminProviderOffer,
 } from "@/lib/loan-config-api";
+import {
+  validateProviderOfferDraft,
+  type ProviderOfferDraftValues,
+  type ProviderOfferField,
+} from "@/lib/provider-offer-validation";
 import { useBanks } from "./use-banks";
 import { useLoanTypes } from "./use-loan-types";
 
-type Draft = {
-  productId: string;
-  providerId: string;
-  name: string;
-  summary: string;
-  order: string;
-  minAmount: string;
-  maxAmount: string;
-  minRate: string;
-  maxRate: string;
-  minTenure: string;
-  maxTenure: string;
-  processingFee: string;
-  eligibility: string;
-  verifiedOn: string;
-  published: boolean;
-};
+type Draft = ProviderOfferDraftValues;
 
 const EMPTY: Draft = {
   productId: "",
@@ -85,6 +81,9 @@ export function ProviderOffersView() {
   const [dialogOpen, setDialogOpen] = React.useState(false);
   const [draft, setDraft] = React.useState<Draft>(EMPTY);
   const [busy, setBusy] = React.useState(false);
+  const [fieldErrors, setFieldErrors] = React.useState<FieldErrors<ProviderOfferField>>({});
+  const [formError, setFormError] = React.useState<string | null>(null);
+  const dialogRef = React.useRef<HTMLDivElement>(null);
 
   const reload = React.useCallback(async () => {
     setLoading(true);
@@ -120,6 +119,8 @@ export function ProviderOffersView() {
   function openCreate() {
     setActive(null);
     setDraft(EMPTY);
+    setFieldErrors({});
+    setFormError(null);
     setDialogOpen(true);
   }
 
@@ -142,39 +143,33 @@ export function ProviderOffersView() {
       verifiedOn: toDateInput(offer.last_verified_at),
       published: offer.published,
     });
+    setFieldErrors({});
+    setFormError(null);
     setDialogOpen(true);
   }
 
   function update<K extends keyof Draft>(key: K, value: Draft[K]) {
     setDraft((current) => ({ ...current, [key]: value }));
+    setFieldErrors((current) => {
+      if (!(key in current)) return current;
+      const next = { ...current };
+      delete next[key as ProviderOfferField];
+      return next;
+    });
+    setFormError(null);
   }
 
   async function save() {
+    const errors = validateProviderOfferDraft(draft);
+    setFieldErrors(errors);
+    setFormError(null);
+    if (Object.keys(errors).length > 0) {
+      requestAnimationFrame(() => {
+        if (dialogRef.current) focusFirstInvalidField(dialogRef.current);
+      });
+      return;
+    }
     const displayOrder = Number(draft.order);
-    if (!draft.productId || !draft.providerId || !draft.name.trim()) {
-      toast.error("Choose a product and provider, then add an offer name");
-      return;
-    }
-    if (!Number.isInteger(displayOrder) || displayOrder < 0 || displayOrder > 10000) {
-      toast.error("Display order must be between 0 and 10,000");
-      return;
-    }
-    if (draft.published && !draft.verifiedOn) {
-      toast.error("Published offers need a verification date");
-      return;
-    }
-    const values = [
-      draft.minAmount,
-      draft.maxAmount,
-      draft.minRate,
-      draft.maxRate,
-      draft.minTenure,
-      draft.maxTenure,
-    ].filter(Boolean);
-    if (values.some((value) => !Number.isFinite(Number(value)))) {
-      toast.error("Enter valid numeric terms");
-      return;
-    }
     const shared = {
       offer_name: draft.name.trim(),
       summary: draft.summary.trim() || null,
@@ -202,6 +197,25 @@ export function ProviderOffersView() {
         });
     setBusy(false);
     if (!response.ok) {
+      setFieldErrors(
+        apiIssuesToFieldErrors(response.issues, {
+          loan_type_id: "productId",
+          bank_id: "providerId",
+          offer_name: "name",
+          summary: "summary",
+          display_order: "order",
+          min_amount: "minAmount",
+          max_amount: "maxAmount",
+          min_interest_rate: "minRate",
+          max_interest_rate: "maxRate",
+          min_tenure_months: "minTenure",
+          max_tenure_months: "maxTenure",
+          processing_fee_text: "processingFee",
+          eligibility_summary: "eligibility",
+          last_verified_at: "verifiedOn",
+        }),
+      );
+      setFormError(response.error);
       toast.error("Couldn't save provider offer", { description: response.error });
       return;
     }
@@ -230,6 +244,7 @@ export function ProviderOffersView() {
             id="provider-offer-search"
             type="search"
             value={query}
+            maxLength={100}
             onChange={(event) => {
               setQuery(event.target.value);
               setPage(1);
@@ -327,7 +342,7 @@ export function ProviderOffersView() {
       )}
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-h-[92vh] max-w-4xl overflow-y-auto">
+        <DialogContent ref={dialogRef} className="max-h-[92vh] max-w-4xl overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{active ? "Edit provider offer" : "New provider offer"}</DialogTitle>
             <DialogDescription>
@@ -336,30 +351,35 @@ export function ProviderOffersView() {
           </DialogHeader>
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="grid gap-1.5">
-              <Label htmlFor="offer-product">Financial product</Label>
-              <select id="offer-product" value={draft.productId} onChange={(event) => update("productId", event.target.value)} disabled={Boolean(active)} className="h-10 rounded-md border border-input bg-background px-3 text-sm">
+              <Label htmlFor="offer-product">Financial product <RequiredIndicator /></Label>
+              <select id="offer-product" value={draft.productId} onChange={(event) => update("productId", event.target.value)} disabled={Boolean(active)} className="h-10 rounded-md border border-input bg-background px-3 text-sm" {...fieldErrorProps("offer-product-error", fieldErrors.productId)}>
                 <option value="">Choose product</option>
                 {products.map((product) => <option key={product.id} value={product.id}>{product.label}{product.public_visible ? "" : " (not public)"}</option>)}
               </select>
+              <FieldError id="offer-product-error">{fieldErrors.productId}</FieldError>
             </div>
             <div className="grid gap-1.5">
-              <Label htmlFor="offer-provider">Provider</Label>
-              <select id="offer-provider" value={draft.providerId} onChange={(event) => update("providerId", event.target.value)} disabled={Boolean(active)} className="h-10 rounded-md border border-input bg-background px-3 text-sm">
+              <Label htmlFor="offer-provider">Provider <RequiredIndicator /></Label>
+              <select id="offer-provider" value={draft.providerId} onChange={(event) => update("providerId", event.target.value)} disabled={Boolean(active)} className="h-10 rounded-md border border-input bg-background px-3 text-sm" {...fieldErrorProps("offer-provider-error", fieldErrors.providerId)}>
                 <option value="">Choose provider</option>
                 {providers.map((provider) => <option key={provider.id} value={provider.id}>{provider.name}{provider.active ? "" : " (disabled)"}</option>)}
               </select>
+              <FieldError id="offer-provider-error">{fieldErrors.providerId}</FieldError>
             </div>
             <div className="grid gap-1.5">
-              <Label htmlFor="offer-name">Offer label</Label>
-              <Input id="offer-name" value={draft.name} onChange={(event) => update("name", event.target.value)} maxLength={160} />
+              <Label htmlFor="offer-name">Offer label <RequiredIndicator /></Label>
+              <Input id="offer-name" value={draft.name} onChange={(event) => update("name", event.target.value)} maxLength={160} {...fieldErrorProps("offer-name-error", fieldErrors.name)} />
+              <FieldError id="offer-name-error">{fieldErrors.name}</FieldError>
             </div>
             <div className="grid gap-1.5">
-              <Label htmlFor="offer-order">Display order</Label>
-              <Input id="offer-order" type="number" min={0} max={10000} value={draft.order} onChange={(event) => update("order", event.target.value)} />
+              <Label htmlFor="offer-order">Display order <RequiredIndicator /></Label>
+              <Input id="offer-order" type="number" min={0} max={10000} step={1} value={draft.order} onChange={(event) => update("order", event.target.value)} {...fieldErrorProps("offer-order-error", fieldErrors.order)} />
+              <FieldError id="offer-order-error">{fieldErrors.order}</FieldError>
             </div>
             <div className="grid gap-1.5 sm:col-span-2">
               <Label htmlFor="offer-summary">Public summary</Label>
-              <Textarea id="offer-summary" value={draft.summary} onChange={(event) => update("summary", event.target.value)} maxLength={500} rows={3} />
+              <Textarea id="offer-summary" value={draft.summary} onChange={(event) => update("summary", event.target.value)} maxLength={500} rows={3} {...fieldErrorProps("offer-summary-error", fieldErrors.summary)} />
+              <FieldError id="offer-summary-error">{fieldErrors.summary}</FieldError>
             </div>
             {([
               ["minAmount", "Minimum amount", "number"],
@@ -371,20 +391,24 @@ export function ProviderOffersView() {
             ] as const).map(([key, label, type]) => (
               <div key={key} className="grid gap-1.5">
                 <Label htmlFor={`offer-${key}`}>{label}</Label>
-                <Input id={`offer-${key}`} type={type} min={0} step={key.includes("Rate") ? "0.001" : "1"} value={draft[key]} onChange={(event) => update(key, event.target.value)} />
+                <Input id={`offer-${key}`} type={type} min={key.includes("Tenure") ? 1 : 0} max={key.includes("Rate") ? 100 : key.includes("Tenure") ? 600 : 999999999999.99} step={key.includes("Rate") ? "0.001" : key.includes("Amount") ? "0.01" : "1"} value={draft[key]} onChange={(event) => update(key, event.target.value)} {...fieldErrorProps(`offer-${key}-error`, fieldErrors[key])} />
+                <FieldError id={`offer-${key}-error`}>{fieldErrors[key]}</FieldError>
               </div>
             ))}
             <div className="grid gap-1.5">
               <Label htmlFor="offer-fee">Processing fee</Label>
-              <Input id="offer-fee" value={draft.processingFee} onChange={(event) => update("processingFee", event.target.value)} maxLength={240} />
+              <Input id="offer-fee" value={draft.processingFee} onChange={(event) => update("processingFee", event.target.value)} maxLength={240} {...fieldErrorProps("offer-fee-error", fieldErrors.processingFee)} />
+              <FieldError id="offer-fee-error">{fieldErrors.processingFee}</FieldError>
             </div>
             <div className="grid gap-1.5">
               <Label htmlFor="offer-verified">Last verified on</Label>
-              <Input id="offer-verified" type="date" value={draft.verifiedOn} onChange={(event) => update("verifiedOn", event.target.value)} />
+              <Input id="offer-verified" type="date" value={draft.verifiedOn} onChange={(event) => update("verifiedOn", event.target.value)} {...fieldErrorProps("offer-verified-error", fieldErrors.verifiedOn)} />
+              <FieldError id="offer-verified-error">{fieldErrors.verifiedOn}</FieldError>
             </div>
             <div className="grid gap-1.5 sm:col-span-2">
               <Label htmlFor="offer-eligibility">Eligibility note</Label>
-              <Textarea id="offer-eligibility" value={draft.eligibility} onChange={(event) => update("eligibility", event.target.value)} maxLength={500} rows={3} />
+              <Textarea id="offer-eligibility" value={draft.eligibility} onChange={(event) => update("eligibility", event.target.value)} maxLength={500} rows={3} {...fieldErrorProps("offer-eligibility-error", fieldErrors.eligibility)} />
+              <FieldError id="offer-eligibility-error">{fieldErrors.eligibility}</FieldError>
             </div>
             <div className="flex items-center gap-2 sm:col-span-2">
               <Checkbox id="offer-published" checked={draft.published} onCheckedChange={(checked) => update("published", checked === true)} />
@@ -393,6 +417,7 @@ export function ProviderOffersView() {
               </Label>
             </div>
           </div>
+          {formError ? <p className="text-sm text-destructive" role="alert">{formError}</p> : null}
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogOpen(false)} disabled={busy}>Cancel</Button>
             <Button onClick={() => void save()} disabled={busy}>{busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}Save offer</Button>

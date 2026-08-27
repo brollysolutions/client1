@@ -301,7 +301,7 @@ export function PropertySearchBar({
                   ref={inputRef}
                   value={text}
                   onValueChange={(value) => {
-                    setText(value);
+                    setText(value.slice(0, 100));
                     setOpen(true);
                   }}
                   onFocus={() => setOpen(true)}

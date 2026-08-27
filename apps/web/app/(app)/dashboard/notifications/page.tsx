@@ -128,6 +128,7 @@ export default function NotificationsPage() {
                 aria-label="Search notifications"
                 placeholder="Title or description"
                 value={search}
+                maxLength={100}
                 onChange={(event) => setSearch(event.target.value)}
               />
               <Select value={typeFilter} onValueChange={setTypeFilter}>

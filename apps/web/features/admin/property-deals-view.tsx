@@ -57,7 +57,7 @@ export function PropertyDealsView() {
           </p>
         </div>
         <div className="grid w-full gap-2 sm:grid-cols-2 lg:w-auto lg:grid-cols-4">
-          <Input aria-label="Search property deals" placeholder="Property or customer" value={search} onChange={(event) => setSearch(event.target.value)} />
+          <Input aria-label="Search property deals" placeholder="Property or customer" value={search} maxLength={100} onChange={(event) => setSearch(event.target.value)} />
         <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as typeof statusFilter)}>
           <SelectTrigger className="w-48">
             <SelectValue />

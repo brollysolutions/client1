@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { FieldError } from "@/components/ui/field-error";
 import {
   Dialog,
   DialogContent,
@@ -16,6 +17,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
+import { optionalTextError, requiredTextError } from "@/lib/form-validation";
 import { DOC_TYPE_LABEL, type DocTypeValue } from "@/lib/doc-types";
 import type { DocumentSubject, VerifiableDocument } from "@/lib/admin-document-verification-api";
 
@@ -82,6 +84,7 @@ export function DocumentVerificationView() {
 
   const [activeSubject, setActiveSubject] = React.useState<DocumentSubject | null>(null);
   const [noteDraftByDoc, setNoteDraftByDoc] = React.useState<Record<string, string>>({});
+  const [noteErrorByDoc, setNoteErrorByDoc] = React.useState<Record<string, string>>({});
   const [busyDocId, setBusyDocId] = React.useState<string | null>(null);
 
   function openSubject(subject: DocumentSubject) {
@@ -96,10 +99,16 @@ export function DocumentVerificationView() {
   async function handleVerify(doc: VerifiableDocument, verified: boolean) {
     if (!activeSubject) return;
     const note = noteDraftByDoc[doc.document_id]?.trim() || null;
-    if (!verified && !note) {
-      toast.error("A note is required when marking a document unverified.");
-      return;
-    }
+    const validationError = verified
+      ? optionalTextError(note ?? "", "Review note", 1000)
+      : requiredTextError(note ?? "", "Review note", 1000);
+    setNoteErrorByDoc((current) => {
+      const next = { ...current };
+      if (validationError) next[doc.document_id] = validationError;
+      else delete next[doc.document_id];
+      return next;
+    });
+    if (validationError) return;
     setBusyDocId(doc.document_id);
     const res = await setVerification(
       doc.source,
@@ -266,15 +275,31 @@ export function DocumentVerificationView() {
                         <Textarea
                           value={noteDraftByDoc[doc.document_id] ?? ""}
                           onChange={(e) =>
-                            setNoteDraftByDoc((prev) => ({
-                              ...prev,
-                              [doc.document_id]: e.target.value,
-                            }))
+                            {
+                              setNoteDraftByDoc((prev) => ({
+                                ...prev,
+                                [doc.document_id]: e.target.value,
+                              }));
+                              setNoteErrorByDoc((current) => {
+                                const next = { ...current };
+                                delete next[doc.document_id];
+                                return next;
+                              });
+                            }
+                          }
+                          aria-invalid={Boolean(noteErrorByDoc[doc.document_id])}
+                          aria-describedby={
+                            noteErrorByDoc[doc.document_id]
+                              ? `document-${doc.document_id}-note-error`
+                              : undefined
                           }
                           placeholder="Note (required if sending back for re-collection)"
                           rows={2}
                           maxLength={1000}
                         />
+                        <FieldError id={`document-${doc.document_id}-note-error`}>
+                          {noteErrorByDoc[doc.document_id]}
+                        </FieldError>
                         <div className="flex justify-end gap-2">
                           <Button
                             size="sm"
