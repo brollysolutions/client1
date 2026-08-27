@@ -9,6 +9,36 @@ Evidence baseline: `abcc1fd`
 verified Admin operational-visibility work in
 [PR #173](https://github.com/brollysolutions/client1/pull/173).
 
+**Done - Telecaller Lead Details validation and workflow hierarchy** on
+`codex/20260827-065108-the-lead-details-page-ui-its-kinda` (PR pending;
+direct user-reported defect and UI follow-up; no requirement or completion-
+percentage change): loan transaction creation now requires a trimmed bank,
+positive amount, 0-100% interest rate, and date at both web and FastAPI
+boundaries. Numeric precision matches the PostgreSQL columns, extra request
+fields are rejected, and an additive migration removes only wholly blank
+legacy rows before adding a narrow non-empty check; partial historical rows,
+append-only behavior, grants, RLS, assigned-lead authorization, and business-
+line isolation are preserved. Field tasks now require trimmed instructions and
+future optional due times; call follow-ups, loan progress terms, and property
+deal terms have matching inline validation, API issue mapping, and first-invalid
+focus. The generated OpenAPI and TypeScript contracts are updated.
+
+The page now puts application/deal work first, collapses submitted application
+answers, presents immutable transaction history as a labelled table, groups
+status and call logging in a compact desktop rail, and orders those call controls
+immediately after the business workflow on mobile. The header exposes visible
+Phone and WhatsApp buttons. Fresh evidence: API Ruff/format; 22 schema tests;
+three Docker-backed API/database-RLS tests; migration downgrade/upgrade/upgrade
+and one Alembic head; web lint/typecheck and 79 files / 506 tests (including seven
+new focused validators); production compilation, type validation, and 93/93 page
+generation before the established Windows standalone-symlink `EPERM`; and live
+desktop/mobile Playwright review. An empty browser submission showed all four
+field errors, focused Bank, and emitted no transaction request; the migrated
+page retained its meaningful row without the two blank rows. The aggregate API
+run reached 19% before the unchanged Admin coverage-contract failure for
+`financial_product_provider_offers`, reproduced with `--lf -x`. Security,
+design/accessibility, and maintainer review found no change-owned issue.
+
 **Done - Real-estate browse-card redesign** on
 `claude/20260825-211218-remove-browse-by-type-section-in-explore` ([PR
 #236](https://github.com/brollysolutions/client1/pull/236)): the

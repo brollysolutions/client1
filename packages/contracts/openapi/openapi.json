@@ -8055,6 +8055,7 @@
         "type": "object"
       },
       "LoanApplicationProgressUpdate": {
+        "additionalProperties": false,
         "description": "Shared write shape for the Telecaller and Admin progression endpoints.\n\nShape-only validation here (types/ranges); the transition/reason/terms-\ngating rules depend on the application's CURRENT status, so they live in\nservices.loan_applications where that status is known.",
         "properties": {
           "amount_sanctioned": {
@@ -8064,7 +8065,7 @@
                 "type": "number"
               },
               {
-                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,12}|(?=[\\d.]{1,15}0*$)\\d{0,12}\\.\\d{0,2}0*$)",
                 "type": "string"
               },
               {
@@ -8103,7 +8104,7 @@
                 "type": "number"
               },
               {
-                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,3}|(?=[\\d.]{1,7}0*$)\\d{0,3}\\.\\d{0,3}0*$)",
                 "type": "string"
               },
               {
@@ -8119,7 +8120,7 @@
                 "type": "number"
               },
               {
-                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,12}|(?=[\\d.]{1,15}0*$)\\d{0,12}\\.\\d{0,2}0*$)",
                 "type": "string"
               },
               {
@@ -8624,34 +8625,26 @@
         "type": "string"
       },
       "LoanTxnCreate": {
+        "additionalProperties": false,
         "properties": {
           "amount": {
             "anyOf": [
               {
-                "minimum": 0.0,
+                "exclusiveMinimum": 0.0,
                 "type": "number"
               },
               {
-                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,12}|(?=[\\d.]{1,15}0*$)\\d{0,12}\\.\\d{0,2}0*$)",
                 "type": "string"
-              },
-              {
-                "type": "null"
               }
             ],
             "title": "Amount"
           },
           "bank_name": {
-            "anyOf": [
-              {
-                "maxLength": 200,
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Bank Name"
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Bank Name",
+            "type": "string"
           },
           "interest_rate": {
             "anyOf": [
@@ -8661,28 +8654,24 @@
                 "type": "number"
               },
               {
-                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,3}|(?=[\\d.]{1,7}0*$)\\d{0,3}\\.\\d{0,3}0*$)",
                 "type": "string"
-              },
-              {
-                "type": "null"
               }
             ],
             "title": "Interest Rate"
           },
           "txn_date": {
-            "anyOf": [
-              {
-                "format": "date",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Txn Date"
+            "format": "date",
+            "title": "Txn Date",
+            "type": "string"
           }
         },
+        "required": [
+          "bank_name",
+          "amount",
+          "interest_rate",
+          "txn_date"
+        ],
         "title": "LoanTxnCreate",
         "type": "object"
       },
@@ -11398,6 +11387,7 @@
         "type": "object"
       },
       "PropertyDealProgressUpdate": {
+        "additionalProperties": false,
         "properties": {
           "booking_amount": {
             "anyOf": [
@@ -11407,7 +11397,7 @@
                 "type": "number"
               },
               {
-                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,12}|(?=[\\d.]{1,15}0*$)\\d{0,12}\\.\\d{0,2}0*$)",
                 "type": "string"
               },
               {
@@ -11424,7 +11414,7 @@
                 "type": "number"
               },
               {
-                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,12}|(?=[\\d.]{1,15}0*$)\\d{0,12}\\.\\d{0,2}0*$)",
                 "type": "string"
               },
               {
@@ -15853,6 +15843,7 @@
         "type": "object"
       },
       "TaskCreate": {
+        "additionalProperties": false,
         "properties": {
           "due_at": {
             "anyOf": [
@@ -15867,18 +15858,15 @@
             "title": "Due At"
           },
           "notes": {
-            "anyOf": [
-              {
-                "maxLength": 1000,
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Notes"
+            "maxLength": 1000,
+            "minLength": 1,
+            "title": "Notes",
+            "type": "string"
           }
         },
+        "required": [
+          "notes"
+        ],
         "title": "TaskCreate",
         "type": "object"
       },

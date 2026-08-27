@@ -405,6 +405,29 @@ async def test_add_loan_txn_success(client: AsyncClient) -> None:
 
 
 @pytest.mark.asyncio
+async def test_add_loan_txn_rejects_empty_or_partial_payload(client: AsyncClient) -> None:
+    auth_uuid, staff_uuid = await _seed_telecaller("loans")
+    lead_id = await _seed_assigned_lead("loans", staff_uuid)
+    application_id = await _seed_loan_application(lead_id, "loans")
+    headers = {"Authorization": f"Bearer {_telecaller_token(auth_uuid, staff_uuid)}"}
+
+    for payload in ({}, {"bank_name": "HDFC"}):
+        res = await client.post(
+            f"/api/v1/telecaller/loan-applications/{application_id}/txn-history",
+            json=payload,
+            headers=headers,
+        )
+        assert res.status_code == 422, res.text
+
+    detail = await client.get(
+        f"/api/v1/telecaller/leads/{lead_id}",
+        headers=headers,
+    )
+    assert detail.status_code == 200, detail.text
+    assert detail.json()["loan_applications"][0]["txns"] == []
+
+
+@pytest.mark.asyncio
 async def test_add_loan_txn_for_unowned_application_is_404(client: AsyncClient) -> None:
     auth_uuid, staff_uuid = await _seed_telecaller("loans")
     _, other_staff_uuid = await _seed_telecaller("loans")
@@ -448,6 +471,25 @@ async def test_raise_task_success(client: AsyncClient) -> None:
         headers={"Authorization": f"Bearer {_telecaller_token(auth_uuid, staff_uuid)}"},
     )
     assert len(detail.json()["tasks"]) == 1
+
+
+@pytest.mark.asyncio
+async def test_raise_task_requires_meaningful_instructions(client: AsyncClient) -> None:
+    auth_uuid, staff_uuid = await _seed_telecaller("loans")
+    lead_id = await _seed_assigned_lead("loans", staff_uuid)
+    headers = {"Authorization": f"Bearer {_telecaller_token(auth_uuid, staff_uuid)}"}
+
+    for payload in ({}, {"notes": "   "}):
+        res = await client.post(
+            f"/api/v1/telecaller/leads/{lead_id}/tasks",
+            json=payload,
+            headers=headers,
+        )
+        assert res.status_code == 422, res.text
+
+    detail = await client.get(f"/api/v1/telecaller/leads/{lead_id}", headers=headers)
+    assert detail.status_code == 200, detail.text
+    assert detail.json()["tasks"] == []
 
 
 @pytest.mark.asyncio

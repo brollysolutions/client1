@@ -6839,13 +6839,16 @@ export interface components {
         /** LoanTxnCreate */
         LoanTxnCreate: {
             /** Amount */
-            amount?: number | string | null;
+            amount: number | string;
             /** Bank Name */
-            bank_name?: string | null;
+            bank_name: string;
             /** Interest Rate */
-            interest_rate?: number | string | null;
-            /** Txn Date */
-            txn_date?: string | null;
+            interest_rate: number | string;
+            /**
+             * Txn Date
+             * Format: date
+             */
+            txn_date: string;
         };
         /** LoanTxnRead */
         LoanTxnRead: {
@@ -9233,7 +9236,7 @@ export interface components {
             /** Due At */
             due_at?: string | null;
             /** Notes */
-            notes?: string | null;
+            notes: string;
         };
         /** TaskDocumentCreate */
         TaskDocumentCreate: {
