@@ -75,13 +75,17 @@ export function FilterBar({
   kindOptions,
   kindLabel,
   lineOptions = DEFAULT_LINE_OPTIONS,
+  showSearch = true,
   showStatus = true,
   showLine = true,
   showDates = true,
+  showClear = true,
   dateFromLabel = "From date",
   dateToLabel = "To date",
   note,
+  actions,
   extra,
+  onClear,
   className,
 }: {
   value: FilterBarValue;
@@ -93,14 +97,20 @@ export function FilterBar({
   kindOptions?: readonly FilterOption[];
   kindLabel?: string;
   lineOptions?: readonly FilterOption[];
+  showSearch?: boolean;
   showStatus?: boolean;
   showLine?: boolean;
   showDates?: boolean;
+  showClear?: boolean;
   dateFromLabel?: string;
   dateToLabel?: string;
   note?: string;
+  /** Compact presets or scope controls rendered above the filter grid. */
+  actions?: ReactNode;
   /** Surface-specific controls, rendered in the same grid as the built-ins. */
   extra?: ReactNode;
+  /** Override the default all-empty reset when a surface has a meaningful baseline. */
+  onClear?: () => void;
   className?: string;
 }) {
   const set = (patch: Partial<FilterBarValue>) => onChange({ ...value, ...patch });
@@ -111,14 +121,17 @@ export function FilterBar({
       className={cn("rounded-xl border border-border bg-card p-3", className)}
       aria-label="Filters"
     >
+      {actions ? <div className="mb-3 flex flex-wrap gap-2">{actions}</div> : null}
       <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-        <Input
-          aria-label={searchLabel}
-          placeholder={searchPlaceholder}
-          value={value.search}
-          maxLength={100}
-          onChange={(event) => set({ search: event.target.value })}
-        />
+        {showSearch ? (
+          <Input
+            aria-label={searchLabel}
+            placeholder={searchPlaceholder}
+            value={value.search}
+            maxLength={100}
+            onChange={(event) => set({ search: event.target.value })}
+          />
+        ) : null}
 
         {showStatus && statusOptions ? (
           <Select value={value.status} onValueChange={(status) => set({ status })}>
@@ -189,11 +202,16 @@ export function FilterBar({
         ) : null}
       </div>
 
-      {note || active ? (
+      {note || (active && showClear) ? (
         <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
           <p className="text-xs text-text-secondary">{note}</p>
-          {active ? (
-            <Button type="button" variant="ghost" size="sm" onClick={() => onChange(EMPTY_FILTERS)}>
+          {active && showClear ? (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => (onClear ? onClear() : onChange(EMPTY_FILTERS))}
+            >
               <X className="h-4 w-4" aria-hidden="true" />
               Clear filters
             </Button>
