@@ -1,25 +1,38 @@
 "use client";
 
 import * as React from "react";
-import { Gift, Loader2 } from "lucide-react";
+import { Gift } from "lucide-react";
 
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { ListPagination, useListPagination } from "@/features/dashboard/list-pagination";
-import { LINE_LABEL, STATUS_LABEL, STATUS_STYLE } from "@/features/referrals/referral-list";
-import { formatPaise } from "@/lib/format";
-
+import { DashboardHeader, DashboardPage } from "@/features/dashboard/dashboard-ui";
+import { DataTablePrimaryCell, type DataColumn } from "@/features/dashboard/data-table";
+import { StatusBadge, type StatusTone } from "@/features/dashboard/status-badge";
+import type { AdminReferral } from "@/lib/admin-referrals-api";
+import { formatDate, formatPaise } from "@/lib/format";
+import { getMoneyPayoutRequestState } from "@/lib/money-ledger";
+import { MoneyLedgerView, type MoneyLedgerSection } from "./money-ledger-view";
 import { ReferralPayoutDialog } from "./referral-payout-dialog";
 import { useReferralPayouts } from "./use-referral-payouts";
-import type { AdminReferral } from "@/lib/admin-referrals-api";
 
+const LINE_LABEL: Record<string, string> = {
+  loans: "Loans",
+  real_estate: "Real Estate",
+  both: "Both lines",
+};
+const STATUS_OPTIONS = [
+  { value: "accrued", label: "Awaiting payout" },
+  { value: "paid", label: "Paid" },
+  { value: "converted", label: "Converted, no bonus" },
+  { value: "void", label: "Not eligible" },
+  { value: "pending", label: "Pending" },
+] as const;
+const STATUS_META: Record<string, { label: string; tone: StatusTone }> = {
+  pending: { label: "Pending", tone: "warning" },
+  converted: { label: "Converted", tone: "neutral" },
+  accrued: { label: "Bonus accrued", tone: "success" },
+  paid: { label: "Paid", tone: "success" },
+  void: { label: "Not eligible", tone: "danger" },
+};
 const ACCRUAL_REASON_LABEL: Record<string, string> = {
   no_active_config: "No active bonus rule for this line",
   below_min_conversion: "Below the rule's minimum conversion count",
@@ -28,138 +41,147 @@ const ACCRUAL_REASON_LABEL: Record<string, string> = {
   self_referral: "Self-referral",
 };
 
-const FILTER_OPTIONS: { value: string; label: string }[] = [
-  { value: "accrued", label: "Awaiting payout" },
-  { value: "paid", label: "Paid" },
-  { value: "converted", label: "Converted, no bonus" },
-  { value: "void", label: "Not eligible" },
-  { value: "pending", label: "Pending" },
-  { value: "", label: "All" },
-];
-
-function formatDate(iso: string | null): string {
-  if (!iso) return "-";
-  const d = new Date(iso);
-  return Number.isNaN(d.getTime())
-    ? "-"
-    : d.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
-}
-
 export function ReferralPayoutsView() {
   const { items, loading, error, statusFilter, setStatusFilter, reload, payBonus } =
     useReferralPayouts();
   const [active, setActive] = React.useState<AdminReferral | null>(null);
-  const { page, pageItems, setPage } = useListPagination(items);
 
-  React.useEffect(() => {
-    setPage(0);
-  }, [statusFilter, setPage]);
+  const columns = React.useMemo<readonly DataColumn<AdminReferral>[]>(
+    () => [
+      {
+        key: "referrer",
+        header: "Referrer",
+        render: (referral) => (
+          <DataTablePrimaryCell
+            title={referral.referrer_name ?? "Unknown referrer"}
+            subtitle={referral.referrer_code ?? "No referral code"}
+          />
+        ),
+      },
+      {
+        key: "referred",
+        header: "Referred mobile",
+        render: (referral) => referral.referred_mobile_masked,
+      },
+      {
+        key: "line",
+        header: "Line",
+        render: (referral) =>
+          referral.business_line
+            ? (LINE_LABEL[referral.business_line] ?? referral.business_line)
+            : "-",
+      },
+      {
+        key: "amount",
+        header: "Bonus",
+        align: "right",
+        render: (referral) => (
+          <span className="font-medium tabular-nums">
+            {referral.bonus_amount_paise == null ? "-" : formatPaise(referral.bonus_amount_paise)}
+          </span>
+        ),
+      },
+      {
+        key: "date",
+        header: "Converted",
+        render: (referral) => formatDate(referral.converted_at ?? referral.created_at),
+      },
+      {
+        key: "state",
+        header: "State",
+        render: (referral) => {
+          const payoutState = getMoneyPayoutRequestState({
+            status: referral.conversion_status,
+            payableStatus: "accrued",
+            payoutId: referral.reward_payout_uuid,
+          });
+          if (payoutState === "awaiting_approval") {
+            return <StatusBadge tone="warning">Payout raised</StatusBadge>;
+          }
+          const meta = STATUS_META[referral.conversion_status] ?? {
+            label: referral.conversion_status,
+            tone: "neutral" as const,
+          };
+          const reason = referral.accrual_reason
+            ? ACCRUAL_REASON_LABEL[referral.accrual_reason] ?? referral.accrual_reason
+            : null;
+          return (
+            <div className="space-y-1">
+              <StatusBadge tone={meta.tone}>{meta.label}</StatusBadge>
+              {reason && referral.accrual_reason !== "accrued" ? (
+                <p className="max-w-64 truncate text-xs text-text-secondary">{reason}</p>
+              ) : null}
+            </div>
+          );
+        },
+      },
+      {
+        key: "action",
+        header: "Action",
+        align: "right",
+        render: (referral) =>
+          getMoneyPayoutRequestState({
+            status: referral.conversion_status,
+            payableStatus: "accrued",
+            payoutId: referral.reward_payout_uuid,
+          }) === "payable" ? (
+            <Button size="sm" onClick={() => setActive(referral)}>
+              Pay bonus
+            </Button>
+          ) : null,
+      },
+    ],
+    [],
+  );
+
+  const ledger: MoneyLedgerSection<AdminReferral> = {
+    title: "Referral payout ledger",
+    description: "Accrued bonuses, in-flight approvals, paid rewards, and ineligibility reasons.",
+    rows: items,
+    columns,
+    rowKey: (referral) => referral.id,
+    searchText: (referral) =>
+      `${referral.referrer_name ?? ""} ${referral.referrer_code ?? ""} ${referral.referred_mobile_masked} ${
+        referral.accrual_reason ? ACCRUAL_REASON_LABEL[referral.accrual_reason] ?? referral.accrual_reason : ""
+      }`,
+    status: (referral) => referral.conversion_status,
+    line: (referral) => referral.business_line,
+    date: (referral) => referral.converted_at ?? referral.created_at,
+    statusOptions: STATUS_OPTIONS,
+    statusLabel: "referral states",
+    initialStatus: statusFilter,
+    onStatusChange: setStatusFilter,
+    searchLabel: "Search referral payouts",
+    searchPlaceholder: "Referrer, code, masked mobile, or reason",
+    emptyIcon: Gift,
+    emptyTitle:
+      statusFilter === "accrued"
+        ? "No referral bonuses are waiting to be paid"
+        : "No referrals match these filters",
+    emptyDescription: "Clear or adjust the filters to return to the referral ledger.",
+    minWidth: "min-w-[1040px]",
+    note: "A raised payout remains accrued until a different Admin approves it.",
+  };
 
   return (
-    <div className="mx-auto w-full max-w-5xl space-y-6 px-4 sm:px-6 lg:px-10">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold text-text-primary">Referral payouts</h1>
-          <p className="text-sm text-text-secondary">
-            Pay an accrued referral bonus, or see why a converted referral never accrued one.
-          </p>
-        </div>
-        <Select value={statusFilter || "all"} onValueChange={(v) => setStatusFilter(v === "all" ? "" : v)}>
-          <SelectTrigger className="w-52">
-            <SelectValue placeholder="Awaiting payout" />
-          </SelectTrigger>
-          <SelectContent>
-            {FILTER_OPTIONS.map((o) => (
-              <SelectItem key={o.value || "all"} value={o.value || "all"}>
-                {o.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      {loading ? (
-        <div className="flex items-center justify-center rounded-2xl border border-border bg-card py-16">
-          <Loader2 className="h-6 w-6 animate-spin text-brand-navy" aria-hidden="true" />
-        </div>
-      ) : error ? (
-        <div className="rounded-2xl border border-border bg-card p-8 text-center">
-          <p className="text-sm text-text-secondary">{error}</p>
-          <Button variant="outline" className="mt-4" onClick={() => void reload()}>
-            Try again
-          </Button>
-        </div>
-      ) : items.length === 0 ? (
-        <div className="flex flex-col items-center rounded-2xl border border-border bg-card p-12 text-center">
-          <Gift className="h-8 w-8 text-text-secondary" aria-hidden="true" />
-          <p className="mt-3 font-medium text-text-primary">
-            {statusFilter === "accrued"
-              ? "No referral bonuses are waiting to be paid."
-              : "No referrals match this filter."}
-          </p>
-        </div>
-      ) : (
-        <div className="space-y-3">
-        <ul className="space-y-3">
-          {pageItems.map((r) => {
-            // reward_payout_uuid set but conversion_status still "accrued" is
-            // the real state between "Pay bonus" raising a payout and that
-            // payout being approved — approval is what flips it to "paid".
-            // Checking status alone left the button live and re-clickable
-            // for that whole window (a real bug caught in review): the
-            // second click's create would 409 on the referral being claimed,
-            // but a confused admin has no way to tell it already worked.
-            const awaitingApproval =
-              r.conversion_status === "accrued" && r.reward_payout_uuid != null;
-            const payable = r.conversion_status === "accrued" && r.reward_payout_uuid == null;
-            const card = (
-              <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border bg-card p-4">
-                <div className="min-w-0 space-y-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="font-semibold text-text-primary">
-                      {r.bonus_amount_paise != null ? formatPaise(r.bonus_amount_paise) : "-"}
-                    </span>
-                    <Badge className={STATUS_STYLE[r.conversion_status] ?? "bg-muted text-text-secondary"}>
-                      {STATUS_LABEL[r.conversion_status] ?? r.conversion_status}
-                    </Badge>
-                  </div>
-                  <p className="truncate text-sm text-text-secondary">
-                    {r.referrer_name ?? "Unknown referrer"}
-                    {r.referrer_code ? ` · ${r.referrer_code}` : ""}
-                  </p>
-                  <p className="truncate text-xs text-text-secondary">
-                    Referred {r.referred_mobile_masked}
-                    {r.business_line ? ` · ${LINE_LABEL[r.business_line] ?? r.business_line}` : ""}
-                    {" · "}
-                    {formatDate(r.converted_at ?? r.created_at)}
-                  </p>
-                  {r.accrual_reason && r.accrual_reason !== "accrued" ? (
-                    <p className="truncate text-xs text-text-secondary">
-                      {ACCRUAL_REASON_LABEL[r.accrual_reason] ?? r.accrual_reason}
-                    </p>
-                  ) : null}
-                </div>
-                {payable ? (
-                  <Button size="sm" onClick={() => setActive(r)}>
-                    Pay bonus
-                  </Button>
-                ) : awaitingApproval ? (
-                  <Badge className="bg-warning/10 text-warning">Payout raised</Badge>
-                ) : null}
-              </div>
-            );
-            return <li key={r.id}>{card}</li>;
-          })}
-        </ul>
-        <ListPagination page={page} total={items.length} onPageChange={setPage} label="Referral payouts pages" />
-        </div>
-      )}
-
-      <ReferralPayoutDialog
-        referral={active}
-        onOpenChange={(open) => !open && setActive(null)}
-        onPay={payBonus}
+    <DashboardPage>
+      <DashboardHeader
+        title="Referral payouts"
+        description="Raise accrued referral rewards and see why converted referrals did not earn a bonus."
       />
-    </div>
+      <MoneyLedgerView
+        ledger={ledger}
+        loading={loading}
+        error={error}
+        onRetry={() => void reload()}
+        dialogs={
+          <ReferralPayoutDialog
+            referral={active}
+            onOpenChange={(open) => !open && setActive(null)}
+            onPay={payBonus}
+          />
+        }
+      />
+    </DashboardPage>
   );
 }
