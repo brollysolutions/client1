@@ -63,6 +63,7 @@ export const FORM_SURFACE_REGISTRY = {
   "features/admin/fee-cashbacks-view.tsx": "filter",
   "features/admin/field-visibility-view.tsx": "mutation",
   "features/admin/financial-product-form-builder.tsx": "composite",
+  "features/admin/financial-product-workspace.tsx": "mutation",
   "features/admin/lead-details-dialog.tsx": "mutation",
   "features/admin/listing-approvals-view.tsx": "mutation",
   "features/admin/loan-types-view.tsx": "mutation",

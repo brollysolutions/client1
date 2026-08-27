@@ -167,6 +167,13 @@
     outline-color: color-mix(in srgb, var(--ring) 50%, transparent);
   }
 
+  html,
+  body {
+    max-width: 100%;
+    overflow-x: hidden;
+    overflow-x: clip;
+  }
+
   body {
     background-color: var(--background);
     color: var(--foreground);
@@ -174,6 +181,28 @@
        paragraphs and long-form copy inherit it unless a component overrides. */
     font-family: var(--font-heading), "Space Grotesk", sans-serif;
   }
+}
+
+/* Horizontal overflow remains available to touch, trackpad, mouse-wheel
+   shift, and keyboard users, but never adds a visible bar to the interface.
+   Keep these rules outside Tailwind's named layers so they augment the
+   generated overflow utilities instead of being replaced by them. */
+*::-webkit-scrollbar:horizontal {
+  height: 0;
+}
+
+/* `scrollbar-width` has no axis-specific value, so apply it only to the
+   horizontal-only overflow utilities. Mixed vertical/horizontal scrollers
+   retain their vertical bar and use the directional WebKit rule above. */
+.overflow-x-auto,
+.overflow-x-scroll {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.overflow-x-auto::-webkit-scrollbar,
+.overflow-x-scroll::-webkit-scrollbar {
+  display: none;
 }
 
 /* Landing navbar tokens. Cream bar + near-black text + Sky-blue accent. */

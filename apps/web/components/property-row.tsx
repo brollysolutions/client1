@@ -108,7 +108,7 @@ export function PropertyRow({
         />
 
         {/* Scroller. Gutter padding aligns the first card with the page container
-            and lets the last card peek. A thin blue scrollbar sits underneath. */}
+            and lets the last card peek; the shared CSS hides scrollbar chrome. */}
         <div
           ref={scrollerRef}
           className="flex gap-6 overflow-x-auto scroll-px-4 px-4 pb-2 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden sm:scroll-px-6 sm:px-6 lg:scroll-px-8 lg:px-8"
