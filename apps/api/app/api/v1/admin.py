@@ -31,6 +31,7 @@ from app.models.audit_log import AuditAction
 from app.models.profile import AgentApplication, StaffRole, SubmissionStatus
 from app.models.support_ticket import SupportStatus
 from app.models.task import Task, TaskStatus, TaskType
+from app.models.user import UserStatus
 from app.schemas.admin import (
     AdminAccountDeleteRequest,
     AdminAssignedLeadRead,
@@ -510,11 +511,40 @@ async def list_users(
     response: Response,
     limit: int = Query(default=50, ge=1, le=200),
     offset: int = Query(default=0, ge=0),
+    search: str | None = Query(default=None, max_length=100),
+    status_filter: (
+        Literal["active", "suspended", "pending_password_reset", "soft_deleted"] | None
+    ) = Query(default=None, alias="status"),
+    role: (
+        Literal["admin", "sub_admin", "telecaller", "employee", "agent", "client"] | None
+    ) = Query(default=None),
+    business_line: Literal["loans", "real_estate"] | None = Query(default=None),
+    created_from: datetime | None = Query(default=None),
+    created_to: datetime | None = Query(default=None),
+    never_logged_in: bool | None = Query(default=None),
     current_user: CurrentUser = Depends(require_platform_admin),  # noqa: ARG001
     db: AsyncSession = Depends(get_db),
 ) -> AdminUserListResponse:
+    """The operational account directory.
+
+    Filtering is server-side because the console pages this list: filtering only
+    the fetched page meant a match on page three was invisible from page one.
+    Every parameter is optional and omitting all of them preserves the original
+    unfiltered behavior.
+    """
     response.headers["Cache-Control"] = "private, no-store"
-    users, total = await list_operational_users(db, limit=limit, offset=offset)
+    users, total = await list_operational_users(
+        db,
+        limit=limit,
+        offset=offset,
+        search=search,
+        statuses=[UserStatus(status_filter)] if status_filter else None,
+        role=role,
+        business_line=business_line,
+        created_from=created_from,
+        created_to=created_to,
+        never_logged_in=never_logged_in,
+    )
     return AdminUserListResponse(
         users=[
             AdminUserRead(
@@ -545,8 +575,6 @@ async def update_user_status(
     current_user: CurrentUser = Depends(require_platform_admin),
     db: AsyncSession = Depends(get_db),
 ) -> AdminUserRead:
-    from app.models.user import UserStatus
-
     try:
         user = await set_operational_user_status(
             db,
@@ -585,17 +613,25 @@ async def update_user_status(
 
 
 @router.get("/agents", response_model=AgentApplicationListResponse)
-async def list_pending_agent_applications(
+async def list_agent_applications(
+    status_filter: Literal["pending", "approved", "rejected", "all"] = Query(
+        default="pending", alias="status"
+    ),
     current_user: CurrentUser = Depends(require_platform_admin),
     db: AsyncSession = Depends(get_db),
 ) -> AgentApplicationListResponse:
-    rows = (
-        await db.scalars(
-            select(AgentApplication)
-            .where(AgentApplication.status == SubmissionStatus.PENDING)
-            .order_by(AgentApplication.created_at.desc())
-        )
-    ).all()
+    """Defaults to the pending queue, which is what the console opens on.
+
+    `status` was previously hardcoded, so an Admin had no way to look back at
+    what they had already approved or rejected. Omitting the parameter keeps the
+    original behavior; `status=all` clears the filter. "all" is an explicit
+    member rather than an empty string because FastAPI validates `""` against
+    the Literal and rejects it rather than reading it as "unset".
+    """
+    statement = select(AgentApplication).order_by(AgentApplication.created_at.desc())
+    if status_filter != "all":
+        statement = statement.where(AgentApplication.status == SubmissionStatus(status_filter))
+    rows = (await db.scalars(statement)).all()
     return AgentApplicationListResponse(
         applications=[AgentApplicationRead.model_validate(r, from_attributes=True) for r in rows]
     )

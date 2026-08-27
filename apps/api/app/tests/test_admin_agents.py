@@ -397,3 +397,48 @@ async def test_approve_legacy_null_email_still_succeeds(client: AsyncClient) -> 
     )
     assert res.status_code == 200, res.text
     assert res.json()["temp_password"]
+
+
+@pytest.mark.asyncio
+async def test_queue_status_filter(client: AsyncClient) -> None:
+    """The queue used to be a one-way door: `status` was hardcoded to pending,
+    so an Admin could never look back at what they had already decided."""
+    _, mobile = await full_registration(client)
+    uid = await _auth_user_uuid(mobile)
+    headers = {"Authorization": f"Bearer {_admin_token(uid)}"}
+
+    pending_id = await _create_pending_application(mobile=unique_mobile())
+    rejected_id = await _create_pending_application(mobile=unique_mobile())
+    rejected = await client.post(
+        f"/api/v1/admin/agents/{rejected_id}/reject",
+        json={"note": "RERA number could not be verified."},
+        headers=headers,
+    )
+    assert rejected.status_code == 200, rejected.text
+
+    # Omitting the parameter keeps the original pending-only behavior.
+    default = await client.get("/api/v1/admin/agents", headers=headers)
+    assert default.status_code == 200, default.text
+    default_ids = {row["id"] for row in default.json()["applications"]}
+    assert pending_id in default_ids
+    assert rejected_id not in default_ids
+
+    only_rejected = await client.get(
+        "/api/v1/admin/agents", params={"status": "rejected"}, headers=headers
+    )
+    assert only_rejected.status_code == 200, only_rejected.text
+    rejected_ids = {row["id"] for row in only_rejected.json()["applications"]}
+    assert rejected_id in rejected_ids
+    assert pending_id not in rejected_ids
+
+    # "all" is an explicit member: FastAPI validates "" against the Literal
+    # and rejects it rather than reading it as unset.
+    everything = await client.get("/api/v1/admin/agents", params={"status": "all"}, headers=headers)
+    assert everything.status_code == 200, everything.text
+    all_ids = {row["id"] for row in everything.json()["applications"]}
+    assert {pending_id, rejected_id} <= all_ids
+
+    invalid = await client.get(
+        "/api/v1/admin/agents", params={"status": "not-a-status"}, headers=headers
+    )
+    assert invalid.status_code == 422

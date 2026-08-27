@@ -260,3 +260,91 @@ async def test_new_staff_account_logs_in_via_forced_reset(client: AsyncClient) -
         json={"mobile": new_mobile, "password": "NewPass@123"},
     )
     assert relogin.status_code == 200, relogin.text
+
+
+@pytest.mark.asyncio
+async def test_user_directory_filters_run_server_side(client: AsyncClient) -> None:
+    """The console pages this list, so every filter has to reach the query.
+
+    Filtering only the fetched page — which is what the panel used to do —
+    hides a match that happens to live on another page.
+    """
+    _, admin_mobile = await full_registration(client)
+    admin_uid = await _auth_user_uuid(admin_mobile)
+    headers = {"Authorization": f"Bearer {_admin_token(admin_uid)}"}
+
+    telecaller_mobile = unique_mobile()
+    created = await client.post(
+        "/api/v1/admin/users/create",
+        json={
+            "first_name": "Zarina",
+            "last_name": "Qureshi",
+            "mobile": telecaller_mobile,
+            "email": unique_email(),
+            "role": "telecaller",
+            "business_line": "loans",
+        },
+        headers=headers,
+    )
+    assert created.status_code == 201, created.text
+
+    by_role = await client.get(
+        "/api/v1/admin/users", params={"role": "telecaller", "limit": 200}, headers=headers
+    )
+    assert by_role.status_code == 200, by_role.text
+    role_body = by_role.json()
+    assert role_body["total"] >= 1
+    assert all("telecaller" in user["roles"] for user in role_body["users"])
+
+    by_search = await client.get(
+        "/api/v1/admin/users", params={"search": "Qureshi"}, headers=headers
+    )
+    assert by_search.status_code == 200, by_search.text
+    search_body = by_search.json()
+    assert search_body["total"] >= 1
+    assert any(user["last_name"] == "Qureshi" for user in search_body["users"])
+
+    # A provisioned staff account has never signed in, so it must survive the
+    # never-logged-in filter and disappear from its complement.
+    never = await client.get(
+        "/api/v1/admin/users",
+        params={"search": "Qureshi", "never_logged_in": "true"},
+        headers=headers,
+    )
+    assert never.status_code == 200, never.text
+    assert never.json()["total"] >= 1
+
+    has_logged_in = await client.get(
+        "/api/v1/admin/users",
+        params={"search": "Qureshi", "never_logged_in": "false"},
+        headers=headers,
+    )
+    assert has_logged_in.status_code == 200, has_logged_in.text
+    assert has_logged_in.json()["total"] == 0
+
+    # `total` must reflect the predicates, not the unfiltered table, or paging
+    # would offer pages that cannot be reached.
+    unfiltered = await client.get("/api/v1/admin/users", headers=headers)
+    assert unfiltered.json()["total"] >= search_body["total"]
+
+    no_match = await client.get(
+        "/api/v1/admin/users", params={"search": "nobody-by-this-name"}, headers=headers
+    )
+    assert no_match.status_code == 200, no_match.text
+    assert no_match.json() == {"users": [], "total": 0}
+
+
+@pytest.mark.asyncio
+async def test_user_directory_status_filter(client: AsyncClient) -> None:
+    _, admin_mobile = await full_registration(client)
+    admin_uid = await _auth_user_uuid(admin_mobile)
+    headers = {"Authorization": f"Bearer {_admin_token(admin_uid)}"}
+
+    active = await client.get("/api/v1/admin/users", params={"status": "active"}, headers=headers)
+    assert active.status_code == 200, active.text
+    assert all(user["status"] == "active" for user in active.json()["users"])
+
+    rejected = await client.get(
+        "/api/v1/admin/users", params={"status": "not-a-status"}, headers=headers
+    )
+    assert rejected.status_code == 422
