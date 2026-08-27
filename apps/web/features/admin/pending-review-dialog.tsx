@@ -12,9 +12,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { CLOSE_BUTTON_CLASS } from "@/components/ui/close-button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { AdminPendingItem } from "@/lib/admin-api";
+import { cn } from "@/lib/utils";
 
 import { filterPendingReview, type PendingReviewFilters } from "./admin-home-pending-review";
 import { PendingReviewList, REVIEW_KIND_LABEL, REVIEW_LINE_LABEL } from "./pending-review-list";
@@ -93,15 +95,13 @@ export function PendingReviewDialog({
         </div>
 
         <DialogClose asChild>
-          <Button
+          <button
             type="button"
-            variant="ghost"
-            size="icon"
             aria-label="Close review filters"
-            className="absolute top-4 right-4 hover:bg-brand-cta-tint hover:text-brand-cta"
+            className={cn("absolute top-3 right-3", CLOSE_BUTTON_CLASS)}
           >
             <X className="h-5 w-5" aria-hidden="true" />
-          </Button>
+          </button>
         </DialogClose>
       </DialogContent>
     </Dialog>

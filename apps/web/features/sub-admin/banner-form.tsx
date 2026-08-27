@@ -275,7 +275,6 @@ export function BannerForm({
 
   return (
     <DashboardFormPage
-      eyebrow="Campaign content"
       title="New banner"
       description="Select the governed artwork, then write the campaign message that appears over it."
       backHref="/dashboard/banners"

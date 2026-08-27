@@ -5,6 +5,7 @@ import Image from "next/image";
 import { ArrowDown, ArrowUp, FileText, Loader2, Rotate3D, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { CLOSE_BUTTON_CLASS } from "@/components/ui/close-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -20,6 +21,7 @@ import {
 import { DashboardFormPage } from "@/features/dashboard/dashboard-ui";
 import { PROPERTY_SUBTYPE_GROUPS } from "@/lib/property-taxonomy";
 import type { Submission } from "@/lib/property-submissions-api";
+import { cn } from "@/lib/utils";
 import { PropertyDetailFields } from "./property-detail-fields";
 import { useSubmitProperty } from "./use-submit-property";
 
@@ -68,7 +70,6 @@ export function SubmitPropertyForm({ submission }: { submission?: Submission }) 
 
   return (
     <DashboardFormPage
-      eyebrow="Property listings"
       title={f.editing ? "Edit property" : "Submit a property"}
       description={
         f.editing
@@ -208,7 +209,7 @@ export function SubmitPropertyForm({ submission }: { submission?: Submission }) 
               {f.form.amenities.map((a) => (
                 <li key={a} className="inline-flex items-center gap-1 rounded-full bg-muted px-3 py-1 text-sm">
                   {a}
-                  <button type="button" aria-label={`Remove ${a}`} onClick={() => f.removeAmenity(a)}>
+                  <button type="button" aria-label={`Remove ${a}`} onClick={() => f.removeAmenity(a)} className={cn("h-5 w-5", CLOSE_BUTTON_CLASS)}>
                     <X className="h-3.5 w-3.5" />
                   </button>
                 </li>
@@ -275,9 +276,9 @@ export function SubmitPropertyForm({ submission }: { submission?: Submission }) 
                       <Button type="button" variant="outline" size="icon" disabled={index === imagePreviews.length - 1 || f.submitting} aria-label={`Move ${file.name} later`} onClick={() => moveImage(index, 1)}>
                         <ArrowDown className="h-4 w-4" aria-hidden />
                       </Button>
-                      <Button type="button" variant="ghost" size="icon" disabled={f.submitting} aria-label={`Remove ${file.name}`} onClick={() => f.setImages(f.form.images.filter((_, itemIndex) => itemIndex !== index))}>
+                      <button type="button" className={cn("h-9 w-9", CLOSE_BUTTON_CLASS)} disabled={f.submitting} aria-label={`Remove ${file.name}`} onClick={() => f.setImages(f.form.images.filter((_, itemIndex) => itemIndex !== index))}>
                         <X className="h-4 w-4" aria-hidden />
-                      </Button>
+                      </button>
                     </div>
                   </li>
                 ))}
@@ -309,16 +310,15 @@ export function SubmitPropertyForm({ submission }: { submission?: Submission }) 
                 <div className="mt-2 flex items-center gap-2 text-sm">
                   <Rotate3D className="h-4 w-4 text-text-secondary" aria-hidden />
                   <span className="min-w-0 flex-1 truncate">{f.form.panorama.name}</span>
-                  <Button
+                  <button
                     type="button"
-                    variant="ghost"
-                    size="icon"
+                    className={cn("h-9 w-9", CLOSE_BUTTON_CLASS)}
                     disabled={f.submitting}
                     aria-label={`Remove ${f.form.panorama.name}`}
                     onClick={() => f.setPanorama(null)}
                   >
                     <X className="h-4 w-4" aria-hidden />
-                  </Button>
+                  </button>
                 </div>
               </div>
             ) : null}
@@ -347,9 +347,9 @@ export function SubmitPropertyForm({ submission }: { submission?: Submission }) 
                   <li key={`${file.name}-${file.lastModified}`} className="flex items-center gap-2 rounded-lg border p-2 text-sm">
                     <FileText className="h-4 w-4 text-text-secondary" aria-hidden />
                     <span className="min-w-0 flex-1 truncate">{file.name}</span>
-                    <Button type="button" variant="ghost" size="icon" disabled={f.submitting} aria-label={`Remove ${file.name}`} onClick={() => f.setDocuments(f.form.documents.filter((_, itemIndex) => itemIndex !== index))}>
+                    <button type="button" className={cn("h-9 w-9", CLOSE_BUTTON_CLASS)} disabled={f.submitting} aria-label={`Remove ${file.name}`} onClick={() => f.setDocuments(f.form.documents.filter((_, itemIndex) => itemIndex !== index))}>
                       <X className="h-4 w-4" aria-hidden />
-                    </Button>
+                    </button>
                   </li>
                 ))}
               </ul>

@@ -3,6 +3,7 @@
 import * as React from "react";
 import { FileText, Plus, UploadCloud, X, type LucideIcon } from "lucide-react";
 
+import { CLOSE_BUTTON_CLASS } from "@/components/ui/close-button";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 
@@ -234,7 +235,7 @@ export function FileField({
             onClick={handleRemove}
             disabled={disabled}
             aria-label={`Remove ${label}`}
-            className="absolute right-2 top-2 flex h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-white/95 text-foreground shadow-sm transition hover:bg-white hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nav-primary)]/50 disabled:cursor-default disabled:opacity-50"
+            className={cn("absolute right-2 top-2", CLOSE_BUTTON_CLASS)}
           >
             <X className="h-4 w-4" aria-hidden />
           </button>

@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 // classic JSX transform used by the vitest setup can render this in tests.
 import * as React from "react";
 
+import { CLOSE_BUTTON_CLASS } from "@/components/ui/close-button";
 import { useDebounce } from "@/hooks/use-debounce";
 import type { CatalogueFacets } from "@/lib/financial-catalog";
 import {
@@ -180,7 +181,7 @@ export function FinancialServicesFilters({
               type="button"
               onClick={clearSearch}
               aria-label="Clear search"
-              className="absolute right-3 top-1/2 flex h-7 w-7 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full text-text-secondary transition-colors hover:bg-brand-blue/10 hover:text-brand-blue focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue motion-reduce:transition-none"
+              className={cn("absolute right-2 top-1/2 -translate-y-1/2", CLOSE_BUTTON_CLASS)}
             >
               <X className="h-4 w-4" aria-hidden />
             </button>

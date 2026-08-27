@@ -6,7 +6,9 @@ import { toast } from "sonner";
 
 import { OtpForm } from "@/components/auth/otp-form";
 import { Button } from "@/components/ui/button";
+import { CLOSE_BUTTON_CLASS } from "@/components/ui/close-button";
 import { emailVerifyConfirm, emailVerifyInitiate } from "@/lib/auth";
+import { cn } from "@/lib/utils";
 
 // Defense-in-depth: never render a dev OTP hint in a production build (L3).
 const OTP_HINT_ALLOWED = process.env.NEXT_PUBLIC_ENV !== "production";
@@ -100,7 +102,7 @@ export function EmailVerifyBanner({ onVerified }: { onVerified: () => void }) {
           type="button"
           aria-label="Dismiss"
           onClick={() => setDismissed(true)}
-          className="shrink-0 rounded-md p-1 text-text-secondary transition-colors hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue"
+          className={cn("shrink-0", CLOSE_BUTTON_CLASS)}
         >
           <X className="h-4 w-4" />
         </button>

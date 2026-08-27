@@ -174,7 +174,6 @@ export function UserProvisioningView() {
   return (
     <DashboardPage>
       <DashboardHeader
-        eyebrow="Identity and access"
         title="Users & staff"
         description="Provision operational accounts, assign business-line scope, and manage delegated access."
         actions={

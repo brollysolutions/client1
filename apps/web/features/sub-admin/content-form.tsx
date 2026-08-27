@@ -134,7 +134,6 @@ export function ContentForm({ embedded = false, onCreated, onDirtyChange }: { em
 
   return (
     <DashboardFormPage
-      eyebrow="Website content"
       title="New content block"
       description="Create reusable website copy with an explicit placement and business-line scope."
       backHref="/dashboard/content"

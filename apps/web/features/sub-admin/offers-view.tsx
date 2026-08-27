@@ -189,7 +189,7 @@ export function OffersView() {
 
   return (
     <DashboardPage>
-      <DashboardHeader eyebrow="Promotions" title="Offers" description="Create, schedule, preview, and retire customer promotions." actions={<Button onClick={() => setCreateOpen(true)}><Plus className="h-4 w-4" />New offer</Button>} />
+      <DashboardHeader title="Offers" description="Create, schedule, preview, and retire customer promotions." actions={<Button onClick={() => setCreateOpen(true)}><Plus className="h-4 w-4" />New offer</Button>} />
       <MetricGrid>
         <MetricCard label="Total offers" value={items.length} icon={DASHBOARD_ICONS.offers} />
         <MetricCard label="Drafts" value={items.filter((item) => item.status === "draft").length} icon={DASHBOARD_ICONS.websiteContent} />
