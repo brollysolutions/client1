@@ -10,10 +10,11 @@ verified Admin operational-visibility work in
 [PR #173](https://github.com/brollysolutions/client1/pull/173).
 
 **Done - optional public content-block 404 log classification** on
-`codex/20260827-065108-the-lead-details-page-ui-its-kinda` (PR pending; direct
-user-reported operational noise; no requirement or completion-percentage
-change): PostgreSQL checkpoint completion and PgBouncer login-attempt entries
-are normal. The public API intentionally retains `404` for a missing or
+`codex/20260827-065108-the-lead-details-page-ui-its-kinda` ([PR
+#244](https://github.com/brollysolutions/client1/pull/244); direct user-reported
+operational noise; no requirement or completion-percentage change): PostgreSQL
+checkpoint completion and PgBouncer login-attempt entries are normal. The
+public API intentionally retains `404` for a missing or
 unpublished optional block, while the server-only fetch wrapper now lets this
 specific caller declare that status expected without changing its typed failure
 result. Unexpected `404`/`500`, network, and parse failures remain logged.
