@@ -28,8 +28,17 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** List Pending Agent Applications */
-        get: operations["list_pending_agent_applications_api_v1_admin_agents_get"];
+        /**
+         * List Agent Applications
+         * @description Defaults to the pending queue, which is what the console opens on.
+         *
+         *     `status` was previously hardcoded, so an Admin had no way to look back at
+         *     what they had already approved or rejected. Omitting the parameter keeps the
+         *     original behavior; `status=all` clears the filter. "all" is an explicit
+         *     member rather than an empty string because FastAPI validates `""` against
+         *     the Literal and rejects it rather than reading it as "unset".
+         */
+        get: operations["list_agent_applications_api_v1_admin_agents_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1155,7 +1164,15 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** List Users */
+        /**
+         * List Users
+         * @description The operational account directory.
+         *
+         *     Filtering is server-side because the console pages this list: filtering only
+         *     the fetched page meant a match on page three was invisible from page one.
+         *     Every parameter is optional and omitting all of them preserves the original
+         *     unfiltered behavior.
+         */
         get: operations["list_users_api_v1_admin_users_get"];
         put?: never;
         post?: never;
@@ -9899,9 +9916,11 @@ export interface operations {
             };
         };
     };
-    list_pending_agent_applications_api_v1_admin_agents_get: {
+    list_agent_applications_api_v1_admin_agents_get: {
         parameters: {
-            query?: never;
+            query?: {
+                status?: "pending" | "approved" | "rejected" | "all";
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -9915,6 +9934,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AgentApplicationListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -12187,6 +12215,13 @@ export interface operations {
             query?: {
                 limit?: number;
                 offset?: number;
+                search?: string | null;
+                status?: ("active" | "suspended" | "pending_password_reset" | "soft_deleted") | null;
+                role?: ("admin" | "sub_admin" | "telecaller" | "employee" | "agent" | "client") | null;
+                business_line?: ("loans" | "real_estate") | null;
+                created_from?: string | null;
+                created_to?: string | null;
+                never_logged_in?: boolean | null;
             };
             header?: never;
             path?: never;

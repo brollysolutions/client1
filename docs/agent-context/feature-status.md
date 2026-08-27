@@ -1955,6 +1955,45 @@ work than several completed UI requirements.
 
 ## Current work
 
+**In progress - Admin and Sub Admin dashboard UI overhaul, phase 4 of 9** on
+`claude/20260827-admin-subadmin-ui-foundation` (direct user instruction; no
+requirement or completion-percentage change): agent applications and the
+operational account directory.
+
+Agent applications moves onto the shared table and the workspace dialog. Its
+four KYC documents were a list of download links; they now render as inline
+previews, because a photo and an Aadhaar scan are what the decision is actually
+made on. The lazy per-open detail fetch is unchanged - presigned URLs expire in
+about five minutes, so they cannot be baked into the list. The queue also gains
+a status filter: `GET /api/v1/admin/agents` hardcoded `status = pending`, making
+the queue a one-way door with no way to look back at what had been decided. The
+parameter defaults to `pending`, so omitting it preserves the old behavior, and
+takes an explicit `all` member rather than an empty string, which FastAPI
+validates against the Literal and rejects.
+
+The operational account directory had exactly one filter: a "Search this page"
+box that narrowed only the 25 already-fetched rows, so an account on page three
+was unreachable from page one. `GET /api/v1/admin/users` now accepts `search`,
+`status`, `role`, `business_line`, `created_from`, `created_to` and
+`never_logged_in`, all applied in the query so `total` stays correct for paging.
+`role` and `business_line` are EXISTS subqueries against the profile tables, not
+joins, so a user holding several profiles is still counted once. Search covers
+name, mobile and email only - the columns an Admin has in hand when someone
+contacts support - and runs against the stored values, so a soft-deleted account
+cannot be found by a mobile that has already been tombstoned. The panel is
+rebuilt on the shared table with a sign-in-history filter and real pagination;
+its rows stay non-clickable because suspend/reactivate is the only thing to do
+with an account here, and a whole-row target would be a lie.
+
+The generated OpenAPI spec and typed client are regenerated for the new query
+parameters. No response model, migration, auth, RLS, or business-line behavior
+changed.
+
+Evidence: all 499 web unit tests, web lint, and web typecheck pass. 20 agent and
+30 admin-user API tests pass against Postgres, including new coverage for the
+agent status filter and for server-side user filtering, `total` correctness, and
+422 on an invalid status. API Ruff check and format pass.
+
 **In progress - Admin and Sub Admin dashboard UI overhaul, phase 3 of 9** on
 `claude/20260827-admin-subadmin-ui-foundation` (direct user instruction; no
 requirement or completion-percentage change): listing approvals, support tickets,

@@ -17687,7 +17687,26 @@
     },
     "/api/v1/admin/agents": {
       "get": {
-        "operationId": "list_pending_agent_applications_api_v1_admin_agents_get",
+        "description": "Defaults to the pending queue, which is what the console opens on.\n\n`status` was previously hardcoded, so an Admin had no way to look back at\nwhat they had already approved or rejected. Omitting the parameter keeps the\noriginal behavior; `status=all` clears the filter. \"all\" is an explicit\nmember rather than an empty string because FastAPI validates `\"\"` against\nthe Literal and rejects it rather than reading it as \"unset\".",
+        "operationId": "list_agent_applications_api_v1_admin_agents_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "default": "pending",
+              "enum": [
+                "pending",
+                "approved",
+                "rejected",
+                "all"
+              ],
+              "title": "Status",
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {
@@ -17698,6 +17717,16 @@
               }
             },
             "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
           }
         },
         "security": [
@@ -17705,7 +17734,7 @@
             "OAuth2PasswordBearer": []
           }
         ],
-        "summary": "List Pending Agent Applications",
+        "summary": "List Agent Applications",
         "tags": [
           "admin"
         ]
@@ -22518,6 +22547,7 @@
     },
     "/api/v1/admin/users": {
       "get": {
+        "description": "The operational account directory.\n\nFiltering is server-side because the console pages this list: filtering only\nthe fetched page meant a match on page three was invisible from page one.\nEvery parameter is optional and omitting all of them preserves the original\nunfiltered behavior.",
         "operationId": "list_users_api_v1_admin_users_get",
         "parameters": [
           {
@@ -22541,6 +22571,139 @@
               "minimum": 0,
               "title": "Offset",
               "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "search",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 100,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Search"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "active",
+                    "suspended",
+                    "pending_password_reset",
+                    "soft_deleted"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "in": "query",
+            "name": "role",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "admin",
+                    "sub_admin",
+                    "telecaller",
+                    "employee",
+                    "agent",
+                    "client"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Role"
+            }
+          },
+          {
+            "in": "query",
+            "name": "business_line",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "loans",
+                    "real_estate"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Business Line"
+            }
+          },
+          {
+            "in": "query",
+            "name": "created_from",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Created From"
+            }
+          },
+          {
+            "in": "query",
+            "name": "created_to",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Created To"
+            }
+          },
+          {
+            "in": "query",
+            "name": "never_logged_in",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Never Logged In"
             }
           }
         ],
