@@ -55,7 +55,7 @@ export async function getPublicContentBlockBySlug(
 ): Promise<PublicContentBlock | null> {
   const res = await serverFetchJson<Schemas["PublicContentBlockRead"]>(
     `/api/v1/public/content-blocks/${encodeURIComponent(slug)}`,
-    { revalidate: 300 },
+    { revalidate: 300, expectedStatuses: [404] },
   );
   if (!res.ok) return null;
   return mapPublicContentBlock(res.data);
