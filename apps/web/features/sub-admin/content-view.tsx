@@ -196,7 +196,6 @@ export function ContentView() {
   return (
     <DashboardPage>
       <DashboardHeader
-        eyebrow="Website content"
         title="Website content"
         description="Author reusable public-site copy with clear placement, lifecycle, and preview guidance."
         actions={<><ContentGuideButton /><Button onClick={() => setCreateOpen(true)}><Plus className="h-4 w-4" />New block</Button></>}

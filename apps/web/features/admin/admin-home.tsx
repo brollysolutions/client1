@@ -67,7 +67,6 @@ export function AdminHome() {
   return (
     <DashboardPage>
       <DashboardHeader
-        eyebrow="Platform operations"
         title="Admin overview"
         description="Review approvals, resolve assignment gaps, and monitor both business lines."
         actions={<DashboardTextLink href="/dashboard/analytics">Open analytics</DashboardTextLink>}
@@ -104,38 +103,38 @@ export function AdminHome() {
         />
       </MetricGrid>
 
-      <div className="grid gap-4 xl:grid-cols-[1.35fr_1fr]">
-        <DashboardPanel
-          title="Waiting on you"
-          description="Oldest review items across the platform"
-          action={<PendingReviewDialog items={home.pending_review} total={pendingTotal} />}
-          className="flex h-[270px] flex-col"
-          bodyClassName="min-h-0 flex-1"
-        >
-          <div className="flex h-full min-h-0 flex-col">
-            <div className="min-h-0 flex-1 overflow-y-auto pr-1">
-              <PendingReviewList
-                items={home.pending_review}
-                emptyMessage="Nothing is waiting on your approval right now."
-              />
-            </div>
-            {pendingTotal > home.pending_review.length ? (
-              <p className="mt-3 text-xs text-text-secondary">
-                Showing {home.pending_review.length} of {pendingTotal} pending items.
-              </p>
-            ) : null}
-          </div>
-        </DashboardPanel>
+      {/* Operational load reads first: it is the standing state of the platform
+          and frames the queue below it. Both panels run the full width of the
+          shell — as a 1.35fr/1fr pair inside a 270px box, the queue could only
+          ever show two or three of its rows. */}
+      <DashboardPanel
+        title="Operational load"
+        description="Open work and finance queues"
+        bodyClassName="p-0"
+      >
+        <dl className="grid divide-y divide-border sm:grid-cols-2 sm:divide-y-0 xl:grid-cols-4">
+          <OperationalRow label="Open loan applications" value={home.open_loan_applications_count} href="/dashboard/loan-applications" />
+          <OperationalRow label="Open property deals" value={home.open_property_deals_count} href="/dashboard/property-deals" />
+          <OperationalRow label="Referral payouts due" value={home.referrals_awaiting_payout_count} href="/dashboard/referral-payouts" />
+          <OperationalRow label="Pending agent applications" value={home.pending_agent_applications_count} href="/dashboard/agents" />
+        </dl>
+      </DashboardPanel>
 
-        <DashboardPanel title="Operational load" description="Open work and finance queues" className="h-[270px]">
-          <dl className="divide-y divide-border text-sm">
-            <OperationalRow label="Open loan applications" value={home.open_loan_applications_count} href="/dashboard/loan-applications" />
-            <OperationalRow label="Open property deals" value={home.open_property_deals_count} href="/dashboard/property-deals" />
-            <OperationalRow label="Referral payouts due" value={home.referrals_awaiting_payout_count} href="/dashboard/referral-payouts" />
-            <OperationalRow label="Pending agent applications" value={home.pending_agent_applications_count} href="/dashboard/agents" />
-          </dl>
-        </DashboardPanel>
-      </div>
+      <DashboardPanel
+        title="Waiting on you"
+        description={
+          pendingTotal > home.pending_review.length
+            ? `Showing the ${home.pending_review.length} oldest of ${pendingTotal} items awaiting review`
+            : "Review items across the platform, oldest first"
+        }
+        action={<PendingReviewDialog items={home.pending_review} total={pendingTotal} />}
+        bodyClassName="p-0"
+      >
+        <PendingReviewList
+          items={home.pending_review}
+          emptyMessage="Approvals raised by agents, sub admins and property owners will appear here."
+        />
+      </DashboardPanel>
 
       <DashboardSection
         title="Frequent actions"
@@ -151,15 +150,23 @@ export function AdminHome() {
   );
 }
 
+// One cell of the full-width load strip. The whole cell is the link, not just
+// the number — at this size a bare numeral is a poor target, and the label is
+// what the reader is aiming at anyway.
 function OperationalRow({ label, value, href }: { label: string; value: number; href: string }) {
   return (
-    <div className="flex items-center justify-between gap-3 py-3 first:pt-0 last:pb-0">
-      <dt className="text-text-secondary">{label}</dt>
-      <dd>
-        <Link href={href} className="font-semibold text-brand-cta hover:underline">
+    <div className="sm:border-r sm:border-border sm:last:border-r-0">
+      <Link
+        href={href}
+        className="group flex h-full flex-col justify-between gap-2 p-5 transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-blue"
+      >
+        <dt className="text-sm text-text-secondary transition-colors group-hover:text-text-primary">
+          {label}
+        </dt>
+        <dd className="text-2xl font-semibold tabular-nums tracking-tight text-text-primary transition-colors group-hover:text-brand-cta">
           {value}
-        </Link>
-      </dd>
+        </dd>
+      </Link>
     </div>
   );
 }

@@ -372,7 +372,6 @@ export function BannersView() {
   return (
     <DashboardPage>
       <DashboardHeader
-        eyebrow="Campaign content"
         title="Banners"
         description="Choose governed artwork, edit live copy, and move campaigns through Admin approval."
         actions={

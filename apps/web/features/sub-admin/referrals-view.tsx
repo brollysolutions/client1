@@ -44,7 +44,7 @@ export function ReferralsView() {
 
   return (
     <DashboardPage>
-      <DashboardHeader eyebrow="Referral programme" title="Referral bonus rules" description={isAdmin ? "Review configured rules and recent payout activity without changing authoring state." : "Configure bonus eligibility and activation; payout execution remains an Admin finance workflow."} actions={!isAdmin ? <Button onClick={() => setCreateOpen(true)}><Plus className="h-4 w-4" />New rule</Button> : undefined} />
+      <DashboardHeader title="Referral bonus rules" description={isAdmin ? "Review configured rules and recent payout activity without changing authoring state." : "Configure bonus eligibility and activation; payout execution remains an Admin finance workflow."} actions={!isAdmin ? <Button onClick={() => setCreateOpen(true)}><Plus className="h-4 w-4" />New rule</Button> : undefined} />
       {loading ? <Loading /> : error ? <ErrorState error={error} reload={reload} /> : <>
         <MetricGrid><MetricCard label="Configured rules" value={configs.length} icon={DASHBOARD_ICONS.referrals} /><MetricCard label="Active rules" value={configs.filter((item) => item.active).length} icon={DASHBOARD_ICONS.analytics} /><MetricCard label="Covered line scopes" value={new Set(configs.map((item) => item.business_line)).size} icon={DASHBOARD_ICONS.accessControl} /><MetricCard label="Recent payouts" value={activity.length} icon={DASHBOARD_ICONS.payouts} /></MetricGrid>
         <CmsFilterBar value={filters} onChange={setFilters} searchLabel="Search referral rules" statusOptions={[{ value: "active", label: "Active" }, { value: "inactive", label: "Inactive" }]} />

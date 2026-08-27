@@ -74,3 +74,49 @@ export function formatPaiseCompact(paise: number): string {
   const lakh = rupees / 100_000;
   return `₹${Number.isInteger(lakh) ? lakh : lakh.toFixed(2)} L`;
 }
+
+const shortDate = new Intl.DateTimeFormat("en-IN", {
+  day: "numeric",
+  month: "short",
+  year: "numeric",
+});
+
+/**
+ * e.g. "5 Aug 2026", or "-" for a missing or unparseable value.
+ *
+ * This exact function was copy-pasted into the payouts, commissions,
+ * fee-cashback, referral-payout, loan and property-deal views, each with its own
+ * private copy of the same `Intl` options.
+ */
+export function formatDate(iso: string | null | undefined): string {
+  if (!iso) return "-";
+  const date = new Date(iso);
+  return Number.isNaN(date.getTime()) ? "-" : shortDate.format(date);
+}
+
+/**
+ * How long something has been waiting, e.g. "3 days", "5 hours", "just now".
+ *
+ * A queue called "Waiting on you" is asking how *stale* an item is, which a
+ * bare submission date answers only by making the reader do the arithmetic.
+ * Deliberately coarse — the caller pairs it with the absolute date in a
+ * `title`, so precision beyond a day is noise.
+ */
+export function formatAge(iso: string | null | undefined): string {
+  if (!iso) return "-";
+  const then = new Date(iso).getTime();
+  if (Number.isNaN(then)) return "-";
+
+  const minutes = Math.floor((Date.now() - then) / 60_000);
+  if (minutes < 1) return "just now";
+  if (minutes < 60) return `${minutes} min`;
+
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours} ${hours === 1 ? "hour" : "hours"}`;
+
+  const days = Math.floor(hours / 24);
+  if (days < 31) return `${days} ${days === 1 ? "day" : "days"}`;
+
+  const months = Math.floor(days / 30);
+  return `${months} ${months === 1 ? "month" : "months"}`;
+}

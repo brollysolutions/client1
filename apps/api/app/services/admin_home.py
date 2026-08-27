@@ -51,7 +51,11 @@ from app.schemas.admin import AdminHomeResponse, AdminPendingItem
 from app.services.loan_applications import TERMINAL_STATUSES as LOAN_TERMINAL_STATUSES
 from app.services.property_deals import TERMINAL_STATUSES as DEAL_TERMINAL_STATUSES
 
-_PENDING_QUEUE_LIMIT = 12
+# The dashboard renders this queue full width as a table, so it can show the
+# whole cap without scrolling; 12 was sized for a 270px box that has been
+# removed. Still bounded — the three counts beside it stay uncapped, and the
+# panel says "showing the N oldest of M" whenever the cap bites.
+_PENDING_QUEUE_LIMIT = 30
 
 
 def _agent_application_title(app: AgentApplication) -> str:

@@ -170,7 +170,6 @@ export function TelecallerLeadDetailView({ leadId }: { leadId: string }) {
       <DashboardBackLink href="/dashboard/leads">Back to leads</DashboardBackLink>
 
       <DashboardHeader
-        eyebrow={lead.business_line === "loans" ? "Loan lead" : "Real estate lead"}
         title={leadName}
         description={`${formatMobile(lead.mobile)} · Review progress, record the next action, and keep follow-ups current.`}
         actions={

@@ -63,7 +63,6 @@ export function MySubmissionsView() {
   return (
     <DashboardPage>
       <DashboardHeader
-        eyebrow="Real Estate listings"
         title="My listings"
         description="Track every property submitted for review and see the latest approval state."
         actions={<Button asChild size="sm"><Link href="/dashboard/property-submit">New listing</Link></Button>}

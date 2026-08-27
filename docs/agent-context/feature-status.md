@@ -1955,6 +1955,53 @@ work than several completed UI requirements.
 
 ## Current work
 
+**In progress - Admin and Sub Admin dashboard UI overhaul, phase 1 of 9** on
+`claude/20260827-admin-subadmin-ui-foundation` (direct user instruction; no
+requirement or completion-percentage change). This phase is the shared
+foundation the remaining eight are built on, plus the two app-wide affordance
+corrections the user asked for.
+
+Both staff home pages showed their approval queue two or three rows at a time.
+That was never a data limit: each panel was pinned to a fixed height inside an
+xl-only two-column row. Admin's "Waiting on you" and Sub Admin's "Waiting on
+Admin" are the same queue seen from the two ends of one approval, so they now
+share one full-width `PendingReviewTable` whose rows are clickable and carry how
+long each item has waited, with Operational load promoted above it as a
+four-across strip. `admin_home._PENDING_QUEUE_LIMIT` rises 12 to 30 and
+`sub_admin._PENDING_APPROVAL_LIMIT` 10 to 30 to match the space now available;
+the counts rendered beside the queue were always uncapped and are unchanged.
+
+Eyebrows are removed application-wide. `DashboardHeader` and `DashboardFormPage`
+(where the prop was required) no longer accept one, and all 17 call sites plus
+the public `ProductPage` hero and `TrustStrip` drop it. The 404 status code and
+the broadcast composer's Step 1/Step 2 labels are kept: they share the visual
+shape but carry information rather than decorate.
+
+Close (X) controls had drifted into five treatments — an opacity fade, a tinted
+fill, an off-token `bg-blue-50`, a bordered pill, and one bare `<button>` with no
+styling. `components/ui/close-button.ts` now owns the single treatment: pointer
+cursor, no border, no background in any state, and the icon turning
+`--color-brand-cta` on hover. Applying it in `dialog.tsx` and `sheet.tsx` covers
+roughly 135 call sites; the remaining one-offs were converted individually.
+
+New `features/dashboard` primitives: `DataTable` (the clickable-row table proven
+on the telecaller leads list, with controlled sorting and an automatic trailing
+chevron), `FilterBar` (promoted from the CMS's `CmsFilterBar`, the most complete
+of five near-identical copies), `StatusBadge`, `ListEmptyState`/
+`ListLoadingState`/`ListPagination`, `useFilteredPage`, and the workspace dialog
+moved out of `features/sub-admin` now that Admin uses it too. A shim keeps the
+ten Sub Admin call sites compiling until those surfaces are rebuilt in phase 9.
+`lib/format.ts` gains the `formatDate` that six views each kept a private copy
+of, plus `formatAge`.
+
+No API contract, migration, auth, RLS, or business-line behavior changed.
+
+Evidence: all 499 web unit tests, web lint, and web typecheck pass; the 18 admin
+and sub-admin home API tests pass against a migrated Postgres and cover the
+raised queue cap; API Ruff check and format pass. Browser verification is
+deferred to the end of the sequence because the running compose stack serves the
+main checkout rather than this worktree.
+
 **Done - application-wide form validation consistency** on
 `codex/20260826-231901-add-validation-for-all-form-fields-anywher`
 ([PR #241](https://github.com/brollysolutions/client1/pull/241); direct user

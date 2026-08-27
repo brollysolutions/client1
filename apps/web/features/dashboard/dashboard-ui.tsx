@@ -23,25 +23,21 @@ export function DashboardPage({
   );
 }
 
+// No eyebrow above the title. The kicker repeated what the sidebar's active
+// section already says, and on the pages that had one it pushed the actual
+// heading down without adding information.
 export function DashboardHeader({
   title,
   description,
-  eyebrow,
   actions,
 }: {
   title: string;
   description?: string;
-  eyebrow?: string;
   actions?: ReactNode;
 }) {
   return (
     <header className="flex flex-wrap items-start justify-between gap-4 border-b border-border pb-5">
       <div className="max-w-3xl">
-        {eyebrow ? (
-          <p className="mb-1 text-xs font-semibold uppercase tracking-[0.12em] text-brand-cta">
-            {eyebrow}
-          </p>
-        ) : null}
         <h1 className="text-2xl font-semibold tracking-tight text-text-primary sm:text-[1.75rem]">
           {title}
         </h1>
@@ -158,7 +154,6 @@ export function DashboardSection({
 }
 
 export function DashboardFormPage({
-  eyebrow,
   title,
   description,
   backHref,
@@ -169,7 +164,6 @@ export function DashboardFormPage({
   aside,
   embedded = false,
 }: {
-  eyebrow: string;
   title: string;
   description: string;
   backHref: string;
@@ -199,7 +193,6 @@ export function DashboardFormPage({
   return (
     <DashboardPage>
       <DashboardHeader
-        eyebrow={eyebrow}
         title={title}
         description={description}
         actions={<DashboardBackLink href={backHref}>{backLabel}</DashboardBackLink>}

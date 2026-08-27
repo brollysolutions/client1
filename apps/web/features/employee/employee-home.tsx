@@ -108,7 +108,6 @@ export function EmployeeHome() {
   return (
     <DashboardPage>
       <DashboardHeader
-        eyebrow={activeLine === "real_estate" ? "Real Estate operations" : "Loans operations"}
         title="Field operations"
         description="Prioritize today's assigned work, overdue tasks, and field follow-through."
       />

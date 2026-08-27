@@ -74,7 +74,6 @@ export function AgentHome() {
   return (
     <DashboardPage>
       <DashboardHeader
-        eyebrow={home.profile.business_line === "real_estate" ? "Real Estate partner" : "Loans partner"}
         title="Agent workspace"
         description="Monitor introduced leads, registration standing, and commission progress."
         actions={

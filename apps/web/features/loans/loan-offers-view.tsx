@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Info, Scale, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { CLOSE_BUTTON_CLASS } from "@/components/ui/close-button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useLoanCompare, type ShortlistedOffer } from "@/features/loans/loan-offers-store";
 import { DashboardHeader, DashboardPage, DashboardPanel } from "@/features/dashboard/dashboard-ui";
@@ -17,6 +18,7 @@ import {
   getPublicProviderOffersClient,
 } from "@/lib/financial-catalog-client";
 import type { PublicFinancialProduct, PublicProviderOffer } from "@/lib/financial-catalog";
+import { cn } from "@/lib/utils";
 
 type Status = "loading" | "ready" | "error";
 
@@ -236,7 +238,7 @@ export function LoanOffersView() {
                           type="button"
                           aria-label={`Remove ${item.offer.offer_name} from compare`}
                           onClick={() => removeOffer(item.offerId)}
-                          className="grid h-6 w-6 shrink-0 cursor-pointer place-items-center rounded-full text-text-secondary transition-colors hover:text-brand-cta focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue"
+                          className={cn("h-6 w-6 shrink-0 rounded-full", CLOSE_BUTTON_CLASS)}
                         >
                           <X className="h-3.5 w-3.5" aria-hidden="true" />
                         </button>

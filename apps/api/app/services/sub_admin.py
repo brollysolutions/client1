@@ -25,7 +25,9 @@ from app.models.transaction import Transaction, TransactionType
 from app.schemas.referral_bonus import ReferralPayoutActivityRead
 from app.schemas.sub_admin import PendingApprovalItem, SubAdminHomeResponse
 
-_PENDING_APPROVAL_LIMIT = 10
+# Matches admin_home._PENDING_QUEUE_LIMIT: the same queue seen from the author's
+# end, now rendered as a full-width table rather than a fixed-height scroll box.
+_PENDING_APPROVAL_LIMIT = 30
 _RECENT_PAYOUTS_LIMIT = 5
 
 
