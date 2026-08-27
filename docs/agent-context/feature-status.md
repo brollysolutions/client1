@@ -1955,6 +1955,39 @@ work than several completed UI requirements.
 
 ## Current work
 
+**In progress - Admin and Sub Admin dashboard UI overhaul, phase 2 of 9** on
+`claude/20260827-admin-subadmin-ui-foundation` (direct user instruction; no
+requirement or completion-percentage change): loan applications, property deals,
+and vehicle arrangements rebuilt on the phase-1 primitives.
+
+Three row-interaction models used to coexist across the admin queues, so whether
+a row could be clicked was unanswerable by looking. Loan applications and
+property deals expanded inline; vehicle arrangements had dead rows with side
+buttons. All three now open a floating window, matching the queues that already
+did. Loan applications and property deals use the full-screen workspace dialog
+because their detail is a progress form plus submitted answers; vehicle
+arrangements uses a centred panel that shows the arrangement read-only and
+carries the transport form and cancel action, so the row is worth clicking even
+when there is nothing to enter.
+
+Each view moves from its own `max-w-5xl` wrapper and bare `<h1>` onto
+`DashboardPage`/`DashboardHeader`/`DashboardPanel`, and from a `<ul>` of cards
+onto `DataTable` with sortable columns. Filters move into the shared `FilterBar`,
+which adds a business-line filter the records always carried but nothing exposed,
+and vehicle arrangements gains sortable pickup ordering. Vehicle arrangements
+was the one admin queue fetching inline in its component; the extracted
+`use-admin-vehicle-arrangements` hook matches every sibling queue. Status pills
+move onto `StatusBadge`, and the surfaced-but-unused `driver_mobile`,
+`completed_at`, `cancelled_at` and `cancellation_reason` now appear in the detail
+panel.
+
+No API contract, migration, auth, RLS, or business-line behavior changed.
+
+Evidence: all 499 web unit tests, web lint, and web typecheck pass. Loan
+applications and property deals leave the form-surface registry because their
+controls are now the shared filter bar; vehicle arrangements stays as a mutation
+surface.
+
 **In progress - Admin and Sub Admin dashboard UI overhaul, phase 1 of 9** on
 `claude/20260827-admin-subadmin-ui-foundation` (direct user instruction; no
 requirement or completion-percentage change). This phase is the shared
