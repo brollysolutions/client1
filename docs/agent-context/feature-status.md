@@ -1955,6 +1955,47 @@ work than several completed UI requirements.
 
 ## Current work
 
+**In progress - Admin and Sub Admin dashboard UI overhaul, phase 3 of 9** on
+`claude/20260827-admin-subadmin-ui-foundation` (direct user instruction; no
+requirement or completion-percentage change): listing approvals, support tickets,
+and document verification.
+
+Listing approvals moves from `features/real-estate/review-queue-view.tsx` to
+`features/admin/listing-approvals-view.tsx`. It was already an Admin console
+reaching across for `admin-list-tools` through a relative `../admin/` import; the
+submitting half of the same lifecycle stays under `features/real-estate/`. Its
+review is the richest in the codebase — a presigned media grid, the 360 panorama
+viewer, reviewer documents, the RERA registry sub-review and subtype detail — and
+now renders in the full-screen workspace dialog with the media on one side and
+the decision controls on the other instead of stacked in a `max-w-3xl` column.
+The approve gate is unchanged (RERA settled and every media asset `ready`) but
+the reason it is blocked is now stated beside the button rather than hidden in a
+`title` attribute. The 5-second media poll and per-asset URL minting are
+unchanged.
+
+Support tickets was the only admin queue with no search, no date range and no
+pagination. It gains all three plus a category filter — a field the record always
+carried and nothing exposed — and now passes `status` to the API. The client
+wrapper and the route have always accepted that parameter; the hook simply never
+sent it, so the console fetched every ticket ever raised and filtered them in the
+browser. The embedded mobile-change queue keeps its own tinted panel: it is a
+distinct queue with its own statuses, not a section of the ticket list.
+
+Document verification keeps its boolean model and its mandatory note on
+un-verify. The two-level lead-then-subject card nesting becomes one sortable
+table with search, review-state, source, business-line and upload-date filters,
+and real pagination — `business_line` and `offset` were already supported by the
+route, and the client wrapper was discarding the `total` needed to page. The
+review itself moves into the workspace dialog, where each document renders inline
+(image or PDF, with a download fallback) beside its own note and decision, so the
+reviewer decides from the artefact rather than the filename. A verify-all action
+covers the common case; there is deliberately no bulk counterpart for
+un-verifying, because each one requires its own note.
+
+No API contract, migration, auth, RLS, or business-line behavior changed.
+
+Evidence: all 499 web unit tests, web lint, and web typecheck pass.
+
 **In progress - Admin and Sub Admin dashboard UI overhaul, phase 2 of 9** on
 `claude/20260827-admin-subadmin-ui-foundation` (direct user instruction; no
 requirement or completion-percentage change): loan applications, property deals,

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 
 import { useAuth } from "@/components/auth/session-provider";
-import { ReviewQueueView } from "@/features/real-estate/review-queue-view";
+import { ListingApprovalsView } from "@/features/admin/listing-approvals-view";
 
 // Platform Admin-only route. AppGuard (the (app) layout) already enforces auth;
 // this adds the role gate. UX gate only, the API's require_platform_admin + RLS are
@@ -28,5 +28,5 @@ export default function PropertyReviewPage() {
       </div>
     );
   }
-  return <ReviewQueueView />;
+  return <ListingApprovalsView />;
 }
