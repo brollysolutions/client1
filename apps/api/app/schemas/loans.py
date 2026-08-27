@@ -13,7 +13,7 @@ from decimal import Decimal
 from typing import Annotated
 from uuid import UUID
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from app.models.loan import FeeOutcome, LoanStatus
 from app.schemas.financial_products import FormAnswers, ProductCategory, ProductFormDefinition
@@ -132,12 +132,21 @@ class LoanApplicationProgressUpdate(BaseModel):
     services.loan_applications where that status is known.
     """
 
+    model_config = ConfigDict(extra="forbid")
+
     status: LoanStatus | None = None
     status_reason: Annotated[str | None, Field(default=None, max_length=1000)] = None
-    amount_sanctioned: Annotated[Decimal | None, Field(default=None, gt=0)] = None
+    amount_sanctioned: Annotated[
+        Decimal | None, Field(default=None, gt=0, max_digits=14, decimal_places=2)
+    ] = None
     bank_id: UUID | None = None
-    interest_rate: Annotated[Decimal | None, Field(default=None, ge=0, le=100)] = None
-    processing_fee: Annotated[Decimal | None, Field(default=None, ge=0)] = None
+    interest_rate: Annotated[
+        Decimal | None,
+        Field(default=None, ge=0, le=100, max_digits=6, decimal_places=3),
+    ] = None
+    processing_fee: Annotated[
+        Decimal | None, Field(default=None, ge=0, max_digits=14, decimal_places=2)
+    ] = None
     fee_outcome: FeeOutcome | None = None
 
     @model_validator(mode="after")

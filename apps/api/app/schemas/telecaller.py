@@ -7,7 +7,7 @@ from decimal import Decimal
 from typing import Annotated, Any, Literal
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, StringConstraints, model_validator
 
 from app.schemas.financial_products import FormAnswers, ProductFormDefinition
 
@@ -116,10 +116,14 @@ class TelecallerLeadRead(BaseModel):
 
 
 class LoanTxnCreate(BaseModel):
-    bank_name: Annotated[str | None, Field(default=None, max_length=200)] = None
-    amount: Annotated[Decimal | None, Field(default=None, ge=0)] = None
-    interest_rate: Annotated[Decimal | None, Field(default=None, ge=0, le=100)] = None
-    txn_date: date | None = None
+    model_config = ConfigDict(extra="forbid")
+
+    bank_name: Annotated[
+        str, StringConstraints(strip_whitespace=True, min_length=1, max_length=200)
+    ]
+    amount: Annotated[Decimal, Field(gt=0, max_digits=14, decimal_places=2)]
+    interest_rate: Annotated[Decimal, Field(ge=0, le=100, max_digits=6, decimal_places=3)]
+    txn_date: date
 
 
 class LoanTxnRead(BaseModel):
@@ -169,8 +173,20 @@ class TelecallerPropertyDealRead(BaseModel):
 
 
 class TaskCreate(BaseModel):
-    notes: Annotated[str | None, Field(default=None, max_length=1000)] = None
+    model_config = ConfigDict(extra="forbid")
+
+    notes: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=1000)]
     due_at: datetime | None = None
+
+    @model_validator(mode="after")
+    def _due_at_in_future(self) -> TaskCreate:
+        if self.due_at is not None:
+            due_at = self.due_at
+            if due_at.tzinfo is None:
+                due_at = due_at.replace(tzinfo=UTC)
+            if due_at <= datetime.now(UTC):
+                raise ValueError("due_at must be in the future.")
+        return self
 
 
 class TaskRead(BaseModel):

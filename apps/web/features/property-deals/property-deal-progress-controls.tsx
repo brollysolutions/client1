@@ -26,6 +26,15 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import type { ApiResponse } from "@/lib/api/client";
+import {
+  apiIssuesToFieldErrors,
+  focusFirstInvalidField,
+  type FieldErrors,
+} from "@/lib/form-validation";
+import {
+  validatePropertyDealTerms,
+  type PropertyDealTermsField,
+} from "@/features/telecaller/telecaller-lead-detail-validation";
 
 export type PropertyDealStatus =
   | "new"
@@ -101,7 +110,9 @@ export function PropertyDealProgressControls({
   const [savingTerms, setSavingTerms] = React.useState(false);
   const [statusError, setStatusError] = React.useState<string>();
   const [reasonError, setReasonError] = React.useState<string>();
+  const [termErrors, setTermErrors] = React.useState<FieldErrors<PropertyDealTermsField>>({});
   const controlId = React.useId();
+  const termsFormRef = React.useRef<HTMLFormElement>(null);
 
   const options = nextStatusOptions(deal.status);
   // on_hold/rejected have no ORDER position; fall back to -1 (most restrictive),
@@ -135,6 +146,14 @@ export function PropertyDealProgressControls({
 
   async function onTermsSubmit(e: React.FormEvent) {
     e.preventDefault();
+    const nextErrors = validatePropertyDealTerms({ priceQuoted, bookingAmount });
+    setTermErrors(nextErrors);
+    if (Object.keys(nextErrors).length > 0) {
+      requestAnimationFrame(() => {
+        if (termsFormRef.current) focusFirstInvalidField(termsFormRef.current);
+      });
+      return;
+    }
     setSavingTerms(true);
     const res = await onUpdate({
       price_quoted: priceQuoted.trim() || null,
@@ -143,7 +162,18 @@ export function PropertyDealProgressControls({
     setSavingTerms(false);
     if (res.ok) {
       toast.success("Deal terms saved");
+      setTermErrors({});
     } else {
+      const serverErrors = apiIssuesToFieldErrors(res.issues, {
+        price_quoted: "priceQuoted",
+        booking_amount: "bookingAmount",
+      });
+      if (Object.keys(serverErrors).length > 0) {
+        setTermErrors(serverErrors);
+        requestAnimationFrame(() => {
+          if (termsFormRef.current) focusFirstInvalidField(termsFormRef.current);
+        });
+      }
       toast.error("Couldn't save terms", { description: (res as { error?: string }).error });
     }
   }
@@ -201,31 +231,82 @@ export function PropertyDealProgressControls({
       </form>
 
       {termsEnabled ? (
-        <form className="flex flex-wrap items-end gap-3" onSubmit={(e) => void onTermsSubmit(e)}>
+        <form
+          ref={termsFormRef}
+          className="flex flex-wrap items-start gap-3"
+          noValidate
+          onSubmit={(e) => void onTermsSubmit(e)}
+        >
           <div>
-            <Label>Price quoted (₹)</Label>
+            <Label htmlFor={`${controlId}-price-quoted`}>Price quoted (₹)</Label>
             <Input
+              id={`${controlId}-price-quoted`}
+              name="price_quoted"
               type="number"
-              min={0}
+              min="0.01"
+              max="999999999999.99"
+              step="0.01"
               value={priceQuoted}
-              onChange={(e) => setPriceQuoted(e.target.value)}
+              onChange={(e) => {
+                setPriceQuoted(e.target.value);
+                setTermErrors((current) => ({
+                  ...current,
+                  priceQuoted: undefined,
+                  form: undefined,
+                }));
+              }}
               placeholder="8000000"
+              aria-invalid={Boolean(termErrors.priceQuoted || termErrors.form)}
+              aria-describedby={
+                [
+                  termErrors.priceQuoted ? `${controlId}-price-quoted-error` : undefined,
+                  termErrors.form ? `${controlId}-terms-error` : undefined,
+                ]
+                  .filter(Boolean)
+                  .join(" ") || undefined
+              }
             />
+            <FieldError id={`${controlId}-price-quoted-error`}>
+              {termErrors.priceQuoted}
+            </FieldError>
           </div>
           <div>
-            <Label>Booking amount (₹)</Label>
+            <Label htmlFor={`${controlId}-booking-amount`}>Booking amount (₹)</Label>
             <Input
+              id={`${controlId}-booking-amount`}
+              name="booking_amount"
               type="number"
-              min={0}
+              min="0.01"
+              max="999999999999.99"
+              step="0.01"
               value={bookingAmount}
-              onChange={(e) => setBookingAmount(e.target.value)}
+              onChange={(e) => {
+                setBookingAmount(e.target.value);
+                setTermErrors((current) => ({
+                  ...current,
+                  bookingAmount: undefined,
+                  form: undefined,
+                }));
+              }}
               placeholder="500000"
+              aria-invalid={Boolean(termErrors.bookingAmount)}
+              aria-describedby={
+                termErrors.bookingAmount ? `${controlId}-booking-amount-error` : undefined
+              }
             />
+            <FieldError id={`${controlId}-booking-amount-error`}>
+              {termErrors.bookingAmount}
+            </FieldError>
           </div>
-          <Button type="submit" size="sm" variant="outline" disabled={savingTerms}>
-            {savingTerms ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-            Save terms
-          </Button>
+          <div className="pt-6">
+            <Button type="submit" size="sm" variant="outline" disabled={savingTerms}>
+              {savingTerms ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+              Save terms
+            </Button>
+          </div>
+          <FieldError id={`${controlId}-terms-error`} className="basis-full">
+            {termErrors.form}
+          </FieldError>
         </form>
       ) : (
         <p className="text-xs text-text-secondary">

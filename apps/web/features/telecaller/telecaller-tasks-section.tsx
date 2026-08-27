@@ -6,13 +6,15 @@ import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { FieldError } from "@/components/ui/field-error";
+import { FieldError, RequiredIndicator } from "@/components/ui/field-error";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { DashboardPanel } from "@/features/dashboard/dashboard-ui";
 import type { ApiResponse } from "@/lib/api/client";
-import { apiIssuesToFieldErrors, optionalTextError } from "@/lib/form-validation";
+import { apiIssuesToFieldErrors, focusFirstInvalidField } from "@/lib/form-validation";
 import type { Task, TaskCreate } from "@/lib/telecaller-api";
+
+import { validateFieldTask } from "./telecaller-lead-detail-validation";
 
 const STATUS_LABEL: Record<string, string> = {
   unassigned: "Unassigned",
@@ -49,26 +51,23 @@ export function TelecallerTasksSection({
   const [dueAt, setDueAt] = React.useState("");
   const [dueAtError, setDueAtError] = React.useState<string>();
   const [saving, setSaving] = React.useState(false);
+  const formRef = React.useRef<HTMLFormElement>(null);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
-    const parsedDueAt = dueAt ? new Date(dueAt) : null;
-    const nextNotesError = optionalTextError(notes, "Task notes", 1000);
-    const nextDueAtError =
-      parsedDueAt && Number.isNaN(parsedDueAt.getTime())
-        ? "Enter a valid due date and time."
-        : undefined;
-    setNotesError(nextNotesError);
-    setDueAtError(nextDueAtError);
-    if (nextNotesError || nextDueAtError) {
-      requestAnimationFrame(() =>
-        document.getElementById(nextNotesError ? "task-notes" : "task-due")?.focus(),
-      );
+    const validation = validateFieldTask({ notes, dueAt });
+    setNotesError(validation.notes);
+    setDueAtError(validation.dueAt);
+    if (validation.notes || validation.dueAt) {
+      requestAnimationFrame(() => {
+        if (formRef.current) focusFirstInvalidField(formRef.current);
+      });
       return;
     }
+    const parsedDueAt = dueAt ? new Date(dueAt) : null;
     setSaving(true);
     const res = await onRaiseTask({
-      notes: notes.trim() || null,
+      notes: notes.trim(),
       due_at: parsedDueAt?.toISOString() ?? null,
     });
     setSaving(false);
@@ -85,6 +84,11 @@ export function TelecallerTasksSection({
       });
       setNotesError(serverErrors.notes);
       setDueAtError(serverErrors.dueAt);
+      if (Object.keys(serverErrors).length > 0) {
+        requestAnimationFrame(() => {
+          if (formRef.current) focusFirstInvalidField(formRef.current);
+        });
+      }
       toast.error("Couldn't raise task", { description: (res as { error?: string }).error });
     }
   }
@@ -94,11 +98,12 @@ export function TelecallerTasksSection({
       title="Field tasks"
       description="Raise a document-collection visit for automatic Employee assignment."
     >
-      <form className="space-y-3" onSubmit={(e) => void onSubmit(e)}>
+      <form ref={formRef} className="space-y-4" noValidate onSubmit={(e) => void onSubmit(e)}>
         <div>
-          <Label htmlFor="task-notes">What&apos;s needed</Label>
+          <Label htmlFor="task-notes">What&apos;s needed<RequiredIndicator /></Label>
           <Textarea
             id="task-notes"
+            name="task_notes"
             rows={2}
             maxLength={1000}
             value={notes}
@@ -107,6 +112,7 @@ export function TelecallerTasksSection({
               setNotesError(undefined);
             }}
             placeholder="e.g. Collect salary slips and bank statements"
+            aria-required="true"
             aria-invalid={Boolean(notesError)}
             aria-describedby={notesError ? "task-notes-error" : undefined}
           />
@@ -116,6 +122,7 @@ export function TelecallerTasksSection({
           <Label htmlFor="task-due">Due by (optional)</Label>
           <input
             id="task-due"
+            name="task_due_at"
             type="datetime-local"
             value={dueAt}
             onChange={(e) => {
