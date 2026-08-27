@@ -48,6 +48,12 @@ def _force_mock_otp_channels() -> None:
     # per-account limits remain active; only the cross-test IP aggregate is
     # raised here because that module has no rate-limit assertions of its own.
     settings.MOBILE_CHANGE_RATE_LIMIT_PER_IP = 1_000_000
+    # Staff invite links are exercised across many synthetic accounts through the
+    # same ASGITransport IP. The real caps stay meaningful in production; only the
+    # cross-test aggregate is raised, and test_staff_invite_links.py has no
+    # rate-limit assertions of its own.
+    settings.STAFF_INVITE_PREVIEW_RATE_LIMIT_PER_IP = 1_000_000
+    settings.STAFF_INVITE_ACCEPT_RATE_LIMIT_PER_IP = 1_000_000
 
 
 @pytest.fixture(scope="session", autouse=True)

@@ -86,6 +86,42 @@ page retained its meaningful row without the two blank rows. The aggregate API
 run reached 19% before the unchanged Admin coverage-contract failure for
 `financial_product_provider_offers`, reproduced with `--lf -x`. Security,
 design/accessibility, and maintainer review found no change-owned issue.
+**In progress - Admin/Sub Admin dashboard overhaul Phase 5: secure staff
+first-login invite links** on
+`claude/20260827-admin-subadmin-ui-foundation` (direct user instruction; no
+requirement or completion-percentage change): provisioning retains its existing
+one-time temporary-password fallback but now gives Admin the safer primary
+handoff: create a seven-day first-login link, Copy link, Share (with clipboard
+fallback), and Revoke. Reissuing revokes the outstanding link. The anonymous
+`/staff-invite/[token]` page displays only first name and role, reuses the
+shared password form and policy, then activates the identity and burns the link
+in one transaction; used, revoked, expired, malformed, and unknown tokens all
+produce the same public invalid state.
+
+The new `staff_invite_links` table contains no raw token or PII: only a SHA-256
+token hash, identity/profile/issuer foreign keys, expiry, and lifecycle
+timestamps. Its partial unique index permits one live link per invitee;
+Admin-only RLS plus column-scoped `UPDATE (used_at, revoked_at)` prevents a row
+from being repointed. Public validation and consumption run on the internal
+service session but rederive active-profile and `pending_password_reset`
+eligibility from the database, with `SELECT ... FOR UPDATE` serialising
+consumption. Preview and accept use separate IP rate-limit counters, and audit
+events contain link/profile ids but never the raw token, mobile, email, or
+password. An Admin-issued invite is refused once the owner has chosen a
+password, so the feature cannot become an account-reset primitive.
+
+Fresh evidence: `pnpm lint`, `pnpm typecheck`, and all 499 web unit tests pass;
+API `ruff check` and `ruff format --check` pass. The branch migration was
+applied to an isolated `app_test` database and all 8 focused integration tests
+pass, covering successful set-password/login, single use, replacement,
+revoke/expiry, staff/password-reset eligibility, password-policy rejection
+without burning the link, Admin-only issue/revoke, and indistinguishable invalid
+tokens. The requested `security-review` skill was not available in this
+session; a manual review of token persistence, anonymous exposure, RLS/grants,
+rate limiting, audit data, locking, and eligibility rechecks found one UX
+acceptance gap (no reusable Share action after creation), fixed it, and found no
+remaining change-owned security issue. Final private-window browser verification
+remains part of the end-of-track interactive pass.
 
 **Done - Real-estate browse-card redesign** on
 `claude/20260825-211218-remove-browse-by-type-section-in-explore` ([PR

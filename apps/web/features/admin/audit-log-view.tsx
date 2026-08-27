@@ -16,6 +16,7 @@ import {
   Home,
   IndianRupee,
   Landmark,
+  Link2,
   Loader2,
   Megaphone,
   RefreshCw,
@@ -71,6 +72,16 @@ const ACTION_META: Record<AuditAction, { label: string; icon: LucideIcon; tone: 
   staff_feature_revoked: {
     label: "Staff access revoked",
     icon: ShieldCheck,
+    tone: "bg-warning/10 text-warning",
+  },
+  staff_invite_created: {
+    label: "Staff invite link issued",
+    icon: Link2,
+    tone: "bg-brand-cta-tint text-brand-cta",
+  },
+  staff_invite_revoked: {
+    label: "Staff invite link revoked",
+    icon: Link2,
     tone: "bg-warning/10 text-warning",
   },
   account_removed: { label: "Account removed", icon: UserMinus, tone: "bg-error/10 text-error" },

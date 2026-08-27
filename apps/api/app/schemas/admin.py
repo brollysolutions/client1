@@ -52,6 +52,10 @@ class StaffCreateResponse(BaseModel):
     role: StaffRoleLiteral
     business_line: Literal["loans", "real_estate", "both"] | None
     staff_code: str
+    # The provisioned identity, so the console can immediately mint a first-login
+    # invite link for it. An account UUID an Admin can already read from the
+    # directory, not new exposure.
+    auth_user_uuid: UUID
     # Shown once, never persisted/logged. None when attaching a staff role to an
     # account that already had a working password (their credentials are unchanged).
     temp_password: str | None

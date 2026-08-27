@@ -92,12 +92,13 @@ from app.schemas.loan_config import (
 )
 from app.schemas.loans import LoanApplicationProgressUpdate
 from app.schemas.property_deals import PropertyDealProgressUpdate
+from app.schemas.staff_invites import StaffInviteLinkRead
 from app.schemas.support_tickets import (
     SupportTicketAdminListResponse,
     SupportTicketAdminRead,
     SupportTicketAdvanceRequest,
 )
-from app.services import storage
+from app.services import staff_invites, storage
 from app.services.account_deletion import (
     AccountAlreadyDeleted,
     AccountNotFound,
@@ -390,6 +391,7 @@ async def create_staff_user(
         role=payload.role,
         business_line=profile.business_line,
         staff_code=profile.staff_code,
+        auth_user_uuid=profile.auth_user_uuid,
         temp_password=temp_password,
     )
 
@@ -566,6 +568,54 @@ async def list_users(
         ],
         total=total,
     )
+
+
+@router.post(
+    "/users/{auth_user_uuid}/invite-link",
+    response_model=StaffInviteLinkRead,
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_staff_invite_link(
+    auth_user_uuid: UUID,
+    current_user: CurrentUser = Depends(require_platform_admin),
+    db: AsyncSession = Depends(get_db),
+) -> StaffInviteLinkRead:
+    """Issue a first-login link so the temp password never has to be relayed.
+
+    Creating one revokes the invitee's outstanding link: two live links would
+    mean two working credentials for one account. The raw token is returned
+    exactly once, here, and only its SHA-256 hash is stored.
+    """
+    try:
+        link, token = await staff_invites.create_invite_link(
+            db,
+            auth_user_uuid=auth_user_uuid,
+            actor_uuid=current_user.id,
+            actor_role=current_user.role,
+        )
+    except staff_invites.StaffInviteNotAllowed as exc:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            "Only an active staff account that has not set its own password can be invited.",
+        ) from exc
+    return StaffInviteLinkRead(
+        id=link.id,
+        share_path=f"/staff-invite/{token}",
+        expires_at=link.expires_at,
+    )
+
+
+@router.delete("/invite-links/{link_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def revoke_staff_invite_link(
+    link_id: UUID,
+    current_user: CurrentUser = Depends(require_platform_admin),
+    db: AsyncSession = Depends(get_db),
+) -> Response:
+    try:
+        await staff_invites.revoke_invite_link(db, link_uuid=link_id, actor_uuid=current_user.id)
+    except staff_invites.StaffInviteNotFound as exc:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Invitation link not found.") from exc
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @router.patch("/users/{auth_user_uuid}/status", response_model=AdminUserRead)
