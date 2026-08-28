@@ -1,9 +1,43 @@
-// Pure helpers for the per-bank loan-type availability matrix. Absence of an
-// entry means available -- the one place on the frontend where getting the
-// default direction backwards would silently misrepresent what the backend
-// actually enforces (services/loan_applications.py mirrors this exact rule).
+// Pure helpers for the per-bank product catalogue. The public presentation
+// state deliberately stays separate from the operational availability matrix.
+// Absence of an availability entry means available for staff assignment only.
 
 import type { AvailabilityEntry } from "@/lib/loan-config-api";
+
+export type ProviderPresentationState = "live" | "draft" | "operational" | "unavailable";
+
+export type ProviderPresentationStateInput = {
+  hasOffer: boolean;
+  offerPublished: boolean;
+  offerVerified: boolean;
+  productActive: boolean;
+  productPublic: boolean;
+  providerActive: boolean;
+  operational: boolean;
+};
+
+export function getProviderPresentationState({
+  hasOffer,
+  offerPublished,
+  offerVerified,
+  productActive,
+  productPublic,
+  providerActive,
+  operational,
+}: ProviderPresentationStateInput): ProviderPresentationState {
+  if (
+    hasOffer &&
+    offerPublished &&
+    offerVerified &&
+    productActive &&
+    productPublic &&
+    providerActive
+  ) {
+    return "live";
+  }
+  if (hasOffer) return "draft";
+  return operational ? "operational" : "unavailable";
+}
 
 export function isAvailable(
   entries: AvailabilityEntry[],

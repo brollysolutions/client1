@@ -86,7 +86,51 @@ page retained its meaningful row without the two blank rows. The aggregate API
 run reached 19% before the unchanged Admin coverage-contract failure for
 `financial_product_provider_offers`, reproduced with `--lf -x`. Security,
 design/accessibility, and maintainer review found no change-owned issue.
-**In progress - Admin/Sub Admin dashboard overhaul Phase 5: secure staff
+**In progress - Admin/Sub Admin dashboard overhaul Phase 6: financial-product
+catalogue and provider configuration** on
+`claude/20260827-admin-subadmin-ui-foundation` (direct user instruction; no
+requirement or completion-percentage change): Financial products is now a
+filterable, sortable, paginated table rather than a stack of edit cards. Each
+row opens one full-screen product workspace with separate Application form,
+Providers, and Public page tabs. Form edits keep the existing versioned schema
+contract. The Public page tab exposes active/visibility/feature/order controls
+but renders the existing public summary, description, highlights, eligibility,
+documents, and FAQs read-only, preserving the explicit frozen-copy boundary.
+The top-level surface now has only Product catalogue and Providers & logos;
+provider availability and public offers live together inside the selected
+product instead of competing as global tabs.
+
+The provider workspace keeps operational assignment and public publication as
+separate controls and derives one explicit presentation state: Live on landing
+page, Draft offer, Operational only, or Unavailable. Live requires an existing
+published offer, a verification date, an active/public product, and an active
+provider. Missing availability still defaults to operationally available for
+staff, but can never infer public display. A shared pure state helper now powers
+both the provider table and catalogue live-count column, with tests that turn
+off every publication gate independently. Provider creation/editing and the
+raster-only logo/provenance workflow remain intact on the redesigned provider
+library table. No API contract, migration, auth, RLS, or public-copy mutation
+surface changed.
+
+Per the direct follow-up to remove horizontal scrollbar chrome everywhere,
+`globals.css` now suppresses visible horizontal bars for every
+`overflow-x-auto`/`overflow-x-scroll` surface while retaining touch, trackpad,
+keyboard, and programmatic scrolling. Root overflow is clipped horizontally so
+a wide nested table cannot create a document-level bar. Mixed-axis scrollers
+retain their vertical bar. Browser evidence at 390 px confirms document and
+body widths equal the viewport, the table still accepts `scrollLeft`, and its
+horizontal scrollbar is hidden.
+
+Fresh evidence: `pnpm lint` and `pnpm typecheck` pass; all 78 web test files /
+502 tests pass, including 8 catalogue-state tests and the provider-draft
+validation suite. Desktop and 390 x 844 browser passes covered the catalogue,
+workspace tabs, provider picker/editor, frozen public copy, independent save
+actions, and scrollbar behavior. The requested `apple-design` and
+`design-review` skills were not installed in this session, so the responsive
+review was performed manually against the repository design primitives and
+found no remaining change-owned issue.
+
+**Implemented on branch - Admin/Sub Admin dashboard overhaul Phase 5: secure staff
 first-login invite links** on
 `claude/20260827-admin-subadmin-ui-foundation` (direct user instruction; no
 requirement or completion-percentage change): provisioning retains its existing
