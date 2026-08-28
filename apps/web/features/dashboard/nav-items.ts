@@ -32,6 +32,7 @@ const CAPABILITIES = {
   subAdmin: { roles: ["sub_admin"] },
   admin: { roles: ["admin"] },
   payouts: { roles: ["admin", "sub_admin"], staffFeature: "payout_requests" },
+  subAdminPayouts: { roles: ["sub_admin"], staffFeature: "payout_requests" },
   cms: { roles: ["sub_admin", "admin"] },
   referralRules: { roles: ["sub_admin", "admin"] },
 } as const satisfies Record<
@@ -266,6 +267,22 @@ export const NAV_ITEMS: readonly NavItem[] = [
     section: "operations",
   },
   {
+    key: "sub-admin-finance",
+    label: "Finance overview",
+    href: "/dashboard/finance",
+    icon: DASHBOARD_ICONS.payouts,
+    capability: "subAdmin",
+    section: "finance",
+  },
+  {
+    key: "sub-admin-payouts",
+    label: "Payout requests",
+    href: "/dashboard/payouts",
+    icon: DASHBOARD_ICONS.payouts,
+    capability: "subAdminPayouts",
+    section: "finance",
+  },
+  {
     key: "sub-admin-referral-rules",
     label: "Referral rules",
     href: "/dashboard/referral-rules",
@@ -396,7 +413,7 @@ export const NAV_ITEMS: readonly NavItem[] = [
     label: "Payouts",
     href: "/dashboard/payouts",
     icon: DASHBOARD_ICONS.payouts,
-    capability: "payouts",
+    capability: "admin",
     section: "finance",
   },
   {
@@ -440,6 +457,14 @@ export const NAV_ITEMS: readonly NavItem[] = [
     section: "content",
   },
   {
+    key: "admin-banner-media",
+    label: "Banner media",
+    href: "/dashboard/banner-media",
+    icon: DASHBOARD_ICONS.banners,
+    capability: "admin",
+    section: "content",
+  },
+  {
     key: "admin-analytics",
     label: "Analytics",
     href: "/dashboard/analytics",
@@ -455,13 +480,10 @@ export type DashboardRouteRule = {
   capabilities: readonly DashboardCapability[];
 };
 
-// Specific child routes must precede their parent prefix. For example, an
-// Admin can view /banners but only a Sub Admin can author /banners/new.
+// Specific child routes must precede their parent prefix.
 export const DASHBOARD_ROUTE_RULES: readonly DashboardRouteRule[] = [
   { path: "/dashboard", exact: true, capabilities: ["shared"] },
-  { path: "/dashboard/banners/new", exact: true, capabilities: ["subAdmin"] },
   { path: "/dashboard/leads/new", exact: true, capabilities: ["agent"] },
-  { path: "/dashboard/offers/new", exact: true, capabilities: ["subAdmin"] },
   { path: "/dashboard/operations", exact: true, capabilities: ["admin"] },
   { path: "/dashboard/admin-leads", exact: true, capabilities: ["admin"] },
   { path: "/dashboard/admin-tasks", exact: true, capabilities: ["admin"] },
@@ -470,7 +492,8 @@ export const DASHBOARD_ROUTE_RULES: readonly DashboardRouteRule[] = [
   { path: "/dashboard/analytics", exact: true, capabilities: ["admin"] },
   { path: "/dashboard/apply", exact: true, capabilities: ["clientLoans"] },
   { path: "/dashboard/audit-log", exact: true, capabilities: ["admin"] },
-  { path: "/dashboard/banners", capabilities: ["cms"] },
+  { path: "/dashboard/banners", exact: true, capabilities: ["cms"] },
+  { path: "/dashboard/banner-media", exact: true, capabilities: ["admin"] },
   { path: "/dashboard/bookmarks", exact: true, capabilities: ["clientRealEstate"] },
   { path: "/dashboard/broadcast", exact: true, capabilities: ["admin"] },
   { path: "/dashboard/commissions", exact: true, capabilities: ["admin"] },
@@ -486,6 +509,7 @@ export const DASHBOARD_ROUTE_RULES: readonly DashboardRouteRule[] = [
   { path: "/dashboard/properties", capabilities: ["client"] },
   { path: "/dashboard/explore", capabilities: ["client"] },
   { path: "/dashboard/fee-cashbacks", exact: true, capabilities: ["admin"] },
+  { path: "/dashboard/finance", exact: true, capabilities: ["subAdmin"] },
   { path: "/dashboard/leads", capabilities: ["agent", "telecaller"] },
   { path: "/dashboard/loan-applications", exact: true, capabilities: ["admin"] },
   { path: "/dashboard/loan-config", exact: true, capabilities: ["admin"] },
@@ -497,8 +521,8 @@ export const DASHBOARD_ROUTE_RULES: readonly DashboardRouteRule[] = [
     capabilities: ["agentRealEstate", "subAdmin", "admin"],
   },
   { path: "/dashboard/notifications", exact: true, capabilities: ["shared"] },
-  { path: "/dashboard/offers", capabilities: ["cms"] },
-  { path: "/dashboard/payouts", exact: true, capabilities: ["payouts"] },
+  { path: "/dashboard/offers", exact: true, capabilities: ["cms"] },
+  { path: "/dashboard/payouts", exact: true, capabilities: ["admin", "subAdminPayouts"] },
   { path: "/dashboard/property-deals", exact: true, capabilities: ["admin"] },
   { path: "/dashboard/property-review", exact: true, capabilities: ["admin"] },
   {

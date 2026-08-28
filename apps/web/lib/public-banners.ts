@@ -37,7 +37,6 @@ export function mapPublicBanner(raw: Schemas["PublicBannerRead"]): HeroBanner {
     // an allowed host (shouldn't happen post write-validator; see the guard
     // above and services/storage.py::public_asset_url).
     image: raw.image_url && isAllowedAssetUrl(raw.image_url) ? raw.image_url : undefined,
-    offerBadge: raw.offer_badge ?? undefined,
     reraVerified: raw.rera_verified || undefined,
     // A CTA needs both a label and a same-origin destination. deep_link is
     // free-text CMS copy that reaches next/link unescaped; an absolute or

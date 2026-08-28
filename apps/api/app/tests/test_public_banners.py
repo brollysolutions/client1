@@ -23,27 +23,14 @@ from __future__ import annotations
 
 import uuid
 from datetime import UTC, datetime, timedelta
-from decimal import Decimal
-from types import SimpleNamespace
 
 import pytest
 from httpx import AsyncClient
 from sqlalchemy import delete, select, text
 
-from app.api.v1.public_catalog import _offer_badge
 from app.models.banner import BannerPlacement
 from app.services.public_catalog import PUBLIC_BANNERS_LIMIT, PUBLIC_BANNERS_LIMIT_BY_PLACEMENT
 from conftest import full_registration, unique_mobile
-
-
-def test_offer_badge_preserves_integer_trailing_zeroes() -> None:
-    offer = SimpleNamespace(
-        title="Fee waiver",
-        discount_value=Decimal("100.00"),
-        discount_type="fixed",
-        code="SAVE100",
-    )
-    assert _offer_badge(offer) == "Fee waiver · ₹100 off · Code SAVE100"
 
 
 async def _author_uuid(client: AsyncClient) -> str:
@@ -424,7 +411,9 @@ async def test_non_live_statuses_hidden_from_anonymous(client: AsyncClient) -> N
 
 
 @pytest.mark.asyncio
-async def test_targeted_linked_offer_is_hidden_from_anonymous(client: AsyncClient) -> None:
+async def test_legacy_linked_offer_does_not_hide_banner_or_leak_coupon(
+    client: AsyncClient,
+) -> None:
     author = await _author_uuid(client)
     offer_id = await _seed_offer(
         author=author,
@@ -433,12 +422,13 @@ async def test_targeted_linked_offer_is_hidden_from_anonymous(client: AsyncClien
     banner_id = await _seed_banner(
         author=author,
         status="live",
-        title="Must remain private",
+        title="Public campaign artwork",
         offer_id=offer_id,
     )
     try:
         resp = await client.get("/api/v1/public/banners")
-        assert banner_id not in {item["id"] for item in resp.json()["banners"]}
+        row = next(item for item in resp.json()["banners"] if item["id"] == banner_id)
+        assert "offer_badge" not in row
     finally:
         await _delete_banners(banner_id)
         await _delete_offers(offer_id)
@@ -477,7 +467,6 @@ async def test_response_omits_internal_fields(client: AsyncClient) -> None:
             "cta_label",
             "deep_link",
             "image_url",
-            "offer_badge",
             "rera_verified",
         }
         internal_fields = {
@@ -763,10 +752,9 @@ async def test_dashboard_placement_stays_unreachable_anonymously(client: AsyncCl
     [
         BannerPlacement.FINANCIAL_SERVICES,
         BannerPlacement.PROPERTIES,
-        BannerPlacement.HOMEPAGE_AD,
     ],
 )
-async def test_section_placements_use_the_same_seven_banner_cap(
+async def test_carousel_section_placements_use_the_same_seven_banner_cap(
     client: AsyncClient,
     placement: BannerPlacement,
 ) -> None:

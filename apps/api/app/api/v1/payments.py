@@ -389,6 +389,10 @@ async def list_payouts(
 ) -> PayoutListResponse:
     _require_payout_requester(current_user)
     stmt = select(Payout).order_by(Payout.created_at.desc()).limit(limit).offset(offset)
+    if current_user.role == "sub_admin":
+        # Defence in depth over payouts_rls: delegated Sub Admins are makers and
+        # may only see the requests they raised, never another maker's queue.
+        stmt = stmt.where(Payout.maker_user_uuid == current_user.id)
     if status_filter is not None:
         stmt = stmt.where(Payout.status == status_filter)
     result = await db.execute(stmt)

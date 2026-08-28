@@ -9,6 +9,57 @@ Evidence baseline: `abcc1fd`
 verified Admin operational-visibility work in
 [PR #173](https://github.com/brollysolutions/client1/pull/173).
 
+**Done — [PR #258](https://github.com/brollysolutions/client1/pull/258) —
+invitation, staff access, finance, banner, offer, and responsive-dashboard
+overhaul:**
+`codex/20260828-165138-1-agent-invite-modify-agent-invite-ui` (
+direct user instruction; no formal requirement or completion-percentage change)
+moves Agent and staff invitation password creation into the existing auth shell
+without changing their public token URLs. Admin staff creation is now a floating
+workspace rather than an always-visible card; a one-use setup link is attempted
+immediately after creation and remains retryable beside the legacy one-time
+password fallback. Staff access and Operational accounts have full-view floating
+directories with advanced filters, while the page keeps compact previews.
+
+Sub Admin finance now has a dedicated overview, maker-only payout requests, and
+future-rule/referral activity separated from Admin review and settlement.
+Referral rules use live/retired language and can be permanently deleted only by
+their owner (or platform Admin) after retirement and only when no referral
+history references them; the foreign key and race translation preserve used
+rules. Admin owns immutable banner-media versioning, and Sub Admin lists/authors
+campaigns from approved media. Coupon offers are now image-led partner campaigns
+with draft, approval, scheduling, activation, expiry, and archive audit evidence;
+they require an HTTPS partner destination, code, artwork, visible terms, and an
+explicit Client/Agent/Employee/Telecaller audience. Anonymous offer serving and
+public banner coupon badges are removed. Dashboard users copy the code, open the
+partner checkout, and enter it before payment; Dhanadhara neither applies nor
+tracks redemption without a partner integration.
+
+Shared filter controls use responsive auto-fit layout, shared tables render as
+mobile cards below desktop widths, nested controls no longer trigger row opens,
+and global horizontal scrollbar chrome is removed without requiring page-level
+horizontal scrolling. Duplicate `/dashboard/banners/new` and
+`/dashboard/offers/new` pages are gone. The offer artwork orphan sweep now keeps
+both banner and offer references, line changes clear stale placement state, and
+malformed nullable PATCH fields fail at validation instead of reaching database
+constraints.
+
+Fresh evidence: API Ruff and format pass; the two migrations downgrade and
+upgrade cleanly and Alembic reports one head; OpenAPI and generated TypeScript
+contracts are current; 144 changed/adjacent API, RLS, scheduler, public-serving,
+orphan-cleanup, and authorization tests pass. Web lint, strict typecheck, and all
+80 unit-test files / 510 tests pass. The isolated Linux Docker production build
+compiles, typechecks, generates 90/90 pages, and completes standalone tracing.
+Eight focused Playwright scenarios pass for every role's navigation, Admin staff
+creation, removed authoring pages, and all three Sub Admin floating workspaces;
+manual review covered the changed Admin/Sub Admin pages and invalid invite links
+at desktop and 390px mobile widths. The aggregate API run stops on an unrelated
+stale content-block RLS assertion whose expected policy predates checked-in
+migration `aa12bb34cc56`; the full Playwright command also exhausts its existing
+per-IP OTP test budget and contains one unrelated provider-link expectation.
+Security, responsive design/accessibility, and maintainer review found no
+remaining change-owned defect.
+
 **Done on branch - Admin operational refinements for loan, filters, providers,
 staff layout, and Agent setup handoff:**
 `codex/20260828-123646-1-problem-with-the-floating-window-of`

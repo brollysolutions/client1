@@ -3861,11 +3861,13 @@
             "items": {
               "enum": [
                 "client",
-                "agent"
+                "agent",
+                "employee",
+                "telecaller"
               ],
               "type": "string"
             },
-            "maxItems": 2,
+            "maxItems": 4,
             "title": "User Types",
             "type": "array"
           },
@@ -3937,7 +3939,19 @@
           "banner_archived",
           "banner_activated",
           "banner_deleted",
-          "banner_template_versioned"
+          "banner_template_versioned",
+          "referral_rule_created",
+          "referral_rule_updated",
+          "referral_rule_deleted",
+          "offer_created",
+          "offer_updated",
+          "offer_submitted",
+          "offer_approved",
+          "offer_rejected",
+          "offer_scheduled",
+          "offer_activated",
+          "offer_expired",
+          "offer_archived"
         ],
         "title": "AuditAction",
         "type": "string"
@@ -4214,6 +4228,33 @@
             "title": "Id",
             "type": "string"
           },
+          "image_url": {
+            "title": "Image Url",
+            "type": "string"
+          },
+          "partner_name": {
+            "title": "Partner Name",
+            "type": "string"
+          },
+          "redemption_url": {
+            "title": "Redemption Url",
+            "type": "string"
+          },
+          "terms_summary": {
+            "title": "Terms Summary",
+            "type": "string"
+          },
+          "terms_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Terms Url"
+          },
           "title": {
             "title": "Title",
             "type": "string"
@@ -4225,7 +4266,12 @@
           "description",
           "discount_type",
           "discount_value",
-          "code"
+          "code",
+          "partner_name",
+          "redemption_url",
+          "terms_summary",
+          "terms_url",
+          "image_url"
         ],
         "title": "AuthenticatedOfferRead",
         "type": "object"
@@ -10035,11 +10081,49 @@
             ],
             "title": "Ends At"
           },
+          "image_key": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "pattern": "^public/banners/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/[A-Za-z0-9._-]+$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Image Key"
+          },
+          "partner_name": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Partner Name"
+          },
           "priority": {
             "default": 0,
+            "maximum": 2147483647.0,
             "minimum": 0.0,
             "title": "Priority",
             "type": "integer"
+          },
+          "redemption_url": {
+            "anyOf": [
+              {
+                "maxLength": 1000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Redemption Url"
           },
           "starts_at": {
             "anyOf": [
@@ -10052,6 +10136,30 @@
               }
             ],
             "title": "Starts At"
+          },
+          "terms_summary": {
+            "anyOf": [
+              {
+                "maxLength": 1000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Terms Summary"
+          },
+          "terms_url": {
+            "anyOf": [
+              {
+                "maxLength": 1000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Terms Url"
           },
           "title": {
             "maxLength": 500,
@@ -10067,6 +10175,62 @@
           "discount_value"
         ],
         "title": "OfferCreate",
+        "type": "object"
+      },
+      "OfferImageUploadRequest": {
+        "properties": {
+          "content_type": {
+            "enum": [
+              "image/jpeg",
+              "image/png",
+              "image/webp"
+            ],
+            "title": "Content Type",
+            "type": "string"
+          },
+          "filename": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Filename",
+            "type": "string"
+          }
+        },
+        "required": [
+          "content_type",
+          "filename"
+        ],
+        "title": "OfferImageUploadRequest",
+        "type": "object"
+      },
+      "OfferImageUploadResponse": {
+        "properties": {
+          "fields": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Fields",
+            "type": "object"
+          },
+          "max_bytes": {
+            "title": "Max Bytes",
+            "type": "integer"
+          },
+          "object_key": {
+            "title": "Object Key",
+            "type": "string"
+          },
+          "upload_url": {
+            "title": "Upload Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "object_key",
+          "upload_url",
+          "fields",
+          "max_bytes"
+        ],
+        "title": "OfferImageUploadResponse",
         "type": "object"
       },
       "OfferListResponse": {
@@ -10152,9 +10316,88 @@
             "title": "Id",
             "type": "string"
           },
+          "image_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Image Key"
+          },
+          "image_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Image Url"
+          },
+          "partner_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Partner Name"
+          },
           "priority": {
             "title": "Priority",
             "type": "integer"
+          },
+          "redemption_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Redemption Url"
+          },
+          "review_note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Review Note"
+          },
+          "reviewed_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reviewed At"
+          },
+          "reviewed_by_uuid": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reviewed By Uuid"
           },
           "starts_at": {
             "anyOf": [
@@ -10171,6 +10414,28 @@
           "status": {
             "$ref": "#/components/schemas/OfferStatus"
           },
+          "terms_summary": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Terms Summary"
+          },
+          "terms_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Terms Url"
+          },
           "title": {
             "title": "Title",
             "type": "string"
@@ -10184,10 +10449,18 @@
           "discount_type",
           "discount_value",
           "code",
+          "partner_name",
+          "redemption_url",
+          "terms_summary",
+          "terms_url",
+          "image_key",
           "audience_rules",
           "priority",
           "status",
           "created_by_uuid",
+          "review_note",
+          "reviewed_by_uuid",
+          "reviewed_at",
           "starts_at",
           "ends_at",
           "created_at"
@@ -10195,9 +10468,27 @@
         "title": "OfferRead",
         "type": "object"
       },
+      "OfferRejectRequest": {
+        "properties": {
+          "note": {
+            "maxLength": 1000,
+            "minLength": 1,
+            "title": "Note",
+            "type": "string"
+          }
+        },
+        "required": [
+          "note"
+        ],
+        "title": "OfferRejectRequest",
+        "type": "object"
+      },
       "OfferStatus": {
         "enum": [
           "draft",
+          "pending_approval",
+          "approved",
+          "rejected",
           "scheduled",
           "active",
           "expired",
@@ -10282,9 +10573,35 @@
             ],
             "title": "Ends At"
           },
+          "image_key": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "pattern": "^public/banners/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/[A-Za-z0-9._-]+$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Image Key"
+          },
+          "partner_name": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Partner Name"
+          },
           "priority": {
             "anyOf": [
               {
+                "maximum": 2147483647.0,
                 "minimum": 0.0,
                 "type": "integer"
               },
@@ -10293,6 +10610,18 @@
               }
             ],
             "title": "Priority"
+          },
+          "redemption_url": {
+            "anyOf": [
+              {
+                "maxLength": 1000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Redemption Url"
           },
           "starts_at": {
             "anyOf": [
@@ -10305,6 +10634,30 @@
               }
             ],
             "title": "Starts At"
+          },
+          "terms_summary": {
+            "anyOf": [
+              {
+                "maxLength": 1000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Terms Summary"
+          },
+          "terms_url": {
+            "anyOf": [
+              {
+                "maxLength": 1000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Terms Url"
           },
           "title": {
             "anyOf": [
@@ -12436,17 +12789,6 @@
             ],
             "title": "Image Url"
           },
-          "offer_badge": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Offer Badge"
-          },
           "rera_verified": {
             "default": false,
             "title": "Rera Verified",
@@ -12804,82 +13146,6 @@
           }
         },
         "title": "PublicLeadResponse",
-        "type": "object"
-      },
-      "PublicOfferListResponse": {
-        "properties": {
-          "offers": {
-            "items": {
-              "$ref": "#/components/schemas/PublicOfferRead"
-            },
-            "title": "Offers",
-            "type": "array"
-          }
-        },
-        "required": [
-          "offers"
-        ],
-        "title": "PublicOfferListResponse",
-        "type": "object"
-      },
-      "PublicOfferRead": {
-        "description": "Anonymous-read shape (docs/specs/public-offer-serving.md).\n\nDeliberately NOT a subclass of OfferRead -- a future sensitive column\nadded to the authenticated read can never silently surface here.\n\n- status: constant \"active\" by construction on this path (see\n  services/public_catalog.py::list_public_offers). Exposing a constant\n  invites a client-side filter that would quietly become the de-facto\n  access control.\n- created_by_uuid: staff identity, never public.\n- starts_at / ends_at: the endpoint has already applied the window;\n  republishing it lets a client second-guess the server and discloses\n  unlaunched-campaign timing (same reasoning as PublicBannerRead).\n- created_at: internal metadata, no display use.\n- audience_rules: authenticated segmentation input; never disclose it to\n  anonymous catalogue consumers.\n- priority: authenticated placement ordering input, not display data.\n\nbusiness_line IS included, unlike PublicBannerRead: offers are line-scoped\nby design (an offer applies to loans, real_estate, or both) and the\nfrontend needs it to decide which strip(s) an offer renders in.",
-        "properties": {
-          "business_line": {
-            "title": "Business Line",
-            "type": "string"
-          },
-          "code": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Code"
-          },
-          "description": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Description"
-          },
-          "discount_type": {
-            "title": "Discount Type",
-            "type": "string"
-          },
-          "discount_value": {
-            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
-            "title": "Discount Value",
-            "type": "string"
-          },
-          "id": {
-            "format": "uuid",
-            "title": "Id",
-            "type": "string"
-          },
-          "title": {
-            "title": "Title",
-            "type": "string"
-          }
-        },
-        "required": [
-          "id",
-          "business_line",
-          "title",
-          "description",
-          "discount_type",
-          "discount_value",
-          "code"
-        ],
-        "title": "PublicOfferRead",
         "type": "object"
       },
       "PublicPropertyDetailRead": {
@@ -13611,6 +13877,11 @@
             "format": "uuid",
             "title": "Id",
             "type": "string"
+          },
+          "is_referenced": {
+            "default": false,
+            "title": "Is Referenced",
+            "type": "boolean"
           },
           "rule": {
             "additionalProperties": true,
@@ -27740,6 +28011,52 @@
         ]
       }
     },
+    "/api/v1/offers/image-upload-url": {
+      "post": {
+        "operationId": "get_offer_image_upload_url_api_v1_offers_image_upload_url_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OfferImageUploadRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OfferImageUploadResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Get Offer Image Upload Url",
+        "tags": [
+          "offers"
+        ]
+      }
+    },
     "/api/v1/offers/{offer_id}": {
       "get": {
         "operationId": "get_offer_api_v1_offers__offer_id__get",
@@ -27892,6 +28209,54 @@
         ]
       }
     },
+    "/api/v1/offers/{offer_id}/approve": {
+      "post": {
+        "operationId": "approve_api_v1_offers__offer_id__approve_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "offer_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Offer Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OfferRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Approve",
+        "tags": [
+          "offers"
+        ]
+      }
+    },
     "/api/v1/offers/{offer_id}/archive": {
       "post": {
         "operationId": "archive_api_v1_offers__offer_id__archive_post",
@@ -27940,6 +28305,64 @@
         ]
       }
     },
+    "/api/v1/offers/{offer_id}/reject": {
+      "post": {
+        "operationId": "reject_api_v1_offers__offer_id__reject_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "offer_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Offer Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OfferRejectRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OfferRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Reject",
+        "tags": [
+          "offers"
+        ]
+      }
+    },
     "/api/v1/offers/{offer_id}/schedule": {
       "post": {
         "operationId": "schedule_api_v1_offers__offer_id__schedule_post",
@@ -27983,6 +28406,54 @@
           }
         ],
         "summary": "Schedule",
+        "tags": [
+          "offers"
+        ]
+      }
+    },
+    "/api/v1/offers/{offer_id}/submit": {
+      "post": {
+        "operationId": "submit_api_v1_offers__offer_id__submit_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "offer_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Offer Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OfferRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Submit",
         "tags": [
           "offers"
         ]
@@ -29939,27 +30410,6 @@
         ]
       }
     },
-    "/api/v1/public/offers": {
-      "get": {
-        "operationId": "list_offers_public_api_v1_public_offers_get",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PublicOfferListResponse"
-                }
-              }
-            },
-            "description": "Successful Response"
-          }
-        },
-        "summary": "List Offers Public",
-        "tags": [
-          "public"
-        ]
-      }
-    },
     "/api/v1/public/properties": {
       "get": {
         "operationId": "list_properties_public_api_v1_public_properties_get",
@@ -30220,6 +30670,45 @@
       }
     },
     "/api/v1/referral-bonus-config/{config_id}": {
+      "delete": {
+        "operationId": "delete_config_api_v1_referral_bonus_config__config_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "config_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Config Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Delete Config",
+        "tags": [
+          "referral-bonus-config"
+        ]
+      },
       "get": {
         "operationId": "get_config_api_v1_referral_bonus_config__config_id__get",
         "parameters": [

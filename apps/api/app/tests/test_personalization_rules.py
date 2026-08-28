@@ -6,6 +6,7 @@ import pytest
 from pydantic import ValidationError
 
 from app.models.banner import BannerType
+from app.schemas.offers import OfferCreate
 from app.schemas.personalization import (
     AudienceRules,
     audience_rules_valid_for_banner,
@@ -101,11 +102,51 @@ def test_location_is_rounded_to_hundredths_before_persistence() -> None:
     assert _coordinate_e2(-78.4951) == -7850
 
 
-def test_offers_accept_generic_or_client_only_rules() -> None:
-    assert audience_rules_valid_for_offer(AudienceRules.model_validate({}))
-    assert audience_rules_valid_for_offer(
-        AudienceRules.model_validate({"version": 1, "user_types": ["client"]})
+def test_offers_require_explicit_supported_dashboard_roles() -> None:
+    assert not audience_rules_valid_for_offer(AudienceRules.model_validate({}))
+    rules = AudienceRules.model_validate(
+        {
+            "version": 1,
+            "user_types": ["client", "agent", "employee", "telecaller"],
+        }
     )
-    assert not audience_rules_valid_for_offer(
-        AudienceRules.model_validate({"version": 1, "user_types": ["client", "agent"]})
+    assert audience_rules_valid_for_offer(rules)
+
+
+def test_role_only_offer_matching_does_not_require_personalization_consent() -> None:
+    rules = AudienceRules.model_validate({"version": 1, "user_types": ["employee"]})
+    assert matches_audience(
+        rules,
+        AudienceContext(
+            role="employee",
+            business_line="loans",
+            personalization_enabled=False,
+        ),
     )
+    assert not matches_audience(
+        rules,
+        AudienceContext(
+            role="telecaller",
+            business_line="loans",
+            personalization_enabled=False,
+        ),
+    )
+
+
+def test_offer_draft_contract_rejects_public_or_insecure_redemption() -> None:
+    base = {
+        "business_line": "loans",
+        "title": "Partner coupon",
+        "discount_type": "percentage",
+        "discount_value": "10",
+    }
+    with pytest.raises(ValidationError):
+        OfferCreate.model_validate(base)
+    with pytest.raises(ValidationError):
+        OfferCreate.model_validate(
+            {
+                **base,
+                "redemption_url": "http://partner.example/checkout",
+                "audience_rules": {"version": 1, "user_types": ["client"]},
+            }
+        )

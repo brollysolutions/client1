@@ -1,12 +1,19 @@
 "use client";
 
 import * as React from "react";
-import { Gift, Loader2, Plus } from "lucide-react";
+import { Gift, Loader2, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { useAuth } from "@/components/auth/session-provider";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { DASHBOARD_ICONS } from "@/features/dashboard/dashboard-icons";
 import {
   DashboardHeader,
@@ -27,6 +34,7 @@ import {
 } from "@/features/dashboard/workspace-dialog";
 import { formatDate, formatPaise } from "@/lib/format";
 import {
+  deleteReferralBonusConfig,
   updateReferralBonusConfig,
   type ReferralBonusConfig,
   type ReferralPayoutActivity,
@@ -41,8 +49,8 @@ const LINE_LABEL: Record<string, string> = {
   both: "Both lines",
 };
 const RULE_STATUS_OPTIONS = [
-  { value: "active", label: "Active" },
-  { value: "inactive", label: "Inactive" },
+  { value: "active", label: "Live" },
+  { value: "inactive", label: "Retired" },
 ] as const;
 const ACTIVITY_STATUS_OPTIONS = [
   { value: "pending", label: "Pending" },
@@ -72,6 +80,7 @@ export function ReferralsView() {
   const [createOpen, setCreateOpen] = React.useState(false);
   const [createDirty, setCreateDirty] = React.useState(false);
   const [busyId, setBusyId] = React.useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = React.useState<ReferralBonusConfig | null>(null);
 
   const filteredRules = React.useMemo(
     () => filterReferralRules(configs, filters),
@@ -92,9 +101,23 @@ export function ReferralsView() {
       toast.error("Could not update rule", { description: response.error });
       return;
     }
-    toast.success(response.data.active ? "Rule activated" : "Rule deactivated");
+    toast.success(response.data.active ? "Rule is live" : "Rule retired");
     void reload();
   }, [reload]);
+
+  const remove = React.useCallback(async () => {
+    if (!deleteTarget) return;
+    setBusyId(deleteTarget.id);
+    const response = await deleteReferralBonusConfig(deleteTarget.id);
+    setBusyId(null);
+    if (!response.ok) {
+      toast.error("Could not delete rule", { description: response.error });
+      return;
+    }
+    setDeleteTarget(null);
+    toast.success("Unused referral rule deleted");
+    void reload();
+  }, [deleteTarget, reload]);
 
   function closeCreate(open: boolean) {
     if (open) {
@@ -128,9 +151,14 @@ export function ReferralsView() {
         key: "state",
         header: "State",
         render: (config) => (
-          <StatusBadge tone={config.active ? "success" : "neutral"}>
-            {config.active ? "Active" : "Inactive"}
-          </StatusBadge>
+          <div>
+            <StatusBadge tone={config.active ? "success" : "neutral"}>
+              {config.active ? "Live" : "Retired"}
+            </StatusBadge>
+            {config.is_referenced ? (
+              <p className="mt-1 text-xs text-text-secondary">Retained in referral history</p>
+            ) : null}
+          </div>
         ),
       },
       {
@@ -139,17 +167,35 @@ export function ReferralsView() {
         align: "right",
         render: (config) =>
           isAdmin ? null : (
-            <Button
-              size="sm"
-              variant="outline"
-              disabled={busyId === config.id}
-              onClick={() => void toggle(config)}
-            >
-              {busyId === config.id ? (
-                <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
-              ) : null}
-              {config.active ? "Deactivate" : "Activate"}
-            </Button>
+            <div className="flex flex-wrap justify-end gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={busyId === config.id}
+                onClick={() => void toggle(config)}
+              >
+                {busyId === config.id ? (
+                  <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                ) : null}
+                {config.active ? "Retire" : "Make live"}
+              </Button>
+              <Button
+                size="sm"
+                variant="destructive"
+                disabled={busyId === config.id || config.active || config.is_referenced}
+                title={
+                  config.active
+                    ? "Retire this rule before deleting it."
+                    : config.is_referenced
+                      ? "Used rules are retained for referral history."
+                      : "Permanently delete this unused rule."
+                }
+                onClick={() => setDeleteTarget(config)}
+              >
+                <Trash2 className="h-4 w-4" aria-hidden="true" />
+                Delete
+              </Button>
+            </div>
           ),
       },
     ],
@@ -224,7 +270,7 @@ export function ReferralsView() {
               icon={DASHBOARD_ICONS.referrals}
             />
             <MetricCard
-              label="Active rules"
+              label="Live rules"
               value={configs.filter((item) => item.active).length}
               icon={DASHBOARD_ICONS.analytics}
             />
@@ -330,6 +376,7 @@ export function ReferralsView() {
       )}
 
       {isAdmin ? null : (
+        <>
         <Dialog open={createOpen} onOpenChange={closeCreate}>
           <DialogContent showCloseButton={false} className={PANEL_DIALOG_CLASS}>
             <WorkspaceDialogHeader
@@ -351,6 +398,33 @@ export function ReferralsView() {
             </div>
           </DialogContent>
         </Dialog>
+        <Dialog open={deleteTarget !== null} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Delete unused referral rule?</DialogTitle>
+              <DialogDescription>
+                This permanently removes the retired rule. Rules already used by a referral are
+                retained and cannot be deleted.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setDeleteTarget(null)}>Cancel</Button>
+              <Button
+                variant="destructive"
+                disabled={!deleteTarget || busyId === deleteTarget.id}
+                onClick={() => void remove()}
+              >
+                {deleteTarget && busyId === deleteTarget.id ? (
+                  <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                ) : (
+                  <Trash2 className="h-4 w-4" aria-hidden="true" />
+                )}
+                Delete rule
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+        </>
       )}
     </DashboardPage>
   );

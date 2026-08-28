@@ -23,7 +23,6 @@ import { apiIssuesToFieldErrors, decimalError, focusFirstInvalidField, integerEr
 const LINE_OPTIONS = [
   { value: "loans", label: "Loans" },
   { value: "real_estate", label: "Real Estate" },
-  { value: "both", label: "Both lines" },
 ] as const;
 
 export function ReferralConfigForm({ onCreated, onDirtyChange }: { onCreated: () => void; onDirtyChange?: (dirty: boolean) => void }) {
@@ -174,7 +173,7 @@ export function ReferralConfigForm({ onCreated, onDirtyChange }: { onCreated: ()
 
       <label className="flex items-center gap-2 text-sm text-text-primary">
         <Checkbox checked={active} onCheckedChange={(c) => setActive(c === true)} />
-        Active immediately
+        Make this rule live immediately
       </label>
       </DashboardFormSection>
 

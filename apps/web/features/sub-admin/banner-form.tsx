@@ -31,12 +31,11 @@ import {
   propertyCampaignImage,
   propertyMatchesCampaign,
 } from "@/lib/banner-properties";
-import { listOffers, type Offer } from "@/lib/offers-api";
 import { getAdminProperties, type AdminProperty } from "@/lib/properties-api";
 import { apiIssuesToFieldErrors, focusFirstInvalidField, integerError } from "@/lib/form-validation";
 import { isSafeLocalHref } from "@/lib/safe-local-href";
 import { AudienceRuleFields, emptyAudienceRules } from "./audience-rule-fields";
-import { BannerPreview, formatOfferBadge } from "./cms-previews";
+import { BannerPreview } from "./cms-previews";
 import { CmsPreviewFrame, type PreviewDevice } from "./cms-workspace";
 import { PropertyCampaignSelect } from "./property-campaign-select";
 
@@ -104,10 +103,8 @@ export function BannerForm({
   );
   const [bannerType, setBannerType] = React.useState<BannerType>("default");
   const [templateId, setTemplateId] = React.useState("");
-  const [offerId, setOfferId] = React.useState("");
   const [propertyId, setPropertyId] = React.useState("");
   const [templates, setTemplates] = React.useState<BannerTemplate[]>([]);
-  const [offers, setOffers] = React.useState<Offer[]>([]);
   const [properties, setProperties] = React.useState<AdminProperty[]>([]);
   const [catalogLoading, setCatalogLoading] = React.useState(true);
   const [title, setTitle] = React.useState("");
@@ -126,20 +123,11 @@ export function BannerForm({
 
   React.useEffect(() => {
     let cancelled = false;
-    void Promise.all([listBannerTemplates(), listOffers(), getAdminProperties()]).then(([templateResult, offerResult, propertyResult]) => {
+    void Promise.all([listBannerTemplates(), getAdminProperties()]).then(([templateResult, propertyResult]) => {
       if (cancelled) return;
       setCatalogLoading(false);
       if (templateResult.ok) setTemplates(templateResult.data);
       else toast.error("Could not load banner templates", { description: templateResult.error });
-      if (offerResult.ok) {
-        setOffers(
-          offerResult.data.filter(
-            (offer) => offer.status === "scheduled" || offer.status === "active",
-          ),
-        );
-      } else {
-        toast.error("Could not load offers", { description: offerResult.error });
-      }
       if (propertyResult.ok) {
         setProperties(propertyResult.data.filter((property) => property.active));
       } else {
@@ -153,7 +141,6 @@ export function BannerForm({
 
   React.useEffect(() => {
     setTemplateId("");
-    setOfferId("");
     setPropertyId("");
     if (placement === "financial_services") setBusinessLine("loans");
     if (placement === "properties") setBusinessLine("real_estate");
@@ -170,9 +157,7 @@ export function BannerForm({
     [placement, templates],
   );
   const selectedTemplate = templates.find((template) => template.id === templateId);
-  const selectedOffer = offers.find((offer) => offer.id === offerId);
   const selectedProperty = properties.find((property) => property.id === propertyId);
-  const needsOffer = selectedTemplate?.category_key === "offers";
   const allowsProperty = isPropertyCampaignTemplate(selectedTemplate);
   const matchingProperties = React.useMemo(
     () =>
@@ -181,9 +166,6 @@ export function BannerForm({
         : [],
     [properties, selectedTemplate],
   );
-  const matchingOffers = offers.filter(
-    (offer) => businessLine === "both" || offer.business_line === "both" || offer.business_line === businessLine,
-  );
   const isPublic = placement !== "dashboard";
   const dirty = Boolean(
     title ||
@@ -191,7 +173,6 @@ export function BannerForm({
       ctaLabel ||
       deepLink ||
       templateId ||
-      offerId ||
       propertyId ||
       priority !== "0" ||
       startsAt ||
@@ -207,7 +188,6 @@ export function BannerForm({
     const next: Record<string, string> = {};
     if (!title.trim()) next.title = "Title is required.";
     if (isPublic && !templateId) next.templateId = "Choose a template.";
-    if (needsOffer && !offerId) next.offerId = "Choose the Offer this banner promotes.";
     if (deepLink.trim() && !isSafeLocalHref(deepLink.trim())) {
       next.deepLink = "Use a same-site path beginning with one slash.";
     }
@@ -239,7 +219,7 @@ export function BannerForm({
       business_line: businessLine,
       banner_type: bannerType,
       template_id: isPublic ? templateId : null,
-      offer_id: needsOffer ? offerId : null,
+      offer_id: null,
       property_id: allowsProperty && propertyId ? propertyId : null,
       title: title.trim(),
       subtitle: subtitle.trim() || null,
@@ -256,7 +236,6 @@ export function BannerForm({
       const serverErrors = apiIssuesToFieldErrors(result.issues, {
         title: "title",
         template_id: "templateId",
-        offer_id: "offerId",
         deep_link: "deepLink",
         priority: "priority",
         starts_at: "schedule",
@@ -301,7 +280,6 @@ export function BannerForm({
               image_url:
                 propertyCampaignImage(selectedProperty, selectedTemplate) ??
                 selectedTemplate?.image_url,
-              offer_badge: formatOfferBadge(selectedOffer),
               rera_verified: selectedProperty?.rera_verification_status === "verified",
             }}
           />
@@ -352,7 +330,6 @@ export function BannerForm({
               value={templateId || undefined}
               onValueChange={(value) => {
                 setTemplateId(value);
-                setOfferId("");
                 setPropertyId("");
                 setFieldErrors((current) => { const next = { ...current }; delete next.templateId; return next; });
               }}
@@ -387,24 +364,6 @@ export function BannerForm({
             </Select>
           </div>
         )}
-
-        {needsOffer ? (
-          <div>
-            <Label htmlFor="linked-offer">Linked Offer<RequiredIndicator /></Label>
-            <Select value={offerId || undefined} onValueChange={(value) => { setOfferId(value); setFieldErrors((current) => { const next = { ...current }; delete next.offerId; return next; }); }}>
-              <SelectTrigger id="linked-offer" aria-required="true" aria-invalid={Boolean(fieldErrors.offerId)} aria-describedby={fieldErrors.offerId ? "linked-offer-error" : undefined}><SelectValue placeholder="Choose an active or scheduled Offer" /></SelectTrigger>
-              <SelectContent>
-                {matchingOffers.map((offer) => (
-                  <SelectItem key={offer.id} value={offer.id}>{offer.title}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <FieldError id="linked-offer-error" className="mt-1">{fieldErrors.offerId}</FieldError>
-            <p className="mt-1 text-xs text-text-secondary">
-              The public badge is generated from this Offer and disappears if the Offer is no longer active.
-            </p>
-          </div>
-        ) : null}
 
         {allowsProperty ? (
           <div>

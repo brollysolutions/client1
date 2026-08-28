@@ -110,6 +110,18 @@ class AuditAction(enum.StrEnum):
     BANNER_ACTIVATED = "banner_activated"
     BANNER_DELETED = "banner_deleted"
     BANNER_TEMPLATE_VERSIONED = "banner_template_versioned"
+    REFERRAL_RULE_CREATED = "referral_rule_created"
+    REFERRAL_RULE_UPDATED = "referral_rule_updated"
+    REFERRAL_RULE_DELETED = "referral_rule_deleted"
+    OFFER_CREATED = "offer_created"
+    OFFER_UPDATED = "offer_updated"
+    OFFER_SUBMITTED = "offer_submitted"
+    OFFER_APPROVED = "offer_approved"
+    OFFER_REJECTED = "offer_rejected"
+    OFFER_SCHEDULED = "offer_scheduled"
+    OFFER_ACTIVATED = "offer_activated"
+    OFFER_EXPIRED = "offer_expired"
+    OFFER_ARCHIVED = "offer_archived"
 
 
 _ev = lambda x: [e.value for e in x]  # noqa: E731

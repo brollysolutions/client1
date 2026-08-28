@@ -31,11 +31,11 @@ export default function DashboardPage() {
   }
 
   if (session?.role === "telecaller") {
-    return <TelecallerHome />;
+    return <><PersonalizedPlacements businessLine={activeLine} showBanners={false} /><TelecallerHome /></>;
   }
 
   if (session?.role === "employee") {
-    return <EmployeeHome />;
+    return <><PersonalizedPlacements businessLine={activeLine} showBanners={false} /><EmployeeHome /></>;
   }
 
   if (session?.role === "agent") {
@@ -82,15 +82,11 @@ export default function DashboardPage() {
     // No placement banner here: search is the primary action on this home, and
     // the promotional slot pushed it below the fold. The loans client home made
     // the same call. Agents (above) keep their placements.
-    return (
-      <Suspense fallback={<Skeleton className="h-64 rounded-2xl" />}>
-        <RealEstateHome />
-      </Suspense>
-    );
+    return <><PersonalizedPlacements businessLine="real_estate" showBanners={false} /><Suspense fallback={<Skeleton className="h-64 rounded-2xl" />}><RealEstateHome /></Suspense></>;
   }
 
   // profiles may be empty briefly right after signup (backfilled by the scheduler);
   // the applications view still renders its own empty state, so nothing to gate on me here.
   void me;
-  return <LoansApplications />;
+  return <><PersonalizedPlacements businessLine="loans" showBanners={false} /><LoansApplications /></>;
 }

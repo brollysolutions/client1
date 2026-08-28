@@ -5,19 +5,16 @@ import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 
 import { useAuth } from "@/components/auth/session-provider";
-import { BannerForm } from "@/features/sub-admin/banner-form";
+import { BannerMediaView } from "@/features/admin/banner-media-view";
 
-// Sub Admin-only route. AppGuard (the (app) layout) enforces auth; this adds
-// the role gate. UX gate only: the API's require_sub_admin + RLS are the real
-// wall.
-export default function NewBannerPage() {
+export default function BannerMediaPage() {
   const router = useRouter();
   const { session, isLoading } = useAuth();
-  const allowed = session != null && (session.role === "sub_admin" || session.role === "admin");
+  const allowed = session?.role === "admin";
 
   React.useEffect(() => {
     if (!isLoading && !allowed) router.replace("/dashboard");
-  }, [isLoading, allowed, router]);
+  }, [allowed, isLoading, router]);
 
   if (isLoading || !allowed) {
     return (
@@ -26,5 +23,5 @@ export default function NewBannerPage() {
       </div>
     );
   }
-  return <BannerForm />;
+  return <BannerMediaView />;
 }

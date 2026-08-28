@@ -1,10 +1,9 @@
-"""offers API — create, schedule/activate/archive, guards.
+"""offers API — authoring, Admin approval, lifecycle, and guards.
 
 Mints role-specific access tokens (sub_admin / admin) for an already-registered
 auth_user: get_current_user reads the mobile from the row but takes role +
 business_line + platform_scope from the JWT claims, so a client account can act
-as a sub_admin/admin for the endpoint under test. Mirrors test_banners_api.py,
-minus the approve/reject branch — offers has no Admin-approval gate.
+as a sub_admin/admin for the endpoint under test. Mirrors test_banners_api.py.
 """
 
 from __future__ import annotations
@@ -44,7 +43,29 @@ _PAYLOAD = {
     "title": "Diwali Cashback Offer",
     "discount_type": "percentage",
     "discount_value": "10",
+    "code": "SAVE10",
+    "partner_name": "Example Partner",
+    "redemption_url": "https://partner.example/checkout",
+    "terms_summary": "Valid once per customer while campaign inventory lasts.",
+    "image_key": "public/banners/11111111-1111-1111-1111-111111111111/offer.webp",
+    "audience_rules": {"version": 1, "user_types": ["client"]},
 }
+
+
+async def _submit_and_approve(
+    client: AsyncClient, offer_id: str, owner_headers: dict[str, str]
+) -> None:
+    submitted = await client.post(f"/api/v1/offers/{offer_id}/submit", headers=owner_headers)
+    assert submitted.status_code == 200, submitted.text
+    assert submitted.json()["status"] == "pending_approval"
+    _, admin_mobile = await full_registration(client, lines=["loans"])
+    admin_uid = await _auth_user_uuid(admin_mobile)
+    approved = await client.post(
+        f"/api/v1/offers/{offer_id}/approve",
+        headers={"Authorization": f"Bearer {_admin_token(admin_uid)}"},
+    )
+    assert approved.status_code == 200, approved.text
+    assert approved.json()["status"] == "approved"
 
 
 @pytest.mark.asyncio
@@ -104,6 +125,18 @@ async def test_create_negative_discount_is_validation_error(client: AsyncClient)
 
 
 @pytest.mark.asyncio
+async def test_create_rejects_blank_title(client: AsyncClient) -> None:
+    _, mobile = await full_registration(client, lines=["loans"])
+    uid = await _auth_user_uuid(mobile)
+    res = await client.post(
+        "/api/v1/offers",
+        json={**_PAYLOAD, "title": "   "},
+        headers={"Authorization": f"Bearer {_sub_admin_token(uid)}"},
+    )
+    assert res.status_code == 422
+
+
+@pytest.mark.asyncio
 async def test_create_targeted_offer_persists_closed_rules_and_priority(
     client: AsyncClient,
 ) -> None:
@@ -129,7 +162,7 @@ async def test_create_targeted_offer_persists_closed_rules_and_priority(
 
 
 @pytest.mark.asyncio
-async def test_offer_rejects_agent_targeting(client: AsyncClient) -> None:
+async def test_offer_accepts_agent_targeting(client: AsyncClient) -> None:
     _, mobile = await full_registration(client, lines=["loans"])
     uid = await _auth_user_uuid(mobile)
     response = await client.post(
@@ -145,7 +178,7 @@ async def test_offer_rejects_agent_targeting(client: AsyncClient) -> None:
         headers={"Authorization": f"Bearer {_sub_admin_token(uid)}"},
     )
 
-    assert response.status_code == 422
+    assert response.status_code == 201, response.text
 
 
 @pytest.mark.asyncio
@@ -155,6 +188,7 @@ async def test_schedule_then_activate_then_archive(client: AsyncClient) -> None:
     headers = {"Authorization": f"Bearer {_sub_admin_token(uid)}"}
     created = await client.post("/api/v1/offers", json=_PAYLOAD, headers=headers)
     offer_id = created.json()["id"]
+    await _submit_and_approve(client, offer_id, headers)
 
     scheduled = await client.post(f"/api/v1/offers/{offer_id}/schedule", headers=headers)
     assert scheduled.status_code == 200, scheduled.text
@@ -188,7 +222,7 @@ async def test_edit_while_active_conflicts(client: AsyncClient) -> None:
     headers = {"Authorization": f"Bearer {_sub_admin_token(uid)}"}
     created = await client.post("/api/v1/offers", json=_PAYLOAD, headers=headers)
     offer_id = created.json()["id"]
-    await client.post(f"/api/v1/offers/{offer_id}/schedule", headers=headers)
+    await _submit_and_approve(client, offer_id, headers)
     await client.post(f"/api/v1/offers/{offer_id}/activate", headers=headers)
 
     res = await client.patch(
@@ -214,6 +248,66 @@ async def test_edit_while_draft_succeeds(client: AsyncClient) -> None:
     )
     assert res.status_code == 200, res.text
     assert res.json()["title"] == "Edited while draft"
+
+
+@pytest.mark.asyncio
+async def test_patch_rejects_null_for_non_nullable_fields(client: AsyncClient) -> None:
+    _, mobile = await full_registration(client, lines=["loans"])
+    uid = await _auth_user_uuid(mobile)
+    headers = {"Authorization": f"Bearer {_sub_admin_token(uid)}"}
+    created = await client.post("/api/v1/offers", json=_PAYLOAD, headers=headers)
+    offer_id = created.json()["id"]
+
+    for field in ("title", "discount_type", "discount_value", "audience_rules", "priority"):
+        response = await client.patch(
+            f"/api/v1/offers/{offer_id}",
+            json={field: None},
+            headers=headers,
+        )
+        assert response.status_code == 422, f"{field} accepted explicit null: {response.text}"
+
+
+@pytest.mark.asyncio
+async def test_rejected_offer_can_fix_full_campaign_and_resubmit(client: AsyncClient) -> None:
+    _, mobile = await full_registration(client, lines=["loans"])
+    owner_uid = await _auth_user_uuid(mobile)
+    owner_headers = {"Authorization": f"Bearer {_sub_admin_token(owner_uid)}"}
+    created = await client.post("/api/v1/offers", json=_PAYLOAD, headers=owner_headers)
+    offer_id = created.json()["id"]
+    submitted = await client.post(f"/api/v1/offers/{offer_id}/submit", headers=owner_headers)
+    assert submitted.status_code == 200, submitted.text
+
+    _, admin_mobile = await full_registration(client, lines=["loans"])
+    admin_uid = await _auth_user_uuid(admin_mobile)
+    admin_headers = {"Authorization": f"Bearer {_admin_token(admin_uid)}"}
+    rejected = await client.post(
+        f"/api/v1/offers/{offer_id}/reject",
+        json={"note": "Replace the artwork and target the staff dashboard."},
+        headers=admin_headers,
+    )
+    assert rejected.status_code == 200, rejected.text
+
+    updated = await client.patch(
+        f"/api/v1/offers/{offer_id}",
+        json={
+            "discount_type": "flat",
+            "discount_value": "250",
+            "image_key": ("public/banners/22222222-2222-2222-2222-222222222222/revised.webp"),
+            "audience_rules": {
+                "version": 1,
+                "user_types": ["employee", "telecaller"],
+            },
+            "priority": 20,
+        },
+        headers=owner_headers,
+    )
+    assert updated.status_code == 200, updated.text
+    assert updated.json()["status"] == "rejected"
+    assert updated.json()["audience_rules"]["user_types"] == ["employee", "telecaller"]
+
+    resubmitted = await client.post(f"/api/v1/offers/{offer_id}/submit", headers=owner_headers)
+    assert resubmitted.status_code == 200, resubmitted.text
+    assert resubmitted.json()["status"] == "pending_approval"
 
 
 @pytest.mark.asyncio
@@ -243,6 +337,7 @@ async def test_schedule_then_archive_directly_without_activating(client: AsyncCl
     headers = {"Authorization": f"Bearer {_sub_admin_token(uid)}"}
     created = await client.post("/api/v1/offers", json=_PAYLOAD, headers=headers)
     offer_id = created.json()["id"]
+    await _submit_and_approve(client, offer_id, headers)
 
     scheduled = await client.post(f"/api/v1/offers/{offer_id}/schedule", headers=headers)
     assert scheduled.status_code == 200, scheduled.text
@@ -253,7 +348,7 @@ async def test_schedule_then_archive_directly_without_activating(client: AsyncCl
 
 
 @pytest.mark.asyncio
-async def test_platform_admin_can_create_offer(client: AsyncClient) -> None:
+async def test_platform_admin_cannot_create_offer(client: AsyncClient) -> None:
     """Admin gets read-only oversight — no create/action write path exists."""
     _, mobile = await full_registration(client, lines=["loans"])
     uid = await _auth_user_uuid(mobile)
@@ -262,11 +357,11 @@ async def test_platform_admin_can_create_offer(client: AsyncClient) -> None:
         json=_PAYLOAD,
         headers={"Authorization": f"Bearer {_admin_token(uid)}"},
     )
-    assert res.status_code == 201, res.text
+    assert res.status_code == 403
 
 
 @pytest.mark.asyncio
-async def test_platform_admin_can_schedule_a_sub_admins_offer(client: AsyncClient) -> None:
+async def test_platform_admin_can_approve_a_sub_admins_offer(client: AsyncClient) -> None:
     _, owner_mobile = await full_registration(client, lines=["loans"])
     owner_uid = await _auth_user_uuid(owner_mobile)
     created = await client.post(
@@ -275,14 +370,19 @@ async def test_platform_admin_can_schedule_a_sub_admins_offer(client: AsyncClien
         headers={"Authorization": f"Bearer {_sub_admin_token(owner_uid)}"},
     )
     offer_id = created.json()["id"]
+    submitted = await client.post(
+        f"/api/v1/offers/{offer_id}/submit",
+        headers={"Authorization": f"Bearer {_sub_admin_token(owner_uid)}"},
+    )
+    assert submitted.status_code == 200, submitted.text
     _, admin_mobile = await full_registration(client, lines=["loans"])
     admin_uid = await _auth_user_uuid(admin_mobile)
     res = await client.post(
-        f"/api/v1/offers/{offer_id}/schedule",
+        f"/api/v1/offers/{offer_id}/approve",
         headers={"Authorization": f"Bearer {_admin_token(admin_uid)}"},
     )
     assert res.status_code == 200, res.text
-    assert res.json()["status"] == "scheduled"
+    assert res.json()["status"] == "approved"
 
 
 @pytest.mark.asyncio

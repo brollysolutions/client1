@@ -52,7 +52,7 @@ const scenarios: readonly RoleScenario[] = [
   {
     name: "Sub Admin",
     promote: ["sub_admin"],
-    expected: ["Property listings", "Referral rules", "Banners", "Offers"],
+    expected: ["Property listings", "Finance overview", "Referral rules", "Banners", "Offers"],
     excluded: ["Financial products", "Leads", "Tasks", "Website content"],
     deniedPath: "/dashboard/admin-leads",
   },
@@ -61,11 +61,16 @@ const scenarios: readonly RoleScenario[] = [
     promote: ["admin"],
     expected: [
       "Lead assignments",
+      "Financial products",
       "Users & staff",
       "Payouts",
+      "Referral rules",
+      "Banners",
+      "Offers",
+      "Banner media",
     ],
-    excluded: ["Financial products", "Leads", "Tasks", "Website content", "Audit log"],
-    deniedPath: "/dashboard/banners/new",
+    excluded: ["Leads", "Tasks", "Website content", "Audit log"],
+    deniedPath: "/dashboard/leads",
   },
 ];
 
@@ -294,13 +299,16 @@ test.describe("role-aware dashboard navigation", () => {
         if (scenario.name === "Admin") {
           await page.goto("/dashboard/operations");
           await expect(page.getByRole("heading", { name: "Operational records", exact: true })).toBeVisible();
-          await expect(page.getByRole("searchbox", { name: "Search loaded operational records" })).toBeVisible();
+          await expect(page.getByRole("searchbox", { name: "Search operational records on this page" })).toBeVisible();
 
           await page.goto("/dashboard/users");
           await expect(page.getByRole("heading", { name: "Users & staff" })).toBeVisible();
-          await expect(page.getByRole("heading", { name: "Create staff account" })).toBeVisible();
           await expect(page.getByRole("heading", { name: "Staff access" })).toBeVisible();
-          await expect(page.locator("main form")).toBeVisible();
+          await page.getByRole("button", { name: "Create staff account", exact: true }).click();
+          const createStaffDialog = page.getByRole("dialog", { name: "Create staff account" });
+          await expect(createStaffDialog.locator("form")).toBeVisible();
+          await createStaffDialog.getByRole("button", { name: "Close staff creation" }).click();
+          await expect(createStaffDialog).toBeHidden();
         }
 
         await page.goto(scenario.deniedPath);
@@ -311,14 +319,12 @@ test.describe("role-aware dashboard navigation", () => {
     });
   }
 
-  test("Sub Admin retains the supported authoring routes", async ({ page, request }) => {
+  test("Sub Admin retains supported authoring routes and retires duplicate pages", async ({ page, request }) => {
     const account = await registerClient(request, 200);
     try {
       promoteAccount(account, scenarios[4]);
       await logIn(page, account);
       for (const authoringRoute of [
-        { path: "/dashboard/banners/new", heading: "New banner", hasBackLink: true },
-        { path: "/dashboard/offers/new", heading: "New offer", hasBackLink: true },
         { path: "/dashboard/property-submit", heading: "Submit a property", hasBackLink: true },
         {
           path: "/dashboard/referral-rules",
@@ -337,6 +343,10 @@ test.describe("role-aware dashboard navigation", () => {
         }
         await expect(page).toHaveURL(new RegExp(`${authoringRoute.path}$`));
       }
+      for (const retiredPath of ["/dashboard/banners/new", "/dashboard/offers/new"]) {
+        await page.goto(retiredPath);
+        await expect(page.getByRole("heading", { name: "Page not found", exact: true })).toBeVisible();
+      }
     } finally {
       await deleteAccount(request, account);
     }
@@ -349,16 +359,16 @@ test.describe("role-aware dashboard navigation", () => {
       await logIn(page, account);
 
       for (const workspace of [
-        { path: "/dashboard/banners", button: "New banner", heading: "New banner" },
-        { path: "/dashboard/offers", button: "New offer", heading: "New offer" },
-        { path: "/dashboard/referral-rules", button: "New rule", heading: "New bonus rule" },
+        { path: "/dashboard/banners", button: "New banner", heading: "New banner", close: "Close workspace" },
+        { path: "/dashboard/offers", button: "New offer", heading: "New dashboard offer", close: "Close workspace" },
+        { path: "/dashboard/referral-rules", button: "New rule", heading: "New bonus rule", close: "Close referral rule workspace" },
       ]) {
         await page.goto(workspace.path);
         await page.getByRole("button", { name: workspace.button, exact: true }).click();
         const dialog = page.getByRole("dialog");
         await expect(dialog.getByRole("heading", { name: workspace.heading, exact: true }).first()).toBeVisible();
         await expect(dialog.locator("form")).toBeVisible();
-        await dialog.getByRole("button", { name: "Close workspace" }).first().click();
+        await dialog.getByRole("button", { name: workspace.close }).first().click();
         await expect(dialog).toBeHidden();
       }
 
@@ -468,7 +478,7 @@ test.describe("role-aware dashboard navigation", () => {
       await expect(page.getByRole("heading", { name: "Explore properties" })).toBeVisible();
       await expect(page.getByRole("button", { name: "Search", exact: true })).toBeVisible();
       await page.getByPlaceholder(/Search by locality/).fill("Baner");
-      await page.getByRole("option", { name: "Baner" }).click();
+      await page.getByRole("option", { name: "Baner", exact: true }).click();
       await expect(page.getByPlaceholder(/Search by locality/)).toHaveValue("Baner");
 
       for (const surface of [

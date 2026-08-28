@@ -1,9 +1,7 @@
 import type { Metadata } from "next";
 
-import { StaffInviteView } from "@/features/public/staff-invite-view";
+import { StaffInvitePasswordView } from "@/features/auth/invite-password-view";
 
-// noindex for the same reason the contact invitation is: the URL is the
-// credential, and a crawled link is a leaked one.
 export const metadata: Metadata = {
   title: "Set up your account",
   description: "Set a password for your Dhanadhara staff account.",
@@ -16,5 +14,5 @@ export default async function StaffInvitePage({
   params: Promise<{ token: string }>;
 }) {
   const { token } = await params;
-  return <StaffInviteView token={token} />;
+  return <StaffInvitePasswordView token={token} />;
 }

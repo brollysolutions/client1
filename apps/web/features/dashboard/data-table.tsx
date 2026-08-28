@@ -112,9 +112,9 @@ export function DataTable<Row>({
   const interactive = onRowClick != null;
 
   return (
-    <div className={cn("animate-in fade-in-0 overflow-x-auto duration-200 motion-reduce:animate-none", className)}>
-      <table className={cn("w-full text-left text-sm", minWidth)}>
-        <thead className="border-b border-border text-text-secondary">
+    <div className={cn("animate-in fade-in-0 overflow-visible duration-200 motion-reduce:animate-none xl:overflow-x-auto", className)}>
+      <table className={cn("block w-full text-left text-sm max-xl:!min-w-0 xl:table", minWidth)}>
+        <thead className="hidden border-b border-border text-text-secondary xl:table-header-group">
           <tr>
             {columns.map((column) =>
               column.sortable && sort && onSortChange ? (
@@ -146,7 +146,7 @@ export function DataTable<Row>({
             ) : null}
           </tr>
         </thead>
-        <tbody>
+        <tbody className="grid gap-3 p-3 xl:table-row-group xl:p-0">
           {rows.map((row) => (
             <tr
               key={rowKey(row)}
@@ -154,8 +154,15 @@ export function DataTable<Row>({
                 ? {
                     role: "link",
                     tabIndex: 0,
-                    onClick: () => onRowClick(row),
+                    onClick: (event: React.MouseEvent<HTMLTableRowElement>) => {
+                      const nestedControl = (event.target as HTMLElement).closest(
+                        "a, button, input, select, textarea, [role='button'], [role='link']",
+                      );
+                      if (nestedControl && nestedControl !== event.currentTarget) return;
+                      onRowClick(row);
+                    },
                     onKeyDown: (event: React.KeyboardEvent<HTMLTableRowElement>) => {
+                      if (event.target !== event.currentTarget) return;
                       if (event.key === "Enter" || event.key === " ") {
                         event.preventDefault();
                         onRowClick(row);
@@ -164,7 +171,7 @@ export function DataTable<Row>({
                   }
                 : {})}
               className={cn(
-                "group border-b border-border transition-colors last:border-0",
+                "group block rounded-xl border border-border bg-card transition-colors xl:table-row xl:rounded-none xl:border-x-0 xl:border-t-0 xl:bg-transparent xl:last:border-b-0",
                 interactive &&
                   "cursor-pointer hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-blue",
               )}
@@ -172,9 +179,11 @@ export function DataTable<Row>({
               {columns.map((column) => (
                 <td
                   key={column.key}
+                  data-label={column.header}
                   className={cn(
-                    "px-5 py-4 align-middle",
+                    "grid min-w-0 grid-cols-[minmax(7rem,0.4fr)_minmax(0,1fr)] gap-3 px-4 py-2 align-middle before:text-xs before:font-medium before:uppercase before:tracking-wide before:text-text-secondary before:content-[attr(data-label)] first:pt-4 last:pb-4 xl:table-cell xl:px-5 xl:py-4 xl:before:content-none",
                     column.align === "right" && "text-right",
+                    column.align === "right" && "max-xl:text-left",
                     column.cellClassName,
                   )}
                 >
@@ -182,7 +191,7 @@ export function DataTable<Row>({
                 </td>
               ))}
               {interactive ? (
-                <td className="px-3 py-4">
+                <td className="hidden px-3 py-4 xl:table-cell">
                   <ChevronRight
                     className="h-4 w-4 text-text-secondary/60 transition-all group-hover:translate-x-0.5 group-hover:text-brand-cta"
                     aria-hidden="true"

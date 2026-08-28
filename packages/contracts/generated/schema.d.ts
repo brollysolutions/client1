@@ -2758,6 +2758,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/offers/image-upload-url": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Get Offer Image Upload Url */
+        post: operations["get_offer_image_upload_url_api_v1_offers_image_upload_url_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/offers/{offer_id}": {
         parameters: {
             query?: never;
@@ -2793,6 +2810,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/offers/{offer_id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Approve */
+        post: operations["approve_api_v1_offers__offer_id__approve_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/offers/{offer_id}/archive": {
         parameters: {
             query?: never;
@@ -2810,6 +2844,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/offers/{offer_id}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reject */
+        post: operations["reject_api_v1_offers__offer_id__reject_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/offers/{offer_id}/schedule": {
         parameters: {
             query?: never;
@@ -2821,6 +2872,23 @@ export interface paths {
         put?: never;
         /** Schedule */
         post: operations["schedule_api_v1_offers__offer_id__schedule_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/offers/{offer_id}/submit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Submit */
+        post: operations["submit_api_v1_offers__offer_id__submit_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3406,23 +3474,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/public/offers": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List Offers Public */
-        get: operations["list_offers_public_api_v1_public_offers_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/v1/public/properties": {
         parameters: {
             query?: never;
@@ -3554,7 +3605,8 @@ export interface paths {
         get: operations["get_config_api_v1_referral_bonus_config__config_id__get"];
         put?: never;
         post?: never;
-        delete?: never;
+        /** Delete Config */
+        delete: operations["delete_config_api_v1_referral_bonus_config__config_id__delete"];
         options?: never;
         head?: never;
         /** Update Config */
@@ -5379,7 +5431,7 @@ export interface components {
             /** Locations */
             locations?: components["schemas"]["AudienceLocationCircle"][];
             /** User Types */
-            user_types?: ("client" | "agent")[];
+            user_types?: ("client" | "agent" | "employee" | "telecaller")[];
             /**
              * Version
              * @default 1
@@ -5399,7 +5451,7 @@ export interface components {
          *     `services/fee_cashbacks.py` (FR-6.6 processing-fee cashback).
          * @enum {string}
          */
-        AuditAction: "agent_approved" | "agent_rejected" | "staff_created" | "staff_feature_granted" | "staff_feature_revoked" | "staff_invite_created" | "staff_invite_revoked" | "account_removed" | "account_status_updated" | "payout_approved" | "payout_rejected" | "payout_manual_issued" | "payout_manual_cleared" | "payout_manual_failed" | "payout_manual_reversed" | "property_submission_approved" | "property_submission_rejected" | "property_listing_updated" | "support_ticket_advanced" | "retention_purged" | "loan_type_created" | "loan_type_updated" | "bank_created" | "bank_updated" | "bank_deleted" | "bank_availability_updated" | "agent_invite_created" | "agent_invite_revoked" | "financial_product_offer_created" | "financial_product_offer_updated" | "commission_entered" | "commission_cancelled" | "fee_cashback_entered" | "fee_cashback_cancelled" | "document_verified" | "document_unverified" | "payout_link_reconciled" | "notification_broadcast" | "agent_lead_expired" | "lead_assigned" | "employee_work_assigned" | "lead_details_updated" | "field_visibility_updated" | "mobile_change_verified" | "mobile_changed" | "mobile_change_rejected" | "vehicle_arrangement_updated" | "banner_created" | "banner_updated" | "banner_submitted" | "banner_approved" | "banner_rejected" | "banner_archived" | "banner_activated" | "banner_deleted" | "banner_template_versioned";
+        AuditAction: "agent_approved" | "agent_rejected" | "staff_created" | "staff_feature_granted" | "staff_feature_revoked" | "staff_invite_created" | "staff_invite_revoked" | "account_removed" | "account_status_updated" | "payout_approved" | "payout_rejected" | "payout_manual_issued" | "payout_manual_cleared" | "payout_manual_failed" | "payout_manual_reversed" | "property_submission_approved" | "property_submission_rejected" | "property_listing_updated" | "support_ticket_advanced" | "retention_purged" | "loan_type_created" | "loan_type_updated" | "bank_created" | "bank_updated" | "bank_deleted" | "bank_availability_updated" | "agent_invite_created" | "agent_invite_revoked" | "financial_product_offer_created" | "financial_product_offer_updated" | "commission_entered" | "commission_cancelled" | "fee_cashback_entered" | "fee_cashback_cancelled" | "document_verified" | "document_unverified" | "payout_link_reconciled" | "notification_broadcast" | "agent_lead_expired" | "lead_assigned" | "employee_work_assigned" | "lead_details_updated" | "field_visibility_updated" | "mobile_change_verified" | "mobile_changed" | "mobile_change_rejected" | "vehicle_arrangement_updated" | "banner_created" | "banner_updated" | "banner_submitted" | "banner_approved" | "banner_rejected" | "banner_archived" | "banner_activated" | "banner_deleted" | "banner_template_versioned" | "referral_rule_created" | "referral_rule_updated" | "referral_rule_deleted" | "offer_created" | "offer_updated" | "offer_submitted" | "offer_approved" | "offer_rejected" | "offer_scheduled" | "offer_activated" | "offer_expired" | "offer_archived";
         /** AuditLogListResponse */
         AuditLogListResponse: {
             /** Entries */
@@ -5512,6 +5564,16 @@ export interface components {
              * Format: uuid
              */
             id: string;
+            /** Image Url */
+            image_url: string;
+            /** Partner Name */
+            partner_name: string;
+            /** Redemption Url */
+            redemption_url: string;
+            /** Terms Summary */
+            terms_summary: string;
+            /** Terms Url */
+            terms_url: string | null;
             /** Title */
             title: string;
         };
@@ -7431,15 +7493,48 @@ export interface components {
             discount_value: number | string;
             /** Ends At */
             ends_at?: string | null;
+            /** Image Key */
+            image_key?: string | null;
+            /** Partner Name */
+            partner_name?: string | null;
             /**
              * Priority
              * @default 0
              */
             priority: number;
+            /** Redemption Url */
+            redemption_url?: string | null;
             /** Starts At */
             starts_at?: string | null;
+            /** Terms Summary */
+            terms_summary?: string | null;
+            /** Terms Url */
+            terms_url?: string | null;
             /** Title */
             title: string;
+        };
+        /** OfferImageUploadRequest */
+        OfferImageUploadRequest: {
+            /**
+             * Content Type
+             * @enum {string}
+             */
+            content_type: "image/jpeg" | "image/png" | "image/webp";
+            /** Filename */
+            filename: string;
+        };
+        /** OfferImageUploadResponse */
+        OfferImageUploadResponse: {
+            /** Fields */
+            fields: {
+                [key: string]: string;
+            };
+            /** Max Bytes */
+            max_bytes: number;
+            /** Object Key */
+            object_key: string;
+            /** Upload Url */
+            upload_url: string;
         };
         /** OfferListResponse */
         OfferListResponse: {
@@ -7476,19 +7571,42 @@ export interface components {
              * Format: uuid
              */
             id: string;
+            /** Image Key */
+            image_key: string | null;
+            /** Image Url */
+            image_url?: string | null;
+            /** Partner Name */
+            partner_name: string | null;
             /** Priority */
             priority: number;
+            /** Redemption Url */
+            redemption_url: string | null;
+            /** Review Note */
+            review_note: string | null;
+            /** Reviewed At */
+            reviewed_at: string | null;
+            /** Reviewed By Uuid */
+            reviewed_by_uuid: string | null;
             /** Starts At */
             starts_at: string | null;
             status: components["schemas"]["OfferStatus"];
+            /** Terms Summary */
+            terms_summary: string | null;
+            /** Terms Url */
+            terms_url: string | null;
             /** Title */
             title: string;
+        };
+        /** OfferRejectRequest */
+        OfferRejectRequest: {
+            /** Note */
+            note: string;
         };
         /**
          * OfferStatus
          * @enum {string}
          */
-        OfferStatus: "draft" | "scheduled" | "active" | "expired" | "archived";
+        OfferStatus: "draft" | "pending_approval" | "approved" | "rejected" | "scheduled" | "active" | "expired" | "archived";
         /** OfferUpdate */
         OfferUpdate: {
             audience_rules?: components["schemas"]["AudienceRules"] | null;
@@ -7502,10 +7620,20 @@ export interface components {
             discount_value?: number | string | null;
             /** Ends At */
             ends_at?: string | null;
+            /** Image Key */
+            image_key?: string | null;
+            /** Partner Name */
+            partner_name?: string | null;
             /** Priority */
             priority?: number | null;
+            /** Redemption Url */
+            redemption_url?: string | null;
             /** Starts At */
             starts_at?: string | null;
+            /** Terms Summary */
+            terms_summary?: string | null;
+            /** Terms Url */
+            terms_url?: string | null;
             /** Title */
             title?: string | null;
         };
@@ -8204,8 +8332,6 @@ export interface components {
             id: string;
             /** Image Url */
             image_url: string | null;
-            /** Offer Badge */
-            offer_badge?: string | null;
             /**
              * Rera Verified
              * @default false
@@ -8336,54 +8462,6 @@ export interface components {
              * @default true
              */
             ok: boolean;
-        };
-        /** PublicOfferListResponse */
-        PublicOfferListResponse: {
-            /** Offers */
-            offers: components["schemas"]["PublicOfferRead"][];
-        };
-        /**
-         * PublicOfferRead
-         * @description Anonymous-read shape (docs/specs/public-offer-serving.md).
-         *
-         *     Deliberately NOT a subclass of OfferRead -- a future sensitive column
-         *     added to the authenticated read can never silently surface here.
-         *
-         *     - status: constant "active" by construction on this path (see
-         *       services/public_catalog.py::list_public_offers). Exposing a constant
-         *       invites a client-side filter that would quietly become the de-facto
-         *       access control.
-         *     - created_by_uuid: staff identity, never public.
-         *     - starts_at / ends_at: the endpoint has already applied the window;
-         *       republishing it lets a client second-guess the server and discloses
-         *       unlaunched-campaign timing (same reasoning as PublicBannerRead).
-         *     - created_at: internal metadata, no display use.
-         *     - audience_rules: authenticated segmentation input; never disclose it to
-         *       anonymous catalogue consumers.
-         *     - priority: authenticated placement ordering input, not display data.
-         *
-         *     business_line IS included, unlike PublicBannerRead: offers are line-scoped
-         *     by design (an offer applies to loans, real_estate, or both) and the
-         *     frontend needs it to decide which strip(s) an offer renders in.
-         */
-        PublicOfferRead: {
-            /** Business Line */
-            business_line: string;
-            /** Code */
-            code: string | null;
-            /** Description */
-            description: string | null;
-            /** Discount Type */
-            discount_type: string;
-            /** Discount Value */
-            discount_value: string;
-            /**
-             * Id
-             * Format: uuid
-             */
-            id: string;
-            /** Title */
-            title: string;
         };
         /**
          * PublicPropertyDetailRead
@@ -8604,6 +8682,11 @@ export interface components {
              * Format: uuid
              */
             id: string;
+            /**
+             * Is Referenced
+             * @default false
+             */
+            is_referenced: boolean;
             /** Rule */
             rule: {
                 [key: string]: unknown;
@@ -15780,6 +15863,39 @@ export interface operations {
             };
         };
     };
+    get_offer_image_upload_url_api_v1_offers_image_upload_url_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OfferImageUploadRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OfferImageUploadResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_offer_api_v1_offers__offer_id__get: {
         parameters: {
             query?: never;
@@ -15877,6 +15993,37 @@ export interface operations {
             };
         };
     };
+    approve_api_v1_offers__offer_id__approve_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                offer_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OfferRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     archive_api_v1_offers__offer_id__archive_post: {
         parameters: {
             query?: never;
@@ -15908,7 +16055,73 @@ export interface operations {
             };
         };
     };
+    reject_api_v1_offers__offer_id__reject_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                offer_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OfferRejectRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OfferRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     schedule_api_v1_offers__offer_id__schedule_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                offer_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OfferRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    submit_api_v1_offers__offer_id__submit_post: {
         parameters: {
             query?: never;
             header?: never;
@@ -17087,26 +17300,6 @@ export interface operations {
             };
         };
     };
-    list_offers_public_api_v1_public_offers_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PublicOfferListResponse"];
-                };
-            };
-        };
-    };
     list_properties_public_api_v1_public_properties_get: {
         parameters: {
             query?: never;
@@ -17332,6 +17525,35 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ReferralBonusConfigRead"];
                 };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_config_api_v1_referral_bonus_config__config_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                config_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {

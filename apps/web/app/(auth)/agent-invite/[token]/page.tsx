@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 
-import { AgentInviteView } from "@/features/public/agent-invite-view";
+import { AgentInvitePasswordView } from "@/features/auth/invite-password-view";
 
 export const metadata: Metadata = {
   title: "Set up your Agent account",
@@ -14,5 +14,5 @@ export default async function AgentInvitePage({
   params: Promise<{ token: string }>;
 }) {
   const { token } = await params;
-  return <AgentInviteView token={token} />;
+  return <AgentInvitePasswordView token={token} />;
 }

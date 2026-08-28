@@ -21,7 +21,7 @@ from app.models.lead import Lead, LeadStatus
 from app.models.loan import LoanApplication, LoanStatus
 from app.models.offer import Offer, OfferStatus
 from app.models.personalization import PersonalizationPreference
-from app.models.profile import AgentProfile, ClientProfile, ProfileStatus
+from app.models.profile import AgentProfile, ClientProfile, ProfileStatus, StaffProfile
 from app.models.property_deal import PropertyDeal, PropertyDealStatus
 from app.schemas.personalization import (
     AgentSignal,
@@ -30,6 +30,7 @@ from app.schemas.personalization import (
     audience_rules_valid_for_banner,
     audience_rules_valid_for_offer,
 )
+from app.services import storage
 
 LOCATION_RETENTION = timedelta(days=30)
 LOCATION_CAPTURE_LIMIT_PER_HOUR = 12
@@ -322,6 +323,19 @@ async def build_audience_context(
         )
         if profile is None:
             raise PlacementLineNotFound
+    elif current_user.role in ("employee", "telecaller"):
+        if current_user.business_line != business_line or current_user.staff_profile_uuid is None:
+            raise PlacementLineNotFound
+        profile = await db.scalar(
+            select(StaffProfile).where(
+                StaffProfile.id == current_user.staff_profile_uuid,
+                StaffProfile.auth_user_uuid == current_user.id,
+                StaffProfile.role == current_user.role,
+                StaffProfile.status == ProfileStatus.ACTIVE,
+            )
+        )
+        if profile is None:
+            raise PlacementLineNotFound
     else:
         raise PlacementLineNotFound
 
@@ -333,7 +347,7 @@ async def build_audience_context(
     if personalization_enabled:
         if current_user.role == "client":
             stages = await _client_stages(db, profile, business_line, current_user.id)
-        else:
+        elif current_user.role == "agent":
             signals = await _agent_activity_signals(db, profile, current_user.id)
         cutoff = datetime.now(UTC) - LOCATION_RETENTION
         if (
@@ -366,9 +380,12 @@ def _distance_km(first: tuple[float, float], second: tuple[float, float]) -> flo
 
 
 def matches_audience(rules: AudienceRules, context: AudienceContext) -> bool:
-    if rules.is_empty or not context.personalization_enabled:
+    if rules.is_empty:
         return False
     if context.role not in rules.user_types:
+        return False
+    uses_personal_data = bool(rules.client_journey_stages or rules.agent_signals or rules.locations)
+    if uses_personal_data and not context.personalization_enabled:
         return False
     if rules.client_journey_stages and not (
         context.client_journey_stages & set(rules.client_journey_stages)
@@ -445,34 +462,41 @@ async def list_authenticated_placements(
         ]
 
         offers: list[Offer] = []
-        if current_user.role == "client":
-            offer_exact_line = case((Offer.business_line == business_line, 1), else_=0)
-            offer_candidates = (
-                await content_db.scalars(
-                    select(Offer)
-                    .where(
-                        Offer.status == OfferStatus.ACTIVE,
-                        Offer.business_line.in_((business_line, "both")),
-                        or_(Offer.starts_at.is_(None), Offer.starts_at <= func.now()),
-                        or_(Offer.ends_at.is_(None), Offer.ends_at > func.now()),
-                    )
-                    .order_by(
-                        Offer.priority.desc(),
-                        offer_exact_line.desc(),
-                        Offer.created_at.desc(),
-                        Offer.id.desc(),
-                    )
+        offer_exact_line = case((Offer.business_line == business_line, 1), else_=0)
+        offer_candidates = (
+            await content_db.scalars(
+                select(Offer)
+                .where(
+                    Offer.status == OfferStatus.ACTIVE,
+                    Offer.business_line.in_((business_line, "both")),
+                    or_(Offer.starts_at.is_(None), Offer.starts_at <= func.now()),
+                    or_(Offer.ends_at.is_(None), Offer.ends_at > func.now()),
                 )
-            ).all()
-            for offer in offer_candidates:
-                rules = _parse_rules(offer.audience_rules)
-                if rules is None or not audience_rules_valid_for_offer(rules):
-                    continue
-                if not rules.is_empty and not matches_audience(rules, context):
-                    continue
-                offers.append(offer)
-                if len(offers) == AUTHENTICATED_OFFERS_LIMIT:
-                    break
+                .order_by(
+                    Offer.priority.desc(),
+                    offer_exact_line.desc(),
+                    Offer.created_at.desc(),
+                    Offer.id.desc(),
+                )
+            )
+        ).all()
+        for offer in offer_candidates:
+            rules = _parse_rules(offer.audience_rules)
+            image_url = storage.public_asset_url(offer.image_key) if offer.image_key else None
+            if (
+                rules is None
+                or not audience_rules_valid_for_offer(rules)
+                or not matches_audience(rules, context)
+                or not image_url
+                or not offer.partner_name
+                or not offer.redemption_url
+                or not offer.terms_summary
+                or not offer.code
+            ):
+                continue
+            offers.append(offer)
+            if len(offers) == AUTHENTICATED_OFFERS_LIMIT:
+                break
     return banners, offers
 
 
