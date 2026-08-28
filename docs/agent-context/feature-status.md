@@ -9,9 +9,10 @@ Evidence baseline: `abcc1fd`
 verified Admin operational-visibility work in
 [PR #173](https://github.com/brollysolutions/client1/pull/173).
 
-**Done on branch - invitation, staff access, finance, banner, offer, and
-responsive-dashboard overhaul:**
-`codex/20260828-165138-1-agent-invite-modify-agent-invite-ui` (PR pending;
+**Done — [PR #258](https://github.com/brollysolutions/client1/pull/258) —
+invitation, staff access, finance, banner, offer, and responsive-dashboard
+overhaul:**
+`codex/20260828-165138-1-agent-invite-modify-agent-invite-ui` (
 direct user instruction; no formal requirement or completion-percentage change)
 moves Agent and staff invitation password creation into the existing auth shell
 without changing their public token URLs. Admin staff creation is now a floating
