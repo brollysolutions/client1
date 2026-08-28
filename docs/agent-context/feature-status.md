@@ -11,7 +11,8 @@ verified Admin operational-visibility work in
 
 **Done on branch - Admin operational refinements for loan, filters, providers,
 staff layout, and Agent setup handoff:**
-`codex/20260828-123646-1-problem-with-the-floating-window-of` (PR pending;
+`codex/20260828-123646-1-problem-with-the-floating-window-of`
+([PR #257](https://github.com/brollysolutions/client1/pull/257);
 direct user instruction; no requirement or completion-percentage change) makes
 the Admin loan-application window a bounded, content-sized wide panel; keeps
 Clear filters in the shared control grid instead of allocating a second action
