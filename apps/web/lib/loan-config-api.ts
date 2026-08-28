@@ -60,6 +60,10 @@ export async function updateBank(
   return apiRequest<AdminBank>(`/api/v1/admin/banks/${id}`, { method: "PATCH", body: payload });
 }
 
+export async function deleteBank(id: string): Promise<ApiResponse<null>> {
+  return apiRequest<null>(`/api/v1/admin/banks/${id}`, { method: "DELETE" });
+}
+
 export async function listProviderOffers(): Promise<ApiResponse<AdminProviderOffer[]>> {
   const res = await apiRequest<Schemas["AdminProviderOfferListResponse"]>(
     "/api/v1/admin/product-provider-offers",

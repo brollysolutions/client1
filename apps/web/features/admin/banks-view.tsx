@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { ImageIcon, Landmark, Loader2, Plus } from "lucide-react";
+import { ImageIcon, Landmark, Loader2, Plus, Trash2 } from "lucide-react";
 import Image from "next/image";
 import { toast } from "sonner";
 
@@ -45,6 +45,7 @@ import { StatusBadge } from "@/features/dashboard/status-badge";
 import { useFilteredPage } from "@/features/dashboard/use-filtered-page";
 import {
   createBank,
+  deleteBank,
   updateBank,
   uploadProviderLogo,
   type AdminBank,
@@ -74,6 +75,7 @@ const PROVIDER_STATUS_OPTIONS = [
 export function BanksView() {
   const { items, loading, error, reload } = useBanks();
   const [active, setActive] = React.useState<AdminBank | null>(null);
+  const [deleteTarget, setDeleteTarget] = React.useState<AdminBank | null>(null);
   const [creating, setCreating] = React.useState(false);
   const [newName, setNewName] = React.useState("");
   const [newLegalName, setNewLegalName] = React.useState("");
@@ -114,7 +116,7 @@ export function BanksView() {
         sort.key === "type"
           ? left.provider_type.localeCompare(right.provider_type)
           : sort.key === "usage"
-            ? left.application_count - right.application_count
+            ? left.application_count + left.offer_count - (right.application_count + right.offer_count)
             : sort.key === "state"
               ? Number(left.active) - Number(right.active)
               : left.name.localeCompare(right.name);
@@ -162,10 +164,14 @@ export function BanksView() {
       },
       {
         key: "usage",
-        header: "Applications",
+        header: "Usage",
         sortable: true,
         align: "right",
-        render: (provider) => <span className="tabular-nums">{provider.application_count}</span>,
+        render: (provider) => (
+          <span className="whitespace-nowrap tabular-nums">
+            {provider.application_count} apps · {provider.offer_count} offers
+          </span>
+        ),
       },
       {
         key: "state",
@@ -278,6 +284,22 @@ export function BanksView() {
       toast.error("Provider details saved, but the logo was not updated", {
         description: logoResult.error,
       });
+    }
+  }
+
+  async function onDelete() {
+    if (!deleteTarget) return;
+    setBusy(true);
+    const response = await deleteBank(deleteTarget.id);
+    setBusy(false);
+    if (response.ok) {
+      toast.success("Provider deleted");
+      setDeleteTarget(null);
+      void reload();
+    } else {
+      toast.error("Couldn't delete provider", { description: response.error });
+      setDeleteTarget(null);
+      void reload();
     }
   }
 
@@ -500,10 +522,57 @@ export function BanksView() {
                   </Label>
                 </div>
               </div>
-              <DialogFooter>
+              <DialogFooter className="items-center justify-between sm:justify-between">
+                {active.application_count === 0 && active.offer_count === 0 ? (
+                  <Button
+                    variant="destructive"
+                    onClick={() => {
+                      setDeleteTarget(active);
+                      setActive(null);
+                    }}
+                    disabled={busy}
+                  >
+                    <Trash2 className="h-4 w-4" aria-hidden="true" />
+                    Delete provider
+                  </Button>
+                ) : (
+                  <p className="max-w-xs text-left text-xs leading-5 text-text-secondary">
+                    Used providers cannot be deleted. Disable this provider to preserve application
+                    and offer history.
+                  </p>
+                )}
                 <Button onClick={() => void onSaveEdit()} disabled={busy}>
                   {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
                   Save
+                </Button>
+              </DialogFooter>
+            </>
+          ) : null}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={deleteTarget !== null} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <DialogContent className="max-w-md">
+          {deleteTarget ? (
+            <>
+              <DialogHeader>
+                <DialogTitle>Delete {deleteTarget.name}?</DialogTitle>
+                <DialogDescription>
+                  This permanently removes the unused provider, its logo, and availability
+                  configuration. This action cannot be undone.
+                </DialogDescription>
+              </DialogHeader>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setDeleteTarget(null)} disabled={busy}>
+                  Cancel
+                </Button>
+                <Button variant="destructive" onClick={() => void onDelete()} disabled={busy}>
+                  {busy ? (
+                    <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                  ) : (
+                    <Trash2 className="h-4 w-4" aria-hidden="true" />
+                  )}
+                  Delete provider
                 </Button>
               </DialogFooter>
             </>

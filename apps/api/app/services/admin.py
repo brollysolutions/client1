@@ -662,6 +662,7 @@ async def approve_agent_application(
                 raise
 
     application.status = SubmissionStatus.APPROVED
+    application.applicant_auth_user_uuid = user.id
     application.reviewed_by_staff_profile_uuid = reviewer_staff_uuid
     application.reviewed_at = datetime.now(UTC)
     # entity is the application (the thing reviewed); the profile it produced goes

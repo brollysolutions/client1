@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { FieldError } from "@/components/ui/field-error";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { DashboardHeader, DashboardPage, DashboardPanel } from "@/features/dashboard/dashboard-ui";
 import {
@@ -28,6 +29,7 @@ import { ListEmptyState, ListLoadingState, ListPagination } from "@/features/das
 import { StatusBadge, type StatusTone } from "@/features/dashboard/status-badge";
 import { useFilteredPage } from "@/features/dashboard/use-filtered-page";
 import {
+  PANEL_DIALOG_CLASS,
   PANEL_DIALOG_WIDE_CLASS,
   WorkspaceDialogHeader,
   WorkspaceLayout,
@@ -36,6 +38,12 @@ import { isInDateRange } from "@/lib/date-range";
 import { formatAge, formatDate } from "@/lib/format";
 import { requiredTextError } from "@/lib/form-validation";
 import { formatMobile } from "@/lib/phone";
+import {
+  createAgentInviteLink,
+  listAgentInviteCandidates,
+  revokeAgentInviteLink,
+  type AgentInviteCandidate,
+} from "@/lib/agent-invites";
 import {
   approveAgentApplication,
   rejectAgentApplication,
@@ -118,7 +126,125 @@ function DocumentTile({ document }: { document: AgentApplicationDocument & { dow
   );
 }
 
+function AgentSetupLinksSection({ active }: { active: boolean }) {
+  const [agents, setAgents] = React.useState<AgentInviteCandidate[]>([]);
+  const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState<string | null>(null);
+  const [selected, setSelected] = React.useState<AgentInviteCandidate | null>(null);
+
+  const load = React.useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    const response = await listAgentInviteCandidates();
+    setLoading(false);
+    if (response.ok) {
+      setAgents(response.data.agents);
+    } else {
+      setError(response.error);
+    }
+  }, []);
+
+  React.useEffect(() => {
+    if (active) void load();
+  }, [active, load]);
+
+  const { page, setPage, pageRows, total } = useFilteredPage(agents, agents.length, 10);
+
+  const columns: DataColumn<AgentInviteCandidate>[] = [
+    {
+      key: "name",
+      header: "Agent",
+      render: (agent) => (
+        <DataTablePrimaryCell
+          title={`${agent.first_name} ${agent.last_name}`.trim() || "Unnamed Agent"}
+          subtitle={agent.mobile ? formatMobile(agent.mobile) : "No mobile"}
+        />
+      ),
+    },
+    {
+      key: "agent_code",
+      header: "Agent code",
+      render: (agent) => <span className="font-medium text-text-primary">{agent.agent_code}</span>,
+    },
+    {
+      key: "business_line",
+      header: "Line",
+      render: (agent) => (
+        <span className="text-text-secondary">
+          {agent.business_line === "loans" ? "Loans" : "Real Estate"}
+        </span>
+      ),
+    },
+    {
+      key: "approved_at",
+      header: "Approved",
+      align: "right",
+      render: (agent) => (
+        <span className="tabular-nums text-text-secondary">{formatDate(agent.approved_at)}</span>
+      ),
+    },
+  ];
+
+  if (loading) return <ListLoadingState />;
+  if (error) return <FetchError status={null} message={error} onRetry={() => void load()} />;
+  if (agents.length === 0) {
+    return (
+      <ListEmptyState
+        icon={CheckCircle2}
+        title="No Agent setup links needed"
+        description="Approved Agents disappear from this list after they choose their password."
+      />
+    );
+  }
+
+  return (
+    <>
+      <DashboardPanel
+        title="Agent setup links"
+        description={`${total} approved ${total === 1 ? "Agent still needs" : "Agents still need"} a password`}
+        bodyClassName="p-0"
+      >
+        <DataTable
+          columns={columns}
+          rows={pageRows}
+          rowKey={(agent) => agent.application_id}
+          onRowClick={setSelected}
+          rowActionLabel="Create setup link"
+          minWidth="min-w-[720px]"
+        />
+        <div className="px-5 pb-4">
+          <ListPagination page={page} total={total} pageSize={10} onPageChange={setPage} />
+        </div>
+      </DashboardPanel>
+
+      <Dialog open={selected !== null} onOpenChange={(open) => !open && setSelected(null)}>
+        <DialogContent showCloseButton={false} className={PANEL_DIALOG_CLASS}>
+          {selected ? (
+            <>
+              <WorkspaceDialogHeader
+                title={`Send setup link to ${selected.first_name || "Agent"}`}
+                description={`${selected.agent_code} · ${selected.mobile ? formatMobile(selected.mobile) : "No mobile"}`}
+                closeLabel="Close setup link"
+              />
+              <div className="min-h-0 overflow-y-auto py-1">
+                <TempCredentialPanel
+                  mobile={selected.mobile ?? "the Agent"}
+                  inviteLinkActions={{
+                    create: () => createAgentInviteLink(selected.application_id),
+                    revoke: revokeAgentInviteLink,
+                  }}
+                />
+              </div>
+            </>
+          ) : null}
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
+
 export function AgentQueueView() {
+  const [section, setSection] = React.useState("review");
   const [filters, setFilters] = React.useState<FilterBarValue>(DEFAULT_FILTERS);
   const [sort, setSort] = React.useState<SortState>({ key: "created_at", dir: "asc" });
   const [activeId, setActiveId] = React.useState<string | null>(null);
@@ -127,6 +253,7 @@ export function AgentQueueView() {
   const [noteError, setNoteError] = React.useState<string>();
   const [busy, setBusy] = React.useState(false);
   const [approved, setApproved] = React.useState<{
+    applicationId: string;
     mobile: string;
     agentCode: string;
     tempPassword: string | null;
@@ -187,6 +314,7 @@ export function AgentQueueView() {
     if (res.ok) {
       toast.success("Agent approved", { description: `${res.data.agent_code} is now active.` });
       setApproved({
+        applicationId: application.id,
         mobile: application.mobile ?? "the applicant",
         agentCode: res.data.agent_code,
         tempPassword: res.data.temp_password,
@@ -282,10 +410,26 @@ export function AgentQueueView() {
         description="Approve a pending application into a live agent account, or reject it with a reason."
       />
 
+      <Tabs value={section} onValueChange={setSection}>
+        <TabsList aria-label="Agent application sections">
+          <TabsTrigger value="review">Review queue</TabsTrigger>
+          <TabsTrigger value="setup">Setup links</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="review" className="space-y-6">
+
       {approved ? (
         <div className="space-y-3">
           {approved.tempPassword ? (
-            <TempCredentialPanel mobile={approved.mobile} tempPassword={approved.tempPassword} />
+            <TempCredentialPanel
+              key={approved.applicationId}
+              mobile={approved.mobile}
+              tempPassword={approved.tempPassword}
+              inviteLinkActions={{
+                create: () => createAgentInviteLink(approved.applicationId),
+                revoke: revokeAgentInviteLink,
+              }}
+            />
           ) : (
             <p className="rounded-xl border border-border bg-card p-4 text-sm text-text-secondary">
               {approved.agentCode} is active. This applicant already had an account, their existing
@@ -509,6 +653,12 @@ export function AgentQueueView() {
           ) : null}
         </DialogContent>
       </Dialog>
+        </TabsContent>
+
+        <TabsContent value="setup" className="space-y-6">
+          <AgentSetupLinksSection active={section === "setup"} />
+        </TabsContent>
+      </Tabs>
     </DashboardPage>
   );
 }

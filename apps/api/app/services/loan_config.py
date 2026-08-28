@@ -35,6 +35,7 @@ from app.models.audit_log import AuditAction
 from app.models.loan import (
     Bank,
     BankLoanTypeAvailability,
+    FinancialProductProviderOffer,
     FinancialServiceEnquiry,
     LoanApplication,
     LoanType,
@@ -49,7 +50,11 @@ from app.schemas.loan_config import (
     LoanTypeUpdate,
 )
 from app.services.audit_log import record as record_audit
-from app.services.financial_catalog import ProviderLogoInvalid, validate_provider_logo_key
+from app.services.financial_catalog import (
+    ProviderLogoInvalid,
+    delete_managed_provider_logo,
+    validate_provider_logo_key,
+)
 from app.services.financial_products import serialize_form, starter_form_for
 
 _SLUG_INVALID = re.compile(r"[^a-z0-9]+")
@@ -74,6 +79,10 @@ class InvalidProductForm(Exception):
 
 class BankNotFound(Exception):
     """Raised when a bank id doesn't resolve."""
+
+
+class BankInUse(Exception):
+    """Raised when financial history or configured offers still reference a provider."""
 
 
 def _slugify(label: str) -> str:
@@ -276,6 +285,17 @@ async def bank_application_counts(db: AsyncSession) -> dict[UUID, int]:
     return {bank_id: count for bank_id, count in rows}
 
 
+async def bank_offer_counts(db: AsyncSession) -> dict[UUID, int]:
+    rows = (
+        await db.execute(
+            select(FinancialProductProviderOffer.bank_id, func.count()).group_by(
+                FinancialProductProviderOffer.bank_id
+            )
+        )
+    ).all()
+    return {bank_id: count for bank_id, count in rows}
+
+
 async def create_bank(
     db: AsyncSession,
     payload: BankCreate,
@@ -390,6 +410,54 @@ async def update_bank(
     await db.commit()
     await db.refresh(bank)
     return bank
+
+
+async def delete_bank(
+    db: AsyncSession,
+    bank_id: UUID,
+    *,
+    actor_uuid: UUID | None,
+    actor_role: str | None,
+) -> None:
+    """Delete only a never-used provider; referenced providers stay disable-only.
+
+    The row lock serializes this check with new FK references. The database's
+    RESTRICT constraints remain the final guard if a reference races or a new
+    access path omits this service-level explanation.
+    """
+    bank = await db.scalar(select(Bank).where(Bank.id == bank_id).with_for_update())
+    if bank is None:
+        raise BankNotFound
+
+    application_count = await db.scalar(
+        select(func.count()).select_from(LoanApplication).where(LoanApplication.bank_id == bank_id)
+    )
+    offer_count = await db.scalar(
+        select(func.count())
+        .select_from(FinancialProductProviderOffer)
+        .where(FinancialProductProviderOffer.bank_id == bank_id)
+    )
+    if (application_count or 0) > 0 or (offer_count or 0) > 0:
+        raise BankInUse
+
+    logo_key = bank.logo_key
+    await record_audit(
+        db,
+        action=AuditAction.BANK_DELETED,
+        entity_type="bank",
+        entity_uuid=bank.id,
+        actor_uuid=actor_uuid,
+        actor_role=actor_role,
+        business_line="loans",
+        detail={"name": bank.name},
+    )
+    await db.delete(bank)
+    try:
+        await db.commit()
+    except IntegrityError as exc:
+        await db.rollback()
+        raise BankInUse from exc
+    await delete_managed_provider_logo(logo_key)
 
 
 # ---------------------------------------------------------------------------

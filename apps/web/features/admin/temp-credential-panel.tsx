@@ -5,6 +5,7 @@ import { Check, Copy, Link2, Loader2, Share2, ShieldAlert, Trash2 } from "lucide
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import type { ApiResponse } from "@/lib/api/client";
 import {
   createStaffInviteLink,
   revokeStaffInviteLink,
@@ -21,9 +22,9 @@ import { formatDate } from "@/lib/format";
  * or left sitting in an Admin's clipboard, and it can be revoked if the handoff
  * goes wrong, which a spoken password cannot.
  *
- * `authUserUuid` is optional because the agent-approval flow reuses this panel
- * and issues agent codes, not staff invites; without it the link controls are
- * simply absent.
+ * Staff links use `authUserUuid`; other account types can supply the same
+ * create/revoke behavior through `inviteLinkActions` without coupling this
+ * security-sensitive handoff UI to a specific endpoint.
  *
  * `tempPassword` is optional for the mirror case: reopening an existing staff
  * account long after provisioning. The one-time password is never stored, so it
@@ -33,15 +34,21 @@ export function TempCredentialPanel({
   mobile,
   tempPassword,
   authUserUuid,
+  inviteLinkActions,
 }: {
   mobile: string;
   tempPassword?: string;
   authUserUuid?: string;
+  inviteLinkActions?: {
+    create: () => Promise<ApiResponse<StaffInviteLink>>;
+    revoke: (linkId: string) => Promise<ApiResponse<null>>;
+  };
 }) {
   const [copied, setCopied] = React.useState(false);
   const [link, setLink] = React.useState<StaffInviteLink | null>(null);
   const [busy, setBusy] = React.useState(false);
   const [blocked, setBlocked] = React.useState<string | null>(null);
+  const canCreateLink = Boolean(authUserUuid || inviteLinkActions);
 
   async function copyPassword() {
     if (!tempPassword) return;
@@ -55,9 +62,11 @@ export function TempCredentialPanel({
   }
 
   async function createLink() {
-    if (!authUserUuid) return;
+    if (!authUserUuid && !inviteLinkActions) return;
     setBusy(true);
-    const response = await createStaffInviteLink(authUserUuid);
+    const response = inviteLinkActions
+      ? await inviteLinkActions.create()
+      : await createStaffInviteLink(authUserUuid!);
     setBusy(false);
     if (!response.ok) {
       // 409 is the deliberate rule, not a failure: once someone has set their own
@@ -111,7 +120,9 @@ export function TempCredentialPanel({
   async function revoke() {
     if (!link) return;
     setBusy(true);
-    const response = await revokeStaffInviteLink(link.id);
+    const response = inviteLinkActions
+      ? await inviteLinkActions.revoke(link.id)
+      : await revokeStaffInviteLink(link.id);
     setBusy(false);
     if (response.ok) {
       setLink(null);
@@ -123,7 +134,7 @@ export function TempCredentialPanel({
 
   return (
     <div className="space-y-4 rounded-xl border border-brand-cta/30 bg-brand-cta/5 p-4">
-      {authUserUuid ? (
+      {canCreateLink ? (
         <div>
           <div className="flex items-start gap-2">
             <Link2 className="mt-0.5 h-4 w-4 shrink-0 text-brand-cta" aria-hidden="true" />
@@ -200,7 +211,7 @@ export function TempCredentialPanel({
       ) : null}
 
       {tempPassword ? (
-        <div className={authUserUuid ? "border-t border-brand-cta/20 pt-4" : undefined}>
+        <div className={canCreateLink ? "border-t border-brand-cta/20 pt-4" : undefined}>
           <div className="flex items-start gap-2">
             <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0 text-brand-cta" aria-hidden="true" />
             <div className="min-w-0 flex-1">
@@ -222,7 +233,7 @@ export function TempCredentialPanel({
           </div>
         </div>
       ) : (
-        <div className={authUserUuid ? "border-t border-brand-cta/20 pt-4" : undefined}>
+        <div className={canCreateLink ? "border-t border-brand-cta/20 pt-4" : undefined}>
           <div className="flex items-start gap-2">
             <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0 text-text-secondary" aria-hidden="true" />
             <p className="text-xs text-text-secondary">

@@ -300,6 +300,10 @@
             "title": "Name",
             "type": "string"
           },
+          "offer_count": {
+            "title": "Offer Count",
+            "type": "integer"
+          },
           "provider_type": {
             "$ref": "#/components/schemas/ProviderType"
           },
@@ -321,7 +325,8 @@
           "active",
           "created_at",
           "updated_at",
-          "application_count"
+          "application_count",
+          "offer_count"
         ],
         "title": "AdminBankRead",
         "type": "object"
@@ -3133,6 +3138,143 @@
         "title": "AgentHomeResponse",
         "type": "object"
       },
+      "AgentInviteAcceptRequest": {
+        "properties": {
+          "confirm_password": {
+            "maxLength": 128,
+            "minLength": 8,
+            "title": "Confirm Password",
+            "type": "string"
+          },
+          "password": {
+            "maxLength": 128,
+            "minLength": 8,
+            "title": "Password",
+            "type": "string"
+          }
+        },
+        "required": [
+          "password",
+          "confirm_password"
+        ],
+        "title": "AgentInviteAcceptRequest",
+        "type": "object"
+      },
+      "AgentInviteCandidateListResponse": {
+        "properties": {
+          "agents": {
+            "items": {
+              "$ref": "#/components/schemas/AgentInviteCandidateRead"
+            },
+            "title": "Agents",
+            "type": "array"
+          }
+        },
+        "required": [
+          "agents"
+        ],
+        "title": "AgentInviteCandidateListResponse",
+        "type": "object"
+      },
+      "AgentInviteCandidateRead": {
+        "properties": {
+          "agent_code": {
+            "title": "Agent Code",
+            "type": "string"
+          },
+          "application_id": {
+            "format": "uuid",
+            "title": "Application Id",
+            "type": "string"
+          },
+          "approved_at": {
+            "format": "date-time",
+            "title": "Approved At",
+            "type": "string"
+          },
+          "business_line": {
+            "enum": [
+              "loans",
+              "real_estate"
+            ],
+            "title": "Business Line",
+            "type": "string"
+          },
+          "first_name": {
+            "title": "First Name",
+            "type": "string"
+          },
+          "last_name": {
+            "title": "Last Name",
+            "type": "string"
+          },
+          "mobile": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mobile"
+          }
+        },
+        "required": [
+          "application_id",
+          "agent_code",
+          "first_name",
+          "last_name",
+          "mobile",
+          "business_line",
+          "approved_at"
+        ],
+        "title": "AgentInviteCandidateRead",
+        "type": "object"
+      },
+      "AgentInviteLinkRead": {
+        "properties": {
+          "expires_at": {
+            "format": "date-time",
+            "title": "Expires At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "share_path": {
+            "title": "Share Path",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "share_path",
+          "expires_at"
+        ],
+        "title": "AgentInviteLinkRead",
+        "type": "object"
+      },
+      "AgentInvitePreview": {
+        "properties": {
+          "agent_code": {
+            "title": "Agent Code",
+            "type": "string"
+          },
+          "first_name": {
+            "title": "First Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "first_name",
+          "agent_code"
+        ],
+        "title": "AgentInvitePreview",
+        "type": "object"
+      },
       "AgentLeadCreate": {
         "properties": {
           "mobile": {
@@ -3764,7 +3906,10 @@
           "loan_type_updated",
           "bank_created",
           "bank_updated",
+          "bank_deleted",
           "bank_availability_updated",
+          "agent_invite_created",
+          "agent_invite_revoked",
           "financial_product_offer_created",
           "financial_product_offer_updated",
           "commission_entered",
@@ -17596,6 +17741,74 @@
         "summary": "Root"
       }
     },
+    "/api/v1/admin/agent-invite-links/{link_id}": {
+      "delete": {
+        "operationId": "revoke_agent_invite_link_api_v1_admin_agent_invite_links__link_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "link_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Link Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Revoke Agent Invite Link",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/agent-invites": {
+      "get": {
+        "description": "List approved Agents who still need to choose their first password.",
+        "operationId": "list_agent_invite_candidates_api_v1_admin_agent_invites_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentInviteCandidateListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "List Agent Invite Candidates",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
     "/api/v1/admin/agents": {
       "get": {
         "description": "Defaults to the pending queue, which is what the console opens on.\n\n`status` was previously hardcoded, so an Admin had no way to look back at\nwhat they had already approved or rejected. Omitting the parameter keeps the\noriginal behavior; `status=all` clears the filter. \"all\" is an explicit\nmember rather than an empty string because FastAPI validates `\"\"` against\nthe Literal and rejects it rather than reading it as \"unset\".",
@@ -17743,6 +17956,54 @@
           }
         ],
         "summary": "Approve Agent",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/agents/{application_id}/invite-link": {
+      "post": {
+        "operationId": "create_agent_invite_link_api_v1_admin_agents__application_id__invite_link_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "application_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Application Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentInviteLinkRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Create Agent Invite Link",
         "tags": [
           "admin"
         ]
@@ -18086,6 +18347,45 @@
       }
     },
     "/api/v1/admin/banks/{bank_id}": {
+      "delete": {
+        "operationId": "delete_admin_bank_api_v1_admin_banks__bank_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "bank_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Bank Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Delete Admin Bank",
+        "tags": [
+          "admin"
+        ]
+      },
       "patch": {
         "operationId": "update_admin_bank_api_v1_admin_banks__bank_id__patch",
         "parameters": [
@@ -23148,6 +23448,100 @@
         "summary": "Presign Upload",
         "tags": [
           "agent-applications"
+        ]
+      }
+    },
+    "/api/v1/agent-invites/{token}": {
+      "get": {
+        "operationId": "get_agent_invite_api_v1_agent_invites__token__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "token",
+            "required": true,
+            "schema": {
+              "title": "Token",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentInvitePreview"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Agent Invite",
+        "tags": [
+          "agent-invites"
+        ]
+      }
+    },
+    "/api/v1/agent-invites/{token}/accept": {
+      "post": {
+        "operationId": "accept_agent_invite_api_v1_agent_invites__token__accept_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "token",
+            "required": true,
+            "schema": {
+              "title": "Token",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgentInviteAcceptRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Accept Agent Invite",
+        "tags": [
+          "agent-invites"
         ]
       }
     },

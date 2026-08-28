@@ -95,6 +95,16 @@ const ACTION_META: Record<AuditAction, { label: string; icon: LucideIcon; tone: 
     icon: Link2,
     tone: "bg-warning/10 text-warning",
   },
+  agent_invite_created: {
+    label: "Agent setup link issued",
+    icon: Link2,
+    tone: "bg-brand-cta-tint text-brand-cta",
+  },
+  agent_invite_revoked: {
+    label: "Agent setup link revoked",
+    icon: Link2,
+    tone: "bg-warning/10 text-warning",
+  },
   account_removed: { label: "Account removed", icon: UserMinus, tone: "bg-error/10 text-error" },
   account_status_updated: {
     label: "Account status updated",
@@ -167,6 +177,11 @@ const ACTION_META: Record<AuditAction, { label: string; icon: LucideIcon; tone: 
     label: "Bank updated",
     icon: Landmark,
     tone: "bg-loans-soft text-loans-accent",
+  },
+  bank_deleted: {
+    label: "Provider deleted",
+    icon: Landmark,
+    tone: "bg-error/10 text-error",
   },
   bank_availability_updated: {
     label: "Bank availability updated",
