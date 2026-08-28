@@ -63,6 +63,18 @@ FR-18.2 Map/GMB integration was removed from the product scope by CS-010 on
 2026-08-09. It is not an active, deferred, or release requirement and is not
 included in completion coverage.
 
+The Admin/Sub Admin dashboard overhaul is **done** through nine sequentially
+rebased and merged PRs: [#246](https://github.com/brollysolutions/client1/pull/246),
+[#247](https://github.com/brollysolutions/client1/pull/247),
+[#248](https://github.com/brollysolutions/client1/pull/248),
+[#249](https://github.com/brollysolutions/client1/pull/249),
+[#250](https://github.com/brollysolutions/client1/pull/250),
+[#251](https://github.com/brollysolutions/client1/pull/251),
+[#252](https://github.com/brollysolutions/client1/pull/252),
+[#253](https://github.com/brollysolutions/client1/pull/253), and
+[#254](https://github.com/brollysolutions/client1/pull/254). The phase rows below
+retain their contemporaneous implementation-branch status and evidence.
+
 | Priority | Feature / requirements | Why now | Planning model / effort | Implementation model / effort | Exit criteria |
 | ---: | --- | --- | --- | --- | --- |
 | 0 | Optional public content-block 404 log classification (direct user-reported operational noise; no requirement or completion-percentage change) | **Done — [PR #244](https://github.com/brollysolutions/client1/pull/244)** on `codex/20260827-065108-the-lead-details-page-ui-its-kinda`. PostgreSQL checkpoints and PgBouncer connection logs were normal. The API intentionally retains `404` for a missing/unpublished optional block; the server fetch wrapper now accepts caller-declared expected statuses, and only the optional homepage lookup declares `404`, preserving the typed failure and logging all unexpected HTTP, network, and parse failures. | `gpt-5.6-terra` / High | `gpt-5.6-terra` / High | Fresh focused regression (11 tests), neighboring public-fetch tests (44), ESLint, strict typecheck, and all 80 files / 511 web tests pass. Live Docker verification shows the intentional API `404`, homepage `200`, and no corresponding web HTTP-error log. Build compilation/typechecking and 93/93 page generation pass before the unchanged Windows standalone-symlink `EPERM`; host-side Docker-only `api` DNS failures remain correctly logged. No UI, API contract, authorization, RLS, data, dependency, or migration behavior changed. |

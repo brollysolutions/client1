@@ -9,6 +9,22 @@ Evidence baseline: `abcc1fd`
 verified Admin operational-visibility work in
 [PR #173](https://github.com/brollysolutions/client1/pull/173).
 
+**Done - Admin/Sub Admin dashboard overhaul, Phases 1-9:** the work was rebased
+and merged one phase at a time through [PR #246](https://github.com/brollysolutions/client1/pull/246),
+[#247](https://github.com/brollysolutions/client1/pull/247),
+[#248](https://github.com/brollysolutions/client1/pull/248),
+[#249](https://github.com/brollysolutions/client1/pull/249),
+[#250](https://github.com/brollysolutions/client1/pull/250),
+[#251](https://github.com/brollysolutions/client1/pull/251),
+[#252](https://github.com/brollysolutions/client1/pull/252),
+[#253](https://github.com/brollysolutions/client1/pull/253), and
+[#254](https://github.com/brollysolutions/client1/pull/254). Conflict resolution
+preserved the newer shared 25-row pagination and Lead Details validation work
+that landed after the original overhaul branch diverged. Final cumulative
+evidence is strict typecheck plus all 81 web test files / 515 tests; the commit
+gates also pass feature tracking, migration/RLS checks, API lint/format, and web
+lint. The detailed phase sections below retain their contemporaneous evidence.
+
 **Done - optional public content-block 404 log classification** on
 `codex/20260827-065108-the-lead-details-page-ui-its-kinda` ([PR
 #244](https://github.com/brollysolutions/client1/pull/244); direct user-reported
