@@ -347,6 +347,19 @@ ADMIN_OPERATIONAL_COVERAGE: dict[str, AdminCoverageEntry] = {
         audit_expectation="Every policy change appends field_visibility_updated without field values.",
         rationale="Closed keys and modes prevent arbitrary JSON-path policy creation.",
     ),
+    "financial_product_provider_offers": _entry(
+        domain="Public product-provider offers",
+        view_mode=AdminViewMode.FULL,
+        view_coverage=CoverageState.COVERED,
+        update_mode=AdminUpdateMode.CONFIGURATION_COMMAND,
+        update_coverage=CoverageState.COVERED,
+        audit_coverage=CoverageState.COVERED,
+        api_surfaces=("/api/v1/admin/product-provider-offers",),
+        ui_surfaces=("/dashboard/loan-config",),
+        rls_expectation="Platform Admin owns creation and publication; the public read path is anonymous and filtered to published, verified rows on active providers.",
+        audit_expectation="Create and update commands append financial_product_offer_created or financial_product_offer_updated.",
+        rationale="Admin-managed reference data with no PII. Publishing is what puts a provider on the public product page, so it is gated on an explicit verification date rather than inferred from operational availability.",
+    ),
     "lead_activities": _entry(
         domain="Append-only Telecaller lead call activities",
         sensitivity=(DataSensitivity.CONTACT_PII,),
@@ -716,6 +729,29 @@ ADMIN_OPERATIONAL_COVERAGE: dict[str, AdminCoverageEntry] = {
         rls_expectation="Only platform Admin receives cross-line staff oversight; both-line staff never receive platform bypass.",
         audit_expectation="Provision, status, and feature changes append reasoned events.",
         rationale="Supported commands control access without arbitrary role, identity, or line rewrites.",
+    ),
+    "staff_invite_links": _entry(
+        domain="Staff first-login invitations",
+        # Deliberately NOT tagged SESSION_SECRET, unlike contact_share_links.
+        # That tag means "holds a reusable secret an Admin must never read", and
+        # the contract enforces no Admin projection for it. This table stores a
+        # one-way SHA-256 hash: the raw token exists only in the response that
+        # creates it and in the URL the issuing Admin already holds, so there is
+        # nothing here to re-read. Admin is the issuer of this credential, not a
+        # party who must be kept away from it.
+        view_mode=AdminViewMode.MINIMIZED,
+        view_coverage=CoverageState.COVERED,
+        update_mode=AdminUpdateMode.WORKFLOW_COMMAND,
+        update_coverage=CoverageState.COVERED,
+        audit_coverage=CoverageState.COVERED,
+        api_surfaces=(
+            "/api/v1/admin/users/{auth_user_uuid}/invite-link",
+            "/api/v1/admin/invite-links/{link_id}",
+        ),
+        ui_surfaces=("/dashboard/users",),
+        rls_expectation="Admin-only SELECT/INSERT/UPDATE; UPDATE is column-scoped to used_at and revoked_at so a link can never be repointed at another identity.",
+        audit_expectation="Issue and revoke are audited by link id; the raw token is returned once and never persisted, logged, or audited.",
+        rationale="Admin issues and revokes the handoff credential but only ever sees its hash — the raw token exists solely in the creating response and the URL the Admin shares.",
     ),
     "support_tickets": _entry(
         domain="Support and account-recovery tickets",
