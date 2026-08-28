@@ -2,7 +2,7 @@
 
 Status: **Derived living implementation ledger**
 
-As of: **2026-08-27**
+As of: **2026-08-28**
 
 Evidence baseline: `abcc1fd`
 ([PR #175](https://github.com/brollysolutions/client1/pull/175)), plus the
@@ -86,6 +86,46 @@ page retained its meaningful row without the two blank rows. The aggregate API
 run reached 19% before the unchanged Admin coverage-contract failure for
 `financial_product_provider_offers`, reproduced with `--lf -x`. Security,
 design/accessibility, and maintainer review found no change-owned issue.
+**In progress - Admin/Sub Admin dashboard overhaul Phase 8: Analytics,
+Broadcast, and immutable Audit log** on
+`claude/20260827-admin-subadmin-ui-foundation` (direct user instruction; no
+requirement or completion-percentage change): all three views now use the
+full-width dashboard shell. Analytics replaces its one-off stat tiles with
+shared `MetricGrid`/`MetricCard` and composes report dates, line, presets,
+weekly/monthly grouping, and multi-Agent selection through the shared filter
+container. The generic sortable `ReportTable`, server-side pagination, CSV and
+Excel export, Agent team summaries, and `useReport` request-id race guard are
+unchanged. No chart was added, so the plan's conditional `dataviz` skill did
+not apply.
+
+Broadcast is now a shared dashboard panel without weakening its irreversible
+action boundary. Send stays disabled until Preview audience succeeds; changing
+audience or business line invalidates that preview; field and same-origin link
+validation still runs; and `window.confirm` still names the exact recipient
+count and says the action cannot be undone. Browser verification resolved 612
+matching Clients, opened the exact-count confirmation, dismissed it, and
+confirmed from network history that only the preview endpoint ran—no broadcast
+was sent.
+
+Audit log moves from a bespoke card feed onto shared `FilterBar`, `DataTable`,
+loading/empty/error states, and pagination. Rows remain keyboard/click
+operable and open the existing structured-detail dialog, including nested JSON.
+The generated-contract-backed `ACTION_META` map remains exhaustive, retaining
+the compile-time failure when a backend action is added without a label/icon.
+Actor automation versus deleted-account wording, role labels, record ids,
+business line, and timestamps remain visible. The form-surface registry now
+correctly classifies the shared filter rather than the Audit wrapper.
+
+Fresh evidence: `pnpm lint`, `pnpm typecheck`, and all 79 web test files / 505
+tests pass. Playwright covered Analytics, Broadcast, and Audit log at 1440 px
+and 390 x 844; the document and body matched each viewport, mobile Audit's wide
+table retained non-zero `scrollLeft` with hidden scrollbar chrome, an Audit
+detail payload rendered, and Broadcast Send was disabled before preview. The
+only console error was the repository's pre-existing missing favicon; no
+changed-route request or runtime error occurred. No API contract, migration,
+auth, RLS, report query/export, audit immutability, or notification-delivery
+behavior changed.
+
 **In progress - Admin/Sub Admin dashboard overhaul Phase 7: finance ledgers,
 payout controls, and referral rules** on
 `claude/20260827-admin-subadmin-ui-foundation` (direct user instruction; no

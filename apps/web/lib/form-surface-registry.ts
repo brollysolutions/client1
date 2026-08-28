@@ -50,7 +50,6 @@ export const FORM_SURFACE_REGISTRY = {
   "features/admin/agent-queue-view.tsx": "mutation",
   "features/admin/analytics/report-filter-bar.tsx": "filter",
   "features/admin/assigned-leads-view.tsx": "filter",
-  "features/admin/audit-log-view.tsx": "filter",
   "features/admin/bank-availability-view.tsx": "mutation",
   "features/admin/banks-view.tsx": "mutation",
   "features/admin/broadcast-view.tsx": "mutation",
