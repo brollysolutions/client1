@@ -9,11 +9,11 @@ Evidence baseline: `abcc1fd`
 verified Admin operational-visibility work in
 [PR #173](https://github.com/brollysolutions/client1/pull/173).
 
-**Done on branch - Sub Admin Campaign Studio, campaign Media Library, and
-Admin approval desk:**
+**Done - [PR #259](https://github.com/brollysolutions/client1/pull/259) - Sub
+Admin Campaign Studio, campaign Media Library, and Admin approval desk:**
 `codex/20260828-222513-banners-and-offers-are-managed-by-subadmin`
-(PR pending; direct user instruction; no formal requirement or
-completion-percentage change) moves banner and authenticated-offer authoring
+(direct user instruction; no formal requirement or completion-percentage
+change) moves banner and authenticated-offer authoring
 entirely to the shared Sub Admin team. Admin now has a read-only approval desk
 with production-matched desktop/tablet/mobile previews, approve, reasoned
 change request, and audited soft removal; removed campaigns are excluded from
@@ -52,7 +52,7 @@ review fixed public-object cleanup on failed media transactions and blank-note
 normalization; design review removed redundant campaign chips, associated new
 controls, preserved unsaved-upload confirmation, and added picker error/archive
 states. Final security, responsive/accessibility, and maintainer review found no
-remaining actionable issue. PR linkage is recorded after the branch is pushed.
+remaining actionable issue. Delivery is linked in PR #259.
 
 **Done — [PR #258](https://github.com/brollysolutions/client1/pull/258) —
 invitation, staff access, finance, banner, offer, and responsive-dashboard

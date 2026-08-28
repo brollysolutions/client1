@@ -492,10 +492,11 @@ authenticated-dashboard renderers at desktop, tablet, and mobile widths.
 Provider logos remain Admin-governed inside Financial Providers, while property,
 KYC, loan, task, and other private operational media remain purpose-segregated.
 
-**Implementation status:** Implemented on
-`codex/20260828-222513-banners-and-offers-are-managed-by-subadmin`; final PR and
-verification evidence are recorded in the living plan and status ledger at
-shipping. The additive schema/RLS migration, generated contracts, Campaign
+**Implementation status:** Implemented in
+[PR #259](https://github.com/brollysolutions/client1/pull/259) on
+`codex/20260828-222513-banners-and-offers-are-managed-by-subadmin`; verification
+evidence is recorded in the living plan and status ledger. The additive
+schema/RLS migration, generated contracts, Campaign
 Studio, approval desk, Media Library, serving exclusions, optimistic versions,
 maker notifications, usage-safe deletion, and three generated starter assets
 implement the decision without changing formal requirement coverage.
