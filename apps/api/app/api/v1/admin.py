@@ -62,11 +62,6 @@ from app.schemas.admin import (
 from app.schemas.audit_log import AuditLogListResponse, AuditLogRead
 from app.schemas.auth import MessageResponse
 from app.schemas.employee import TaskFeedbackMediaRead
-from app.schemas.field_visibility import (
-    FieldVisibilityEntryRead,
-    FieldVisibilityListResponse,
-    FieldVisibilityUpdateRequest,
-)
 from app.schemas.financial_catalog import (
     AdminProviderOfferListResponse,
     AdminProviderOfferRead,
@@ -131,16 +126,6 @@ from app.services.admin import (
 from app.services.admin_home import get_admin_home
 from app.services.audit_log import AuditEntryView
 from app.services.audit_log import list_for_admin as list_audit_log
-from app.services.field_visibility import (
-    FieldVisibilityModeNotAllowed,
-    UnknownFieldVisibilityKey,
-)
-from app.services.field_visibility import (
-    list_for_admin as list_field_visibility,
-)
-from app.services.field_visibility import (
-    update_for_admin as update_field_visibility,
-)
 from app.services.financial_catalog import (
     PROVIDER_LOGO_MAX_BYTES,
     ProductOrProviderNotFound,
@@ -234,72 +219,6 @@ from app.services.task_feedback import list_feedback_media
 from app.services.tasks import list_active_employees, list_tasks_for_admin
 
 router = APIRouter()
-
-
-def _to_field_visibility_read(definition, override) -> FieldVisibilityEntryRead:  # noqa: ANN001
-    return FieldVisibilityEntryRead(
-        id=override.id if override is not None else None,
-        target_role=definition.target_role,
-        entity=definition.entity,
-        field_key=definition.field_key,
-        label=definition.label,
-        mode=override.mode if override is not None else definition.default_mode,
-        default_mode=definition.default_mode,
-        allowed_modes=list(definition.allowed_modes),
-        locked=definition.locked,
-        lock_reason=definition.lock_reason,
-        updated_at=override.updated_at if override is not None else None,
-    )
-
-
-@router.get("/field-visibility", response_model=FieldVisibilityListResponse)
-async def get_field_visibility(
-    current_user: CurrentUser = Depends(require_platform_admin),
-    db: AsyncSession = Depends(get_db),
-) -> FieldVisibilityListResponse:
-    del current_user
-    rows = await list_field_visibility(db)
-    return FieldVisibilityListResponse(
-        entries=[_to_field_visibility_read(definition, override) for definition, override in rows]
-    )
-
-
-@router.put("/field-visibility", response_model=FieldVisibilityEntryRead)
-async def set_field_visibility(
-    payload: FieldVisibilityUpdateRequest,
-    current_user: CurrentUser = Depends(require_platform_admin),
-    db: AsyncSession = Depends(get_db),
-) -> FieldVisibilityEntryRead:
-    try:
-        config = await update_field_visibility(
-            db,
-            target_role=payload.target_role,
-            entity=payload.entity,
-            field_key=payload.field_key,
-            mode=payload.mode,
-            actor_uuid=current_user.id,
-            actor_role=current_user.role,
-        )
-    except UnknownFieldVisibilityKey as exc:
-        raise HTTPException(
-            status.HTTP_422_UNPROCESSABLE_CONTENT,
-            "This field is not part of the supported visibility catalogue.",
-        ) from exc
-    except FieldVisibilityModeNotAllowed as exc:
-        raise HTTPException(
-            status.HTTP_409_CONFLICT,
-            "This visibility mode is not allowed for the selected field.",
-        ) from exc
-
-    rows = await list_field_visibility(db)
-    for definition, override in rows:
-        if (
-            definition.target_role == config.target_role
-            and definition.entity == config.entity
-            and definition.field_key == config.field_key
-        ):
-            return _to_field_visibility_read(definition, override)
-    raise HTTPException(status.HTTP_500_INTERNAL_SERVER_ERROR, "Visibility catalogue mismatch.")
 
 
 @router.get("/home", response_model=AdminHomeResponse)

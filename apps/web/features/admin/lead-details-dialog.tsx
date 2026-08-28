@@ -46,19 +46,37 @@ function OwnershipBadge({ owner }: { owner?: string }) {
   return <Badge variant="outline">Owner: {owner ? OWNER_LABEL[owner] ?? owner : "None"}</Badge>;
 }
 
+/**
+ * Uncontrolled by default (it renders its own "Correct details" trigger). Pass
+ * `open`/`onOpenChange` to drive it from a clickable table row instead, in
+ * which case the trigger button is dropped.
+ */
 export function LeadDetailsDialog({
   leadId,
   leadName,
   onSaved,
+  open: controlledOpen,
+  onOpenChange,
 }: {
   leadId: string;
   leadName: string | null;
   onSaved?: () => void;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }) {
   const nameId = React.useId();
   const notesId = React.useId();
   const reasonId = React.useId();
-  const [open, setOpen] = React.useState(false);
+  const [uncontrolledOpen, setUncontrolledOpen] = React.useState(false);
+  const controlled = controlledOpen !== undefined;
+  const open = controlled ? controlledOpen : uncontrolledOpen;
+  const setOpen = React.useCallback(
+    (next: boolean) => {
+      if (controlled) onOpenChange?.(next);
+      else setUncontrolledOpen(next);
+    },
+    [controlled, onOpenChange],
+  );
   const [details, setDetails] = React.useState<LeadDetails | null>(null);
   const [name, setName] = React.useState("");
   const [notes, setNotes] = React.useState("");
@@ -121,12 +139,14 @@ export function LeadDetailsDialog({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button type="button" variant="outline">
-          <PencilLine className="h-4 w-4" />
-          Correct details
-        </Button>
-      </DialogTrigger>
+      {controlled ? null : (
+        <DialogTrigger asChild>
+          <Button type="button" variant="outline">
+            <PencilLine className="h-4 w-4" />
+            Correct details
+          </Button>
+        </DialogTrigger>
+      )}
       <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle>Correct lead details</DialogTitle>

@@ -34,11 +34,12 @@ import {
 } from "@/lib/admin-api";
 import {
   apiIssuesToFieldErrors,
-  e164PhoneError,
   emailError,
   focusFirstInvalidField,
   requiredTextError,
 } from "@/lib/form-validation";
+import { MobileInput } from "@/components/auth/mobile-input";
+import { isValidMobile, toE164 } from "@/lib/phone";
 
 import { TempCredentialPanel } from "./temp-credential-panel";
 import { OperationalUsersPanel } from "./operational-users-panel";
@@ -118,7 +119,11 @@ export function UserProvisioningView() {
     const next: Record<string, string> = {};
     const firstNameError = requiredTextError(form.first_name, "First name", 100);
     const lastNameError = requiredTextError(form.last_name, "Last name", 100);
-    const mobileError = e164PhoneError(form.mobile, { required: true });
+    const mobileError = !form.mobile.trim()
+      ? "Mobile number is required."
+      : isValidMobile(form.mobile)
+        ? undefined
+        : "Enter a valid 10-digit Indian mobile number.";
     const nextEmailError = emailError(form.email, { required: true });
     if (firstNameError) next.first_name = firstNameError;
     if (lastNameError) next.last_name = lastNameError;
@@ -136,7 +141,7 @@ export function UserProvisioningView() {
     const res = await createStaff({
       first_name: form.first_name.trim(),
       last_name: form.last_name.trim(),
-      mobile: form.mobile.trim(),
+      mobile: toE164(form.mobile),
       email: form.email.trim(),
       role: form.role,
       business_line: needsLine
@@ -260,12 +265,11 @@ export function UserProvisioningView() {
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div>
                     <Label htmlFor="mobile">Mobile number<RequiredIndicator /></Label>
-                    <Input
+                    <MobileInput
                       id="mobile"
+                      size="sm"
                       required
-                      inputMode="tel"
-                      placeholder="+919812345678"
-                      pattern="^\+[1-9]\d{6,14}$"
+                      placeholder="98765 43210"
                       value={form.mobile}
                       onChange={(event) => setField("mobile", event.target.value)}
                       aria-invalid={Boolean(fieldErrors.mobile)}
@@ -434,18 +438,20 @@ function ProvisioningResult({
         </p>
       </div>
 
-      {result.temp_password ? (
-        <TempCredentialPanel
-          mobile={result.mobile}
-          tempPassword={result.temp_password}
-          authUserUuid={result.auth_user_uuid}
-        />
-      ) : (
+      {result.temp_password ? null : (
         <p className="rounded-xl border border-border bg-muted/30 p-4 text-sm text-text-secondary">
           This mobile number already had an account. Its existing password still works, so no new
           credential was issued.
         </p>
       )}
+
+      {/* The link half is reachable either way — an account that kept its old
+          password still needs a route to the setup handoff. */}
+      <TempCredentialPanel
+        mobile={result.mobile}
+        tempPassword={result.temp_password ?? undefined}
+        authUserUuid={result.auth_user_uuid}
+      />
 
       <Button variant="outline" onClick={onReset}>
         <UserPlus className="h-4 w-4" aria-hidden="true" />

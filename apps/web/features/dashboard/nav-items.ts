@@ -258,6 +258,14 @@ export const NAV_ITEMS: readonly NavItem[] = [
     section: "operations",
   },
   {
+    key: "sub-admin-listing-submit",
+    label: "Submit a listing",
+    href: "/dashboard/property-submit",
+    icon: DASHBOARD_ICONS.propertySubmit,
+    capability: "subAdmin",
+    section: "operations",
+  },
+  {
     key: "sub-admin-referral-rules",
     label: "Referral rules",
     href: "/dashboard/referral-rules",
@@ -384,14 +392,6 @@ export const NAV_ITEMS: readonly NavItem[] = [
     section: "people",
   },
   {
-    key: "admin-access-control",
-    label: "Access control",
-    href: "/dashboard/access-control",
-    icon: DASHBOARD_ICONS.accessControl,
-    capability: "admin",
-    section: "people",
-  },
-  {
     key: "admin-payouts",
     label: "Payouts",
     href: "/dashboard/payouts",
@@ -463,7 +463,6 @@ export const DASHBOARD_ROUTE_RULES: readonly DashboardRouteRule[] = [
   { path: "/dashboard/leads/new", exact: true, capabilities: ["agent"] },
   { path: "/dashboard/offers/new", exact: true, capabilities: ["subAdmin"] },
   { path: "/dashboard/operations", exact: true, capabilities: ["admin"] },
-  { path: "/dashboard/access-control", exact: true, capabilities: ["admin"] },
   { path: "/dashboard/admin-leads", exact: true, capabilities: ["admin"] },
   { path: "/dashboard/admin-tasks", exact: true, capabilities: ["admin"] },
   { path: "/dashboard/agent", exact: true, capabilities: ["clientRealEstate"] },

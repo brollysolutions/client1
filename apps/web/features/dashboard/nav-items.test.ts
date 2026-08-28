@@ -158,6 +158,7 @@ describe("role-aware dashboard navigation", () => {
     expect(navKeys(context("sub_admin"))).toEqual([
       "home",
       "sub-admin-listings",
+      "sub-admin-listing-submit",
       "sub-admin-referral-rules",
       "banners",
       "offers",
@@ -166,6 +167,7 @@ describe("role-aware dashboard navigation", () => {
     expect(navKeys(context("sub_admin", null, "loans", undefined, ["payout_requests"]))).toEqual([
       "home",
       "sub-admin-listings",
+      "sub-admin-listing-submit",
       "sub-admin-referral-rules",
       "admin-payouts",
       "banners",
@@ -188,7 +190,6 @@ describe("role-aware dashboard navigation", () => {
       "admin-users",
       "admin-agents",
       "admin-support-tickets",
-      "admin-access-control",
       "admin-payouts",
       "admin-commissions",
       "admin-fee-cashbacks",

@@ -246,18 +246,25 @@ class RejectRequest(BaseModel):
 
 
 class ReraReviewRequest(BaseModel):
+    """One registry outcome, including withdrawing an earlier one.
+
+    `not_reviewed` is the un-verify: an Admin who verified the wrong row, or who
+    learns the registry entry changed, has to be able to take the claim back.
+    Like the other non-obvious outcomes it carries a mandatory note, so the audit
+    trail records *why* a verification was withdrawn rather than only that it was.
+    """
+
     status: ReraVerificationStatus
     note: str | None = Field(default=None, max_length=1000)
 
     @model_validator(mode="after")
     def validate_review(self) -> ReraReviewRequest:
-        if self.status == ReraVerificationStatus.NOT_REVIEWED:
-            raise ValueError("A review must record an outcome.")
         if (
             self.status
             in {
                 ReraVerificationStatus.MISMATCH,
                 ReraVerificationStatus.EXEMPTION_VERIFIED,
+                ReraVerificationStatus.NOT_REVIEWED,
             }
             and not (self.note or "").strip()
         ):

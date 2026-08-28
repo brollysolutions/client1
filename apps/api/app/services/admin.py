@@ -448,7 +448,7 @@ async def create_staff(
         body=(
             f"A new {role.value.replace('_', ' ')} account was provisioned ({profile.staff_code})."
         ),
-        href="/dashboard/staff",
+        href="/dashboard/users",
         exclude_user_uuid=actor_id,
     )
 

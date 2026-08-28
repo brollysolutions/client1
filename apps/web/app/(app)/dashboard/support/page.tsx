@@ -18,7 +18,8 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { FetchError } from "@/features/dashboard/fetch-error";
-import { ListPagination, useListPagination } from "@/features/dashboard/list-pagination";
+import { ListPagination } from "@/features/dashboard/list-states";
+import { useFilteredPage } from "@/features/dashboard/use-filtered-page";
 import { apiIssuesToFieldErrors, focusFirstInvalidField, requiredTextError } from "@/lib/form-validation";
 import { cn } from "@/lib/utils";
 import {
@@ -46,7 +47,7 @@ export default function SupportPage() {
   const [error, setError] = React.useState<string | null>(null);
   const [errorStatus, setErrorStatus] = React.useState<number | null>(null);
   const [reloadKey, setReloadKey] = React.useState(0);
-  const { page, pageItems, setPage } = useListPagination(tickets);
+  const { page, pageRows: pageItems, setPage, total } = useFilteredPage(tickets, null);
 
   const retry = React.useCallback(() => {
     setStatus("loading");
@@ -144,7 +145,7 @@ export default function SupportPage() {
               );
             })}
           </ul>
-          <ListPagination page={page} total={tickets.length} onPageChange={setPage} label="Support tickets pages" />
+          <ListPagination page={page} total={total} onPageChange={setPage} />
           </div>
         )}
       </section>

@@ -1,10 +1,9 @@
 "use client";
 
 import * as React from "react";
-import { FileText, Globe2, Landmark, Loader2 } from "lucide-react";
+import { FileText, Landmark, Loader2, SlidersHorizontal } from "lucide-react";
 import { toast } from "sonner";
 
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
@@ -40,26 +39,6 @@ function cloneForm(form: ProductFormDefinition): ProductFormDefinition {
   return JSON.parse(JSON.stringify(form)) as ProductFormDefinition;
 }
 
-function ReadOnlyList({ title, items }: { title: string; items: readonly string[] }) {
-  return (
-    <section className="rounded-xl border border-border bg-card p-4">
-      <h3 className="text-sm font-semibold text-text-primary">{title}</h3>
-      {items.length > 0 ? (
-        <ul className="mt-3 space-y-2 text-sm leading-6 text-text-secondary">
-          {items.map((item) => (
-            <li key={item} className="flex gap-2">
-              <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-brand-cta" />
-              <span>{item}</span>
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <p className="mt-2 text-sm text-text-secondary">No content is configured.</p>
-      )}
-    </section>
-  );
-}
-
 export function FinancialProductWorkspace({
   product,
   open,
@@ -71,7 +50,7 @@ export function FinancialProductWorkspace({
   onOpenChange: (open: boolean) => void;
   onSaved: (product: AdminLoanType) => void;
 }) {
-  const [tab, setTab] = React.useState("form");
+  const [tab, setTab] = React.useState("details");
   const [draftLabel, setDraftLabel] = React.useState("");
   const [draftActive, setDraftActive] = React.useState(true);
   const [draftPublicVisible, setDraftPublicVisible] = React.useState(false);
@@ -86,7 +65,7 @@ export function FinancialProductWorkspace({
 
   React.useEffect(() => {
     if (!product) return;
-    setTab("form");
+    setTab("details");
     setDraftLabel(product.label);
     setDraftActive(product.active);
     setDraftPublicVisible(product.public_visible);
@@ -140,6 +119,10 @@ export function FinancialProductWorkspace({
     setFieldErrors(next);
     setBuilderErrors(nextBuilderErrors);
     if (Object.keys(next).length > 0 || Object.keys(nextBuilderErrors).length > 0) {
+      // Inactive tab panels are unmounted, so reveal the tab that owns the first
+      // error before focusing — otherwise a save can fail with nothing on screen.
+      const errorTab = Object.keys(next).length > 0 ? "details" : "form";
+      setTab(errorTab);
       requestAnimationFrame(() => {
         if (workspaceRef.current) focusFirstInvalidField(workspaceRef.current);
       });
@@ -209,6 +192,10 @@ export function FinancialProductWorkspace({
               className="grid min-h-0 grid-rows-[auto_minmax(0,1fr)] pt-4"
             >
               <TabsList className="h-auto w-full justify-start overflow-x-auto">
+                <TabsTrigger value="details">
+                  <SlidersHorizontal className="h-4 w-4" aria-hidden="true" />
+                  Details
+                </TabsTrigger>
                 <TabsTrigger value="form">
                   <FileText className="h-4 w-4" aria-hidden="true" />
                   Application form
@@ -217,51 +204,16 @@ export function FinancialProductWorkspace({
                   <Landmark className="h-4 w-4" aria-hidden="true" />
                   Providers
                 </TabsTrigger>
-                <TabsTrigger value="public">
-                  <Globe2 className="h-4 w-4" aria-hidden="true" />
-                  Public page
-                </TabsTrigger>
               </TabsList>
 
-              <TabsContent value="form" className="mt-4 min-h-0 overflow-y-auto pr-1">
+              <TabsContent value="details" className="mt-4 min-h-0 overflow-y-auto pr-1">
                 <div className="mx-auto max-w-6xl space-y-5 pb-6">
-                  <div className="rounded-xl border border-border bg-muted/20 p-4">
-                    <h2 className="font-semibold text-text-primary">Application form</h2>
-                    <p className="mt-1 text-sm leading-6 text-text-secondary">
-                      Form changes are versioned. Existing submissions keep the exact schema they
-                      used, while new clients receive the next version.
-                    </p>
-                  </div>
-                  <FinancialProductFormBuilder
-                    category={product.category}
-                    value={draftForm}
-                    onChange={(next) => {
-                      setDraftForm(next);
-                      setBuilderErrors({});
-                    }}
-                    disabled={busy}
-                    errors={builderErrors}
-                  />
-                </div>
-              </TabsContent>
-
-              <TabsContent value="providers" className="mt-4 min-h-0 overflow-y-auto pr-1">
-                <ProviderOffersView product={product} />
-              </TabsContent>
-
-              <TabsContent value="public" className="mt-4 min-h-0 overflow-y-auto pr-1">
-                <div className="mx-auto max-w-6xl space-y-5 pb-6">
-                  <section className="rounded-xl border border-brand-cta/25 bg-brand-cta-tint p-4">
-                    <h2 className="font-semibold text-text-primary">Public copy is frozen</h2>
-                    <p className="mt-1 text-sm leading-6 text-text-secondary">
-                      This workspace shows the existing catalogue and landing-page copy for
-                      reference. It is intentionally not editable here. Catalogue visibility and
-                      ordering remain operational controls.
-                    </p>
-                  </section>
-
                   <section className="rounded-xl border border-border bg-card p-5">
                     <h2 className="font-semibold text-text-primary">Catalogue controls</h2>
+                    <p className="mt-1 text-sm leading-6 text-text-secondary">
+                      These drive the product name everywhere it appears, its place in the
+                      Financial Services catalogue, and whether clients can apply for it.
+                    </p>
                     <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                       <div className="grid gap-1.5 md:col-span-2 xl:col-span-1">
                         <Label htmlFor="product-workspace-label">
@@ -380,58 +332,33 @@ export function FinancialProductWorkspace({
                       {fieldErrors.featured}
                     </FieldError>
                   </section>
-
-                  <section className="rounded-xl border border-border bg-card p-5">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <h2 className="font-semibold text-text-primary">Public page copy</h2>
-                      <Badge variant={product.public_visible ? "default" : "outline"}>
-                        {product.public_visible ? "Currently public" : "Currently hidden"}
-                      </Badge>
-                    </div>
-                    <dl className="mt-4 grid gap-4 md:grid-cols-2">
-                      <div>
-                        <dt className="text-xs font-medium uppercase tracking-wide text-text-secondary">
-                          Card summary
-                        </dt>
-                        <dd className="mt-1 text-sm leading-6 text-text-primary">
-                          {product.public_summary || "No summary is configured."}
-                        </dd>
-                      </div>
-                      <div>
-                        <dt className="text-xs font-medium uppercase tracking-wide text-text-secondary">
-                          Page description
-                        </dt>
-                        <dd className="mt-1 whitespace-pre-wrap text-sm leading-6 text-text-primary">
-                          {product.public_description || "No description is configured."}
-                        </dd>
-                      </div>
-                    </dl>
-                  </section>
-
-                  <div className="grid gap-4 lg:grid-cols-3">
-                    <ReadOnlyList title="Highlights" items={product.public_highlights} />
-                    <ReadOnlyList title="General eligibility" items={product.public_eligibility} />
-                    <ReadOnlyList title="Documents to prepare" items={product.public_documents} />
-                  </div>
-
-                  <section className="rounded-xl border border-border bg-card p-5">
-                    <h2 className="font-semibold text-text-primary">FAQs</h2>
-                    {product.public_faq.length > 0 ? (
-                      <div className="mt-4 divide-y divide-border">
-                        {product.public_faq.map((item) => (
-                          <div key={item.question} className="py-4 first:pt-0 last:pb-0">
-                            <h3 className="text-sm font-medium text-text-primary">{item.question}</h3>
-                            <p className="mt-1 whitespace-pre-wrap text-sm leading-6 text-text-secondary">
-                              {item.answer}
-                            </p>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="mt-2 text-sm text-text-secondary">No FAQs are configured.</p>
-                    )}
-                  </section>
                 </div>
+              </TabsContent>
+
+              <TabsContent value="form" className="mt-4 min-h-0 overflow-y-auto pr-1">
+                <div className="mx-auto max-w-6xl space-y-5 pb-6">
+                  <div className="rounded-xl border border-border bg-muted/20 p-4">
+                    <h2 className="font-semibold text-text-primary">Application form</h2>
+                    <p className="mt-1 text-sm leading-6 text-text-secondary">
+                      Form changes are versioned. Existing submissions keep the exact schema they
+                      used, while new clients receive the next version.
+                    </p>
+                  </div>
+                  <FinancialProductFormBuilder
+                    category={product.category}
+                    value={draftForm}
+                    onChange={(next) => {
+                      setDraftForm(next);
+                      setBuilderErrors({});
+                    }}
+                    disabled={busy}
+                    errors={builderErrors}
+                  />
+                </div>
+              </TabsContent>
+
+              <TabsContent value="providers" className="mt-4 min-h-0 overflow-y-auto pr-1">
+                <ProviderOffersView product={product} />
               </TabsContent>
             </Tabs>
           </>

@@ -605,6 +605,105 @@ async def test_rera_review_is_admin_only_and_validates_exemption(client: AsyncCl
 
 
 @pytest.mark.asyncio
+async def test_rera_verification_can_be_withdrawn(client: AsyncClient) -> None:
+    """Un-verify: an Admin who verified in error has to be able to take it back."""
+    _, mobile = await full_registration(client, lines=["real_estate"])
+    uid = await _auth_user_uuid(mobile)
+    created = await client.post(
+        "/api/v1/property-submissions",
+        json=_payload(uid),
+        headers={"Authorization": f"Bearer {_agent_token(uid)}"},
+    )
+    submission_id = created.json()["id"]
+    admin_headers = {"Authorization": f"Bearer {_admin_token(uid)}"}
+
+    # Nothing has been reviewed yet, so there is nothing to withdraw.
+    nothing_to_withdraw = await client.post(
+        f"/api/v1/property-submissions/{submission_id}/rera-review",
+        json={"status": "not_reviewed", "note": "Premature."},
+        headers=admin_headers,
+    )
+    assert nothing_to_withdraw.status_code == 409
+
+    await _review_rera(client, submission_id, admin_headers)
+    approved = await client.post(
+        f"/api/v1/property-submissions/{submission_id}/approve",
+        headers=admin_headers,
+    )
+    assert approved.status_code == 200, approved.text
+    property_id = approved.json()["approved_property_id"]
+
+    # A withdrawal has to say why, like the other non-obvious outcomes.
+    unexplained = await client.post(
+        f"/api/v1/property-submissions/{submission_id}/rera-review",
+        json={"status": "not_reviewed", "note": None},
+        headers=admin_headers,
+    )
+    assert unexplained.status_code == 422
+
+    withdrawn = await client.post(
+        f"/api/v1/property-submissions/{submission_id}/rera-review",
+        json={"status": "not_reviewed", "note": "Verified against the wrong registry row."},
+        headers=admin_headers,
+    )
+    assert withdrawn.status_code == 200, withdrawn.text
+    assert withdrawn.json()["rera_verification_status"] == "not_reviewed"
+    assert withdrawn.json()["rera_verified_at"] is None
+
+    # The live listing must not keep serving as verified.
+    property_response = await client.get(
+        f"/api/v1/properties/{property_id}",
+        headers=admin_headers,
+    )
+    assert property_response.status_code == 200, property_response.text
+    assert property_response.json()["active"] is False
+    assert property_response.json()["rera_verification_status"] == "not_reviewed"
+
+
+@pytest.mark.asyncio
+async def test_withdrawn_rera_can_be_verified_again(client: AsyncClient) -> None:
+    _, mobile = await full_registration(client, lines=["real_estate"])
+    uid = await _auth_user_uuid(mobile)
+    created = await client.post(
+        "/api/v1/property-submissions",
+        json=_payload(uid),
+        headers={"Authorization": f"Bearer {_agent_token(uid)}"},
+    )
+    submission_id = created.json()["id"]
+    admin_headers = {"Authorization": f"Bearer {_admin_token(uid)}"}
+
+    await _review_rera(client, submission_id, admin_headers)
+    withdrawn = await client.post(
+        f"/api/v1/property-submissions/{submission_id}/rera-review",
+        json={"status": "not_reviewed", "note": "Registry lookup was inconclusive."},
+        headers=admin_headers,
+    )
+    assert withdrawn.status_code == 200, withdrawn.text
+
+    # Approval is blocked again while the claim stands unverified.
+    blocked = await client.post(
+        f"/api/v1/property-submissions/{submission_id}/approve",
+        headers=admin_headers,
+    )
+    assert blocked.status_code == 409
+
+    reverified = await client.post(
+        f"/api/v1/property-submissions/{submission_id}/rera-review",
+        json={"status": "verified", "note": None},
+        headers=admin_headers,
+    )
+    assert reverified.status_code == 200, reverified.text
+    assert reverified.json()["rera_verification_status"] == "verified"
+    assert reverified.json()["rera_verified_at"] is not None
+
+    approved = await client.post(
+        f"/api/v1/property-submissions/{submission_id}/approve",
+        headers=admin_headers,
+    )
+    assert approved.status_code == 200, approved.text
+
+
+@pytest.mark.asyncio
 async def test_reviewer_approve_preserves_legacy_image_without_managed_media(
     client: AsyncClient,
 ) -> None:

@@ -24,6 +24,10 @@ import { formatDate } from "@/lib/format";
  * `authUserUuid` is optional because the agent-approval flow reuses this panel
  * and issues agent codes, not staff invites; without it the link controls are
  * simply absent.
+ *
+ * `tempPassword` is optional for the mirror case: reopening an existing staff
+ * account long after provisioning. The one-time password is never stored, so it
+ * can never be shown again — only the link half of the handoff is reachable.
  */
 export function TempCredentialPanel({
   mobile,
@@ -31,14 +35,16 @@ export function TempCredentialPanel({
   authUserUuid,
 }: {
   mobile: string;
-  tempPassword: string;
+  tempPassword?: string;
   authUserUuid?: string;
 }) {
   const [copied, setCopied] = React.useState(false);
   const [link, setLink] = React.useState<StaffInviteLink | null>(null);
   const [busy, setBusy] = React.useState(false);
+  const [blocked, setBlocked] = React.useState<string | null>(null);
 
   async function copyPassword() {
+    if (!tempPassword) return;
     try {
       await navigator.clipboard.writeText(tempPassword);
       setCopied(true);
@@ -54,9 +60,16 @@ export function TempCredentialPanel({
     const response = await createStaffInviteLink(authUserUuid);
     setBusy(false);
     if (!response.ok) {
+      // 409 is the deliberate rule, not a failure: once someone has set their own
+      // password an Admin-minted link would be an account-takeover primitive.
+      if (response.status === 409) {
+        setBlocked(response.error);
+        return;
+      }
       toast.error("Couldn't create the invite link", { description: response.error });
       return;
     }
+    setBlocked(null);
     setLink(response.data);
     const url = `${window.location.origin}${response.data.share_path}`;
     if (navigator.share) {
@@ -123,7 +136,11 @@ export function TempCredentialPanel({
                 expires after seven days, and you can revoke it.
               </p>
 
-              {link ? (
+              {blocked ? (
+                <p className="mt-3 rounded-lg border border-border bg-card px-3 py-2 text-xs text-text-secondary">
+                  {blocked}
+                </p>
+              ) : link ? (
                 <div className="mt-3 space-y-2">
                   <code className="block truncate rounded-lg border border-border bg-card px-3 py-2 font-mono text-sm text-text-primary">
                     {link.share_path}
@@ -182,27 +199,39 @@ export function TempCredentialPanel({
         </div>
       ) : null}
 
-      <div className={authUserUuid ? "border-t border-brand-cta/20 pt-4" : undefined}>
-        <div className="flex items-start gap-2">
-          <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0 text-brand-cta" aria-hidden="true" />
-          <div className="min-w-0 flex-1">
-            <p className="text-sm font-medium text-text-primary">Shown once. Share it securely.</p>
-            <p className="mt-1 text-xs text-text-secondary">
-              This password will not be shown again. Share it with {mobile} out of band; they will
-              be forced to set a new password on first login.
-            </p>
-            <div className="mt-3 flex items-center gap-2">
-              <code className="flex-1 truncate rounded-lg border border-border bg-card px-3 py-2 font-mono text-sm text-text-primary">
-                {tempPassword}
-              </code>
-              <Button type="button" variant="outline" size="sm" onClick={() => void copyPassword()}>
-                {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                {copied ? "Copied" : "Copy"}
-              </Button>
+      {tempPassword ? (
+        <div className={authUserUuid ? "border-t border-brand-cta/20 pt-4" : undefined}>
+          <div className="flex items-start gap-2">
+            <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0 text-brand-cta" aria-hidden="true" />
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-medium text-text-primary">Shown once. Share it securely.</p>
+              <p className="mt-1 text-xs text-text-secondary">
+                This password will not be shown again. Share it with {mobile} out of band; they will
+                be forced to set a new password on first login.
+              </p>
+              <div className="mt-3 flex items-center gap-2">
+                <code className="flex-1 truncate rounded-lg border border-border bg-card px-3 py-2 font-mono text-sm text-text-primary">
+                  {tempPassword}
+                </code>
+                <Button type="button" variant="outline" size="sm" onClick={() => void copyPassword()}>
+                  {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                  {copied ? "Copied" : "Copy"}
+                </Button>
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      ) : (
+        <div className={authUserUuid ? "border-t border-brand-cta/20 pt-4" : undefined}>
+          <div className="flex items-start gap-2">
+            <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0 text-text-secondary" aria-hidden="true" />
+            <p className="text-xs text-text-secondary">
+              The one-time password issued when this account was created is not stored anywhere and
+              cannot be shown again. Send {mobile} a setup link instead.
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

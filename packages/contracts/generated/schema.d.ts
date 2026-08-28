@@ -439,24 +439,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/admin/field-visibility": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get Field Visibility */
-        get: operations["get_field_visibility_api_v1_admin_field_visibility_get"];
-        /** Set Field Visibility */
-        put: operations["set_field_visibility_api_v1_admin_field_visibility_put"];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/v1/admin/home": {
         parameters: {
             query?: never;
@@ -6421,62 +6403,6 @@ export interface components {
          * @enum {string}
          */
         FeeOutcome: "waived" | "cashback" | "none";
-        /** FieldVisibilityEntryRead */
-        FieldVisibilityEntryRead: {
-            /** Allowed Modes */
-            allowed_modes: ("allow" | "deny" | "share_link")[];
-            /**
-             * Default Mode
-             * @enum {string}
-             */
-            default_mode: "allow" | "deny" | "share_link";
-            /** Entity */
-            entity: string;
-            /** Field Key */
-            field_key: string;
-            /** Id */
-            id?: string | null;
-            /** Label */
-            label: string;
-            /** Lock Reason */
-            lock_reason?: string | null;
-            /** Locked */
-            locked: boolean;
-            /**
-             * Mode
-             * @enum {string}
-             */
-            mode: "allow" | "deny" | "share_link";
-            /**
-             * Target Role
-             * @enum {string}
-             */
-            target_role: "agent" | "telecaller" | "employee";
-            /** Updated At */
-            updated_at?: string | null;
-        };
-        /** FieldVisibilityListResponse */
-        FieldVisibilityListResponse: {
-            /** Entries */
-            entries: components["schemas"]["FieldVisibilityEntryRead"][];
-        };
-        /** FieldVisibilityUpdateRequest */
-        FieldVisibilityUpdateRequest: {
-            /** Entity */
-            entity: string;
-            /** Field Key */
-            field_key: string;
-            /**
-             * Mode
-             * @enum {string}
-             */
-            mode: "allow" | "deny" | "share_link";
-            /**
-             * Target Role
-             * @enum {string}
-             */
-            target_role: "agent" | "telecaller" | "employee";
-        };
         /** FinancialServiceEnquiryCreate */
         FinancialServiceEnquiryCreate: {
             /** Answers */
@@ -8732,7 +8658,15 @@ export interface components {
          * @enum {string}
          */
         ReraApplicability: "applicable" | "exemption_claimed" | "unsure";
-        /** ReraReviewRequest */
+        /**
+         * ReraReviewRequest
+         * @description One registry outcome, including withdrawing an earlier one.
+         *
+         *     `not_reviewed` is the un-verify: an Admin who verified the wrong row, or who
+         *     learns the registry entry changed, has to be able to take the claim back.
+         *     Like the other non-obvious outcomes it carries a mandatory note, so the audit
+         *     trail records *why* a verification was withdrawn rather than only that it was.
+         */
         ReraReviewRequest: {
             /** Note */
             note?: string | null;
@@ -10839,59 +10773,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["FeeCashbackPayoutResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_field_visibility_api_v1_admin_field_visibility_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["FieldVisibilityListResponse"];
-                };
-            };
-        };
-    };
-    set_field_visibility_api_v1_admin_field_visibility_put: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["FieldVisibilityUpdateRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["FieldVisibilityEntryRead"];
                 };
             };
             /** @description Validation Error */

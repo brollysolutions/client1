@@ -2,7 +2,18 @@
 
 import * as React from "react";
 import Image from "next/image";
-import { CheckCircle2, FileText, ImageOff, Inbox, Loader2, XCircle } from "lucide-react";
+import { useRouter } from "next/navigation";
+import {
+  CheckCircle2,
+  FileText,
+  ImageOff,
+  Inbox,
+  Loader2,
+  PencilLine,
+  Trash2,
+  Undo2,
+  XCircle,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -10,7 +21,15 @@ import { FieldError, RequiredIndicator } from "@/components/ui/field-error";
 import { Label } from "@/components/ui/label";
 import { PanoramaViewer } from "@/components/panorama-viewer";
 import { PropertyDetailsSummary } from "@/components/property-details-dialog";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { DashboardHeader, DashboardPage, DashboardPanel } from "@/features/dashboard/dashboard-ui";
 import {
@@ -36,7 +55,7 @@ import {
   WorkspaceDialogHeader,
   WorkspaceLayout,
 } from "@/features/dashboard/workspace-dialog";
-import { ListingLifecyclePanel } from "@/features/real-estate/listing-lifecycle-panel";
+import { PublishedListingsPanel } from "@/features/real-estate/published-listings-panel";
 import { useSubmissionQueue } from "@/features/real-estate/use-submission-queue";
 import { isInDateRange } from "@/lib/date-range";
 import { formatAge, formatDate, formatPaiseCompact } from "@/lib/format";
@@ -47,6 +66,7 @@ import {
   getSubmission,
   rejectSubmission,
   reviewSubmissionRera,
+  withdrawSubmission,
   type Submission,
 } from "@/lib/property-submissions-api";
 
@@ -54,8 +74,7 @@ import {
  * The listing approval queue (route `/dashboard/property-review`).
  *
  * Lives here rather than under `features/real-estate/` because it is an Admin
- * console — it already reached across for `admin-list-tools` through a relative
- * `../admin/` import. The submitting half of the same lifecycle stays in
+ * console. The submitting half of the same lifecycle stays in
  * `features/real-estate/`.
  *
  * The review itself is the richest in the codebase: a media grid with
@@ -65,12 +84,15 @@ import {
  * instead of stacked in a `max-w-3xl` column.
  */
 export function ListingApprovalsView() {
+  const router = useRouter();
   const { items, loading, error, reload } = useSubmissionQueue();
 
+  const [tab, setTab] = React.useState("pending");
   const [filters, setFilters] = React.useState<FilterBarValue>(EMPTY_FILTERS);
   const [sort, setSort] = React.useState<SortState>({ key: "created_at", dir: "asc" });
   const [active, setActive] = React.useState<Submission | null>(null);
   const [rejecting, setRejecting] = React.useState(false);
+  const [deleting, setDeleting] = React.useState<Submission | null>(null);
   const [note, setNote] = React.useState("");
   const [reraNote, setReraNote] = React.useState("");
   const [noteError, setNoteError] = React.useState<string>();
@@ -197,10 +219,26 @@ export function ListingApprovalsView() {
     }
   }
 
+  async function onDelete(submission: Submission) {
+    setBusy(true);
+    const result = await withdrawSubmission(submission.id);
+    setBusy(false);
+    if (!result.ok) {
+      toast.error("Could not delete listing", { description: result.error });
+      return;
+    }
+    setDeleting(null);
+    setActive(null);
+    toast.success("Listing deleted", { description: "It has been withdrawn from the queue." });
+    void reload();
+  }
+
   async function onReraReview(
     submission: Submission,
-    status: "verified" | "mismatch" | "exemption_verified",
+    status: "verified" | "mismatch" | "exemption_verified" | "not_reviewed",
   ) {
+    // Every outcome but a plain verification has to say why — withdrawing an
+    // earlier verification most of all, since it un-does a published claim.
     const validationError =
       status === "verified"
         ? optionalTextError(reraNote, "RERA review note", 1000)
@@ -216,7 +254,9 @@ export function ListingApprovalsView() {
     if (result.ok) {
       setActive(result.data);
       setReraNote("");
-      toast.success("RERA review saved");
+      toast.success(
+        status === "not_reviewed" ? "RERA verification withdrawn" : "RERA review saved",
+      );
       void reload();
     } else {
       toast.error("Could not save RERA review", { description: result.error });
@@ -302,13 +342,17 @@ export function ListingApprovalsView() {
         description="Review Agent, Admin, and Sub Admin listings before publishing them to the catalog."
       />
 
-      <DashboardPanel
-        title="Published listings"
-        description="Publish or hide an approved listing without changing its reviewed facts or media."
-      >
-        <ListingLifecyclePanel />
-      </DashboardPanel>
+      <Tabs value={tab} onValueChange={setTab} className="gap-5">
+        <TabsList>
+          <TabsTrigger value="pending">Awaiting review</TabsTrigger>
+          <TabsTrigger value="published">Published</TabsTrigger>
+        </TabsList>
 
+        <TabsContent value="published" className="space-y-5">
+          <PublishedListingsPanel onChanged={() => void reload()} />
+        </TabsContent>
+
+        <TabsContent value="pending" className="space-y-5">
       <FilterBar
         value={filters}
         onChange={setFilters}
@@ -318,7 +362,7 @@ export function ListingApprovalsView() {
         showLine={false}
         dateFromLabel="Submitted from"
         dateToLabel="Submitted to"
-        note="Every listing in this queue is awaiting a decision."
+        note="Every listing here is awaiting a decision. Open one to review, edit, or delete it."
       />
 
       {loading ? (
@@ -364,6 +408,9 @@ export function ListingApprovalsView() {
           </div>
         </DashboardPanel>
       )}
+
+        </TabsContent>
+      </Tabs>
 
       <Dialog open={active !== null} onOpenChange={(open) => !open && setActive(null)}>
         <DialogContent showCloseButton={false} className={WORKSPACE_DIALOG_CLASS}>
@@ -573,7 +620,25 @@ export function ListingApprovalsView() {
                         >
                           Mark mismatch
                         </Button>
+                        {active.rera_verification_status !== "not_reviewed" ? (
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            disabled={busy}
+                            onClick={() => void onReraReview(active, "not_reviewed")}
+                          >
+                            <Undo2 className="h-4 w-4" aria-hidden="true" />
+                            Unverify
+                          </Button>
+                        ) : null}
                       </div>
+                      {active.rera_verification_status !== "not_reviewed" ? (
+                        <p className="mt-2 text-xs text-text-secondary">
+                          Unverifying returns this listing to an unreviewed RERA state and, if it
+                          is already published, takes it off the public catalogue.
+                        </p>
+                      ) : null}
                     </div>
 
                     {rejecting ? (
@@ -636,6 +701,24 @@ export function ListingApprovalsView() {
                       ) : (
                         <>
                           <Button
+                            variant="ghost"
+                            onClick={() => setDeleting(active)}
+                            disabled={busy}
+                          >
+                            <Trash2 className="h-4 w-4" aria-hidden="true" />
+                            Delete
+                          </Button>
+                          <Button
+                            variant="outline"
+                            onClick={() =>
+                              router.push(`/dashboard/my-submissions/${active.id}/edit`)
+                            }
+                            disabled={busy}
+                          >
+                            <PencilLine className="h-4 w-4" aria-hidden="true" />
+                            Edit
+                          </Button>
+                          <Button
                             variant="outline"
                             onClick={() => setRejecting(true)}
                             disabled={busy}
@@ -667,6 +750,30 @@ export function ListingApprovalsView() {
               />
             </>
           ) : null}
+        </DialogContent>
+      </Dialog>
+      <Dialog open={deleting !== null} onOpenChange={(open) => !open && setDeleting(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Delete {deleting?.title}?</DialogTitle>
+            <DialogDescription>
+              The submission is withdrawn and leaves this queue. Its record and audit history are
+              retained, but it can no longer be reviewed, edited, or approved.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleting(null)} disabled={busy}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => deleting && void onDelete(deleting)}
+              disabled={busy}
+            >
+              {busy ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : null}
+              Delete listing
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </DashboardPage>
