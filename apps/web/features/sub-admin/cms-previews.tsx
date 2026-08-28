@@ -7,7 +7,6 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import type { HeroBanner } from "@/lib/banners";
 import type { Banner } from "@/lib/banners-api";
-import type { ContentBlock } from "@/lib/content-api";
 import type { Offer } from "@/lib/offers-api";
 import { isSafeLocalHref } from "@/lib/safe-local-href";
 import { cn } from "@/lib/utils";
@@ -21,7 +20,6 @@ export type BannerPreviewValue = Pick<
   rera_verified?: boolean;
 };
 export type OfferPreviewValue = Pick<Offer, "title" | "description" | "discount_type" | "discount_value" | "code">;
-export type ContentPreviewValue = Pick<ContentBlock, "title" | "body">;
 
 function decimalText(value: string): string {
   return value.includes(".") ? value.replace(/0+$/, "").replace(/\.$/, "") : value;
@@ -134,16 +132,5 @@ export function OfferPreview({ offer, context }: { offer: OfferPreviewValue; con
         {offer.code ? <p className="mt-4 text-sm text-text-secondary">Use code <code className="rounded-md border border-dashed border-border px-2 py-0.5 font-semibold">{offer.code}</code></p> : null}
       </CardContent>
     </Card>
-  );
-}
-
-export function ContentPreview({ block }: { block: ContentPreviewValue }) {
-  return (
-    <section className="w-full border-t border-[var(--nav-border)] bg-[var(--nav-bg)]">
-      <div className="mx-auto max-w-2xl px-4 py-12 text-center sm:px-6">
-        <h2 className="font-heading text-2xl font-semibold text-foreground sm:text-3xl">{block.title || "Content title"}</h2>
-        <p className="mt-4 whitespace-pre-wrap text-base text-text-secondary">{block.body || "Add body copy to see how this section will appear."}</p>
-      </div>
-    </section>
   );
 }

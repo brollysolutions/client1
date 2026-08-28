@@ -104,8 +104,6 @@ export const FORM_SURFACE_REGISTRY = {
   "features/sub-admin/banner-form.tsx": "mutation",
   "features/sub-admin/banners-view.tsx": "mutation",
   "features/sub-admin/banner-template-manager.tsx": "mutation",
-  "features/sub-admin/content-form.tsx": "mutation",
-  "features/sub-admin/content-view.tsx": "mutation",
   "features/sub-admin/offer-form.tsx": "mutation",
   "features/sub-admin/offers-view.tsx": "mutation",
   "features/sub-admin/property-campaign-select.tsx": "composite",

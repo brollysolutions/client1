@@ -1,5 +1,4 @@
 import type { Banner } from "@/lib/banners-api";
-import type { ContentBlock } from "@/lib/content-api";
 import type { Offer } from "@/lib/offers-api";
 import type { ReferralBonusConfig, ReferralPayoutActivity } from "@/lib/referral-bonus-api";
 
@@ -22,10 +21,6 @@ export function filterBanners(items: Banner[], filters: QueueFilters): Banner[] 
 
 export function filterOffers(items: Offer[], filters: QueueFilters): Offer[] {
   return items.filter((item) => includes(`${item.title} ${item.description ?? ""} ${item.code ?? ""}`, filters.search) && (filters.status === "all" || item.status === filters.status) && (filters.line === "all" || item.business_line === filters.line) && (filters.kind === "all" || item.discount_type === filters.kind) && inRange(item.starts_at ?? item.created_at, filters.from, filters.to));
-}
-
-export function filterContent(items: ContentBlock[], filters: QueueFilters): ContentBlock[] {
-  return items.filter((item) => includes(`${item.title} ${item.section} ${item.slug} ${item.body ?? ""}`, filters.search) && (filters.status === "all" || item.status === filters.status) && (filters.line === "all" || (filters.line === "global" ? item.business_line === null : item.business_line === filters.line)) && inRange(item.updated_at, filters.from, filters.to));
 }
 
 export function filterReferralRules(items: ReferralBonusConfig[], filters: QueueFilters): ReferralBonusConfig[] {

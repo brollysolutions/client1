@@ -2,7 +2,7 @@ import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
-import { BannerPreview, ContentPreview, formatOfferBadge, OfferPreview } from "./cms-previews";
+import { BannerPreview, formatOfferBadge, OfferPreview } from "./cms-previews";
 
 describe("CMS previews", () => {
   it("renders banner actions only for safe local destinations", () => {
@@ -67,9 +67,4 @@ describe("CMS previews", () => {
     expect(markup).not.toContain('aria-label="Dismiss sponsored message"');
   });
 
-  it("keeps website body copy as escaped plain text", () => {
-    const markup = renderToStaticMarkup(<ContentPreview block={{ title: "Safe copy", body: "<script>alert(1)</script>" }} />);
-    expect(markup).toContain("&lt;script&gt;");
-    expect(markup).not.toContain("<script>");
-  });
 });

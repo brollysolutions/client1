@@ -154,14 +154,13 @@ describe("role-aware dashboard navigation", () => {
     ]);
   });
 
-  it("makes the existing Sub Admin surfaces reachable without Client items", () => {
+  it("makes the supported Sub Admin surfaces reachable without Client items", () => {
     expect(navKeys(context("sub_admin"))).toEqual([
       "home",
       "sub-admin-listings",
       "sub-admin-referral-rules",
       "banners",
       "offers",
-      "content",
     ]);
 
     expect(navKeys(context("sub_admin", null, "loans", undefined, ["payout_requests"]))).toEqual([
@@ -171,7 +170,6 @@ describe("role-aware dashboard navigation", () => {
       "admin-payouts",
       "banners",
       "offers",
-      "content",
     ]);
   });
 
@@ -254,7 +252,8 @@ describe("dashboard direct-route UX access", () => {
     expect(isDashboardPathAllowed("/dashboard/banners", context("admin"))).toBe(true);
     expect(isDashboardPathAllowed("/dashboard/banners/new", context("admin"))).toBe(false);
     expect(isDashboardPathAllowed("/dashboard/banners/new", context("sub_admin"))).toBe(true);
-    expect(isDashboardPathAllowed("/dashboard/content", context("admin"))).toBe(true);
+    expect(isDashboardPathAllowed("/dashboard/content", context("admin"))).toBe(false);
+    expect(isDashboardPathAllowed("/dashboard/content", context("sub_admin"))).toBe(false);
     expect(isDashboardPathAllowed("/dashboard/audit-log", context("admin"))).toBe(true);
   });
 

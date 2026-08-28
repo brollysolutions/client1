@@ -284,17 +284,6 @@ export const NAV_ITEMS: readonly NavItem[] = [
     capability: "cms",
     section: "content",
   },
-  {
-    key: "content",
-    label: "Website content",
-    href: "/dashboard/content",
-    icon: DASHBOARD_ICONS.websiteContent,
-    // Admin retains its existing guarded oversight route, but this authoring
-    // workspace is intentionally not surfaced in the Admin navigation.
-    capability: "subAdmin",
-    section: "content",
-  },
-
   // Admin operations.
   {
     key: "admin-leads",
@@ -471,7 +460,6 @@ export type DashboardRouteRule = {
 export const DASHBOARD_ROUTE_RULES: readonly DashboardRouteRule[] = [
   { path: "/dashboard", exact: true, capabilities: ["shared"] },
   { path: "/dashboard/banners/new", exact: true, capabilities: ["subAdmin"] },
-  { path: "/dashboard/content/new", exact: true, capabilities: ["subAdmin"] },
   { path: "/dashboard/leads/new", exact: true, capabilities: ["agent"] },
   { path: "/dashboard/offers/new", exact: true, capabilities: ["subAdmin"] },
   { path: "/dashboard/operations", exact: true, capabilities: ["admin"] },
@@ -488,7 +476,6 @@ export const DASHBOARD_ROUTE_RULES: readonly DashboardRouteRule[] = [
   { path: "/dashboard/broadcast", exact: true, capabilities: ["admin"] },
   { path: "/dashboard/commissions", exact: true, capabilities: ["admin"] },
   { path: "/dashboard/compare", exact: true, capabilities: ["clientRealEstate"] },
-  { path: "/dashboard/content", capabilities: ["cms"] },
   { path: "/dashboard/documents", exact: true, capabilities: ["clientLoans"] },
   {
     path: "/dashboard/document-verification",

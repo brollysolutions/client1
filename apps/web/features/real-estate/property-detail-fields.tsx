@@ -10,6 +10,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { DashboardFormSection } from "@/features/dashboard/dashboard-ui";
 import {
   CONFIGURATION_OPTIONS,
   CONSTRUCTION_OPTIONS,
@@ -211,21 +212,22 @@ export function PropertyDetailFields({ form, errors, setField, setDetailField }:
   const d = form.details;
   if (!family) {
     return (
-      <section className="rounded-xl border border-dashed border-border bg-muted/20 p-5 text-sm text-text-secondary">
-        Choose a property type to see the required listing details.
-      </section>
+      <DashboardFormSection
+        title="Property details"
+        description="Choose a property type to see the required listing details."
+      >
+        <p className="text-sm text-text-secondary">The required facts adapt to the catalogue category you select.</p>
+      </DashboardFormSection>
     );
   }
 
   return (
     <>
-      <section className="grid gap-4 rounded-xl border border-border bg-muted/20 p-4 sm:grid-cols-2 sm:p-5">
-        <div className="sm:col-span-2">
-          <h2 className="text-sm font-semibold text-text-primary">Property details</h2>
-          <p className="mt-0.5 text-xs text-text-secondary">
-            These fields are tailored to the selected property type and will be reviewed before publication.
-          </p>
-        </div>
+      <DashboardFormSection
+        title="Property details"
+        description="These fields are tailored to the selected property type and will be reviewed before publication."
+      >
+        <div className="grid gap-4 sm:grid-cols-2">
 
         {family === "project" ? (
           <>
@@ -340,13 +342,14 @@ export function PropertyDetailFields({ form, errors, setField, setDetailField }:
             <Choice id="construction" label="Construction status" value={form.constructionStatus} onChange={(value) => setField("constructionStatus", value as SubmitFormState["constructionStatus"])} options={CONSTRUCTION_OPTIONS} error={errors.constructionStatus} />
           </>
         ) : null}
-      </section>
-
-      <section className="grid gap-4 rounded-xl border border-border bg-muted/20 p-4 sm:grid-cols-2 sm:p-5">
-        <div className="sm:col-span-2">
-          <h2 className="text-sm font-semibold text-text-primary">RERA applicability</h2>
-          <p className="mt-0.5 text-xs text-text-secondary">The registration number is optional. An Admin independently records the verification result before approval.</p>
         </div>
+      </DashboardFormSection>
+
+      <DashboardFormSection
+        title="RERA applicability"
+        description="The registration number is optional. An Admin independently records the verification result before approval."
+      >
+        <div className="grid gap-4 sm:grid-cols-2">
         <Choice
           id="rera-applicability"
           label="RERA status for this property"
@@ -359,8 +362,9 @@ export function PropertyDetailFields({ form, errors, setField, setDetailField }:
           ]}
           error={errors.reraApplicability}
         />
-        <Field id="rera-number" label="RERA registration number" value={form.reraNumber} onChange={(value) => setField("reraNumber", value)} error={errors.reraNumber} optional />
-      </section>
+          <Field id="rera-number" label="RERA registration number" value={form.reraNumber} onChange={(value) => setField("reraNumber", value)} error={errors.reraNumber} optional />
+        </div>
+      </DashboardFormSection>
     </>
   );
 }

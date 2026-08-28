@@ -2,7 +2,7 @@
 // read-only oversight, plus a read-only payout-activity feed.
 //
 // Thin typed wrapper over /api/v1/referral-bonus-config via lib/api/client.ts.
-// No lifecycle-advance calls (unlike offers/content-api) — active is a plain
+// No lifecycle-advance calls (unlike offers) — active is a plain
 // toggle set through updateReferralBonusConfig.
 
 import type { components } from "@contracts/generated/schema";

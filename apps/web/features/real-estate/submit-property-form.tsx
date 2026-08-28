@@ -18,7 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { DashboardFormPage } from "@/features/dashboard/dashboard-ui";
+import { DashboardFormPage, DashboardFormSection } from "@/features/dashboard/dashboard-ui";
 import { PROPERTY_SUBTYPE_GROUPS } from "@/lib/property-taxonomy";
 import type { Submission } from "@/lib/property-submissions-api";
 import { cn } from "@/lib/utils";
@@ -92,14 +92,10 @@ export function SubmitPropertyForm({ submission }: { submission?: Submission }) 
           void f.submit();
         }}
       >
-        {/* Basics */}
-        <section className="space-y-4 rounded-xl border border-border bg-muted/20 p-4 sm:p-5">
-          <div>
-            <h2 className="text-sm font-semibold text-text-primary">Listing basics</h2>
-            <p className="mt-0.5 text-xs text-text-secondary">
-              Provide the public title, property type, and catalogue category.
-            </p>
-          </div>
+        <DashboardFormSection
+          title="Listing basics"
+          description="Provide the public title, property type, and catalogue category."
+        >
           <div>
             <Label htmlFor="title">Listing name</Label>
             <Input id="title" value={f.form.title} onChange={(e) => f.setField("title", e.target.value)} maxLength={200} />
@@ -136,16 +132,13 @@ export function SubmitPropertyForm({ submission }: { submission?: Submission }) 
             </Select>
             <FieldError msg={f.errors.propertySubtype} />
           </div>
-        </section>
+        </DashboardFormSection>
 
-        {/* Location & price */}
-        <section className="grid gap-4 rounded-xl border border-border bg-muted/20 p-4 sm:grid-cols-2 sm:p-5">
-          <div className="sm:col-span-2">
-            <h2 className="text-sm font-semibold text-text-primary">Location and price</h2>
-            <p className="mt-0.5 text-xs text-text-secondary">
-              Add the searchable location fields and customer-facing price.
-            </p>
-          </div>
+        <DashboardFormSection
+          title="Location and price"
+          description="Add the searchable location fields and customer-facing price."
+        >
+          <div className="grid gap-4 sm:grid-cols-2">
           <div>
             <Label htmlFor="location">Location (display)</Label>
             <Input id="location" value={f.form.location} onChange={(e) => f.setField("location", e.target.value)} maxLength={160} />
@@ -179,7 +172,8 @@ export function SubmitPropertyForm({ submission }: { submission?: Submission }) 
             <p className="mt-1 text-xs text-text-secondary">Enter the amount in rupees.</p>
             <FieldError msg={f.errors.priceRupees} />
           </div>
-        </section>
+          </div>
+        </DashboardFormSection>
 
         <PropertyDetailFields
           form={f.form}
@@ -188,14 +182,10 @@ export function SubmitPropertyForm({ submission }: { submission?: Submission }) 
           setDetailField={f.setDetailField}
         />
 
-        {/* Amenities */}
-        <section className="space-y-4 rounded-xl border border-border bg-muted/20 p-4 sm:p-5">
-          <div>
-            <h2 className="text-sm font-semibold text-text-primary">Amenities or facilities</h2>
-            <p className="mt-0.5 text-xs text-text-secondary">
-              Add concise, customer-visible features one at a time.
-            </p>
-          </div>
+        <DashboardFormSection
+          title="Amenities or facilities"
+          description="Add concise, customer-visible features one at a time."
+        >
           <Label htmlFor="amenity">Feature</Label>
           <div className="flex gap-2">
             <Input id="amenity" value={amenityDraft}
@@ -216,16 +206,12 @@ export function SubmitPropertyForm({ submission }: { submission?: Submission }) 
               ))}
             </ul>
           )}
-        </section>
+        </DashboardFormSection>
 
-        {/* Managed media + meta */}
-        <section className="space-y-4 rounded-xl border border-border bg-muted/20 p-4 sm:p-5">
-          <div>
-            <h2 className="text-sm font-semibold text-text-primary">Media and review material</h2>
-            <p className="mt-0.5 text-xs text-text-secondary">
-              Public media is scanned and normalized; reviewer PDFs always remain private.
-            </p>
-          </div>
+        <DashboardFormSection
+          title="Media and review material"
+          description="Public media is scanned and normalized; reviewer PDFs always remain private."
+        >
           {f.editing ? (
             <div className="rounded-lg border border-border bg-card p-4 text-sm text-text-secondary">
               <p className="font-medium text-text-primary">Managed media retained</p>
@@ -361,7 +347,7 @@ export function SubmitPropertyForm({ submission }: { submission?: Submission }) 
             <Label htmlFor="meta">Short note</Label>
             <Textarea id="meta" value={f.form.meta} onChange={(e) => f.setField("meta", e.target.value)} maxLength={120} />
           </div>
-        </section>
+        </DashboardFormSection>
 
         <Button type="submit" disabled={f.submitting} className="w-full sm:w-auto">
           {f.submitting ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : null}
