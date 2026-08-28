@@ -71,14 +71,6 @@ export function emailError(
   return undefined;
 }
 
-export function e164PhoneError(value: string, { required = false } = {}): ValidationError {
-  const normalized = value.trim();
-  if (!normalized) return required ? "Mobile number is required." : undefined;
-  return /^\+[1-9]\d{6,14}$/.test(normalized)
-    ? undefined
-    : "Enter a valid international mobile number, including country code.";
-}
-
 export function piiFreeOperationalTextError(
   value: string,
   label: string,

@@ -8,7 +8,8 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { EMPTY_FILTERS, FilterBar, type FilterBarValue } from "@/features/dashboard/filter-bar";
 import type { PendingApprovalItem } from "@/lib/sub-admin-api";
 
-import { CmsWorkspaceHeader, CMS_WORKSPACE_DIALOG_CLASS } from "./cms-workspace";
+import { PANEL_DIALOG_WIDE_CLASS } from "@/features/dashboard/workspace-dialog";
+import { CmsWorkspaceHeader } from "./cms-workspace";
 import { PendingApprovalList } from "./pending-approval-list";
 
 export function PendingApprovalDialog({ items }: { items: PendingApprovalItem[] }) {
@@ -24,7 +25,7 @@ export function PendingApprovalDialog({ items }: { items: PendingApprovalItem[] 
       <div hidden={!open} />
       {open ? (
         <div className="contents">
-          <DialogContent showCloseButton={false} className={CMS_WORKSPACE_DIALOG_CLASS}>
+          <DialogContent showCloseButton={false} className={PANEL_DIALOG_WIDE_CLASS}>
             <CmsWorkspaceHeader title="Waiting on Admin" description={`Filter all ${items.length} approval items currently loaded for your work.`} />
             <div className="min-h-0 space-y-4 overflow-y-auto pt-1">
               <FilterBar value={filters} onChange={setFilters} searchLabel="Search approval items" searchPlaceholder="Title" showStatus={false} kindLabel="review types" kindOptions={[{ value: "banner", label: "Banner" }, { value: "property_submission", label: "Property listing" }]} note="Filters apply to the approval items already loaded for your role." />

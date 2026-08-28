@@ -38,12 +38,12 @@ import { useFilteredPage } from "@/features/dashboard/use-filtered-page";
 import type { VehicleArrangement, VehicleArrangementStatus } from "@/lib/admin-api";
 import { isInDateRange } from "@/lib/date-range";
 import {
-  e164PhoneError,
   focusFirstInvalidField,
   requiredTextError,
   type FieldErrors,
 } from "@/lib/form-validation";
-import { formatMobile } from "@/lib/phone";
+import { MobileInput } from "@/components/auth/mobile-input";
+import { formatMobile, isValidMobile, toE164 } from "@/lib/phone";
 
 import { useAdminVehicleArrangements } from "./use-admin-vehicle-arrangements";
 
@@ -153,7 +153,11 @@ export function AdminVehicleArrangementsView() {
       vehicle: requiredTextError(vehicle, "Vehicle make and model", 160),
       registration: requiredTextError(registration, "Registration number", 40),
       driver: requiredTextError(driver, "Driver name", 120),
-      driverMobile: e164PhoneError(driverMobile, { required: true }),
+      driverMobile: !driverMobile.trim()
+        ? "Driver mobile is required."
+        : isValidMobile(driverMobile)
+          ? undefined
+          : "Enter a valid 10-digit Indian mobile number.",
     };
     const nextErrors = Object.fromEntries(
       Object.entries(errors).filter(([, message]) => message),
@@ -171,7 +175,7 @@ export function AdminVehicleArrangementsView() {
       vehicle_make_model: vehicle.trim(),
       vehicle_registration: registration.trim(),
       driver_name: driver.trim(),
-      driver_mobile: driverMobile.trim(),
+      driver_mobile: toE164(driverMobile),
     });
     setBusyId(null);
     if (!result.ok) {
@@ -415,14 +419,13 @@ export function AdminVehicleArrangementsView() {
                     </div>
                     <div className="grid gap-2">
                       <Label htmlFor="driver-mobile">
-                        Driver mobile (E.164) <RequiredIndicator />
+                        Driver mobile <RequiredIndicator />
                       </Label>
-                      <Input
+                      <MobileInput
                         id="driver-mobile"
-                        type="tel"
-                        placeholder="+919876543210"
+                        size="sm"
+                        placeholder="98765 43210"
                         value={driverMobile}
-                        maxLength={16}
                         onChange={(event) => {
                           setDriverMobile(event.target.value);
                           setFieldErrors((current) => ({ ...current, driverMobile: undefined }));

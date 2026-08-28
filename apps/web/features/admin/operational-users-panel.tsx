@@ -38,6 +38,8 @@ import {
   type AdminUserQuery,
 } from "@/lib/admin-users-api";
 
+import { StaffAccountDialog } from "./staff-account-dialog";
+
 const STATUS_TONE: Record<string, StatusTone> = {
   active: "success",
   suspended: "danger",
@@ -95,6 +97,7 @@ export function OperationalUsersPanel() {
   const [pendingUser, setPendingUser] = React.useState<AdminUser | null>(null);
   const [reason, setReason] = React.useState("");
   const [reasonError, setReasonError] = React.useState<string>();
+  const [openUser, setOpenUser] = React.useState<AdminUser | null>(null);
 
   const [filters, setFilters] = React.useState<FilterBarValue>(EMPTY_FILTERS);
   const [loginFilter, setLoginFilter] = React.useState("all");
@@ -166,6 +169,7 @@ export function OperationalUsersPanel() {
       return;
     }
     setUsers((current) => current.map((item) => (item.id === pendingUser.id ? result.data : item)));
+    setOpenUser((current) => (current?.id === pendingUser.id ? result.data : current));
     setPendingUser(null);
     toast.success(status === "active" ? "Account reactivated" : "Account suspended", {
       description:
@@ -239,9 +243,11 @@ export function OperationalUsersPanel() {
           size="sm"
           variant="outline"
           disabled={busy === user.id || !ACTIONABLE_STATUSES.includes(user.status)}
-          // The row itself is not clickable — this is the only thing to do with
-          // an account here, so a whole-row target would be a lie.
-          onClick={() => beginUpdate(user)}
+          // The row opens the account; this shortcut must not open it too.
+          onClick={(event) => {
+            event.stopPropagation();
+            beginUpdate(user);
+          }}
         >
           {busy === user.id ? (
             <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
@@ -313,6 +319,8 @@ export function OperationalUsersPanel() {
                 columns={columns}
                 rows={users}
                 rowKey={(user) => user.id}
+                onRowClick={setOpenUser}
+                rowActionLabel="Open account"
                 minWidth="min-w-[900px]"
               />
             </div>
@@ -320,6 +328,16 @@ export function OperationalUsersPanel() {
           </>
         )}
       </div>
+
+      <StaffAccountDialog
+        user={openUser}
+        open={openUser !== null}
+        onOpenChange={(next) => !next && setOpenUser(null)}
+        onStatusAction={beginUpdate}
+        statusActionLabel={openUser?.status === "suspended" ? "Reactivate" : "Suspend"}
+        statusActionDisabled={openUser == null || !ACTIONABLE_STATUSES.includes(openUser.status)}
+        busy={openUser != null && busy === openUser.id}
+      />
 
       <Dialog open={pendingUser !== null} onOpenChange={(open) => !open && setPendingUser(null)}>
         <DialogContent>

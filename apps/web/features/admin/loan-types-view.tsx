@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { PackageOpen, Plus } from "lucide-react";
+import { Loader2, PackageOpen, Pencil, Plus } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -45,6 +45,7 @@ import { getProviderPresentationState } from "@/lib/loan-config";
 import {
   createLoanType,
   listProviderOffers,
+  updateLoanType,
   type AdminLoanType,
   type AdminProviderOffer,
   type ProductCategory,
@@ -115,7 +116,30 @@ export function LoanTypesView() {
   const [createErrors, setCreateErrors] = React.useState<Record<string, string>>({});
   const [filters, setFilters] = React.useState<FilterBarValue>(EMPTY_FILTERS);
   const [sort, setSort] = React.useState<SortState>({ key: "order", dir: "asc" });
+  const [stateBusy, setStateBusy] = React.useState<string | null>(null);
+  const [deactivating, setDeactivating] = React.useState<AdminLoanType | null>(null);
   const createFormRef = React.useRef<HTMLFormElement>(null);
+
+  // There is no delete for a financial product by design: historical applications
+  // keep the exact form version they were submitted against, so a product is
+  // retired by clearing its `active` flag rather than removed.
+  const setProductActive = React.useCallback(
+    async (product: AdminLoanType, active: boolean) => {
+      setStateBusy(product.id);
+      const response = await updateLoanType(product.id, { active });
+      setStateBusy(null);
+      setDeactivating(null);
+      if (!response.ok) {
+        toast.error(active ? "Couldn't activate product" : "Couldn't deactivate product", {
+          description: response.error,
+        });
+        return;
+      }
+      toast.success(active ? "Financial product activated" : "Financial product deactivated");
+      void reload();
+    },
+    [reload],
+  );
 
   const reloadOffers = React.useCallback(async () => {
     const response = await listProviderOffers();
@@ -244,8 +268,43 @@ export function LoanTypesView() {
           </div>
         ),
       },
+      {
+        key: "actions",
+        header: "Actions",
+        align: "right",
+        render: (product) => (
+          // The row itself opens the same workspace; these repeat it explicitly so
+          // editing and retiring a product are visible without discovering the row.
+          <div
+            className="flex justify-end gap-2"
+            onClick={(event) => event.stopPropagation()}
+            onKeyDown={(event) => event.stopPropagation()}
+          >
+            <Button size="sm" variant="outline" onClick={() => setActive(product)}>
+              <Pencil className="h-4 w-4" aria-hidden="true" />
+              Edit
+            </Button>
+            <Button
+              size="sm"
+              variant={product.active ? "outline" : "default"}
+              disabled={stateBusy === product.id}
+              onClick={() =>
+                product.active ? setDeactivating(product) : void setProductActive(product, true)
+              }
+            >
+              {stateBusy === product.id ? (
+                <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+              ) : product.active ? (
+                "Deactivate"
+              ) : (
+                "Activate"
+              )}
+            </Button>
+          </div>
+        ),
+      },
     ],
-    [liveProviderCount, offersLoaded],
+    [liveProviderCount, offersLoaded, setProductActive, stateBusy],
   );
 
   async function onCreate(event: React.FormEvent) {
@@ -301,7 +360,7 @@ export function LoanTypesView() {
         kindLabel="Categories"
         showLine={false}
         showDates={false}
-        note="Select a row to configure its form, providers, and public-page state."
+        note="Open a row to edit its details, application form, and providers. Deactivate retires a product without losing its history."
       />
 
       <DashboardPanel
@@ -442,6 +501,33 @@ export function LoanTypesView() {
         </DialogContent>
       </Dialog>
 
+      <Dialog open={deactivating !== null} onOpenChange={(open) => !open && setDeactivating(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Deactivate {deactivating?.label}?</DialogTitle>
+            <DialogDescription>
+              It disappears from the public Financial Services catalogue and no client can start
+              a new application for it. Applications already submitted keep the exact form
+              version they used, and you can activate it again at any time.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeactivating(null)} disabled={stateBusy !== null}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={stateBusy !== null}
+              onClick={() => deactivating && void setProductActive(deactivating, false)}
+            >
+              {stateBusy !== null ? (
+                <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+              ) : null}
+              Deactivate product
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       <FinancialProductWorkspace
         product={active}
         open={active !== null}

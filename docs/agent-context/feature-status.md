@@ -266,11 +266,16 @@ catalogue and provider configuration** on
 `claude/20260827-admin-subadmin-ui-foundation` (direct user instruction; no
 requirement or completion-percentage change): Financial products is now a
 filterable, sortable, paginated table rather than a stack of edit cards. Each
-row opens one full-screen product workspace with separate Application form,
-Providers, and Public page tabs. Form edits keep the existing versioned schema
-contract. The Public page tab exposes active/visibility/feature/order controls
-but renders the existing public summary, description, highlights, eligibility,
-documents, and FAQs read-only, preserving the explicit frozen-copy boundary.
+row opens one full-screen product workspace with separate Details, Application
+form, and Providers tabs. Form edits keep the existing versioned schema
+contract. The Details tab carries the editable name/active/visibility/feature/
+order controls; the read-only public summary, description, highlights,
+eligibility, documents, and FAQs were removed from the workspace, so the
+frozen-copy boundary is now expressed by their absence rather than by a
+read-only rendering. The catalogue table carries explicit Edit and
+Activate/Deactivate row actions; there is still no hard delete, because
+historical applications keep the exact form version they were submitted
+against.
 The top-level surface now has only Product catalogue and Providers & logos;
 provider availability and public offers live together inside the selected
 product instead of competing as global tabs.

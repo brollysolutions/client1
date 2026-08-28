@@ -36,16 +36,25 @@ function IndiaFlag({ className }: { className?: string }) {
 // always a clean <=10-digit string.
 type MobileInputProps = Omit<
   React.ComponentProps<"input">,
-  "type" | "inputMode" | "className"
->;
+  "type" | "inputMode" | "className" | "size"
+> & {
+  /**
+   * "default" matches the tall auth/public fields; "sm" matches the dashboard
+   * `Input` (h-9), so this can sit in a staff form row without towering over the
+   * fields beside it. Shadows the native (and here meaningless) input `size`.
+   */
+  size?: "default" | "sm";
+};
 
 function MobileInput({
   id,
   disabled,
   onChange,
+  size = "default",
   "aria-invalid": ariaInvalid,
   ...props
 }: MobileInputProps) {
+  const compact = size === "sm";
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
     // Digits only, strip a pasted +91 / leading 0, hard-cap at 10.
     const capped = normalizeMobile(e.target.value).slice(0, 10);
@@ -57,13 +66,19 @@ function MobileInput({
     <div
       data-slot="mobile-input"
       className={cn(
-        "flex h-12 w-full min-w-0 items-center rounded-lg border border-input bg-transparent shadow-xs transition-[color,box-shadow] dark:bg-input/30",
+        "flex w-full min-w-0 items-center border border-input bg-transparent shadow-xs transition-[color,box-shadow] dark:bg-input/30",
+        compact ? "h-9 rounded-md" : "h-12 rounded-lg",
         "focus-within:border-ring focus-within:ring-[3px] focus-within:ring-ring/50",
         "has-[input[aria-invalid=true]]:border-destructive has-[input[aria-invalid=true]]:ring-destructive/20 dark:has-[input[aria-invalid=true]]:ring-destructive/40",
         "has-[input:disabled]:pointer-events-none has-[input:disabled]:cursor-not-allowed has-[input:disabled]:opacity-50"
       )}
     >
-      <span className="flex items-center gap-2 self-stretch border-r border-input pr-3.5 pl-4 text-base text-text-primary select-none">
+      <span
+        className={cn(
+          "flex items-center gap-2 self-stretch border-r border-input text-text-primary select-none",
+          compact ? "pr-2.5 pl-3 text-base md:text-sm" : "pr-3.5 pl-4 text-base",
+        )}
+      >
         <IndiaFlag />
         +91
       </span>
@@ -74,7 +89,10 @@ function MobileInput({
         disabled={disabled}
         aria-invalid={ariaInvalid}
         onChange={handleChange}
-        className="h-full w-full min-w-0 rounded-r-lg bg-transparent px-3.5 py-1 text-base outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed"
+        className={cn(
+          "h-full w-full min-w-0 bg-transparent py-1 outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed",
+          compact ? "rounded-r-md px-3 text-base md:text-sm" : "rounded-r-lg px-3.5 text-base",
+        )}
         {...props}
       />
     </div>

@@ -23,7 +23,7 @@ import {
 import { ListEmptyState, ListLoadingState, ListPagination } from "@/features/dashboard/list-states";
 import { StatusBadge, type StatusTone } from "@/features/dashboard/status-badge";
 import { useFilteredPage } from "@/features/dashboard/use-filtered-page";
-import { WORKSPACE_DIALOG_CLASS, WorkspaceDialogHeader, WorkspaceLayout } from "@/features/dashboard/workspace-dialog";
+import { PANEL_DIALOG_CLASS, WorkspaceDialogHeader, WorkspaceLayout } from "@/features/dashboard/workspace-dialog";
 import {
   PropertyDealProgressControls,
   STATUS_LABEL,
@@ -199,7 +199,7 @@ export function PropertyDealsView() {
       )}
 
       <Dialog open={active !== null} onOpenChange={(open) => !open && setActiveId(null)}>
-        <DialogContent showCloseButton={false} className={WORKSPACE_DIALOG_CLASS}>
+        <DialogContent showCloseButton={false} className={PANEL_DIALOG_CLASS}>
           {active ? (
             <>
               <WorkspaceDialogHeader

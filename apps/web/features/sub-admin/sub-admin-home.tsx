@@ -1,9 +1,12 @@
 "use client";
 
 import * as React from "react";
-import { Clock } from "lucide-react";
+import { Clock, IndianRupee } from "lucide-react";
 
 import { Skeleton } from "@/components/ui/skeleton";
+import { DataTable, DataTablePrimaryCell } from "@/features/dashboard/data-table";
+import { ListEmptyState } from "@/features/dashboard/list-states";
+import { StatusBadge, type StatusTone } from "@/features/dashboard/status-badge";
 import { FetchError } from "@/features/dashboard/fetch-error";
 import { DASHBOARD_ICONS } from "@/features/dashboard/dashboard-icons";
 import {
@@ -16,12 +19,63 @@ import {
   MetricGrid,
   QuickActionGrid,
 } from "@/features/dashboard/dashboard-ui";
-import { formatPaiseCompact } from "@/lib/format";
+import { formatDate, formatPaiseCompact } from "@/lib/format";
 import { getSubAdminHome, type SubAdminHome as SubAdminHomeData } from "@/lib/sub-admin-api";
 import { PendingApprovalDialog } from "./pending-approval-dialog";
 import { PendingApprovalList } from "./pending-approval-list";
 
 type Status = "loading" | "ready" | "error";
+
+type ReferralPayoutRow = SubAdminHomeData["recent_referral_payouts"][number];
+
+const PAYOUT_TONE: Record<string, StatusTone> = {
+  paid: "success",
+  processing: "info",
+  pending: "warning",
+  failed: "danger",
+  reversed: "danger",
+};
+
+const LINE_LABEL: Record<string, string> = { loans: "Loans", real_estate: "Real Estate" };
+
+const PAYOUT_COLUMNS = [
+  {
+    key: "description",
+    header: "Payout",
+    render: (row: ReferralPayoutRow) => (
+      <DataTablePrimaryCell
+        title={row.description || "Referral payout"}
+        subtitle={LINE_LABEL[row.business_line] ?? row.business_line}
+      />
+    ),
+  },
+  {
+    key: "status",
+    header: "Status",
+    render: (row: ReferralPayoutRow) => (
+      <StatusBadge tone={PAYOUT_TONE[row.status] ?? "neutral"}>
+        {row.status.replaceAll("_", " ")}
+      </StatusBadge>
+    ),
+  },
+  {
+    key: "created_at",
+    header: "Raised",
+    render: (row: ReferralPayoutRow) => (
+      <span className="tabular-nums text-text-secondary">{formatDate(row.created_at)}</span>
+    ),
+  },
+  {
+    key: "amount_paise",
+    header: "Amount",
+    align: "right" as const,
+    render: (row: ReferralPayoutRow) => (
+      <span className="font-medium tabular-nums text-text-primary">
+        {formatPaiseCompact(row.amount_paise)}
+      </span>
+    ),
+  },
+];
 
 // Sub Admin's composed landing page (spec §6.1): pending-approval queue ->
 // live banners/offers -> recent referral payouts, backed by
@@ -116,23 +170,22 @@ export function SubAdminHome() {
         title="Recent referral payouts"
         description="Latest activity under the configured rules"
         action={<DashboardTextLink href="/dashboard/referral-rules">View rules</DashboardTextLink>}
+        bodyClassName="p-0"
       >
         {home.recent_referral_payouts.length === 0 ? (
-          <p className="text-sm text-text-secondary">No referral payouts yet.</p>
+          <ListEmptyState
+            icon={IndianRupee}
+            title="No referral payouts yet"
+            description="Payouts raised under the configured bonus rules will appear here."
+            className="m-5"
+          />
         ) : (
-          <ul className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
-            {home.recent_referral_payouts.map((row) => (
-              <li
-                key={row.id}
-                className="flex items-center justify-between gap-3 rounded-lg border border-border px-4 py-3 text-sm"
-              >
-                <span className="capitalize text-text-secondary">{row.status}</span>
-                <span className="font-medium tabular-nums text-text-primary">
-                  {formatPaiseCompact(row.amount_paise)}
-                </span>
-              </li>
-            ))}
-          </ul>
+          <DataTable
+            columns={PAYOUT_COLUMNS}
+            rows={home.recent_referral_payouts}
+            rowKey={(row) => row.id}
+            minWidth="min-w-[560px]"
+          />
         )}
       </DashboardPanel>
 

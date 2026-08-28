@@ -382,13 +382,19 @@ async def review_rera(
             sub.rera_applicability != ReraApplicability.EXEMPTION_CLAIMED
         ):
             raise InvalidReraReview
-        if outcome == ReraVerificationStatus.NOT_REVIEWED:
+        withdrawing = outcome == ReraVerificationStatus.NOT_REVIEWED
+        if withdrawing and sub.rera_verification_status == ReraVerificationStatus.NOT_REVIEWED:
+            # Nothing to take back; treat as a no-op rather than writing a
+            # reviewer stamp onto a row that was never reviewed.
             raise InvalidReraReview
 
         now = datetime.now(UTC)
         sub.rera_verification_status = outcome
-        sub.rera_verified_at = now
-        sub.rera_verified_by_uuid = reviewer_uuid
+        # Withdrawing clears the stamp: the row is genuinely un-reviewed again, so
+        # it must not keep pointing at a reviewer who no longer stands behind it.
+        # The note survives so the audit trail explains the withdrawal.
+        sub.rera_verified_at = None if withdrawing else now
+        sub.rera_verified_by_uuid = None if withdrawing else reviewer_uuid
         sub.rera_review_note = note.strip() if note else None
         catalogue_deactivated = False
         if sub.approved_property_id is not None:
@@ -396,9 +402,12 @@ async def review_rera(
             if prop is not None and (
                 sub.status == SubmissionStatus.APPROVED
                 or outcome == ReraVerificationStatus.MISMATCH
+                or withdrawing
             ):
                 _copy_rera_review(prop, sub)
-                if outcome == ReraVerificationStatus.MISMATCH and prop.active:
+                # A live listing must never keep serving as RERA-verified once the
+                # verification is gone — same rule that already covers a mismatch.
+                if (outcome == ReraVerificationStatus.MISMATCH or withdrawing) and prop.active:
                     prop.active = False
                     catalogue_deactivated = True
 
@@ -411,7 +420,7 @@ async def review_rera(
             actor_role=reviewer_role,
             business_line=sub.business_line,
             detail={
-                "operation": "rera_reviewed",
+                "operation": "rera_withdrawn" if withdrawing else "rera_reviewed",
                 "outcome": outcome.value,
                 "applicability": sub.rera_applicability.value,
                 "approved_property_uuid": (

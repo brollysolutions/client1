@@ -3,7 +3,6 @@ import { describe, expect, it, vi } from "vitest";
 import {
   decimalError,
   emailError,
-  e164PhoneError,
   apiIssuesToFieldErrors,
   boundedNumberFilter,
   fieldErrorProps,
@@ -25,13 +24,6 @@ describe("shared form validation", () => {
     expect(emailError("not-an-email")).toBe("Enter a valid email address.");
     expect(emailError(`${"a".repeat(245)}@example.com`)).toBe(
       "Email address must be 254 characters or fewer.",
-    );
-  });
-
-  it("validates international mobile numbers", () => {
-    expect(e164PhoneError("+919876543210", { required: true })).toBeUndefined();
-    expect(e164PhoneError("9876543210", { required: true })).toBe(
-      "Enter a valid international mobile number, including country code.",
     );
   });
 

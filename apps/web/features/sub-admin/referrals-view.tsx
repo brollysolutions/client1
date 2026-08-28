@@ -22,7 +22,7 @@ import { ListEmptyState, ListLoadingState, ListPagination } from "@/features/das
 import { StatusBadge, type StatusTone } from "@/features/dashboard/status-badge";
 import { useFilteredPage } from "@/features/dashboard/use-filtered-page";
 import {
-  WORKSPACE_DIALOG_CLASS,
+  PANEL_DIALOG_CLASS,
   WorkspaceDialogHeader,
 } from "@/features/dashboard/workspace-dialog";
 import { formatDate, formatPaise } from "@/lib/format";
@@ -331,7 +331,7 @@ export function ReferralsView() {
 
       {isAdmin ? null : (
         <Dialog open={createOpen} onOpenChange={closeCreate}>
-          <DialogContent showCloseButton={false} className={WORKSPACE_DIALOG_CLASS}>
+          <DialogContent showCloseButton={false} className={PANEL_DIALOG_CLASS}>
             <WorkspaceDialogHeader
               title="New bonus rule"
               description="Set eligibility and amount. This workspace never initiates or approves a payout."

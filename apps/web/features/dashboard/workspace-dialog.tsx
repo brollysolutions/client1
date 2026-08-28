@@ -10,18 +10,23 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 
 /**
- * The full-screen "floating window".
+ * Two dialog shapes for staff detail surfaces.
  *
- * Originally built for the Sub Admin CMS; it is now the detail surface for
- * every staff record heavy enough that a centred `sm:max-w-lg` dialog would
- * crush it — a loan application with its progress form and answer summary, a
- * property submission with its media grid and RERA panel, a financial product
- * with its form builder. Lighter records still use a plain centred
- * `DialogContent`.
+ * `WORKSPACE_DIALOG_CLASS` is the full-screen "floating window": a fixed
+ * 100dvh sheet anchored to the viewport. Reserve it for bodies that genuinely
+ * need the whole screen and whose height does not follow their content — a
+ * financial product's form builder, a CMS draft beside its live preview, a
+ * property submission with its media grid and RERA panel.
  *
- * Pair with `showCloseButton={false}` and render `WorkspaceDialogHeader`, which
- * owns the close control so it aligns with the title rather than floating over
- * the content.
+ * `PANEL_DIALOG_CLASS` is the default for everything else: a centred dialog
+ * that grows with its content and stops at `max-h-[85vh]`, so a short progress
+ * form no longer paints a full-screen sheet around itself. Reach for
+ * `PANEL_DIALOG_WIDE_CLASS` only when the body is a two-column
+ * `WorkspaceLayout` that cannot fit in `max-w-3xl`.
+ *
+ * Pair any of them with `showCloseButton={false}` and render
+ * `WorkspaceDialogHeader`, which owns the close control so it aligns with the
+ * title rather than floating over the content.
  */
 export const WORKSPACE_DIALOG_CLASS =
   "!top-4 !left-4 !grid h-[calc(100dvh-2rem)] !w-[calc(100%-2rem)] !max-w-none !translate-x-0 !translate-y-0 grid-rows-[auto_minmax(0,1fr)] overflow-hidden rounded-xl p-5 sm:!max-w-none sm:p-6";
@@ -29,6 +34,18 @@ export const WORKSPACE_DIALOG_CLASS =
 /** Same shape, with a third row for a filter bar between header and body. */
 export const WORKSPACE_DIALOG_FILTERED_CLASS =
   "!top-4 !left-4 !grid h-[calc(100dvh-2rem)] !w-[calc(100%-2rem)] !max-w-none !translate-x-0 !translate-y-0 grid-rows-[auto_auto_minmax(0,1fr)] overflow-hidden rounded-xl p-5 sm:!max-w-none sm:p-6";
+
+/** Centred, content-sized. The default detail surface. */
+export const PANEL_DIALOG_CLASS =
+  "!grid max-h-[85vh] w-[calc(100%-2rem)] !max-w-3xl grid-rows-[auto_minmax(0,1fr)] overflow-hidden rounded-xl p-5 sm:p-6";
+
+/** Content-sized, with a third row for a filter bar between header and body. */
+export const PANEL_DIALOG_FILTERED_CLASS =
+  "!grid max-h-[85vh] w-[calc(100%-2rem)] !max-w-5xl grid-rows-[auto_auto_minmax(0,1fr)] overflow-hidden rounded-xl p-5 sm:p-6";
+
+/** Content-sized, for a two-column `WorkspaceLayout` that needs more width. */
+export const PANEL_DIALOG_WIDE_CLASS =
+  "!grid max-h-[85vh] w-[calc(100%-2rem)] !max-w-5xl grid-rows-[auto_minmax(0,1fr)] overflow-hidden rounded-xl p-5 sm:p-6";
 
 export function WorkspaceDialogHeader({
   title,

@@ -29,7 +29,6 @@ export const ADMIN_FREQUENT_ACTIONS = [
   { href: "/dashboard/document-verification", title: "Document verification", description: "Review field and client-provided documents.", icon: DASHBOARD_ICONS.documentVerification },
   { href: "/dashboard/payouts", title: "Payouts", description: "Create, approve, and monitor payout workflows.", icon: DASHBOARD_ICONS.payouts },
   { href: "/dashboard/support-tickets", title: "Support tickets", description: "Triage account and access requests.", icon: DASHBOARD_ICONS.supportTickets },
-  { href: "/dashboard/access-control", title: "Access control", description: "Manage supported field visibility by role.", icon: DASHBOARD_ICONS.accessControl },
   { href: "/dashboard/analytics", title: "Analytics", description: "Review line and agent performance reports.", icon: DASHBOARD_ICONS.analytics },
   { href: "/dashboard/loan-config", title: "Financial products", description: "Manage client forms and lender availability.", icon: DASHBOARD_ICONS.loanConfiguration },
   { href: "/dashboard/admin-leads", title: "Lead assignments", description: "Review lead ownership and assignment status.", icon: DASHBOARD_ICONS.leads },

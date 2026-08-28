@@ -336,16 +336,23 @@ ADMIN_OPERATIONAL_COVERAGE: dict[str, AdminCoverageEntry] = {
     ),
     "field_visibility_config": _entry(
         domain="Role field-visibility configuration",
-        view_mode=AdminViewMode.FULL,
-        view_coverage=CoverageState.COVERED,
-        update_mode=AdminUpdateMode.CONFIGURATION_COMMAND,
-        update_coverage=CoverageState.COVERED,
+        view_mode=AdminViewMode.AUDIT_ONLY,
+        view_coverage=CoverageState.GAP,
+        update_mode=AdminUpdateMode.SERVICE_MANAGED,
+        update_coverage=CoverageState.GAP,
         audit_coverage=CoverageState.COVERED,
-        api_surfaces=("/api/v1/admin/field-visibility",),
-        ui_surfaces=("/dashboard/access-control",),
+        api_surfaces=(),
+        ui_surfaces=(),
+        gap=(
+            "Gap: the Admin configuration surface was withdrawn; the policy is frozen "
+            "at the server-owned defaults until it is reinstated."
+        ),
         rls_expectation="Only platform Admin may write the closed server-owned catalogue.",
         audit_expectation="Every policy change appends field_visibility_updated without field values.",
-        rationale="Closed keys and modes prevent arbitrary JSON-path policy creation.",
+        rationale=(
+            "With no write surface the runtime projection reads the closed catalogue "
+            "defaults, so no arbitrary JSON-path policy can be created at all."
+        ),
     ),
     "financial_product_provider_offers": _entry(
         domain="Public product-provider offers",
