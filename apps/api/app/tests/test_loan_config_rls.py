@@ -301,15 +301,29 @@ async def test_delete_loan_type_rejected_even_for_admin(client: AsyncClient) -> 
 
 
 @pytest.mark.asyncio
-async def test_delete_bank_rejected_even_for_admin(client: AsyncClient) -> None:
+async def test_delete_bank_succeeds_for_admin(client: AsyncClient) -> None:
     bank_id, _ = await _seed_bank_and_loan_type()
 
     engine = _engine()
     try:
         async with engine.begin() as conn:
             await _set_ctx(conn, **ADMIN_CTX)
-            with pytest.raises(Exception):  # noqa: B017
-                await conn.execute(text("DELETE FROM banks WHERE id = :id"), {"id": bank_id})
+            result = await conn.execute(text("DELETE FROM banks WHERE id = :id"), {"id": bank_id})
+            assert result.rowcount == 1
+    finally:
+        await engine.dispose()
+
+
+@pytest.mark.asyncio
+async def test_delete_bank_rejected_for_sub_admin(client: AsyncClient) -> None:
+    bank_id, _ = await _seed_bank_and_loan_type()
+
+    engine = _engine()
+    try:
+        async with engine.begin() as conn:
+            await _set_ctx(conn, role="sub_admin", business_line="both", platform_scope="true")
+            result = await conn.execute(text("DELETE FROM banks WHERE id = :id"), {"id": bank_id})
+            assert result.rowcount == 0
     finally:
         await engine.dispose()
 

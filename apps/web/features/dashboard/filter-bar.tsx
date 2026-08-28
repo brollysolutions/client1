@@ -200,24 +200,22 @@ export function FilterBar({
             />
           </>
         ) : null}
+
+        {active && showClear ? (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="w-fit whitespace-nowrap"
+            onClick={() => (onClear ? onClear() : onChange(EMPTY_FILTERS))}
+          >
+            <X className="h-4 w-4" aria-hidden="true" />
+            Clear filters
+          </Button>
+        ) : null}
       </div>
 
-      {note || (active && showClear) ? (
-        <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-          <p className="text-xs text-text-secondary">{note}</p>
-          {active && showClear ? (
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={() => (onClear ? onClear() : onChange(EMPTY_FILTERS))}
-            >
-              <X className="h-4 w-4" aria-hidden="true" />
-              Clear filters
-            </Button>
-          ) : null}
-        </div>
-      ) : null}
+      {note ? <p className="mt-3 text-xs text-text-secondary">{note}</p> : null}
     </section>
   );
 }

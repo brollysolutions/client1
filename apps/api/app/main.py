@@ -22,6 +22,7 @@ from app.api.v1.admin_operations import router as admin_operations_router
 from app.api.v1.admin_vehicle_arrangements import router as admin_vehicle_arrangements_router
 from app.api.v1.agent import router as agent_router
 from app.api.v1.agent_applications import router as agent_applications_router
+from app.api.v1.agent_invites import router as agent_invites_router
 from app.api.v1.auth import router as auth_router
 from app.api.v1.banners import router as banners_router
 from app.api.v1.bookmarks import router as bookmarks_router
@@ -120,6 +121,7 @@ app.include_router(leads_router, prefix="/api/v1/leads", tags=["leads"])
 # Anonymous: a provisioned staff member setting their own password from an
 # Admin-issued invite link. Rate-limited per IP inside the router.
 app.include_router(staff_invites_router, prefix="/api/v1/staff-invites", tags=["staff-invites"])
+app.include_router(agent_invites_router, prefix="/api/v1/agent-invites", tags=["agent-invites"])
 app.include_router(
     agent_applications_router, prefix="/api/v1/agent-applications", tags=["agent-applications"]
 )

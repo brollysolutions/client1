@@ -199,7 +199,7 @@ class LoanApplication(Base):
         UUID(as_uuid=True), ForeignKey("loan_types.id"), nullable=False
     )
     bank_id: Mapped[uuid.UUID | None] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("banks.id", ondelete="SET NULL"), nullable=True
+        UUID(as_uuid=True), ForeignKey("banks.id", ondelete="RESTRICT"), nullable=True
     )
     preferred_provider_offer_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True),

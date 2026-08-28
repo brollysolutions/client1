@@ -35,6 +35,8 @@ CONTACT_INVITATION_RATE_IP = "contact_invitation_rate_ip:{ip}"
 # invitee out of accepting their own invitation.
 STAFF_INVITE_PREVIEW_RATE_IP = "staff_invite_preview_rate_ip:{ip}"
 STAFF_INVITE_ACCEPT_RATE_IP = "staff_invite_accept_rate_ip:{ip}"
+AGENT_INVITE_PREVIEW_RATE_IP = "agent_invite_preview_rate_ip:{ip}"
+AGENT_INVITE_ACCEPT_RATE_IP = "agent_invite_accept_rate_ip:{ip}"
 JWT_BLACKLIST = "jwt_blacklist:{jti}"
 REG_DATA = "reg_data:{mobile}"
 
@@ -239,6 +241,14 @@ def staff_invite_preview_rate_ip_key(ip: str) -> str:
 
 def staff_invite_accept_rate_ip_key(ip: str) -> str:
     return STAFF_INVITE_ACCEPT_RATE_IP.format(ip=ip)
+
+
+def agent_invite_preview_rate_ip_key(ip: str) -> str:
+    return AGENT_INVITE_PREVIEW_RATE_IP.format(ip=ip)
+
+
+def agent_invite_accept_rate_ip_key(ip: str) -> str:
+    return AGENT_INVITE_ACCEPT_RATE_IP.format(ip=ip)
 
 
 def jwt_blacklist_key(jti: str) -> str:

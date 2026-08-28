@@ -9,6 +9,56 @@ Evidence baseline: `abcc1fd`
 verified Admin operational-visibility work in
 [PR #173](https://github.com/brollysolutions/client1/pull/173).
 
+**Done on branch - Admin operational refinements for loan, filters, providers,
+staff layout, and Agent setup handoff:**
+`codex/20260828-123646-1-problem-with-the-floating-window-of`
+([PR #257](https://github.com/brollysolutions/client1/pull/257);
+direct user instruction; no requirement or completion-percentage change) makes
+the Admin loan-application window a bounded, content-sized wide panel; keeps
+Clear filters in the shared control grid instead of allocating a second action
+row; and gives Create staff account and Staff access equal desktop columns and
+matched panel height.
+
+Financial Providers now completes CRUD with guarded permanent deletion. Admin
+may delete only a provider with zero loan-application and zero configured-offer
+references; referenced providers remain disable-only. Application and offer
+counts are returned in the generated contract and shown in the provider table.
+The service locks the provider, rechecks both reference families, maps a final
+foreign-key race to `409`, appends `bank_deleted`, and cleans up only canonical
+managed logo objects after commit. An additive migration replaces the historical
+loan-application `SET NULL` foreign key with `RESTRICT`, grants Admin-only delete
+through RLS, and keeps availability rows as disposable cascading configuration.
+
+Agent approval now has the same safer link handoff as staff provisioning. A
+new Setup links tab lists approved active Agents still awaiting their first
+password, is refreshed whenever opened, and is paginated at ten rows; Admin can
+create/copy/share/revoke or replace a seven-day link immediately after approval
+or later. The public noindex `/agent-invite/{token}` page reuses the established
+password form. Link rows store only SHA-256 token hashes and lifecycle/identity
+foreign keys; a partial unique index permits one outstanding link per identity;
+Admin-only, column-scoped RLS protects issuance/revocation; anonymous preview
+and acceptance have separate IP budgets, rederive approved/profile/account
+eligibility, and consume the link atomically with password activation. Unknown,
+expired, used, and revoked tokens share one response, and audit details contain
+neither token nor applicant PII.
+
+Fresh evidence: API Ruff check/format and the exhaustive operational-coverage,
+route-authorization, business-line-classification, and platform-scope contracts
+pass. Eighty Docker-backed provider/invite/API/RLS and exhaustive-contract tests pass, covering
+unused deletion, application/offer refusal, role denial, link issue/reissue,
+revoke/expiry, password-policy non-consumption, acceptance/login, and delayed
+candidate removal. Web lint, strict typecheck, and all 80 files / 512 tests pass.
+The production build compiled, typechecked, and generated 90/90 pages before
+the established Windows standalone-symlink `EPERM`. Live Playwright at 1440px
+measured equal 554px staff panels, Clear filters on the same row, and the loan
+dialog at 1024x415 instead of 1408x968; the Agent Setup links tab loaded without
+console errors and the 390px body had no horizontal page overflow. The aggregate API run completed 1,799 passes / 22 failures in a
+stateful shared database; three new exhaustive-contract failures were fixed and
+pass in isolation, while the remaining failures are unrelated seeded-count,
+suite-order/RLS-state, payout/mobile, notification, telecaller, and vehicle
+tests outside this diff. Security, responsive design/accessibility, and
+maintainer review found no remaining change-owned issue.
+
 **Done on branch - restore one Alembic head after independent migrations:**
 `fix/merge-alembic-heads` addresses the Docker startup failure introduced when
 the Lead Details validation migration (`84a5b6c7d8e9`) and staff first-login

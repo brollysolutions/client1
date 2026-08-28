@@ -59,6 +59,11 @@ from app.schemas.admin import (
     StaffCreateResponse,
     StaffFeatureUpdateRequest,
 )
+from app.schemas.agent_invites import (
+    AgentInviteCandidateListResponse,
+    AgentInviteCandidateRead,
+    AgentInviteLinkRead,
+)
 from app.schemas.audit_log import AuditLogListResponse, AuditLogRead
 from app.schemas.auth import MessageResponse
 from app.schemas.employee import TaskFeedbackMediaRead
@@ -93,7 +98,7 @@ from app.schemas.support_tickets import (
     SupportTicketAdminRead,
     SupportTicketAdvanceRequest,
 )
-from app.services import staff_invites, storage
+from app.services import agent_invites, staff_invites, storage
 from app.services.account_deletion import (
     AccountAlreadyDeleted,
     AccountNotFound,
@@ -169,14 +174,17 @@ from app.services.loan_applications import (
 )
 from app.services.loan_applications import InvalidStatusTransition as InvalidLoanStatusTransition
 from app.services.loan_config import (
+    BankInUse,
     BankNotFound,
     DuplicateBankName,
     DuplicateLoanTypeName,
     InvalidProductForm,
     LoanTypeNotFound,
     bank_application_counts,
+    bank_offer_counts,
     create_bank,
     create_loan_type,
+    delete_bank,
     list_availability_entries,
     list_banks,
     list_loan_types,
@@ -533,6 +541,68 @@ async def revoke_staff_invite_link(
     try:
         await staff_invites.revoke_invite_link(db, link_uuid=link_id, actor_uuid=current_user.id)
     except staff_invites.StaffInviteNotFound as exc:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Invitation link not found.") from exc
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.get("/agent-invites", response_model=AgentInviteCandidateListResponse)
+async def list_agent_invite_candidates(
+    current_user: CurrentUser = Depends(require_platform_admin),
+    db: AsyncSession = Depends(get_db),
+) -> AgentInviteCandidateListResponse:
+    """List approved Agents who still need to choose their first password."""
+    candidates = await agent_invites.list_candidates(db)
+    return AgentInviteCandidateListResponse(
+        agents=[
+            AgentInviteCandidateRead.model_validate(candidate, from_attributes=True)
+            for candidate in candidates
+        ]
+    )
+
+
+@router.post(
+    "/agents/{application_id}/invite-link",
+    response_model=AgentInviteLinkRead,
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_agent_invite_link(
+    application_id: UUID,
+    current_user: CurrentUser = Depends(require_platform_admin),
+    db: AsyncSession = Depends(get_db),
+) -> AgentInviteLinkRead:
+    try:
+        link, token = await agent_invites.create_invite_link(
+            db,
+            application_uuid=application_id,
+            actor_uuid=current_user.id,
+            actor_role=current_user.role,
+        )
+    except agent_invites.AgentInviteNotAllowed as exc:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            "Only an active approved Agent who has not set a password can be invited.",
+        ) from exc
+    return AgentInviteLinkRead(
+        id=link.id,
+        share_path=f"/agent-invite/{token}",
+        expires_at=link.expires_at,
+    )
+
+
+@router.delete("/agent-invite-links/{link_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def revoke_agent_invite_link(
+    link_id: UUID,
+    current_user: CurrentUser = Depends(require_platform_admin),
+    db: AsyncSession = Depends(get_db),
+) -> Response:
+    try:
+        await agent_invites.revoke_invite_link(
+            db,
+            link_uuid=link_id,
+            actor_uuid=current_user.id,
+            actor_role=current_user.role,
+        )
+    except agent_invites.AgentInviteNotFound as exc:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Invitation link not found.") from exc
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
@@ -1137,7 +1207,7 @@ def _to_admin_loan_type_read(
     )
 
 
-def _to_admin_bank_read(bank, count: int) -> AdminBankRead:  # noqa: ANN001
+def _to_admin_bank_read(bank, count: int, offer_count: int = 0) -> AdminBankRead:  # noqa: ANN001
     return AdminBankRead(
         id=bank.id,
         name=bank.name,
@@ -1151,6 +1221,7 @@ def _to_admin_bank_read(bank, count: int) -> AdminBankRead:  # noqa: ANN001
         created_at=bank.created_at,
         updated_at=bank.updated_at,
         application_count=count,
+        offer_count=offer_count,
     )
 
 
@@ -1220,7 +1291,12 @@ async def list_admin_banks(
 ) -> AdminBankListResponse:
     banks = await list_banks(db)
     counts = await bank_application_counts(db)
-    return AdminBankListResponse(banks=[_to_admin_bank_read(b, counts.get(b.id, 0)) for b in banks])
+    offer_counts = await bank_offer_counts(db)
+    return AdminBankListResponse(
+        banks=[
+            _to_admin_bank_read(b, counts.get(b.id, 0), offer_counts.get(b.id, 0)) for b in banks
+        ]
+    )
 
 
 @router.post("/banks", response_model=AdminBankRead, status_code=status.HTTP_201_CREATED)
@@ -1268,7 +1344,31 @@ async def update_admin_bank(
             "Use a reviewed built-in logo or the managed provider-logo upload flow.",
         ) from exc
     counts = await bank_application_counts(db)
-    return _to_admin_bank_read(bank, counts.get(bank.id, 0))
+    offer_counts = await bank_offer_counts(db)
+    return _to_admin_bank_read(bank, counts.get(bank.id, 0), offer_counts.get(bank.id, 0))
+
+
+@router.delete("/banks/{bank_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_admin_bank(
+    bank_id: UUID,
+    current_user: CurrentUser = Depends(require_platform_admin),
+    db: AsyncSession = Depends(get_db),
+) -> Response:
+    try:
+        await delete_bank(
+            db,
+            bank_id,
+            actor_uuid=current_user.id,
+            actor_role=current_user.role,
+        )
+    except BankNotFound as exc:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Provider not found.") from exc
+    except BankInUse as exc:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            "This provider is referenced by an application or offer. Disable it instead.",
+        ) from exc
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 def _to_admin_provider_offer_read(
@@ -1415,7 +1515,8 @@ async def set_provider_logo(
             "Logo verification is temporarily unavailable. Please retry.",
         ) from exc
     counts = await bank_application_counts(db)
-    return _to_admin_bank_read(bank, counts.get(bank.id, 0))
+    offer_counts = await bank_offer_counts(db)
+    return _to_admin_bank_read(bank, counts.get(bank.id, 0), offer_counts.get(bank.id, 0))
 
 
 async def _availability_matrix(db: AsyncSession) -> BankAvailabilityMatrixResponse:
@@ -1424,9 +1525,13 @@ async def _availability_matrix(db: AsyncSession) -> BankAvailabilityMatrixRespon
     lt_counts = await loan_type_application_counts(db)
     enquiry_counts = await loan_type_enquiry_counts(db)
     bank_counts = await bank_application_counts(db)
+    bank_offer_count = await bank_offer_counts(db)
     entries = await list_availability_entries(db)
     return BankAvailabilityMatrixResponse(
-        banks=[_to_admin_bank_read(b, bank_counts.get(b.id, 0)) for b in banks],
+        banks=[
+            _to_admin_bank_read(b, bank_counts.get(b.id, 0), bank_offer_count.get(b.id, 0))
+            for b in banks
+        ],
         loan_types=[
             _to_admin_loan_type_read(lt, lt_counts.get(lt.id, 0), enquiry_counts.get(lt.id, 0))
             for lt in loan_types

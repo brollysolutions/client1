@@ -57,6 +57,11 @@ PUBLIC_ROUTES = frozenset(
         # token resolves to; neither reads or writes any other business table.
         "GET /api/v1/staff-invites/{token}",
         "POST /api/v1/staff-invites/{token}/accept",
+        # Approved-Agent first-login uses the same reviewed boundary as staff:
+        # a hashed, expiring, single-use token scopes the anonymous request to
+        # one pending-password identity, with separate preview/accept IP caps.
+        "GET /api/v1/agent-invites/{token}",
+        "POST /api/v1/agent-invites/{token}/accept",
         # Prospective-agent intake: applicant has no account until approval.
         "POST /api/v1/agent-applications",
         "POST /api/v1/agent-applications/otp/initiate",

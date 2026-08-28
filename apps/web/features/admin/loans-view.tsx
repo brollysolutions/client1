@@ -28,7 +28,7 @@ import { ListEmptyState, ListLoadingState, ListPagination } from "@/features/das
 import { StatusBadge, type StatusTone } from "@/features/dashboard/status-badge";
 import { useFilteredPage } from "@/features/dashboard/use-filtered-page";
 import {
-  WORKSPACE_DIALOG_CLASS,
+  PANEL_DIALOG_WIDE_CLASS,
   WorkspaceDialogHeader,
   WorkspaceLayout,
 } from "@/features/dashboard/workspace-dialog";
@@ -250,7 +250,7 @@ export function AdminLoansView() {
       )}
 
       <Dialog open={active !== null} onOpenChange={(open) => !open && setActiveId(null)}>
-        <DialogContent showCloseButton={false} className={WORKSPACE_DIALOG_CLASS}>
+        <DialogContent showCloseButton={false} className={PANEL_DIALOG_WIDE_CLASS}>
           {active ? (
             <>
               <WorkspaceDialogHeader

@@ -119,6 +119,26 @@ ADMIN_OPERATIONAL_COVERAGE: dict[str, AdminCoverageEntry] = {
         audit_expectation="Approval and rejection append agent_approved or agent_rejected entries.",
         rationale="The review projection provides purpose-bound KYC access without returning storage internals.",
     ),
+    "agent_invite_links": _entry(
+        domain="Approved-Agent first-login invitations",
+        # The table holds a one-way hash, never the raw credential. Admin sees
+        # the raw token only in the response that creates it and cannot recover
+        # an earlier link from this projection.
+        view_mode=AdminViewMode.MINIMIZED,
+        view_coverage=CoverageState.COVERED,
+        update_mode=AdminUpdateMode.WORKFLOW_COMMAND,
+        update_coverage=CoverageState.COVERED,
+        audit_coverage=CoverageState.COVERED,
+        api_surfaces=(
+            "/api/v1/admin/agent-invites",
+            "/api/v1/admin/agents/{application_id}/invite-link",
+            "/api/v1/admin/agent-invite-links/{link_id}",
+        ),
+        ui_surfaces=("/dashboard/agents",),
+        rls_expectation="Admin-only SELECT/INSERT/UPDATE; UPDATE is column-scoped to used_at and revoked_at so an invitation cannot be repointed.",
+        audit_expectation="Issue and revoke append link-id events without the raw token or applicant PII.",
+        rationale="The separate setup-link tab supports delayed credential handoff while preserving hash-only, expiring, single-use credentials.",
+    ),
     "agent_profiles": _entry(
         domain="Active Agent identity and business-line profile",
         sensitivity=(DataSensitivity.IDENTITY_PII,),

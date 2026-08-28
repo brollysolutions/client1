@@ -218,7 +218,7 @@ export function UserProvisioningView() {
         />
       </MetricGrid>
 
-      <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.35fr)]">
+      <div className="grid gap-4 xl:grid-cols-2">
         <DashboardPanel
           title={result ? "Account created" : "Create staff account"}
           description={
@@ -226,7 +226,7 @@ export function UserProvisioningView() {
               ? "Review the new account details and securely hand off any one-time credential."
               : "New accounts receive the selected role and the narrowest applicable line scope."
           }
-          className="min-h-[540px] scroll-mt-24"
+          className="h-full min-h-[540px] scroll-mt-24"
         >
           <div id="create-staff" className="scroll-mt-24">
             {result ? (
@@ -378,7 +378,7 @@ export function UserProvisioningView() {
         <DashboardPanel
           title="Staff access"
           description="Admin hierarchy and delegated operational capabilities"
-          className="min-h-[540px]"
+          className="h-full min-h-[540px]"
         >
           <StaffAccessContent
             access={access}
