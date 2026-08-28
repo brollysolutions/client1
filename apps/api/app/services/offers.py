@@ -10,10 +10,12 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.audit_log import AuditAction
+from app.models.notification import NotificationType
 from app.models.offer import Offer, OfferStatus
 from app.schemas.personalization import AudienceRules, audience_rules_valid_for_offer
 from app.services import storage
 from app.services.audit_log import record as record_audit
+from app.services.notifications import emit_notification
 
 _SUB_ADMIN_TRANSITIONS: dict[OfferStatus, set[OfferStatus]] = {
     OfferStatus.DRAFT: {OfferStatus.PENDING_APPROVAL, OfferStatus.ARCHIVED},
@@ -44,10 +46,6 @@ _AUDIT_ACTION = {
 
 class OfferIllegalTransition(Exception):
     """The requested lifecycle edge is not available to this actor."""
-
-
-class OfferNotOwned(Exception):
-    """A Sub Admin tried to mutate another author's shared-queue row."""
 
 
 class OfferInvalidConfiguration(Exception):
@@ -100,14 +98,12 @@ async def transition_offer(
     *,
     review_note: str | None = None,
 ) -> Offer | None:
-    offer = await db.scalar(select(Offer).where(Offer.id == offer_id))
+    is_admin = actor_role == "admin"
+    offer = await db.scalar(
+        select(Offer).where(Offer.id == offer_id, Offer.removed_at.is_(None)).with_for_update()
+    )
     if offer is None:
         return None
-    is_admin = actor_role == "admin"
-    if not is_admin and offer.created_by_uuid != actor_uuid:
-        raise OfferNotOwned
-
-    offer = await db.scalar(select(Offer).where(Offer.id == offer_id).with_for_update())
     transitions = _ADMIN_TRANSITIONS if is_admin else _SUB_ADMIN_TRANSITIONS
     if target_status not in transitions.get(offer.status, set()):
         raise OfferIllegalTransition
@@ -133,6 +129,7 @@ async def transition_offer(
 
     previous_status = offer.status
     offer.status = target_status
+    offer.version += 1
     await record_audit(
         db,
         action=_AUDIT_ACTION[target_status],
@@ -149,4 +146,63 @@ async def transition_offer(
     )
     await db.commit()
     await db.refresh(offer)
+    if target_status == OfferStatus.APPROVED:
+        await emit_notification(
+            user_uuid=offer.created_by_uuid,
+            notification_type=NotificationType.CAMPAIGN_APPROVED,
+            title="Offer approved",
+            body=f"“{offer.title}” is ready to schedule.",
+            href="/dashboard/campaigns?type=offers",
+        )
+    elif target_status == OfferStatus.REJECTED:
+        await emit_notification(
+            user_uuid=offer.created_by_uuid,
+            notification_type=NotificationType.CAMPAIGN_CHANGES_REQUESTED,
+            title="Changes requested for offer",
+            body=f"Admin left feedback on “{offer.title}”.",
+            href="/dashboard/campaigns?type=offers",
+        )
+    return offer
+
+
+async def remove_offer(
+    offer_id: UUID,
+    reviewer_uuid: UUID,
+    note: str,
+    db: AsyncSession,
+) -> Offer | None:
+    offer = await db.scalar(
+        select(Offer).where(Offer.id == offer_id, Offer.removed_at.is_(None)).with_for_update()
+    )
+    if offer is None:
+        return None
+    previous_status = offer.status
+    offer.status = OfferStatus.ARCHIVED
+    offer.removed_at = datetime.now(UTC)
+    offer.removed_by_uuid = reviewer_uuid
+    offer.removal_reason = note.strip()
+    offer.version += 1
+    await record_audit(
+        db,
+        action=AuditAction.OFFER_DELETED,
+        entity_type="offer",
+        entity_uuid=offer.id,
+        actor_uuid=reviewer_uuid,
+        actor_role="admin",
+        business_line=offer.business_line,
+        detail={
+            "mode": "soft_remove",
+            "from_status": previous_status.value,
+            "reason": offer.removal_reason,
+        },
+    )
+    await db.commit()
+    await db.refresh(offer)
+    await emit_notification(
+        user_uuid=offer.created_by_uuid,
+        notification_type=NotificationType.CAMPAIGN_REMOVED,
+        title="Offer removed",
+        body=f"Admin removed “{offer.title}” from campaign serving.",
+        href="/dashboard/campaigns?type=offers",
+    )
     return offer

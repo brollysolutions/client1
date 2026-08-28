@@ -347,6 +347,11 @@ const ACTION_META: Record<AuditAction, { label: string; icon: LucideIcon; tone: 
   offer_activated: { label: "Offer activated", icon: Megaphone, tone: "bg-success/10 text-success" },
   offer_expired: { label: "Offer expired", icon: Archive, tone: "bg-muted text-text-secondary" },
   offer_archived: { label: "Offer archived", icon: Archive, tone: "bg-muted text-text-secondary" },
+  offer_deleted: { label: "Offer removed", icon: Eraser, tone: "bg-error/10 text-error" },
+  campaign_media_created: { label: "Campaign media created", icon: FilePenLine, tone: "bg-loans-soft text-loans-accent" },
+  campaign_media_updated: { label: "Campaign media updated", icon: FilePenLine, tone: "bg-loans-soft text-loans-accent" },
+  campaign_media_archived: { label: "Campaign media archived", icon: Archive, tone: "bg-muted text-text-secondary" },
+  campaign_media_deleted: { label: "Campaign media deleted", icon: Eraser, tone: "bg-error/10 text-error" },
   vehicle_arrangement_updated: {
     label: "Vehicle arrangement updated",
     icon: CarFront,

@@ -88,6 +88,11 @@ class BannerTemplate(Base):
     # Bundled assets are safe local paths; replacements are controlled
     # public/banner-templates object keys resolved by the response mapper.
     image_ref: Mapped[str] = mapped_column(Text, nullable=False)
+    media_asset_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("campaign_media_assets.id", ondelete="RESTRICT"),
+        nullable=True,
+    )
     active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     created_by_uuid: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("auth_users.id", ondelete="SET NULL"), nullable=True
@@ -127,6 +132,11 @@ class Banner(Base):
     subtitle: Mapped[str | None] = mapped_column(Text, nullable=True)
     cta_label: Mapped[str | None] = mapped_column(Text, nullable=True)
     image_key: Mapped[str | None] = mapped_column(Text, nullable=True)
+    media_asset_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("campaign_media_assets.id", ondelete="RESTRICT"),
+        nullable=True,
+    )
     deep_link: Mapped[str | None] = mapped_column(Text, nullable=True)
     # Versioned, closed user/workflow/location grammar validated by
     # schemas.personalization and consumed only by the authenticated dashboard.
@@ -140,6 +150,12 @@ class Banner(Base):
     created_by_uuid: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
     approved_by_uuid: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
     review_note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    version: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+    removed_by_uuid: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("auth_users.id", ondelete="SET NULL"), nullable=True
+    )
+    removal_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+    removed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     starts_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     ends_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 

@@ -2,7 +2,7 @@
 
 Status: **Derived reconciliation and later product amendment**
 
-As of: **2026-08-21**
+As of: **2026-08-29**
 
 Code baseline: `14773ae` ([PR #151](https://github.com/brollysolutions/client1/pull/151))
 
@@ -477,6 +477,32 @@ baseline limitations are recorded in `feature-status.md`.
 Source and approved interpretation:
 
 - [`property-specific-listing-forms-2026-08-21.md`](property-specific-listing-forms-2026-08-21.md)
+
+### CS-016 — Sub Admin-owned Campaign Studio and Media Library
+
+**Decision (2026-08-29):** The Sub Admin team owns banner, authenticated
+coupon-offer, banner-template, and reusable campaign-artwork authoring. Platform
+Admin does not edit campaign fields or browse the Media Library; Admin previews
+the production rendering, approves, requests changes with a note, and may
+soft-remove a campaign with a required audited reason. Creator identity remains
+immutable provenance while editable work is shared by the Sub Admin team.
+
+Both staff experiences reuse the production homepage, section, sponsor, and
+authenticated-dashboard renderers at desktop, tablet, and mobile widths.
+Provider logos remain Admin-governed inside Financial Providers, while property,
+KYC, loan, task, and other private operational media remain purpose-segregated.
+
+**Implementation status:** Implemented on
+`codex/20260828-222513-banners-and-offers-are-managed-by-subadmin`; final PR and
+verification evidence are recorded in the living plan and status ledger at
+shipping. The additive schema/RLS migration, generated contracts, Campaign
+Studio, approval desk, Media Library, serving exclusions, optimistic versions,
+maker notifications, usage-safe deletion, and three generated starter assets
+implement the decision without changing formal requirement coverage.
+
+Source and approved interpretation:
+
+- [`campaign-studio-media-library-2026-08-29.md`](campaign-studio-media-library-2026-08-29.md)
 
 ## 3. Previously open items settled by current behavior
 

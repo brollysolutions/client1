@@ -1,4 +1,5 @@
 "use client";
+/* eslint-disable @next/next/no-img-element */
 
 import * as React from "react";
 import {
@@ -57,6 +58,7 @@ import {
   deleteBanner,
   listBannerTemplates,
   rejectBanner,
+  removeBanner,
   submitBanner,
   updateBanner,
   type Banner,
@@ -73,6 +75,7 @@ import { isSafeLocalHref } from "@/lib/safe-local-href";
 
 import { audienceSummary } from "./audience-rule-fields";
 import { BannerForm } from "./banner-form";
+import { CampaignMediaPicker } from "./campaign-media-picker";
 import { filterBanners } from "./cms-filters";
 import { BannerPreview } from "./cms-previews";
 import {
@@ -90,7 +93,7 @@ const STATUS_LABEL: Record<Banner["status"], string> = {
   pending_approval: "Pending approval",
   approved: "Approved",
   live: "Live",
-  rejected: "Rejected",
+  rejected: "Changes requested",
   archived: "Archived",
 };
 const STATUS_TONE: Record<Banner["status"], StatusTone> = {
@@ -111,6 +114,7 @@ type Draft = {
   deepLink: string;
   templateId: string;
   propertyId: string;
+  mediaAssetId: string;
   priority: string;
   startsAt: string;
   endsAt: string;
@@ -131,13 +135,14 @@ function toDraft(banner: Banner): Draft {
     deepLink: banner.deep_link ?? "",
     templateId: banner.template_id ?? "",
     propertyId: banner.property_id ?? "",
+    mediaAssetId: banner.media_asset_id ?? "",
     priority: String(banner.priority),
     startsAt: localDateTime(banner.starts_at),
     endsAt: localDateTime(banner.ends_at),
   };
 }
 
-export function BannersView() {
+export function BannersView({ embedded = false }: { embedded?: boolean }) {
   const { session } = useAuth();
   const isAdmin = session?.role === "admin";
   const { items, loading, error, reload } = useBannerQueue();
@@ -146,7 +151,7 @@ export function BannersView() {
   const [draft, setDraft] = React.useState<Draft | null>(null);
   const [templates, setTemplates] = React.useState<BannerTemplate[]>([]);
   const [properties, setProperties] = React.useState<AdminProperty[]>([]);
-  const [rejecting, setRejecting] = React.useState(false);
+  const [reviewAction, setReviewAction] = React.useState<"changes" | "remove" | null>(null);
   const [note, setNote] = React.useState("");
   const [fieldErrors, setFieldErrors] = React.useState<
     FieldErrors<keyof Draft | "reviewNote" | "schedule">
@@ -155,6 +160,7 @@ export function BannersView() {
   const [device, setDevice] = React.useState<PreviewDevice>("desktop");
   const [createOpen, setCreateOpen] = React.useState(false);
   const [createDirty, setCreateDirty] = React.useState(false);
+  const [draftMediaUrl, setDraftMediaUrl] = React.useState<string | null>(null);
   const dialogRef = React.useRef<HTMLDivElement>(null);
 
   React.useEffect(() => {
@@ -179,7 +185,6 @@ export function BannersView() {
         render: (banner) => (
           <div className="flex min-w-0 items-center gap-3">
             {templates.find((template) => template.id === banner.template_id)?.image_url ? (
-              // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={templates.find((template) => template.id === banner.template_id)?.image_url}
                 alt=""
@@ -248,6 +253,7 @@ export function BannersView() {
     if (dirty && !window.confirm("Discard unsaved banner changes?")) return;
     setActive(null);
     setDraft(null);
+    setDraftMediaUrl(null);
   }
 
   function closeCreate(openState: boolean) {
@@ -260,7 +266,8 @@ export function BannersView() {
   function openBanner(banner: Banner) {
     setActive(banner);
     setDraft(toDraft(banner));
-    setRejecting(false);
+    setDraftMediaUrl(banner.image_url ?? null);
+    setReviewAction(null);
     setNote("");
     setFieldErrors({});
   }
@@ -304,11 +311,13 @@ export function BannersView() {
     }
     setBusy(true);
     const result = await updateBanner(banner.id, {
+      expected_version: banner.version,
       title: draft.title.trim(),
       subtitle: draft.subtitle.trim() || null,
       cta_label: draft.ctaLabel.trim() || null,
       deep_link: draft.propertyId ? null : draft.deepLink.trim() || null,
       template_id: banner.placement === "dashboard" ? null : draft.templateId,
+      media_asset_id: banner.placement === "dashboard" ? draft.mediaAssetId || null : undefined,
       offer_id: null,
       property_id: categoryAllowsProperty && draft.propertyId ? draft.propertyId : null,
       priority: Number(draft.priority) || 0,
@@ -354,7 +363,7 @@ export function BannersView() {
   }
 
   async function reject(banner: Banner) {
-    const validationError = requiredTextError(note, "Rejection reason", 1000);
+    const validationError = requiredTextError(note, "Change request", 1000);
     setFieldErrors((current) => ({ ...current, reviewNote: validationError }));
     if (validationError) {
       requestAnimationFrame(() => {
@@ -365,8 +374,8 @@ export function BannersView() {
     setBusy(true);
     const result = await rejectBanner(banner.id, note.trim());
     setBusy(false);
-    if (!result.ok) return void toast.error("Could not reject", { description: result.error });
-    toast.success("Banner rejected");
+    if (!result.ok) return void toast.error("Could not request changes", { description: result.error });
+    toast.success("Changes requested");
     setActive(null);
     setDraft(null);
     void reload();
@@ -389,6 +398,25 @@ export function BannersView() {
     await advance(archiveBanner, banner, "Banner archived");
   }
 
+  async function removeReviewed(banner: Banner) {
+    const validationError = requiredTextError(note, "Removal reason", 1000);
+    setFieldErrors((current) => ({ ...current, reviewNote: validationError }));
+    if (validationError) {
+      requestAnimationFrame(() => {
+        if (dialogRef.current) focusFirstInvalidField(dialogRef.current);
+      });
+      return;
+    }
+    setBusy(true);
+    const result = await removeBanner(banner.id, note.trim());
+    setBusy(false);
+    if (!result.ok) return void toast.error("Could not remove banner", { description: result.error });
+    toast.success("Banner removed from serving");
+    setActive(null);
+    setDraft(null);
+    void reload();
+  }
+
   async function replace(banner: Banner) {
     setBusy(true);
     const result = await createBannerReplacement(banner.id);
@@ -406,7 +434,9 @@ export function BannersView() {
 
   return (
     <DashboardPage>
-      <DashboardHeader
+      {embedded ? (
+        <div className="flex flex-wrap items-end justify-between gap-3"><div><h2 className="font-heading text-xl font-semibold">{isAdmin ? "Banner review & removal" : "Banner campaigns"}</h2><p className="mt-1 text-sm text-text-secondary">{isAdmin ? "Review pending work or open any campaign for a reasoned removal." : "Visual campaigns for public and dashboard placements."}</p></div>{!isAdmin ? <Button onClick={() => setCreateOpen(true)}><Plus className="h-4 w-4" />New banner</Button> : null}</div>
+      ) : <DashboardHeader
         title={isAdmin ? "Banner approvals" : "Banner campaigns"}
         description={
           isAdmin
@@ -418,13 +448,13 @@ export function BannersView() {
             <Button onClick={() => setCreateOpen(true)}><Plus className="h-4 w-4" />New banner</Button>
           ) : undefined
         }
-      />
-      <MetricGrid>
+      />}
+      {!embedded ? <MetricGrid>
         <MetricCard label="Total banners" value={items.length} icon={DASHBOARD_ICONS.banners} />
         <MetricCard label="Drafts" value={items.filter((item) => item.status === "draft").length} icon={DASHBOARD_ICONS.websiteContent} />
         <MetricCard label="Waiting for approval" value={items.filter((item) => item.status === "pending_approval").length} icon={DASHBOARD_ICONS.documentVerification} attention={items.some((item) => item.status === "pending_approval")} />
         <MetricCard label="Live" value={items.filter((item) => item.status === "live").length} icon={DASHBOARD_ICONS.analytics} />
-      </MetricGrid>
+      </MetricGrid> : null}
       <FilterBar
         value={filters}
         onChange={setFilters}
@@ -438,15 +468,15 @@ export function BannersView() {
           { value: "action", label: "Action" },
           { value: "personalized", label: "Personalized" },
         ]}
-        note="Filters apply to the records already loaded for your authorized role."
+        note={embedded ? undefined : "Filters apply to the records already loaded for your authorized role."}
       />
       {error ? (
         <FetchError status={null} message={error} onRetry={() => void reload()} />
       ) : (
         <DashboardPanel
-          title={isAdmin ? "Approval queue and history" : "Campaign library"}
+          title={isAdmin ? "Campaign oversight" : "Campaign library"}
           description={`${filtered.length} ${filtered.length === 1 ? "campaign" : "campaigns"} shown.`}
-          bodyClassName="p-0"
+          bodyClassName={embedded ? "p-4" : "p-0"}
         >
           {loading ? (
             <div className="p-5"><ListLoadingState rows={5} /></div>
@@ -459,14 +489,14 @@ export function BannersView() {
             />
           ) : (
             <>
-              <DataTable
+              {embedded ? <ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">{bannersPage.pageRows.map((banner) => { const image = templates.find((template) => template.id === banner.template_id)?.image_url; return <li key={banner.id}><button type="button" onClick={() => openBanner(banner)} className="w-full overflow-hidden rounded-xl border border-border bg-background text-left transition hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><div className="relative aspect-[9/4] overflow-hidden bg-muted">{image ? <img src={image} alt="" width={900} height={400} className="h-full w-full object-cover" /> : <span className="grid h-full place-items-center text-text-secondary"><ImageIcon className="h-7 w-7" /></span>}<span className="absolute left-3 top-3"><StatusBadge tone={STATUS_TONE[banner.status]}>{STATUS_LABEL[banner.status]}</StatusBadge></span></div><div className="space-y-2 p-4"><p className="line-clamp-2 font-semibold text-text-primary">{banner.title}</p><p className="text-xs capitalize text-text-secondary">{banner.placement.replaceAll("_", " ")} · {banner.business_line.replace("_", " ")}</p><p className="text-xs text-text-secondary">{audienceSummary(banner.audience_rules)}</p></div></button></li>; })}</ul> : <DataTable
                 columns={columns}
                 rows={bannersPage.pageRows}
                 rowKey={(banner) => banner.id}
                 onRowClick={openBanner}
                 rowActionLabel="Open banner workspace"
                 minWidth="min-w-[900px]"
-              />
+              />}
               <div className="px-5 pb-5">
                 <ListPagination page={bannersPage.page} total={bannersPage.total} onPageChange={bannersPage.setPage} />
               </div>
@@ -530,7 +560,7 @@ export function BannersView() {
                           </Select>
                           <FieldError id="banner-edit-template-error">{fieldErrors.templateId}</FieldError>
                         </div>
-                      ) : null}
+                      ) : canEdit ? <CampaignMediaPicker usageType="dashboard_banner" businessLine={active.business_line as "loans" | "real_estate" | "both"} value={draft.mediaAssetId} onChange={(id, asset) => { setDraft({ ...draft, mediaAssetId: id }); setDraftMediaUrl(asset?.image_url ?? null); }} /> : <div><p className="text-xs font-medium text-text-secondary">Dashboard artwork</p><p className="mt-1 text-sm">{active.media_asset_id ? "Reusable Media Library asset" : "No reusable artwork selected"}</p></div>}
                       {categoryAllowsProperty ? (
                         <div>
                           <Label htmlFor="edit-property">Advertised property (optional)</Label>
@@ -563,22 +593,16 @@ export function BannersView() {
                       </div>
                       <FieldError id="banner-edit-schedule-error">{fieldErrors.schedule}</FieldError>
                       {active.review_note ? <p className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">Review note: {active.review_note}</p> : null}
-                      {rejecting ? <div><Textarea aria-label="Reason for rejection" value={note} maxLength={1000} onChange={(event) => { setNote(event.target.value); setFieldErrors((current) => ({ ...current, reviewNote: undefined })); }} placeholder="Reason for rejection" aria-invalid={Boolean(fieldErrors.reviewNote)} aria-describedby={fieldErrors.reviewNote ? "banner-review-note-error" : undefined} /><FieldError id="banner-review-note-error">{fieldErrors.reviewNote}</FieldError></div> : null}
+                      {reviewAction ? <div><Label htmlFor="banner-review-note">{reviewAction === "remove" ? "Removal reason" : "Change request"} <RequiredIndicator /></Label><Textarea id="banner-review-note" value={note} maxLength={1000} onChange={(event) => { setNote(event.target.value); setFieldErrors((current) => ({ ...current, reviewNote: undefined })); }} placeholder={reviewAction === "remove" ? "Explain why this campaign must be removed" : "Explain exactly what the Sub Admin should change"} aria-invalid={Boolean(fieldErrors.reviewNote)} aria-describedby={fieldErrors.reviewNote ? "banner-review-note-error" : "banner-review-note-hint"} /><p id="banner-review-note-hint" className="mt-1 text-xs text-text-secondary">This note is sent to the campaign author and retained in the audit trail.</p><FieldError id="banner-review-note-error">{fieldErrors.reviewNote}</FieldError></div> : null}
                     </section>
                     <DialogFooter className="flex-wrap">
-                      {isAdmin && active.status === "pending_approval" ? (
-                        rejecting ? (
-                          <>
-                            <Button variant="ghost" onClick={() => setRejecting(false)}>Back</Button>
-                            <Button variant="destructive" disabled={busy} onClick={() => void reject(active)}><XCircle className="h-4 w-4" />Confirm reject</Button>
-                          </>
-                        ) : (
-                          <>
-                            <Button variant="outline" onClick={() => setRejecting(true)}>Reject</Button>
-                            <Button disabled={busy} onClick={() => void advance(approveBanner, active, "Banner approved")}><CheckCircle2 className="h-4 w-4" />Approve</Button>
-                          </>
-                        )
-                      ) : !isAdmin && EDITABLE.has(active.status) ? (
+                      {isAdmin && reviewAction ? <>
+                        <Button variant="ghost" disabled={busy} onClick={() => { setReviewAction(null); setNote(""); setFieldErrors((current) => ({ ...current, reviewNote: undefined })); }}>Back</Button>
+                        <Button variant={reviewAction === "remove" ? "destructive" : "default"} disabled={busy} onClick={() => void (reviewAction === "remove" ? removeReviewed(active) : reject(active))}>{reviewAction === "remove" ? <Trash2 className="h-4 w-4" /> : <XCircle className="h-4 w-4" />}{reviewAction === "remove" ? "Confirm removal" : "Send change request"}</Button>
+                      </> : isAdmin && active.status === "pending_approval" ? <>
+                        <Button variant="outline" disabled={busy} onClick={() => setReviewAction("changes")}>Request changes</Button>
+                        <Button disabled={busy} onClick={() => void advance(approveBanner, active, "Banner approved")}><CheckCircle2 className="h-4 w-4" />Approve</Button>
+                      </> : !isAdmin && EDITABLE.has(active.status) ? (
                         <>
                           {active.status === "draft" ? <Button variant="destructive" disabled={busy} onClick={() => void removeDraft(active)}><Trash2 className="h-4 w-4" />Delete draft</Button> : null}
                           <Button variant="outline" disabled={busy || !dirty} onClick={() => void save(active)}>Save changes</Button>
@@ -587,7 +611,8 @@ export function BannersView() {
                       ) : !isAdmin && REPLACEABLE.has(active.status) ? (
                         <Button disabled={busy} onClick={() => void replace(active)}><CopyPlus className="h-4 w-4" />Create replacement</Button>
                       ) : null}
-                      {active.status !== "draft" && active.status !== "archived" ? (
+                      {isAdmin && !reviewAction ? <Button variant="destructive" disabled={busy} onClick={() => setReviewAction("remove")}><Trash2 className="h-4 w-4" />Remove</Button> : null}
+                      {!isAdmin && active.status !== "draft" && active.status !== "archived" ? (
                         <Button variant="outline" disabled={busy} onClick={() => void archive(active)}><Archive className="h-4 w-4" />Archive</Button>
                       ) : null}
                     </DialogFooter>
@@ -611,7 +636,7 @@ export function BannersView() {
                         deep_link: selectedProperty ? propertyCampaignHref(selectedProperty) : draft.deepLink || null,
                         image_url:
                           propertyCampaignImage(selectedProperty, selectedTemplate) ??
-                          selectedTemplate?.image_url,
+                          selectedTemplate?.image_url ?? draftMediaUrl ?? active.image_url,
                         rera_verified: selectedProperty?.rera_verification_status === "verified",
                       }}
                     />

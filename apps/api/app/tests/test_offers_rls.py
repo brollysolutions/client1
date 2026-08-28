@@ -20,6 +20,7 @@ import uuid
 import pytest
 from httpx import AsyncClient
 from sqlalchemy import text
+from sqlalchemy.exc import DBAPIError
 from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.pool import NullPool
 
@@ -238,7 +239,7 @@ async def test_insert_check_rejects_foreign_creator(client: AsyncClient) -> None
 
 
 @pytest.mark.asyncio
-async def test_update_rejected_for_non_owner(client: AsyncClient) -> None:
+async def test_update_allows_other_sub_admin_but_preserves_creator(client: AsyncClient) -> None:
     """Offers' UPDATE USING has no status restriction (unlike banners) — the only
     RLS-enforced axis here is ownership; status-direction is app-layer only."""
     _, owner_mobile = await full_registration(client, lines=["loans"])
@@ -266,6 +267,11 @@ async def test_update_rejected_for_non_owner(client: AsyncClient) -> None:
                 {"id": offer_id},
             )
             # RLS USING clause excludes the row (not the owner) — zero-row no-op.
-            assert result.rowcount == 0
+            assert result.rowcount == 1
+            with pytest.raises(DBAPIError):
+                await conn.execute(
+                    text("UPDATE offers SET created_by_uuid = :other WHERE id = :id"),
+                    {"other": other_uid, "id": offer_id},
+                )
     finally:
         await engine.dispose()

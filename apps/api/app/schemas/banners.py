@@ -10,7 +10,7 @@ from datetime import datetime
 from typing import Literal
 from uuid import UUID
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 from app.models.banner import BannerPlacement, BannerStatus, BannerType
 from app.schemas.personalization import AudienceRules, audience_rules_valid_for_banner
@@ -24,7 +24,8 @@ from app.schemas.personalization import AudienceRules, audience_rules_valid_for_
 # path-traversal-shaped value (e.g. "../agent-applications/...") can never
 # match.
 _IMAGE_KEY_PATTERN = (
-    r"^public/banners/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+    r"^public/(banners|campaign-media)/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-"
+    r"[0-9a-f]{4}-[0-9a-f]{12}"
     r"/[A-Za-z0-9._-]+$"
 )
 
@@ -45,6 +46,7 @@ class BannerCreate(BaseModel):
     subtitle: str | None = Field(default=None, max_length=300)
     cta_label: str | None = Field(default=None, max_length=40)
     image_key: str | None = Field(default=None, max_length=500, pattern=_IMAGE_KEY_PATTERN)
+    media_asset_id: UUID | None = None
     deep_link: str | None = Field(default=None, max_length=1000)
     audience_rules: AudienceRules = Field(default_factory=AudienceRules)
     priority: int = Field(default=0, ge=0)
@@ -80,10 +82,12 @@ class BannerCreate(BaseModel):
 
 
 class BannerUpdate(BaseModel):
+    expected_version: int | None = Field(default=None, ge=1)
     title: str | None = Field(default=None, min_length=1, max_length=500)
     subtitle: str | None = Field(default=None, max_length=300)
     cta_label: str | None = Field(default=None, max_length=40)
     image_key: str | None = Field(default=None, max_length=500, pattern=_IMAGE_KEY_PATTERN)
+    media_asset_id: UUID | None = None
     deep_link: str | None = Field(default=None, max_length=1000)
     audience_rules: AudienceRules | None = None
     priority: int | None = Field(default=None, ge=0)
@@ -108,6 +112,7 @@ class BannerTemplateRead(BaseModel):
     label: str
     version: int
     image_url: str
+    media_asset_id: UUID | None
     active: bool
     created_at: datetime
 
@@ -145,6 +150,8 @@ class BannerRead(BaseModel):
     subtitle: str | None
     cta_label: str | None
     image_key: str | None
+    image_url: str | None = None
+    media_asset_id: UUID | None
     deep_link: str | None
     audience_rules: AudienceRules
     priority: int
@@ -152,6 +159,10 @@ class BannerRead(BaseModel):
     created_by_uuid: UUID
     approved_by_uuid: UUID | None
     review_note: str | None
+    version: int
+    removed_by_uuid: UUID | None
+    removal_reason: str | None
+    removed_at: datetime | None
     starts_at: datetime | None
     ends_at: datetime | None
     created_at: datetime
@@ -164,6 +175,14 @@ class BannerListResponse(BaseModel):
 
 class RejectRequest(BaseModel):
     note: str = Field(min_length=1, max_length=1000)
+
+    @field_validator("note")
+    @classmethod
+    def _note_is_not_blank(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("A review or removal reason is required.")
+        return value
 
 
 class PublicBannerRead(BaseModel):

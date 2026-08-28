@@ -229,11 +229,11 @@ ADMIN_OPERATIONAL_COVERAGE: dict[str, AdminCoverageEntry] = {
         update_coverage=CoverageState.COVERED,
         audit_coverage=CoverageState.COVERED,
         api_surfaces=("/api/v1/banners",),
-        ui_surfaces=("/dashboard/banners",),
-        rls_expectation="Platform Admin may manage any row; Sub Admin remains creator-scoped for delegated authoring.",
+        ui_surfaces=("/dashboard/campaign-approvals",),
+        rls_expectation="Sub Admin owns team-wide authoring; platform Admin is restricted to reasoned approval, change-request, and soft-removal commands.",
         audit_expectation="Material authoring and lifecycle transitions need append-only business audit events.",
         rationale=(
-            "Admin authoring and approval exist, and every mutating transition now"
+            "Sub Admin authoring and Admin review exist, and every mutating transition"
             " writes an append-only audit event: create/update/delete at the router,"
             " submit/approve/reject/archive in the service, and activate/expire in the"
             " scheduler job so scheduler-driven go-live is not an untraced gap."
@@ -247,9 +247,9 @@ ADMIN_OPERATIONAL_COVERAGE: dict[str, AdminCoverageEntry] = {
         update_coverage=CoverageState.COVERED,
         audit_coverage=CoverageState.COVERED,
         api_surfaces=("/api/v1/banners/templates",),
-        ui_surfaces=("/dashboard/banners",),
+        ui_surfaces=("/dashboard/media-library",),
         rls_expectation=(
-            "Sub Admin and Admin may read the catalogue; only platform Admin may"
+            "Sub Admin and Admin may read the catalogue; only Sub Admin may"
             " insert or retire a version, and a database trigger makes a published"
             " version immutable so history cannot be rewritten in place."
         ),
@@ -259,6 +259,25 @@ ADMIN_OPERATIONAL_COVERAGE: dict[str, AdminCoverageEntry] = {
             " plus a category label. Versioning is append-only: retiring a version"
             " clears `active` rather than mutating the row, and every publish records"
             " BANNER_TEMPLATE_VERSIONED."
+        ),
+    ),
+    "campaign_media_assets": _entry(
+        domain="Reusable public campaign artwork and provenance",
+        view_mode=AdminViewMode.MINIMIZED,
+        view_coverage=CoverageState.COVERED,
+        update_mode=AdminUpdateMode.PROHIBITED,
+        update_coverage=CoverageState.PROTECTED,
+        audit_coverage=CoverageState.COVERED,
+        api_surfaces=("/api/v1/banners", "/api/v1/offers"),
+        ui_surfaces=("/dashboard/campaign-approvals",),
+        rls_expectation=(
+            "Only Sub Admin may query or mutate the Media Library directly; Admin sees"
+            " only the artwork attached to a campaign under review."
+        ),
+        audit_expectation="Create, metadata update, archive, and permanent deletion append bounded audit events.",
+        rationale=(
+            "Admin needs a rendered campaign preview, not library browsing, provenance"
+            " editing, or object deletion authority."
         ),
     ),
     "bookmarks": _entry(
@@ -544,13 +563,12 @@ ADMIN_OPERATIONAL_COVERAGE: dict[str, AdminCoverageEntry] = {
         view_coverage=CoverageState.COVERED,
         update_mode=AdminUpdateMode.WORKFLOW_COMMAND,
         update_coverage=CoverageState.COVERED,
-        audit_coverage=CoverageState.GAP,
+        audit_coverage=CoverageState.COVERED,
         api_surfaces=("/api/v1/offers",),
-        ui_surfaces=("/dashboard/offers",),
-        rls_expectation="Platform Admin may manage all rows; Sub Admin remains creator-scoped.",
+        ui_surfaces=("/dashboard/campaign-approvals",),
+        rls_expectation="Sub Admin owns team-wide authoring; platform Admin is restricted to review and reasoned soft removal.",
         audit_expectation="Create, correction, schedule, activate, and archive commands need append-only history.",
-        rationale="Current mutable records expose latest state but not a complete historical action trail.",
-        gap="Gap: offer authoring and lifecycle transitions are not comprehensively represented in audit_log.",
+        rationale="Every authoring and lifecycle command now records actor, transition, and bounded review context.",
     ),
     "payouts": _entry(
         domain="Outbound payout workflow",

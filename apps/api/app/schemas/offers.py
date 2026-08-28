@@ -15,7 +15,8 @@ from app.schemas.personalization import AudienceRules, audience_rules_valid_for_
 
 _DISCOUNT_TYPES = ("percentage", "flat", "cashback-tie")
 _IMAGE_KEY_PATTERN = (
-    r"^public/banners/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+    r"^public/(banners|campaign-media)/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-"
+    r"[0-9a-f]{4}-[0-9a-f]{12}"
     r"/[A-Za-z0-9._-]+$"
 )
 
@@ -46,6 +47,7 @@ class OfferCreate(BaseModel):
     terms_summary: str | None = Field(default=None, max_length=1000)
     terms_url: str | None = Field(default=None, max_length=1000)
     image_key: str | None = Field(default=None, max_length=500, pattern=_IMAGE_KEY_PATTERN)
+    media_asset_id: UUID | None = None
     audience_rules: AudienceRules = Field(default_factory=AudienceRules)
     priority: int = Field(default=0, ge=0, le=2_147_483_647)
     starts_at: datetime | None = None
@@ -73,6 +75,7 @@ class OfferCreate(BaseModel):
 
 
 class OfferUpdate(BaseModel):
+    expected_version: int | None = Field(default=None, ge=1)
     title: str | None = Field(default=None, min_length=1, max_length=500)
     description: str | None = Field(default=None, max_length=2000)
     discount_type: str | None = Field(default=None, pattern="^(percentage|flat|cashback-tie)$")
@@ -83,6 +86,7 @@ class OfferUpdate(BaseModel):
     terms_summary: str | None = Field(default=None, max_length=1000)
     terms_url: str | None = Field(default=None, max_length=1000)
     image_key: str | None = Field(default=None, max_length=500, pattern=_IMAGE_KEY_PATTERN)
+    media_asset_id: UUID | None = None
     audience_rules: AudienceRules | None = None
     priority: int | None = Field(default=None, ge=0, le=2_147_483_647)
     starts_at: datetime | None = None
@@ -136,6 +140,7 @@ class OfferRead(BaseModel):
     terms_summary: str | None
     terms_url: str | None
     image_key: str | None
+    media_asset_id: UUID | None
     image_url: str | None = None
     audience_rules: AudienceRules
     priority: int
@@ -144,9 +149,14 @@ class OfferRead(BaseModel):
     review_note: str | None
     reviewed_by_uuid: UUID | None
     reviewed_at: datetime | None
+    version: int
+    removed_by_uuid: UUID | None
+    removal_reason: str | None
+    removed_at: datetime | None
     starts_at: datetime | None
     ends_at: datetime | None
     created_at: datetime
+    updated_at: datetime
 
 
 class OfferListResponse(BaseModel):
@@ -155,6 +165,14 @@ class OfferListResponse(BaseModel):
 
 class OfferRejectRequest(BaseModel):
     note: str = Field(min_length=1, max_length=1000)
+
+    @field_validator("note")
+    @classmethod
+    def _note_is_not_blank(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("A review or removal reason is required.")
+        return value
 
 
 class OfferImageUploadRequest(BaseModel):

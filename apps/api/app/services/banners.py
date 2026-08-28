@@ -33,12 +33,15 @@ from app.banner_catalog import (
 from app.db.session import AsyncSessionLocal
 from app.models.audit_log import AuditAction
 from app.models.banner import Banner, BannerPlacement, BannerStatus, BannerTemplate
+from app.models.campaign_media import CampaignMediaAsset
+from app.models.notification import NotificationType
 from app.models.offer import Offer
 from app.models.property import Property, ReraVerificationStatus
 from app.schemas.banners import BannerTemplateCreate
 from app.schemas.personalization import AudienceRules, audience_rules_valid_for_banner
 from app.services import media_processing, storage
 from app.services.audit_log import record as record_audit
+from app.services.notifications import emit_notification
 
 
 class BannerAlreadyReviewed(Exception):
@@ -177,6 +180,30 @@ async def create_template_version(
         image_ref = destination_key
     else:
         raise BannerInvalidConfiguration
+    media_asset = await db.scalar(
+        select(CampaignMediaAsset).where(CampaignMediaAsset.image_ref == image_ref)
+    )
+    if media_asset is None:
+        mime_type = payload.content_type or (
+            "image/png" if image_ref.endswith(".png") else "image/webp"
+        )
+        media_asset = CampaignMediaAsset(
+            business_line=expected_business_line(payload.placement) or "both",
+            usage_type=(
+                "sponsor" if payload.placement == BannerPlacement.HOMEPAGE_AD else "public_banner"
+            ),
+            title=f"{label} artwork",
+            alt_text=f"{label} campaign artwork",
+            tags=[payload.category_key, payload.placement.value],
+            image_ref=image_ref,
+            mime_type=mime_type,
+            source_type=("bundled" if image_ref.startswith("/") else "upload"),
+            source_reference=f"banner-template:{payload.placement.value}/{payload.category_key}",
+            active=True,
+            created_by_uuid=actor_uuid,
+        )
+        db.add(media_asset)
+        await db.flush()
     current = (
         await db.scalars(
             select(BannerTemplate)
@@ -202,6 +229,7 @@ async def create_template_version(
         label=label,
         version=(latest or 0) + 1,
         image_ref=image_ref,
+        media_asset_id=media_asset.id,
         active=True,
         created_by_uuid=actor_uuid,
     )
@@ -229,9 +257,25 @@ async def submit_banner(
     can_manage_any: bool = False,
 ) -> Banner | None:
     """Move draft/rejected to pending approval, optionally provenance-scoped."""
-    banner = await db.scalar(select(Banner).where(Banner.id == banner_id))
-    if banner is None:
+    visible_banner = await db.scalar(
+        select(Banner).where(Banner.id == banner_id, Banner.removed_at.is_(None))
+    )
+    if visible_banner is None:
         return None
+    if not can_manage_any and visible_banner.created_by_uuid != submitter_uuid:
+        raise BannerNotOwned
+    if visible_banner.status not in (BannerStatus.DRAFT, BannerStatus.REJECTED):
+        raise BannerAlreadyReviewed
+
+    # PostgreSQL applies the UPDATE policy to SELECT ... FOR UPDATE. Read the
+    # shared queue first so an existing non-editable row returns a conflict, not
+    # a misleading 404, then lock and recheck to close the race with another
+    # team member submitting or an Admin reviewing the campaign.
+    banner = await db.scalar(
+        select(Banner).where(Banner.id == banner_id, Banner.removed_at.is_(None)).with_for_update()
+    )
+    if banner is None:
+        raise BannerAlreadyReviewed
     if not can_manage_any and banner.created_by_uuid != submitter_uuid:
         raise BannerNotOwned
     if banner.status not in (BannerStatus.DRAFT, BannerStatus.REJECTED):
@@ -253,6 +297,7 @@ async def submit_banner(
         raise BannerInvalidAudience
     banner.status = BannerStatus.PENDING_APPROVAL
     banner.review_note = None
+    banner.version += 1
     await record_audit(
         db,
         action=AuditAction.BANNER_SUBMITTED,
@@ -295,6 +340,7 @@ async def approve_banner(banner_id: UUID, reviewer_uuid: UUID) -> Banner | None:
         banner.status = BannerStatus.APPROVED
         banner.approved_by_uuid = reviewer_uuid
         banner.review_note = None
+        banner.version += 1
         await record_audit(
             session,
             action=AuditAction.BANNER_APPROVED,
@@ -307,6 +353,13 @@ async def approve_banner(banner_id: UUID, reviewer_uuid: UUID) -> Banner | None:
         )
         await session.commit()
         await session.refresh(banner)
+        await emit_notification(
+            user_uuid=banner.created_by_uuid,
+            notification_type=NotificationType.CAMPAIGN_APPROVED,
+            title="Banner approved",
+            body=f"“{banner.title}” is ready for scheduling or publication.",
+            href="/dashboard/campaigns?type=banners",
+        )
         return banner
 
 
@@ -320,6 +373,7 @@ async def reject_banner(banner_id: UUID, reviewer_uuid: UUID, note: str) -> Bann
         banner.status = BannerStatus.REJECTED
         banner.approved_by_uuid = reviewer_uuid
         banner.review_note = note
+        banner.version += 1
         await record_audit(
             session,
             action=AuditAction.BANNER_REJECTED,
@@ -332,17 +386,25 @@ async def reject_banner(banner_id: UUID, reviewer_uuid: UUID, note: str) -> Bann
         )
         await session.commit()
         await session.refresh(banner)
+        await emit_notification(
+            user_uuid=banner.created_by_uuid,
+            notification_type=NotificationType.CAMPAIGN_CHANGES_REQUESTED,
+            title="Changes requested for banner",
+            body=f"Admin left feedback on “{banner.title}”.",
+            href="/dashboard/campaigns?type=banners",
+        )
         return banner
 
 
 async def archive_banner(banner_id: UUID, actor_uuid: UUID, actor_role: str) -> Banner | None:
     async with AsyncSessionLocal() as session:
         banner = await session.get(Banner, banner_id, with_for_update=True)
-        if banner is None:
+        if banner is None or banner.removed_at is not None:
             return None
         if banner.status in (BannerStatus.DRAFT, BannerStatus.ARCHIVED):
             raise BannerAlreadyReviewed
         banner.status = BannerStatus.ARCHIVED
+        banner.version += 1
         await record_audit(
             session,
             action=AuditAction.BANNER_ARCHIVED,
@@ -355,6 +417,45 @@ async def archive_banner(banner_id: UUID, actor_uuid: UUID, actor_role: str) -> 
         )
         await session.commit()
         await session.refresh(banner)
+        return banner
+
+
+async def remove_banner(banner_id: UUID, reviewer_uuid: UUID, note: str) -> Banner | None:
+    """Hide a campaign immediately while preserving its review and audit history."""
+    async with AsyncSessionLocal() as session:
+        banner = await session.get(Banner, banner_id, with_for_update=True)
+        if banner is None or banner.removed_at is not None:
+            return None
+        removed_at = datetime.now(UTC)
+        previous_status = banner.status
+        banner.status = BannerStatus.ARCHIVED
+        banner.removed_at = removed_at
+        banner.removed_by_uuid = reviewer_uuid
+        banner.removal_reason = note.strip()
+        banner.version += 1
+        await record_audit(
+            session,
+            action=AuditAction.BANNER_DELETED,
+            entity_type="banner",
+            entity_uuid=banner.id,
+            actor_uuid=reviewer_uuid,
+            actor_role="admin",
+            business_line=banner.business_line,
+            detail={
+                "mode": "soft_remove",
+                "from_status": previous_status.value,
+                "reason": banner.removal_reason,
+            },
+        )
+        await session.commit()
+        await session.refresh(banner)
+        await emit_notification(
+            user_uuid=banner.created_by_uuid,
+            notification_type=NotificationType.CAMPAIGN_REMOVED,
+            title="Banner removed",
+            body=f"Admin removed “{banner.title}” from campaign serving.",
+            href="/dashboard/campaigns?type=banners",
+        )
         return banner
 
 

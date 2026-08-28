@@ -81,7 +81,10 @@ async def get_admin_home(db: AsyncSession) -> AdminHomeResponse:
         (
             await db.execute(
                 select(Banner)
-                .where(Banner.status == BannerStatus.PENDING_APPROVAL)
+                .where(
+                    Banner.status == BannerStatus.PENDING_APPROVAL,
+                    Banner.removed_at.is_(None),
+                )
                 .order_by(Banner.created_at.desc())
                 .limit(_PENDING_QUEUE_LIMIT)
             )
@@ -146,7 +149,7 @@ async def get_admin_home(db: AsyncSession) -> AdminHomeResponse:
     pending_banners_count = await db.scalar(
         select(func.count())
         .select_from(Banner)
-        .where(Banner.status == BannerStatus.PENDING_APPROVAL)
+        .where(Banner.status == BannerStatus.PENDING_APPROVAL, Banner.removed_at.is_(None))
     )
     pending_property_submissions_count = await db.scalar(
         select(func.count())

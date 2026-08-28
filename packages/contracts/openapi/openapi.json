@@ -3951,7 +3951,12 @@
           "offer_scheduled",
           "offer_activated",
           "offer_expired",
-          "offer_archived"
+          "offer_archived",
+          "offer_deleted",
+          "campaign_media_created",
+          "campaign_media_updated",
+          "campaign_media_archived",
+          "campaign_media_deleted"
         ],
         "title": "AuditAction",
         "type": "string"
@@ -4620,7 +4625,7 @@
             "anyOf": [
               {
                 "maxLength": 500,
-                "pattern": "^public/banners/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/[A-Za-z0-9._-]+$",
+                "pattern": "^public/(banners|campaign-media)/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/[A-Za-z0-9._-]+$",
                 "type": "string"
               },
               {
@@ -4628,6 +4633,18 @@
               }
             ],
             "title": "Image Key"
+          },
+          "media_asset_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Media Asset Id"
           },
           "offer_id": {
             "anyOf": [
@@ -4892,6 +4909,29 @@
             ],
             "title": "Image Key"
           },
+          "image_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Image Url"
+          },
+          "media_asset_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Media Asset Id"
+          },
           "offer_id": {
             "anyOf": [
               {
@@ -4922,6 +4962,41 @@
               }
             ],
             "title": "Property Id"
+          },
+          "removal_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Removal Reason"
+          },
+          "removed_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Removed At"
+          },
+          "removed_by_uuid": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Removed By Uuid"
           },
           "replaces_banner_id": {
             "anyOf": [
@@ -4992,6 +5067,10 @@
             "format": "date-time",
             "title": "Updated At",
             "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
           }
         },
         "required": [
@@ -5008,6 +5087,7 @@
           "subtitle",
           "cta_label",
           "image_key",
+          "media_asset_id",
           "deep_link",
           "audience_rules",
           "priority",
@@ -5015,6 +5095,10 @@
           "created_by_uuid",
           "approved_by_uuid",
           "review_note",
+          "version",
+          "removed_by_uuid",
+          "removal_reason",
+          "removed_at",
           "starts_at",
           "ends_at",
           "created_at",
@@ -5121,6 +5205,18 @@
             "title": "Label",
             "type": "string"
           },
+          "media_asset_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Media Asset Id"
+          },
           "placement": {
             "$ref": "#/components/schemas/BannerPlacement"
           },
@@ -5136,6 +5232,7 @@
           "label",
           "version",
           "image_url",
+          "media_asset_id",
           "active",
           "created_at"
         ],
@@ -5199,11 +5296,23 @@
             ],
             "title": "Ends At"
           },
+          "expected_version": {
+            "anyOf": [
+              {
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expected Version"
+          },
           "image_key": {
             "anyOf": [
               {
                 "maxLength": 500,
-                "pattern": "^public/banners/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/[A-Za-z0-9._-]+$",
+                "pattern": "^public/(banners|campaign-media)/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/[A-Za-z0-9._-]+$",
                 "type": "string"
               },
               {
@@ -5211,6 +5320,18 @@
               }
             ],
             "title": "Image Key"
+          },
+          "media_asset_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Media Asset Id"
           },
           "offer_id": {
             "anyOf": [
@@ -5531,6 +5652,428 @@
         ],
         "title": "CallDisposition",
         "type": "string"
+      },
+      "CampaignMediaCreate": {
+        "properties": {
+          "alt_text": {
+            "maxLength": 300,
+            "minLength": 1,
+            "title": "Alt Text",
+            "type": "string"
+          },
+          "business_line": {
+            "pattern": "^(loans|real_estate|both)$",
+            "title": "Business Line",
+            "type": "string"
+          },
+          "content_type": {
+            "enum": [
+              "image/jpeg",
+              "image/png",
+              "image/webp"
+            ],
+            "title": "Content Type",
+            "type": "string"
+          },
+          "object_key": {
+            "maxLength": 500,
+            "minLength": 1,
+            "pattern": "^private/campaign-media/staging/[0-9a-f-]{36}/[A-Za-z0-9._-]+$",
+            "title": "Object Key",
+            "type": "string"
+          },
+          "source_reference": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Reference"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 12,
+            "title": "Tags",
+            "type": "array"
+          },
+          "title": {
+            "maxLength": 160,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          },
+          "usage_type": {
+            "enum": [
+              "public_banner",
+              "sponsor",
+              "dashboard_banner",
+              "dashboard_offer",
+              "campaign"
+            ],
+            "title": "Usage Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "business_line",
+          "usage_type",
+          "title",
+          "alt_text",
+          "object_key",
+          "content_type"
+        ],
+        "title": "CampaignMediaCreate",
+        "type": "object"
+      },
+      "CampaignMediaListResponse": {
+        "properties": {
+          "assets": {
+            "items": {
+              "$ref": "#/components/schemas/CampaignMediaRead"
+            },
+            "title": "Assets",
+            "type": "array"
+          }
+        },
+        "required": [
+          "assets"
+        ],
+        "title": "CampaignMediaListResponse",
+        "type": "object"
+      },
+      "CampaignMediaRead": {
+        "properties": {
+          "active": {
+            "title": "Active",
+            "type": "boolean"
+          },
+          "alt_text": {
+            "title": "Alt Text",
+            "type": "string"
+          },
+          "archived_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Archived At"
+          },
+          "business_line": {
+            "title": "Business Line",
+            "type": "string"
+          },
+          "byte_size": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Byte Size"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "created_by_uuid": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created By Uuid"
+          },
+          "height": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Height"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "image_url": {
+            "title": "Image Url",
+            "type": "string"
+          },
+          "mime_type": {
+            "title": "Mime Type",
+            "type": "string"
+          },
+          "source_reference": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Reference"
+          },
+          "source_type": {
+            "title": "Source Type",
+            "type": "string"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Tags",
+            "type": "array"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated At"
+          },
+          "usage_count": {
+            "title": "Usage Count",
+            "type": "integer"
+          },
+          "usage_type": {
+            "title": "Usage Type",
+            "type": "string"
+          },
+          "usages": {
+            "items": {
+              "$ref": "#/components/schemas/CampaignMediaUsage"
+            },
+            "title": "Usages",
+            "type": "array"
+          },
+          "width": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Width"
+          }
+        },
+        "required": [
+          "id",
+          "business_line",
+          "usage_type",
+          "title",
+          "alt_text",
+          "tags",
+          "image_url",
+          "mime_type",
+          "width",
+          "height",
+          "byte_size",
+          "source_type",
+          "source_reference",
+          "active",
+          "created_by_uuid",
+          "created_at",
+          "updated_at",
+          "archived_at",
+          "usage_count",
+          "usages"
+        ],
+        "title": "CampaignMediaRead",
+        "type": "object"
+      },
+      "CampaignMediaUpdate": {
+        "properties": {
+          "active": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Active"
+          },
+          "alt_text": {
+            "anyOf": [
+              {
+                "maxLength": 300,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Alt Text"
+          },
+          "source_reference": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Reference"
+          },
+          "tags": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "maxItems": 12,
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tags"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "maxLength": 160,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          }
+        },
+        "title": "CampaignMediaUpdate",
+        "type": "object"
+      },
+      "CampaignMediaUploadRequest": {
+        "properties": {
+          "content_type": {
+            "enum": [
+              "image/jpeg",
+              "image/png",
+              "image/webp"
+            ],
+            "title": "Content Type",
+            "type": "string"
+          },
+          "filename": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Filename",
+            "type": "string"
+          }
+        },
+        "required": [
+          "content_type",
+          "filename"
+        ],
+        "title": "CampaignMediaUploadRequest",
+        "type": "object"
+      },
+      "CampaignMediaUploadResponse": {
+        "properties": {
+          "fields": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Fields",
+            "type": "object"
+          },
+          "max_bytes": {
+            "title": "Max Bytes",
+            "type": "integer"
+          },
+          "object_key": {
+            "title": "Object Key",
+            "type": "string"
+          },
+          "upload_url": {
+            "title": "Upload Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "object_key",
+          "upload_url",
+          "fields",
+          "max_bytes"
+        ],
+        "title": "CampaignMediaUploadResponse",
+        "type": "object"
+      },
+      "CampaignMediaUsage": {
+        "properties": {
+          "entity_id": {
+            "format": "uuid",
+            "title": "Entity Id",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "banner_template",
+              "banner",
+              "offer"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "entity_id",
+          "label",
+          "status"
+        ],
+        "title": "CampaignMediaUsage",
+        "type": "object"
       },
       "ChangePasswordRequest": {
         "properties": {
@@ -10012,7 +10555,10 @@
           "mobile_change_requested",
           "mobile_changed",
           "mobile_change_rejected",
-          "vehicle_arrangement_updated"
+          "vehicle_arrangement_updated",
+          "campaign_approved",
+          "campaign_changes_requested",
+          "campaign_removed"
         ],
         "title": "NotificationType",
         "type": "string"
@@ -10085,7 +10631,7 @@
             "anyOf": [
               {
                 "maxLength": 500,
-                "pattern": "^public/banners/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/[A-Za-z0-9._-]+$",
+                "pattern": "^public/(banners|campaign-media)/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/[A-Za-z0-9._-]+$",
                 "type": "string"
               },
               {
@@ -10093,6 +10639,18 @@
               }
             ],
             "title": "Image Key"
+          },
+          "media_asset_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Media Asset Id"
           },
           "partner_name": {
             "anyOf": [
@@ -10338,6 +10896,18 @@
             ],
             "title": "Image Url"
           },
+          "media_asset_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Media Asset Id"
+          },
           "partner_name": {
             "anyOf": [
               {
@@ -10363,6 +10933,41 @@
               }
             ],
             "title": "Redemption Url"
+          },
+          "removal_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Removal Reason"
+          },
+          "removed_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Removed At"
+          },
+          "removed_by_uuid": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Removed By Uuid"
           },
           "review_note": {
             "anyOf": [
@@ -10439,6 +11044,15 @@
           "title": {
             "title": "Title",
             "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
           }
         },
         "required": [
@@ -10454,6 +11068,7 @@
           "terms_summary",
           "terms_url",
           "image_key",
+          "media_asset_id",
           "audience_rules",
           "priority",
           "status",
@@ -10461,9 +11076,14 @@
           "review_note",
           "reviewed_by_uuid",
           "reviewed_at",
+          "version",
+          "removed_by_uuid",
+          "removal_reason",
+          "removed_at",
           "starts_at",
           "ends_at",
-          "created_at"
+          "created_at",
+          "updated_at"
         ],
         "title": "OfferRead",
         "type": "object"
@@ -10573,11 +11193,23 @@
             ],
             "title": "Ends At"
           },
+          "expected_version": {
+            "anyOf": [
+              {
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expected Version"
+          },
           "image_key": {
             "anyOf": [
               {
                 "maxLength": 500,
-                "pattern": "^public/banners/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/[A-Za-z0-9._-]+$",
+                "pattern": "^public/(banners|campaign-media)/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/[A-Za-z0-9._-]+$",
                 "type": "string"
               },
               {
@@ -10585,6 +11217,18 @@
               }
             ],
             "title": "Image Key"
+          },
+          "media_asset_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Media Asset Id"
           },
           "partner_name": {
             "anyOf": [
@@ -25289,6 +25933,64 @@
         ]
       }
     },
+    "/api/v1/banners/{banner_id}/remove": {
+      "post": {
+        "operationId": "remove_api_v1_banners__banner_id__remove_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "banner_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Banner Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RejectRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BannerRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Remove",
+        "tags": [
+          "banners"
+        ]
+      }
+    },
     "/api/v1/banners/{banner_id}/replacement": {
       "post": {
         "operationId": "create_replacement_api_v1_banners__banner_id__replacement_post",
@@ -25492,6 +26194,331 @@
         "summary": "Delete Bookmark",
         "tags": [
           "bookmarks"
+        ]
+      }
+    },
+    "/api/v1/campaign-media": {
+      "get": {
+        "operationId": "list_media_api_v1_campaign_media_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "active_only",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Active Only",
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "usage_type",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "public_banner",
+                    "sponsor",
+                    "dashboard_banner",
+                    "dashboard_offer",
+                    "campaign"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Usage Type"
+            }
+          },
+          {
+            "in": "query",
+            "name": "business_line",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "loans",
+                    "real_estate",
+                    "both"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Business Line"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CampaignMediaListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "List Media",
+        "tags": [
+          "campaign-media"
+        ]
+      },
+      "post": {
+        "operationId": "confirm_media_api_v1_campaign_media_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CampaignMediaCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CampaignMediaRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Confirm Media",
+        "tags": [
+          "campaign-media"
+        ]
+      }
+    },
+    "/api/v1/campaign-media/image-upload-url": {
+      "post": {
+        "operationId": "image_upload_url_api_v1_campaign_media_image_upload_url_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CampaignMediaUploadRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CampaignMediaUploadResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Image Upload Url",
+        "tags": [
+          "campaign-media"
+        ]
+      }
+    },
+    "/api/v1/campaign-media/{asset_id}": {
+      "delete": {
+        "operationId": "remove_media_api_v1_campaign_media__asset_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "asset_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Asset Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Remove Media",
+        "tags": [
+          "campaign-media"
+        ]
+      },
+      "get": {
+        "operationId": "get_media_api_v1_campaign_media__asset_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "asset_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Asset Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CampaignMediaRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Get Media",
+        "tags": [
+          "campaign-media"
+        ]
+      },
+      "patch": {
+        "operationId": "patch_media_api_v1_campaign_media__asset_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "asset_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Asset Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CampaignMediaUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CampaignMediaRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Patch Media",
+        "tags": [
+          "campaign-media"
         ]
       }
     },
@@ -28058,6 +29085,45 @@
       }
     },
     "/api/v1/offers/{offer_id}": {
+      "delete": {
+        "operationId": "delete_offer_draft_api_v1_offers__offer_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "offer_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Offer Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Delete Offer Draft",
+        "tags": [
+          "offers"
+        ]
+      },
       "get": {
         "operationId": "get_offer_api_v1_offers__offer_id__get",
         "parameters": [
@@ -28358,6 +29424,64 @@
           }
         ],
         "summary": "Reject",
+        "tags": [
+          "offers"
+        ]
+      }
+    },
+    "/api/v1/offers/{offer_id}/remove": {
+      "post": {
+        "operationId": "remove_api_v1_offers__offer_id__remove_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "offer_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Offer Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OfferRejectRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OfferRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Remove",
         "tags": [
           "offers"
         ]

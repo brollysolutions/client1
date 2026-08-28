@@ -143,7 +143,7 @@ export function BannerTemplateManager() {
           <div>
             <h2 className="font-semibold text-text-primary">Artwork template library</h2>
             <p className="mt-1 text-sm text-text-secondary">
-              Admin controls the fixed category artwork; Sub Admin controls campaign copy.
+              Sub Admin controls the fixed category artwork and campaign copy.
             </p>
           </div>
         </div>

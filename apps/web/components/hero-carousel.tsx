@@ -27,10 +27,12 @@ export function HeroCarousel({
   banners,
   variant = "hero",
   label = "Highlights",
+  interactive = true,
 }: {
   banners: HeroBanner[];
   variant?: "hero" | "section";
   label?: string;
+  interactive?: boolean;
 }) {
   const [api, setApi] = useState<CarouselApi>();
   const [selected, setSelected] = useState(0);
@@ -244,15 +246,16 @@ export function HeroCarousel({
                       {/* CTA matches the NavBar's primary button (sky-blue --nav-primary). */}
                       {banner.cta && (
                         <Button
-                          asChild
+                          asChild={interactive}
+                          disabled={!interactive}
                           className="mt-2 h-8 max-w-full truncate bg-[var(--nav-primary)] px-3 text-xs text-white shadow-sm hover:bg-[var(--nav-primary-hover)] focus-visible:ring-[var(--nav-primary)] sm:mt-5 sm:h-10 sm:px-4 sm:text-sm"
                         >
-                          <Link
+                          {interactive ? <Link
                             href={banner.cta.href}
                             tabIndex={isSelected ? undefined : -1}
                           >
                             {banner.cta.label}
-                          </Link>
+                          </Link> : banner.cta.label}
                         </Button>
                       )}
                     </div>
@@ -295,7 +298,7 @@ export function HeroCarousel({
         )}
       </Carousel>
 
-      {variant === "section" ? (
+      {variant === "section" && interactive ? (
         <a
           href="#page-overview"
           aria-label="Scroll to page overview"

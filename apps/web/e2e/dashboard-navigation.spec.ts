@@ -52,7 +52,7 @@ const scenarios: readonly RoleScenario[] = [
   {
     name: "Sub Admin",
     promote: ["sub_admin"],
-    expected: ["Property listings", "Finance overview", "Referral rules", "Banners", "Offers"],
+    expected: ["Property listings", "Finance overview", "Referral rules", "Campaign Studio", "Media library"],
     excluded: ["Financial products", "Leads", "Tasks", "Website content"],
     deniedPath: "/dashboard/admin-leads",
   },
@@ -65,9 +65,7 @@ const scenarios: readonly RoleScenario[] = [
       "Users & staff",
       "Payouts",
       "Referral rules",
-      "Banners",
-      "Offers",
-      "Banner media",
+      "Campaign approvals",
     ],
     excluded: ["Leads", "Tasks", "Website content", "Audit log"],
     deniedPath: "/dashboard/leads",
@@ -309,6 +307,15 @@ test.describe("role-aware dashboard navigation", () => {
           await expect(createStaffDialog.locator("form")).toBeVisible();
           await createStaffDialog.getByRole("button", { name: "Close staff creation" }).click();
           await expect(createStaffDialog).toBeHidden();
+
+          await page.goto("/dashboard/campaign-approvals");
+          await expect(
+            page.getByRole("heading", { name: "Campaign approvals", exact: true }),
+          ).toBeVisible();
+          await expect(page.getByRole("button", { name: "New banner", exact: true })).toHaveCount(0);
+          await expect(page.getByRole("button", { name: "New offer", exact: true })).toHaveCount(0);
+          await page.goto("/dashboard/media-library");
+          await expect(page).toHaveURL(/\/dashboard$/);
         }
 
         await page.goto(scenario.deniedPath);
@@ -359,8 +366,8 @@ test.describe("role-aware dashboard navigation", () => {
       await logIn(page, account);
 
       for (const workspace of [
-        { path: "/dashboard/banners", button: "New banner", heading: "New banner", close: "Close workspace" },
-        { path: "/dashboard/offers", button: "New offer", heading: "New dashboard offer", close: "Close workspace" },
+        { path: "/dashboard/campaigns?type=banners", button: "New banner", heading: "New banner", close: "Close workspace" },
+        { path: "/dashboard/campaigns?type=offers", button: "New offer", heading: "New dashboard offer", close: "Close workspace" },
         { path: "/dashboard/referral-rules", button: "New rule", heading: "New bonus rule", close: "Close referral rule workspace" },
       ]) {
         await page.goto(workspace.path);
@@ -372,6 +379,18 @@ test.describe("role-aware dashboard navigation", () => {
         await expect(dialog).toBeHidden();
       }
 
+      await page.goto("/dashboard/media-library");
+      await expect(
+        page.getByRole("heading", { name: "Campaign Media Library", exact: true }),
+      ).toBeVisible();
+      await expect(page.getByRole("button", { name: "Upload artwork", exact: true })).toBeVisible();
+      await expect(page.getByRole("searchbox", { name: "Search media" })).toBeVisible();
+
+      await page.goto("/dashboard/banner-media");
+      await expect(page).toHaveURL(/\/dashboard\/media-library$/);
+      await expect(
+        page.getByRole("heading", { name: "Campaign Media Library", exact: true }),
+      ).toBeVisible();
     } finally {
       await deleteAccount(request, account);
     }

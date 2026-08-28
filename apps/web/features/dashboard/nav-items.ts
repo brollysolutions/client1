@@ -291,22 +291,29 @@ export const NAV_ITEMS: readonly NavItem[] = [
     section: "finance",
   },
 
-  // Shared CMS views. Sub Admin authors; Admin reviews or oversees according
-  // to the existing route/API behavior.
+  // Campaign production and maker/checker review are intentionally separate.
   {
-    key: "banners",
-    label: "Banners",
-    href: "/dashboard/banners",
+    key: "campaign-studio",
+    label: "Campaign Studio",
+    href: "/dashboard/campaigns",
     icon: DASHBOARD_ICONS.banners,
-    capability: "cms",
+    capability: "subAdmin",
     section: "content",
   },
   {
-    key: "offers",
-    label: "Offers",
-    href: "/dashboard/offers",
-    icon: DASHBOARD_ICONS.offers,
-    capability: "cms",
+    key: "campaign-media",
+    label: "Media library",
+    href: "/dashboard/media-library",
+    icon: DASHBOARD_ICONS.websiteContent,
+    capability: "subAdmin",
+    section: "content",
+  },
+  {
+    key: "campaign-approvals",
+    label: "Campaign approvals",
+    href: "/dashboard/campaign-approvals",
+    icon: DASHBOARD_ICONS.documentVerification,
+    capability: "admin",
     section: "content",
   },
   // Admin operations.
@@ -457,14 +464,6 @@ export const NAV_ITEMS: readonly NavItem[] = [
     section: "content",
   },
   {
-    key: "admin-banner-media",
-    label: "Banner media",
-    href: "/dashboard/banner-media",
-    icon: DASHBOARD_ICONS.banners,
-    capability: "admin",
-    section: "content",
-  },
-  {
     key: "admin-analytics",
     label: "Analytics",
     href: "/dashboard/analytics",
@@ -493,7 +492,10 @@ export const DASHBOARD_ROUTE_RULES: readonly DashboardRouteRule[] = [
   { path: "/dashboard/apply", exact: true, capabilities: ["clientLoans"] },
   { path: "/dashboard/audit-log", exact: true, capabilities: ["admin"] },
   { path: "/dashboard/banners", exact: true, capabilities: ["cms"] },
-  { path: "/dashboard/banner-media", exact: true, capabilities: ["admin"] },
+  { path: "/dashboard/banner-media", exact: true, capabilities: ["cms"] },
+  { path: "/dashboard/campaigns", exact: true, capabilities: ["subAdmin"] },
+  { path: "/dashboard/campaign-approvals", exact: true, capabilities: ["admin"] },
+  { path: "/dashboard/media-library", exact: true, capabilities: ["subAdmin"] },
   { path: "/dashboard/bookmarks", exact: true, capabilities: ["clientRealEstate"] },
   { path: "/dashboard/broadcast", exact: true, capabilities: ["admin"] },
   { path: "/dashboard/commissions", exact: true, capabilities: ["admin"] },

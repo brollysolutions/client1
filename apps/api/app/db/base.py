@@ -55,6 +55,7 @@ from app.models.push_subscription import PushSubscription  # noqa
 # as a drive-by while adding the referral models below, which depend on
 # ReferralBonusConfig (FK) needing to already be on Base.metadata.
 from app.models.banner import Banner, BannerTemplate  # noqa
+from app.models.campaign_media import CampaignMediaAsset  # noqa
 from app.models.offer import Offer  # noqa
 from app.models.content_block import ContentBlock  # noqa
 from app.models.referral_bonus_config import ReferralBonusConfig  # noqa

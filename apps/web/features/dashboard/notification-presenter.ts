@@ -41,6 +41,9 @@ export const NOTIFICATION_TYPE_ICON: Record<NotificationType, LucideIcon> = {
   mobile_changed: Smartphone,
   mobile_change_rejected: ShieldAlert,
   vehicle_arrangement_updated: CarFront,
+  campaign_approved: Megaphone,
+  campaign_changes_requested: ClipboardList,
+  campaign_removed: Eraser,
 };
 
 export const NOTIFICATION_TYPE_LABEL: Record<NotificationType, string> = {
@@ -64,6 +67,9 @@ export const NOTIFICATION_TYPE_LABEL: Record<NotificationType, string> = {
   mobile_changed: "Mobile number changed",
   mobile_change_rejected: "Mobile change rejected",
   vehicle_arrangement_updated: "Vehicle arrangement updated",
+  campaign_approved: "Campaign approved",
+  campaign_changes_requested: "Campaign changes requested",
+  campaign_removed: "Campaign removed",
 };
 
 export function formatNotificationTime(iso: string): string {

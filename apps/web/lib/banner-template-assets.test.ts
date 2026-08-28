@@ -117,3 +117,26 @@ describe("bundled banner template artwork", () => {
     expect([...hashes.values()].filter((files) => files.length > 1)).toEqual([]);
   });
 });
+
+describe("generated campaign starter artwork", () => {
+  it("ships optimized, wide WEBP assets for the Sub Admin Media Library", () => {
+    const files = [
+      "home-loan-journey.webp",
+      "verified-residence.webp",
+      "rewards-and-savings.webp",
+    ];
+    const hashes = new Set<string>();
+    for (const file of files) {
+      const path = join(process.cwd(), "public", "banner-templates", "starter", file);
+      const bytes = readFileSync(path);
+      const size = webpSize(bytes);
+      expect(statSync(path).size).toBeLessThanOrEqual(500 * 1024);
+      expect(size.width).toBeGreaterThanOrEqual(1200);
+      expect(size.width / size.height).toBeGreaterThanOrEqual(1.9);
+      expect(bytes.toString("ascii", 0, 4)).toBe("RIFF");
+      expect(bytes.toString("ascii", 8, 12)).toBe("WEBP");
+      hashes.add(createHash("sha256").update(bytes).digest("hex"));
+    }
+    expect(hashes.size).toBe(files.length);
+  });
+});

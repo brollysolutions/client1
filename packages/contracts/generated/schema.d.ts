@@ -1924,6 +1924,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/banners/{banner_id}/remove": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Remove */
+        post: operations["remove_api_v1_banners__banner_id__remove_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/banners/{banner_id}/replacement": {
         parameters: {
             query?: never;
@@ -1991,6 +2008,60 @@ export interface paths {
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campaign-media": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Media */
+        get: operations["list_media_api_v1_campaign_media_get"];
+        put?: never;
+        /** Confirm Media */
+        post: operations["confirm_media_api_v1_campaign_media_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campaign-media/image-upload-url": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Image Upload Url */
+        post: operations["image_upload_url_api_v1_campaign_media_image_upload_url_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/campaign-media/{asset_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Media */
+        get: operations["get_media_api_v1_campaign_media__asset_id__get"];
+        put?: never;
+        post?: never;
+        /** Remove Media */
+        delete: operations["remove_media_api_v1_campaign_media__asset_id__delete"];
+        options?: never;
+        head?: never;
+        /** Patch Media */
+        patch: operations["patch_media_api_v1_campaign_media__asset_id__patch"];
         trace?: never;
     };
     "/api/v1/client/lead-details/{business_line}": {
@@ -2786,7 +2857,8 @@ export interface paths {
         get: operations["get_offer_api_v1_offers__offer_id__get"];
         put?: never;
         post?: never;
-        delete?: never;
+        /** Delete Offer Draft */
+        delete: operations["delete_offer_draft_api_v1_offers__offer_id__delete"];
         options?: never;
         head?: never;
         /** Update Offer */
@@ -2855,6 +2927,23 @@ export interface paths {
         put?: never;
         /** Reject */
         post: operations["reject_api_v1_offers__offer_id__reject_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/offers/{offer_id}/remove": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Remove */
+        post: operations["remove_api_v1_offers__offer_id__remove_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -5451,7 +5540,7 @@ export interface components {
          *     `services/fee_cashbacks.py` (FR-6.6 processing-fee cashback).
          * @enum {string}
          */
-        AuditAction: "agent_approved" | "agent_rejected" | "staff_created" | "staff_feature_granted" | "staff_feature_revoked" | "staff_invite_created" | "staff_invite_revoked" | "account_removed" | "account_status_updated" | "payout_approved" | "payout_rejected" | "payout_manual_issued" | "payout_manual_cleared" | "payout_manual_failed" | "payout_manual_reversed" | "property_submission_approved" | "property_submission_rejected" | "property_listing_updated" | "support_ticket_advanced" | "retention_purged" | "loan_type_created" | "loan_type_updated" | "bank_created" | "bank_updated" | "bank_deleted" | "bank_availability_updated" | "agent_invite_created" | "agent_invite_revoked" | "financial_product_offer_created" | "financial_product_offer_updated" | "commission_entered" | "commission_cancelled" | "fee_cashback_entered" | "fee_cashback_cancelled" | "document_verified" | "document_unverified" | "payout_link_reconciled" | "notification_broadcast" | "agent_lead_expired" | "lead_assigned" | "employee_work_assigned" | "lead_details_updated" | "field_visibility_updated" | "mobile_change_verified" | "mobile_changed" | "mobile_change_rejected" | "vehicle_arrangement_updated" | "banner_created" | "banner_updated" | "banner_submitted" | "banner_approved" | "banner_rejected" | "banner_archived" | "banner_activated" | "banner_deleted" | "banner_template_versioned" | "referral_rule_created" | "referral_rule_updated" | "referral_rule_deleted" | "offer_created" | "offer_updated" | "offer_submitted" | "offer_approved" | "offer_rejected" | "offer_scheduled" | "offer_activated" | "offer_expired" | "offer_archived";
+        AuditAction: "agent_approved" | "agent_rejected" | "staff_created" | "staff_feature_granted" | "staff_feature_revoked" | "staff_invite_created" | "staff_invite_revoked" | "account_removed" | "account_status_updated" | "payout_approved" | "payout_rejected" | "payout_manual_issued" | "payout_manual_cleared" | "payout_manual_failed" | "payout_manual_reversed" | "property_submission_approved" | "property_submission_rejected" | "property_listing_updated" | "support_ticket_advanced" | "retention_purged" | "loan_type_created" | "loan_type_updated" | "bank_created" | "bank_updated" | "bank_deleted" | "bank_availability_updated" | "agent_invite_created" | "agent_invite_revoked" | "financial_product_offer_created" | "financial_product_offer_updated" | "commission_entered" | "commission_cancelled" | "fee_cashback_entered" | "fee_cashback_cancelled" | "document_verified" | "document_unverified" | "payout_link_reconciled" | "notification_broadcast" | "agent_lead_expired" | "lead_assigned" | "employee_work_assigned" | "lead_details_updated" | "field_visibility_updated" | "mobile_change_verified" | "mobile_changed" | "mobile_change_rejected" | "vehicle_arrangement_updated" | "banner_created" | "banner_updated" | "banner_submitted" | "banner_approved" | "banner_rejected" | "banner_archived" | "banner_activated" | "banner_deleted" | "banner_template_versioned" | "referral_rule_created" | "referral_rule_updated" | "referral_rule_deleted" | "offer_created" | "offer_updated" | "offer_submitted" | "offer_approved" | "offer_rejected" | "offer_scheduled" | "offer_activated" | "offer_expired" | "offer_archived" | "offer_deleted" | "campaign_media_created" | "campaign_media_updated" | "campaign_media_archived" | "campaign_media_deleted";
         /** AuditLogListResponse */
         AuditLogListResponse: {
             /** Entries */
@@ -5702,6 +5791,8 @@ export interface components {
             ends_at?: string | null;
             /** Image Key */
             image_key?: string | null;
+            /** Media Asset Id */
+            media_asset_id?: string | null;
             /** Offer Id */
             offer_id?: string | null;
             /** @default homepage */
@@ -5788,6 +5879,10 @@ export interface components {
             id: string;
             /** Image Key */
             image_key: string | null;
+            /** Image Url */
+            image_url?: string | null;
+            /** Media Asset Id */
+            media_asset_id: string | null;
             /** Offer Id */
             offer_id: string | null;
             placement: components["schemas"]["BannerPlacement"];
@@ -5795,6 +5890,12 @@ export interface components {
             priority: number;
             /** Property Id */
             property_id: string | null;
+            /** Removal Reason */
+            removal_reason: string | null;
+            /** Removed At */
+            removed_at: string | null;
+            /** Removed By Uuid */
+            removed_by_uuid: string | null;
             /** Replaces Banner Id */
             replaces_banner_id: string | null;
             /** Review Note */
@@ -5813,6 +5914,8 @@ export interface components {
              * Format: date-time
              */
             updated_at: string;
+            /** Version */
+            version: number;
         };
         /**
          * BannerStatus
@@ -5854,6 +5957,8 @@ export interface components {
             image_url: string;
             /** Label */
             label: string;
+            /** Media Asset Id */
+            media_asset_id: string | null;
             placement: components["schemas"]["BannerPlacement"];
             /** Version */
             version: number;
@@ -5872,8 +5977,12 @@ export interface components {
             deep_link?: string | null;
             /** Ends At */
             ends_at?: string | null;
+            /** Expected Version */
+            expected_version?: number | null;
             /** Image Key */
             image_key?: string | null;
+            /** Media Asset Id */
+            media_asset_id?: string | null;
             /** Offer Id */
             offer_id?: string | null;
             /** Priority */
@@ -5958,6 +6067,138 @@ export interface components {
          * @enum {string}
          */
         CallDisposition: "connected" | "no_answer" | "busy" | "switched_off" | "wrong_number" | "callback_requested" | "not_interested";
+        /** CampaignMediaCreate */
+        CampaignMediaCreate: {
+            /** Alt Text */
+            alt_text: string;
+            /** Business Line */
+            business_line: string;
+            /**
+             * Content Type
+             * @enum {string}
+             */
+            content_type: "image/jpeg" | "image/png" | "image/webp";
+            /** Object Key */
+            object_key: string;
+            /** Source Reference */
+            source_reference?: string | null;
+            /** Tags */
+            tags?: string[];
+            /** Title */
+            title: string;
+            /**
+             * Usage Type
+             * @enum {string}
+             */
+            usage_type: "public_banner" | "sponsor" | "dashboard_banner" | "dashboard_offer" | "campaign";
+        };
+        /** CampaignMediaListResponse */
+        CampaignMediaListResponse: {
+            /** Assets */
+            assets: components["schemas"]["CampaignMediaRead"][];
+        };
+        /** CampaignMediaRead */
+        CampaignMediaRead: {
+            /** Active */
+            active: boolean;
+            /** Alt Text */
+            alt_text: string;
+            /** Archived At */
+            archived_at: string | null;
+            /** Business Line */
+            business_line: string;
+            /** Byte Size */
+            byte_size: number | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Created By Uuid */
+            created_by_uuid: string | null;
+            /** Height */
+            height: number | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Image Url */
+            image_url: string;
+            /** Mime Type */
+            mime_type: string;
+            /** Source Reference */
+            source_reference: string | null;
+            /** Source Type */
+            source_type: string;
+            /** Tags */
+            tags: string[];
+            /** Title */
+            title: string;
+            /** Updated At */
+            updated_at: string | null;
+            /** Usage Count */
+            usage_count: number;
+            /** Usage Type */
+            usage_type: string;
+            /** Usages */
+            usages: components["schemas"]["CampaignMediaUsage"][];
+            /** Width */
+            width: number | null;
+        };
+        /** CampaignMediaUpdate */
+        CampaignMediaUpdate: {
+            /** Active */
+            active?: boolean | null;
+            /** Alt Text */
+            alt_text?: string | null;
+            /** Source Reference */
+            source_reference?: string | null;
+            /** Tags */
+            tags?: string[] | null;
+            /** Title */
+            title?: string | null;
+        };
+        /** CampaignMediaUploadRequest */
+        CampaignMediaUploadRequest: {
+            /**
+             * Content Type
+             * @enum {string}
+             */
+            content_type: "image/jpeg" | "image/png" | "image/webp";
+            /** Filename */
+            filename: string;
+        };
+        /** CampaignMediaUploadResponse */
+        CampaignMediaUploadResponse: {
+            /** Fields */
+            fields: {
+                [key: string]: string;
+            };
+            /** Max Bytes */
+            max_bytes: number;
+            /** Object Key */
+            object_key: string;
+            /** Upload Url */
+            upload_url: string;
+        };
+        /** CampaignMediaUsage */
+        CampaignMediaUsage: {
+            /**
+             * Entity Id
+             * Format: uuid
+             */
+            entity_id: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "banner_template" | "banner" | "offer";
+            /** Label */
+            label: string;
+            /** Status */
+            status: string;
+        };
         /** ChangePasswordRequest */
         ChangePasswordRequest: {
             /** Confirm Password */
@@ -7477,7 +7718,7 @@ export interface components {
          * NotificationType
          * @enum {string}
          */
-        NotificationType: "site_visit_requested" | "site_visit_cancelled" | "support_ticket_received" | "lead_assigned" | "lead_released" | "agent_lead_expired" | "task_assigned" | "loan_status_updated" | "property_deal_status_updated" | "referral_converted" | "support_ticket_resolved" | "document_review_updated" | "admin_payout_reviewed" | "admin_account_action" | "admin_retention_purged" | "admin_broadcast" | "mobile_change_requested" | "mobile_changed" | "mobile_change_rejected" | "vehicle_arrangement_updated";
+        NotificationType: "site_visit_requested" | "site_visit_cancelled" | "support_ticket_received" | "lead_assigned" | "lead_released" | "agent_lead_expired" | "task_assigned" | "loan_status_updated" | "property_deal_status_updated" | "referral_converted" | "support_ticket_resolved" | "document_review_updated" | "admin_payout_reviewed" | "admin_account_action" | "admin_retention_purged" | "admin_broadcast" | "mobile_change_requested" | "mobile_changed" | "mobile_change_rejected" | "vehicle_arrangement_updated" | "campaign_approved" | "campaign_changes_requested" | "campaign_removed";
         /** OfferCreate */
         OfferCreate: {
             audience_rules?: components["schemas"]["AudienceRules"];
@@ -7495,6 +7736,8 @@ export interface components {
             ends_at?: string | null;
             /** Image Key */
             image_key?: string | null;
+            /** Media Asset Id */
+            media_asset_id?: string | null;
             /** Partner Name */
             partner_name?: string | null;
             /**
@@ -7575,12 +7818,20 @@ export interface components {
             image_key: string | null;
             /** Image Url */
             image_url?: string | null;
+            /** Media Asset Id */
+            media_asset_id: string | null;
             /** Partner Name */
             partner_name: string | null;
             /** Priority */
             priority: number;
             /** Redemption Url */
             redemption_url: string | null;
+            /** Removal Reason */
+            removal_reason: string | null;
+            /** Removed At */
+            removed_at: string | null;
+            /** Removed By Uuid */
+            removed_by_uuid: string | null;
             /** Review Note */
             review_note: string | null;
             /** Reviewed At */
@@ -7596,6 +7847,13 @@ export interface components {
             terms_url: string | null;
             /** Title */
             title: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Version */
+            version: number;
         };
         /** OfferRejectRequest */
         OfferRejectRequest: {
@@ -7620,8 +7878,12 @@ export interface components {
             discount_value?: number | string | null;
             /** Ends At */
             ends_at?: string | null;
+            /** Expected Version */
+            expected_version?: number | null;
             /** Image Key */
             image_key?: string | null;
+            /** Media Asset Id */
+            media_asset_id?: string | null;
             /** Partner Name */
             partner_name?: string | null;
             /** Priority */
@@ -14097,6 +14359,41 @@ export interface operations {
             };
         };
     };
+    remove_api_v1_banners__banner_id__remove_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                banner_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RejectRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BannerRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     create_replacement_api_v1_banners__banner_id__replacement_post: {
         parameters: {
             query?: never;
@@ -14229,6 +14526,200 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_media_api_v1_campaign_media_get: {
+        parameters: {
+            query?: {
+                active_only?: boolean;
+                usage_type?: ("public_banner" | "sponsor" | "dashboard_banner" | "dashboard_offer" | "campaign") | null;
+                business_line?: ("loans" | "real_estate" | "both") | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CampaignMediaListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    confirm_media_api_v1_campaign_media_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CampaignMediaCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CampaignMediaRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    image_upload_url_api_v1_campaign_media_image_upload_url_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CampaignMediaUploadRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CampaignMediaUploadResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_media_api_v1_campaign_media__asset_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                asset_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CampaignMediaRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    remove_media_api_v1_campaign_media__asset_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                asset_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    patch_media_api_v1_campaign_media__asset_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                asset_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CampaignMediaUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CampaignMediaRead"];
+                };
             };
             /** @description Validation Error */
             422: {
@@ -15927,6 +16418,35 @@ export interface operations {
             };
         };
     };
+    delete_offer_draft_api_v1_offers__offer_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                offer_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     update_offer_api_v1_offers__offer_id__patch: {
         parameters: {
             query?: never;
@@ -16056,6 +16576,41 @@ export interface operations {
         };
     };
     reject_api_v1_offers__offer_id__reject_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                offer_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OfferRejectRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OfferRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    remove_api_v1_offers__offer_id__remove_post: {
         parameters: {
             query?: never;
             header?: never;

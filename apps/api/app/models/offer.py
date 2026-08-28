@@ -1,7 +1,7 @@
 """Reviewed dashboard offers authored by Sub Admin and decided by Admin.
 
-The queue is shared for operational visibility, while RLS and service guards
-keep authoring mutations owner-scoped. The lifecycle is draft/rejected ->
+The queue and editable work are shared across the Sub Admin team, while creator
+identity remains immutable provenance. The lifecycle is draft/rejected ->
 pending approval -> approved -> scheduled/active -> expired/archived. Scheduled
 activation and expiry remain scheduler-owned.
 
@@ -60,21 +60,35 @@ class Offer(Base):
     # orphan sweep treats both Banner.image_key and Offer.image_key as live
     # references. The catalogue itself remains authenticated and private/no-store.
     image_key: Mapped[str | None] = mapped_column(Text, nullable=True)
+    media_asset_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("campaign_media_assets.id", ondelete="RESTRICT"),
+        nullable=True,
+    )
     audience_rules: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
     priority: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     status: Mapped[OfferStatus] = mapped_column(
         offer_status_enum, nullable=False, default=OfferStatus.DRAFT
     )
-    # RLS owner axis for INSERT/UPDATE, keyed on app.auth_user_uuid.
+    # Creator provenance is owner-checked on INSERT and trigger-immutable later.
     created_by_uuid: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
     review_note: Mapped[str | None] = mapped_column(Text, nullable=True)
     reviewed_by_uuid: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("auth_users.id", ondelete="SET NULL"), nullable=True
     )
     reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    version: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+    removed_by_uuid: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("auth_users.id", ondelete="SET NULL"), nullable=True
+    )
+    removal_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+    removed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     starts_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     ends_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, default=datetime.utcnow
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow
     )
