@@ -89,6 +89,13 @@ class Settings(BaseSettings):
     MOBILE_CHANGE_OTP_DAILY_LIMIT: int = 3
     MOBILE_CHANGE_REQUEST_EXPIRE_DAYS: int = 7
 
+    # Staff first-login invite links. The two budgets are separate on purpose:
+    # opening the page must never consume the budget for actually setting a
+    # password, or a handful of page loads would lock a legitimate invitee out.
+    # The accept cap is the tighter one because it is the write.
+    STAFF_INVITE_PREVIEW_RATE_LIMIT_PER_IP: int = 120
+    STAFF_INVITE_ACCEPT_RATE_LIMIT_PER_IP: int = 20
+
     # Max KYC upload size for agent-application intake, signed into the
     # presigned-POST policy (storage rejects oversize bodies itself — never
     # trust the browser's own check). Mirrors DEFAULT_MAX_BYTES in

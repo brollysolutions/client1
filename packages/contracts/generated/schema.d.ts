@@ -28,8 +28,17 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** List Pending Agent Applications */
-        get: operations["list_pending_agent_applications_api_v1_admin_agents_get"];
+        /**
+         * List Agent Applications
+         * @description Defaults to the pending queue, which is what the console opens on.
+         *
+         *     `status` was previously hardcoded, so an Admin had no way to look back at
+         *     what they had already approved or rejected. Omitting the parameter keeps the
+         *     original behavior; `status=all` clears the filter. "all" is an explicit
+         *     member rather than an empty string because FastAPI validates `""` against
+         *     the Literal and rejects it rather than reading it as "unset".
+         */
+        get: operations["list_agent_applications_api_v1_admin_agents_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -460,6 +469,23 @@ export interface paths {
         put?: never;
         post?: never;
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/invite-links/{link_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Revoke Staff Invite Link */
+        delete: operations["revoke_staff_invite_link_api_v1_admin_invite_links__link_id__delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -1155,7 +1181,15 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** List Users */
+        /**
+         * List Users
+         * @description The operational account directory.
+         *
+         *     Filtering is server-side because the console pages this list: filtering only
+         *     the fetched page meant a match on page three was invisible from page one.
+         *     Every parameter is optional and omitting all of them preserves the original
+         *     unfiltered behavior.
+         */
         get: operations["list_users_api_v1_admin_users_get"];
         put?: never;
         post?: never;
@@ -1198,6 +1232,30 @@ export interface paths {
          *     platform-identity actions above (staff provisioning, agent-app review).
          */
         post: operations["delete_user_api_v1_admin_users__auth_user_uuid__delete_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/users/{auth_user_uuid}/invite-link": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create Staff Invite Link
+         * @description Issue a first-login link so the temp password never has to be relayed.
+         *
+         *     Creating one revokes the invitee's outstanding link: two live links would
+         *     mean two working credentials for one account. The raw token is returned
+         *     exactly once, here, and only its SHA-256 hash is stored.
+         */
+        post: operations["create_staff_invite_link_api_v1_admin_users__auth_user_uuid__invite_link_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3547,6 +3605,46 @@ export interface paths {
         patch: operations["cancel_site_visit_endpoint_api_v1_site_visits__visit_id__cancel_patch"];
         trace?: never;
     };
+    "/api/v1/staff-invites/{token}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Staff Invite */
+        get: operations["get_staff_invite_api_v1_staff_invites__token__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/staff-invites/{token}/accept": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Accept Staff Invite
+         * @description Set the invitee's own password and burn the link.
+         *
+         *     The cap is the tighter of the two: this is the write, and no legitimate
+         *     invitee needs more than a handful of tries to satisfy the password policy.
+         */
+        post: operations["accept_staff_invite_api_v1_staff_invites__token__accept_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/sub-admin/home": {
         parameters: {
             query?: never;
@@ -5168,7 +5266,7 @@ export interface components {
          *     `services/fee_cashbacks.py` (FR-6.6 processing-fee cashback).
          * @enum {string}
          */
-        AuditAction: "agent_approved" | "agent_rejected" | "staff_created" | "staff_feature_granted" | "staff_feature_revoked" | "account_removed" | "account_status_updated" | "payout_approved" | "payout_rejected" | "payout_manual_issued" | "payout_manual_cleared" | "payout_manual_failed" | "payout_manual_reversed" | "property_submission_approved" | "property_submission_rejected" | "property_listing_updated" | "support_ticket_advanced" | "retention_purged" | "loan_type_created" | "loan_type_updated" | "bank_created" | "bank_updated" | "bank_availability_updated" | "financial_product_offer_created" | "financial_product_offer_updated" | "commission_entered" | "commission_cancelled" | "fee_cashback_entered" | "fee_cashback_cancelled" | "document_verified" | "document_unverified" | "payout_link_reconciled" | "notification_broadcast" | "agent_lead_expired" | "lead_assigned" | "employee_work_assigned" | "lead_details_updated" | "field_visibility_updated" | "mobile_change_verified" | "mobile_changed" | "mobile_change_rejected" | "vehicle_arrangement_updated" | "banner_created" | "banner_updated" | "banner_submitted" | "banner_approved" | "banner_rejected" | "banner_archived" | "banner_activated" | "banner_deleted" | "banner_template_versioned";
+        AuditAction: "agent_approved" | "agent_rejected" | "staff_created" | "staff_feature_granted" | "staff_feature_revoked" | "staff_invite_created" | "staff_invite_revoked" | "account_removed" | "account_status_updated" | "payout_approved" | "payout_rejected" | "payout_manual_issued" | "payout_manual_cleared" | "payout_manual_failed" | "payout_manual_reversed" | "property_submission_approved" | "property_submission_rejected" | "property_listing_updated" | "support_ticket_advanced" | "retention_purged" | "loan_type_created" | "loan_type_updated" | "bank_created" | "bank_updated" | "bank_availability_updated" | "financial_product_offer_created" | "financial_product_offer_updated" | "commission_entered" | "commission_cancelled" | "fee_cashback_entered" | "fee_cashback_cancelled" | "document_verified" | "document_unverified" | "payout_link_reconciled" | "notification_broadcast" | "agent_lead_expired" | "lead_assigned" | "employee_work_assigned" | "lead_details_updated" | "field_visibility_updated" | "mobile_change_verified" | "mobile_changed" | "mobile_change_rejected" | "vehicle_arrangement_updated" | "banner_created" | "banner_updated" | "banner_submitted" | "banner_approved" | "banner_rejected" | "banner_archived" | "banner_activated" | "banner_deleted" | "banner_template_versioned";
         /** AuditLogListResponse */
         AuditLogListResponse: {
             /** Entries */
@@ -8854,6 +8952,11 @@ export interface components {
         };
         /** StaffCreateResponse */
         StaffCreateResponse: {
+            /**
+             * Auth User Uuid
+             * Format: uuid
+             */
+            auth_user_uuid: string;
             /** Business Line */
             business_line: ("loans" | "real_estate" | "both") | null;
             /** First Name */
@@ -8881,6 +8984,41 @@ export interface components {
              * @constant
              */
             feature: "payout_requests";
+        };
+        /** StaffInviteAcceptRequest */
+        StaffInviteAcceptRequest: {
+            /** Confirm Password */
+            confirm_password: string;
+            /** Password */
+            password: string;
+        };
+        /** StaffInviteLinkRead */
+        StaffInviteLinkRead: {
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Share Path */
+            share_path: string;
+        };
+        /**
+         * StaffInvitePreview
+         * @description What an anonymous holder of the token may see before setting a password.
+         *
+         *     First name and role only. Enough to confirm the link is meant for the person
+         *     holding it; nothing that turns a guessed token into contact details.
+         */
+        StaffInvitePreview: {
+            /** First Name */
+            first_name: string;
+            /** Role */
+            role: string;
         };
         /** SubAdminHomeResponse */
         SubAdminHomeResponse: {
@@ -9899,9 +10037,11 @@ export interface operations {
             };
         };
     };
-    list_pending_agent_applications_api_v1_admin_agents_get: {
+    list_agent_applications_api_v1_admin_agents_get: {
         parameters: {
-            query?: never;
+            query?: {
+                status?: "pending" | "approved" | "rejected" | "all";
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -9915,6 +10055,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AgentApplicationListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -10772,6 +10921,35 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AdminHomeResponse"];
+                };
+            };
+        };
+    };
+    revoke_staff_invite_link_api_v1_admin_invite_links__link_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                link_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -12187,6 +12365,13 @@ export interface operations {
             query?: {
                 limit?: number;
                 offset?: number;
+                search?: string | null;
+                status?: ("active" | "suspended" | "pending_password_reset" | "soft_deleted") | null;
+                role?: ("admin" | "sub_admin" | "telecaller" | "employee" | "agent" | "client") | null;
+                business_line?: ("loans" | "real_estate") | null;
+                created_from?: string | null;
+                created_to?: string | null;
+                never_logged_in?: boolean | null;
             };
             header?: never;
             path?: never;
@@ -12269,6 +12454,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MessageResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_staff_invite_link_api_v1_admin_users__auth_user_uuid__invite_link_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                auth_user_uuid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffInviteLinkRead"];
                 };
             };
             /** @description Validation Error */
@@ -17136,6 +17352,72 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SiteVisitRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_staff_invite_api_v1_staff_invites__token__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffInvitePreview"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    accept_staff_invite_api_v1_staff_invites__token__accept_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StaffInviteAcceptRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MessageResponse"];
                 };
             };
             /** @description Validation Error */

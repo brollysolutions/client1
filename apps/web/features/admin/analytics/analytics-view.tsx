@@ -1,12 +1,30 @@
 "use client";
 
 import * as React from "react";
-import { Download, FileSpreadsheet, Loader2 } from "lucide-react";
+import {
+  BadgeCheck,
+  BarChart3,
+  Building2,
+  Download,
+  FileSpreadsheet,
+  Landmark,
+  Loader2,
+  Percent,
+  PhoneCall,
+  Users,
+  type LucideIcon,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  DashboardHeader,
+  DashboardPage,
+  MetricCard,
+  MetricGrid,
+} from "@/features/dashboard/dashboard-ui";
 import { formatConversionRate, resolveDatePreset } from "@/lib/reports";
 import {
   downloadReportCsv,
@@ -20,7 +38,6 @@ import {
 } from "@/lib/reports-api";
 import { ReportFilterBar, type ReportFilterValue } from "./report-filter-bar";
 import { ReportTable, type ReportColumn } from "./report-table";
-import { StatTiles } from "./stat-tiles";
 import { useReport } from "./use-report";
 
 const REPORT_KINDS: { value: ReportKind; label: string }[] = [
@@ -111,22 +128,28 @@ const ROW_KEY: Record<ReportKind, (row: JourneyRow | AgentsReportRow) => string>
   agents: (r) => (r as AgentsReportRow).agent_profile_uuid,
 };
 
-function journeyTiles(summary: ReportSummary | null): { label: string; value: string }[] {
+type MetricTile = { label: string; value: string; icon: LucideIcon };
+
+function journeyTiles(summary: ReportSummary | null): MetricTile[] {
   if (!summary) return [];
   return [
-    { label: "Total", value: String(summary.total_count) },
-    { label: "Converted", value: String(summary.converted_count) },
-    { label: "Conversion rate", value: formatConversionRate(summary.total_count, summary.converted_count) },
+    { label: "Total", value: String(summary.total_count), icon: BarChart3 },
+    { label: "Converted", value: String(summary.converted_count), icon: BadgeCheck },
+    {
+      label: "Conversion rate",
+      value: formatConversionRate(summary.total_count, summary.converted_count),
+      icon: Percent,
+    },
   ];
 }
 
-function agentsTiles(summary: AgentsSummary | null): { label: string; value: string }[] {
+function agentsTiles(summary: AgentsSummary | null): MetricTile[] {
   if (!summary) return [];
   return [
-    { label: "Agents", value: String(summary.agent_count) },
-    { label: "Leads", value: String(summary.leads_total) },
-    { label: "Loans disbursed", value: String(summary.loans_converted) },
-    { label: "Deals closed", value: String(summary.deals_converted) },
+    { label: "Agents", value: String(summary.agent_count), icon: Users },
+    { label: "Leads", value: String(summary.leads_total), icon: PhoneCall },
+    { label: "Loans disbursed", value: String(summary.loans_converted), icon: Landmark },
+    { label: "Deals closed", value: String(summary.deals_converted), icon: Building2 },
   ];
 }
 
@@ -245,13 +268,17 @@ function ReportPanel({ kind }: { kind: ReportKind }) {
       <ReportFilterBar kind={kind} value={filters} onChange={setFilters} />
 
       {loading && tiles.length === 0 ? (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <Skeleton key={i} className="h-20 rounded-2xl" />
+        <MetricGrid>
+          {Array.from({ length: kind === "agents" ? 4 : 3 }).map((_, index) => (
+            <Skeleton key={index} className="h-28 rounded-xl" />
           ))}
-        </div>
+        </MetricGrid>
       ) : (
-        <StatTiles tiles={tiles} />
+        <MetricGrid>
+          {tiles.map((tile) => (
+            <MetricCard key={tile.label} {...tile} />
+          ))}
+        </MetricGrid>
       )}
 
       <div className="flex flex-wrap justify-end gap-2">
@@ -313,16 +340,14 @@ function ReportPanel({ kind }: { kind: ReportKind }) {
 // independently (matching loan-config-view.tsx's per-tab-hook convention).
 export function AnalyticsView() {
   return (
-    <div className="mx-auto w-full max-w-6xl space-y-6 px-4 sm:px-6 lg:px-10">
-      <div>
-        <h1 className="text-2xl font-semibold text-text-primary">Analytics &amp; reports</h1>
-        <p className="text-sm text-text-secondary">
-          Lead, loan, and deal activity across both business lines, with per-agent performance.
-        </p>
-      </div>
+    <DashboardPage>
+      <DashboardHeader
+        title="Analytics & reports"
+        description="Lead, loan, and deal activity across both business lines, with per-agent performance."
+      />
 
       <Tabs defaultValue="leads">
-        <TabsList>
+        <TabsList className="h-auto w-full justify-start overflow-x-auto">
           {REPORT_KINDS.map((k) => (
             <TabsTrigger key={k.value} value={k.value}>
               {k.label}
@@ -335,6 +360,6 @@ export function AnalyticsView() {
           </TabsContent>
         ))}
       </Tabs>
-    </div>
+    </DashboardPage>
   );
 }

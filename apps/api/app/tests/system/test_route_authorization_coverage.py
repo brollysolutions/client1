@@ -51,6 +51,12 @@ PUBLIC_ROUTES = frozenset(
         "POST /api/v1/mobile-change/initiate",
         "POST /api/v1/mobile-change/resend",
         "POST /api/v1/mobile-change/verify",
+        # Staff first-login invite: the holder has an account but no password yet,
+        # so there is no session to scope. Both routes take a hashed, single-use,
+        # expiring token, are IP rate-limited, and touch only the one identity that
+        # token resolves to; neither reads or writes any other business table.
+        "GET /api/v1/staff-invites/{token}",
+        "POST /api/v1/staff-invites/{token}/accept",
         # Prospective-agent intake: applicant has no account until approval.
         "POST /api/v1/agent-applications",
         "POST /api/v1/agent-applications/otp/initiate",

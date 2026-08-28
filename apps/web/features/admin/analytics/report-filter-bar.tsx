@@ -14,9 +14,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { cn } from "@/lib/utils";
+import {
+  EMPTY_FILTERS,
+  FilterBar,
+  type FilterBarValue,
+} from "@/features/dashboard/filter-bar";
 import { resolveDatePreset, type DatePreset } from "@/lib/reports";
 import type { ReportBucket, ReportBusinessLine, ReportKind } from "@/lib/reports-api";
+import { cn } from "@/lib/utils";
 import { useAgentOptions } from "./use-agent-options";
 
 const PRESETS: { value: DatePreset; label: string }[] = [
@@ -38,10 +43,19 @@ export type ReportFilterValue = {
   agentProfileUuids: string[];
 };
 
-// FR-16.1's date-based filtering: native <input type="date"> pair + preset
-// buttons rather than a shadcn calendar.tsx (that pulls in react-day-picker,
-// and no date picker exists anywhere in this app today -- the spec asks for
-// date filtering, not a specific picker widget).
+function baselineFilters(): ReportFilterValue {
+  const { dateFrom, dateTo } = resolveDatePreset("this_month", new Date());
+  return {
+    dateFrom,
+    dateTo,
+    bucket: "week",
+    businessLine: undefined,
+    agentProfileUuids: [],
+  };
+}
+
+// The report keeps its domain-specific bucket and multi-Agent controls, but
+// date/line/reset layout now comes from the same FilterBar as every staff list.
 export function ReportFilterBar({
   kind,
   value,
@@ -54,11 +68,28 @@ export function ReportFilterBar({
   const [agentQuery, setAgentQuery] = React.useState("");
   const [agentPopoverOpen, setAgentPopoverOpen] = React.useState(false);
   const { options: agentOptions, loading: agentsLoading } = useAgentOptions(value.businessLine);
+  const baseline = baselineFilters();
+  const filters: FilterBarValue = {
+    ...EMPTY_FILTERS,
+    line: value.businessLine ?? "all",
+    from: value.dateFrom,
+    to: value.dateTo,
+  };
+  const filtersCustomized =
+    value.dateFrom !== baseline.dateFrom ||
+    value.dateTo !== baseline.dateTo ||
+    value.bucket !== baseline.bucket ||
+    value.businessLine !== baseline.businessLine ||
+    value.agentProfileUuids.length > 0;
 
-  const businessLineOptions = [
-    { value: "loans", label: "Loans" },
-    { value: "real_estate", label: "Real Estate" },
-  ];
+  function updateSharedFilters(next: FilterBarValue) {
+    onChange({
+      ...value,
+      dateFrom: next.from,
+      dateTo: next.to,
+      businessLine: next.line === "all" ? undefined : (next.line as ReportBusinessLine),
+    });
+  }
 
   function applyPreset(preset: DatePreset) {
     const { dateFrom, dateTo } = resolveDatePreset(preset, new Date());
@@ -66,108 +97,65 @@ export function ReportFilterBar({
   }
 
   function toggleAgent(id: string) {
-    const next = value.agentProfileUuids.includes(id)
-      ? value.agentProfileUuids.filter((a) => a !== id)
+    const agentProfileUuids = value.agentProfileUuids.includes(id)
+      ? value.agentProfileUuids.filter((agentId) => agentId !== id)
       : [...value.agentProfileUuids, id];
-    onChange({ ...value, agentProfileUuids: next });
+    onChange({ ...value, agentProfileUuids });
   }
 
-  const filteredAgentOptions = agentOptions.filter((o) =>
-    o.label.toLowerCase().includes(agentQuery.toLowerCase()),
+  const filteredAgentOptions = agentOptions.filter((option) =>
+    option.label.toLowerCase().includes(agentQuery.trim().toLowerCase()),
   );
 
   return (
-    <div className="flex flex-col gap-3 rounded-2xl border border-border bg-card p-4">
-      <div className="flex flex-wrap gap-2">
-        {PRESETS.map((p) => (
-          <Button key={p.value} variant="outline" size="sm" onClick={() => applyPreset(p.value)}>
-            {p.label}
-          </Button>
-        ))}
-      </div>
-
-      <div className="flex flex-wrap items-end gap-3">
-        <div className="flex flex-col gap-1">
-          <label htmlFor="report-date-from" className="text-xs font-medium text-text-secondary">
-            From
-          </label>
-          <Input
-            id="report-date-from"
-            type="date"
-            value={value.dateFrom}
-            max={value.dateTo}
-            onChange={(e) => onChange({ ...value, dateFrom: e.target.value })}
-            className="w-[160px]"
-          />
-        </div>
-        <div className="flex flex-col gap-1">
-          <label htmlFor="report-date-to" className="text-xs font-medium text-text-secondary">
-            To
-          </label>
-          <Input
-            id="report-date-to"
-            type="date"
-            value={value.dateTo}
-            min={value.dateFrom}
-            onChange={(e) => onChange({ ...value, dateTo: e.target.value })}
-            className="w-[160px]"
-          />
-        </div>
-
-        {kind !== "agents" ? (
-          <div className="flex flex-col gap-1">
-            <span className="text-xs font-medium text-text-secondary">View</span>
+    <FilterBar
+      value={filters}
+      onChange={updateSharedFilters}
+      onClear={() => onChange(baseline)}
+      searchLabel="Search report"
+      showSearch={false}
+      showStatus={false}
+      showClear={filtersCustomized}
+      dateFromLabel="Report from date"
+      dateToLabel="Report to date"
+      actions={PRESETS.map((preset) => (
+        <Button
+          key={preset.value}
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => applyPreset(preset.value)}
+        >
+          {preset.label}
+        </Button>
+      ))}
+      extra={
+        <>
+          {kind !== "agents" ? (
             <Select
               value={value.bucket}
-              onValueChange={(v) => onChange({ ...value, bucket: v as ReportBucket })}
+              onValueChange={(bucket) => onChange({ ...value, bucket: bucket as ReportBucket })}
             >
-              <SelectTrigger className="w-[130px]">
+              <SelectTrigger aria-label="Report grouping">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {BUCKET_OPTIONS.map((b) => (
-                  <SelectItem key={b.value} value={b.value}>
-                    {b.label}
+                {BUCKET_OPTIONS.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
-          </div>
-        ) : null}
+          ) : null}
 
-        <div className="flex flex-col gap-1">
-          <span className="text-xs font-medium text-text-secondary">Business line</span>
-          <Select
-            value={value.businessLine ?? "__all"}
-            onValueChange={(v) =>
-              onChange({
-                ...value,
-                businessLine: v === "__all" ? undefined : (v as ReportBusinessLine),
-              })
-            }
-          >
-            <SelectTrigger className="w-[160px]">
-              <SelectValue placeholder="All lines" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="__all">All lines</SelectItem>
-              {businessLineOptions.map((o) => (
-                <SelectItem key={o.value} value={o.value}>
-                  {o.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="flex flex-col gap-1">
-          <span className="text-xs font-medium text-text-secondary">Agents</span>
           <Popover open={agentPopoverOpen} onOpenChange={setAgentPopoverOpen}>
             <PopoverTrigger asChild>
               <button
                 type="button"
+                aria-label="Filter by agents"
                 className={cn(
-                  "flex h-9 w-[200px] items-center justify-between gap-2 rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none transition-[color,box-shadow] focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50",
+                  "flex h-9 min-w-0 items-center justify-between gap-2 rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none transition-[color,box-shadow] focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50",
                   value.agentProfileUuids.length === 0 && "text-muted-foreground",
                 )}
               >
@@ -176,50 +164,51 @@ export function ReportFilterBar({
                     ? "All agents"
                     : `${value.agentProfileUuids.length} selected`}
                 </span>
-                <ChevronDownIcon className="h-4 w-4 shrink-0 opacity-50" />
+                <ChevronDownIcon className="h-4 w-4 shrink-0 opacity-50" aria-hidden="true" />
               </button>
             </PopoverTrigger>
-            <PopoverContent align="start" className="w-[260px] p-2">
+            <PopoverContent align="start" className="w-[280px] p-2">
               <Input
+                aria-label="Search agents"
                 placeholder="Search agents"
                 value={agentQuery}
                 maxLength={100}
-                onChange={(e) => setAgentQuery(e.target.value)}
+                onChange={(event) => setAgentQuery(event.target.value)}
                 className="mb-2"
               />
               {value.agentProfileUuids.length > 0 ? (
                 <button
                   type="button"
-                  className="mb-2 text-xs font-medium text-brand-cta hover:underline"
                   onClick={() => onChange({ ...value, agentProfileUuids: [] })}
+                  className="mb-1 w-full rounded-md px-2 py-1.5 text-left text-xs font-medium text-brand-cta hover:bg-muted"
                 >
-                  Clear selection
+                  Clear selected agents
                 </button>
               ) : null}
-              <div className="max-h-56 space-y-1 overflow-y-auto">
+              <div className="max-h-56 overflow-y-auto">
                 {agentsLoading ? (
                   <p className="p-2 text-xs text-text-secondary">Loading agents…</p>
                 ) : filteredAgentOptions.length === 0 ? (
                   <p className="p-2 text-xs text-text-secondary">No agents found.</p>
                 ) : (
-                  filteredAgentOptions.map((o) => (
+                  filteredAgentOptions.map((option) => (
                     <label
-                      key={o.id}
+                      key={option.id}
                       className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-muted"
                     >
                       <Checkbox
-                        checked={value.agentProfileUuids.includes(o.id)}
-                        onCheckedChange={() => toggleAgent(o.id)}
+                        checked={value.agentProfileUuids.includes(option.id)}
+                        onCheckedChange={() => toggleAgent(option.id)}
                       />
-                      <span className="truncate">{o.label}</span>
+                      <span className="truncate">{option.label}</span>
                     </label>
                   ))
                 )}
               </div>
             </PopoverContent>
           </Popover>
-        </div>
-      </div>
-    </div>
+        </>
+      }
+    />
   );
 }

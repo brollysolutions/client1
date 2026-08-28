@@ -17,11 +17,17 @@ function subjectKey(source: DocumentSource, subjectUuid: string): string {
   return `${source}:${subjectUuid}`;
 }
 
-export function useAdminDocumentVerification() {
+export type DocumentVerificationQuery = {
+  onlyUnverified: boolean;
+  businessLine?: "loans" | "real_estate";
+  page: number;
+};
+
+export function useAdminDocumentVerification(query: DocumentVerificationQuery) {
   const [subjects, setSubjects] = React.useState<DocumentSubject[]>([]);
+  const [total, setTotal] = React.useState(0);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
-  const [onlyUnverified, setOnlyUnverified] = React.useState(true);
 
   // Lazily loaded per-subject document list, keyed so a subject switch never
   // shows another subject's stale rows while the new fetch is in flight.
@@ -30,21 +36,28 @@ export function useAdminDocumentVerification() {
   >({});
   const [documentsLoading, setDocumentsLoading] = React.useState<string | null>(null);
 
-  const load = React.useCallback(async (unverifiedOnly: boolean) => {
+  const { onlyUnverified, businessLine, page } = query;
+
+  const load = React.useCallback(async () => {
     setLoading(true);
     setError(null);
-    const res = await listDocumentSubjects(unverifiedOnly);
+    const res = await listDocumentSubjects({
+      onlyUnverified,
+      businessLine,
+      offset: page * 25,
+    });
     if (res.ok) {
-      setSubjects(res.data);
+      setSubjects(res.data.subjects);
+      setTotal(res.data.total);
     } else {
       setError(res.error);
     }
     setLoading(false);
-  }, []);
+  }, [businessLine, onlyUnverified, page]);
 
   React.useEffect(() => {
-    void load(onlyUnverified);
-  }, [load, onlyUnverified]);
+    void load();
+  }, [load]);
 
   async function loadDocuments(source: DocumentSource, subjectUuid: string) {
     const key = subjectKey(source, subjectUuid);
@@ -66,18 +79,17 @@ export function useAdminDocumentVerification() {
     const res = await verifyDocument(source, documentId, body);
     if (res.ok) {
       void loadDocuments(source, subjectUuid);
-      void load(onlyUnverified);
+      void load();
     }
     return res;
   }
 
   return {
     subjects,
+    total,
     loading,
     error,
-    onlyUnverified,
-    setOnlyUnverified,
-    reload: () => load(onlyUnverified),
+    reload: load,
     documentsBySubject,
     documentsLoading,
     loadDocuments,

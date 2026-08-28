@@ -1,24 +1,44 @@
 "use client";
 
 import * as React from "react";
-import { Inbox, Loader2 } from "lucide-react";
+import { Inbox } from "lucide-react";
 
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  DashboardHeader,
+  DashboardPage,
+  DashboardPanel,
+} from "@/features/dashboard/dashboard-ui";
+import {
+  DataTable,
+  DataTablePrimaryCell,
+  nextSort,
+  type DataColumn,
+  type SortState,
+} from "@/features/dashboard/data-table";
+import { FetchError } from "@/features/dashboard/fetch-error";
+import {
+  EMPTY_FILTERS,
+  FilterBar,
+  filtersAreActive,
+  matchesSearch,
+  type FilterBarValue,
+} from "@/features/dashboard/filter-bar";
+import { ListEmptyState, ListLoadingState, ListPagination } from "@/features/dashboard/list-states";
+import { StatusBadge, type StatusTone } from "@/features/dashboard/status-badge";
+import { useFilteredPage } from "@/features/dashboard/use-filtered-page";
+import {
+  WORKSPACE_DIALOG_CLASS,
+  WorkspaceDialogHeader,
+  WorkspaceLayout,
+} from "@/features/dashboard/workspace-dialog";
 import { LoanProgressForm } from "@/features/loans/loan-progress-form";
 import { FormAnswerSummary } from "@/features/loans/form-answer-summary";
-import { formatINR } from "@/lib/format";
+import type { AdminLoanApplication } from "@/lib/admin-api";
+import { isInDateRange } from "@/lib/date-range";
+import { formatDate, formatINR } from "@/lib/format";
 
 import { useAdminLoans } from "./use-admin-loans";
-import { AdminPagination, ADMIN_PAGE_SIZE, isInDateRange } from "./admin-list-tools";
 
 const STATUS_LABEL: Record<string, string> = {
   new: "New",
@@ -33,142 +53,255 @@ const STATUS_LABEL: Record<string, string> = {
   on_hold: "On hold",
 };
 
-const FILTER_OPTIONS = [
-  { value: "", label: "All statuses" },
-  ...Object.entries(STATUS_LABEL).map(([value, label]) => ({ value, label })),
-];
+// Warning reads as "someone still owes this application work", success as
+// "money moved", danger as "it ended badly", neutral as "settled and inert".
+const STATUS_TONE: Record<string, StatusTone> = {
+  new: "warning",
+  assigned: "info",
+  contacted: "info",
+  docs_collected: "info",
+  submitted_to_bank: "info",
+  sanctioned: "success",
+  disbursed: "success",
+  closed: "neutral",
+  rejected: "danger",
+  on_hold: "warning",
+};
 
-function formatDate(iso: string | null | undefined): string {
-  if (!iso) return "-";
-  const d = new Date(iso);
-  return Number.isNaN(d.getTime())
-    ? "-"
-    : d.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+const STATUS_OPTIONS = Object.entries(STATUS_LABEL).map(([value, label]) => ({ value, label }));
+
+const LINE_LABEL: Record<string, string> = { loans: "Loans", real_estate: "Real Estate" };
+
+function amountLabel(application: AdminLoanApplication): string {
+  const sanctioned = application.amount_sanctioned;
+  if (sanctioned) return formatINR(Number(sanctioned));
+  const requested = application.amount_requested;
+  return requested ? formatINR(Number(requested)) : "-";
 }
 
 export function AdminLoansView() {
-  const { items, loading, error, statusFilter, setStatusFilter, reload, updateApp } =
-    useAdminLoans();
-  const [search, setSearch] = React.useState("");
-  const [dateFrom, setDateFrom] = React.useState("");
-  const [dateTo, setDateTo] = React.useState("");
-  const [page, setPage] = React.useState(0);
-  const filteredItems = React.useMemo(() => items.filter((application) => (
-    isInDateRange(application.opened_at, dateFrom, dateTo) &&
-    `${application.customer_code} ${application.loan_type_label} ${application.bank_name ?? ""}`.toLowerCase().includes(search.toLowerCase())
-  )), [dateFrom, dateTo, items, search]);
-  React.useEffect(() => setPage(0), [dateFrom, dateTo, search, statusFilter]);
-  const pageItems = filteredItems.slice(page * ADMIN_PAGE_SIZE, (page + 1) * ADMIN_PAGE_SIZE);
-  const [expandedId, setExpandedId] = React.useState<string | null>(null);
+  const { items, loading, error, setStatusFilter, reload, updateApp } = useAdminLoans();
+
+  const [filters, setFilters] = React.useState<FilterBarValue>(EMPTY_FILTERS);
+  const [sort, setSort] = React.useState<SortState>({ key: "opened_at", dir: "desc" });
+  const [activeId, setActiveId] = React.useState<string | null>(null);
+
+  // Status is the one filter the API applies server-side, so it is mirrored
+  // into the shared filter object rather than duplicated as a second control.
+  React.useEffect(() => {
+    setStatusFilter(filters.status === "all" ? "" : filters.status);
+  }, [filters.status, setStatusFilter]);
+
+  const filtered = React.useMemo(() => {
+    const rows = items.filter(
+      (application) =>
+        isInDateRange(application.opened_at, filters.from, filters.to) &&
+        (filters.line === "all" || application.business_line === filters.line) &&
+        matchesSearch(
+          `${application.customer_code} ${application.loan_type_label} ${application.bank_name ?? ""}`,
+          filters.search,
+        ),
+    );
+    const direction = sort.dir === "asc" ? 1 : -1;
+    return [...rows].sort((a, b) => {
+      switch (sort.key) {
+        case "customer_code":
+          return a.customer_code.localeCompare(b.customer_code) * direction;
+        case "bank_name":
+          return (a.bank_name ?? "").localeCompare(b.bank_name ?? "") * direction;
+        case "amount":
+          return (Number(a.amount_requested ?? 0) - Number(b.amount_requested ?? 0)) * direction;
+        case "status":
+          return a.status.localeCompare(b.status) * direction;
+        default:
+          return (
+            (new Date(a.opened_at).getTime() - new Date(b.opened_at).getTime()) * direction
+          );
+      }
+    });
+  }, [filters, items, sort]);
+
+  const { page, setPage, pageRows, total } = useFilteredPage(filtered, filters);
+  const active = activeId ? items.find((item) => item.id === activeId) ?? null : null;
+
+  const columns: DataColumn<AdminLoanApplication>[] = [
+    {
+      key: "customer_code",
+      header: "Application",
+      sortable: true,
+      cellClassName: "max-w-[18rem]",
+      render: (application) => (
+        <DataTablePrimaryCell
+          title={application.customer_code}
+          subtitle={application.loan_type_label}
+        />
+      ),
+    },
+    {
+      key: "bank_name",
+      header: "Lender",
+      sortable: true,
+      render: (application) => (
+        <span className="text-text-secondary">{application.bank_name ?? "Not set"}</span>
+      ),
+    },
+    {
+      key: "amount",
+      header: "Amount",
+      sortable: true,
+      align: "right",
+      render: (application) => (
+        <span className="tabular-nums text-text-primary">{amountLabel(application)}</span>
+      ),
+    },
+    {
+      key: "business_line",
+      header: "Line",
+      render: (application) => (
+        <span className="text-text-secondary">
+          {LINE_LABEL[application.business_line] ?? application.business_line}
+        </span>
+      ),
+    },
+    {
+      key: "status",
+      header: "Status",
+      sortable: true,
+      render: (application) => (
+        <StatusBadge tone={STATUS_TONE[application.status] ?? "neutral"}>
+          {STATUS_LABEL[application.status] ?? application.status}
+        </StatusBadge>
+      ),
+    },
+    {
+      key: "opened_at",
+      header: "Opened",
+      sortable: true,
+      align: "right",
+      render: (application) => (
+        <span className="tabular-nums text-text-secondary">{formatDate(application.opened_at)}</span>
+      ),
+    },
+  ];
 
   return (
-    <div className="mx-auto w-full max-w-5xl space-y-6 px-4 sm:px-6 lg:px-10">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold text-text-primary">Loan applications</h1>
-          <p className="text-sm text-text-secondary">
-            Review and progress any loan application across the platform.
-          </p>
-        </div>
-        <div className="grid w-full gap-2 sm:grid-cols-2 lg:w-auto lg:grid-cols-4">
-          <Input aria-label="Search loan applications" placeholder="Customer, loan type, or bank" value={search} maxLength={100} onChange={(event) => setSearch(event.target.value)} />
-        <Select
-          value={statusFilter || "all"}
-          onValueChange={(v) => setStatusFilter(v === "all" ? "" : v)}
-        >
-          <SelectTrigger className="w-48">
-            <SelectValue placeholder="All statuses" />
-          </SelectTrigger>
-          <SelectContent>
-            {FILTER_OPTIONS.map((o) => (
-              <SelectItem key={o.value || "all"} value={o.value || "all"}>
-                {o.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-          <Input aria-label="Loan applications from date" type="date" value={dateFrom} onChange={(event) => setDateFrom(event.target.value)} />
-          <Input aria-label="Loan applications to date" type="date" min={dateFrom || undefined} value={dateTo} onChange={(event) => setDateTo(event.target.value)} />
-        </div>
-      </div>
+    <DashboardPage>
+      <DashboardHeader
+        title="Loan applications"
+        description="Review and progress any loan application across the platform."
+      />
+
+      <FilterBar
+        value={filters}
+        onChange={setFilters}
+        searchLabel="Search loan applications"
+        searchPlaceholder="Customer, product, or lender"
+        statusOptions={STATUS_OPTIONS}
+        lineOptions={[
+          { value: "loans", label: "Loans" },
+          { value: "real_estate", label: "Real Estate" },
+        ]}
+        dateFromLabel="Opened from"
+        dateToLabel="Opened to"
+      />
 
       {loading ? (
-        <div className="flex items-center justify-center rounded-2xl border border-border bg-card py-16">
-          <Loader2 className="h-6 w-6 animate-spin text-brand-navy" aria-hidden="true" />
-        </div>
+        <ListLoadingState />
       ) : error ? (
-        <div className="rounded-2xl border border-border bg-card p-8 text-center">
-          <p className="text-sm text-text-secondary">{error}</p>
-          <Button variant="outline" className="mt-4" onClick={() => void reload()}>
-            Try again
-          </Button>
-        </div>
-      ) : filteredItems.length === 0 ? (
-        <div className="flex flex-col items-center rounded-2xl border border-border bg-card p-12 text-center">
-          <Inbox className="h-8 w-8 text-text-secondary" aria-hidden="true" />
-          <p className="mt-3 font-medium text-text-primary">No loan applications</p>
-          <p className="mt-1 text-sm text-text-secondary">
-            Applications will show up here as clients apply.
-          </p>
-        </div>
+        <FetchError status={null} message={error} onRetry={() => void reload()} />
+      ) : total === 0 ? (
+        <ListEmptyState
+          icon={Inbox}
+          title={
+            filtersAreActive(filters)
+              ? "No applications match these filters"
+              : "No loan applications yet"
+          }
+          description={
+            filtersAreActive(filters)
+              ? "Try a different search, status, line, or date range."
+              : "Applications will show up here as clients apply."
+          }
+        />
       ) : (
-        <ul className="space-y-3">
-          {pageItems.map((application) => {
-            const expanded = expandedId === application.id;
-            return (
-              <li key={application.id} className="rounded-2xl border border-border bg-card p-4">
-                <button
-                  type="button"
-                  onClick={() => setExpandedId(expanded ? null : application.id)}
-                  className="flex w-full flex-wrap items-center justify-between gap-3 text-left"
-                >
-                  <div className="min-w-0">
-                    <p className="truncate font-medium text-text-primary">
-                      {application.customer_code} · {application.loan_type_label}
-                    </p>
-                    <p className="mt-0.5 truncate text-xs text-text-secondary">
-                      {application.bank_name ?? "Bank not set"}
-                      {application.amount_requested
-                        ? ` · ${formatINR(Number(application.amount_requested))}`
-                        : ""}
-                      {" · "}
-                      Opened {formatDate(application.opened_at)}
-                    </p>
-                  </div>
-                  <Badge variant="secondary">
-                    {STATUS_LABEL[application.status] ?? application.status}
-                  </Badge>
-                </button>
+        <DashboardPanel
+          title="Applications"
+          description={
+            filtersAreActive(filters)
+              ? `${total} of ${items.length} applications`
+              : `${items.length} applications`
+          }
+          bodyClassName="p-0"
+        >
+          <DataTable
+            columns={columns}
+            rows={pageRows}
+            rowKey={(application) => application.id}
+            sort={sort}
+            onSortChange={(key) => setSort((current) => nextSort(current, key))}
+            onRowClick={(application) => setActiveId(application.id)}
+            rowActionLabel="Open application"
+            minWidth="min-w-[900px]"
+          />
+          <div className="px-5 pb-4">
+            <ListPagination page={page} total={total} onPageChange={setPage} />
+          </div>
+        </DashboardPanel>
+      )}
 
-                {expanded ? (
-                  <div className="mt-4 space-y-4">
-                    <FormAnswerSummary
-                      schema={application.form_schema_snapshot}
-                      answers={application.form_answers}
-                    />
+      <Dialog open={active !== null} onOpenChange={(open) => !open && setActiveId(null)}>
+        <DialogContent showCloseButton={false} className={WORKSPACE_DIALOG_CLASS}>
+          {active ? (
+            <>
+              <WorkspaceDialogHeader
+                title={`${active.customer_code} · ${active.loan_type_label}`}
+                description={`${active.bank_name ?? "Lender not set"} · opened ${formatDate(active.opened_at)}`}
+                actions={
+                  <StatusBadge tone={STATUS_TONE[active.status] ?? "neutral"}>
+                    {STATUS_LABEL[active.status] ?? active.status}
+                  </StatusBadge>
+                }
+                closeLabel="Close application"
+              />
+              <WorkspaceLayout
+                editor={
+                  <div className="mx-auto w-full max-w-3xl space-y-4">
                     <LoanProgressForm
                       application={{
-                        id: application.id,
-                        loan_type_id: application.loan_type_id,
-                        status: application.status,
-                        status_reason: application.status_reason ?? null,
-                        amount_sanctioned: application.amount_sanctioned ?? null,
-                        bank_id: application.bank_id ?? null,
-                        interest_rate: application.interest_rate ?? null,
-                        processing_fee: application.processing_fee ?? null,
-                        fee_outcome: application.fee_outcome ?? null,
-                        closed_at: application.closed_at ?? null,
+                        id: active.id,
+                        loan_type_id: active.loan_type_id,
+                        status: active.status,
+                        status_reason: active.status_reason ?? null,
+                        amount_sanctioned: active.amount_sanctioned ?? null,
+                        bank_id: active.bank_id ?? null,
+                        interest_rate: active.interest_rate ?? null,
+                        processing_fee: active.processing_fee ?? null,
+                        fee_outcome: active.fee_outcome ?? null,
+                        closed_at: active.closed_at ?? null,
                       }}
                       onUpdate={updateApp}
                     />
                   </div>
-                ) : null}
-              </li>
-            );
-          })}
-        </ul>
-      )}
-      {!loading && !error && filteredItems.length > 0 ? <AdminPagination page={page} total={filteredItems.length} onPageChange={setPage} /> : null}
-    </div>
+                }
+                preview={
+                  <div className="rounded-xl border border-border bg-muted/20 p-4">
+                    <h3 className="text-sm font-semibold text-text-primary">Submitted answers</h3>
+                    <p className="mt-0.5 text-xs leading-5 text-text-secondary">
+                      The applicant&rsquo;s responses, against the form version they submitted.
+                    </p>
+                    <div className="mt-3">
+                      <FormAnswerSummary
+                        schema={active.form_schema_snapshot}
+                        answers={active.form_answers}
+                      />
+                    </div>
+                  </div>
+                }
+              />
+            </>
+          ) : null}
+        </DialogContent>
+      </Dialog>
+    </DashboardPage>
   );
 }

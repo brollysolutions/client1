@@ -24,7 +24,7 @@ import { PendingApprovalList } from "./pending-approval-list";
 type Status = "loading" | "ready" | "error";
 
 // Sub Admin's composed landing page (spec §6.1): pending-approval queue ->
-// live banners/offers -> content drafts -> recent referral payouts, backed by
+// live banners/offers -> recent referral payouts, backed by
 // one aggregated GET (services.sub_admin.get_sub_admin_home). Domain cards
 // stay as the secondary navigation into each surface.
 export function SubAdminHome() {
@@ -82,9 +82,8 @@ export function SubAdminHome() {
   return (
     <DashboardPage>
       <DashboardHeader
-        eyebrow="Content operations"
         title="Sub Admin workspace"
-        description="Create content, monitor approval status, and manage cross-line promotions."
+        description="Monitor approval status and manage cross-line promotions."
         actions={<DashboardTextLink href="/dashboard/banners/new">Create banner</DashboardTextLink>}
       />
 
@@ -97,45 +96,50 @@ export function SubAdminHome() {
         />
         <MetricCard label="Live banners" value={home.live_banners_count} icon={DASHBOARD_ICONS.banners} href="/dashboard/banners" />
         <MetricCard label="Active offers" value={home.live_offers_count} icon={DASHBOARD_ICONS.offers} href="/dashboard/offers" />
-        <MetricCard label="Content drafts" value={home.content_drafts_count} icon={DASHBOARD_ICONS.websiteContent} href="/dashboard/content" />
       </MetricGrid>
 
-      <div className="grid gap-4 xl:grid-cols-[1.4fr_1fr]">
-        <DashboardPanel title="Waiting on Admin" description="Your latest submitted work" action={<PendingApprovalDialog items={home.pending_approval} />} className="flex h-[310px] flex-col" bodyClassName="min-h-0 flex-1">
-          <div className="h-full overflow-y-auto pr-1">
-            <PendingApprovalList items={home.pending_approval} emptyMessage="Nothing of yours is waiting on Admin right now." />
-          </div>
-        </DashboardPanel>
+      {/* Full width, in DOM order, rather than a 1.4fr/1fr pair of 310px boxes:
+          the approval queue could only ever show two or three rows there. */}
+      <DashboardPanel
+        title="Waiting on Admin"
+        description="Work you have submitted that Admin has not decided yet"
+        action={<PendingApprovalDialog items={home.pending_approval} />}
+        bodyClassName="p-0"
+      >
+        <PendingApprovalList
+          items={home.pending_approval}
+          emptyMessage="Banners and property listings you submit for approval will appear here."
+        />
+      </DashboardPanel>
 
-        <DashboardPanel
-          title="Recent referral payouts"
-          description="Latest activity under the configured rules"
-          action={<DashboardTextLink href="/dashboard/referral-rules">View rules</DashboardTextLink>}
-          className="flex h-[310px] flex-col"
-          bodyClassName="min-h-0 flex-1 overflow-y-auto"
-        >
+      <DashboardPanel
+        title="Recent referral payouts"
+        description="Latest activity under the configured rules"
+        action={<DashboardTextLink href="/dashboard/referral-rules">View rules</DashboardTextLink>}
+      >
         {home.recent_referral_payouts.length === 0 ? (
           <p className="text-sm text-text-secondary">No referral payouts yet.</p>
         ) : (
-          <ul className="space-y-2">
+          <ul className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
             {home.recent_referral_payouts.map((row) => (
-              <li key={row.id} className="flex items-center justify-between text-sm">
-                <span className="text-text-secondary capitalize">{row.status}</span>
-                <span className="font-medium text-text-primary">
+              <li
+                key={row.id}
+                className="flex items-center justify-between gap-3 rounded-lg border border-border px-4 py-3 text-sm"
+              >
+                <span className="capitalize text-text-secondary">{row.status}</span>
+                <span className="font-medium tabular-nums text-text-primary">
                   {formatPaiseCompact(row.amount_paise)}
                 </span>
               </li>
             ))}
           </ul>
         )}
-        </DashboardPanel>
-      </div>
+      </DashboardPanel>
 
       <QuickActionGrid>
         <DashboardQuickAction href="/dashboard/banners" title="Banners" description="Create drafts and submit them for Admin approval." icon={DASHBOARD_ICONS.banners} />
         <DashboardQuickAction href="/dashboard/property-submit" title="Property listings" description="Submit a managed property listing for review." icon={DASHBOARD_ICONS.propertyListings} />
         <DashboardQuickAction href="/dashboard/offers" title="Offers" description="Create and schedule customer promotions." icon={DASHBOARD_ICONS.offers} />
-        <DashboardQuickAction href="/dashboard/content" title="Website content" description="Write and publish approved public-site copy." icon={DASHBOARD_ICONS.websiteContent} />
         <DashboardQuickAction href="/dashboard/referral-rules" title="Referral bonus" description="Manage bonus rules and review payout activity." icon={DASHBOARD_ICONS.referrals} />
       </QuickActionGrid>
     </DashboardPage>

@@ -3745,6 +3745,8 @@
           "staff_created",
           "staff_feature_granted",
           "staff_feature_revoked",
+          "staff_invite_created",
+          "staff_invite_revoked",
           "account_removed",
           "account_status_updated",
           "payout_approved",
@@ -14664,6 +14666,11 @@
       },
       "StaffCreateResponse": {
         "properties": {
+          "auth_user_uuid": {
+            "format": "uuid",
+            "title": "Auth User Uuid",
+            "type": "string"
+          },
           "business_line": {
             "anyOf": [
               {
@@ -14725,6 +14732,7 @@
           "role",
           "business_line",
           "staff_code",
+          "auth_user_uuid",
           "temp_password"
         ],
         "title": "StaffCreateResponse",
@@ -14747,6 +14755,72 @@
           "enabled"
         ],
         "title": "StaffFeatureUpdateRequest",
+        "type": "object"
+      },
+      "StaffInviteAcceptRequest": {
+        "properties": {
+          "confirm_password": {
+            "maxLength": 128,
+            "minLength": 8,
+            "title": "Confirm Password",
+            "type": "string"
+          },
+          "password": {
+            "maxLength": 128,
+            "minLength": 8,
+            "title": "Password",
+            "type": "string"
+          }
+        },
+        "required": [
+          "password",
+          "confirm_password"
+        ],
+        "title": "StaffInviteAcceptRequest",
+        "type": "object"
+      },
+      "StaffInviteLinkRead": {
+        "properties": {
+          "expires_at": {
+            "format": "date-time",
+            "title": "Expires At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "share_path": {
+            "title": "Share Path",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "share_path",
+          "expires_at"
+        ],
+        "title": "StaffInviteLinkRead",
+        "type": "object"
+      },
+      "StaffInvitePreview": {
+        "description": "What an anonymous holder of the token may see before setting a password.\n\nFirst name and role only. Enough to confirm the link is meant for the person\nholding it; nothing that turns a guessed token into contact details.",
+        "properties": {
+          "first_name": {
+            "title": "First Name",
+            "type": "string"
+          },
+          "role": {
+            "title": "Role",
+            "type": "string"
+          }
+        },
+        "required": [
+          "first_name",
+          "role"
+        ],
+        "title": "StaffInvitePreview",
         "type": "object"
       },
       "SubAdminHomeResponse": {
@@ -17687,7 +17761,26 @@
     },
     "/api/v1/admin/agents": {
       "get": {
-        "operationId": "list_pending_agent_applications_api_v1_admin_agents_get",
+        "description": "Defaults to the pending queue, which is what the console opens on.\n\n`status` was previously hardcoded, so an Admin had no way to look back at\nwhat they had already approved or rejected. Omitting the parameter keeps the\noriginal behavior; `status=all` clears the filter. \"all\" is an explicit\nmember rather than an empty string because FastAPI validates `\"\"` against\nthe Literal and rejects it rather than reading it as \"unset\".",
+        "operationId": "list_agent_applications_api_v1_admin_agents_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "default": "pending",
+              "enum": [
+                "pending",
+                "approved",
+                "rejected",
+                "all"
+              ],
+              "title": "Status",
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {
@@ -17698,6 +17791,16 @@
               }
             },
             "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
           }
         },
         "security": [
@@ -17705,7 +17808,7 @@
             "OAuth2PasswordBearer": []
           }
         ],
-        "summary": "List Pending Agent Applications",
+        "summary": "List Agent Applications",
         "tags": [
           "admin"
         ]
@@ -19353,6 +19456,47 @@
           }
         ],
         "summary": "Home",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/invite-links/{link_id}": {
+      "delete": {
+        "operationId": "revoke_staff_invite_link_api_v1_admin_invite_links__link_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "link_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Link Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Revoke Staff Invite Link",
         "tags": [
           "admin"
         ]
@@ -22518,6 +22662,7 @@
     },
     "/api/v1/admin/users": {
       "get": {
+        "description": "The operational account directory.\n\nFiltering is server-side because the console pages this list: filtering only\nthe fetched page meant a match on page three was invisible from page one.\nEvery parameter is optional and omitting all of them preserves the original\nunfiltered behavior.",
         "operationId": "list_users_api_v1_admin_users_get",
         "parameters": [
           {
@@ -22541,6 +22686,139 @@
               "minimum": 0,
               "title": "Offset",
               "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "search",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 100,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Search"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "active",
+                    "suspended",
+                    "pending_password_reset",
+                    "soft_deleted"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "in": "query",
+            "name": "role",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "admin",
+                    "sub_admin",
+                    "telecaller",
+                    "employee",
+                    "agent",
+                    "client"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Role"
+            }
+          },
+          {
+            "in": "query",
+            "name": "business_line",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "loans",
+                    "real_estate"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Business Line"
+            }
+          },
+          {
+            "in": "query",
+            "name": "created_from",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Created From"
+            }
+          },
+          {
+            "in": "query",
+            "name": "created_to",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Created To"
+            }
+          },
+          {
+            "in": "query",
+            "name": "never_logged_in",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Never Logged In"
             }
           }
         ],
@@ -22677,6 +22955,55 @@
           }
         ],
         "summary": "Delete User",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/users/{auth_user_uuid}/invite-link": {
+      "post": {
+        "description": "Issue a first-login link so the temp password never has to be relayed.\n\nCreating one revokes the invitee's outstanding link: two live links would\nmean two working credentials for one account. The raw token is returned\nexactly once, here, and only its SHA-256 hash is stored.",
+        "operationId": "create_staff_invite_link_api_v1_admin_users__auth_user_uuid__invite_link_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "auth_user_uuid",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Auth User Uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffInviteLinkRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Create Staff Invite Link",
         "tags": [
           "admin"
         ]
@@ -30159,6 +30486,101 @@
         "summary": "Cancel Site Visit Endpoint",
         "tags": [
           "site-visits"
+        ]
+      }
+    },
+    "/api/v1/staff-invites/{token}": {
+      "get": {
+        "operationId": "get_staff_invite_api_v1_staff_invites__token__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "token",
+            "required": true,
+            "schema": {
+              "title": "Token",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffInvitePreview"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Staff Invite",
+        "tags": [
+          "staff-invites"
+        ]
+      }
+    },
+    "/api/v1/staff-invites/{token}/accept": {
+      "post": {
+        "description": "Set the invitee's own password and burn the link.\n\nThe cap is the tighter of the two: this is the write, and no legitimate\ninvitee needs more than a handful of tries to satisfy the password policy.",
+        "operationId": "accept_staff_invite_api_v1_staff_invites__token__accept_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "token",
+            "required": true,
+            "schema": {
+              "title": "Token",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StaffInviteAcceptRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Accept Staff Invite",
+        "tags": [
+          "staff-invites"
         ]
       }
     },

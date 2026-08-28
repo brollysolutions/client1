@@ -49,7 +49,6 @@ export function AgentIntroduceLeadForm() {
 
   return (
     <DashboardFormPage
-      eyebrow="Agent workspace"
       title="Introduce a lead"
       description="Add someone you have referred. A telecaller will follow up."
       backHref="/dashboard/leads"

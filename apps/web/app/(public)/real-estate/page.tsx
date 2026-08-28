@@ -129,7 +129,7 @@ export default async function RealEstatePage({
                   <PropertyCatalogEmpty />
                 )}
                 <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-                  <TrustStrip eyebrow="Why people trust us" points={RE_TRUST} />
+                  <TrustStrip points={RE_TRUST} />
                 </div>
               </div>
             </div>

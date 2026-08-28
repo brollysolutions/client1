@@ -16,6 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { DashboardFormSection } from "@/features/dashboard/dashboard-ui";
 import { createReferralBonusConfig } from "@/lib/referral-bonus-api";
 import { apiIssuesToFieldErrors, decimalError, focusFirstInvalidField, integerError } from "@/lib/form-validation";
 
@@ -104,6 +105,10 @@ export function ReferralConfigForm({ onCreated, onDirtyChange }: { onCreated: ()
 
   return (
     <form ref={formRef} className="space-y-5" onSubmit={onSubmit} noValidate>
+      <DashboardFormSection
+        title="Reward and scope"
+        description="Choose the business line and bonus amount paid for an eligible referral."
+      >
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
           <Label htmlFor="ref-line">Line</Label>
@@ -133,7 +138,12 @@ export function ReferralConfigForm({ onCreated, onDirtyChange }: { onCreated: ()
           <FieldError id="ref-amount-error" className="mt-1">{bonusError}</FieldError>
         </div>
       </div>
+      </DashboardFormSection>
 
+      <DashboardFormSection
+        title="Eligibility limits"
+        description="Set the conversion threshold, optional referrer cap, and initial activation state."
+      >
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
           <Label htmlFor="ref-min-conversion">Minimum conversions<RequiredIndicator /></Label>
@@ -166,6 +176,7 @@ export function ReferralConfigForm({ onCreated, onDirtyChange }: { onCreated: ()
         <Checkbox checked={active} onCheckedChange={(c) => setActive(c === true)} />
         Active immediately
       </label>
+      </DashboardFormSection>
 
       <Button type="submit" disabled={submitting} className="w-full sm:w-auto">
         {submitting ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : null}

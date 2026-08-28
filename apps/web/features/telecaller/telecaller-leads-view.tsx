@@ -10,7 +10,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 import { DashboardHeader, DashboardPage, DashboardPanel } from "@/features/dashboard/dashboard-ui";
 import { ListPagination, useListPagination } from "@/features/dashboard/list-pagination";
-import { useLine } from "@/features/dashboard/line-provider";
 import { FetchError } from "@/features/dashboard/fetch-error";
 import { formatMobile } from "@/lib/phone";
 import { cn } from "@/lib/utils";
@@ -77,7 +76,6 @@ function SortableHeader({
 // where a call gets logged and status/requirement updated.
 export function TelecallerLeadsView() {
   const router = useRouter();
-  const { activeLine } = useLine();
   const { items, loading, error, reload } = useTelecallerLeads();
   const [filters, setFilters] = React.useState<TelecallerLeadFilters>(DEFAULT_TELECALLER_LEAD_FILTERS);
   const [sort, setSort] = React.useState<TelecallerLeadSort>(DEFAULT_TELECALLER_LEAD_SORT);
@@ -104,7 +102,6 @@ export function TelecallerLeadsView() {
   return (
     <DashboardPage>
       <DashboardHeader
-        eyebrow={activeLine === "real_estate" ? "Real Estate pipeline" : "Loans pipeline"}
         title="Leads"
         description="Leads assigned to you. Open one to log a call."
       />

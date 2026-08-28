@@ -65,8 +65,17 @@ export async function setStaffFeature(
   );
 }
 
-export async function listPendingAgentApplications(): Promise<ApiResponse<AgentApplication[]>> {
-  const res = await apiRequest<Schemas["AgentApplicationListResponse"]>("/api/v1/admin/agents");
+/**
+ * Omitting `status` gets the pending queue (the server's default); `"all"`
+ * clears the filter and returns every application, decided or not.
+ */
+export async function listAgentApplications(
+  status?: "pending" | "approved" | "rejected" | "all",
+): Promise<ApiResponse<AgentApplication[]>> {
+  const query = status === undefined ? "" : `?status=${status}`;
+  const res = await apiRequest<Schemas["AgentApplicationListResponse"]>(
+    `/api/v1/admin/agents${query}`,
+  );
   if (!res.ok) return res;
   return { ok: true, status: res.status, data: res.data.applications };
 }

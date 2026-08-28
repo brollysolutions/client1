@@ -145,7 +145,6 @@ export function OfferForm({ embedded = false, onCreated, onDirtyChange }: { embe
 
   return (
     <DashboardFormPage
-      eyebrow="Promotions"
       title="New offer"
       description="Configure the discount, eligible audience, priority, and active schedule."
       backHref="/dashboard/offers"

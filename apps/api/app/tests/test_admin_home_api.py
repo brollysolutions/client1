@@ -373,17 +373,17 @@ async def test_pending_agent_application_appears(client: AsyncClient) -> None:
 
 
 @pytest.mark.asyncio
-async def test_pending_queue_capped_at_twelve(client: AsyncClient) -> None:
+async def test_pending_queue_is_capped_while_counts_are_not(client: AsyncClient) -> None:
     _, mobile = await full_registration(client)
     uid = await _auth_user_uuid(mobile)
-    for _ in range(15):
+    for _ in range(35):
         await _create_pending_agent_application(mobile=unique_mobile())
 
     res = await client.get(_URL, headers={"Authorization": f"Bearer {_admin_token(uid)}"})
     assert res.status_code == 200, res.text
     body = res.json()
-    assert len(body["pending_review"]) <= 12
-    assert body["pending_agent_applications_count"] >= 15
+    assert len(body["pending_review"]) <= 30
+    assert body["pending_agent_applications_count"] >= 35
 
 
 @pytest.mark.asyncio

@@ -31,7 +31,6 @@ import { cn } from "@/lib/utils";
 // is a client component on its own.
 
 export type ProductPageProps = {
-  eyebrow?: string;
   title: string;
   intro: string;
   /** Full-bleed decorative illustration behind the hero copy. */
@@ -46,7 +45,7 @@ export type ProductPageProps = {
   productsSubheading?: string;
   /** Trust points rendered as a full-width TrustStrip at the foot of the
    *  products section, below every band. */
-  productsTrust?: { eyebrow?: string; points: TrustPoint[] };
+  productsTrust?: { points: TrustPoint[] };
   /** Cards per row at lg and up. Defaults to 3. */
   productColumns?: 3 | 4;
   /** Faint finance line-doodles in the products section margins (lg+ only). */
@@ -75,7 +74,6 @@ export type ProductPageProps = {
 };
 
 export function ProductPage({
-  eyebrow,
   title,
   intro,
   heroBackdrop,
@@ -129,12 +127,7 @@ export function ProductPage({
         <div className="relative mx-auto max-w-7xl px-4 py-14 sm:px-6 sm:py-20 lg:px-8">
           <div className="grid items-center gap-8 lg:grid-cols-[1fr_auto]">
             <div>
-              {eyebrow ? (
-                <p className="font-geist text-sm font-semibold uppercase tracking-wide text-brand-blue">
-                  {eyebrow}
-                </p>
-              ) : null}
-              <h1 className="mt-3 max-w-4xl font-heading text-4xl font-semibold text-[var(--nav-text)] sm:text-5xl lg:text-6xl">
+              <h1 className="max-w-4xl font-heading text-4xl font-semibold text-[var(--nav-text)] sm:text-5xl lg:text-6xl">
                 {title}
               </h1>
               <p className="mt-5 max-w-2xl text-lg text-[var(--nav-text)] sm:text-xl">
@@ -379,12 +372,7 @@ export function ProductPage({
             );
           })}
 
-          {productsTrust ? (
-            <TrustStrip
-              eyebrow={productsTrust.eyebrow}
-              points={productsTrust.points}
-            />
-          ) : null}
+          {productsTrust ? <TrustStrip points={productsTrust.points} /> : null}
         </div>
       </section>
       ) : null}

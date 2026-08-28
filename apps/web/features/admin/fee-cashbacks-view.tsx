@@ -4,7 +4,6 @@ import * as React from "react";
 import { Banknote, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -14,145 +13,29 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
-import { ListPagination, useListPagination } from "@/features/dashboard/list-pagination";
-import { formatPaise } from "@/lib/format";
+import { DashboardHeader, DashboardPage } from "@/features/dashboard/dashboard-ui";
+import { DataTablePrimaryCell, type DataColumn } from "@/features/dashboard/data-table";
+import { StatusBadge, type StatusTone } from "@/features/dashboard/status-badge";
 import type { EligibleFeeApplication, FeeCashbackRead } from "@/lib/admin-fee-cashbacks-api";
-
+import { formatDate, formatPaise } from "@/lib/format";
+import { getMoneyPayoutRequestState } from "@/lib/money-ledger";
 import { FeeCashbackEntryDialog } from "./fee-cashback-entry-dialog";
 import { FeeCashbackPayoutDialog } from "./fee-cashback-payout-dialog";
+import { MoneyLedgerView, type MoneyLedgerSection } from "./money-ledger-view";
 import { useAdminFeeCashbacks } from "./use-admin-fee-cashbacks";
 
 const LINE_LABEL: Record<string, string> = { loans: "Loans", real_estate: "Real Estate" };
-
-const STATUS_LABEL: Record<string, string> = {
-  pending: "Pending",
-  paid: "Paid",
-  cancelled: "Cancelled",
-};
-
-const STATUS_STYLE: Record<string, string> = {
-  pending: "bg-warning/10 text-warning",
-  paid: "bg-success/10 text-success",
-  cancelled: "bg-muted text-text-secondary",
-};
-
-const STATUS_OPTIONS: { value: string; label: string }[] = [
+const STATUS_OPTIONS = [
   { value: "pending", label: "Pending" },
   { value: "paid", label: "Paid" },
   { value: "cancelled", label: "Cancelled" },
-  { value: "", label: "All" },
-];
-
-function formatDate(iso: string | null): string {
-  if (!iso) return "-";
-  const d = new Date(iso);
-  return Number.isNaN(d.getTime())
-    ? "-"
-    : d.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
-}
-
-function EligibleApplicationRow({
-  application,
-  onPick,
-}: {
-  application: EligibleFeeApplication;
-  onPick: () => void;
-}) {
-  return (
-    <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border bg-card p-4">
-      <div className="min-w-0 space-y-1">
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="font-semibold text-text-primary">
-            {application.client_name ?? "Unknown client"}
-          </span>
-          <span className="text-sm text-text-secondary">
-            Fee charged: {formatPaise(application.processing_fee_paise)}
-          </span>
-        </div>
-        <p className="truncate text-xs text-text-secondary">
-          {LINE_LABEL[application.business_line] ?? application.business_line}
-          {" · "}
-          Loan disbursed
-          {" · "}
-          {formatDate(application.eligible_since)}
-        </p>
-      </div>
-      <Button size="sm" onClick={onPick}>
-        Enter cashback
-      </Button>
-    </div>
-  );
-}
-
-function FeeCashbackRow({
-  cashback,
-  onPay,
-  onCancel,
-}: {
-  cashback: FeeCashbackRead;
-  onPay: () => void;
-  onCancel: () => void;
-}) {
-  // payout_uuid set but status still "pending" is the real state between
-  // "Pay cashback" raising a payout and that payout being approved —
-  // approval is what flips status to "paid". Checking status alone would
-  // leave the button live and re-clickable for that whole window (the same
-  // bug PR #117's review caught on the referral-payout equivalent of this
-  // row): a confused admin has no way to tell it already worked.
-  const awaitingApproval = cashback.status === "pending" && cashback.payout_uuid != null;
-  const payable = cashback.status === "pending" && cashback.payout_uuid == null;
-
-  return (
-    <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border bg-card p-4">
-      <div className="min-w-0 space-y-1">
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="font-semibold text-text-primary">
-            {formatPaise(cashback.amount_paise)}
-          </span>
-          <Badge className={STATUS_STYLE[cashback.status] ?? "bg-muted text-text-secondary"}>
-            {STATUS_LABEL[cashback.status] ?? cashback.status}
-          </Badge>
-        </div>
-        <p className="truncate text-sm text-text-secondary">
-          {cashback.client_name ?? "Unknown client"}
-        </p>
-        <p className="truncate text-xs text-text-secondary">
-          {LINE_LABEL[cashback.business_line] ?? cashback.business_line}
-          {" · "}
-          Fee charged: {formatPaise(cashback.processing_fee_paise)}
-          {" · "}
-          {formatDate(cashback.created_at)}
-        </p>
-        {cashback.cancelled_reason ? (
-          <p className="truncate text-xs text-text-secondary">
-            Cancelled: {cashback.cancelled_reason}
-          </p>
-        ) : null}
-      </div>
-      {payable ? (
-        <div className="flex shrink-0 items-center gap-2">
-          <Button size="sm" variant="outline" onClick={onCancel}>
-            Cancel
-          </Button>
-          <Button size="sm" onClick={onPay}>
-            Pay cashback
-          </Button>
-        </div>
-      ) : awaitingApproval ? (
-        <Badge className="bg-warning/10 text-warning">Payout raised</Badge>
-      ) : null}
-    </div>
-  );
-}
+] as const;
+const STATUS_META: Record<string, { label: string; tone: StatusTone }> = {
+  pending: { label: "Pending", tone: "warning" },
+  paid: { label: "Paid", tone: "success" },
+  cancelled: { label: "Cancelled", tone: "neutral" },
+};
 
 export function FeeCashbacksView() {
   const {
@@ -174,13 +57,6 @@ export function FeeCashbacksView() {
   const [cancelTarget, setCancelTarget] = React.useState<FeeCashbackRead | null>(null);
   const [cancelReason, setCancelReason] = React.useState("");
   const [cancelling, setCancelling] = React.useState(false);
-  const eligiblePagination = useListPagination(eligible);
-  const cashbackPagination = useListPagination(cashbacks);
-  const setCashbackPage = cashbackPagination.setPage;
-
-  React.useEffect(() => {
-    setCashbackPage(0);
-  }, [statusFilter, setCashbackPage]);
 
   function closeCancelDialog() {
     setCancelTarget(null);
@@ -190,165 +66,246 @@ export function FeeCashbacksView() {
   async function onConfirmCancel() {
     if (!cancelTarget || cancelReason.trim().length === 0) return;
     setCancelling(true);
-    const res = await cancel(cancelTarget.id, cancelReason.trim());
+    const response = await cancel(cancelTarget.id, cancelReason.trim());
     setCancelling(false);
-    if (res.ok) {
-      toast.success("Cashback cancelled");
-      closeCancelDialog();
-    } else {
-      toast.error("Could not cancel the cashback", { description: res.error });
+    if (!response.ok) {
+      toast.error("Could not cancel the cashback", { description: response.error });
+      return;
     }
+    toast.success("Cashback cancelled");
+    closeCancelDialog();
   }
 
-  return (
-    <div className="mx-auto w-full max-w-5xl space-y-6 px-4 sm:px-6 lg:px-10">
-      <div>
-        <h1 className="text-2xl font-semibold text-text-primary">Processing-fee cashback</h1>
-        <p className="text-sm text-text-secondary">
-          Return the processing fee to a client whose loan disbursed with a cashback outcome.
-        </p>
-      </div>
-
-      {error ? (
-        <div className="rounded-2xl border border-border bg-card p-8 text-center">
-          <p className="text-sm text-text-secondary">{error}</p>
-          <Button variant="outline" className="mt-4" onClick={() => void reload()}>
-            Try again
+  const eligibleColumns = React.useMemo<readonly DataColumn<EligibleFeeApplication>[]>(
+    () => [
+      {
+        key: "client",
+        header: "Client",
+        render: (application) => (
+          <DataTablePrimaryCell
+            title={application.client_name ?? "Unknown client"}
+            subtitle="Disbursed loan"
+          />
+        ),
+      },
+      {
+        key: "line",
+        header: "Line",
+        render: (application) =>
+          LINE_LABEL[application.business_line] ?? application.business_line,
+      },
+      {
+        key: "fee",
+        header: "Fee charged",
+        align: "right",
+        render: (application) => (
+          <span className="tabular-nums">{formatPaise(application.processing_fee_paise)}</span>
+        ),
+      },
+      {
+        key: "date",
+        header: "Eligible since",
+        render: (application) => formatDate(application.eligible_since),
+      },
+      {
+        key: "action",
+        header: "Action",
+        align: "right",
+        render: (application) => (
+          <Button size="sm" onClick={() => setActiveApplication(application)}>
+            Enter cashback
           </Button>
-        </div>
-      ) : (
-        <Tabs defaultValue="eligible">
-          <TabsList>
-            <TabsTrigger value="eligible">Eligible applications</TabsTrigger>
-            <TabsTrigger value="all">All cashbacks</TabsTrigger>
-          </TabsList>
+        ),
+      },
+    ],
+    [],
+  );
 
-          <TabsContent value="eligible" className="mt-4">
-            {loading ? (
-              <div className="flex items-center justify-center rounded-2xl border border-border bg-card py-16">
-                <Loader2 className="h-6 w-6 animate-spin text-brand-navy" aria-hidden="true" />
-              </div>
-            ) : eligible.length === 0 ? (
-              <div className="flex flex-col items-center rounded-2xl border border-border bg-card p-12 text-center">
-                <Banknote className="h-8 w-8 text-text-secondary" aria-hidden="true" />
-                <p className="mt-3 font-medium text-text-primary">
-                  No applications are waiting for a cashback entry.
+  const ledgerColumns = React.useMemo<readonly DataColumn<FeeCashbackRead>[]>(
+    () => [
+      {
+        key: "client",
+        header: "Client",
+        render: (cashback) => (
+          <DataTablePrimaryCell
+            title={cashback.client_name ?? "Unknown client"}
+            subtitle={`Fee charged: ${formatPaise(cashback.processing_fee_paise)}`}
+          />
+        ),
+      },
+      {
+        key: "line",
+        header: "Line",
+        render: (cashback) => LINE_LABEL[cashback.business_line] ?? cashback.business_line,
+      },
+      {
+        key: "amount",
+        header: "Cashback",
+        align: "right",
+        render: (cashback) => (
+          <span className="font-medium tabular-nums">{formatPaise(cashback.amount_paise)}</span>
+        ),
+      },
+      { key: "date", header: "Entered", render: (cashback) => formatDate(cashback.created_at) },
+      {
+        key: "state",
+        header: "State",
+        render: (cashback) => {
+          const payoutState = getMoneyPayoutRequestState({
+            status: cashback.status,
+            payableStatus: "pending",
+            payoutId: cashback.payout_uuid,
+          });
+          if (payoutState === "awaiting_approval") {
+            return <StatusBadge tone="warning">Payout raised</StatusBadge>;
+          }
+          const meta = STATUS_META[cashback.status] ?? {
+            label: cashback.status,
+            tone: "neutral" as const,
+          };
+          return (
+            <div className="space-y-1">
+              <StatusBadge tone={meta.tone}>{meta.label}</StatusBadge>
+              {cashback.cancelled_reason ? (
+                <p className="max-w-56 truncate text-xs text-text-secondary">
+                  {cashback.cancelled_reason}
                 </p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-              <ul className="space-y-3">
-                {eligiblePagination.pageItems.map((application) => (
-                  <li key={application.loan_application_uuid}>
-                    <EligibleApplicationRow
-                      application={application}
-                      onPick={() => setActiveApplication(application)}
-                    />
-                  </li>
-                ))}
-              </ul>
-              <ListPagination page={eligiblePagination.page} total={eligible.length} onPageChange={eligiblePagination.setPage} label="Eligible cashback applications pages" />
-              </div>
-            )}
-          </TabsContent>
+              ) : null}
+            </div>
+          );
+        },
+      },
+      {
+        key: "action",
+        header: "Action",
+        align: "right",
+        render: (cashback) =>
+          getMoneyPayoutRequestState({
+            status: cashback.status,
+            payableStatus: "pending",
+            payoutId: cashback.payout_uuid,
+          }) === "payable" ? (
+            <div className="flex justify-end gap-2">
+              <Button size="sm" variant="outline" onClick={() => setCancelTarget(cashback)}>
+                Cancel
+              </Button>
+              <Button size="sm" onClick={() => setPayTarget(cashback)}>
+                Pay
+              </Button>
+            </div>
+          ) : null,
+      },
+    ],
+    [],
+  );
 
-          <TabsContent value="all" className="mt-4 space-y-4">
-            <Select
-              value={statusFilter || "all"}
-              onValueChange={(v) => setStatusFilter(v === "all" ? "" : v)}
-            >
-              <SelectTrigger className="w-52">
-                <SelectValue placeholder="Pending" />
-              </SelectTrigger>
-              <SelectContent>
-                {STATUS_OPTIONS.map((o) => (
-                  <SelectItem key={o.value || "all"} value={o.value || "all"}>
-                    {o.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+  const eligibleSection: MoneyLedgerSection<EligibleFeeApplication> = {
+    title: "Eligible applications",
+    description: "Disbursed loans carrying a processing-fee cashback outcome.",
+    rows: eligible,
+    columns: eligibleColumns,
+    rowKey: (application) => application.loan_application_uuid,
+    searchText: (application) => `${application.client_name ?? ""} loan disbursed`,
+    line: (application) => application.business_line,
+    date: (application) => application.eligible_since,
+    searchLabel: "Search eligible cashback applications",
+    searchPlaceholder: "Client or outcome",
+    emptyIcon: Banknote,
+    emptyTitle: "No applications are waiting for a cashback entry",
+    emptyDescription: "Eligible disbursed applications will appear here automatically.",
+    minWidth: "min-w-[760px]",
+  };
+  const ledgerSection: MoneyLedgerSection<FeeCashbackRead> = {
+    title: "Cashback ledger",
+    description: "Entered amounts, payout state, and cancellation history.",
+    rows: cashbacks,
+    columns: ledgerColumns,
+    rowKey: (cashback) => cashback.id,
+    searchText: (cashback) => `${cashback.client_name ?? ""} ${cashback.cancelled_reason ?? ""}`,
+    status: (cashback) => cashback.status,
+    line: (cashback) => cashback.business_line,
+    date: (cashback) => cashback.created_at,
+    statusOptions: STATUS_OPTIONS,
+    statusLabel: "cashback states",
+    initialStatus: statusFilter,
+    onStatusChange: setStatusFilter,
+    searchLabel: "Search cashbacks",
+    searchPlaceholder: "Client or cancellation reason",
+    emptyIcon: Banknote,
+    emptyTitle: "No cashbacks match these filters",
+    emptyDescription: "Clear or adjust the filters to return to the ledger.",
+    minWidth: "min-w-[900px]",
+    note: "A raised payout remains pending until a different Admin approves it.",
+  };
 
-            {loading ? (
-              <div className="flex items-center justify-center rounded-2xl border border-border bg-card py-16">
-                <Loader2 className="h-6 w-6 animate-spin text-brand-navy" aria-hidden="true" />
-              </div>
-            ) : cashbacks.length === 0 ? (
-              <div className="flex flex-col items-center rounded-2xl border border-border bg-card p-12 text-center">
-                <Banknote className="h-8 w-8 text-text-secondary" aria-hidden="true" />
-                <p className="mt-3 font-medium text-text-primary">
-                  No cashbacks match this filter.
-                </p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-              <ul className="space-y-3">
-                {cashbackPagination.pageItems.map((c) => (
-                  <li key={c.id}>
-                    <FeeCashbackRow
-                      cashback={c}
-                      onPay={() => setPayTarget(c)}
-                      onCancel={() => setCancelTarget(c)}
-                    />
-                  </li>
-                ))}
-              </ul>
-              <ListPagination page={cashbackPagination.page} total={cashbacks.length} onPageChange={cashbackPagination.setPage} label="Fee cashbacks pages" />
-              </div>
-            )}
-          </TabsContent>
-        </Tabs>
-      )}
-
-      <FeeCashbackEntryDialog
-        application={activeApplication}
-        onOpenChange={(open) => !open && setActiveApplication(null)}
-        onEnter={enterFeeCashback}
+  return (
+    <DashboardPage>
+      <DashboardHeader
+        title="Processing-fee cashback"
+        description="Record an eligible cashback, then raise its payout through the maker-checker flow."
       />
-
-      <FeeCashbackPayoutDialog
-        cashback={payTarget}
-        onOpenChange={(open) => !open && setPayTarget(null)}
-        onPay={payFeeCashback}
+      <MoneyLedgerView
+        eligible={eligibleSection}
+        ledger={ledgerSection}
+        eligibleTabLabel="Eligible applications"
+        ledgerTabLabel="Cashback ledger"
+        loading={loading}
+        error={error}
+        onRetry={() => void reload()}
+        dialogs={
+          <>
+            <FeeCashbackEntryDialog
+              application={activeApplication}
+              onOpenChange={(open) => !open && setActiveApplication(null)}
+              onEnter={enterFeeCashback}
+            />
+            <FeeCashbackPayoutDialog
+              cashback={payTarget}
+              onOpenChange={(open) => !open && setPayTarget(null)}
+              onPay={payFeeCashback}
+            />
+            <Dialog open={cancelTarget !== null} onOpenChange={(open) => !open && closeCancelDialog()}>
+              <DialogContent className="max-w-lg">
+                {cancelTarget ? (
+                  <>
+                    <DialogHeader>
+                      <DialogTitle>Cancel cashback</DialogTitle>
+                      <DialogDescription>
+                        {formatPaise(cancelTarget.amount_paise)} for{" "}
+                        {cancelTarget.client_name ?? "the client"}. This frees the application for
+                        a fresh entry.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <Textarea
+                      value={cancelReason}
+                      onChange={(event) => setCancelReason(event.target.value)}
+                      placeholder="Reason for cancelling"
+                      rows={3}
+                      maxLength={500}
+                      autoFocus
+                    />
+                    <DialogFooter className="gap-2 sm:gap-2">
+                      <Button variant="ghost" onClick={closeCancelDialog} disabled={cancelling}>
+                        Back
+                      </Button>
+                      <Button
+                        variant="destructive"
+                        onClick={() => void onConfirmCancel()}
+                        disabled={cancelling || cancelReason.trim().length === 0}
+                      >
+                        {cancelling ? (
+                          <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                        ) : null}
+                        Confirm cancel
+                      </Button>
+                    </DialogFooter>
+                  </>
+                ) : null}
+              </DialogContent>
+            </Dialog>
+          </>
+        }
       />
-
-      <Dialog open={cancelTarget != null} onOpenChange={(o) => !o && closeCancelDialog()}>
-        <DialogContent className="max-w-lg">
-          {cancelTarget ? (
-            <>
-              <DialogHeader>
-                <DialogTitle>Cancel cashback</DialogTitle>
-                <DialogDescription>
-                  {formatPaise(cancelTarget.amount_paise)} for{" "}
-                  {cancelTarget.client_name ?? "the client"}. This frees the application for a
-                  fresh entry.
-                </DialogDescription>
-              </DialogHeader>
-              <Textarea
-                value={cancelReason}
-                onChange={(e) => setCancelReason(e.target.value)}
-                placeholder="Reason for cancelling"
-                rows={3}
-                maxLength={500}
-                autoFocus
-              />
-              <DialogFooter className="gap-2 sm:gap-2">
-                <Button variant="ghost" onClick={closeCancelDialog} disabled={cancelling}>
-                  Back
-                </Button>
-                <Button
-                  variant="destructive"
-                  onClick={() => void onConfirmCancel()}
-                  disabled={cancelling || cancelReason.trim().length === 0}
-                >
-                  {cancelling ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-                  Confirm cancel
-                </Button>
-              </DialogFooter>
-            </>
-          ) : null}
-        </DialogContent>
-      </Dialog>
-    </div>
+    </DashboardPage>
   );
 }

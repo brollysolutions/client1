@@ -174,7 +174,6 @@ export function UserProvisioningView() {
   return (
     <DashboardPage>
       <DashboardHeader
-        eyebrow="Identity and access"
         title="Users & staff"
         description="Provision operational accounts, assign business-line scope, and manage delegated access."
         actions={
@@ -436,7 +435,11 @@ function ProvisioningResult({
       </div>
 
       {result.temp_password ? (
-        <TempCredentialPanel mobile={result.mobile} tempPassword={result.temp_password} />
+        <TempCredentialPanel
+          mobile={result.mobile}
+          tempPassword={result.temp_password}
+          authUserUuid={result.auth_user_uuid}
+        />
       ) : (
         <p className="rounded-xl border border-border bg-muted/30 p-4 text-sm text-text-secondary">
           This mobile number already had an account. Its existing password still works, so no new

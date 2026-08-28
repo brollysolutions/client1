@@ -50,6 +50,7 @@ from app.api.v1.referral_bonus import router as referral_bonus_router
 from app.api.v1.referrals import router as referrals_router
 from app.api.v1.reporting import router as reporting_router
 from app.api.v1.site_visits import router as site_visits_router
+from app.api.v1.staff_invites import router as staff_invites_router
 from app.api.v1.sub_admin import router as sub_admin_router
 from app.api.v1.support_tickets import router as support_tickets_router
 from app.api.v1.telecaller import router as telecaller_router
@@ -116,6 +117,9 @@ app.include_router(
     tags=["admin"],
 )
 app.include_router(leads_router, prefix="/api/v1/leads", tags=["leads"])
+# Anonymous: a provisioned staff member setting their own password from an
+# Admin-issued invite link. Rate-limited per IP inside the router.
+app.include_router(staff_invites_router, prefix="/api/v1/staff-invites", tags=["staff-invites"])
 app.include_router(
     agent_applications_router, prefix="/api/v1/agent-applications", tags=["agent-applications"]
 )

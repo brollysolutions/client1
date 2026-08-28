@@ -2,7 +2,7 @@
 
 Status: **Derived living implementation ledger**
 
-As of: **2026-08-27**
+As of: **2026-08-28**
 
 Evidence baseline: `abcc1fd`
 ([PR #175](https://github.com/brollysolutions/client1/pull/175)), plus the
@@ -24,6 +24,21 @@ compiled, typechecked, and generated 93/93 pages; its unavailable build-time
 API reproduced concise timeout/fetch diagnostics before the unchanged Windows
 standalone-symlink `EPERM`. No API, contract, authorization/RLS, data,
 dependency, timeout policy, parse-error diagnostics, or rendered UI changed.
+**Done - Admin/Sub Admin dashboard overhaul, Phases 1-9:** the work was rebased
+and merged one phase at a time through [PR #246](https://github.com/brollysolutions/client1/pull/246),
+[#247](https://github.com/brollysolutions/client1/pull/247),
+[#248](https://github.com/brollysolutions/client1/pull/248),
+[#249](https://github.com/brollysolutions/client1/pull/249),
+[#250](https://github.com/brollysolutions/client1/pull/250),
+[#251](https://github.com/brollysolutions/client1/pull/251),
+[#252](https://github.com/brollysolutions/client1/pull/252),
+[#253](https://github.com/brollysolutions/client1/pull/253), and
+[#254](https://github.com/brollysolutions/client1/pull/254). Conflict resolution
+preserved the newer shared 25-row pagination and Lead Details validation work
+that landed after the original overhaul branch diverged. Final cumulative
+evidence is strict typecheck plus all 81 web test files / 515 tests; the commit
+gates also pass feature tracking, migration/RLS checks, API lint/format, and web
+lint. The detailed phase sections below retain their contemporaneous evidence.
 
 **Done - optional public content-block 404 log classification** on
 `codex/20260827-065108-the-lead-details-page-ui-its-kinda` ([PR
@@ -102,6 +117,211 @@ page retained its meaningful row without the two blank rows. The aggregate API
 run reached 19% before the unchanged Admin coverage-contract failure for
 `financial_product_provider_offers`, reproduced with `--lf -x`. Security,
 design/accessibility, and maintainer review found no change-owned issue.
+**In progress - Admin/Sub Admin dashboard overhaul Phase 9: remaining CMS
+queues, property submissions, and staff Website content removal** on
+`claude/20260827-admin-subadmin-ui-foundation` (direct user instruction;
+completion coverage remains 99.4% pending a formal SRS revision): Banners and
+offers now use the full-width dashboard shell and the shared `FilterBar`,
+`DataTable`, status badge, loading/empty/error states, pagination, and row-open
+workspace interaction. Admin can still approve, reject, archive, and inspect
+banner records but cannot edit draft/rejected fields; the Admin offers view is
+read-only. Sub Admin retains the existing banner/offer authoring actions,
+replacement rules, schedules, audience grammar, raster-media validation,
+approval lifecycle, and dirty-close protections. Referral and banner authoring
+now use the shared form-section hierarchy, as do audience targeting fields.
+
+My property submissions moves from a card list to the shared data table and
+opens a centred record dialog containing its state, listing details, reviewer
+note, and the existing Edit and irreversible Withdraw actions. Property
+submission and subtype-detail forms now use shared form sections without
+changing taxonomy, validation, RERA, media, edit, or withdrawal behavior.
+
+The final direct product instruction removes Website content management from
+both staff roles. The Admin/Sub Admin navigation and route grants, Sub Admin
+home metric/quick action, `/dashboard/content` pages, staff content queue/form,
+guide, preview, filter, API client, form-registry entries, and browser/unit
+expectations have been removed. Direct navigation now returns 404 for both
+roles. This does not delete existing content records or public-site copy:
+public content-block rendering and tests remain, and backend content endpoints,
+authorization, data, and lifecycle rules are unchanged. Earlier ledger entries
+describing the former Sub Admin content workspace remain historical evidence
+and are superseded only as to current staff UI availability.
+
+Fresh evidence: `pnpm lint`, `pnpm typecheck`, and all 81 web test files / 515
+tests pass. Browser verification covered Admin and Sub Admin at desktop and 390
+x 844, including the banner, offer, referral-rule, property-submission, and new
+property workspaces; it confirmed Admin read-only fields, the new form-section
+hierarchy, both-role content-route 404s, and no submitted mutation. Root/body
+overflow is clipped horizontally, and wide nested tables preserve scrolling
+while reporting hidden horizontal scrollbar chrome. The normal Docker web
+service was restored healthy. The requested `design-review` skill was not
+installed, so the responsive review used the repository design primitives
+directly and found no remaining change-owned issue. No API contract, migration,
+auth, RLS, approval, payout, media, or public-rendering behavior changed.
+
+**In progress - Admin/Sub Admin dashboard overhaul Phase 8: Analytics,
+Broadcast, and immutable Audit log** on
+`claude/20260827-admin-subadmin-ui-foundation` (direct user instruction; no
+requirement or completion-percentage change): all three views now use the
+full-width dashboard shell. Analytics replaces its one-off stat tiles with
+shared `MetricGrid`/`MetricCard` and composes report dates, line, presets,
+weekly/monthly grouping, and multi-Agent selection through the shared filter
+container. The generic sortable `ReportTable`, server-side pagination, CSV and
+Excel export, Agent team summaries, and `useReport` request-id race guard are
+unchanged. No chart was added, so the plan's conditional `dataviz` skill did
+not apply.
+
+Broadcast is now a shared dashboard panel without weakening its irreversible
+action boundary. Send stays disabled until Preview audience succeeds; changing
+audience or business line invalidates that preview; field and same-origin link
+validation still runs; and `window.confirm` still names the exact recipient
+count and says the action cannot be undone. Browser verification resolved 612
+matching Clients, opened the exact-count confirmation, dismissed it, and
+confirmed from network history that only the preview endpoint ran—no broadcast
+was sent.
+
+Audit log moves from a bespoke card feed onto shared `FilterBar`, `DataTable`,
+loading/empty/error states, and pagination. Rows remain keyboard/click
+operable and open the existing structured-detail dialog, including nested JSON.
+The generated-contract-backed `ACTION_META` map remains exhaustive, retaining
+the compile-time failure when a backend action is added without a label/icon.
+Actor automation versus deleted-account wording, role labels, record ids,
+business line, and timestamps remain visible. The form-surface registry now
+correctly classifies the shared filter rather than the Audit wrapper.
+
+Fresh evidence: `pnpm lint`, `pnpm typecheck`, and all 79 web test files / 505
+tests pass. Playwright covered Analytics, Broadcast, and Audit log at 1440 px
+and 390 x 844; the document and body matched each viewport, mobile Audit's wide
+table retained non-zero `scrollLeft` with hidden scrollbar chrome, an Audit
+detail payload rendered, and Broadcast Send was disabled before preview. The
+only console error was the repository's pre-existing missing favicon; no
+changed-route request or runtime error occurred. No API contract, migration,
+auth, RLS, report query/export, audit immutability, or notification-delivery
+behavior changed.
+
+**In progress - Admin/Sub Admin dashboard overhaul Phase 7: finance ledgers,
+payout controls, and referral rules** on
+`claude/20260827-admin-subadmin-ui-foundation` (direct user instruction; no
+requirement or completion-percentage change): the Payouts, Agent commissions,
+Processing-fee cashback, Referral payouts, and Referral bonus rules surfaces
+now use the full-width dashboard shell and the shared filter bar, data table,
+status badge, loading/empty states, and pagination. Search, status,
+business-line, date, and applicable payout-type filters are available without
+discarding cancellation reasons, referral ineligibility reasons, checker
+identity, or rejection context. The Phase 6 global treatment hides their
+nested horizontal scrollbar chrome without making wide finance tables expand
+the document.
+
+Commission and cashback were near-line-for-line copies. Their eligible and
+ledger tabs now share `MoneyLedgerView`, while the commission, cashback, and
+referral destination dialogs are thin domain wrappers over one
+`MoneyPayoutDialog`. Domain payload builders, API methods, entry dialogs,
+cancellation flows, and server validation remain separate. A pure
+`getMoneyPayoutRequestState` helper and three regression cases lock the exact
+tri-state rule behind the prior double-click defect: only an unlinked payable
+row offers Pay; a payable row with a payout id says Payout raised; terminal
+rows stay settled. The main Payouts table still permits Admin review, reports
+when the viewer is the maker, and renders Approve only when
+`viewer_can_approve`; manual cheque issue, clearance, failure, and reversal are
+unchanged.
+
+Referral rules retains the role boundary: Admin sees the configuration and
+payout history read-only, while Sub Admin can create and activate/deactivate
+rules. The authoring form remains in a full-screen workspace and retains the
+dirty-close confirmation. No API contract, migration, auth, RLS, ledger,
+payout, settlement, or business-line behavior changed.
+
+Fresh evidence: `pnpm lint` and `pnpm typecheck` pass; all 79 web test files /
+505 tests pass, including the new payout-state tests and the exhaustive form
+surface registry. Playwright checked all five Admin routes at 1440 px and 390 x
+844, opened a maker-checker review dialog without mutating it, and checked the
+Sub Admin referral-rule authoring workspace at 390 x 844. On every route,
+document and body widths matched the viewport; all horizontal utility
+scrollers reported hidden bars, and mobile wide-table scrollers retained
+programmatic scroll. The only browser errors were the pre-existing missing favicon and the expected refresh
+401 created while deliberately clearing the Admin session before the Sub
+Admin login; no changed-route request or runtime error occurred.
+
+**In progress - Admin/Sub Admin dashboard overhaul Phase 6: financial-product
+catalogue and provider configuration** on
+`claude/20260827-admin-subadmin-ui-foundation` (direct user instruction; no
+requirement or completion-percentage change): Financial products is now a
+filterable, sortable, paginated table rather than a stack of edit cards. Each
+row opens one full-screen product workspace with separate Application form,
+Providers, and Public page tabs. Form edits keep the existing versioned schema
+contract. The Public page tab exposes active/visibility/feature/order controls
+but renders the existing public summary, description, highlights, eligibility,
+documents, and FAQs read-only, preserving the explicit frozen-copy boundary.
+The top-level surface now has only Product catalogue and Providers & logos;
+provider availability and public offers live together inside the selected
+product instead of competing as global tabs.
+
+The provider workspace keeps operational assignment and public publication as
+separate controls and derives one explicit presentation state: Live on landing
+page, Draft offer, Operational only, or Unavailable. Live requires an existing
+published offer, a verification date, an active/public product, and an active
+provider. Missing availability still defaults to operationally available for
+staff, but can never infer public display. A shared pure state helper now powers
+both the provider table and catalogue live-count column, with tests that turn
+off every publication gate independently. Provider creation/editing and the
+raster-only logo/provenance workflow remain intact on the redesigned provider
+library table. No API contract, migration, auth, RLS, or public-copy mutation
+surface changed.
+
+Per the direct follow-up to remove horizontal scrollbar chrome everywhere,
+`globals.css` now suppresses visible horizontal bars for every
+`overflow-x-auto`/`overflow-x-scroll` surface while retaining touch, trackpad,
+keyboard, and programmatic scrolling. Root overflow is clipped horizontally so
+a wide nested table cannot create a document-level bar. Mixed-axis scrollers
+retain their vertical bar. Browser evidence at 390 px confirms document and
+body widths equal the viewport, the table still accepts `scrollLeft`, and its
+horizontal scrollbar is hidden.
+
+Fresh evidence: `pnpm lint` and `pnpm typecheck` pass; all 78 web test files /
+502 tests pass, including 8 catalogue-state tests and the provider-draft
+validation suite. Desktop and 390 x 844 browser passes covered the catalogue,
+workspace tabs, provider picker/editor, frozen public copy, independent save
+actions, and scrollbar behavior. The requested `apple-design` and
+`design-review` skills were not installed in this session, so the responsive
+review was performed manually against the repository design primitives and
+found no remaining change-owned issue.
+
+**Implemented on branch - Admin/Sub Admin dashboard overhaul Phase 5: secure staff
+first-login invite links** on
+`claude/20260827-admin-subadmin-ui-foundation` (direct user instruction; no
+requirement or completion-percentage change): provisioning retains its existing
+one-time temporary-password fallback but now gives Admin the safer primary
+handoff: create a seven-day first-login link, Copy link, Share (with clipboard
+fallback), and Revoke. Reissuing revokes the outstanding link. The anonymous
+`/staff-invite/[token]` page displays only first name and role, reuses the
+shared password form and policy, then activates the identity and burns the link
+in one transaction; used, revoked, expired, malformed, and unknown tokens all
+produce the same public invalid state.
+
+The new `staff_invite_links` table contains no raw token or PII: only a SHA-256
+token hash, identity/profile/issuer foreign keys, expiry, and lifecycle
+timestamps. Its partial unique index permits one live link per invitee;
+Admin-only RLS plus column-scoped `UPDATE (used_at, revoked_at)` prevents a row
+from being repointed. Public validation and consumption run on the internal
+service session but rederive active-profile and `pending_password_reset`
+eligibility from the database, with `SELECT ... FOR UPDATE` serialising
+consumption. Preview and accept use separate IP rate-limit counters, and audit
+events contain link/profile ids but never the raw token, mobile, email, or
+password. An Admin-issued invite is refused once the owner has chosen a
+password, so the feature cannot become an account-reset primitive.
+
+Fresh evidence: `pnpm lint`, `pnpm typecheck`, and all 499 web unit tests pass;
+API `ruff check` and `ruff format --check` pass. The branch migration was
+applied to an isolated `app_test` database and all 8 focused integration tests
+pass, covering successful set-password/login, single use, replacement,
+revoke/expiry, staff/password-reset eligibility, password-policy rejection
+without burning the link, Admin-only issue/revoke, and indistinguishable invalid
+tokens. The requested `security-review` skill was not available in this
+session; a manual review of token persistence, anonymous exposure, RLS/grants,
+rate limiting, audit data, locking, and eligibility rechecks found one UX
+acceptance gap (no reusable Share action after creation), fixed it, and found no
+remaining change-owned security issue. Final private-window browser verification
+remains part of the end-of-track interactive pass.
 
 **Done - Real-estate browse-card redesign** on
 `claude/20260825-211218-remove-browse-by-type-section-in-explore` ([PR
@@ -1970,6 +2190,166 @@ an estimate of calendar time: a single security-sensitive gap can require more
 work than several completed UI requirements.
 
 ## Current work
+
+**In progress - Admin and Sub Admin dashboard UI overhaul, phase 4 of 9** on
+`claude/20260827-admin-subadmin-ui-foundation` (direct user instruction; no
+requirement or completion-percentage change): agent applications and the
+operational account directory.
+
+Agent applications moves onto the shared table and the workspace dialog. Its
+four KYC documents were a list of download links; they now render as inline
+previews, because a photo and an Aadhaar scan are what the decision is actually
+made on. The lazy per-open detail fetch is unchanged - presigned URLs expire in
+about five minutes, so they cannot be baked into the list. The queue also gains
+a status filter: `GET /api/v1/admin/agents` hardcoded `status = pending`, making
+the queue a one-way door with no way to look back at what had been decided. The
+parameter defaults to `pending`, so omitting it preserves the old behavior, and
+takes an explicit `all` member rather than an empty string, which FastAPI
+validates against the Literal and rejects.
+
+The operational account directory had exactly one filter: a "Search this page"
+box that narrowed only the 25 already-fetched rows, so an account on page three
+was unreachable from page one. `GET /api/v1/admin/users` now accepts `search`,
+`status`, `role`, `business_line`, `created_from`, `created_to` and
+`never_logged_in`, all applied in the query so `total` stays correct for paging.
+`role` and `business_line` are EXISTS subqueries against the profile tables, not
+joins, so a user holding several profiles is still counted once. Search covers
+name, mobile and email only - the columns an Admin has in hand when someone
+contacts support - and runs against the stored values, so a soft-deleted account
+cannot be found by a mobile that has already been tombstoned. The panel is
+rebuilt on the shared table with a sign-in-history filter and real pagination;
+its rows stay non-clickable because suspend/reactivate is the only thing to do
+with an account here, and a whole-row target would be a lie.
+
+The generated OpenAPI spec and typed client are regenerated for the new query
+parameters. No response model, migration, auth, RLS, or business-line behavior
+changed.
+
+Evidence: all 499 web unit tests, web lint, and web typecheck pass. 20 agent and
+30 admin-user API tests pass against Postgres, including new coverage for the
+agent status filter and for server-side user filtering, `total` correctness, and
+422 on an invalid status. API Ruff check and format pass.
+
+**In progress - Admin and Sub Admin dashboard UI overhaul, phase 3 of 9** on
+`claude/20260827-admin-subadmin-ui-foundation` (direct user instruction; no
+requirement or completion-percentage change): listing approvals, support tickets,
+and document verification.
+
+Listing approvals moves from `features/real-estate/review-queue-view.tsx` to
+`features/admin/listing-approvals-view.tsx`. It was already an Admin console
+reaching across for `admin-list-tools` through a relative `../admin/` import; the
+submitting half of the same lifecycle stays under `features/real-estate/`. Its
+review is the richest in the codebase — a presigned media grid, the 360 panorama
+viewer, reviewer documents, the RERA registry sub-review and subtype detail — and
+now renders in the full-screen workspace dialog with the media on one side and
+the decision controls on the other instead of stacked in a `max-w-3xl` column.
+The approve gate is unchanged (RERA settled and every media asset `ready`) but
+the reason it is blocked is now stated beside the button rather than hidden in a
+`title` attribute. The 5-second media poll and per-asset URL minting are
+unchanged.
+
+Support tickets was the only admin queue with no search, no date range and no
+pagination. It gains all three plus a category filter — a field the record always
+carried and nothing exposed — and now passes `status` to the API. The client
+wrapper and the route have always accepted that parameter; the hook simply never
+sent it, so the console fetched every ticket ever raised and filtered them in the
+browser. The embedded mobile-change queue keeps its own tinted panel: it is a
+distinct queue with its own statuses, not a section of the ticket list.
+
+Document verification keeps its boolean model and its mandatory note on
+un-verify. The two-level lead-then-subject card nesting becomes one sortable
+table with search, review-state, source, business-line and upload-date filters,
+and real pagination — `business_line` and `offset` were already supported by the
+route, and the client wrapper was discarding the `total` needed to page. The
+review itself moves into the workspace dialog, where each document renders inline
+(image or PDF, with a download fallback) beside its own note and decision, so the
+reviewer decides from the artefact rather than the filename. A verify-all action
+covers the common case; there is deliberately no bulk counterpart for
+un-verifying, because each one requires its own note.
+
+No API contract, migration, auth, RLS, or business-line behavior changed.
+
+Evidence: all 499 web unit tests, web lint, and web typecheck pass.
+
+**In progress - Admin and Sub Admin dashboard UI overhaul, phase 2 of 9** on
+`claude/20260827-admin-subadmin-ui-foundation` (direct user instruction; no
+requirement or completion-percentage change): loan applications, property deals,
+and vehicle arrangements rebuilt on the phase-1 primitives.
+
+Three row-interaction models used to coexist across the admin queues, so whether
+a row could be clicked was unanswerable by looking. Loan applications and
+property deals expanded inline; vehicle arrangements had dead rows with side
+buttons. All three now open a floating window, matching the queues that already
+did. Loan applications and property deals use the full-screen workspace dialog
+because their detail is a progress form plus submitted answers; vehicle
+arrangements uses a centred panel that shows the arrangement read-only and
+carries the transport form and cancel action, so the row is worth clicking even
+when there is nothing to enter.
+
+Each view moves from its own `max-w-5xl` wrapper and bare `<h1>` onto
+`DashboardPage`/`DashboardHeader`/`DashboardPanel`, and from a `<ul>` of cards
+onto `DataTable` with sortable columns. Filters move into the shared `FilterBar`,
+which adds a business-line filter the records always carried but nothing exposed,
+and vehicle arrangements gains sortable pickup ordering. Vehicle arrangements
+was the one admin queue fetching inline in its component; the extracted
+`use-admin-vehicle-arrangements` hook matches every sibling queue. Status pills
+move onto `StatusBadge`, and the surfaced-but-unused `driver_mobile`,
+`completed_at`, `cancelled_at` and `cancellation_reason` now appear in the detail
+panel.
+
+No API contract, migration, auth, RLS, or business-line behavior changed.
+
+Evidence: all 499 web unit tests, web lint, and web typecheck pass. Loan
+applications and property deals leave the form-surface registry because their
+controls are now the shared filter bar; vehicle arrangements stays as a mutation
+surface.
+
+**In progress - Admin and Sub Admin dashboard UI overhaul, phase 1 of 9** on
+`claude/20260827-admin-subadmin-ui-foundation` (direct user instruction; no
+requirement or completion-percentage change). This phase is the shared
+foundation the remaining eight are built on, plus the two app-wide affordance
+corrections the user asked for.
+
+Both staff home pages showed their approval queue two or three rows at a time.
+That was never a data limit: each panel was pinned to a fixed height inside an
+xl-only two-column row. Admin's "Waiting on you" and Sub Admin's "Waiting on
+Admin" are the same queue seen from the two ends of one approval, so they now
+share one full-width `PendingReviewTable` whose rows are clickable and carry how
+long each item has waited, with Operational load promoted above it as a
+four-across strip. `admin_home._PENDING_QUEUE_LIMIT` rises 12 to 30 and
+`sub_admin._PENDING_APPROVAL_LIMIT` 10 to 30 to match the space now available;
+the counts rendered beside the queue were always uncapped and are unchanged.
+
+Eyebrows are removed application-wide. `DashboardHeader` and `DashboardFormPage`
+(where the prop was required) no longer accept one, and all 17 call sites plus
+the public `ProductPage` hero and `TrustStrip` drop it. The 404 status code and
+the broadcast composer's Step 1/Step 2 labels are kept: they share the visual
+shape but carry information rather than decorate.
+
+Close (X) controls had drifted into five treatments — an opacity fade, a tinted
+fill, an off-token `bg-blue-50`, a bordered pill, and one bare `<button>` with no
+styling. `components/ui/close-button.ts` now owns the single treatment: pointer
+cursor, no border, no background in any state, and the icon turning
+`--color-brand-cta` on hover. Applying it in `dialog.tsx` and `sheet.tsx` covers
+roughly 135 call sites; the remaining one-offs were converted individually.
+
+New `features/dashboard` primitives: `DataTable` (the clickable-row table proven
+on the telecaller leads list, with controlled sorting and an automatic trailing
+chevron), `FilterBar` (promoted from the CMS's `CmsFilterBar`, the most complete
+of five near-identical copies), `StatusBadge`, `ListEmptyState`/
+`ListLoadingState`/`ListPagination`, `useFilteredPage`, and the workspace dialog
+moved out of `features/sub-admin` now that Admin uses it too. A shim keeps the
+ten Sub Admin call sites compiling until those surfaces are rebuilt in phase 9.
+`lib/format.ts` gains the `formatDate` that six views each kept a private copy
+of, plus `formatAge`.
+
+No API contract, migration, auth, RLS, or business-line behavior changed.
+
+Evidence: all 499 web unit tests, web lint, and web typecheck pass; the 18 admin
+and sub-admin home API tests pass against a migrated Postgres and cover the
+raised queue cap; API Ruff check and format pass. Browser verification is
+deferred to the end of the sequence because the running compose stack serves the
+main checkout rather than this worktree.
 
 **Done - application-wide form validation consistency** on
 `codex/20260826-231901-add-validation-for-all-form-fields-anywher`
