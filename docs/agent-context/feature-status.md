@@ -9,6 +9,25 @@ Evidence baseline: `abcc1fd`
 verified Admin operational-visibility work in
 [PR #173](https://github.com/brollysolutions/client1/pull/173).
 
+**Done on branch - restore one Alembic head after independent migrations:**
+`fix/merge-alembic-heads` addresses the Docker startup failure introduced when
+the Lead Details validation migration (`84a5b6c7d8e9`) and staff first-login
+invite migration (`b1f7c93ad204`) both landed as children of
+`73f4c2a91d6e`. Alembic correctly refuses the ambiguous singular `head`, so the
+API exits before binding its port and scheduler/web dependencies cannot start.
+The fix is an empty merge revision with both revisions as parents. It does not
+change schema, data, grants, RLS, either parent's upgrade/downgrade logic, API
+contracts, or requirement completion.
+
+Fresh evidence: host and container `alembic heads` report only
+`c2d8e4f6a901`; the live database records that mergepoint. Startup applied the
+outstanding staff-invite branch and then the merge revision, while the already
+applied loan-transaction branch remained intact. Database inspection confirms
+both `staff_invite_links` and the non-empty transaction-history check. The
+migration/RLS and Ruff checks pass, and API, scheduler, and web all reach
+healthy. Downgrading the merge revision intentionally changes no object and
+only re-exposes the two parent heads.
+
 **Done - concise server-fetch timeout diagnostics** on
 `codex/20260827-065108-the-lead-details-page-ui-its-kinda` ([PR
 #245](https://github.com/brollysolutions/client1/pull/245); direct user-reported
