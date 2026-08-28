@@ -86,6 +86,49 @@ page retained its meaningful row without the two blank rows. The aggregate API
 run reached 19% before the unchanged Admin coverage-contract failure for
 `financial_product_provider_offers`, reproduced with `--lf -x`. Security,
 design/accessibility, and maintainer review found no change-owned issue.
+**In progress - Admin/Sub Admin dashboard overhaul Phase 7: finance ledgers,
+payout controls, and referral rules** on
+`claude/20260827-admin-subadmin-ui-foundation` (direct user instruction; no
+requirement or completion-percentage change): the Payouts, Agent commissions,
+Processing-fee cashback, Referral payouts, and Referral bonus rules surfaces
+now use the full-width dashboard shell and the shared filter bar, data table,
+status badge, loading/empty states, and pagination. Search, status,
+business-line, date, and applicable payout-type filters are available without
+discarding cancellation reasons, referral ineligibility reasons, checker
+identity, or rejection context. The Phase 6 global treatment hides their
+nested horizontal scrollbar chrome without making wide finance tables expand
+the document.
+
+Commission and cashback were near-line-for-line copies. Their eligible and
+ledger tabs now share `MoneyLedgerView`, while the commission, cashback, and
+referral destination dialogs are thin domain wrappers over one
+`MoneyPayoutDialog`. Domain payload builders, API methods, entry dialogs,
+cancellation flows, and server validation remain separate. A pure
+`getMoneyPayoutRequestState` helper and three regression cases lock the exact
+tri-state rule behind the prior double-click defect: only an unlinked payable
+row offers Pay; a payable row with a payout id says Payout raised; terminal
+rows stay settled. The main Payouts table still permits Admin review, reports
+when the viewer is the maker, and renders Approve only when
+`viewer_can_approve`; manual cheque issue, clearance, failure, and reversal are
+unchanged.
+
+Referral rules retains the role boundary: Admin sees the configuration and
+payout history read-only, while Sub Admin can create and activate/deactivate
+rules. The authoring form remains in a full-screen workspace and retains the
+dirty-close confirmation. No API contract, migration, auth, RLS, ledger,
+payout, settlement, or business-line behavior changed.
+
+Fresh evidence: `pnpm lint` and `pnpm typecheck` pass; all 79 web test files /
+505 tests pass, including the new payout-state tests and the exhaustive form
+surface registry. Playwright checked all five Admin routes at 1440 px and 390 x
+844, opened a maker-checker review dialog without mutating it, and checked the
+Sub Admin referral-rule authoring workspace at 390 x 844. On every route,
+document and body widths matched the viewport; all horizontal utility
+scrollers reported hidden bars, and mobile wide-table scrollers retained
+programmatic scroll. The only browser errors were the pre-existing missing favicon and the expected refresh
+401 created while deliberately clearing the Admin session before the Sub
+Admin login; no changed-route request or runtime error occurred.
+
 **In progress - Admin/Sub Admin dashboard overhaul Phase 6: financial-product
 catalogue and provider configuration** on
 `claude/20260827-admin-subadmin-ui-foundation` (direct user instruction; no
