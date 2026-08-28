@@ -9,6 +9,21 @@ Evidence baseline: `abcc1fd`
 verified Admin operational-visibility work in
 [PR #173](https://github.com/brollysolutions/client1/pull/173).
 
+**Done - concise server-fetch timeout diagnostics** on
+`codex/20260827-065108-the-lead-details-page-ui-its-kinda` ([PR
+#245](https://github.com/brollysolutions/client1/pull/245); direct user-reported
+Docker log noise; no requirement or completion-percentage change): the
+five-second anonymous server-fetch guard, typed failure result, and fail-soft
+homepage behavior are unchanged. Network exceptions are now logged as a
+bounded name/message string instead of a raw Node `DOMException`,
+so Next.js no longer prints `INDEX_SIZE_ERR` through `DATA_CLONE_ERR` around an
+otherwise actionable timeout. The regression failed first against the raw
+object and passes with the concise `TimeoutError` diagnostic. ESLint, strict
+typecheck, and all 80 web test files / 511 tests pass. The production build
+compiled, typechecked, and generated 93/93 pages; its unavailable build-time
+API reproduced concise timeout/fetch diagnostics before the unchanged Windows
+standalone-symlink `EPERM`. No API, contract, authorization/RLS, data,
+dependency, timeout policy, parse-error diagnostics, or rendered UI changed.
 **Done - Admin/Sub Admin dashboard overhaul, Phases 1-9:** the work was rebased
 and merged one phase at a time through [PR #246](https://github.com/brollysolutions/client1/pull/246),
 [#247](https://github.com/brollysolutions/client1/pull/247),

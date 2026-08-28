@@ -160,13 +160,26 @@ describe("getPublicContentBlockBySlug()", () => {
   });
 
   it("returns null when fetch throws", async () => {
+    const timeout = new DOMException(
+      "The operation was aborted due to timeout",
+      "TimeoutError",
+    );
+    const consoleError = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => undefined);
     vi.stubGlobal(
       "fetch",
       vi.fn(async () => {
-        throw new Error("network down");
+        throw timeout;
       }),
     );
 
     expect(await getPublicContentBlockBySlug("homepage-closing")).toBeNull();
+    expect(consoleError).toHaveBeenCalledWith(
+      "serverFetchJson.network_error",
+      "/api/v1/public/content-blocks/homepage-closing",
+      "TimeoutError: The operation was aborted due to timeout",
+    );
+    expect(consoleError.mock.calls.flat()).not.toContain(timeout);
   });
 });
