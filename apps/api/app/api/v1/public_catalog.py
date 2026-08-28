@@ -26,7 +26,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.session import get_db
 from app.models.banner import BannerPlacement
-from app.models.offer import Offer
 from app.models.property import Property, ReraVerificationStatus
 from app.schemas.banners import PublicBannerListResponse, PublicBannerRead
 from app.schemas.content import PublicContentBlockListResponse, PublicContentBlockRead
@@ -40,7 +39,6 @@ from app.schemas.financial_catalog import (
     PublicProviderRead,
 )
 from app.schemas.financial_products import ProductCategory
-from app.schemas.offers import PublicOfferListResponse, PublicOfferRead
 from app.schemas.properties import (
     PublicPropertyDetailRead,
     PublicPropertyListResponse,
@@ -61,7 +59,6 @@ from app.services.public_catalog import (
     get_public_property,
     list_public_banners,
     list_public_content_blocks,
-    list_public_offers,
     list_public_properties,
 )
 
@@ -216,21 +213,6 @@ async def list_financial_product_providers_public(
     )
 
 
-def _offer_badge(offer: Offer) -> str:
-    value = format(offer.discount_value, "f")
-    if "." in value:
-        value = value.rstrip("0").rstrip(".")
-    discount_type = offer.discount_type
-    discount = (
-        f"{value}% off"
-        if discount_type == "percentage"
-        else "Cashback offer"
-        if discount_type == "cashback-tie"
-        else f"₹{value} off"
-    )
-    return f"{offer.title} · {discount}" + (f" · Code {offer.code}" if offer.code else "")
-
-
 def _property_enquiry_href(property_listing: Property) -> str:
     product = f"{property_listing.title}, {property_listing.location}"[:120]
     return f"/contact?{urlencode({'line': 'real_estate', 'product': product})}"
@@ -294,7 +276,7 @@ async def list_banners_public(
 ) -> PublicBannerListResponse:
     banners = await list_public_banners(db, BannerPlacement(placement))
     linked_property_ids = [
-        property_listing.id for _, _, _, property_listing in banners if property_listing is not None
+        property_listing.id for _, _, property_listing in banners if property_listing is not None
     ]
     property_media = await media_urls_by_property(db, linked_property_ids)
     # Not a blind model_validate like the other three list routes below:
@@ -302,7 +284,7 @@ async def list_banners_public(
     # storage.public_asset_url (None for anything outside public/ -- see that
     # function's docstring). image_key itself never reaches PublicBannerRead.
     response: list[PublicBannerRead] = []
-    for banner, template, offer, property_listing in banners:
+    for banner, template, property_listing in banners:
         template_url = (
             template_image_url(template.image_ref, version=template.version)
             if template is not None
@@ -335,7 +317,6 @@ async def list_banners_public(
                     if banner.image_key
                     else None
                 ),
-                offer_badge=_offer_badge(offer) if offer is not None else None,
                 rera_verified=bool(
                     property_listing is not None
                     and property_listing.rera_verification_status == ReraVerificationStatus.VERIFIED
@@ -343,16 +324,6 @@ async def list_banners_public(
             )
         )
     return PublicBannerListResponse(banners=response)
-
-
-@router.get("/offers", response_model=PublicOfferListResponse)
-async def list_offers_public(
-    db: AsyncSession = Depends(get_db),
-) -> PublicOfferListResponse:
-    offers = await list_public_offers(db)
-    return PublicOfferListResponse(
-        offers=[PublicOfferRead.model_validate(o, from_attributes=True) for o in offers]
-    )
 
 
 @router.get("/content-blocks", response_model=PublicContentBlockListResponse)

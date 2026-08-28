@@ -354,12 +354,19 @@ export function PayoutsView() {
     ],
     [canReview],
   );
+  const visibleColumns = canReview
+    ? columns
+    : columns.filter((column) => column.key !== "maker" && column.key !== "action");
 
   return (
     <DashboardPage>
       <DashboardHeader
-        title="Payouts"
-        description="Approve, reject, and settle cashback, referral, and commission disbursements."
+        title={canReview ? "Payouts" : "Payout requests"}
+        description={
+          canReview
+            ? "Approve, reject, and settle cashback, referral, and commission disbursements."
+            : "Prepare payout requests and follow only the requests you raised. Admin review and settlement are separate."
+        }
         actions={<Button onClick={() => setCreateOpen(true)}>Raise a payout</Button>}
       />
 
@@ -367,20 +374,24 @@ export function PayoutsView() {
         value={filters}
         onChange={updateFilters}
         searchLabel="Search payouts"
-        searchPlaceholder="Recipient, maker, checker, or destination"
+        searchPlaceholder={canReview ? "Recipient, maker, checker, or destination" : "Recipient or destination"}
         statusOptions={FILTER_OPTIONS}
         statusLabel="payout states"
         kindOptions={TYPE_OPTIONS}
         kindLabel="Payout types"
-        note="The Admin who raises a payout cannot approve it. Manual cheques settle only after clearance."
+        note={
+          canReview
+            ? "The Admin who raises a payout cannot approve it. Manual cheques settle only after clearance."
+            : "You can create and track requests. Approval, rejection, reconciliation, and cheque settlement remain Admin-only."
+        }
       />
 
       {status === "error" ? (
         <FetchError status={errorStatus} message={error} onRetry={retry} />
       ) : (
         <DashboardPanel
-          title="Payout ledger"
-          description="Maker-checker approvals and settlement state across every money programme."
+          title={canReview ? "Payout ledger" : "My requests"}
+          description={canReview ? "Maker-checker approvals and settlement state across every money programme." : "Maker-side status for requests raised by your account."}
           bodyClassName="p-0"
         >
           {status === "loading" ? (
@@ -401,7 +412,7 @@ export function PayoutsView() {
           ) : (
             <>
               <DataTable
-                  columns={columns}
+                  columns={visibleColumns}
                   rows={page.pageRows}
                   rowKey={(payout) => payout.id}
                   minWidth="min-w-[1080px]"

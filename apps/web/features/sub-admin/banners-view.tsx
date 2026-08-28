@@ -6,6 +6,7 @@ import {
   CheckCircle2,
   CopyPlus,
   Inbox,
+  ImageIcon,
   Plus,
   Send,
   Trash2,
@@ -67,15 +68,13 @@ import {
   propertyCampaignImage,
   propertyMatchesCampaign,
 } from "@/lib/banner-properties";
-import { listOffers, type Offer } from "@/lib/offers-api";
 import { getAdminProperties, type AdminProperty } from "@/lib/properties-api";
 import { isSafeLocalHref } from "@/lib/safe-local-href";
 
 import { audienceSummary } from "./audience-rule-fields";
 import { BannerForm } from "./banner-form";
-import { BannerTemplateManager } from "./banner-template-manager";
 import { filterBanners } from "./cms-filters";
-import { BannerPreview, formatOfferBadge } from "./cms-previews";
+import { BannerPreview } from "./cms-previews";
 import {
   CmsPreviewFrame,
   CmsWorkspaceHeader,
@@ -111,7 +110,6 @@ type Draft = {
   ctaLabel: string;
   deepLink: string;
   templateId: string;
-  offerId: string;
   propertyId: string;
   priority: string;
   startsAt: string;
@@ -132,7 +130,6 @@ function toDraft(banner: Banner): Draft {
     ctaLabel: banner.cta_label ?? "",
     deepLink: banner.deep_link ?? "",
     templateId: banner.template_id ?? "",
-    offerId: banner.offer_id ?? "",
     propertyId: banner.property_id ?? "",
     priority: String(banner.priority),
     startsAt: localDateTime(banner.starts_at),
@@ -148,7 +145,6 @@ export function BannersView() {
   const [active, setActive] = React.useState<Banner | null>(null);
   const [draft, setDraft] = React.useState<Draft | null>(null);
   const [templates, setTemplates] = React.useState<BannerTemplate[]>([]);
-  const [offers, setOffers] = React.useState<Offer[]>([]);
   const [properties, setProperties] = React.useState<AdminProperty[]>([]);
   const [rejecting, setRejecting] = React.useState(false);
   const [note, setNote] = React.useState("");
@@ -162,10 +158,9 @@ export function BannersView() {
   const dialogRef = React.useRef<HTMLDivElement>(null);
 
   React.useEffect(() => {
-    void Promise.all([listBannerTemplates(false), listOffers(), getAdminProperties()]).then(
-      ([templateResult, offerResult, propertyResult]) => {
+    void Promise.all([listBannerTemplates(false), getAdminProperties()]).then(
+      ([templateResult, propertyResult]) => {
         if (templateResult.ok) setTemplates(templateResult.data);
-        if (offerResult.ok) setOffers(offerResult.data);
         if (propertyResult.ok) setProperties(propertyResult.data);
       },
     );
@@ -182,10 +177,27 @@ export function BannersView() {
         key: "banner",
         header: "Banner",
         render: (banner) => (
-          <DataTablePrimaryCell
-            title={banner.title}
-            subtitle={banner.category_key?.replaceAll("-", " ") ?? banner.banner_type}
-          />
+          <div className="flex min-w-0 items-center gap-3">
+            {templates.find((template) => template.id === banner.template_id)?.image_url ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={templates.find((template) => template.id === banner.template_id)?.image_url}
+                alt=""
+                width={80}
+                height={48}
+                loading="lazy"
+                className="h-12 w-20 shrink-0 rounded-lg border border-border object-cover"
+              />
+            ) : (
+              <span className="grid h-12 w-20 shrink-0 place-items-center rounded-lg border border-border bg-muted text-text-secondary">
+                <ImageIcon className="h-5 w-5" aria-hidden="true" />
+              </span>
+            )}
+            <DataTablePrimaryCell
+              title={banner.title}
+              subtitle={banner.category_key?.replaceAll("-", " ") ?? banner.banner_type}
+            />
+          </div>
         ),
       },
       {
@@ -214,24 +226,14 @@ export function BannersView() {
         ),
       },
     ],
-    [],
+    [templates],
   );
 
   const selectedTemplate = templates.find((template) => template.id === draft?.templateId);
-  const selectedOffer = offers.find((offer) => offer.id === draft?.offerId);
   const selectedProperty = properties.find((property) => property.id === draft?.propertyId);
-  const categoryNeedsOffer = selectedTemplate?.category_key === "offers";
   const categoryAllowsProperty = isPropertyCampaignTemplate(selectedTemplate);
   const editableTemplates = templates.filter(
     (template) => template.active && template.placement === active?.placement,
-  );
-  const editableOffers = offers.filter(
-    (offer) =>
-      (offer.status === "active" || offer.status === "scheduled") &&
-      (!active ||
-        active.business_line === "both" ||
-        offer.business_line === "both" ||
-        offer.business_line === active.business_line),
   );
   const editableProperties = selectedTemplate
     ? properties.filter((property) => propertyMatchesCampaign(property, selectedTemplate))
@@ -282,7 +284,6 @@ export function BannersView() {
         banner.placement !== "dashboard" && !draft.templateId
           ? "Artwork template is required."
           : undefined,
-      offerId: categoryNeedsOffer && !draft.offerId ? "Linked Offer is required." : undefined,
     };
     if (
       (draft.startsAt && Number.isNaN(new Date(draft.startsAt).getTime())) ||
@@ -308,7 +309,7 @@ export function BannersView() {
       cta_label: draft.ctaLabel.trim() || null,
       deep_link: draft.propertyId ? null : draft.deepLink.trim() || null,
       template_id: banner.placement === "dashboard" ? null : draft.templateId,
-      offer_id: categoryNeedsOffer ? draft.offerId : null,
+      offer_id: null,
       property_id: categoryAllowsProperty && draft.propertyId ? draft.propertyId : null,
       priority: Number(draft.priority) || 0,
       starts_at: draft.startsAt ? new Date(draft.startsAt).toISOString() : null,
@@ -322,7 +323,6 @@ export function BannersView() {
         cta_label: "ctaLabel",
         deep_link: "deepLink",
         template_id: "templateId",
-        offer_id: "offerId",
         property_id: "propertyId",
         priority: "priority",
         starts_at: "schedule",
@@ -407,15 +407,18 @@ export function BannersView() {
   return (
     <DashboardPage>
       <DashboardHeader
-        title="Banners"
-        description="Choose governed artwork, edit live copy, and move campaigns through Admin approval."
+        title={isAdmin ? "Banner approvals" : "Banner campaigns"}
+        description={
+          isAdmin
+            ? "Review campaign copy, audience, destination, schedule, and the immutable artwork version selected by the author."
+            : "Build campaigns from Admin-approved artwork, then submit them for review before they can go live."
+        }
         actions={
           !isAdmin ? (
             <Button onClick={() => setCreateOpen(true)}><Plus className="h-4 w-4" />New banner</Button>
           ) : undefined
         }
       />
-      {isAdmin ? <BannerTemplateManager /> : null}
       <MetricGrid>
         <MetricCard label="Total banners" value={items.length} icon={DASHBOARD_ICONS.banners} />
         <MetricCard label="Drafts" value={items.filter((item) => item.status === "draft").length} icon={DASHBOARD_ICONS.websiteContent} />
@@ -441,8 +444,8 @@ export function BannersView() {
         <FetchError status={null} message={error} onRetry={() => void reload()} />
       ) : (
         <DashboardPanel
-          title="Campaign library"
-          description={`${filtered.length} ${filtered.length === 1 ? "banner" : "banners"} shown.`}
+          title={isAdmin ? "Approval queue and history" : "Campaign library"}
+          description={`${filtered.length} ${filtered.length === 1 ? "campaign" : "campaigns"} shown.`}
           bodyClassName="p-0"
         >
           {loading ? (
@@ -517,7 +520,7 @@ export function BannersView() {
                       {active.placement !== "dashboard" ? (
                         <div>
                           <Label htmlFor="edit-template">Artwork template <RequiredIndicator /></Label>
-                          <Select value={draft.templateId || undefined} disabled={!canEdit} onValueChange={(templateId) => { setDraft({ ...draft, templateId, offerId: "", propertyId: "" }); setFieldErrors((current) => ({ ...current, templateId: undefined })); }}>
+                          <Select value={draft.templateId || undefined} disabled={!canEdit} onValueChange={(templateId) => { setDraft({ ...draft, templateId, propertyId: "" }); setFieldErrors((current) => ({ ...current, templateId: undefined })); }}>
                             <SelectTrigger id="edit-template" aria-required="true" aria-invalid={Boolean(fieldErrors.templateId)} aria-describedby={fieldErrors.templateId ? "banner-edit-template-error" : undefined}><SelectValue placeholder="Choose a template" /></SelectTrigger>
                             <SelectContent>
                               {editableTemplates.map((template) => (
@@ -526,18 +529,6 @@ export function BannersView() {
                             </SelectContent>
                           </Select>
                           <FieldError id="banner-edit-template-error">{fieldErrors.templateId}</FieldError>
-                        </div>
-                      ) : null}
-                      {categoryNeedsOffer ? (
-                        <div>
-                          <Label htmlFor="edit-offer">Linked Offer <RequiredIndicator /></Label>
-                          <Select value={draft.offerId || undefined} disabled={!canEdit} onValueChange={(offerId) => { setDraft({ ...draft, offerId }); setFieldErrors((current) => ({ ...current, offerId: undefined })); }}>
-                            <SelectTrigger id="edit-offer" aria-required="true" aria-invalid={Boolean(fieldErrors.offerId)} aria-describedby={fieldErrors.offerId ? "banner-edit-offer-error" : undefined}><SelectValue placeholder="Choose an Offer" /></SelectTrigger>
-                            <SelectContent>
-                              {editableOffers.map((offer) => <SelectItem key={offer.id} value={offer.id}>{offer.title}</SelectItem>)}
-                            </SelectContent>
-                          </Select>
-                          <FieldError id="banner-edit-offer-error">{fieldErrors.offerId}</FieldError>
                         </div>
                       ) : null}
                       {categoryAllowsProperty ? (
@@ -605,7 +596,7 @@ export function BannersView() {
                 preview={
                   <CmsPreviewFrame
                     title="Banner appearance"
-                    description="Artwork, copy, Offer badge, and CTA match the production composition."
+                    description="Artwork, copy, and CTA match the production composition."
                     device={device}
                     onDeviceChange={setDevice}
                   >
@@ -621,7 +612,6 @@ export function BannersView() {
                         image_url:
                           propertyCampaignImage(selectedProperty, selectedTemplate) ??
                           selectedTemplate?.image_url,
-                        offer_badge: formatOfferBadge(selectedOffer),
                         rera_verified: selectedProperty?.rera_verification_status === "verified",
                       }}
                     />

@@ -7,11 +7,9 @@ import { Loader2 } from "lucide-react";
 import { useAuth } from "@/components/auth/session-provider";
 import { OffersView } from "@/features/sub-admin/offers-view";
 
-// Sub Admin owns the full lifecycle; Admin gets read-only oversight of the
-// same shared queue (RLS's offers_select policy grants both, migration
-// b5c6d7e8f9a0). AppGuard (the (app) layout) enforces auth; this adds the
-// role gate. UX gate only: the API's require_sub_admin + RLS are the real
-// wall — there is no Admin write endpoint at all for offers.
+// Sub Admin authors and publishes approved offers; Admin reviews the same
+// queue. AppGuard enforces authentication and this is only a routing hint —
+// API dependencies plus RLS remain the authorization boundary.
 const OFFER_ROLES = new Set(["sub_admin", "admin"]);
 
 export default function OffersPage() {

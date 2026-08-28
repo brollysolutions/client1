@@ -22,7 +22,6 @@ function wireBanner(overrides: Partial<Schemas["PublicBannerRead"]> = {}): Schem
     cta_label: "Apply now",
     deep_link: "/loans",
     image_url: null,
-    offer_badge: null,
     rera_verified: false,
     ...overrides,
   };
@@ -40,7 +39,6 @@ describe("mapPublicBanner()", () => {
       title: "Diwali Loan Offer",
       subtitle: "Limited period rates",
       image: undefined,
-      offerBadge: undefined,
       reraVerified: undefined,
       cta: { label: "Apply now", href: "/loans" },
     });
@@ -81,12 +79,6 @@ describe("mapPublicBanner()", () => {
         wireBanner({ image_url: "//banner-templates.example/file.webp" }),
       ).image,
     ).toBeUndefined();
-  });
-
-  it("maps an offer badge", () => {
-    expect(mapPublicBanner(wireBanner({ offer_badge: "10% off · Code SAVE10" })).offerBadge).toBe(
-      "10% off · Code SAVE10",
-    );
   });
 
   it("maps the server-derived RERA verification state", () => {

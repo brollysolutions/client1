@@ -70,7 +70,6 @@ PUBLIC_ROUTES = frozenset(
         "POST /api/v1/agent-applications/uploads/presign",
         # Public marketing/catalog surfaces — published content only.
         "GET /api/v1/public/banners",
-        "GET /api/v1/public/offers",
         "GET /api/v1/public/properties",
         "GET /api/v1/public/properties/{property_id}",
         "GET /api/v1/public/content-blocks",

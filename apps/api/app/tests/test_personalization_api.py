@@ -16,7 +16,13 @@ from app.models.auth import AuthEvent
 from app.models.banner import Banner, BannerStatus, BannerType
 from app.models.offer import Offer, OfferStatus
 from app.models.personalization import PersonalizationPreference
-from app.models.profile import AgentProfile, ProfileStatus
+from app.models.profile import (
+    AgentProfile,
+    ProfileScope,
+    ProfileStatus,
+    StaffProfile,
+    StaffRole,
+)
 from app.models.user import User
 from app.services import personalization
 from conftest import full_registration, unique_mobile
@@ -67,7 +73,12 @@ async def _seed_content(author: uuid.UUID) -> list[uuid.UUID]:
             title="Generic client offer",
             discount_type="percentage",
             discount_value=Decimal("10"),
-            audience_rules={},
+            code="SAVE10",
+            partner_name="Example Partner",
+            redemption_url="https://partner.example/checkout",
+            terms_summary="Valid once per customer.",
+            image_key="public/banners/11111111-1111-1111-1111-111111111111/generic.webp",
+            audience_rules={"version": 1, "user_types": ["client"]},
             priority=2_000_000,
             status=OfferStatus.ACTIVE,
             created_by_uuid=author,
@@ -77,6 +88,11 @@ async def _seed_content(author: uuid.UUID) -> list[uuid.UUID]:
             title="Hyderabad client offer",
             discount_type="flat",
             discount_value=Decimal("500"),
+            code="HYD500",
+            partner_name="Hyderabad Partner",
+            redemption_url="https://partner.example/hyderabad",
+            terms_summary="Valid in the selected service area.",
+            image_key="public/banners/22222222-2222-2222-2222-222222222222/hyd.webp",
             audience_rules={
                 "version": 1,
                 "user_types": ["client"],
@@ -107,6 +123,74 @@ async def _delete_content(ids: list[uuid.UUID]) -> None:
         await db.execute(delete(Banner).where(Banner.id.in_(ids)))
         await db.execute(delete(Offer).where(Offer.id.in_(ids)))
         await db.commit()
+
+
+async def _seed_staff_offer(role: StaffRole) -> tuple[uuid.UUID, uuid.UUID, uuid.UUID]:
+    import app.db.session as session_module
+
+    async with session_module.AsyncSessionLocal() as db:
+        user = User(
+            first_name="Placement",
+            last_name=role.value.title(),
+            mobile=unique_mobile(),
+            email=f"placement-{role.value}-{uuid.uuid4().hex[:12]}@example.com",
+            password_hash="x",
+        )
+        db.add(user)
+        await db.flush()
+        profile = StaffProfile(
+            auth_user_uuid=user.id,
+            role=role,
+            scope=ProfileScope.LINE,
+            business_line="loans",
+            staff_code=f"PL-{uuid.uuid4().hex[:8]}",
+            status=ProfileStatus.ACTIVE,
+        )
+        offer = Offer(
+            business_line="loans",
+            title=f"{role.value.title()} dashboard offer",
+            discount_type="flat",
+            discount_value=Decimal("100"),
+            code="STAFF100",
+            partner_name="Staff Partner",
+            redemption_url="https://partner.example/staff",
+            terms_summary="Available to the selected Dhanadhara staff role.",
+            image_key=f"public/banners/{uuid.uuid4()}/staff.webp",
+            audience_rules={"version": 1, "user_types": [role.value]},
+            status=OfferStatus.ACTIVE,
+            created_by_uuid=user.id,
+        )
+        db.add_all([profile, offer])
+        await db.commit()
+        return user.id, profile.id, offer.id
+
+
+@pytest.mark.parametrize("role", [StaffRole.EMPLOYEE, StaffRole.TELECALLER])
+@pytest.mark.asyncio
+async def test_staff_role_receives_its_dashboard_offer(
+    client: AsyncClient,
+    role: StaffRole,
+) -> None:
+    user_id, profile_id, offer_id = await _seed_staff_offer(role)
+    token = create_access_token(
+        {
+            "sub": str(user_id),
+            "role": role.value,
+            "business_line": "loans",
+            "staff_profile_uuid": str(profile_id),
+            "platform_scope": "false",
+        }
+    )
+    try:
+        response = await client.get(
+            "/api/v1/personalization/placements?business_line=loans",
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert response.status_code == 200, response.text
+        offers = response.json()["offers"]
+        assert [offer["id"] for offer in offers if offer["id"] == str(offer_id)] == [str(offer_id)]
+    finally:
+        await _delete_content([offer_id])
 
 
 async def _seed_agent() -> tuple[uuid.UUID, uuid.UUID]:
@@ -210,8 +294,7 @@ async def test_consent_location_and_private_placement_matching(client: AsyncClie
         assert {"Generic client offer", "Hyderabad client offer"} <= personalized_offer_titles
 
         public = await client.get("/api/v1/public/offers")
-        assert public.status_code == 200
-        assert "Hyderabad client offer" not in {row["title"] for row in public.json()["offers"]}
+        assert public.status_code == 404
 
         disabled = await client.patch(
             "/api/v1/personalization/preferences",
@@ -298,17 +381,27 @@ async def test_authenticated_ranking_and_legacy_rules_fail_closed(
             title="Invalid mixed-role offer",
             discount_type="flat",
             discount_value=Decimal("100"),
-            audience_rules={"version": 1, "user_types": ["client", "agent"]},
+            code="INVALID100",
+            partner_name="Invalid Partner",
+            redemption_url="https://partner.example/invalid",
+            terms_summary="Invalid legacy audience data.",
+            image_key="public/banners/33333333-3333-3333-3333-333333333333/invalid.webp",
+            audience_rules={"user_types": ["client"]},
             priority=2_000_000_001,
             status=OfferStatus.ACTIVE,
             created_by_uuid=user_id,
         ),
         Offer(
             business_line="loans",
-            title="Valid generic offer",
+            title="Valid client offer",
             discount_type="flat",
             discount_value=Decimal("50"),
-            audience_rules={},
+            code="VALID50",
+            partner_name="Valid Partner",
+            redemption_url="https://partner.example/valid",
+            terms_summary="Valid once per customer.",
+            image_key="public/banners/44444444-4444-4444-4444-444444444444/valid.webp",
+            audience_rules={"version": 1, "user_types": ["client"]},
             priority=2_000_000_000,
             status=OfferStatus.ACTIVE,
             created_by_uuid=user_id,
@@ -332,7 +425,7 @@ async def test_authenticated_ranking_and_legacy_rules_fail_closed(
         assert by_type["default"]["title"] == "Exact-line default"
         assert by_type["personalized"]["title"] == "Matching client personalized"
         offer_titles = {offer["title"] for offer in payload["offers"]}
-        assert "Valid generic offer" in offer_titles
+        assert "Valid client offer" in offer_titles
         assert "Invalid mixed-role offer" not in offer_titles
     finally:
         await _delete_content(row_ids)

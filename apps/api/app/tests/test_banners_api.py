@@ -460,7 +460,13 @@ async def test_sponsor_strip_campaign_is_not_locked_to_one_business_line(
 
     templates = await client.get("/api/v1/banners/templates", headers=headers)
     slots = [item for item in templates.json()["templates"] if item["placement"] == "homepage_ad"]
-    assert len(slots) == 1, "the strip seeds exactly one sponsor slot"
+    expected_themes = next(
+        categories
+        for placement, categories in CATEGORIES_BY_PLACEMENT.items()
+        if placement.value == "homepage_ad"
+    )
+    assert {item["category_key"] for item in slots} == set(expected_themes)
+    sponsor_template = next(item for item in slots if item["category_key"] == "sponsor")
 
     for line in ("loans", "real_estate"):
         created = await client.post(
@@ -469,7 +475,7 @@ async def test_sponsor_strip_campaign_is_not_locked_to_one_business_line(
                 **_PAYLOAD,
                 "business_line": line,
                 "placement": "homepage_ad",
-                "template_id": slots[0]["id"],
+                "template_id": sponsor_template["id"],
             },
             headers=headers,
         )

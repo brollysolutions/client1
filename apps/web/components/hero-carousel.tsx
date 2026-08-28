@@ -219,11 +219,6 @@ export function HeroCarousel({
                           RERA VERIFIED
                         </span>
                       ) : null}
-                      {banner.offerBadge ? (
-                        <span className="mb-3 flex w-fit rounded-full bg-white/85 px-3 py-1 text-xs font-semibold text-brand-navy shadow-sm backdrop-blur-sm">
-                          {banner.offerBadge}
-                        </span>
-                      ) : null}
                       <h2
                         className={cn(
                           "font-heading font-semibold text-[var(--nav-text)]",

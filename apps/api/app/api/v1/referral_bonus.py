@@ -23,7 +23,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.deps import (
     CurrentUser,
     get_active_user,
-    is_platform_admin,
     require_sub_admin_or_platform_admin,
 )
 from app.db.session import get_db
@@ -37,6 +36,7 @@ from app.schemas.referral_bonus import (
     ReferralPayoutActivityListResponse,
     ReferralPayoutActivityRead,
 )
+from app.services import referral_bonus as referral_bonus_service
 
 router = APIRouter()
 
@@ -47,10 +47,9 @@ async def create_config(
     current_user: CurrentUser = Depends(require_sub_admin_or_platform_admin),
     db: AsyncSession = Depends(get_db),
 ) -> ReferralBonusConfigRead:
-    config = ReferralBonusConfig(created_by_uuid=current_user.id, **payload.model_dump())
-    db.add(config)
-    await db.commit()
-    await db.refresh(config)
+    config = await referral_bonus_service.create_rule(
+        db, current_user=current_user, payload=payload
+    )
     return ReferralBonusConfigRead.model_validate(config, from_attributes=True)
 
 
@@ -63,12 +62,20 @@ async def list_configs(
     # sees nothing. Newest first.
     stmt = select(ReferralBonusConfig).order_by(ReferralBonusConfig.created_at.desc())
     rows = (await db.execute(stmt)).scalars().all()
+    referenced_ids = await referral_bonus_service.referenced_rule_ids(
+        [config.id for config in rows]
+    )
     return ReferralBonusConfigListResponse(
-        configs=[ReferralBonusConfigRead.model_validate(r, from_attributes=True) for r in rows]
+        configs=[
+            ReferralBonusConfigRead.model_validate(config, from_attributes=True).model_copy(
+                update={"is_referenced": config.id in referenced_ids}
+            )
+            for config in rows
+        ]
     )
 
 
-@router.get("/{config_id}", response_model=ReferralBonusConfigRead)
+@router.get("/{config_id:uuid}", response_model=ReferralBonusConfigRead)
 async def get_config(
     config_id: UUID,
     current_user: CurrentUser = Depends(get_active_user),
@@ -80,34 +87,35 @@ async def get_config(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Referral bonus config not found."
         )
-    return ReferralBonusConfigRead.model_validate(config, from_attributes=True)
+    referenced = await referral_bonus_service.is_referenced(config.id)
+    return ReferralBonusConfigRead.model_validate(config, from_attributes=True).model_copy(
+        update={"is_referenced": referenced}
+    )
 
 
-@router.patch("/{config_id}", response_model=ReferralBonusConfigRead)
+@router.patch("/{config_id:uuid}", response_model=ReferralBonusConfigRead)
 async def update_config(
     config_id: UUID,
     payload: ReferralBonusConfigUpdate,
     current_user: CurrentUser = Depends(require_sub_admin_or_platform_admin),
     db: AsyncSession = Depends(get_db),
 ) -> ReferralBonusConfigRead:
-    config = await db.scalar(select(ReferralBonusConfig).where(ReferralBonusConfig.id == config_id))
-    if config is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Referral bonus config not found."
-        )
-    # App-layer guard, mirroring banners/offers/content_blocks: sub_admin's
-    # shared-visibility SELECT sees every config, so ownership must be checked
-    # explicitly rather than relying on a silent RLS zero-row no-op.
-    if not is_platform_admin(current_user) and config.created_by_uuid != current_user.id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You can only edit referral bonus configs you created.",
-        )
-    for field, value in payload.model_dump(exclude_unset=True).items():
-        setattr(config, field, value)
-    await db.commit()
-    await db.refresh(config)
-    return ReferralBonusConfigRead.model_validate(config, from_attributes=True)
+    config = await referral_bonus_service.update_rule(
+        db, current_user=current_user, config_id=config_id, payload=payload
+    )
+    referenced = await referral_bonus_service.is_referenced(config.id)
+    return ReferralBonusConfigRead.model_validate(config, from_attributes=True).model_copy(
+        update={"is_referenced": referenced}
+    )
+
+
+@router.delete("/{config_id:uuid}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_config(
+    config_id: UUID,
+    current_user: CurrentUser = Depends(require_sub_admin_or_platform_admin),
+    db: AsyncSession = Depends(get_db),
+) -> None:
+    await referral_bonus_service.delete_rule(db, current_user=current_user, config_id=config_id)
 
 
 @router.get("/payout-activity/recent", response_model=ReferralPayoutActivityListResponse)

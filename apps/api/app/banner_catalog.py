@@ -27,9 +27,8 @@ HOMEPAGE_CATEGORIES = {
 # (replaces_banner_id + jobs/cms_activation.py), which swaps it in at its
 # starts_at and refuses to displace a banner it does not name.
 #
-# Deliberately not named "offers": services/banners.py treats that literal as
-# magic (a banner in an "offers" category MUST link a live Offer, and any other
-# category MUST NOT), which is wrong for a general sponsor slot.
+# Deliberately not named "offers": coupon campaigns are authenticated-dashboard
+# content, while this public placement is reserved for general sponsor artwork.
 HOMEPAGE_AD_CATEGORIES = {
     "sponsor": "Sponsor strip",
     "personal-finance": "Personal finance",

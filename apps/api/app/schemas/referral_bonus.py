@@ -1,8 +1,7 @@
 """Referral bonus config schemas — Sub Admin rule authoring, no payout write.
 
-ReferralBonusConfigRead exposes the full row. There is no forward-only status
-machine here (unlike offers/content_blocks) — active is a plain toggle, so
-ReferralBonusConfigUpdate can flip it directly alongside the other fields.
+ReferralBonusConfigRead exposes the full row. Rules can be made live or retired,
+and only retired rules without referral history can be deleted.
 """
 
 from __future__ import annotations
@@ -12,7 +11,7 @@ from decimal import Decimal
 from typing import Any, Literal
 from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class ReferralBonusConfigCreate(BaseModel):
@@ -27,6 +26,13 @@ class ReferralBonusConfigUpdate(BaseModel):
     rule: dict[str, Any] | None = None
     active: bool | None = None
 
+    @field_validator("bonus_amount", "rule", "active", mode="before")
+    @classmethod
+    def non_nullable_fields_cannot_be_cleared(cls, value: object) -> object:
+        if value is None:
+            raise ValueError("This field cannot be null.")
+        return value
+
 
 class ReferralBonusConfigRead(BaseModel):
     id: UUID
@@ -37,6 +43,7 @@ class ReferralBonusConfigRead(BaseModel):
     created_by_uuid: UUID
     created_at: datetime
     updated_at: datetime
+    is_referenced: bool = False
 
 
 class ReferralBonusConfigListResponse(BaseModel):

@@ -87,7 +87,7 @@ function displayRoles(user: AdminUser): string {
  * this page" box that narrowed only the 25 already-fetched rows, so an account
  * on page three was unreachable from page one no matter what you typed.
  */
-export function OperationalUsersPanel() {
+export function OperationalUsersPanel({ compact = false }: { compact?: boolean }) {
   const [users, setUsers] = React.useState<AdminUser[]>([]);
   const [total, setTotal] = React.useState(0);
   const [page, setPage] = React.useState(0);
@@ -116,7 +116,7 @@ export function OperationalUsersPanel() {
 
   const query: AdminUserQuery = React.useMemo(
     () => ({
-      limit: LIST_PAGE_SIZE,
+      limit: compact ? 5 : LIST_PAGE_SIZE,
       offset: page * LIST_PAGE_SIZE,
       search: debouncedSearch.trim() || undefined,
       status: filters.status === "all" ? undefined : (filters.status as AdminUserQuery["status"]),
@@ -127,7 +127,7 @@ export function OperationalUsersPanel() {
       createdTo: filters.to || undefined,
       neverLoggedIn: loginFilter === "all" ? undefined : loginFilter === "never",
     }),
-    [debouncedSearch, filters, loginFilter, page],
+    [compact, debouncedSearch, filters, loginFilter, page],
   );
 
   const load = React.useCallback(async () => {
@@ -260,13 +260,16 @@ export function OperationalUsersPanel() {
       ),
     },
   ];
+  const visibleColumns = compact
+    ? columns.filter((column) => ["name", "roles", "status"].includes(column.key))
+    : columns;
 
-  const anyFilterActive = filtersAreActive(filters) || loginFilter !== "all";
+  const anyFilterActive = !compact && (filtersAreActive(filters) || loginFilter !== "all");
 
   return (
     <>
       <div className="space-y-3">
-        <FilterBar
+        {!compact ? <FilterBar
           value={filters}
           onChange={setFilters}
           searchLabel="Search accounts"
@@ -281,6 +284,11 @@ export function OperationalUsersPanel() {
           dateFromLabel="Created from"
           dateToLabel="Created to"
           note="Filters run against every account, not just this page."
+          hasExternalFilters={loginFilter !== "all"}
+          onClear={() => {
+            setFilters(EMPTY_FILTERS);
+            setLoginFilter("all");
+          }}
           extra={
             <Select value={loginFilter} onValueChange={setLoginFilter}>
               <SelectTrigger aria-label="Filter by sign-in history">
@@ -296,7 +304,7 @@ export function OperationalUsersPanel() {
               </SelectContent>
             </Select>
           }
-        />
+        /> : null}
 
         {loading ? (
           <ListLoadingState />
@@ -316,15 +324,20 @@ export function OperationalUsersPanel() {
           <>
             <div className="overflow-hidden rounded-xl border border-border">
               <DataTable
-                columns={columns}
+                columns={visibleColumns}
                 rows={users}
                 rowKey={(user) => user.id}
                 onRowClick={setOpenUser}
                 rowActionLabel="Open account"
-                minWidth="min-w-[900px]"
+                minWidth={compact ? undefined : "min-w-[900px]"}
               />
             </div>
-            <ListPagination page={page} total={total} onPageChange={setPage} />
+            {!compact ? <ListPagination page={page} total={total} onPageChange={setPage} /> : null}
+            {compact && total > users.length ? (
+              <p className="text-xs text-text-secondary">
+                Showing {users.length} of {total} accounts. Open Full view to search and manage all records.
+              </p>
+            ) : null}
           </>
         )}
       </div>

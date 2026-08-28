@@ -32,6 +32,12 @@ export async function updateReferralBonusConfig(
   });
 }
 
+export async function deleteReferralBonusConfig(id: string): Promise<ApiResponse<null>> {
+  return apiRequest<null>(`/api/v1/referral-bonus-config/${id}`, {
+    method: "DELETE",
+  });
+}
+
 export async function listReferralBonusConfigs(): Promise<ApiResponse<ReferralBonusConfig[]>> {
   const res = await apiRequest<Schemas["ReferralBonusConfigListResponse"]>(
     `/api/v1/referral-bonus-config`,

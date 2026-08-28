@@ -138,7 +138,7 @@ export function SubAdminHome() {
       <DashboardHeader
         title="Sub Admin workspace"
         description="Monitor approval status and manage cross-line promotions."
-        actions={<DashboardTextLink href="/dashboard/banners/new">Create banner</DashboardTextLink>}
+        actions={<DashboardTextLink href="/dashboard/banners">Manage campaigns</DashboardTextLink>}
       />
 
       <MetricGrid>

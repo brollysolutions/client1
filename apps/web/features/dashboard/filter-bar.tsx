@@ -86,6 +86,7 @@ export function FilterBar({
   actions,
   extra,
   onClear,
+  hasExternalFilters = false,
   className,
 }: {
   value: FilterBarValue;
@@ -111,10 +112,12 @@ export function FilterBar({
   extra?: ReactNode;
   /** Override the default all-empty reset when a surface has a meaningful baseline. */
   onClear?: () => void;
+  /** Include filters rendered through `extra` in Clear-button visibility. */
+  hasExternalFilters?: boolean;
   className?: string;
 }) {
   const set = (patch: Partial<FilterBarValue>) => onChange({ ...value, ...patch });
-  const active = filtersAreActive(value);
+  const active = filtersAreActive(value) || hasExternalFilters;
 
   return (
     <section
@@ -122,7 +125,7 @@ export function FilterBar({
       aria-label="Filters"
     >
       {actions ? <div className="mb-3 flex flex-wrap gap-2">{actions}</div> : null}
-      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,12rem),1fr))] gap-2 [&_[data-slot=select-trigger]]:w-full">
         {showSearch ? (
           <Input
             aria-label={searchLabel}
@@ -201,21 +204,25 @@ export function FilterBar({
           </>
         ) : null}
 
-        {active && showClear ? (
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="w-fit whitespace-nowrap"
-            onClick={() => (onClear ? onClear() : onChange(EMPTY_FILTERS))}
-          >
-            <X className="h-4 w-4" aria-hidden="true" />
-            Clear filters
-          </Button>
-        ) : null}
       </div>
 
-      {note ? <p className="mt-3 text-xs text-text-secondary">{note}</p> : null}
+      {note || (active && showClear) ? (
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-border pt-3">
+          {note ? <p className="text-xs text-text-secondary">{note}</p> : <span />}
+          {active && showClear ? (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="w-fit shrink-0 whitespace-nowrap"
+              onClick={() => (onClear ? onClear() : onChange(EMPTY_FILTERS))}
+            >
+              <X className="h-4 w-4" aria-hidden="true" />
+              Clear filters
+            </Button>
+          ) : null}
+        </div>
+      ) : null}
     </section>
   );
 }

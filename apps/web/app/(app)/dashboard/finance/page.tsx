@@ -5,19 +5,16 @@ import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 
 import { useAuth } from "@/components/auth/session-provider";
-import { OfferForm } from "@/features/sub-admin/offer-form";
+import { FinanceOverview } from "@/features/sub-admin/finance-overview";
 
-// Sub Admin-only route. AppGuard (the (app) layout) enforces auth; this adds
-// the role gate. UX gate only: the API's require_sub_admin + RLS are the real
-// wall.
-export default function NewOfferPage() {
+export default function FinancePage() {
   const router = useRouter();
   const { session, isLoading } = useAuth();
-  const allowed = session != null && (session.role === "sub_admin" || session.role === "admin");
+  const allowed = session?.role === "sub_admin";
 
   React.useEffect(() => {
     if (!isLoading && !allowed) router.replace("/dashboard");
-  }, [isLoading, allowed, router]);
+  }, [allowed, isLoading, router]);
 
   if (isLoading || !allowed) {
     return (
@@ -26,5 +23,5 @@ export default function NewOfferPage() {
       </div>
     );
   }
-  return <OfferForm />;
+  return <FinanceOverview />;
 }

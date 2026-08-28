@@ -33,7 +33,7 @@ from app.banner_catalog import (
 from app.db.session import AsyncSessionLocal
 from app.models.audit_log import AuditAction
 from app.models.banner import Banner, BannerPlacement, BannerStatus, BannerTemplate
-from app.models.offer import Offer, OfferStatus
+from app.models.offer import Offer
 from app.models.property import Property, ReraVerificationStatus
 from app.schemas.banners import BannerTemplateCreate
 from app.schemas.personalization import AudienceRules, audience_rules_valid_for_banner
@@ -103,21 +103,14 @@ async def validate_banner_configuration(
     if required_line is not None and business_line != required_line:
         raise BannerInvalidConfiguration
 
-    offer = await db.get(Offer, offer_id) if offer_id else None
+    # Coupon campaigns are dashboard-only. Public banners may use the governed
+    # "offers" artwork category, but never link or expose an offer/code.
+    if offer_id is not None:
+        raise BannerInvalidConfiguration
+    offer = None
     property_listing = await db.get(Property, property_id) if property_id else None
     if offer_id is not None and property_id is not None:
         raise BannerInvalidConfiguration
-    if template.category_key == "offers" and offer is None:
-        raise BannerInvalidConfiguration
-    if template.category_key != "offers" and offer is not None:
-        raise BannerInvalidConfiguration
-    if offer is not None:
-        if offer.status not in (OfferStatus.SCHEDULED, OfferStatus.ACTIVE):
-            raise BannerInvalidConfiguration
-        if offer.audience_rules != {}:
-            raise BannerInvalidConfiguration
-        if business_line != "both" and offer.business_line not in (business_line, "both"):
-            raise BannerInvalidConfiguration
     if property_id is not None and (
         property_listing is None
         or not property_listing.active
@@ -414,12 +407,12 @@ _ORPHAN_MIN_AGE = timedelta(hours=1)
 
 
 async def purge_orphaned_uploads(*, min_age: timedelta = _ORPHAN_MIN_AGE) -> dict[str, int]:
-    """Delete objects under public/banners/ that no Banner row references.
+    """Delete old objects that no banner or dashboard offer references.
 
-    Same shape as services/agent_applications.py::purge_orphaned_uploads, one
-    referenced column instead of four. Runs on a fresh bypass session (no
-    request context in a scheduler tick) purely to read image_key -- RLS is
-    irrelevant to a read-only column scan with no row-level sensitivity.
+    Banner and offer artwork intentionally share the guarded public/banners/
+    upload boundary. The sweep therefore has to union both reference columns;
+    otherwise a saved offer image would look abandoned after the one-hour
+    in-progress floor. The fresh bypass session reads keys only.
     """
     cutoff = datetime.now(UTC) - min_age
     objects = storage.list_objects(_IMAGE_KEY_PREFIX)
@@ -428,11 +421,13 @@ async def purge_orphaned_uploads(*, min_age: timedelta = _ORPHAN_MIN_AGE) -> dic
         return {"scanned": len(objects), "deleted": 0}
 
     async with AsyncSessionLocal() as session:
-        referenced = set(
-            (
-                await session.scalars(select(Banner.image_key).where(Banner.image_key.is_not(None)))
-            ).all()
+        banner_keys = await session.scalars(
+            select(Banner.image_key).where(Banner.image_key.is_not(None))
         )
+        offer_keys = await session.scalars(
+            select(Offer.image_key).where(Offer.image_key.is_not(None))
+        )
+        referenced = set(banner_keys.all()) | set(offer_keys.all())
 
     deleted = 0
     for obj in candidates:

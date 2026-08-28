@@ -35,6 +35,7 @@ export function TempCredentialPanel({
   tempPassword,
   authUserUuid,
   inviteLinkActions,
+  autoCreate = false,
 }: {
   mobile: string;
   tempPassword?: string;
@@ -43,12 +44,15 @@ export function TempCredentialPanel({
     create: () => Promise<ApiResponse<StaffInviteLink>>;
     revoke: (linkId: string) => Promise<ApiResponse<null>>;
   };
+  /** Request the setup link as soon as a newly provisioned account is shown. */
+  autoCreate?: boolean;
 }) {
   const [copied, setCopied] = React.useState(false);
   const [link, setLink] = React.useState<StaffInviteLink | null>(null);
   const [busy, setBusy] = React.useState(false);
   const [blocked, setBlocked] = React.useState<string | null>(null);
   const canCreateLink = Boolean(authUserUuid || inviteLinkActions);
+  const autoCreateStarted = React.useRef(false);
 
   async function copyPassword() {
     if (!tempPassword) return;
@@ -61,7 +65,7 @@ export function TempCredentialPanel({
     }
   }
 
-  async function createLink() {
+  const createLink = React.useCallback(async (shareAfterCreate = true) => {
     if (!authUserUuid && !inviteLinkActions) return;
     setBusy(true);
     const response = inviteLinkActions
@@ -81,14 +85,20 @@ export function TempCredentialPanel({
     setBlocked(null);
     setLink(response.data);
     const url = `${window.location.origin}${response.data.share_path}`;
-    if (navigator.share) {
+    if (shareAfterCreate && navigator.share) {
       try {
         await navigator.share({ title: "Set up your Dhanadhara account", url });
       } catch {
         // A cancelled native share leaves the copyable link visible below.
       }
     }
-  }
+  }, [authUserUuid, inviteLinkActions]);
+
+  React.useEffect(() => {
+    if (!autoCreate || !canCreateLink || autoCreateStarted.current) return;
+    autoCreateStarted.current = true;
+    void createLink(false);
+  }, [autoCreate, canCreateLink, createLink]);
 
   async function copyLink() {
     if (!link) return;
@@ -140,7 +150,7 @@ export function TempCredentialPanel({
             <Link2 className="mt-0.5 h-4 w-4 shrink-0 text-brand-cta" aria-hidden="true" />
             <div className="min-w-0 flex-1">
               <p className="text-sm font-medium text-text-primary">
-                Send an invite link instead
+                Account setup link
               </p>
               <p className="mt-1 text-xs text-text-secondary">
                 They set their own password, so nothing has to be relayed. The link works once,
@@ -195,14 +205,14 @@ export function TempCredentialPanel({
                   size="sm"
                   className="mt-3"
                   disabled={busy}
-                  onClick={() => void createLink()}
+                  onClick={() => void createLink(false)}
                 >
                   {busy ? (
                     <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
                   ) : (
                     <Link2 className="h-4 w-4" aria-hidden="true" />
                   )}
-                  Create invite link
+                  Retry setup link
                 </Button>
               )}
             </div>
@@ -215,7 +225,7 @@ export function TempCredentialPanel({
           <div className="flex items-start gap-2">
             <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0 text-brand-cta" aria-hidden="true" />
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-medium text-text-primary">Shown once. Share it securely.</p>
+              <p className="text-sm font-medium text-text-primary">Legacy password fallback</p>
               <p className="mt-1 text-xs text-text-secondary">
                 This password will not be shown again. Share it with {mobile} out of band; they will
                 be forced to set a new password on first login.

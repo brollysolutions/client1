@@ -1,11 +1,9 @@
-"""Orphan-purge job tests for banner images (feature-status.md §2-13).
+"""Orphan-purge job tests for banner and dashboard-offer artwork.
 
-Mirrors tests/system/test_purge_agent_application_orphans.py exactly (one ref
-column, Banner.image_key, instead of four). purge_orphaned_uploads must
-delete only objects that are BOTH old enough (clear of an in-progress form
-fill) AND unreferenced by any Banner row -- an abandoned upload survives
-regardless of reference if it's fresh, and a referenced object survives
-regardless of age.
+purge_orphaned_uploads must delete only objects that are BOTH old enough
+(clear of an in-progress form fill) AND unreferenced by any Banner or Offer
+row. An abandoned upload survives regardless of reference if it is fresh,
+and a referenced object survives regardless of age.
 
 Requires the Docker stack; auto-skips without Redis (via the shared `client`
 fixture import).
@@ -58,6 +56,24 @@ async def _seed_banner_with_image_key(author: str, image_key: str) -> str:
         return str(banner.id)
 
 
+async def _seed_offer_with_image_key(author: str, image_key: str) -> str:
+    import app.db.session as _session_mod
+    from app.models.offer import Offer
+
+    async with _session_mod.AsyncSessionLocal() as db:
+        offer = Offer(
+            business_line="loans",
+            title="Orphan Purge Test Offer",
+            discount_type="flat",
+            discount_value=100,
+            image_key=image_key,
+            created_by_uuid=uuid.UUID(author),
+        )
+        db.add(offer)
+        await db.commit()
+        return str(offer.id)
+
+
 def _fake_objects(objects: list[dict]):
     return lambda _prefix: objects
 
@@ -104,6 +120,32 @@ async def test_keeps_old_referenced_image(
 
         async with _session_mod.AsyncSessionLocal() as db:
             await db.execute(delete(Banner).where(Banner.id == uuid.UUID(banner_id)))
+            await db.commit()
+
+
+@pytest.mark.asyncio
+async def test_keeps_old_offer_image(client: AsyncClient, monkeypatch: pytest.MonkeyPatch) -> None:
+    author = await _author_uuid(client)
+    key = "public/banners/offer/kept.webp"
+    offer_id = await _seed_offer_with_image_key(author, key)
+    deleted_keys: list[str] = []
+    monkeypatch.setattr(
+        storage, "list_objects", _fake_objects([{"key": key, "last_modified": _OLD}])
+    )
+    monkeypatch.setattr(storage, "delete_object", lambda value: deleted_keys.append(value))
+
+    try:
+        summary = await banners.purge_orphaned_uploads()
+        assert summary["deleted"] == 0
+        assert deleted_keys == []
+    finally:
+        from sqlalchemy import delete
+
+        import app.db.session as _session_mod
+        from app.models.offer import Offer
+
+        async with _session_mod.AsyncSessionLocal() as db:
+            await db.execute(delete(Offer).where(Offer.id == uuid.UUID(offer_id)))
             await db.commit()
 
 

@@ -222,7 +222,6 @@ class PublicBannerRead(BaseModel):
     cta_label: str | None
     deep_link: str | None
     image_url: str | None
-    offer_badge: str | None = None
     rera_verified: bool = False
 
 

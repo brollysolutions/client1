@@ -211,6 +211,9 @@ export function BannerTemplateManager() {
                     <img
                       src={template.image_url}
                       alt=""
+                      width={1600}
+                      height={600}
+                      loading="lazy"
                       className={`${ARTWORK_GUIDANCE[template.placement].aspectClass} w-full object-cover`}
                     />
                     <div className="flex items-center justify-between gap-2 p-3">

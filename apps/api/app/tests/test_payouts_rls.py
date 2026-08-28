@@ -120,7 +120,9 @@ async def test_admin_sees_all_payouts(client: AsyncClient) -> None:
 
 
 @pytest.mark.asyncio
-async def test_granted_platform_sub_admin_sees_payouts(client: AsyncClient) -> None:
+async def test_granted_platform_sub_admin_sees_only_own_payout_requests(
+    client: AsyncClient,
+) -> None:
     _, recipient_mobile = await full_registration(client, lines=["loans"])
     _, maker_mobile = await full_registration(client, lines=["loans"])
     recipient_uid = await _auth_user_uuid(recipient_mobile)
@@ -128,11 +130,20 @@ async def test_granted_platform_sub_admin_sees_payouts(client: AsyncClient) -> N
     payout_id = await _seed_payout(recipient_uid, maker_uid)
 
     rows = await _select_as(
+        auth_user_uuid=maker_uid,
         role="sub_admin",
         platform_scope="true",
         staff_features="payout_requests",
     )
     assert uuid.UUID(payout_id) in [r["id"] for r in rows]
+
+    other_rows = await _select_as(
+        auth_user_uuid=str(uuid.uuid4()),
+        role="sub_admin",
+        platform_scope="true",
+        staff_features="payout_requests",
+    )
+    assert uuid.UUID(payout_id) not in [r["id"] for r in other_rows]
 
 
 @pytest.mark.asyncio

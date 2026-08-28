@@ -159,6 +159,7 @@ describe("role-aware dashboard navigation", () => {
       "home",
       "sub-admin-listings",
       "sub-admin-listing-submit",
+      "sub-admin-finance",
       "sub-admin-referral-rules",
       "banners",
       "offers",
@@ -168,8 +169,9 @@ describe("role-aware dashboard navigation", () => {
       "home",
       "sub-admin-listings",
       "sub-admin-listing-submit",
+      "sub-admin-finance",
+      "sub-admin-payouts",
       "sub-admin-referral-rules",
-      "admin-payouts",
       "banners",
       "offers",
     ]);
@@ -198,6 +200,7 @@ describe("role-aware dashboard navigation", () => {
       "banners",
       "offers",
       "admin-broadcast",
+      "admin-banner-media",
       "admin-analytics",
     ]);
   });
@@ -252,7 +255,10 @@ describe("dashboard direct-route UX access", () => {
 
     expect(isDashboardPathAllowed("/dashboard/banners", context("admin"))).toBe(true);
     expect(isDashboardPathAllowed("/dashboard/banners/new", context("admin"))).toBe(false);
-    expect(isDashboardPathAllowed("/dashboard/banners/new", context("sub_admin"))).toBe(true);
+    expect(isDashboardPathAllowed("/dashboard/banners/new", context("sub_admin"))).toBe(false);
+    expect(isDashboardPathAllowed("/dashboard/offers/new", context("sub_admin"))).toBe(false);
+    expect(isDashboardPathAllowed("/dashboard/banner-media", context("admin"))).toBe(true);
+    expect(isDashboardPathAllowed("/dashboard/banner-media", context("sub_admin"))).toBe(false);
     expect(isDashboardPathAllowed("/dashboard/content", context("admin"))).toBe(false);
     expect(isDashboardPathAllowed("/dashboard/content", context("sub_admin"))).toBe(false);
     expect(isDashboardPathAllowed("/dashboard/audit-log", context("admin"))).toBe(true);

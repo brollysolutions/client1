@@ -16,7 +16,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 
 from app.models.banner import BannerType
 
-UserType = Literal["client", "agent"]
+UserType = Literal["client", "agent", "employee", "telecaller"]
 ClientJourneyStage = Literal[
     "not_started",
     "in_progress",
@@ -53,7 +53,7 @@ class AudienceRules(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     version: Literal[1] = 1
-    user_types: list[UserType] = Field(default_factory=list, max_length=2)
+    user_types: list[UserType] = Field(default_factory=list, max_length=4)
     client_journey_stages: list[ClientJourneyStage] = Field(default_factory=list, max_length=6)
     agent_signals: list[AgentSignal] = Field(default_factory=list, max_length=5)
     locations: list[AudienceLocationCircle] = Field(default_factory=list, max_length=10)
@@ -112,8 +112,8 @@ def audience_rules_valid_for_banner(banner_type: BannerType, rules: AudienceRule
 
 
 def audience_rules_valid_for_offer(rules: AudienceRules) -> bool:
-    """Customer offers may target Clients; Agents receive incentive banners instead."""
-    return rules.is_empty or rules.user_types == ["client"]
+    """Every coupon campaign names at least one authenticated dashboard role."""
+    return bool(rules.user_types)
 
 
 class PersonalizationPreferenceRead(BaseModel):
@@ -148,6 +148,11 @@ class AuthenticatedOfferRead(BaseModel):
     discount_type: str
     discount_value: Decimal
     code: str | None
+    partner_name: str
+    redemption_url: str
+    terms_summary: str
+    terms_url: str | None
+    image_url: str
 
 
 class AuthenticatedPlacementResponse(BaseModel):
