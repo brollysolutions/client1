@@ -9,6 +9,56 @@ Evidence baseline: `abcc1fd`
 verified Admin operational-visibility work in
 [PR #173](https://github.com/brollysolutions/client1/pull/173).
 
+**In progress - rent/lease listings and external listing links:**
+`claude/20260829-133027-rent-for-properties-link-option-while-list` (direct user instruction; no formal requirement or completion-percentage
+change) adds a sale-vs-rent axis to the real-estate catalogue and a structured,
+host-allowlisted place for author-supplied links out to the property elsewhere.
+
+Before this change the catalogue was sale-only. `properties` and
+`property_submissions` had no listing-intent column, `format_inr_display` in
+`app/services/property_submissions.py` always produced lakh/crore strings, and
+`features/real-estate/property-filter-body.tsx` offered no transaction facet.
+Migration `c8d0e2f4a6b9` (off the single head `b7c9d1e3f5a8`) adds the
+`re_listing_intent` enum plus `listing_intent`, `security_deposit_paise`,
+`minimum_lease_months`, `available_from`, and `listing_links` to both tables, and
+a partial index on active rows. It is expand-only: `listing_intent` is NOT NULL
+with server default `sale`, which is an exact backfill because every pre-existing
+row was a sale listing. No RLS policy or grant changed -- `properties_rls` is a
+row-level `FOR SELECT` predicate with no column dimension, and the existing
+grants on both tables are table-wide.
+
+`price_paise` is reused as the headline amount (sale price, or monthly rent)
+rather than adding a parallel `monthly_rent_paise`, so every existing sort,
+filter, and index keeps working; `format_inr_display` branches on intent.
+Rent-only fields are rejected on a sale listing in both directions, which is what
+stops a draft switched back from Rent to Sale from shipping a stale deposit.
+`sale_type` is now optional on the project/commercial/plot detail models and is
+required for sale and forbidden for rent.
+
+The link field is a deliberate, narrow carve-out from the property no-links
+policy. `_normalize_public_text` in `app/schemas/property_details.py` still
+rejects every URL, email, and markdown link in free text, and that test still
+passes. `app/schemas/listing_links.py` derives the platform from an exact-match
+host allowlist instead of trusting an author-supplied value, so a link cannot
+wear a badge for somewhere it does not go, and `lib/listing-links.ts`
+re-resolves every stored link at render time so a row saved before an allowlist
+change cannot render as trusted. Links reach the public catalogue only through
+the existing Admin approval gate, and render with
+`target="_blank" rel="noopener noreferrer"`.
+
+Fresh evidence: API Ruff check and format pass; `alembic heads` reports exactly
+one head (`c8d0e2f4a6b9`); 61 property schema, submission, and price-display
+tests pass, including new coverage for the intent rules, host-allowlist
+rejection (non-HTTPS, embedded credentials, suffix-confusion `youtube.com.evil.example`,
+shorteners, `javascript:`, protocol-relative), platform-spoofing, the four-link
+cap, and the unchanged narrative link ban. Contracts regenerated and committed.
+Web lint passes, strict typecheck passes, and all 84 files / 567 unit tests pass,
+including the form-surface registry gate for the new
+`features/real-estate/listing-links-field.tsx`. `pnpm build` compiles, typechecks,
+and generates all 93 pages; the standalone symlink copy step fails with EPERM on
+this Windows host, which is an environment limitation of `output: "standalone"`
+and unrelated to this change.
+
 **In progress - campaign phone preview withdrawn:**
 `claude/20260829-131005-remove-phone-preview-as-of-now` (direct user
 instruction; no formal requirement or completion-percentage change) removes the

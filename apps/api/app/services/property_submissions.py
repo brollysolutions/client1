@@ -24,6 +24,7 @@ from app.cache.redis_keys import (
 from app.db.session import AsyncSessionLocal
 from app.models.audit_log import AuditAction
 from app.models.property import (
+    ListingIntent,
     Property,
     ReraApplicability,
     ReraVerificationStatus,
@@ -283,8 +284,15 @@ def _can_manage_submission(
 
 
 def _payload_fact_values(payload: SubmissionCreate | SubmissionUpdate) -> dict[str, object]:
-    values = payload.model_dump(exclude={"media", "structured_details"})
+    values = payload.model_dump(exclude={"media", "structured_details", "listing_links"})
     values["structured_details"] = payload.structured_details.model_dump(mode="json")
+    # JSON mode so the derived platform lands in JSONB as its string value and
+    # not as an enum member the driver would have to coerce.
+    values["listing_links"] = (
+        [link.model_dump(mode="json") for link in payload.listing_links]
+        if payload.listing_links is not None
+        else None
+    )
     return values
 
 
@@ -298,7 +306,7 @@ def _copy_submission_facts(target: PropertySubmission | Property, source: object
         setattr(target, field, value)
     target.details_version = 1 if values["structured_details"] is not None else None
     if isinstance(target, Property):
-        target.price_display = format_inr_display(target.price_paise)
+        target.price_display = format_inr_display(target.price_paise, target.listing_intent)
 
 
 def _copy_rera_review(target: Property, source: PropertySubmission) -> None:
@@ -479,9 +487,8 @@ async def withdraw_submission(
         return True
 
 
-def format_inr_display(paise: int) -> str:
-    """Derive the catalog display string from integer paise. >= 1 Cr -> 'Cr',
-    else 'L'. Trims trailing zeros: 78_00_000_00 paise -> '₹78 L'."""
+def format_inr_amount(paise: int) -> str:
+    """Render integer paise as a lakh/crore capital amount: '₹78 L', '₹2.6 Cr'."""
     rupees = paise // 100
     if rupees >= 10_000_000:  # >= 1 crore
         value = rupees / 10_000_000
@@ -491,6 +498,42 @@ def format_inr_display(paise: int) -> str:
         unit = "L"
     text = f"{value:.2f}".rstrip("0").rstrip(".")
     return f"₹{text} {unit}"
+
+
+def format_inr_rent(paise: int) -> str:
+    """Render integer paise as an exact monthly rent: '₹25,000/month'.
+
+    Rent is not a lakh/crore quantity — ``format_inr_amount`` would turn a
+    ₹25,000 rent into '₹0.25 L', which reads as a sale price and is useless to a
+    tenant. Grouping follows the Indian system (₹1,25,000, not ₹125,000).
+    """
+
+    rupees = paise // 100
+    digits = str(rupees)
+    if len(digits) > 3:
+        head, tail = digits[:-3], digits[-3:]
+        groups = []
+        while len(head) > 2:
+            groups.insert(0, head[-2:])
+            head = head[:-2]
+        if head:
+            groups.insert(0, head)
+        grouped = ",".join([*groups, tail])
+    else:
+        grouped = digits
+    return f"₹{grouped}/month"
+
+
+def format_inr_display(paise: int, intent: ListingIntent = ListingIntent.SALE) -> str:
+    """Derive the catalog display string from integer paise, intent-aware.
+
+    ``price_paise`` carries the sale price for a sale listing and the monthly
+    rent for a rental, so the same column needs two very different renderings.
+    """
+
+    if intent == ListingIntent.RENT:
+        return format_inr_rent(paise)
+    return format_inr_amount(paise)
 
 
 async def approve_submission(
@@ -591,10 +634,11 @@ async def approve_submission(
                 id=property_uuid,
                 business_line="real_estate",
                 active=True,
+                listing_intent=sub.listing_intent,
                 title=sub.title,
                 type=sub.type,
                 location=sub.location,
-                price_display=format_inr_display(sub.price_paise),
+                price_display=format_inr_display(sub.price_paise, sub.listing_intent),
                 meta=sub.meta,
                 image=sub.image,
                 category=sub.category,
@@ -604,6 +648,10 @@ async def approve_submission(
                 state=sub.state,
                 pincode=sub.pincode,
                 price_paise=sub.price_paise,
+                security_deposit_paise=sub.security_deposit_paise,
+                minimum_lease_months=sub.minimum_lease_months,
+                available_from=sub.available_from,
+                listing_links=(list(sub.listing_links) if sub.listing_links is not None else None),
                 bhk=sub.bhk,
                 area_sqft=sub.area_sqft,
                 furnishing=sub.furnishing,

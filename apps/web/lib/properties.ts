@@ -26,8 +26,10 @@ export type PropertyListing = {
   id: string;
   title: string; // "2 BHK Apartment"
   location: string;
-  /** Pre-formatted display price. "₹45 L". */
+  /** Pre-formatted display price. "₹45 L" for sale, "₹25,000/month" for rent. */
   price: string;
+  /** Sale vs rent/lease. Drives the card badge and the browse filter. */
+  listingIntent: components["schemas"]["ListingIntent"];
   type: string; // display badge: "Apartment" | "Plot" | "Office" ...
   /** Category the listing is grouped under on the Properties page. */
   category: PropertyCategory;
@@ -56,6 +58,12 @@ export type PropertyDetailListing = PropertyListing & {
   amenities: string[];
   ageYears: number;
   reraApplicability: components["schemas"]["ReraApplicability"];
+  /** Rent-only terms; all null on a sale listing. */
+  securityDepositDisplay: string | null;
+  minimumLeaseMonths: number | null;
+  availableFrom: string | null;
+  /** Author-supplied external links, already host-checked for rendering. */
+  listingLinks: components["schemas"]["ListingLink"][] | null;
 };
 
 const CATEGORY_COPY: Record<PropertyCategory, { label: string; blurb: string }> = {

@@ -8,6 +8,7 @@ const apiListing = {
   title: "API property",
   location: "Live locality, Live city",
   price: "₹75 L",
+  listingIntent: "sale",
   type: "Apartment",
   category: "apartments",
   pincode: "123456",

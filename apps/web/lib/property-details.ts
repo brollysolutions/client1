@@ -46,7 +46,12 @@ const LABELS: Record<string, string> = {
   studio: "Studio",
 };
 
-function label(value: string) {
+function label(value: string): string;
+function label(value: string | null | undefined): string | null;
+function label(value: string | null | undefined): string | null {
+  // Nullable since sale_type is absent on a rent listing; a null row is dropped
+  // by the renderer rather than shown as an empty "Sale type".
+  if (value == null) return null;
   return LABELS[value] ?? value;
 }
 

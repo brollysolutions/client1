@@ -12,6 +12,7 @@ import {
 
 import {
   FURNISHING_VALUES,
+  LISTING_INTENT_VALUES,
   RE_CATEGORY_VALUES,
   RE_SUBTYPE_VALUES,
   SORT_VALUES,
@@ -38,6 +39,7 @@ import {
 // through the pure filterListings/sortListings engine in lib/real-estate.ts.
 const PARSERS = {
   q: parseAsString,
+  intent: parseAsArrayOf(parseAsStringLiteral(LISTING_INTENT_VALUES)),
   categories: parseAsArrayOf(parseAsStringLiteral(RE_CATEGORY_VALUES)),
   subtypes: parseAsArrayOf(parseAsStringLiteral(RE_SUBTYPE_VALUES)),
   bhk: parseAsArrayOf(parseAsInteger),
@@ -57,6 +59,7 @@ const PARSERS = {
 function toPropertyFilters(state: Values<typeof PARSERS>): PropertyFilters {
   return {
     q: state.q ?? undefined,
+    intent: (state.intent ?? undefined) as PropertyFilters["intent"],
     categories: (state.categories ?? undefined) as RECategory[] | undefined,
     subtypes: (state.subtypes ?? undefined) as RESubtype[] | undefined,
     bhk: state.bhk ?? undefined,

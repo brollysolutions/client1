@@ -19,9 +19,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { DashboardFormPage, DashboardFormSection } from "@/features/dashboard/dashboard-ui";
+import { LISTING_INTENT_OPTIONS } from "@/lib/property-submit";
 import { PROPERTY_SUBTYPE_GROUPS } from "@/lib/property-taxonomy";
 import type { Submission } from "@/lib/property-submissions-api";
 import { cn } from "@/lib/utils";
+import { ListingLinksField } from "./listing-links-field";
 import { PropertyDetailFields } from "./property-detail-fields";
 import { useSubmitProperty } from "./use-submit-property";
 
@@ -32,6 +34,7 @@ function FieldError({ msg }: { msg?: string }) {
 
 export function SubmitPropertyForm({ submission }: { submission?: Submission }) {
   const f = useSubmitProperty(submission);
+  const isRent = f.form.listingIntent === "rent";
   const [amenityDraft, setAmenityDraft] = React.useState("");
   const imagePreviews = React.useMemo(
     () => f.form.images.map((file) => ({ file, url: URL.createObjectURL(file) })),
@@ -96,6 +99,29 @@ export function SubmitPropertyForm({ submission }: { submission?: Submission }) 
           title="Listing basics"
           description="Provide the public title, property type, and catalogue category."
         >
+          <div>
+            <Label htmlFor="listing-intent">Listing for</Label>
+            <Select
+              value={f.form.listingIntent}
+              onValueChange={(value) =>
+                f.setField("listingIntent", value as typeof f.form.listingIntent)
+              }
+            >
+              <SelectTrigger id="listing-intent" className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {LISTING_INTENT_OPTIONS.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="mt-1 text-xs text-text-secondary">
+              This changes the price fields below and how the listing is shown to buyers.
+            </p>
+          </div>
           <div>
             <Label htmlFor="title">Listing name</Label>
             <Input id="title" value={f.form.title} onChange={(e) => f.setField("title", e.target.value)} maxLength={200} />
@@ -166,14 +192,49 @@ export function SubmitPropertyForm({ submission }: { submission?: Submission }) 
             <FieldError msg={f.errors.pincode} />
           </div>
           <div>
-            <Label htmlFor="price">Price (₹)</Label>
-            <Input id="price" inputMode="numeric" placeholder="e.g. 5000000" value={f.form.priceRupees}
+            <Label htmlFor="price">{isRent ? "Monthly rent (₹)" : "Price (₹)"}</Label>
+            <Input id="price" inputMode="numeric" placeholder={isRent ? "e.g. 25000" : "e.g. 5000000"} value={f.form.priceRupees}
               onChange={(e) => f.setField("priceRupees", e.target.value.replace(/[^\d.]/g, ""))} />
             <p className="mt-1 text-xs text-text-secondary">Enter the amount in rupees.</p>
             <FieldError msg={f.errors.priceRupees} />
           </div>
+          {isRent ? (
+            <>
+              <div>
+                <Label htmlFor="security-deposit">Security deposit (₹)</Label>
+                <Input id="security-deposit" inputMode="numeric" placeholder="e.g. 150000"
+                  value={f.form.securityDepositRupees}
+                  onChange={(e) =>
+                    f.setField("securityDepositRupees", e.target.value.replace(/[^\d.]/g, ""))
+                  } />
+                <FieldError msg={f.errors.securityDepositRupees} />
+              </div>
+              <div>
+                <Label htmlFor="minimum-lease">Minimum lease (months)</Label>
+                <Input id="minimum-lease" inputMode="numeric" placeholder="e.g. 11"
+                  value={f.form.minimumLeaseMonths}
+                  onChange={(e) =>
+                    f.setField("minimumLeaseMonths", e.target.value.replace(/\D/g, "").slice(0, 3))
+                  } />
+                <FieldError msg={f.errors.minimumLeaseMonths} />
+              </div>
+              <div>
+                <Label htmlFor="available-from">Available from</Label>
+                <Input id="available-from" type="date" value={f.form.availableFrom}
+                  onChange={(e) => f.setField("availableFrom", e.target.value)} />
+                <p className="mt-1 text-xs text-text-secondary">Optional.</p>
+                <FieldError msg={f.errors.availableFrom} />
+              </div>
+            </>
+          ) : null}
           </div>
         </DashboardFormSection>
+
+        <ListingLinksField
+          links={f.form.listingLinks}
+          errors={f.errors}
+          onChange={(links) => f.setField("listingLinks", links)}
+        />
 
         <PropertyDetailFields
           form={f.form}

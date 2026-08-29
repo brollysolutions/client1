@@ -14,7 +14,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { DashboardFormPage, DashboardFormSection } from "@/features/dashboard/dashboard-ui";
-import { focusFirstInvalidField, integerError } from "@/lib/form-validation";
+import { focusFirstInvalidField, httpsUrlError, integerError } from "@/lib/form-validation";
 import {
   createOffer,
   updateOffer,
@@ -46,16 +46,6 @@ function dateTimeLocalValue(value: string | null | undefined): string {
   const date = new Date(value);
   const local = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
   return local.toISOString().slice(0, 16);
-}
-
-function httpsUrlError(value: string, label: string, required = false): string | undefined {
-  if (!value.trim()) return required ? `${label} is required.` : undefined;
-  try {
-    const parsed = new URL(value);
-    if (parsed.protocol !== "https:" || parsed.username || parsed.password) throw new Error();
-  } catch {
-    return `${label} must be a valid HTTPS URL without embedded credentials.`;
-  }
 }
 
 export function OfferForm({

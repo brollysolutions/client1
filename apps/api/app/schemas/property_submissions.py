@@ -8,7 +8,7 @@ state; there is no client-authored status/review field.
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import date, datetime
 from typing import Literal
 from uuid import UUID
 
@@ -18,12 +18,14 @@ from app.models.property import (
     PROPERTY_CATEGORY_BY_SUBTYPE,
     ConstructionStatus,
     Furnishing,
+    ListingIntent,
     PropertyCategory,
     PropertySubtype,
     ReraApplicability,
     ReraVerificationStatus,
 )
 from app.models.property_submission import SubmissionStatus
+from app.schemas.listing_links import ListingLink, StoredListingLinks, normalize_listing_links
 from app.schemas.property_details import (
     AgriculturalLandDetails,
     CommercialPropertyDetails,
@@ -75,7 +77,14 @@ class SubmissionFacts(BaseModel):
     locality: str = Field(min_length=1, max_length=120)
     state: str = Field(min_length=1, max_length=120)
     pincode: str = Field(pattern=r"^[1-9][0-9]{5}$")
+    listing_intent: ListingIntent = ListingIntent.SALE
     price_paise: int = Field(gt=0)
+    # Rent-only. price_paise carries the monthly rent when listing_intent is
+    # "rent", so there is no separate monthly_rent_paise to drift from it.
+    security_deposit_paise: int | None = Field(default=None, ge=0)
+    minimum_lease_months: int | None = Field(default=None, ge=1, le=600)
+    available_from: date | None = None
+    listing_links: list[ListingLink] | None = None
     bhk: int = Field(default=0, ge=0)
     area_sqft: int = Field(default=0, ge=0)
     furnishing: Furnishing | None = None
@@ -161,6 +170,40 @@ class SubmissionFacts(BaseModel):
                 )
         return self
 
+    @model_validator(mode="after")
+    def validate_listing_intent(self) -> SubmissionFacts:
+        """Keep sale-only and rent-only fields from coexisting.
+
+        Both directions matter. Requiring deposit + minimum term on a rental is
+        obvious; rejecting them on a sale listing is what stops an author who
+        switches a draft from Rent back to Sale from silently shipping a
+        catalogue row that still advertises a deposit.
+        """
+
+        details = self.structured_details
+        sale_type = getattr(details, "sale_type", None)
+        has_sale_type_field = hasattr(details, "sale_type")
+
+        if self.listing_intent == ListingIntent.RENT:
+            if self.security_deposit_paise is None:
+                raise ValueError("Rental listings require a security deposit.")
+            if self.minimum_lease_months is None:
+                raise ValueError("Rental listings require a minimum lease duration.")
+            if sale_type is not None:
+                raise ValueError("Rental listings do not accept a sale type.")
+        else:
+            if self.security_deposit_paise is not None:
+                raise ValueError("Only rental listings accept a security deposit.")
+            if self.minimum_lease_months is not None:
+                raise ValueError("Only rental listings accept a minimum lease duration.")
+            if self.available_from is not None:
+                raise ValueError("Only rental listings accept an availability date.")
+            if has_sale_type_field and sale_type is None:
+                raise ValueError("Sale listings require a sale type.")
+
+        self.listing_links = normalize_listing_links(self.listing_links)
+        return self
+
 
 class SubmissionCreate(SubmissionFacts):
     media: list[SubmissionMediaInput] = Field(min_length=1, max_length=13)
@@ -207,6 +250,7 @@ class SubmissionRead(BaseModel):
     reviewed_by_uuid: UUID | None
     reviewed_at: datetime | None
     approved_property_id: UUID | None
+    listing_intent: ListingIntent
     title: str
     type: str
     location: str
@@ -219,6 +263,10 @@ class SubmissionRead(BaseModel):
     state: str | None
     pincode: str
     price_paise: int
+    security_deposit_paise: int | None
+    minimum_lease_months: int | None
+    available_from: date | None
+    listing_links: StoredListingLinks
     bhk: int
     area_sqft: int
     furnishing: Furnishing | None

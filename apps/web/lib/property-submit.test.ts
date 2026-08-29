@@ -189,3 +189,100 @@ describe("option lists match the backend enums", () => {
     expect(CONSTRUCTION_OPTIONS.map((o) => o.value).sort()).toEqual(["ready", "under_construction"]);
   });
 });
+
+const RENT: SubmitFormState = {
+  ...VALID,
+  listingIntent: "rent",
+  priceRupees: "25000",
+  securityDepositRupees: "150000",
+  minimumLeaseMonths: "11",
+  details: { ...VALID.details, saleType: "" },
+};
+
+describe("listing intent", () => {
+  it("defaults a new form to a sale listing", () => {
+    expect(EMPTY_FORM.listingIntent).toBe("sale");
+  });
+
+  it("accepts a rent listing with deposit and minimum term", () => {
+    expect(validateForm(RENT, { requireImages: false })).toEqual({});
+  });
+
+  it("sends the rent terms and drops the sale type", () => {
+    const payload = buildSubmissionPayload(RENT, []);
+
+    expect(payload.listing_intent).toBe("rent");
+    expect(payload.price_paise).toBe(2_500_000);
+    expect(payload.security_deposit_paise).toBe(15_000_000);
+    expect(payload.minimum_lease_months).toBe(11);
+    expect(payload.structured_details).toMatchObject({ sale_type: null });
+  });
+
+  it.each([
+    ["securityDepositRupees", "security deposit"],
+    ["minimumLeaseMonths", "minimum lease duration"],
+  ])("requires %s on a rent listing", (field, label) => {
+    const errors = validateForm({ ...RENT, [field]: "" }, { requireImages: false });
+    expect(errors[field]).toMatch(new RegExp(label));
+  });
+
+  it("does not require a sale type on a rent listing", () => {
+    const errors = validateForm(RENT, { requireImages: false });
+    expect(errors.saleType).toBeUndefined();
+  });
+
+  it("still requires a sale type on a sale listing", () => {
+    const errors = validateForm(
+      { ...VALID, details: { ...VALID.details, saleType: "" } },
+      { requireImages: false },
+    );
+    expect(errors.saleType).toMatch(/Sale type/);
+  });
+
+  it("nulls the rent terms when the listing is switched back to sale", () => {
+    // The author flips the toggle back without clearing the deposit they typed.
+    // The payload must not carry it, or the API rejects the whole submission.
+    const payload = buildSubmissionPayload({ ...RENT, listingIntent: "sale" }, []);
+
+    expect(payload.security_deposit_paise).toBeNull();
+    expect(payload.minimum_lease_months).toBeNull();
+    expect(payload.available_from).toBeNull();
+  });
+});
+
+describe("listing links", () => {
+  it("omits the field entirely when no link was entered", () => {
+    expect(buildSubmissionPayload({ ...VALID, listingLinks: ["", "  "] }, []).listing_links).toBeNull();
+  });
+
+  it("sends only the URL and lets the server derive the platform", () => {
+    const payload = buildSubmissionPayload(
+      { ...VALID, listingLinks: [" https://youtu.be/abc ", ""] },
+      [],
+    );
+
+    expect(payload.listing_links).toEqual([{ url: "https://youtu.be/abc" }]);
+  });
+
+  it("reports an off-allowlist link against its own row", () => {
+    const errors = validateForm(
+      { ...VALID, listingLinks: ["https://youtu.be/abc", "https://phish.example/x"] },
+      { requireImages: false },
+    );
+
+    expect(errors["listingLink-0"]).toBeUndefined();
+    expect(errors["listingLink-1"]).toMatch(/YouTube, Instagram, or Facebook/);
+  });
+
+  it("rejects more than four links", () => {
+    const errors = validateForm(
+      {
+        ...VALID,
+        listingLinks: Array.from({ length: 5 }, (_, index) => `https://youtu.be/abc${index}`),
+      },
+      { requireImages: false },
+    );
+
+    expect(errors.listingLinks).toMatch(/at most 4/);
+  });
+});

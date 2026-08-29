@@ -46,8 +46,15 @@ export function PropertyCard({ listing }: { listing: PropertyListing }) {
               Sample
             </span>
           )}
-          <span className="absolute bottom-3 left-3 rounded-full bg-[var(--nav-bg)]/90 px-2.5 py-1 text-xs font-medium text-[var(--nav-text)] ring-1 ring-[var(--nav-border)]">
-            {listing.type}
+          <span className="absolute bottom-3 left-3 flex items-center gap-1.5">
+            <span className="rounded-full bg-[var(--nav-bg)]/90 px-2.5 py-1 text-xs font-medium text-[var(--nav-text)] ring-1 ring-[var(--nav-border)]">
+              {listing.type}
+            </span>
+            {listing.listingIntent === "rent" ? (
+              <span className="rounded-full bg-amber-100/95 px-2.5 py-1 text-xs font-semibold text-amber-900 ring-1 ring-amber-200">
+                For rent
+              </span>
+            ) : null}
           </span>
       </Link>
 

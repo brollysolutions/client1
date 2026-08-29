@@ -218,3 +218,22 @@ export function apiIssuesToFieldErrors<Field extends string>(
   }
   return errors;
 }
+
+/**
+ * Shared HTTPS check for author-supplied URLs. Lifted out of the Sub Admin
+ * offer form so the listing-link field does not fork a second copy.
+ */
+export function httpsUrlError(
+  value: string,
+  label: string,
+  required = false,
+): ValidationError {
+  if (!value.trim()) return required ? `${label} is required.` : undefined;
+  try {
+    const parsed = new URL(value);
+    if (parsed.protocol !== "https:" || parsed.username || parsed.password) throw new Error();
+  } catch {
+    return `${label} must be a valid HTTPS URL without embedded credentials.`;
+  }
+  return undefined;
+}

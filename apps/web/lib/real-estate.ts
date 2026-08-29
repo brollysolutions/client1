@@ -32,6 +32,11 @@ export type REListing = Omit<BaseListing, "category" | "reraNumber"> & {
   areaSqft: number;
   priceLakhs: number;
   constructionStatus?: ListingStatus | null;
+  /** Rent-only terms; all null on a sale listing. */
+  securityDepositPaise?: number | null;
+  minimumLeaseMonths?: number | null;
+  availableFrom?: string | null;
+  listingLinks?: components["schemas"]["ListingLink"][] | null;
   reraApplicability?: components["schemas"]["ReraApplicability"];
   reraNumber?: string | null;
   reraVerificationStatus?: components["schemas"]["ReraVerificationStatus"];
@@ -100,6 +105,9 @@ export type SortOrder = "relevance" | "price_asc" | "price_desc" | "newest";
 
 export type PropertyFilters = {
   q?: string;
+  /** Sale vs rent/lease. Also scopes the price facet, whose ranges differ by an
+   * order of magnitude between a sale price and a monthly rent. */
+  intent?: components["schemas"]["ListingIntent"][];
   categories?: RECategory[];
   subtypes?: RESubtype[];
   bhk?: number[];
@@ -117,6 +125,7 @@ export type PropertyFilters = {
 };
 
 const FACET_KEYS = [
+  "intent",
   "categories",
   "subtypes",
   "bhk",
@@ -135,6 +144,7 @@ const FACET_KEYS = [
 export function filterListings(listings: REListing[], filters: PropertyFilters): REListing[] {
   const query = filters.q?.trim().toLowerCase();
   return listings.filter((listing) => {
+    if (filters.intent?.length && !filters.intent.includes(listing.listingIntent)) return false;
     if (filters.categories?.length && !filters.categories.includes(listing.category)) return false;
     // Legacy rows carry no subtype. Asking for a subtype is a narrower question
     // than asking for its category, so an unclassified listing cannot answer it

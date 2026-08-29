@@ -22,11 +22,12 @@ from __future__ import annotations
 
 import enum
 import uuid
-from datetime import datetime
+from datetime import date, datetime
 
 from sqlalchemy import (
     ARRAY,
     BigInteger,
+    Date,
     DateTime,
     ForeignKey,
     Integer,
@@ -41,12 +42,14 @@ from app.db.base import Base
 from app.models.property import (
     ConstructionStatus,
     Furnishing,
+    ListingIntent,
     PropertyCategory,
     PropertySubtype,
     ReraApplicability,
     ReraVerificationStatus,
     construction_status_enum,
     furnishing_enum,
+    listing_intent_enum,
     property_category_enum,
     property_subtype_enum,
     rera_applicability_enum,
@@ -88,6 +91,9 @@ class PropertySubmission(Base):
     )
 
     # --- Payload (mirrors Property; approval copies these 1:1) ---
+    listing_intent: Mapped[ListingIntent] = mapped_column(
+        listing_intent_enum, nullable=False, default=ListingIntent.SALE
+    )
     title: Mapped[str] = mapped_column(String(200), nullable=False)
     type: Mapped[str] = mapped_column(String(40), nullable=False)
     location: Mapped[str] = mapped_column(String(160), nullable=False)
@@ -104,6 +110,10 @@ class PropertySubmission(Base):
     state: Mapped[str | None] = mapped_column(String(120), nullable=True)
     pincode: Mapped[str] = mapped_column(String(6), nullable=False)
     price_paise: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    # Rent-only terms; see the matching block on Property.
+    security_deposit_paise: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
+    minimum_lease_months: Mapped[int | None] = mapped_column(SmallInteger, nullable=True)
+    available_from: Mapped[date | None] = mapped_column(Date, nullable=True)
     bhk: Mapped[int] = mapped_column(SmallInteger, nullable=False, default=0)
     area_sqft: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     furnishing: Mapped[Furnishing | None] = mapped_column(furnishing_enum, nullable=True)
@@ -128,6 +138,7 @@ class PropertySubmission(Base):
         UUID(as_uuid=True), ForeignKey("auth_users.id", ondelete="SET NULL"), nullable=True
     )
     rera_review_note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    listing_links: Mapped[list | None] = mapped_column(JSONB, nullable=True)
     details: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
     details_version: Mapped[int | None] = mapped_column(SmallInteger, nullable=True)
     structured_details: Mapped[dict | None] = mapped_column(JSONB, nullable=True)

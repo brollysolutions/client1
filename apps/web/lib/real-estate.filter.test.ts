@@ -14,6 +14,7 @@ const LISTINGS = [
     title: "River Apartment",
     location: "District One, City Alpha",
     price: "₹78 L",
+    listingIntent: "sale",
     type: "Apartment",
     category: "apartments",
     propertySubtype: "standalone_apartment",
@@ -34,6 +35,7 @@ const LISTINGS = [
     title: "Park Apartment",
     location: "District Two, City Beta",
     price: "₹1.2 Cr",
+    listingIntent: "sale",
     type: "Apartment",
     category: "apartments",
     propertySubtype: "gated_community_apartment",
@@ -54,6 +56,7 @@ const LISTINGS = [
     title: "Garden Villa",
     location: "Garden Zone, City Alpha",
     price: "₹1.5 Cr",
+    listingIntent: "sale",
     type: "Villa",
     category: "villas",
     propertySubtype: "villa",
@@ -74,6 +77,7 @@ const LISTINGS = [
     title: "Residential Plot",
     location: "Plot Zone, City Beta",
     price: "₹42 L",
+    listingIntent: "sale",
     type: "Plot",
     category: "plots",
     meta: "1,800 sqft",
@@ -93,6 +97,7 @@ const LISTINGS = [
     title: "Market Shop",
     location: "Market Zone, City Gamma",
     price: "₹95 L",
+    listingIntent: "sale",
     type: "Shop",
     category: "commercial",
     propertySubtype: "locked_space",
@@ -234,5 +239,28 @@ describe("hasActiveFilters() / countActiveFilters()", () => {
     expect(hasActiveFilters({ subtypes: [] })).toBe(false);
     expect(hasActiveFilters({ subtypes: ["villa"] })).toBe(true);
     expect(countActiveFilters({ subtypes: ["villa"], categories: ["villas"] })).toBe(2);
+  });
+});
+
+describe("intent facet", () => {
+  const SALE = { ...LISTINGS[0], id: "sale-1", listingIntent: "sale" as const };
+  const RENT = { ...LISTINGS[0], id: "rent-1", listingIntent: "rent" as const };
+
+  it("returns both when no intent is selected", () => {
+    expect(filterListings([SALE, RENT], {})).toHaveLength(2);
+  });
+
+  it("narrows to the selected intent", () => {
+    expect(filterListings([SALE, RENT], { intent: ["rent"] }).map((l) => l.id)).toEqual(["rent-1"]);
+    expect(filterListings([SALE, RENT], { intent: ["sale"] }).map((l) => l.id)).toEqual(["sale-1"]);
+  });
+
+  it("treats both selected as no constraint", () => {
+    expect(filterListings([SALE, RENT], { intent: ["sale", "rent"] })).toHaveLength(2);
+  });
+
+  it("counts as an active filter", () => {
+    expect(hasActiveFilters({ intent: ["rent"] })).toBe(true);
+    expect(countActiveFilters({ intent: ["rent"] })).toBe(1);
   });
 });

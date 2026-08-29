@@ -7,7 +7,8 @@ import { ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
 import { PropertyCard } from "@/components/property-card";
 import type { PropertyListing } from "@/lib/properties";
 
-// A titled horizontal-scroll row of property cards (buy listings). Native
+// A titled horizontal-scroll row of property cards (sale and rental listings).
+// Native
 // scroll on trackpad/drag/touch, plus chevron buttons that page the row on
 // click. When `showMore` is set (the default), the last item is a "register to
 // see more" card: the full catalog is gated behind sign-up, and every category

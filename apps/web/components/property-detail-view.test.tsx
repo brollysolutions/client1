@@ -12,6 +12,7 @@ const DETAIL: PropertyDetailListing = {
   title: "Lake View Villa",
   location: "Baner, Pune",
   price: "₹1.2 Cr",
+  listingIntent: "sale",
   type: "Villa",
   category: "villas",
   city: "Pune",
@@ -27,6 +28,10 @@ const DETAIL: PropertyDetailListing = {
   reraApplicability: "applicable",
   reraNumber: "RERA/MH/1234",
   reraVerificationStatus: "verified",
+  securityDepositDisplay: null,
+  minimumLeaseMonths: null,
+  availableFrom: null,
+  listingLinks: null,
 };
 
 const SIMILAR: SimilarPropertyCardData[] = [
