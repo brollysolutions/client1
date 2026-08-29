@@ -13,7 +13,6 @@ import { FieldError, RequiredIndicator } from "@/components/ui/field-error";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { DashboardFormPage } from "@/features/dashboard/dashboard-ui";
-import type { PreviewDevice } from "@/features/dashboard/workspace-dialog";
 import {
   ARTWORK_SURFACES,
   BANNER_USAGE_TYPES_BY_PLACEMENT,
@@ -153,7 +152,6 @@ export function BannerForm({
   const [endsAt, setEndsAt] = React.useState("");
   const [fieldErrors, setFieldErrors] = React.useState<Record<string, string>>({});
   const [submitting, setSubmitting] = React.useState(false);
-  const [previewDevice, setPreviewDevice] = React.useState<PreviewDevice>("desktop");
   const formRef = React.useRef<HTMLFormElement>(null);
 
   React.useEffect(() => {
@@ -377,8 +375,6 @@ export function BannerForm({
         <StepIndicator current={step} onSelect={setStep} hasArtwork={hasArtwork} />
 
         <CampaignPreviewPanel
-          device={previewDevice}
-          onDeviceChange={setPreviewDevice}
           caption={placementLabel(placement)}
         >
           <BannerPreview

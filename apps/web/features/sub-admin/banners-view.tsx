@@ -88,7 +88,6 @@ import {
   CmsWorkspaceHeader,
   CmsWorkspaceLayout,
   CMS_WORKSPACE_DIALOG_CLASS,
-  type PreviewDevice,
 } from "./cms-workspace";
 import { useBannerQueue } from "./use-banner-queue";
 import { PropertyCampaignSelect } from "./property-campaign-select";
@@ -174,7 +173,6 @@ export function BannersView({
     FieldErrors<keyof Draft | "reviewNote" | "schedule">
   >({});
   const [busy, setBusy] = React.useState(false);
-  const [device, setDevice] = React.useState<PreviewDevice>("desktop");
   const [createOpen, setCreateOpen] = React.useState(false);
   const [createDirty, setCreateDirty] = React.useState(false);
   const { confirm, confirmDialog } = useConfirm();
@@ -733,8 +731,6 @@ export function BannersView({
                   <CmsPreviewFrame
                     title="Banner appearance"
                     description="Artwork, copy, and CTA match the production composition."
-                    device={device}
-                    onDeviceChange={setDevice}
                   >
                     <BannerPreview
                       context={active.placement === "dashboard" ? "dashboard" : "public"}

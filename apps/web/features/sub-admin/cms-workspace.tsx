@@ -17,11 +17,9 @@ import {
   WorkspaceDialogHeader,
   WorkspaceLayout,
   WorkspacePreviewFrame,
-  type PreviewDevice,
 } from "@/features/dashboard/workspace-dialog";
 
 export const CMS_WORKSPACE_DIALOG_CLASS = WORKSPACE_DIALOG_CLASS;
 export const CmsWorkspaceHeader = WorkspaceDialogHeader;
 export const CmsWorkspaceLayout = WorkspaceLayout;
 export const CmsPreviewFrame = WorkspacePreviewFrame;
-export type { PreviewDevice };

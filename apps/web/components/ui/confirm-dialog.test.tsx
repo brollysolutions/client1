@@ -5,7 +5,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
 import { CampaignPreviewPanel } from "@/features/sub-admin/campaign-preview-panel";
-import { VIEWPORT_WIDTHS, viewportLabel } from "@/features/dashboard/viewport-frame";
+import { DESKTOP_VIEWPORT_WIDTH } from "@/features/dashboard/viewport-frame";
 
 const ROOT = process.cwd();
 const SEARCHED = ["app", "components", "features", "lib"];
@@ -43,27 +43,21 @@ describe("in-app confirmation", () => {
   });
 });
 
-describe("campaign preview viewports", () => {
-  it("offers exactly the two widths that bracket the layout", () => {
-    // A tablet preview sat between two sizes that already bracket every
-    // breakpoint, and each extra control is one more thing to check before
-    // shipping a campaign.
-    expect(Object.keys(VIEWPORT_WIDTHS).sort()).toEqual(["desktop", "mobile"]);
-    expect(VIEWPORT_WIDTHS.desktop).toBe(1440);
-    expect(VIEWPORT_WIDTHS.mobile).toBe(390);
-    expect(viewportLabel("mobile")).toBe("Phone");
-    expect(viewportLabel("desktop")).toBe("Desktop");
-  });
+describe("campaign preview viewport", () => {
+  it("previews one width and offers no size switcher", () => {
+    // Tablet, then phone, were both withdrawn. With a single width left there
+    // is nothing to switch between, so the control is gone rather than
+    // rendered with one option.
+    expect(DESKTOP_VIEWPORT_WIDTH).toBe(1440);
 
-  it("renders one control per viewport and no tablet", () => {
     const markup = renderToStaticMarkup(
-      <CampaignPreviewPanel device="desktop" onDeviceChange={() => undefined} caption="Homepage hero">
+      <CampaignPreviewPanel caption="Homepage hero">
         <p>preview body</p>
       </CampaignPreviewPanel>,
     );
-    expect(markup).toContain('aria-label="Desktop preview"');
-    expect(markup).toContain('aria-label="Phone preview"');
-    expect(markup).not.toContain("Tablet");
     expect(markup).toContain("Desktop · 1440px");
+    expect(markup).not.toContain('aria-label="Preview size"');
+    expect(markup).not.toContain("Phone");
+    expect(markup).not.toContain("Tablet");
   });
 });
