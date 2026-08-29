@@ -10,7 +10,7 @@ verified Admin operational-visibility work in
 [PR #173](https://github.com/brollysolutions/client1/pull/173).
 
 **In progress - rent/lease listings and external listing links:**
-`claude/20260829-133027-rent-for-properties-link-option-while-list` (direct user instruction; no formal requirement or completion-percentage
+`claude/20260829-133027-rent-for-properties-link-option-while-list` ([PR #263](https://github.com/brollysolutions/client1/pull/263); direct user instruction; no formal requirement or completion-percentage
 change) adds a sale-vs-rent axis to the real-estate catalogue and a structured,
 host-allowlisted place for author-supplied links out to the property elsewhere.
 
