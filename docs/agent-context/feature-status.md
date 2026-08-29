@@ -9,7 +9,7 @@ Evidence baseline: `abcc1fd`
 verified Admin operational-visibility work in
 [PR #173](https://github.com/brollysolutions/client1/pull/173).
 
-**Done (PR pending) - pre-deployment authentication and session assurance:**
+**Done - [PR #266](https://github.com/brollysolutions/client1/pull/266) - pre-deployment authentication and session assurance:**
 `codex/20260829-163717-implement` closes two bounded gaps found while tracing
 the password and session lifecycle for the direct pre-deployment request.
 Unknown-mobile login now performs one verification against a valid non-secret
