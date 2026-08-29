@@ -10,7 +10,7 @@ verified Admin operational-visibility work in
 [PR #173](https://github.com/brollysolutions/client1/pull/173).
 
 **Done - pre-deployment launch foundation:**
-`codex/20260829-163717-implement` (direct user instruction; no formal
+`codex/20260829-163717-implement` ([PR #264](https://github.com/brollysolutions/client1/pull/264); direct user instruction; no formal
 requirement or completion-percentage change) is the first cohesive slice of the
 broader pre-launch request. The public shell and campaign preview now use the
 single Dhanadhara identity, with the wordmark restored to desktop public chrome.
