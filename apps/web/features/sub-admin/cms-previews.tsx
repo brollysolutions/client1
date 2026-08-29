@@ -1,14 +1,16 @@
 import React from "react";
-import Image from "next/image";
-import { ArrowRight, ShieldCheck } from "lucide-react";
 
 import { AdStrip } from "@/components/ad-strip";
-import { Badge } from "@/components/ui/badge";
+import { HeroCarousel } from "@/components/hero-carousel";
+import {
+  DashboardBannerCard,
+  DashboardOfferCard,
+} from "@/features/dashboard/personalized-placements";
 import type { HeroBanner } from "@/lib/banners";
 import type { Banner } from "@/lib/banners-api";
 import type { Offer } from "@/lib/offers-api";
+import type { AuthenticatedBanner, AuthenticatedOffer } from "@/lib/personalization-api";
 import { isSafeLocalHref } from "@/lib/safe-local-href";
-import { cn } from "@/lib/utils";
 
 export type BannerPreviewValue = Pick<
   Banner,
@@ -21,23 +23,7 @@ export type OfferPreviewValue = Pick<
   Offer,
   "title" | "description" | "discount_type" | "discount_value" | "code"
 > &
-  Partial<
-    Pick<
-      Offer,
-      "partner_name" | "image_url" | "redemption_url" | "terms_summary"
-    >
-  >;
-
-function decimalText(value: string): string {
-  return value.includes(".") ? value.replace(/0+$/, "").replace(/\.$/, "") : value;
-}
-
-function offerDiscount(offer: OfferPreviewValue): string {
-  const value = decimalText(offer.discount_value);
-  if (offer.discount_type === "percentage") return `${value}% off`;
-  if (offer.discount_type === "cashback-tie") return "Cashback offer";
-  return `₹${value} off`;
-}
+  Partial<Pick<Offer, "partner_name" | "image_url" | "redemption_url" | "terms_summary">>;
 
 export function BannerPreview({
   banner,
@@ -48,68 +34,126 @@ export function BannerPreview({
   context: "public" | "dashboard";
   placement?: Banner["placement"];
 }) {
-  const action = Boolean(banner.cta_label && banner.deep_link && isSafeLocalHref(banner.deep_link));
+  const action = Boolean(
+    banner.cta_label && banner.deep_link && isSafeLocalHref(banner.deep_link),
+  );
   if (context === "dashboard") {
+    const value: AuthenticatedBanner = {
+      id: "campaign-preview",
+      banner_type: banner.banner_type,
+      title: banner.title || "Banner title",
+      subtitle: banner.subtitle ?? null,
+      cta_label: action ? banner.cta_label! : null,
+      deep_link: action ? banner.deep_link! : null,
+      image_url: banner.image_url ?? null,
+    };
     return (
-      <article className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-brand-navy to-blue-700 p-6 text-white shadow-sm">
-        {banner.banner_type === "action" ? <Badge className="mb-3 bg-white/15 text-white hover:bg-white/15">Next step</Badge> : null}
-        <h2 className="max-w-2xl text-xl font-semibold sm:text-2xl">{banner.title || "Banner title"}</h2>
-        {banner.subtitle ? <p className="mt-2 max-w-2xl text-sm text-blue-100">{banner.subtitle}</p> : null}
-        {action ? <span className="mt-4 inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-semibold text-brand-navy">{banner.cta_label}<ArrowRight className="h-4 w-4" /></span> : null}
-      </article>
+      <DashboardScene>
+        <DashboardBannerCard banner={value} interactive={false} />
+      </DashboardScene>
     );
   }
+
+  const value: HeroBanner = {
+    id: "campaign-preview",
+    title: banner.title || "Banner title",
+    subtitle: banner.subtitle || undefined,
+    image: banner.image_url || undefined,
+    reraVerified: banner.rera_verified,
+    cta: action ? { label: banner.cta_label!, href: banner.deep_link! } : undefined,
+  };
   if (placement === "homepage_ad") {
-    const sponsor: HeroBanner = {
-      id: "cms-sponsor-preview",
-      title: banner.title || "Sponsor message",
-      subtitle: banner.subtitle || undefined,
-      image: banner.image_url || undefined,
-      cta: action ? { label: banner.cta_label!, href: banner.deep_link! } : undefined,
-    };
-    return <AdStrip banner={sponsor} dismissible={false} />;
+    return (
+      <PublicScene label="Homepage sponsor">
+        <AdStrip banner={value} dismissible={false} />
+      </PublicScene>
+    );
   }
   return (
-    <article data-preview-placement={placement ?? "homepage"} className={cn("relative min-h-48 overflow-hidden rounded-2xl bg-[var(--nav-bg)] shadow-lg ring-1 ring-black/5", placement === "financial_services" || placement === "properties" ? "aspect-[5/2]" : "aspect-[9/5]")}>
-      {banner.image_url ? <Image src={banner.image_url} alt="" fill unoptimized sizes="(min-width: 1280px) 50vw, 100vw" className="object-cover" /> : null}
-      <div className="absolute inset-0 bg-gradient-to-r from-[var(--nav-bg)] via-[var(--nav-bg)]/70 to-transparent" />
-      <div className="relative flex h-full items-center p-6 sm:p-8"><div className="max-w-sm">
-        {banner.rera_verified ? <span className="mb-3 flex w-fit items-center gap-1.5 rounded-full border border-amber-500/50 bg-gradient-to-r from-amber-200 to-yellow-400 px-3 py-1 text-xs font-bold tracking-wide text-amber-950 shadow-sm"><ShieldCheck className="h-3.5 w-3.5" aria-hidden />RERA VERIFIED</span> : null}
-        <h2 className="font-heading text-2xl font-semibold text-[var(--nav-text)]">{banner.title || "Banner title"}</h2>
-        {banner.subtitle ? <p className="mt-3 text-sm text-[var(--nav-text)]">{banner.subtitle}</p> : null}
-        {action ? <span className="mt-5 inline-flex rounded-lg bg-[var(--nav-primary)] px-4 py-2 text-sm font-semibold text-white">{banner.cta_label}</span> : null}
-      </div></div>
-    </article>
+    <PublicScene label={placementLabel(placement)}>
+      <HeroCarousel
+        banners={[value]}
+        variant={placement === "homepage" || placement === undefined ? "hero" : "section"}
+        label="Campaign preview"
+        interactive={false}
+      />
+    </PublicScene>
   );
 }
 
 export function OfferPreview({ offer }: { offer: OfferPreviewValue }) {
+  const value: AuthenticatedOffer = {
+    id: "offer-preview",
+    title: offer.title || "Offer title",
+    description: offer.description ?? null,
+    discount_type: offer.discount_type,
+    discount_value: offer.discount_value,
+    code: offer.code ?? "OFFER",
+    partner_name: offer.partner_name ?? "Partner",
+    image_url: offer.image_url ?? "",
+    redemption_url: offer.redemption_url ?? "https://partner.example",
+    terms_summary:
+      offer.terms_summary ?? "Offer terms appear here before a customer proceeds.",
+    terms_url: null,
+  };
   return (
-    <article className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
-      <div className="aspect-[16/7] bg-[var(--nav-tint)]">
-        {offer.image_url ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={offer.image_url}
-            alt=""
-            width={960}
-            height={420}
-            className="h-full w-full object-cover"
-          />
-        ) : (
-          <div className="flex h-full items-center justify-center text-sm text-text-secondary">Campaign artwork</div>
-        )}
+    <DashboardScene>
+      <div className="max-w-md">
+        <DashboardOfferCard offer={value} interactive={false} />
       </div>
-      <div className="space-y-3 p-4">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--nav-primary)]">{offer.partner_name || "Partner"}</p>
-          <span className="rounded-full bg-[var(--nav-tint)] px-3 py-1 text-xs font-semibold text-[var(--nav-primary)]">{offerDiscount(offer)}</span>
-        </div>
-        <h3 className="font-heading text-lg font-semibold text-foreground">{offer.title || "Offer title"}</h3>
-        {offer.description ? <p className="text-sm text-text-secondary">{offer.description}</p> : null}
-        {offer.code ? <div className="flex items-center justify-between gap-3 rounded-lg border border-dashed border-border px-3 py-2 text-sm"><span className="text-text-secondary">Coupon code</span><code className="font-semibold text-foreground">{offer.code}</code></div> : null}
-        <p className="text-xs leading-5 text-text-secondary">Copy the code, open the partner checkout, and enter it before payment.</p>
-      </div>
-    </article>
+    </DashboardScene>
   );
+}
+
+function PublicScene({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="overflow-hidden rounded-xl border border-border bg-[#f7f2e8] shadow-sm">
+      <div className="flex h-11 items-center justify-between border-b border-black/10 bg-[var(--nav-bg)] px-4">
+        <span className="font-heading text-sm font-semibold text-[var(--nav-text)]">DhanaDhara</span>
+        <span className="text-[10px] font-medium uppercase tracking-[0.14em] text-[var(--nav-text)]/70">
+          {label}
+        </span>
+        <span className="rounded-full bg-[var(--nav-primary)] px-2.5 py-1 text-[10px] font-semibold text-white">
+          Login
+        </span>
+      </div>
+      <div className="pointer-events-none">{children}</div>
+      <div className="grid grid-cols-3 gap-2 p-3" aria-hidden="true">
+        <span className="h-9 rounded-lg bg-white/80" />
+        <span className="h-9 rounded-lg bg-white/80" />
+        <span className="h-9 rounded-lg bg-white/80" />
+      </div>
+    </div>
+  );
+}
+
+function DashboardScene({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="overflow-hidden rounded-xl border border-border bg-background shadow-sm">
+      <div className="flex h-11 items-center justify-between border-b border-border bg-card px-4">
+        <span className="font-heading text-sm font-semibold">DhanaDhara dashboard</span>
+        <span className="h-7 w-7 rounded-full bg-[var(--nav-tint)]" />
+      </div>
+      <div className="grid min-h-64 grid-cols-[3.5rem_minmax(0,1fr)]">
+        <aside className="space-y-2 border-r border-border bg-card p-2" aria-hidden="true">
+          <span className="block h-8 rounded-lg bg-[var(--nav-tint)]" />
+          <span className="block h-8 rounded-lg bg-muted" />
+          <span className="block h-8 rounded-lg bg-muted" />
+        </aside>
+        <main className="pointer-events-none space-y-3 p-3">
+          <div className="flex justify-between">
+            <span className="h-5 w-28 rounded bg-muted" />
+            <span className="h-7 w-20 rounded bg-muted" />
+          </div>
+          {children}
+        </main>
+      </div>
+    </div>
+  );
+}
+
+function placementLabel(placement?: Banner["placement"]): string {
+  if (placement === "financial_services") return "Financial services page";
+  if (placement === "properties") return "Properties page";
+  return "Homepage hero";
 }

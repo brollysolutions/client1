@@ -5,16 +5,17 @@ import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 
 import { useAuth } from "@/components/auth/session-provider";
-import { BannerMediaView } from "@/features/admin/banner-media-view";
 
 export default function BannerMediaPage() {
   const router = useRouter();
   const { session, isLoading } = useAuth();
-  const allowed = session?.role === "admin";
+  const allowed = session?.role === "sub_admin" || session?.role === "admin";
 
   React.useEffect(() => {
-    if (!isLoading && !allowed) router.replace("/dashboard");
-  }, [allowed, isLoading, router]);
+    if (isLoading) return;
+    if (!allowed) router.replace("/dashboard");
+    else router.replace(session?.role === "sub_admin" ? "/dashboard/media-library" : "/dashboard/campaign-approvals");
+  }, [allowed, isLoading, router, session?.role]);
 
   if (isLoading || !allowed) {
     return (
@@ -23,5 +24,5 @@ export default function BannerMediaPage() {
       </div>
     );
   }
-  return <BannerMediaView />;
+  return null;
 }

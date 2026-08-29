@@ -35,6 +35,7 @@ import { getAdminProperties, type AdminProperty } from "@/lib/properties-api";
 import { apiIssuesToFieldErrors, focusFirstInvalidField, integerError } from "@/lib/form-validation";
 import { isSafeLocalHref } from "@/lib/safe-local-href";
 import { AudienceRuleFields, emptyAudienceRules } from "./audience-rule-fields";
+import { CampaignMediaPicker } from "./campaign-media-picker";
 import { BannerPreview } from "./cms-previews";
 import { CmsPreviewFrame, type PreviewDevice } from "./cms-workspace";
 import { PropertyCampaignSelect } from "./property-campaign-select";
@@ -104,6 +105,8 @@ export function BannerForm({
   const [bannerType, setBannerType] = React.useState<BannerType>("default");
   const [templateId, setTemplateId] = React.useState("");
   const [propertyId, setPropertyId] = React.useState("");
+  const [mediaAssetId, setMediaAssetId] = React.useState("");
+  const [mediaPreviewUrl, setMediaPreviewUrl] = React.useState<string | null>(null);
   const [templates, setTemplates] = React.useState<BannerTemplate[]>([]);
   const [properties, setProperties] = React.useState<AdminProperty[]>([]);
   const [catalogLoading, setCatalogLoading] = React.useState(true);
@@ -142,6 +145,10 @@ export function BannerForm({
   React.useEffect(() => {
     setTemplateId("");
     setPropertyId("");
+    if (placement !== "dashboard") {
+      setMediaAssetId("");
+      setMediaPreviewUrl(null);
+    }
     if (placement === "financial_services") setBusinessLine("loans");
     if (placement === "properties") setBusinessLine("real_estate");
     if (placement === "dashboard" && bannerType === "personalized") return;
@@ -174,6 +181,7 @@ export function BannerForm({
       deepLink ||
       templateId ||
       propertyId ||
+      mediaAssetId ||
       priority !== "0" ||
       startsAt ||
       endsAt ||
@@ -188,6 +196,7 @@ export function BannerForm({
     const next: Record<string, string> = {};
     if (!title.trim()) next.title = "Title is required.";
     if (isPublic && !templateId) next.templateId = "Choose a template.";
+    if (!isPublic && !mediaAssetId) next.mediaAssetId = "Choose artwork from the Media Library.";
     if (deepLink.trim() && !isSafeLocalHref(deepLink.trim())) {
       next.deepLink = "Use a same-site path beginning with one slash.";
     }
@@ -225,6 +234,7 @@ export function BannerForm({
       subtitle: subtitle.trim() || null,
       cta_label: ctaLabel.trim() || null,
       image_key: null,
+      media_asset_id: isPublic ? null : mediaAssetId,
       deep_link: propertyId ? null : deepLink.trim() || null,
       audience_rules: bannerType === "personalized" ? audienceRules : emptyAudienceRules(),
       priority: Number(priority) || 0,
@@ -249,14 +259,14 @@ export function BannerForm({
       description: "Submit it for Admin approval when it is ready.",
     });
     if (onCreated) onCreated();
-    else router.push("/dashboard/banners");
+    else router.push("/dashboard/campaigns?type=banners");
   }
 
   return (
     <DashboardFormPage
       title="New banner"
       description="Select the governed artwork, then write the campaign message that appears over it."
-      backHref="/dashboard/banners"
+      backHref="/dashboard/campaigns?type=banners"
       backLabel="Back to banners"
       formTitle="Banner configuration"
       formDescription="Admin approval is required before this banner can go live."
@@ -279,7 +289,7 @@ export function BannerForm({
               deep_link: selectedProperty ? propertyCampaignHref(selectedProperty) : deepLink || null,
               image_url:
                 propertyCampaignImage(selectedProperty, selectedTemplate) ??
-                selectedTemplate?.image_url,
+                selectedTemplate?.image_url ?? mediaPreviewUrl,
               rera_verified: selectedProperty?.rera_verification_status === "verified",
             }}
           />
@@ -348,11 +358,11 @@ export function BannerForm({
             </Select>
             <FieldError id="banner-template-error" className="mt-1">{fieldErrors.templateId}</FieldError>
             <p className="mt-1 text-xs text-text-secondary">
-              Artwork is controlled by Admin. Your title, subtitle, and button remain editable HTML.
+              Governed artwork is versioned in the Sub Admin Media Library; reviewed campaigns keep their exact version.
             </p>
           </div>
         ) : (
-          <div>
+          <div className="space-y-4">
             <Label htmlFor="banner-type">Dashboard banner type</Label>
             <Select value={bannerType} onValueChange={(value) => setBannerType(value as BannerType)}>
               <SelectTrigger id="banner-type"><SelectValue /></SelectTrigger>
@@ -362,6 +372,17 @@ export function BannerForm({
                 ))}
               </SelectContent>
             </Select>
+            <CampaignMediaPicker
+              usageType="dashboard_banner"
+              businessLine={businessLine}
+              value={mediaAssetId}
+              onChange={(id, asset) => {
+                setMediaAssetId(id);
+                setMediaPreviewUrl(asset?.image_url ?? null);
+                setFieldErrors((current) => { const next = { ...current }; delete next.mediaAssetId; return next; });
+              }}
+            />
+            <FieldError id="banner-media-error">{fieldErrors.mediaAssetId}</FieldError>
           </div>
         )}
 

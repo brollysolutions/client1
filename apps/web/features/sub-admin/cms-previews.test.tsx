@@ -24,7 +24,8 @@ describe("CMS previews", () => {
     expect(markup).toContain("/banner-templates/properties/villas.webp");
     expect(markup).toContain("RERA VERIFIED");
     expect(markup).toContain("Find your next home");
-    expect(markup).toContain("aspect-[5/2]");
+    expect(markup).toContain('data-layout="full-bleed"');
+    expect(markup).toContain("h-[clamp(14rem,36vw,32.5rem)]");
   });
 
   it("uses the exact split sponsor card for homepage ad previews", () => {

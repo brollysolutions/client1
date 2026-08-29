@@ -2,12 +2,11 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { ImageIcon, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 import type { components } from "@contracts/generated/schema";
 
-import { FileField } from "@/components/apply-as-agent/file-field";
 import { Button } from "@/components/ui/button";
 import { FieldError, RequiredIndicator } from "@/components/ui/field-error";
 import { Input } from "@/components/ui/input";
@@ -15,23 +14,20 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { DashboardFormPage, DashboardFormSection } from "@/features/dashboard/dashboard-ui";
-import { uploadFileToPresignedPost } from "@/lib/agent-application";
 import { focusFirstInvalidField, integerError } from "@/lib/form-validation";
 import {
   createOffer,
-  getOfferImageUploadUrl,
   updateOffer,
   type Offer,
 } from "@/lib/offers-api";
 
 import { AudienceRuleFields, emptyAudienceRules, type AudienceRules } from "./audience-rule-fields";
+import { CampaignMediaPicker } from "./campaign-media-picker";
 import { OfferPreview } from "./cms-previews";
 import { CmsPreviewFrame, type PreviewDevice } from "./cms-workspace";
 
 type Schemas = components["schemas"];
 type DiscountType = "percentage" | "flat" | "cashback-tie";
-const IMAGE_ACCEPT = "image/jpeg,image/png,image/webp";
-const IMAGE_MAX_BYTES = 2 * 1024 * 1024;
 const LINE_OPTIONS = [
   { value: "loans", label: "Loans" },
   { value: "real_estate", label: "Real Estate" },
@@ -95,7 +91,7 @@ export function OfferForm({
     () => initialOffer?.discount_value ?? "",
   );
   const [code, setCode] = React.useState(() => initialOffer?.code ?? "");
-  const [image, setImage] = React.useState<File | null>(null);
+  const [mediaAssetId, setMediaAssetId] = React.useState(() => initialOffer?.media_asset_id ?? "");
   const [startsAt, setStartsAt] = React.useState(() => dateTimeLocalValue(initialOffer?.starts_at));
   const [endsAt, setEndsAt] = React.useState(() => dateTimeLocalValue(initialOffer?.ends_at));
   const [priority, setPriority] = React.useState(() => String(initialOffer?.priority ?? 0));
@@ -108,19 +104,12 @@ export function OfferForm({
   const [errors, setErrors] = React.useState<Record<string, string>>({});
   const [submitting, setSubmitting] = React.useState(false);
   const [previewDevice, setPreviewDevice] = React.useState<PreviewDevice>("desktop");
-  const [previewUrl, setPreviewUrl] = React.useState<string | null>(null);
+  const [previewUrl, setPreviewUrl] = React.useState<string | null>(() => initialOffer?.image_url ?? null);
   const formRef = React.useRef<HTMLFormElement>(null);
-
-  React.useEffect(() => {
-    if (!image) return setPreviewUrl(initialOffer?.image_url ?? null);
-    const url = URL.createObjectURL(image);
-    setPreviewUrl(url);
-    return () => URL.revokeObjectURL(url);
-  }, [image, initialOffer?.image_url]);
 
   const dirty = editing
     ? Boolean(
-        image ||
+        mediaAssetId !== (initialOffer?.media_asset_id ?? "") ||
           title !== initialOffer?.title ||
           description !== (initialOffer?.description ?? "") ||
           partnerName !== (initialOffer?.partner_name ?? "") ||
@@ -144,7 +133,7 @@ export function OfferForm({
           termsUrl ||
           discountValue ||
           code ||
-          image ||
+          mediaAssetId ||
           startsAt ||
           endsAt ||
           priority !== "0" ||
@@ -160,7 +149,7 @@ export function OfferForm({
     if (!partnerName.trim()) next.partnerName = "Partner name is required.";
     if (!code.trim()) next.code = "Coupon code is required.";
     if (!termsSummary.trim()) next.termsSummary = "A short terms summary is required.";
-    if (!image && !initialOffer?.image_key) next.image = "Campaign artwork is required.";
+    if (!mediaAssetId && !initialOffer?.image_key) next.image = "Choose artwork from the Media Library.";
     if (!audienceRules.user_types?.length) next.audience = "Choose at least one dashboard role.";
     const redemptionError = httpsUrlError(redemptionUrl, "Partner destination", true);
     if (redemptionError) next.redemptionUrl = redemptionError;
@@ -179,37 +168,16 @@ export function OfferForm({
     }
 
     setSubmitting(true);
-    let imageKey = initialOffer?.image_key ?? null;
-    if (image) {
-      const presign = await getOfferImageUploadUrl({
-        content_type: image.type as Schemas["OfferImageUploadRequest"]["content_type"],
-        filename: image.name,
-      });
-      if (!presign.ok) {
-        setSubmitting(false);
-        return void toast.error("Could not start the artwork upload", {
-          description: presign.error,
-        });
-      }
-      const uploaded = await uploadFileToPresignedPost(
-        presign.data.upload_url,
-        presign.data.fields,
-        image,
-      );
-      if (!uploaded.ok) {
-        setSubmitting(false);
-        return void toast.error("Offer artwork upload failed");
-      }
-      imageKey = presign.data.object_key;
-    }
     const values = {
+      ...(initialOffer ? { expected_version: initialOffer.version } : {}),
       title: title.trim(),
       description: description.trim() || null,
       partner_name: partnerName.trim(),
       redemption_url: redemptionUrl.trim(),
       terms_summary: termsSummary.trim(),
       terms_url: termsUrl.trim() || null,
-      image_key: imageKey,
+      image_key: initialOffer?.image_key ?? null,
+      ...(mediaAssetId ? { media_asset_id: mediaAssetId } : {}),
       discount_type: discountType,
       discount_value: String(value),
       code: code.trim().toUpperCase(),
@@ -232,7 +200,7 @@ export function OfferForm({
     });
     if (editing) onSaved?.(result.data);
     else if (onCreated) onCreated();
-    else router.push("/dashboard/offers");
+    else router.push("/dashboard/campaigns?type=offers");
   }
 
   return (
@@ -243,7 +211,7 @@ export function OfferForm({
           ? "Correct every requested detail before resubmitting this campaign."
           : "Build a partner coupon campaign for selected Dhanadhara roles."
       }
-      backHref="/dashboard/offers"
+      backHref="/dashboard/campaigns?type=offers"
       backLabel="Back to offers"
       formTitle="Campaign configuration"
       formDescription={
@@ -283,7 +251,8 @@ export function OfferForm({
             <div className="min-w-0"><Label htmlFor="offer-discount-type">Discount type</Label><Select name="discount_type" value={discountType} onValueChange={(value) => setDiscountType(value as typeof discountType)}><SelectTrigger id="offer-discount-type" className="w-full"><SelectValue /></SelectTrigger><SelectContent>{DISCOUNT_TYPE_OPTIONS.map((option) => <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>)}</SelectContent></Select></div>
             <div className="min-w-0"><Label htmlFor="offer-discount-value">Discount value <RequiredIndicator /></Label><Input id="offer-discount-value" name="discount_value" inputMode="decimal" value={discountValue} onChange={(event) => setDiscountValue(event.target.value.replace(/[^0-9.]/g, ""))} aria-invalid={Boolean(errors.discount)} aria-describedby={errors.discount ? "offer-discount-error" : undefined} /><FieldError id="offer-discount-error">{errors.discount}</FieldError></div>
           </div>
-          <div className="max-w-56"><FileField id="offer-artwork" label="Offer artwork" icon={ImageIcon} value={image} onChange={setImage} accept={IMAGE_ACCEPT} maxBytes={IMAGE_MAX_BYTES} hint="JPG, PNG or WEBP" error={errors.image} disabled={submitting} /></div>
+          <CampaignMediaPicker usageType="dashboard_offer" businessLine={businessLine} value={mediaAssetId} onChange={(id, asset) => { setMediaAssetId(id); setPreviewUrl(asset?.image_url ?? null); setErrors((current) => ({ ...current, image: "" })); }} label="Reusable offer artwork" />
+          <FieldError id="offer-artwork-error">{errors.image}</FieldError>
         </DashboardFormSection>
 
         <AudienceRuleFields value={audienceRules} onChange={setAudienceRules} required disabled={submitting} allowedUserTypes={["client", "agent", "employee", "telecaller"]} />

@@ -30,10 +30,11 @@ from app.schemas.personalization import AudienceRules, audience_rules_to_storage
 from app.services import storage
 from app.services.audit_log import record as record_audit
 from app.services.banners import IMAGE_MAX_BYTES, UnsupportedImageType, presign_banner_image_upload
+from app.services.campaign_media import CampaignMediaInvalid, resolve_campaign_asset
 from app.services.offers import (
     OfferIllegalTransition,
     OfferInvalidConfiguration,
-    OfferNotOwned,
+    remove_offer,
     transition_offer,
 )
 
@@ -75,7 +76,21 @@ async def create_offer(
     current_user: CurrentUser = Depends(require_sub_admin),
     db: AsyncSession = Depends(get_db),
 ) -> OfferRead:
+    try:
+        media_asset = await resolve_campaign_asset(
+            db,
+            asset_id=payload.media_asset_id,
+            business_line=payload.business_line,
+            allowed_usage_types={"dashboard_offer", "campaign"},
+        )
+    except CampaignMediaInvalid as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail="Choose an active offer asset for this business line.",
+        ) from exc
     values = payload.model_dump(exclude={"audience_rules"})
+    if media_asset is not None:
+        values["image_key"] = media_asset.image_ref
     values["audience_rules"] = audience_rules_to_storage(payload.audience_rules)
     offer = Offer(created_by_uuid=current_user.id, **values)
     db.add(offer)
@@ -101,7 +116,7 @@ async def list_offers(
     current_user: CurrentUser = Depends(get_active_user),
     db: AsyncSession = Depends(get_db),
 ) -> OfferListResponse:
-    stmt = select(Offer).order_by(Offer.created_at.desc())
+    stmt = select(Offer).where(Offer.removed_at.is_(None)).order_by(Offer.created_at.desc())
     if status_filter is not None:
         stmt = stmt.where(Offer.status == status_filter)
     rows = (await db.execute(stmt)).scalars().all()
@@ -114,7 +129,7 @@ async def get_offer(
     current_user: CurrentUser = Depends(get_active_user),
     db: AsyncSession = Depends(get_db),
 ) -> OfferRead:
-    offer = await db.scalar(select(Offer).where(Offer.id == offer_id))
+    offer = await db.scalar(select(Offer).where(Offer.id == offer_id, Offer.removed_at.is_(None)))
     if offer is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Offer not found.")
     return _read(offer)
@@ -127,22 +142,40 @@ async def update_offer(
     current_user: CurrentUser = Depends(require_sub_admin),
     db: AsyncSession = Depends(get_db),
 ) -> OfferRead:
-    offer = await db.scalar(select(Offer).where(Offer.id == offer_id))
+    offer = await db.scalar(
+        select(Offer).where(Offer.id == offer_id, Offer.removed_at.is_(None)).with_for_update()
+    )
     if offer is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Offer not found.")
-    if offer.created_by_uuid != current_user.id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You can only edit offers you created.",
-        )
     if offer.status not in _EDITABLE_STATUSES:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="Only draft or rejected offers can be edited.",
         )
-    values = payload.model_dump(exclude_unset=True, exclude={"audience_rules"})
+    if payload.expected_version is not None and payload.expected_version != offer.version:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="This campaign changed after you opened it. Refresh before saving.",
+        )
+    media_asset = None
+    if "media_asset_id" in payload.model_fields_set:
+        try:
+            media_asset = await resolve_campaign_asset(
+                db,
+                asset_id=payload.media_asset_id,
+                business_line=offer.business_line,
+                allowed_usage_types={"dashboard_offer", "campaign"},
+            )
+        except CampaignMediaInvalid as exc:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                detail="Choose an active offer asset for this business line.",
+            ) from exc
+    values = payload.model_dump(exclude_unset=True, exclude={"audience_rules", "expected_version"})
     if "audience_rules" in payload.model_fields_set and payload.audience_rules is not None:
         values["audience_rules"] = audience_rules_to_storage(payload.audience_rules)
+    if "media_asset_id" in payload.model_fields_set:
+        values["image_key"] = media_asset.image_ref if media_asset else None
     for field, value in values.items():
         setattr(offer, field, value)
     if offer.discount_type == "percentage" and offer.discount_value > 100:
@@ -167,6 +200,7 @@ async def update_offer(
         business_line=offer.business_line,
         detail={"fields": sorted(values)},
     )
+    offer.version += 1
     await db.commit()
     await db.refresh(offer)
     return _read(offer)
@@ -189,11 +223,6 @@ async def _transition(
             db,
             review_note=review_note,
         )
-    except OfferNotOwned as exc:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You can only manage offers you created.",
-        ) from exc
     except OfferIllegalTransition as exc:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
@@ -267,3 +296,46 @@ async def archive(
     db: AsyncSession = Depends(get_db),
 ) -> OfferRead:
     return await _transition(offer_id, OfferStatus.ARCHIVED, current_user, db)
+
+
+@router.delete("/{offer_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_offer_draft(
+    offer_id: UUID,
+    current_user: CurrentUser = Depends(require_sub_admin),
+    db: AsyncSession = Depends(get_db),
+) -> None:
+    offer = await db.scalar(
+        select(Offer).where(Offer.id == offer_id, Offer.removed_at.is_(None)).with_for_update()
+    )
+    if offer is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Offer not found.")
+    if offer.status != OfferStatus.DRAFT:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Only a never-submitted draft can be deleted.",
+        )
+    await record_audit(
+        db,
+        action=AuditAction.OFFER_DELETED,
+        entity_type="offer",
+        entity_uuid=offer.id,
+        actor_uuid=current_user.id,
+        actor_role=current_user.role,
+        business_line=offer.business_line,
+        detail={"mode": "draft_delete"},
+    )
+    await db.delete(offer)
+    await db.commit()
+
+
+@router.post("/{offer_id}/remove", response_model=OfferRead)
+async def remove(
+    offer_id: UUID,
+    payload: OfferRejectRequest,
+    current_user: CurrentUser = Depends(require_platform_admin),
+    db: AsyncSession = Depends(get_db),
+) -> OfferRead:
+    offer = await remove_offer(offer_id, current_user.id, payload.note, db)
+    if offer is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Offer not found.")
+    return _read(offer)

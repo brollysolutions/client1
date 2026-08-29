@@ -122,6 +122,11 @@ class AuditAction(enum.StrEnum):
     OFFER_ACTIVATED = "offer_activated"
     OFFER_EXPIRED = "offer_expired"
     OFFER_ARCHIVED = "offer_archived"
+    OFFER_DELETED = "offer_deleted"
+    CAMPAIGN_MEDIA_CREATED = "campaign_media_created"
+    CAMPAIGN_MEDIA_UPDATED = "campaign_media_updated"
+    CAMPAIGN_MEDIA_ARCHIVED = "campaign_media_archived"
+    CAMPAIGN_MEDIA_DELETED = "campaign_media_deleted"
 
 
 _ev = lambda x: [e.value for e in x]  # noqa: E731

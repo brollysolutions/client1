@@ -26,6 +26,7 @@ from app.api.v1.agent_invites import router as agent_invites_router
 from app.api.v1.auth import router as auth_router
 from app.api.v1.banners import router as banners_router
 from app.api.v1.bookmarks import router as bookmarks_router
+from app.api.v1.campaign_media import router as campaign_media_router
 from app.api.v1.client_lead_details import router as client_lead_details_router
 from app.api.v1.commissions import router as commissions_router
 from app.api.v1.content import router as content_router
@@ -160,6 +161,7 @@ app.include_router(
     tags=["employee"],
 )
 app.include_router(banners_router, prefix="/api/v1/banners", tags=["banners"])
+app.include_router(campaign_media_router, prefix="/api/v1/campaign-media", tags=["campaign-media"])
 app.include_router(offers_router, prefix="/api/v1/offers", tags=["offers"])
 app.include_router(
     personalization_router, prefix="/api/v1/personalization", tags=["personalization"]

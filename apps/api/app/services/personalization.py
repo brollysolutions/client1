@@ -422,6 +422,7 @@ async def list_authenticated_placements(
                 select(Banner)
                 .where(
                     Banner.status == BannerStatus.LIVE,
+                    Banner.removed_at.is_(None),
                     # Legacy default/action rows predate placements and were
                     # backfilled as homepage; keep them on dashboards until
                     # retired, while new public campaigns stay page-specific.
@@ -468,6 +469,7 @@ async def list_authenticated_placements(
                 select(Offer)
                 .where(
                     Offer.status == OfferStatus.ACTIVE,
+                    Offer.removed_at.is_(None),
                     Offer.business_line.in_((business_line, "both")),
                     or_(Offer.starts_at.is_(None), Offer.starts_at <= func.now()),
                     or_(Offer.ends_at.is_(None), Offer.ends_at > func.now()),

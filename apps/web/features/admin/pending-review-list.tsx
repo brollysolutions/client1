@@ -13,7 +13,7 @@ export const REVIEW_KIND_LABEL: Record<AdminPendingItem["kind"], string> = {
 
 const REVIEW_KIND_HREF: Record<AdminPendingItem["kind"], string> = {
   agent_application: "/dashboard/agents",
-  banner: "/dashboard/banners",
+  banner: "/dashboard/campaign-approvals?type=banners",
   property_submission: "/dashboard/property-review",
 };
 

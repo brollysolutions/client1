@@ -2,12 +2,57 @@
 
 Status: **Derived living implementation ledger**
 
-As of: **2026-08-28**
+As of: **2026-08-29**
 
 Evidence baseline: `abcc1fd`
 ([PR #175](https://github.com/brollysolutions/client1/pull/175)), plus the
 verified Admin operational-visibility work in
 [PR #173](https://github.com/brollysolutions/client1/pull/173).
+
+**Done - [PR #259](https://github.com/brollysolutions/client1/pull/259) - Sub
+Admin Campaign Studio, campaign Media Library, and Admin approval desk:**
+`codex/20260828-222513-banners-and-offers-are-managed-by-subadmin`
+(direct user instruction; no formal requirement or completion-percentage
+change) moves banner and authenticated-offer authoring
+entirely to the shared Sub Admin team. Admin now has a read-only approval desk
+with production-matched desktop/tablet/mobile previews, approve, reasoned
+change request, and audited soft removal; removed campaigns are excluded from
+staff lists, public/personalized serving, activation jobs, and dashboard
+counts. Optimistic versions protect team edits, creator identity remains
+immutable provenance, reviewed campaigns retain history, and lifecycle
+decisions notify the original maker.
+
+The Sub Admin-only Media Library provides scanned/canonicalized JPEG, PNG, and
+WebP upload, business-line and placement metadata, alt text, tags, provenance,
+archive/restore, live where-used evidence, and permanent deletion only when no
+template/banner/offer reference exists. PostgreSQL RLS independently denies
+Admin and Client catalogue access. The existing 44 governed template images
+are registered without URL changes, historical uploaded references are
+backfilled, and three generated wide/text-free WebP starter images are added.
+Provider logos, public interface illustrations, listing fallbacks, notification
+icons, and private/customer uploads retain their existing purpose-specific
+ownership and storage boundaries. Legacy routes redirect into one uncluttered
+Campaign Studio or the approval desk, and navigation exposes Media Library only
+to Sub Admin.
+
+Fresh evidence: API Ruff and format checks pass; the additive migration
+downgrades/upgrades cleanly and Alembic reports the single
+`a6b8c0d2e4f7` head; OpenAPI and generated TypeScript contracts were regenerated.
+The broad changed/adjacent campaign, serving, scheduler, authorization, and RLS
+set passes 171 tests, and the final campaign media/banner/offer rerun passes 59
+tests. The aggregate API run produced 1,815 passes and 18 failures; three new
+exhaustive classification/policy-ledger failures were fixed and included in the
+171-test pass, leaving 15 unrelated stateful/stale payout, content-block,
+catalogue, mobile-change, notification, telecaller, and vehicle baselines.
+Web lint, strict typecheck, and all 80 files / 511 unit tests pass. Three focused
+live-stack Playwright role journeys pass for Sub Admin authoring/library/legacy
+redirects and Admin approval/media denial. The Linux production image compiles,
+typechecks, generates all 93 pages, and completes standalone tracing. Security
+review fixed public-object cleanup on failed media transactions and blank-note
+normalization; design review removed redundant campaign chips, associated new
+controls, preserved unsaved-upload confirmation, and added picker error/archive
+states. Final security, responsive/accessibility, and maintainer review found no
+remaining actionable issue. Delivery is linked in PR #259.
 
 **Done — [PR #258](https://github.com/brollysolutions/client1/pull/258) —
 invitation, staff access, finance, banner, offer, and responsive-dashboard

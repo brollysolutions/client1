@@ -161,8 +161,8 @@ describe("role-aware dashboard navigation", () => {
       "sub-admin-listing-submit",
       "sub-admin-finance",
       "sub-admin-referral-rules",
-      "banners",
-      "offers",
+      "campaign-studio",
+      "campaign-media",
     ]);
 
     expect(navKeys(context("sub_admin", null, "loans", undefined, ["payout_requests"]))).toEqual([
@@ -172,8 +172,8 @@ describe("role-aware dashboard navigation", () => {
       "sub-admin-finance",
       "sub-admin-payouts",
       "sub-admin-referral-rules",
-      "banners",
-      "offers",
+      "campaign-studio",
+      "campaign-media",
     ]);
   });
 
@@ -197,10 +197,8 @@ describe("role-aware dashboard navigation", () => {
       "admin-fee-cashbacks",
       "admin-referral-payouts",
       "admin-referral-rules",
-      "banners",
-      "offers",
+      "campaign-approvals",
       "admin-broadcast",
-      "admin-banner-media",
       "admin-analytics",
     ]);
   });
@@ -258,7 +256,13 @@ describe("dashboard direct-route UX access", () => {
     expect(isDashboardPathAllowed("/dashboard/banners/new", context("sub_admin"))).toBe(false);
     expect(isDashboardPathAllowed("/dashboard/offers/new", context("sub_admin"))).toBe(false);
     expect(isDashboardPathAllowed("/dashboard/banner-media", context("admin"))).toBe(true);
-    expect(isDashboardPathAllowed("/dashboard/banner-media", context("sub_admin"))).toBe(false);
+    expect(isDashboardPathAllowed("/dashboard/banner-media", context("sub_admin"))).toBe(true);
+    expect(isDashboardPathAllowed("/dashboard/campaigns", context("sub_admin"))).toBe(true);
+    expect(isDashboardPathAllowed("/dashboard/campaigns", context("admin"))).toBe(false);
+    expect(isDashboardPathAllowed("/dashboard/media-library", context("sub_admin"))).toBe(true);
+    expect(isDashboardPathAllowed("/dashboard/media-library", context("admin"))).toBe(false);
+    expect(isDashboardPathAllowed("/dashboard/campaign-approvals", context("admin"))).toBe(true);
+    expect(isDashboardPathAllowed("/dashboard/campaign-approvals", context("sub_admin"))).toBe(false);
     expect(isDashboardPathAllowed("/dashboard/content", context("admin"))).toBe(false);
     expect(isDashboardPathAllowed("/dashboard/content", context("sub_admin"))).toBe(false);
     expect(isDashboardPathAllowed("/dashboard/audit-log", context("admin"))).toBe(true);

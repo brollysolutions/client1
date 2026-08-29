@@ -148,6 +148,7 @@ async def list_public_banners(
         .where(
             # This predicate IS the access control on this route. No RLS runs here.
             Banner.status == BannerStatus.LIVE,
+            Banner.removed_at.is_(None),
             Banner.banner_type.in_((BannerType.DEFAULT, BannerType.ACTION)),
             Banner.audience_rules == {},
             Banner.placement == placement,

@@ -138,7 +138,7 @@ export function SubAdminHome() {
       <DashboardHeader
         title="Sub Admin workspace"
         description="Monitor approval status and manage cross-line promotions."
-        actions={<DashboardTextLink href="/dashboard/banners">Manage campaigns</DashboardTextLink>}
+        actions={<DashboardTextLink href="/dashboard/campaigns">Manage campaigns</DashboardTextLink>}
       />
 
       <MetricGrid>
@@ -148,8 +148,8 @@ export function SubAdminHome() {
           icon={Clock}
           attention={home.pending_approval.length > 0}
         />
-        <MetricCard label="Live banners" value={home.live_banners_count} icon={DASHBOARD_ICONS.banners} href="/dashboard/banners" />
-        <MetricCard label="Active offers" value={home.live_offers_count} icon={DASHBOARD_ICONS.offers} href="/dashboard/offers" />
+        <MetricCard label="Live banners" value={home.live_banners_count} icon={DASHBOARD_ICONS.banners} href="/dashboard/campaigns?type=banners" />
+        <MetricCard label="Active offers" value={home.live_offers_count} icon={DASHBOARD_ICONS.offers} href="/dashboard/campaigns?type=offers" />
       </MetricGrid>
 
       {/* Full width, in DOM order, rather than a 1.4fr/1fr pair of 310px boxes:
@@ -190,9 +190,9 @@ export function SubAdminHome() {
       </DashboardPanel>
 
       <QuickActionGrid>
-        <DashboardQuickAction href="/dashboard/banners" title="Banners" description="Create drafts and submit them for Admin approval." icon={DASHBOARD_ICONS.banners} />
+        <DashboardQuickAction href="/dashboard/campaigns" title="Campaign Studio" description="Create banners and offers, then submit them for Admin approval." icon={DASHBOARD_ICONS.banners} />
         <DashboardQuickAction href="/dashboard/property-submit" title="Property listings" description="Submit a managed property listing for review." icon={DASHBOARD_ICONS.propertyListings} />
-        <DashboardQuickAction href="/dashboard/offers" title="Offers" description="Create and schedule customer promotions." icon={DASHBOARD_ICONS.offers} />
+        <DashboardQuickAction href="/dashboard/media-library" title="Media library" description="Upload reusable campaign artwork and review where it is used." icon={DASHBOARD_ICONS.offers} />
         <DashboardQuickAction href="/dashboard/referral-rules" title="Referral bonus" description="Manage bonus rules and review payout activity." icon={DASHBOARD_ICONS.referrals} />
       </QuickActionGrid>
     </DashboardPage>

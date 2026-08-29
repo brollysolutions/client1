@@ -67,6 +67,7 @@ async def _activate_banners(session: AsyncSession) -> int:
             select(Banner)
             .where(
                 Banner.status == BannerStatus.APPROVED,
+                Banner.removed_at.is_(None),
                 or_(Banner.starts_at.is_(None), Banner.starts_at <= func.now()),
             )
             .order_by(Banner.priority.desc(), Banner.created_at.asc(), Banner.id.asc())
@@ -93,6 +94,7 @@ async def _activate_banners(session: AsyncSession) -> int:
         if banner.category_key is not None:
             live_scope = [
                 Banner.status == BannerStatus.LIVE,
+                Banner.removed_at.is_(None),
                 Banner.placement == banner.placement,
             ]
             # Public sponsor themes share one physical slot. Every other
@@ -137,6 +139,7 @@ async def _archive_banners(session: AsyncSession) -> int:
             select(Banner)
             .where(
                 Banner.status == BannerStatus.LIVE,
+                Banner.removed_at.is_(None),
                 Banner.ends_at.is_not(None),
                 Banner.ends_at <= func.now(),
             )
@@ -165,6 +168,7 @@ async def _activate_offers(session: AsyncSession) -> int:
             select(Offer)
             .where(
                 Offer.status == OfferStatus.SCHEDULED,
+                Offer.removed_at.is_(None),
                 or_(Offer.starts_at.is_(None), Offer.starts_at <= func.now()),
             )
             .with_for_update()
@@ -191,6 +195,7 @@ async def _expire_offers(session: AsyncSession) -> int:
             select(Offer)
             .where(
                 Offer.status == OfferStatus.ACTIVE,
+                Offer.removed_at.is_(None),
                 Offer.ends_at.is_not(None),
                 Offer.ends_at <= func.now(),
             )

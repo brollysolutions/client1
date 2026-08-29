@@ -397,9 +397,8 @@ async def test_schedule_missing_is_404(client: AsyncClient) -> None:
 
 
 @pytest.mark.asyncio
-async def test_other_sub_admin_cannot_edit_or_advance(client: AsyncClient) -> None:
-    """Shared visibility (any sub_admin sees every offer) is not shared write
-    access — edit/advance stays owner-scoped."""
+async def test_other_sub_admin_can_edit_and_advance_shared_offer(client: AsyncClient) -> None:
+    """The Sub Admin team may continue another team member's editable offer."""
     _, owner_mobile = await full_registration(client, lines=["loans"])
     owner_uid = await _auth_user_uuid(owner_mobile)
     created = await client.post(
@@ -418,10 +417,72 @@ async def test_other_sub_admin_cannot_edit_or_advance(client: AsyncClient) -> No
         json={"title": "Hijacked"},
         headers=other_headers,
     )
-    assert edit_res.status_code == 403
+    assert edit_res.status_code == 200, edit_res.text
+    assert edit_res.json()["title"] == "Hijacked"
 
-    schedule_res = await client.post(f"/api/v1/offers/{offer_id}/schedule", headers=other_headers)
-    assert schedule_res.status_code == 403
+    submit_res = await client.post(f"/api/v1/offers/{offer_id}/submit", headers=other_headers)
+    assert submit_res.status_code == 200, submit_res.text
+    assert submit_res.json()["status"] == "pending_approval"
+
+
+@pytest.mark.asyncio
+async def test_offer_patch_rejects_a_stale_team_edit(client: AsyncClient) -> None:
+    _, mobile = await full_registration(client, lines=["loans"])
+    uid = await _auth_user_uuid(mobile)
+    headers = {"Authorization": f"Bearer {_sub_admin_token(uid)}"}
+    created = await client.post("/api/v1/offers", json=_PAYLOAD, headers=headers)
+    assert created.status_code == 201, created.text
+    offer = created.json()
+
+    first = await client.patch(
+        f"/api/v1/offers/{offer['id']}",
+        json={"title": "First team edit", "expected_version": offer["version"]},
+        headers=headers,
+    )
+    assert first.status_code == 200, first.text
+    assert first.json()["version"] == offer["version"] + 1
+
+    stale = await client.patch(
+        f"/api/v1/offers/{offer['id']}",
+        json={"title": "Stale overwrite", "expected_version": offer["version"]},
+        headers=headers,
+    )
+    assert stale.status_code == 409
+
+
+@pytest.mark.asyncio
+async def test_admin_soft_removes_offer_and_it_leaves_queue(client: AsyncClient) -> None:
+    _, mobile = await full_registration(client, lines=["loans"])
+    uid = await _auth_user_uuid(mobile)
+    sub_headers = {"Authorization": f"Bearer {_sub_admin_token(uid)}"}
+    admin_headers = {"Authorization": f"Bearer {_admin_token(uid)}"}
+    created = await client.post("/api/v1/offers", json=_PAYLOAD, headers=sub_headers)
+    offer_id = created.json()["id"]
+    await client.post(f"/api/v1/offers/{offer_id}/submit", headers=sub_headers)
+
+    blank_reason = await client.post(
+        f"/api/v1/offers/{offer_id}/remove",
+        json={"note": "   "},
+        headers=admin_headers,
+    )
+    assert blank_reason.status_code == 422
+
+    removed = await client.post(
+        f"/api/v1/offers/{offer_id}/remove",
+        json={"note": "Partner withdrew the campaign."},
+        headers=admin_headers,
+    )
+    assert removed.status_code == 200, removed.text
+    assert removed.json()["removed_at"] is not None
+    assert removed.json()["removal_reason"] == "Partner withdrew the campaign."
+
+    queue = await client.get("/api/v1/offers", headers=admin_headers)
+    assert offer_id not in {item["id"] for item in queue.json()["offers"]}
+    notifications = await client.get("/api/v1/notifications", headers=sub_headers)
+    assert any(
+        item["type"] == "campaign_removed" and item["href"] == "/dashboard/campaigns?type=offers"
+        for item in notifications.json()["notifications"]
+    )
 
 
 @pytest.mark.asyncio

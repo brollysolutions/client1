@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Monitor, Smartphone, X } from "lucide-react";
+import { Monitor, Smartphone, Tablet, X } from "lucide-react";
 
 import { CLOSE_BUTTON_CLASS } from "@/components/ui/close-button";
 import { Button } from "@/components/ui/button";
@@ -101,7 +101,7 @@ export function WorkspaceLayout({
   );
 }
 
-export type PreviewDevice = "desktop" | "mobile";
+export type PreviewDevice = "desktop" | "tablet" | "mobile";
 
 export function WorkspacePreviewFrame({
   title,
@@ -159,6 +159,15 @@ export function WorkspacePreviewFrame({
             <Button
               type="button"
               size="icon"
+              variant={device === "tablet" ? "outline" : "ghost"}
+              onClick={() => onDeviceChange("tablet")}
+              aria-label="Tablet preview"
+            >
+              <Tablet className="h-4 w-4" aria-hidden="true" />
+            </Button>
+            <Button
+              type="button"
+              size="icon"
               variant={device === "mobile" ? "outline" : "ghost"}
               onClick={() => onDeviceChange("mobile")}
               aria-label="Mobile preview"
@@ -172,7 +181,11 @@ export function WorkspacePreviewFrame({
         <div
           className={cn(
             "mx-auto transition-[max-width]",
-            device === "mobile" ? "max-w-[390px]" : "max-w-none",
+            device === "mobile"
+              ? "max-w-[390px]"
+              : device === "tablet"
+                ? "max-w-[768px]"
+                : "max-w-[1440px]",
           )}
         >
           {children}

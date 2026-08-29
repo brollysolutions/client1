@@ -57,6 +57,13 @@ export async function rejectBanner(id: string, note: string): Promise<ApiRespons
   });
 }
 
+export async function removeBanner(id: string, note: string): Promise<ApiResponse<Banner>> {
+  return apiRequest<Banner>(`/api/v1/banners/${id}/remove`, {
+    method: "POST",
+    body: { note },
+  });
+}
+
 export async function getBannerImageUploadUrl(
   payload: Schemas["BannerImageUploadRequest"],
 ): Promise<ApiResponse<Schemas["BannerImageUploadResponse"]>> {

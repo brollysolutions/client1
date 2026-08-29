@@ -62,6 +62,17 @@ export async function rejectOffer(id: string, note: string): Promise<ApiResponse
   });
 }
 
+export async function removeOffer(id: string, note: string): Promise<ApiResponse<Offer>> {
+  return apiRequest<Offer>(`/api/v1/offers/${id}/remove`, {
+    method: "POST",
+    body: { note },
+  });
+}
+
+export async function deleteOffer(id: string): Promise<ApiResponse<undefined>> {
+  return apiRequest<undefined>(`/api/v1/offers/${id}`, { method: "DELETE" });
+}
+
 export async function activateOffer(id: string): Promise<ApiResponse<Offer>> {
   return apiRequest<Offer>(`/api/v1/offers/${id}/activate`, {
     method: "POST",

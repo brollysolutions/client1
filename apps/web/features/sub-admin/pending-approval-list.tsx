@@ -13,7 +13,7 @@ export const PENDING_KIND_LABEL: Record<string, string> = {
 // Where the *author* goes to see the item they submitted — not where the
 // reviewer goes to act on it, which is why these differ from the Admin map.
 const PENDING_KIND_HREF: Record<string, string> = {
-  banner: "/dashboard/banners",
+  banner: "/dashboard/campaigns?type=banners",
   property_submission: "/dashboard/my-submissions",
 };
 

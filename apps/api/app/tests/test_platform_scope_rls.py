@@ -43,14 +43,12 @@ _DOCUMENTED_SUB_ADMIN_EXCEPTIONS = {
     ("property_deals", "property_deals_rls"),
     ("site_visits", "site_visits_rls"),
     ("enquiries", "enquiries_rls"),
-    ("banners", "banners_insert"),
-    ("banners", "banners_update"),
-    ("offers", "offers_insert"),
     ("offers", "offers_update"),
     ("content_blocks", "content_blocks_insert"),
     ("content_blocks", "content_blocks_update"),
     ("referral_bonus_config", "referral_bonus_config_insert"),
     ("referral_bonus_config", "referral_bonus_config_update"),
+    ("referral_bonus_config", "referral_bonus_config_delete"),
 }
 
 # Every current policy carrying a platform_scope branch. The original
@@ -132,16 +130,12 @@ _ALL_PLATFORM_SCOPE_POLICIES = {
     ("vehicle_arrangements", "vehicle_arrangements_select"),
     ("vehicle_arrangements", "vehicle_arrangements_insert"),
     ("vehicle_arrangements", "vehicle_arrangements_update"),
-    ("banners", "banners_insert"),
-    ("banners", "banners_update"),
-    ("banner_templates", "banner_templates_insert"),
-    ("banner_templates", "banner_templates_update"),
-    ("offers", "offers_insert"),
     ("offers", "offers_update"),
     ("content_blocks", "content_blocks_insert"),
     ("content_blocks", "content_blocks_update"),
     ("referral_bonus_config", "referral_bonus_config_insert"),
     ("referral_bonus_config", "referral_bonus_config_update"),
+    ("referral_bonus_config", "referral_bonus_config_delete"),
 }
 
 
