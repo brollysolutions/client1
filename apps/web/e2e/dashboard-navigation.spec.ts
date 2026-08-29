@@ -245,6 +245,49 @@ test.describe("role-aware dashboard navigation", () => {
   // the login and dashboard routes before the role assertions begin.
   test.setTimeout(180_000);
 
+  test("Client dashboard supports bypass navigation and reduced motion", async ({ page, request }) => {
+    const account = await registerClient(request, 50);
+    try {
+      await logIn(page, account);
+
+      // The local Next.js dev toolbar owns a shadow-DOM Tab stop ahead of the
+      // application. Focus the app's source-ordered first link directly, then
+      // verify its visible state and destination behavior.
+      await page.goto("/dashboard");
+      const skipLink = page.getByRole("link", { name: "Skip to main content" });
+      await skipLink.focus();
+      await expect(skipLink).toBeFocused();
+      await expect
+        .poll(() => skipLink.evaluate((element) => element.getBoundingClientRect().top >= 0))
+        .toBe(true);
+      await page.keyboard.press("Enter");
+      await expect(page.locator("#dashboard-main-content")).toBeFocused();
+
+      await page.emulateMedia({ reducedMotion: "reduce" });
+      await expect
+        .poll(() =>
+          page
+            .locator("aside")
+            .first()
+            .evaluate((element) => getComputedStyle(element).transitionProperty),
+        )
+        .toBe("none");
+
+      await page.setViewportSize({ width: 390, height: 844 });
+      await page.getByRole("button", { name: "Open menu" }).click();
+      const mobileWorkspace = page.getByRole("dialog", { name: "Workspace" });
+      await expect(mobileWorkspace).toBeVisible();
+      await expect(mobileWorkspace.getByRole("navigation", { name: "Workspace" })).toBeVisible();
+      await mobileWorkspace.getByRole("button", { name: "Close" }).click();
+      await expect(mobileWorkspace).toBeHidden();
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(
+        true,
+      );
+    } finally {
+      await deleteAccount(request, account);
+    }
+  });
+
   for (const [index, scenario] of scenarios.entries()) {
     test(`${scenario.name} sees only its dashboard capabilities`, async ({ page, request }) => {
       const account = await registerClient(request, index + 100);

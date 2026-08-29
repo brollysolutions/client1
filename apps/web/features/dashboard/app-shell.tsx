@@ -42,10 +42,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <LoanCompareProvider>
             <NotificationsProvider>
               <div className="font-geist min-h-screen bg-background">
+                <a
+                  href="#dashboard-main-content"
+                  className="fixed left-4 top-4 z-[60] -translate-y-24 rounded-md bg-brand-navy px-4 py-2 text-sm font-semibold text-surface shadow-lg transition-transform duration-150 ease-out focus:translate-y-0 focus:outline-none focus:ring-2 focus:ring-brand-blue focus:ring-offset-2 motion-reduce:transition-none"
+                >
+                  Skip to main content
+                </a>
               {/* Desktop rail — collapses to an icon strip, expands to a labeled list. */}
               <aside
                 className={cn(
-                  "fixed inset-y-0 left-0 z-30 hidden transition-[width] duration-300 ease-out lg:block",
+                  "fixed inset-y-0 left-0 z-30 hidden transition-[width] duration-200 ease-out motion-reduce:transition-none lg:block",
                   desktopSidebarExpanded ? "w-62" : "w-16",
                 )}
               >
@@ -65,7 +71,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
               <div
                 className={cn(
-                  "transition-[padding] duration-300 ease-out",
+                  "transition-[padding] duration-200 ease-out motion-reduce:transition-none",
                   desktopSidebarExpanded ? "lg:pl-62" : "lg:pl-16",
                 )}
               >
@@ -75,7 +81,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     type="button"
                     aria-label="Open menu"
                     onClick={() => setMobileOpen(true)}
-                    className="rounded-md p-1.5 text-text-primary transition-colors hover:bg-dash-rail-hover focus-visible:outline-none lg:hidden"
+                    className="rounded-md p-1.5 text-text-primary transition-[background-color,color,transform] duration-150 ease-out hover:bg-dash-rail-hover active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue motion-reduce:transition-none motion-reduce:active:scale-100 lg:hidden"
                   >
                     <Menu className="h-5 w-5" />
                   </button>
@@ -85,7 +91,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   <ProfileMenu />
                 </header>
 
-                <main className="w-full py-8">
+                <main id="dashboard-main-content" tabIndex={-1} className="w-full py-8">
                   <DashboardRouteGuard>{children}</DashboardRouteGuard>
                 </main>
               </div>

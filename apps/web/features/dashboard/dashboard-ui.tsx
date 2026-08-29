@@ -72,9 +72,9 @@ export function MetricCard({
   const content = (
     <div
       className={cn(
-        "group flex min-h-28 items-start justify-between gap-4 rounded-xl border bg-card p-4 shadow-sm transition-colors",
+        "group flex min-h-28 items-start justify-between gap-4 rounded-xl border bg-card p-4 shadow-sm transition-[border-color,box-shadow,transform] duration-150 ease-out motion-reduce:transition-none",
         attention ? "border-warning/35" : "border-border",
-        href && "hover:border-brand-cta",
+        href && "hover:-translate-y-0.5 hover:border-brand-cta hover:shadow-md active:translate-y-0 motion-reduce:hover:translate-y-0",
       )}
     >
       <div className="min-w-0">
@@ -96,7 +96,7 @@ export function MetricCard({
   );
 
   return href ? (
-    <Link href={href} className="rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue">
+    <Link href={href} className="rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue focus-visible:ring-offset-2">
       {content}
     </Link>
   ) : (
@@ -252,7 +252,7 @@ export function DashboardQuickAction({
   return (
     <Link
       href={href}
-      className="group flex min-h-28 items-start gap-3 rounded-xl border border-border bg-card p-4 shadow-sm transition-colors hover:border-brand-cta focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue"
+      className="group flex min-h-28 items-start gap-3 rounded-xl border border-border bg-card p-4 shadow-sm transition-[border-color,box-shadow,transform] duration-150 ease-out hover:-translate-y-0.5 hover:border-brand-cta hover:shadow-md active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue focus-visible:ring-offset-2 motion-reduce:transition-none motion-reduce:hover:translate-y-0"
     >
       <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-brand-cta-tint text-brand-cta">
         <Icon className="h-5 w-5" aria-hidden="true" />
@@ -262,7 +262,7 @@ export function DashboardQuickAction({
         <span className="mt-1 block text-sm leading-5 text-text-secondary">{description}</span>
       </span>
       <ArrowRight
-        className="mt-1 h-4 w-4 shrink-0 text-text-secondary transition-transform group-hover:translate-x-0.5 group-hover:text-brand-cta"
+        className="mt-1 h-4 w-4 shrink-0 text-text-secondary transition-[color,transform] duration-150 ease-out group-hover:translate-x-0.5 group-hover:text-brand-cta motion-reduce:transition-none motion-reduce:group-hover:translate-x-0"
         aria-hidden="true"
       />
     </Link>
