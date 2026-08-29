@@ -10,7 +10,7 @@ verified Admin operational-visibility work in
 [PR #173](https://github.com/brollysolutions/client1/pull/173).
 
 **Done - shared dashboard interaction foundation:**
-`codex/20260829-163717-implement` continues the direct pre-deployment request
+`codex/20260829-163717-implement` ([PR #265](https://github.com/brollysolutions/client1/pull/265)) continues the direct pre-deployment request
 with a bounded shared-shell and primitive change. It adds dashboard bypass
 navigation and makes navigation resizing, press/hover feedback, dialogs,
 drawers, menus, and popovers use consistent restrained timing with equivalent
