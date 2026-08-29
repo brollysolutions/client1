@@ -91,9 +91,9 @@ export function EligibilityCornerObjects() {
         viewBox="0 0 96 64"
         fill="none"
       >
-        <path d="M6 34 L84 8 L52 52 L40 38 Z" fill="#95CCDD" stroke="#4274D9" strokeWidth="2" strokeLinejoin="round" opacity="0.75"/>
-        <path d="M40 38 L44 54 L52 52" fill="#BFE0EA" stroke="#4274D9" strokeWidth="2" strokeLinejoin="round" opacity="0.75"/>
-        <path d="M2 46 q10 -4 18 2 M10 56 q8 -3 14 1" stroke="#4274D9" strokeWidth="2" strokeLinecap="round" opacity="0.4"/>
+        <path d="M6 34 L84 8 L52 52 L40 38 Z" fill="#95CCDD" stroke="#315FC7" strokeWidth="2" strokeLinejoin="round" opacity="0.75"/>
+        <path d="M40 38 L44 54 L52 52" fill="#BFE0EA" stroke="#315FC7" strokeWidth="2" strokeLinejoin="round" opacity="0.75"/>
+        <path d="M2 46 q10 -4 18 2 M10 56 q8 -3 14 1" stroke="#315FC7" strokeWidth="2" strokeLinecap="round" opacity="0.4"/>
       </svg>
       {/* bottom-left: coin stack */}
       <svg
@@ -164,7 +164,7 @@ export function AgentTracksDoodles() {
         opacity="0.75"
       >
         <g transform="translate(0,10)">
-          <rect x="4" y="14" width="38" height="26" rx="4" fill="#4274D9" opacity="0.85" />
+          <rect x="4" y="14" width="38" height="26" rx="4" fill="#315FC7" opacity="0.85" />
           <rect x="16" y="6" width="14" height="10" rx="2" fill="none" stroke="#293681" strokeWidth="2" />
           <path d="M4 26 h38" stroke="#293681" strokeWidth="1.6" />
         </g>
@@ -177,4 +177,3 @@ export function AgentTracksDoodles() {
     </div>
   );
 }
-

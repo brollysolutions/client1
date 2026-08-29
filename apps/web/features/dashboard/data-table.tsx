@@ -193,7 +193,7 @@ export function DataTable<Row>({
               {interactive ? (
                 <td className="hidden px-3 py-4 xl:table-cell">
                   <ChevronRight
-                    className="h-4 w-4 text-text-secondary/60 transition-all group-hover:translate-x-0.5 group-hover:text-brand-cta"
+                    className="h-4 w-4 text-text-secondary/60 transition-[color,transform] group-hover:translate-x-0.5 group-hover:text-brand-cta motion-reduce:transition-none motion-reduce:group-hover:translate-x-0"
                     aria-hidden="true"
                   />
                 </td>

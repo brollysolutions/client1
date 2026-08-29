@@ -1,5 +1,7 @@
 import type { NextConfig } from "next";
 
+import { buildSecurityHeaders } from "./lib/security-headers";
+
 // Banner images live under a dedicated public/ storage prefix, served
 // directly (never presigned/proxied) -- see services/storage.py::
 // public_asset_url and the bucket policy's public/* allowlist. next/image
@@ -45,6 +47,16 @@ const nextConfig: NextConfig = {
   images: { remotePatterns },
   async headers() {
     return [
+      {
+        source: "/:path*",
+        headers: buildSecurityHeaders({
+          production: process.env.NODE_ENV === "production",
+          strictPublicConfig:
+            process.env.DHANADHARA_REQUIRE_PUBLIC_CONFIG === "true",
+          apiBaseUrl: process.env.NEXT_PUBLIC_API_BASE_URL,
+          assetHost: process.env.NEXT_PUBLIC_ASSET_HOST,
+        }),
+      },
       {
         // Illustration filenames are stable/path-referenced; a future art
         // change needs a new filename (or a shorter max-age if art starts

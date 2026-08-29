@@ -27,6 +27,20 @@ COPY --from=contracts . /packages/contracts
 # would fall back to http://localhost:8000. Supplied via compose build.args.
 ARG NEXT_PUBLIC_API_BASE_URL
 ENV NEXT_PUBLIC_API_BASE_URL=${NEXT_PUBLIC_API_BASE_URL}
+# Public identity is rendered into static pages and the browser bundle. Docker
+# production builds are strict: sample contact/origin fallbacks remain useful
+# for local `pnpm build`, but can never enter a deployable image.
+ARG NEXT_PUBLIC_SITE_URL
+ARG NEXT_PUBLIC_CONTACT_PHONE
+ARG NEXT_PUBLIC_CONTACT_EMAIL
+ARG NEXT_PUBLIC_CONTACT_HOURS
+ARG NEXT_PUBLIC_CONTACT_ADDRESS
+ENV DHANADHARA_REQUIRE_PUBLIC_CONFIG=true \
+    NEXT_PUBLIC_SITE_URL=${NEXT_PUBLIC_SITE_URL} \
+    NEXT_PUBLIC_CONTACT_PHONE=${NEXT_PUBLIC_CONTACT_PHONE} \
+    NEXT_PUBLIC_CONTACT_EMAIL=${NEXT_PUBLIC_CONTACT_EMAIL} \
+    NEXT_PUBLIC_CONTACT_HOURS=${NEXT_PUBLIC_CONTACT_HOURS} \
+    NEXT_PUBLIC_CONTACT_ADDRESS=${NEXT_PUBLIC_CONTACT_ADDRESS}
 # Origin only (e.g. https://nyc3.digitaloceanspaces.com), no path -- next.config.ts
 # builds a remotePattern from it so next/image will fetch banner images
 # served from the public/ storage prefix. See docker-compose.prod.example.yml
@@ -43,8 +57,19 @@ RUN pnpm build
 # plus only the runtime node_modules subset — the full builder node_modules
 # (including devDependencies) never reaches this image.
 FROM base AS prod
+ARG NEXT_PUBLIC_SITE_URL
+ARG NEXT_PUBLIC_CONTACT_PHONE
+ARG NEXT_PUBLIC_CONTACT_EMAIL
+ARG NEXT_PUBLIC_CONTACT_HOURS
+ARG NEXT_PUBLIC_CONTACT_ADDRESS
 ENV NODE_ENV=production \
-    NEXT_TELEMETRY_DISABLED=1
+    NEXT_TELEMETRY_DISABLED=1 \
+    DHANADHARA_REQUIRE_PUBLIC_CONFIG=true \
+    NEXT_PUBLIC_SITE_URL=${NEXT_PUBLIC_SITE_URL} \
+    NEXT_PUBLIC_CONTACT_PHONE=${NEXT_PUBLIC_CONTACT_PHONE} \
+    NEXT_PUBLIC_CONTACT_EMAIL=${NEXT_PUBLIC_CONTACT_EMAIL} \
+    NEXT_PUBLIC_CONTACT_HOURS=${NEXT_PUBLIC_CONTACT_HOURS} \
+    NEXT_PUBLIC_CONTACT_ADDRESS=${NEXT_PUBLIC_CONTACT_ADDRESS}
 
 RUN addgroup --system nodejs \
     && adduser --system --ingroup nodejs --no-create-home nextjs

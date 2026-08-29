@@ -159,6 +159,14 @@ services:
         # The ? guard (not :?) errors only when UNSET, so the empty same-origin
         # value is allowed. The env_file below only sets RUNTIME (SSR) values.
         NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL?set NEXT_PUBLIC_API_BASE_URL for the prod web build (empty = same-origin behind nginx)}
+        # Required public identity. `|` separates lines in hours/address. The
+        # web image rejects missing values, placeholder hosts, malformed
+        # phone/email values, and a non-HTTPS site origin.
+        NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL?set NEXT_PUBLIC_SITE_URL to the canonical HTTPS public origin}
+        NEXT_PUBLIC_CONTACT_PHONE: ${NEXT_PUBLIC_CONTACT_PHONE?set NEXT_PUBLIC_CONTACT_PHONE to the verified public international phone number}
+        NEXT_PUBLIC_CONTACT_EMAIL: ${NEXT_PUBLIC_CONTACT_EMAIL?set NEXT_PUBLIC_CONTACT_EMAIL to the verified public support email}
+        NEXT_PUBLIC_CONTACT_HOURS: ${NEXT_PUBLIC_CONTACT_HOURS?set NEXT_PUBLIC_CONTACT_HOURS; use | between display lines}
+        NEXT_PUBLIC_CONTACT_ADDRESS: ${NEXT_PUBLIC_CONTACT_ADDRESS?set NEXT_PUBLIC_CONTACT_ADDRESS; use | between display lines}
         # Origin only (e.g. https://nyc3.digitaloceanspaces.com), same origin
         # SPACES_ENDPOINT_URL resolves to on the API side -- next.config.ts
         # turns this into next/image's remotePatterns entry for banner

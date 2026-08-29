@@ -9,6 +9,57 @@ Evidence baseline: `abcc1fd`
 verified Admin operational-visibility work in
 [PR #173](https://github.com/brollysolutions/client1/pull/173).
 
+**Done - pre-deployment launch foundation:**
+`codex/20260829-163717-implement` ([PR #264](https://github.com/brollysolutions/client1/pull/264); direct user instruction; no formal
+requirement or completion-percentage change) is the first cohesive slice of the
+broader pre-launch request. The public shell and campaign preview now use the
+single Dhanadhara identity, with the wordmark restored to desktop public chrome.
+Strict production-image configuration rejects missing, sample, malformed, or
+insecure public origin/contact/API/asset values while local previews retain
+explicit sample fallbacks. Privacy, Terms of Use, and the new responsive Cookie
+Notice are linked from every public footer and the sitemap. The notice records
+the two actual essential authentication cookies plus separate browser storage
+and explains why an accept-only banner would not provide meaningful consent.
+
+All web routes receive a centralized CSP, frame/object blocking, MIME-sniffing,
+referrer, permissions, opener, origin-agent, and production-only one-year HSTS
+baseline. HSTS deliberately excludes subdomains until the operator inventory
+proves they are permanently HTTPS. Normal-text brand/action/status tokens meet
+WCAG AA on white and cream; broad `transition-all` animations were replaced by
+the properties they actually animate, reduced-motion behavior was added to the
+affected shared controls, and public pages gained a first-focus skip link. The
+tracked pre-deployment checklist covers visual identity, brand promise,
+consumer psychology, narrative/claims, market execution, legal/trademark/data,
+cookies/consent, application/database/upload/payment security, TLS/secrets,
+restore/monitoring/incidents, release sign-off, and post-launch review.
+
+This slice deliberately does not introduce analytics, advertising cookies, a
+consent-management vendor, external telemetry, dependencies, auth/RLS/payment
+changes, or a page-by-page redesign. Those would widen the privacy, security,
+and regression surface beyond a reviewable launch-foundation change. Existing
+server-side authorization, secure refresh cookies, reset/session revocation,
+rate limits, upload controls, payment-webhook verification, RLS, secret guards,
+and audit logging remain unchanged and must continue to pass their existing
+gates.
+
+Fresh evidence: web lint and strict typecheck pass; all 90 test files / 597
+tests pass, including new identity, strict Docker/Compose wiring, cookie
+inventory, header/CSP/HSTS, legal-link, logo, and ten-token contrast gates. A
+fresh Next production build compiles, typechecks, and generates 94/94 pages,
+then reaches the repository's established Windows standalone-copy symlink
+`EPERM`. Desktop and 390px Playwright review returns 200 with no console error
+or horizontal overflow, exposes Dhanadhara in the shared header, puts the skip
+link first in keyboard focus, shows every cookie field as a mobile card, and
+turns off the announcement marquee under reduced motion. Security/design review
+fixed the absent public wordmark, hidden mobile table fields, overly broad
+transitions, client-side placeholder-bundle path, strict loopback allowance,
+sample-value acceptance, and premature HSTS subdomain scope. No actionable
+change-owned security or design finding remains. After an initial Docker Desktop
+engine HTTP 500/RPC EOF, the controlled retry passed: the strict Linux
+production image compiled, typechecked, generated 94/94 pages, completed
+standalone tracing/copy, and exported successfully. The pre-existing dev web
+container was restored and returned to its healthy startup path afterward.
+
 **In progress - rent/lease listings and external listing links:**
 `claude/20260829-133027-rent-for-properties-link-option-while-list` ([PR #263](https://github.com/brollysolutions/client1/pull/263); direct user instruction; no formal requirement or completion-percentage
 change) adds a sale-vs-rent axis to the real-estate catalogue and a structured,

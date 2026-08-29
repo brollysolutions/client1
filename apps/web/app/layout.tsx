@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 import { Space_Grotesk, Geist } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
-import { SITE_URL } from "@/lib/site";
+import { SITE_NAME, SITE_URL } from "@/lib/site";
 import "./globals.css";
 
 // Space Grotesk is the body default (globals.css `body`) and every
@@ -28,8 +28,9 @@ const geist = Geist({
 export const metadata: Metadata = {
   // Absolute base for canonical URLs, Open Graph, the sitemap, and JSON-LD.
   metadataBase: new URL(SITE_URL),
-  title: "Loans & Real Estate Platform",
-  description: "Role-based loans and real estate operations platform.",
+  title: `${SITE_NAME} | Loans and Real Estate`,
+  description:
+    "A clear, secure way to explore loans and real estate and connect with the right partner.",
 };
 
 // This is a light-only design. Emitting <meta name="color-scheme" content="light">

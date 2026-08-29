@@ -33,7 +33,7 @@ import { cn } from "@/lib/utils";
 const DEBOUNCE_MS = 300;
 
 const PILL_BASE =
-  "inline-flex h-9 shrink-0 cursor-pointer items-center gap-1.5 rounded-full px-3.5 text-sm font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--nav-bg)] motion-reduce:transition-none";
+  "inline-flex h-9 shrink-0 cursor-pointer items-center gap-1.5 rounded-full px-3.5 text-sm font-medium transition-[background-color,border-color,color,box-shadow,transform] duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--nav-bg)] motion-reduce:transition-none";
 
 /** Focus shortcut. Matches the "/" convention used by developer tooling and
  *  is ignored while the reader is typing anywhere else on the page. */

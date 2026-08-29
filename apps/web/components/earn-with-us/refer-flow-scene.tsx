@@ -40,7 +40,7 @@ function Coin() {
 function Plane() {
   return (
     <svg viewBox="0 0 24 24" className="h-6 w-6" aria-hidden>
-      <path d="M22 2 L11 13 M22 2 L15 22 L11 13 L2 9 Z" fill="#4274D9" stroke="#293681" strokeWidth="1.2" strokeLinejoin="round" />
+      <path d="M22 2 L11 13 M22 2 L15 22 L11 13 L2 9 Z" fill="#315FC7" stroke="#293681" strokeWidth="1.2" strokeLinejoin="round" />
     </svg>
   );
 }
@@ -50,7 +50,7 @@ function Wallet() {
   return (
     <svg viewBox="0 0 56 44" className="h-12 w-14" aria-hidden>
       <rect x="3" y="8" width="50" height="32" rx="6" fill="#e0f2fe" stroke="#293681" strokeWidth="2" />
-      <path d="M3 16 H40 a4 4 0 0 1 4 4 v4 a4 4 0 0 1 -4 4 H3 Z" fill="#4274D9" opacity="0.18" />
+      <path d="M3 16 H40 a4 4 0 0 1 4 4 v4 a4 4 0 0 1 -4 4 H3 Z" fill="#315FC7" opacity="0.18" />
       <circle cx="41" cy="24" r="3.5" fill="#293681" />
     </svg>
   );
@@ -68,7 +68,7 @@ const COINS: { tx: number; ty: number; r: number }[] = [
 // Confetti pieces: horizontal start, drift, rotation, color. Decorative, so
 // festive natural colors are allowed (illustration palette, not UI accents).
 const CONFETTI: { left: string; dx: number; rot: number; color: string }[] = [
-  { left: "12%", dx: -12, rot: 300, color: "#4274D9" },
+  { left: "12%", dx: -12, rot: 300, color: "#315FC7" },
   { left: "24%", dx: 16, rot: -260, color: "#E9C46A" },
   { left: "38%", dx: -8, rot: 340, color: "#EF8354" },
   { left: "50%", dx: 10, rot: -300, color: "#7BC47F" },
@@ -78,7 +78,7 @@ const CONFETTI: { left: string; dx: number; rot: number; color: string }[] = [
 ];
 
 const FRIENDS = [
-  { anim: "refer-anim-friend-1", initial: "A", bg: "#4274D9" },
+  { anim: "refer-anim-friend-1", initial: "A", bg: "#315FC7" },
   { anim: "refer-anim-friend-2", initial: "S", bg: "#7BC47F" },
   { anim: "refer-anim-friend-3", initial: "R", bg: "#EF8354" },
 ];
@@ -223,7 +223,7 @@ export function ReferFlowScene({ steps }: { steps: Step[] }) {
               {/* rewards revealed after the tap */}
               <div className="refer-anim-reward flex flex-col items-center">
                 <div className="flex gap-3 text-xs">
-                  <span className="rounded-full bg-[#4274D9] px-3 py-1 font-medium text-white">
+                  <span className="rounded-full bg-[#315FC7] px-3 py-1 font-medium text-white">
                     Razorpay
                   </span>
                   <span className="self-center text-text-secondary">or</span>

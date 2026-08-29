@@ -50,7 +50,7 @@ export default function GlobalError({
               fontSize: 15,
               fontWeight: 500,
               color: "#FFFFFF",
-              backgroundColor: "#C9792B",
+              backgroundColor: "#9A4F14",
             }}
           >
             Try again

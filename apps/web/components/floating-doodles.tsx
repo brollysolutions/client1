@@ -68,14 +68,14 @@ function Glyph({ kind }: { kind: Kind }) {
       return (
         <svg viewBox="0 0 40 40" fill="none" strokeLinejoin="round" className="h-full w-full">
           <path d="M6 20 L20 8 L34 20 Z" fill="#C4633F" />
-          <rect x="10" y="20" width="20" height="14" fill="#4274D9" />
+          <rect x="10" y="20" width="20" height="14" fill="#315FC7" />
           <rect x="17" y="25" width="6" height="9" fill="#FFFFFF" />
         </svg>
       );
     case "card":
       return (
         <svg viewBox="0 0 40 40" fill="none" className="h-full w-full">
-          <rect x="4" y="10" width="32" height="20" rx="3" fill="#4274D9" />
+          <rect x="4" y="10" width="32" height="20" rx="3" fill="#315FC7" />
           <rect x="4" y="15" width="32" height="4" fill="#293681" />
           <rect x="8" y="24" width="10" height="3" rx="1.5" fill="#FFFFFF" />
         </svg>
@@ -83,7 +83,7 @@ function Glyph({ kind }: { kind: Kind }) {
     case "shield":
       return (
         <svg viewBox="0 0 40 40" fill="none" className="h-full w-full">
-          <path d="M20 5 L33 10 V20 C33 29 27 34 20 36 C13 34 7 29 7 20 V10 Z" fill="#4274D9" />
+          <path d="M20 5 L33 10 V20 C33 29 27 34 20 36 C13 34 7 29 7 20 V10 Z" fill="#315FC7" />
           <polyline points="14 20 18 24 27 14" fill="none" stroke="#FFFFFF" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       );
@@ -99,7 +99,7 @@ function Glyph({ kind }: { kind: Kind }) {
     case "bag":
       return (
         <svg viewBox="0 0 40 40" fill="none" className="h-full w-full">
-          <path d="M13 15 C13 15 15 9 20 9 C25 9 27 15 27 15 C31 18 34 34 20 35 C6 34 9 18 13 15 Z" fill="#4274D9" />
+          <path d="M13 15 C13 15 15 9 20 9 C25 9 27 15 27 15 C31 18 34 34 20 35 C6 34 9 18 13 15 Z" fill="#315FC7" />
           <path d="M13 15 H27" stroke="#293681" strokeWidth="3" strokeLinecap="round" />
           <text x="20" y="29" textAnchor="middle" fontSize="14" fontWeight={700} fill="#FFFFFF" fontFamily="system-ui, sans-serif">&#8377;</text>
         </svg>
@@ -109,9 +109,9 @@ function Glyph({ kind }: { kind: Kind }) {
         <svg viewBox="0 0 40 40" fill="none" className="h-full w-full">
           <path d="M6 15 L20 6 L34 15 Z" fill="#293681" />
           <rect x="7" y="15" width="26" height="3" fill="#293681" />
-          <rect x="10" y="19" width="4" height="13" fill="#4274D9" />
-          <rect x="18" y="19" width="4" height="13" fill="#4274D9" />
-          <rect x="26" y="19" width="4" height="13" fill="#4274D9" />
+          <rect x="10" y="19" width="4" height="13" fill="#315FC7" />
+          <rect x="18" y="19" width="4" height="13" fill="#315FC7" />
+          <rect x="26" y="19" width="4" height="13" fill="#315FC7" />
           <rect x="7" y="32" width="26" height="3" fill="#293681" />
         </svg>
       );
@@ -119,16 +119,16 @@ function Glyph({ kind }: { kind: Kind }) {
       return (
         <svg viewBox="0 0 40 40" fill="none" className="h-full w-full">
           <rect x="6" y="22" width="6" height="12" rx="1" fill="#95CCDD" />
-          <rect x="17" y="14" width="6" height="20" rx="1" fill="#4274D9" />
+          <rect x="17" y="14" width="6" height="20" rx="1" fill="#315FC7" />
           <rect x="28" y="8" width="6" height="26" rx="1" fill="#293681" />
         </svg>
       );
     case "pin":
       return (
         <svg viewBox="0 0 40 40" fill="none" className="h-full w-full">
-          <path d="M20 4 C12 4 6 10 6 18 C6 28 20 36 20 36 C20 36 34 28 34 18 C34 10 28 4 20 4 Z" fill="#4274D9" />
+          <path d="M20 4 C12 4 6 10 6 18 C6 28 20 36 20 36 C20 36 34 28 34 18 C34 10 28 4 20 4 Z" fill="#315FC7" />
           <circle cx="20" cy="17" r="7" fill="#FFFFFF" />
-          <polyline points="16 17 19 20 24 13" fill="none" stroke="#4274D9" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
+          <polyline points="16 17 19 20 24 13" fill="none" stroke="#315FC7" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       );
     case "star":

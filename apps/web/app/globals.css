@@ -13,19 +13,19 @@
   --font-geist: "Geist", sans-serif;
 
   --color-brand-navy: #293681;
-  --color-brand-blue: #4274D9;
+  --color-brand-blue: #315FC7;
   --color-brand-sky: #95CCDD;
   --color-brand-aqua: #D0E7E6;
 
   /* Auth-only sky CTA + left-panel gradient. Mirrors the landing sky-blue
-     (--nav-primary / #0284c7) but as real @theme utilities so bg-brand-cta,
+     (--nav-primary / #0369a1) but as real @theme utilities so bg-brand-cta,
      hover:bg-brand-cta-hover, text-brand-cta, ring-brand-cta, and from-/to-
      gradient utilities all exist and dedupe cleanly against the navy defaults.
      Used only by the (auth) route group; dashboards keep brand-navy. Distinct
      from the amber --color-cta above (that is the marketing CTA button). */
-  --color-brand-cta: #0284c7; /* sky-600  buttons, links, rings, gradient start */
-  --color-brand-cta-hover: #0369a1; /* sky-700  hover */
-  --color-brand-cta-deep: #075985; /* sky-800  gradient end */
+  --color-brand-cta: #0369a1; /* sky-700  buttons, links, rings, gradient start */
+  --color-brand-cta-hover: #075985; /* sky-800  hover */
+  --color-brand-cta-deep: #0c4a6e; /* sky-900  gradient end */
   --color-brand-cta-tint: #e0f2fe; /* sky-100  icon badge bg */
 
   --color-surface: #FFFFFF;
@@ -36,19 +36,19 @@
   --color-text-primary: #20242E;
   --color-text-secondary: #5C5C5C;
 
-  --color-cta: #C9792B;
-  --color-cta-hover: #A85F1F;
+  --color-cta: #9A4F14;
+  --color-cta-hover: #7C3D0D;
   --color-cta-soft: #F7E8D8;
 
-  --color-loans-accent: #0284c7; /* blue-only line accent, see ADR-0007 */
+  --color-loans-accent: #0369a1; /* blue-only line accent, see ADR-0007 */
   --color-loans-soft: #e0f2fe;
 
-  --color-realestate-accent: #0284c7; /* blue-only line accent, see ADR-0007 */
+  --color-realestate-accent: #0369a1; /* blue-only line accent, see ADR-0007 */
   --color-realestate-soft: #e0f2fe;
 
-  --color-success: #16A34A;
-  --color-warning: #B7791F;
-  --color-error: #DC2626;
+  --color-success: #15803D;
+  --color-warning: #92400E;
+  --color-error: #B91C1C;
   --color-info: #2563EB;
 
   /* Announcement/notice bar — global site chrome, not a line accent. */
@@ -123,7 +123,7 @@
 
   --border: #D9D9D9;
   --input: #D9D9D9;
-  --ring: #4274D9; /* brand blue */
+  --ring: #315FC7; /* brand blue */
 }
 
 @theme inline {
@@ -209,8 +209,8 @@
 :root {
   --nav-bg: #f3f3ee;
   --nav-text: #111827;
-  --nav-primary: #0284c7;
-  --nav-primary-hover: #0369a1;
+  --nav-primary: #0369a1;
+  --nav-primary-hover: #075985;
   --nav-tint: #e0f2fe;
   --nav-border: #e3e3db;
 

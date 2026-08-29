@@ -60,6 +60,17 @@ export default function PrivacyPage() {
               "Technical information: basic device and browser information, and a small number of essential cookies needed to keep you signed in securely. We do not use advertising or tracking cookies.",
             ]}
           />
+          <p className="mt-4">
+            Our{" "}
+            <Link
+              href="/cookies"
+              className="font-medium text-[var(--nav-primary)] underline underline-offset-4"
+            >
+              Cookie Notice
+            </Link>{" "}
+            lists each cookie and the separate browser storage used by the
+            website.
+          </p>
 
           <SectionHeading>How we use your information</SectionHeading>
           <BulletList
@@ -124,7 +135,7 @@ export default function PrivacyPage() {
             We may update this policy from time to time. If we make a significant change, we will
             update the date below.
           </p>
-          <p className="mt-8 text-sm text-text-secondary/80">Last updated: 20 August 2026</p>
+          <p className="mt-8 text-sm text-text-secondary/80">Last updated: 29 August 2026</p>
         </div>
 
         <Link

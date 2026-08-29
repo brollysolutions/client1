@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { ChevronDown, Clock, Mail, MapPin, Phone } from "lucide-react";
 
-import { FOOTER_COLUMNS } from "@/components/footer-links";
+import { FOOTER_COLUMNS, LEGAL_LINKS } from "@/components/footer-links";
 import { SITE_CONTACT, SITE_NAME, TRUST_LINE } from "@/lib/site";
 
 // Site-wide footer for the public marketing pages (app/(public)/layout.tsx).
@@ -115,17 +115,20 @@ export function SiteFooter() {
           <p>
             &copy; {year} {SITE_NAME}. All rights reserved.
           </p>
-          <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 sm:justify-end">
-            <Link href="/privacy" className="hover:text-[var(--nav-primary)]">
-              Privacy
-            </Link>
-            <Link href="/terms" className="hover:text-[var(--nav-primary)]">
-              Terms
-            </Link>
-            <a href="/sitemap.xml" className="hover:text-[var(--nav-primary)]">
-              Sitemap
-            </a>
-          </div>
+          <nav
+            aria-label="Legal"
+            className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 sm:justify-end"
+          >
+            {LEGAL_LINKS.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                className="rounded-sm hover:text-[var(--nav-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nav-primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--nav-bg)]"
+              >
+                {link.label}
+              </Link>
+            ))}
+          </nav>
         </div>
       </div>
     </footer>
