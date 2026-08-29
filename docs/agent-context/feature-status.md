@@ -9,6 +9,35 @@ Evidence baseline: `abcc1fd`
 verified Admin operational-visibility work in
 [PR #173](https://github.com/brollysolutions/client1/pull/173).
 
+**Done - shared dashboard interaction foundation:**
+`codex/20260829-163717-implement` continues the direct pre-deployment request
+with a bounded shared-shell and primitive change. It adds dashboard bypass
+navigation and makes navigation resizing, press/hover feedback, dialogs,
+drawers, menus, and popovers use consistent restrained timing with equivalent
+reduced-motion states. It does not redesign individual workflows, add
+decorative looping motion, or alter API, authorization, RLS, business-line,
+session, payment, upload, dependency, or data behavior.
+
+The dashboard skip link is the first application-owned focus target and moves
+focus to the shared main landmark. Shared direct feedback completes in 150ms;
+structural shell/dialog/drawer changes complete in 200ms or less. Every changed
+spatial animation has a reduced-motion fallback, `transition-all` remains
+prohibited, and menu/select/tooltip/accordion/tab state remains perceivable
+without animation.
+
+Fresh evidence: the focused interaction contract failed four assertions before
+implementation and passes all four afterward; web lint and strict typecheck
+pass; all 91 web test files / 601 tests pass. A focused Playwright Client
+journey verifies visible skip focus and main-content transfer, computed
+`transition-property: none` under reduced motion, the 390px Workspace drawer,
+close behavior, and no horizontal overflow. The native build compiles,
+typechecks, and generates 94/94 pages before the established Windows
+standalone-symlink `EPERM`; the strict Linux production image completes the
+same build plus standalone copy and image export. Design/accessibility review
+found no actionable issue. The development Compose stack was restored after a
+base-only invocation briefly omitted its source-mount override; no tracked
+runtime configuration changed.
+
 **Done - pre-deployment launch foundation:**
 `codex/20260829-163717-implement` ([PR #264](https://github.com/brollysolutions/client1/pull/264); direct user instruction; no formal
 requirement or completion-percentage change) is the first cohesive slice of the

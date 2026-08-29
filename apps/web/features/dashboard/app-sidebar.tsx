@@ -157,7 +157,7 @@ function RailToggle({ expanded, onToggle }: { expanded: boolean; onToggle: () =>
           onClick={onToggle}
           aria-label="Collapse sidebar"
           aria-expanded={true}
-          className="ml-auto grid h-8 w-8 shrink-0 cursor-pointer place-items-center rounded-lg text-text-secondary transition-colors hover:text-sky-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue"
+          className="ml-auto grid h-8 w-8 shrink-0 cursor-pointer place-items-center rounded-lg text-text-secondary transition-[background-color,color,transform] duration-150 ease-out hover:bg-brand-cta-tint/60 hover:text-sky-500 active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue motion-reduce:transition-none motion-reduce:active:scale-100"
         >
           <PanelLeft className="h-5 w-5" aria-hidden="true" />
         </button>
@@ -171,7 +171,7 @@ function RailToggle({ expanded, onToggle }: { expanded: boolean; onToggle: () =>
       onClick={onToggle}
       aria-label="Expand sidebar"
       aria-expanded={false}
-      className="mx-auto mb-2 mt-1 grid h-12 w-12 cursor-pointer place-items-center rounded-xl text-text-secondary transition-colors hover:text-sky-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue"
+      className="mx-auto mb-2 mt-1 grid h-12 w-12 cursor-pointer place-items-center rounded-xl text-text-secondary transition-[background-color,color,transform] duration-150 ease-out hover:bg-brand-cta-tint/60 hover:text-sky-500 active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue motion-reduce:transition-none motion-reduce:active:scale-100"
     >
       <PanelLeft className="h-5 w-5" aria-hidden="true" />
     </button>
@@ -203,7 +203,7 @@ function SidebarLink({
       aria-current={active ? "page" : undefined}
       onClick={onNavigate}
       className={cn(
-        "group/link relative flex items-center gap-3 rounded-lg text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue",
+        "group/link relative flex items-center gap-3 rounded-lg text-sm font-medium transition-[background-color,color,transform] duration-150 ease-out active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue motion-reduce:transition-none motion-reduce:active:scale-100",
         labeled ? "px-3 py-2.5" : "h-12 w-12 justify-center",
         // Hover keeps the semantic icon stable and adds a subtle tint plus the
         // left indicator. Active stays blue with a solid bar.
@@ -214,7 +214,7 @@ function SidebarLink({
       <span
         aria-hidden="true"
         className={cn(
-          "absolute top-1/2 h-6 w-[3px] -translate-y-1/2 rounded-full bg-brand-cta transition-opacity",
+          "absolute top-1/2 h-6 w-[3px] -translate-y-1/2 rounded-full bg-brand-cta transition-opacity duration-150 motion-reduce:transition-none",
           labeled ? "left-0" : "-left-1",
           active ? "opacity-100" : "opacity-0 group-hover/link:opacity-100",
         )}
@@ -290,14 +290,14 @@ function SidebarExplore({
         aria-current={active ? "page" : undefined}
         onClick={onNavigate}
         className={cn(
-          "relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue",
+          "relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-[background-color,color,transform] duration-150 ease-out active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue motion-reduce:transition-none motion-reduce:active:scale-100",
           active ? activeText : "text-text-secondary hover:text-sky-500",
         )}
       >
         <span
           aria-hidden="true"
           className={cn(
-            "absolute left-0 top-1/2 h-6 w-[3px] -translate-y-1/2 rounded-full bg-brand-cta transition-opacity",
+            "absolute left-0 top-1/2 h-6 w-[3px] -translate-y-1/2 rounded-full bg-brand-cta transition-opacity duration-150 motion-reduce:transition-none",
             active ? "opacity-100" : "opacity-0 group-hover/explore:opacity-100",
           )}
         />
@@ -306,7 +306,7 @@ function SidebarExplore({
         <ChevronDown
           aria-hidden="true"
           className={cn(
-            "ml-auto h-4 w-4 shrink-0 transition-transform duration-200 group-hover/explore:rotate-180",
+            "ml-auto h-4 w-4 shrink-0 transition-transform duration-200 group-hover/explore:rotate-180 motion-reduce:transition-none motion-reduce:group-hover/explore:rotate-0",
             active && "rotate-180",
           )}
         />
@@ -314,7 +314,7 @@ function SidebarExplore({
 
       <div
         className={cn(
-          "grid transition-[grid-template-rows] duration-200 ease-out",
+          "grid transition-[grid-template-rows] duration-200 ease-out motion-reduce:transition-none",
           active ? "grid-rows-[1fr]" : "grid-rows-[0fr] group-hover/explore:grid-rows-[1fr]",
         )}
       >
@@ -334,7 +334,7 @@ function SidebarExplore({
                   aria-current={subActive ? "page" : undefined}
                   onClick={onNavigate}
                   className={cn(
-                    "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue",
+                    "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-[background-color,color] duration-150 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue motion-reduce:transition-none",
                     subActive ? activeText : "text-text-secondary hover:text-sky-500",
                   )}
                 >
