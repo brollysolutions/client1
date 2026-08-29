@@ -293,10 +293,18 @@ export const NAV_ITEMS: readonly NavItem[] = [
 
   // Campaign production and maker/checker review are intentionally separate.
   {
-    key: "campaign-studio",
-    label: "Campaign Studio",
-    href: "/dashboard/campaigns",
+    key: "campaign-banners",
+    label: "Banners",
+    href: "/dashboard/banners",
     icon: DASHBOARD_ICONS.banners,
+    capability: "subAdmin",
+    section: "content",
+  },
+  {
+    key: "campaign-offers",
+    label: "Dashboard offers",
+    href: "/dashboard/offers",
+    icon: DASHBOARD_ICONS.offers,
     capability: "subAdmin",
     section: "content",
   },
@@ -493,7 +501,9 @@ export const DASHBOARD_ROUTE_RULES: readonly DashboardRouteRule[] = [
   { path: "/dashboard/audit-log", exact: true, capabilities: ["admin"] },
   { path: "/dashboard/banners", exact: true, capabilities: ["cms"] },
   { path: "/dashboard/banner-media", exact: true, capabilities: ["cms"] },
-  { path: "/dashboard/campaigns", exact: true, capabilities: ["subAdmin"] },
+  // /dashboard/campaigns is now a redirect that resolves pre-split notification
+  // links; both roles must be able to reach it to be forwarded on.
+  { path: "/dashboard/campaigns", exact: true, capabilities: ["cms"] },
   { path: "/dashboard/campaign-approvals", exact: true, capabilities: ["admin"] },
   { path: "/dashboard/media-library", exact: true, capabilities: ["subAdmin"] },
   { path: "/dashboard/bookmarks", exact: true, capabilities: ["clientRealEstate"] },

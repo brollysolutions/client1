@@ -6090,7 +6090,7 @@ export interface components {
              * Usage Type
              * @enum {string}
              */
-            usage_type: "public_banner" | "sponsor" | "dashboard_banner" | "dashboard_offer" | "campaign";
+            usage_type: "homepage_banner" | "section_banner" | "sponsor" | "dashboard_banner" | "dashboard_offer" | "campaign";
         };
         /** CampaignMediaListResponse */
         CampaignMediaListResponse: {
@@ -14542,7 +14542,7 @@ export interface operations {
         parameters: {
             query?: {
                 active_only?: boolean;
-                usage_type?: ("public_banner" | "sponsor" | "dashboard_banner" | "dashboard_offer" | "campaign") | null;
+                usage_type?: ("homepage_banner" | "section_banner" | "sponsor" | "dashboard_banner" | "dashboard_offer" | "campaign") | null;
                 business_line?: ("loans" | "real_estate" | "both") | null;
             };
             header?: never;

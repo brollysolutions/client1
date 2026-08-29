@@ -72,12 +72,17 @@ class BannerCreate(BaseModel):
             raise ValueError("Dashboard banners cannot promote public properties.")
         if self.offer_id is not None and self.property_id is not None:
             raise ValueError("A banner cannot link both an Offer and a property.")
+        # A public campaign needs artwork from exactly one source: a governed
+        # category template, or a Media Library asset chosen for this campaign
+        # alone. The router rejects supplying both; this rejects supplying
+        # neither, which would publish an imageless hero.
         if (
             self.placement != BannerPlacement.DASHBOARD
             and self.template_id is None
+            and self.media_asset_id is None
             and "placement" in self.model_fields_set
         ):
-            raise ValueError("Public banner campaigns require a template.")
+            raise ValueError("Public banner campaigns require a template or Media Library artwork.")
         return self
 
 

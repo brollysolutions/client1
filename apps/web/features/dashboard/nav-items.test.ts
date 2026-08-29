@@ -161,7 +161,8 @@ describe("role-aware dashboard navigation", () => {
       "sub-admin-listing-submit",
       "sub-admin-finance",
       "sub-admin-referral-rules",
-      "campaign-studio",
+      "campaign-banners",
+      "campaign-offers",
       "campaign-media",
     ]);
 
@@ -172,7 +173,8 @@ describe("role-aware dashboard navigation", () => {
       "sub-admin-finance",
       "sub-admin-payouts",
       "sub-admin-referral-rules",
-      "campaign-studio",
+      "campaign-banners",
+      "campaign-offers",
       "campaign-media",
     ]);
   });
@@ -257,8 +259,11 @@ describe("dashboard direct-route UX access", () => {
     expect(isDashboardPathAllowed("/dashboard/offers/new", context("sub_admin"))).toBe(false);
     expect(isDashboardPathAllowed("/dashboard/banner-media", context("admin"))).toBe(true);
     expect(isDashboardPathAllowed("/dashboard/banner-media", context("sub_admin"))).toBe(true);
+    // /dashboard/campaigns is a redirect that resolves notification links sent
+    // before banners and offers became separate pages. Both roles have to reach
+    // it to be forwarded; it renders no campaign data of its own.
     expect(isDashboardPathAllowed("/dashboard/campaigns", context("sub_admin"))).toBe(true);
-    expect(isDashboardPathAllowed("/dashboard/campaigns", context("admin"))).toBe(false);
+    expect(isDashboardPathAllowed("/dashboard/campaigns", context("admin"))).toBe(true);
     expect(isDashboardPathAllowed("/dashboard/media-library", context("sub_admin"))).toBe(true);
     expect(isDashboardPathAllowed("/dashboard/media-library", context("admin"))).toBe(false);
     expect(isDashboardPathAllowed("/dashboard/campaign-approvals", context("admin"))).toBe(true);

@@ -22,6 +22,8 @@ import {
 } from "@/lib/offers-api";
 
 import { AudienceRuleFields, emptyAudienceRules, type AudienceRules } from "./audience-rule-fields";
+import { OFFER_USAGE_TYPES } from "@/lib/campaign-artwork";
+
 import { CampaignMediaPicker } from "./campaign-media-picker";
 import { OfferPreview } from "./cms-previews";
 import { CmsPreviewFrame, type PreviewDevice } from "./cms-workspace";
@@ -251,7 +253,7 @@ export function OfferForm({
             <div className="min-w-0"><Label htmlFor="offer-discount-type">Discount type</Label><Select name="discount_type" value={discountType} onValueChange={(value) => setDiscountType(value as typeof discountType)}><SelectTrigger id="offer-discount-type" className="w-full"><SelectValue /></SelectTrigger><SelectContent>{DISCOUNT_TYPE_OPTIONS.map((option) => <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>)}</SelectContent></Select></div>
             <div className="min-w-0"><Label htmlFor="offer-discount-value">Discount value <RequiredIndicator /></Label><Input id="offer-discount-value" name="discount_value" inputMode="decimal" value={discountValue} onChange={(event) => setDiscountValue(event.target.value.replace(/[^0-9.]/g, ""))} aria-invalid={Boolean(errors.discount)} aria-describedby={errors.discount ? "offer-discount-error" : undefined} /><FieldError id="offer-discount-error">{errors.discount}</FieldError></div>
           </div>
-          <CampaignMediaPicker usageType="dashboard_offer" businessLine={businessLine} value={mediaAssetId} onChange={(id, asset) => { setMediaAssetId(id); setPreviewUrl(asset?.image_url ?? null); setErrors((current) => ({ ...current, image: "" })); }} label="Reusable offer artwork" />
+          <CampaignMediaPicker usageTypes={OFFER_USAGE_TYPES} businessLine={businessLine} invalid={Boolean(errors.image)} describedBy={errors.image ? "offer-artwork-error" : undefined} value={mediaAssetId} onChange={(id, asset) => { setMediaAssetId(id); setPreviewUrl(asset?.image_url ?? null); setErrors((current) => ({ ...current, image: "" })); }} label="Offer artwork" />
           <FieldError id="offer-artwork-error">{errors.image}</FieldError>
         </DashboardFormSection>
 

@@ -5710,7 +5710,8 @@
           },
           "usage_type": {
             "enum": [
-              "public_banner",
+              "homepage_banner",
+              "section_banner",
               "sponsor",
               "dashboard_banner",
               "dashboard_offer",
@@ -26219,7 +26220,8 @@
               "anyOf": [
                 {
                   "enum": [
-                    "public_banner",
+                    "homepage_banner",
+                    "section_banner",
                     "sponsor",
                     "dashboard_banner",
                     "dashboard_offer",

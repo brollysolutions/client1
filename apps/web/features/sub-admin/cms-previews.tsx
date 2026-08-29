@@ -12,6 +12,20 @@ import type { Offer } from "@/lib/offers-api";
 import type { AuthenticatedBanner, AuthenticatedOffer } from "@/lib/personalization-api";
 import { isSafeLocalHref } from "@/lib/safe-local-href";
 
+import { DashboardPreviewChrome, PublicPreviewChrome } from "./preview-chrome";
+
+/**
+ * Campaign previews render the production components themselves -- the same
+ * `HeroCarousel`, `AdStrip` and dashboard placement cards a visitor gets --
+ * with interaction disabled. A second, approximate implementation was
+ * explicitly rejected (DECISIONS.md DEC-20260828-04): it would drift, and a
+ * preview that drifts is worse than none.
+ *
+ * The surrounding page furniture comes from `preview-chrome`, and the caller
+ * wraps the whole thing in `ViewportFrame` so it lays out at a real device
+ * width.
+ */
+
 export type BannerPreviewValue = Pick<
   Banner,
   "banner_type" | "title" | "subtitle" | "cta_label" | "deep_link"
@@ -48,9 +62,9 @@ export function BannerPreview({
       image_url: banner.image_url ?? null,
     };
     return (
-      <DashboardScene>
+      <DashboardPreviewChrome>
         <DashboardBannerCard banner={value} interactive={false} />
-      </DashboardScene>
+      </DashboardPreviewChrome>
     );
   }
 
@@ -64,20 +78,20 @@ export function BannerPreview({
   };
   if (placement === "homepage_ad") {
     return (
-      <PublicScene label="Homepage sponsor">
+      <PublicPreviewChrome>
         <AdStrip banner={value} dismissible={false} />
-      </PublicScene>
+      </PublicPreviewChrome>
     );
   }
   return (
-    <PublicScene label={placementLabel(placement)}>
+    <PublicPreviewChrome>
       <HeroCarousel
         banners={[value]}
         variant={placement === "homepage" || placement === undefined ? "hero" : "section"}
         label="Campaign preview"
         interactive={false}
       />
-    </PublicScene>
+    </PublicPreviewChrome>
   );
 }
 
@@ -92,68 +106,22 @@ export function OfferPreview({ offer }: { offer: OfferPreviewValue }) {
     partner_name: offer.partner_name ?? "Partner",
     image_url: offer.image_url ?? "",
     redemption_url: offer.redemption_url ?? "https://partner.example",
-    terms_summary:
-      offer.terms_summary ?? "Offer terms appear here before a customer proceeds.",
+    terms_summary: offer.terms_summary ?? "Offer terms appear here before a customer proceeds.",
     terms_url: null,
   };
   return (
-    <DashboardScene>
+    <DashboardPreviewChrome>
       <div className="max-w-md">
         <DashboardOfferCard offer={value} interactive={false} />
       </div>
-    </DashboardScene>
+    </DashboardPreviewChrome>
   );
 }
 
-function PublicScene({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className="overflow-hidden rounded-xl border border-border bg-[#f7f2e8] shadow-sm">
-      <div className="flex h-11 items-center justify-between border-b border-black/10 bg-[var(--nav-bg)] px-4">
-        <span className="font-heading text-sm font-semibold text-[var(--nav-text)]">DhanaDhara</span>
-        <span className="text-[10px] font-medium uppercase tracking-[0.14em] text-[var(--nav-text)]/70">
-          {label}
-        </span>
-        <span className="rounded-full bg-[var(--nav-primary)] px-2.5 py-1 text-[10px] font-semibold text-white">
-          Login
-        </span>
-      </div>
-      <div className="pointer-events-none">{children}</div>
-      <div className="grid grid-cols-3 gap-2 p-3" aria-hidden="true">
-        <span className="h-9 rounded-lg bg-white/80" />
-        <span className="h-9 rounded-lg bg-white/80" />
-        <span className="h-9 rounded-lg bg-white/80" />
-      </div>
-    </div>
-  );
-}
-
-function DashboardScene({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="overflow-hidden rounded-xl border border-border bg-background shadow-sm">
-      <div className="flex h-11 items-center justify-between border-b border-border bg-card px-4">
-        <span className="font-heading text-sm font-semibold">DhanaDhara dashboard</span>
-        <span className="h-7 w-7 rounded-full bg-[var(--nav-tint)]" />
-      </div>
-      <div className="grid min-h-64 grid-cols-[3.5rem_minmax(0,1fr)]">
-        <aside className="space-y-2 border-r border-border bg-card p-2" aria-hidden="true">
-          <span className="block h-8 rounded-lg bg-[var(--nav-tint)]" />
-          <span className="block h-8 rounded-lg bg-muted" />
-          <span className="block h-8 rounded-lg bg-muted" />
-        </aside>
-        <main className="pointer-events-none space-y-3 p-3">
-          <div className="flex justify-between">
-            <span className="h-5 w-28 rounded bg-muted" />
-            <span className="h-7 w-20 rounded bg-muted" />
-          </div>
-          {children}
-        </main>
-      </div>
-    </div>
-  );
-}
-
-function placementLabel(placement?: Banner["placement"]): string {
-  if (placement === "financial_services") return "Financial services page";
+export function placementLabel(placement?: Banner["placement"]): string {
+  if (placement === "financial_services") return "Financial Services page";
   if (placement === "properties") return "Properties page";
+  if (placement === "homepage_ad") return "Homepage sponsor strip";
+  if (placement === "dashboard") return "Authenticated dashboard";
   return "Homepage hero";
 }

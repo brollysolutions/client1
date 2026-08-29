@@ -52,7 +52,14 @@ const scenarios: readonly RoleScenario[] = [
   {
     name: "Sub Admin",
     promote: ["sub_admin"],
-    expected: ["Property listings", "Finance overview", "Referral rules", "Campaign Studio", "Media library"],
+    expected: [
+      "Property listings",
+      "Finance overview",
+      "Referral rules",
+      "Banners",
+      "Dashboard offers",
+      "Media library",
+    ],
     excluded: ["Financial products", "Leads", "Tasks", "Website content"],
     deniedPath: "/dashboard/admin-leads",
   },
@@ -366,8 +373,8 @@ test.describe("role-aware dashboard navigation", () => {
       await logIn(page, account);
 
       for (const workspace of [
-        { path: "/dashboard/campaigns?type=banners", button: "New banner", heading: "New banner", close: "Close workspace" },
-        { path: "/dashboard/campaigns?type=offers", button: "New offer", heading: "New dashboard offer", close: "Close workspace" },
+        { path: "/dashboard/banners", button: "New banner", heading: "New banner", close: "Close workspace" },
+        { path: "/dashboard/offers", button: "New offer", heading: "New dashboard offer", close: "Close workspace" },
         { path: "/dashboard/referral-rules", button: "New rule", heading: "New bonus rule", close: "Close referral rule workspace" },
       ]) {
         await page.goto(workspace.path);
@@ -391,6 +398,13 @@ test.describe("role-aware dashboard navigation", () => {
       await expect(
         page.getByRole("heading", { name: "Campaign Media Library", exact: true }),
       ).toBeVisible();
+
+      // Notification links written before banners and offers became separate
+      // pages still point at /dashboard/campaigns; they must keep resolving.
+      await page.goto("/dashboard/campaigns?type=offers");
+      await expect(page).toHaveURL(/\/dashboard\/offers$/);
+      await page.goto("/dashboard/campaigns?type=banners");
+      await expect(page).toHaveURL(/\/dashboard\/banners$/);
     } finally {
       await deleteAccount(request, account);
     }

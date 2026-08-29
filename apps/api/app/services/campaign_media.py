@@ -5,14 +5,16 @@ from __future__ import annotations
 import asyncio
 import re
 import uuid
+from collections.abc import Sequence
 from datetime import UTC, datetime
 from io import BytesIO
 from uuid import UUID
 
 from PIL import Image, UnidentifiedImageError
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app import campaign_artwork
 from app.models.audit_log import AuditAction
 from app.models.banner import Banner, BannerTemplate
 from app.models.campaign_media import CampaignMediaAsset
@@ -64,6 +66,16 @@ async def resolve_campaign_asset(
 
 
 def asset_image_url(image_ref: str) -> str | None:
+    """Resolve a campaign artwork reference to a servable URL.
+
+    Two shapes reach this function. Bundled artwork ships with the web app and
+    is referenced by its stable public path; uploaded artwork lives under the
+    object store's `public/` prefix. `storage.public_asset_url` knows only the
+    second, so every banner/offer `image_key` must resolve through here --
+    calling `public_asset_url` directly returns None for bundled artwork, which
+    silently renders an imageless campaign and (via
+    `offers.validate_offer_for_review`) blocks submission outright.
+    """
     if image_ref.startswith("/banner-templates/") and ".." not in image_ref:
         return image_ref
     return storage.public_asset_url(image_ref)
@@ -91,16 +103,15 @@ def _dimensions(image_ref: str) -> tuple[int, int]:
 
 
 def _validate_dimensions(usage_type: str, width: int, height: int) -> None:
-    minimums = {
-        "public_banner": (1200, 480),
-        "sponsor": (800, 360),
-        "dashboard_banner": (1000, 420),
-        "dashboard_offer": (800, 360),
-        "campaign": (800, 360),
-    }
-    min_width, min_height = minimums[usage_type]
-    ratio = width / height
-    if width < min_width or height < min_height or ratio < 1.45 or ratio > 2.75:
+    """Check artwork against the geometry of the surface it is destined for.
+
+    Each usage type names one surface, so the ratio is checked against that
+    surface's target rather than a single band wide enough to admit every
+    placement. Without this a 1200x480 (2.50) upload passed as homepage artwork
+    and then rendered wrong inside the 9:5 hero.
+    """
+    spec = campaign_artwork.spec_for(usage_type)
+    if spec is None or not spec.accepts(width, height):
         raise CampaignMediaInvalid
 
 
@@ -201,11 +212,45 @@ async def asset_usages(db: AsyncSession, asset_id: UUID) -> list[CampaignMediaUs
     return usages
 
 
-async def read_asset(db: AsyncSession, asset: CampaignMediaAsset) -> CampaignMediaRead:
+async def usage_counts(db: AsyncSession, asset_ids: Sequence[UUID]) -> dict[UUID, int]:
+    """Reference counts for many assets in three grouped queries.
+
+    The catalogue listing used to build the full `usages` list for every asset,
+    which is three queries each -- around 190 for a library of sixty. Only the
+    count is shown in the grid, so the listing takes this and the detail route
+    keeps the itemised version.
+    """
+    counts: dict[UUID, int] = {}
+    if not asset_ids:
+        return counts
+    ids = list(asset_ids)
+    for model in (BannerTemplate, Banner, Offer):
+        rows = await db.execute(
+            select(model.media_asset_id, func.count())
+            .where(model.media_asset_id.in_(ids))
+            .group_by(model.media_asset_id)
+        )
+        for asset_id, count in rows:
+            counts[asset_id] = counts.get(asset_id, 0) + count
+    return counts
+
+
+async def read_asset(
+    db: AsyncSession,
+    asset: CampaignMediaAsset,
+    *,
+    usage_count: int | None = None,
+) -> CampaignMediaRead:
+    """Response shape for one asset.
+
+    Pass `usage_count` from `usage_counts` to render a listing row: the
+    itemised `usages` list is then left empty rather than costing three
+    queries per row. The single-asset routes omit it and get the full list.
+    """
     image_url = asset_image_url(asset.image_ref)
     if image_url is None:
         raise CampaignMediaInvalid
-    usages = await asset_usages(db, asset.id)
+    usages = [] if usage_count is not None else await asset_usages(db, asset.id)
     return CampaignMediaRead(
         id=asset.id,
         business_line=asset.business_line,
@@ -225,7 +270,7 @@ async def read_asset(db: AsyncSession, asset: CampaignMediaAsset) -> CampaignMed
         created_at=asset.created_at,
         updated_at=asset.updated_at,
         archived_at=asset.archived_at,
-        usage_count=len(usages),
+        usage_count=usage_count if usage_count is not None else len(usages),
         usages=usages,
     )
 

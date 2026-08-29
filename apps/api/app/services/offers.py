@@ -13,8 +13,8 @@ from app.models.audit_log import AuditAction
 from app.models.notification import NotificationType
 from app.models.offer import Offer, OfferStatus
 from app.schemas.personalization import AudienceRules, audience_rules_valid_for_offer
-from app.services import storage
 from app.services.audit_log import record as record_audit
+from app.services.campaign_media import asset_image_url
 from app.services.notifications import emit_notification
 
 _SUB_ADMIN_TRANSITIONS: dict[OfferStatus, set[OfferStatus]] = {
@@ -78,7 +78,7 @@ def validate_offer_for_review(offer: Offer) -> None:
             offer.partner_name and offer.partner_name.strip(),
             offer.code and offer.code.strip(),
             offer.terms_summary and offer.terms_summary.strip(),
-            offer.image_key and storage.public_asset_url(offer.image_key),
+            offer.image_key and asset_image_url(offer.image_key),
             _is_safe_https_url(offer.redemption_url),
         )
     ):

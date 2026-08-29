@@ -23,7 +23,8 @@ from app.schemas.personalization import (
     PersonalizationPreferenceRead,
     PersonalizationPreferenceUpdate,
 )
-from app.services import personalization, storage
+from app.services import personalization
+from app.services.campaign_media import asset_image_url
 
 router = APIRouter()
 
@@ -159,7 +160,7 @@ async def get_placements(
                 subtitle=banner.subtitle,
                 cta_label=banner.cta_label,
                 deep_link=banner.deep_link,
-                image_url=storage.public_asset_url(banner.image_key) if banner.image_key else None,
+                image_url=asset_image_url(banner.image_key) if banner.image_key else None,
             )
             for banner in banners
         ],
@@ -175,7 +176,7 @@ async def get_placements(
                 redemption_url=offer.redemption_url or "",
                 terms_summary=offer.terms_summary or "",
                 terms_url=offer.terms_url,
-                image_url=storage.public_asset_url(offer.image_key) or "",
+                image_url=asset_image_url(offer.image_key) or "",
             )
             for offer in offers
         ],

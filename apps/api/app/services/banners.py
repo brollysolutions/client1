@@ -25,6 +25,7 @@ from uuid import UUID
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app import campaign_artwork
 from app.banner_catalog import (
     category_label,
     expected_business_line,
@@ -89,6 +90,7 @@ async def validate_banner_configuration(
     offer_id: UUID | None,
     property_id: UUID | None,
     allow_legacy: bool = False,
+    has_media_asset: bool = False,
 ) -> tuple[BannerTemplate | None, Offer | None, Property | None]:
     if placement == BannerPlacement.DASHBOARD:
         if template_id is not None or offer_id is not None or property_id is not None:
@@ -96,6 +98,17 @@ async def validate_banner_configuration(
         return None, None, None
 
     if template_id is None and allow_legacy and offer_id is None and property_id is None:
+        return None, None, None
+    # Public artwork may come from a governed category template or from a Media
+    # Library asset chosen for this campaign alone. Property promotion still
+    # requires a template, because the category is what decides which listings
+    # a campaign may advertise (property_category_matches_campaign below).
+    if template_id is None and has_media_asset:
+        if property_id is not None or offer_id is not None:
+            raise BannerInvalidConfiguration
+        required_line = expected_business_line(placement)
+        if required_line is not None and business_line != required_line:
+            raise BannerInvalidConfiguration
         return None, None, None
     template = await db.get(BannerTemplate, template_id) if template_id else None
     if template is None or not template.active or template.placement != placement:
@@ -189,9 +202,7 @@ async def create_template_version(
         )
         media_asset = CampaignMediaAsset(
             business_line=expected_business_line(payload.placement) or "both",
-            usage_type=(
-                "sponsor" if payload.placement == BannerPlacement.HOMEPAGE_AD else "public_banner"
-            ),
+            usage_type=campaign_artwork.template_usage_type(payload.placement),
             title=f"{label} artwork",
             alt_text=f"{label} campaign artwork",
             tags=[payload.category_key, payload.placement.value],

@@ -30,7 +30,7 @@ from app.schemas.personalization import (
     audience_rules_valid_for_banner,
     audience_rules_valid_for_offer,
 )
-from app.services import storage
+from app.services.campaign_media import asset_image_url
 
 LOCATION_RETENTION = timedelta(days=30)
 LOCATION_CAPTURE_LIMIT_PER_HOUR = 12
@@ -484,7 +484,7 @@ async def list_authenticated_placements(
         ).all()
         for offer in offer_candidates:
             rules = _parse_rules(offer.audience_rules)
-            image_url = storage.public_asset_url(offer.image_key) if offer.image_key else None
+            image_url = asset_image_url(offer.image_key) if offer.image_key else None
             if (
                 rules is None
                 or not audience_rules_valid_for_offer(rules)

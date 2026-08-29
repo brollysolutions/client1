@@ -8,8 +8,16 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field, field_validator
 
+# One value per rendered surface. "public_banner" is legacy: rows written before
+# the homepage/section split still carry it, but nothing creates it any more, so
+# it is absent from the create/update contract below.
 CampaignMediaUsageType = Literal[
-    "public_banner", "sponsor", "dashboard_banner", "dashboard_offer", "campaign"
+    "homepage_banner",
+    "section_banner",
+    "sponsor",
+    "dashboard_banner",
+    "dashboard_offer",
+    "campaign",
 ]
 CampaignImageContentType = Literal["image/jpeg", "image/png", "image/webp"]
 

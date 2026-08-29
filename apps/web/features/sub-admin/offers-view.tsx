@@ -2,7 +2,19 @@
 /* eslint-disable @next/next/no-img-element */
 
 import * as React from "react";
-import { Archive, CalendarClock, Check, ImageIcon, Inbox, Plus, Send, Trash2, X } from "lucide-react";
+import Link from "next/link";
+import {
+  Archive,
+  CalendarClock,
+  Check,
+  ImageIcon,
+  Images,
+  Inbox,
+  Plus,
+  Send,
+  Trash2,
+  X,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import { useAuth } from "@/components/auth/session-provider";
@@ -161,7 +173,22 @@ export function OffersView({ embedded = false }: { embedded?: boolean }) {
       {embedded ? <div className="flex flex-wrap items-end justify-between gap-3"><div><h2 className="font-heading text-xl font-semibold">{isAdmin ? "Offer review & removal" : "Dashboard offers"}</h2><p className="mt-1 text-sm text-text-secondary">{isAdmin ? "Review pending work or open any campaign for a reasoned removal." : "Authenticated partner campaigns with clear coupon terms."}</p></div>{!isAdmin ? <Button onClick={() => setCreateOpen(true)}><Plus className="h-4 w-4" />New offer</Button> : null}</div> : <DashboardHeader
         title={isAdmin ? "Offer approvals" : "Dashboard offers"}
         description={isAdmin ? "Approve complete partner coupon campaigns before they can reach a dashboard." : "Create role-targeted partner coupons, submit them for approval, then schedule or activate them."}
-        actions={isAdmin ? undefined : <Button onClick={() => setCreateOpen(true)}><Plus className="h-4 w-4" aria-hidden="true" />New offer</Button>}
+        actions={
+          isAdmin ? undefined : (
+            <div className="flex flex-wrap items-center gap-2">
+              <Button asChild variant="outline">
+                <Link href="/dashboard/media-library">
+                  <Images className="h-4 w-4" aria-hidden />
+                  Media library
+                </Link>
+              </Button>
+              <Button onClick={() => setCreateOpen(true)}>
+                <Plus className="h-4 w-4" aria-hidden />
+                New offer
+              </Button>
+            </div>
+          )
+        }
       />}
       {!embedded ? <MetricGrid>
         <MetricCard label="Total campaigns" value={items.length} icon={DASHBOARD_ICONS.offers} />

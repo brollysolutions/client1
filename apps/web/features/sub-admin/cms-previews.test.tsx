@@ -34,4 +34,46 @@ describe("CMS previews", () => {
     expect(markup).toContain("personal-finance.webp");
     expect(markup).not.toContain('aria-label="Dismiss sponsored message"');
   });
+
+  it("wraps public previews in real page chrome, not invented furniture", () => {
+    const markup = renderToStaticMarkup(
+      <BannerPreview
+        context="public"
+        placement="homepage"
+        banner={{
+          banner_type: "default",
+          title: "Festive home loans",
+          subtitle: null,
+          cta_label: null,
+          deep_link: null,
+          image_url: "/banner-templates/homepage/loans.webp",
+        }}
+      />,
+    );
+    // Real navigation labels, taken from the same NAV_ITEMS the site header uses.
+    expect(markup).toContain("Financial Services");
+    expect(markup).toContain("Properties");
+    expect(markup).toContain("Register");
+    // The invented "Login" pill and the hardcoded cream that was never the real
+    // page background are both gone.
+    expect(markup).not.toContain("#f7f2e8");
+    expect(markup).not.toContain(">Login<");
+  });
+
+  it("frames dashboard previews with the signed-in shell", () => {
+    const markup = renderToStaticMarkup(
+      <BannerPreview
+        context="dashboard"
+        banner={{
+          banner_type: "default",
+          title: "Continue your application",
+          subtitle: null,
+          cta_label: null,
+          deep_link: null,
+        }}
+      />,
+    );
+    expect(markup).toContain("Loans &amp; Real Estate");
+    expect(markup).toContain("Continue your application");
+  });
 });

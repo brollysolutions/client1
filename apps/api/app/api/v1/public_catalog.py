@@ -45,8 +45,8 @@ from app.schemas.properties import (
     PublicPropertyRead,
 )
 from app.schemas.property_details import PropertyStructuredDetails
-from app.services import storage
 from app.services.banners import template_image_url
+from app.services.campaign_media import asset_image_url
 from app.services.financial_catalog import (
     get_public_product,
     list_public_products,
@@ -313,7 +313,7 @@ async def list_banners_public(
                     if linked_media
                     else template_url
                     if template_url is not None
-                    else storage.public_asset_url(banner.image_key)
+                    else asset_image_url(banner.image_key)
                     if banner.image_key
                     else None
                 ),

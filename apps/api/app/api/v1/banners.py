@@ -14,6 +14,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app import campaign_artwork
 from app.core.deps import (
     CurrentUser,
     get_active_user,
@@ -42,7 +43,6 @@ from app.schemas.personalization import (
     audience_rules_to_storage,
     audience_rules_valid_for_banner,
 )
-from app.services import storage
 from app.services.audit_log import record as record_audit
 from app.services.banners import (
     IMAGE_MAX_BYTES,
@@ -61,16 +61,18 @@ from app.services.banners import (
     template_image_url,
     validate_banner_configuration,
 )
-from app.services.campaign_media import CampaignMediaInvalid, resolve_campaign_asset
+from app.services.campaign_media import (
+    CampaignMediaInvalid,
+    asset_image_url,
+    resolve_campaign_asset,
+)
 
 router = APIRouter()
 
 
 def _read(banner: Banner) -> BannerRead:
     return BannerRead.model_validate(banner, from_attributes=True).model_copy(
-        update={
-            "image_url": storage.public_asset_url(banner.image_key) if banner.image_key else None
-        }
+        update={"image_url": asset_image_url(banner.image_key) if banner.image_key else None}
     )
 
 
@@ -89,6 +91,7 @@ async def create_banner(
             offer_id=payload.offer_id,
             property_id=payload.property_id,
             allow_legacy="placement" not in payload.model_fields_set,
+            has_media_asset=payload.media_asset_id is not None,
         )
     except BannerInvalidConfiguration as exc:
         raise HTTPException(
@@ -97,17 +100,21 @@ async def create_banner(
                 "Banner placement, template, business line, linked Offer, or property is invalid."
             ),
         ) from exc
-    if payload.placement != "dashboard" and payload.media_asset_id is not None:
+    # A public campaign draws its artwork from exactly one source: a governed
+    # category template, or a Media Library asset picked (or uploaded) for this
+    # campaign alone. Accepting both would leave two images competing for one
+    # slot with no rule for which wins.
+    if template is not None and payload.media_asset_id is not None:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-            detail="Public campaigns use the artwork attached to their governed template.",
+            detail="Choose either a governed template or Media Library artwork, not both.",
         )
     try:
         media_asset = await resolve_campaign_asset(
             db,
             asset_id=payload.media_asset_id,
             business_line=payload.business_line,
-            allowed_usage_types={"dashboard_banner", "campaign"},
+            allowed_usage_types=campaign_artwork.BANNER_USAGE_TYPES_BY_PLACEMENT[payload.placement],
         )
     except CampaignMediaInvalid as exc:
         raise HTTPException(
@@ -116,6 +123,8 @@ async def create_banner(
         ) from exc
     values = payload.model_dump(exclude={"audience_rules"})
     values["media_asset_id"] = template.media_asset_id if template else payload.media_asset_id
+    if template is not None:
+        values["image_key"] = None
     if media_asset is not None:
         values["image_key"] = media_asset.image_ref
     values["audience_rules"] = audience_rules_to_storage(payload.audience_rules)
@@ -314,7 +323,17 @@ async def update_banner(
             template_id=prospective_template_id,
             offer_id=prospective_offer_id,
             property_id=prospective_property_id,
-            allow_legacy=banner.template_id is None and banner.category_key is None,
+            # The legacy escape hatch exists for rows written before placements
+            # and templates existed. A media-backed campaign also has no
+            # template or category, so it must be excluded explicitly --
+            # otherwise clearing media_asset_id would leave a public banner
+            # with no artwork at all.
+            allow_legacy=(
+                banner.template_id is None
+                and banner.category_key is None
+                and banner.media_asset_id is None
+            ),
+            has_media_asset=prospective_media_asset_id is not None,
         )
     except BannerInvalidConfiguration as exc:
         raise HTTPException(
@@ -323,19 +342,21 @@ async def update_banner(
                 "Banner placement, template, business line, linked Offer, or property is invalid."
             ),
         ) from exc
-    if banner.placement != "dashboard" and "media_asset_id" in payload.model_fields_set:
+    if template is not None and prospective_media_asset_id is not None:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-            detail="Public campaigns use the artwork attached to their governed template.",
+            detail="Choose either a governed template or Media Library artwork, not both.",
         )
     media_asset = None
-    if banner.placement == "dashboard" and "media_asset_id" in payload.model_fields_set:
+    if "media_asset_id" in payload.model_fields_set:
         try:
             media_asset = await resolve_campaign_asset(
                 db,
                 asset_id=prospective_media_asset_id,
                 business_line=banner.business_line,
-                allowed_usage_types={"dashboard_banner", "campaign"},
+                allowed_usage_types=campaign_artwork.BANNER_USAGE_TYPES_BY_PLACEMENT[
+                    banner.placement
+                ],
             )
         except CampaignMediaInvalid as exc:
             raise HTTPException(
@@ -352,8 +373,11 @@ async def update_banner(
         values["audience_rules"] = audience_rules_to_storage(payload.audience_rules)
     if "media_asset_id" in payload.model_fields_set:
         values["image_key"] = media_asset.image_ref if media_asset else None
-    if banner.placement != "dashboard":
-        values["media_asset_id"] = template.media_asset_id if template else None
+    # Template-backed campaigns mirror the template's asset; media-backed ones
+    # keep the asset the author chose. Only the template branch may overwrite it.
+    if template is not None:
+        values["media_asset_id"] = template.media_asset_id
+        values["image_key"] = None
     for field, value in values.items():
         setattr(banner, field, value)
     banner.category_key = template.category_key if template else None
