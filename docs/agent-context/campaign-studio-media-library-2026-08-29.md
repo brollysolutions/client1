@@ -45,7 +45,9 @@ change.
 
 ## Campaign lifecycle
 
-1. Sub Admin creates a draft, selects governed artwork, and saves it.
+1. Sub Admin creates a draft, chooses artwork for the chosen surface --
+   governed category artwork or a Media Library asset, including one
+   uploaded during authoring -- and saves it.
 2. Sub Admin submits the draft. Submitted content is no longer editable.
 3. Admin previews the exact shared production renderer at desktop, tablet, and
    mobile widths.
@@ -65,8 +67,10 @@ rather than rewriting historical approved content.
 
 ### Sub Admin Campaign Studio
 
-`/dashboard/campaigns` is a single responsive workspace with Banners and Offers
-tabs. It prioritizes status, artwork, title, placement/audience, schedule, and
+`/dashboard/banners` and `/dashboard/offers` are two responsive workspaces, one
+per campaign kind; `/dashboard/campaigns` redirects into them so notification
+links written before the split keep resolving. Each page reaches the Media
+Library both as a destination and as an in-form picker. It prioritizes status, artwork, title, placement/audience, schedule, and
 the next available action. Detailed editing opens in the shared workspace
 dialog; summary metric cards and duplicated page furniture are omitted.
 
@@ -115,15 +119,67 @@ reuse the same components that render production placements:
   cards.
 
 The preview shell supplies realistic page chrome and fixed 1440, 768, and 390
-pixel viewports. Interaction is disabled inside the authoring preview so a CTA
-cannot navigate away while a campaign is being reviewed.
+pixel viewports. Those widths are real layout widths, not a `max-width` clamp:
+the preview renders at the device width and is scaled to fit its panel, so
+media queries resolve against the viewport being previewed rather than the
+authoring column. Page chrome is a static stand-in built from the same
+`NAV_ITEMS` and design tokens as the live header, because the live header opens
+Radix portals that would escape the scaled container.
+
+Interaction is disabled inside the authoring preview so a CTA cannot navigate
+away while a campaign is being reviewed, and the scaled subtree is `inert` so
+its controls and landmarks stay out of the authoring page's tab order and
+accessibility tree.
+
+## Artwork sources and surface geometry
+
+A campaign draws artwork from exactly one source. Supplying both is rejected;
+supplying neither is rejected.
+
+- **Governed category artwork.** The 44 versioned public templates, one active
+  version per placement/category. Choosing one also decides which approved
+  listings the campaign may promote, so property campaigns still require it.
+- **Media Library artwork.** Any active asset whose usage type matches the
+  placement, including one uploaded from the author's device during authoring.
+  It belongs to that campaign alone and does not become the category's artwork.
+
+This replaces the earlier rule that public placements could only ever use a
+governed template. The integrity properties that rule protected are unaffected:
+media assets are identity-immutable, the resolved reference is copied onto the
+campaign at save time, and Admin approval still gates going live. What it gives
+up is brand uniformity by category, which is now a review judgement rather than
+a database constraint.
+
+`campaign_media_assets.usage_type` names one rendered surface each, so the
+library can group by destination and validation can reject artwork shaped for a
+different one:
+
+| Usage type | Surface | Target |
+| --- | --- | --- |
+| `homepage_banner` | Home page hero carousel | 1440 x 800 (9:5) |
+| `sponsor` | Home page sponsor strip | 960 x 540 (16:9) |
+| `section_banner` | Financial Services and Properties carousels | 1440 x 576 (5:2) |
+| `dashboard_banner` | Signed-in dashboard card | 1440 x 800 (9:5) |
+| `dashboard_offer` | Signed-in coupon card | 1120 x 490 (16:7) |
+| `campaign` | Any surface whose shape it fits | 1.45-2.75 band |
+
+Upload validates the aspect ratio against the target within +/-0.08 rather than
+against one band wide enough for every surface, which previously let 5:2 artwork
+pass as homepage material and then render wrong. `public_banner` is retained as
+a readable legacy value; nothing writes it.
+
+Bundled artwork is referenced by public path rather than an object-store key.
+Every banner and offer `image_key` therefore resolves through
+`campaign_media.asset_image_url`, not `storage.public_asset_url` -- the latter
+returns nothing for a bundled path, which rendered such campaigns imageless and
+blocked offer submission.
 
 ## Existing-media inventory and boundary
 
-The repository contains 140 checked-in raster/vector visuals after this change:
+The repository contains 154 checked-in raster/vector visuals:
 
-- 47 campaign banner WebPs: 44 existing governed templates plus 3 new generated
-  starter assets;
+- 61 campaign banner WebPs: 44 governed templates, 3 generated starters, and 14
+  seeded dashboard/offer assets;
 - 91 public illustrations: 82 interface/product/property SVGs and 9 property
   fallback PNGs;
 - 2 notification icon PNGs.
@@ -147,6 +203,14 @@ safe negative space for rendered campaign copy:
 - a rewards/savings still life with gift, coins, card, and phone.
 
 All are 1774 x 887 and optimized for repository delivery.
+
+Dashboard banners and dashboard offers previously had no artwork at all, so both
+pickers opened almost empty. `scripts/build_dashboard_artwork.py` seeds them by
+cropping and downscaling the campaign WebPs already licensed here -- six
+dashboard-banner images at 1296 x 720 and eight offer images at 1120 x 490,
+registered as bundled assets by migration `b7c9d1e3f5a8`. Generation is
+deterministic and crop-then-downscale only, never upscaling, so
+`banner-template-assets.test.ts` can pin the files by geometry and hash.
 
 ## Security and audit invariants
 

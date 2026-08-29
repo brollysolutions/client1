@@ -9,6 +9,13 @@ import { DialogClose, DialogDescription, DialogHeader, DialogTitle } from "@/com
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 
+import {
+  VIEWPORT_WIDTHS,
+  ViewportFrame,
+  type ViewportName,
+  viewportLabel,
+} from "./viewport-frame";
+
 /**
  * Two dialog shapes for staff detail surfaces.
  *
@@ -101,7 +108,8 @@ export function WorkspaceLayout({
   );
 }
 
-export type PreviewDevice = "desktop" | "tablet" | "mobile";
+/** Named for the viewport it renders at; see `ViewportFrame`. */
+export type PreviewDevice = ViewportName;
 
 export function WorkspacePreviewFrame({
   title,
@@ -177,21 +185,16 @@ export function WorkspacePreviewFrame({
           </div>
         </div>
       </div>
-      <div className="overflow-x-auto rounded-xl border border-border bg-white p-3">
-        <div
-          className={cn(
-            "mx-auto transition-[max-width]",
-            device === "mobile"
-              ? "max-w-[390px]"
-              : device === "tablet"
-                ? "max-w-[768px]"
-                : "max-w-[1440px]",
-          )}
-        >
-          {children}
-        </div>
+      <div className="rounded-xl border border-border bg-white p-3">
+        <ViewportFrame viewport={device}>{children}</ViewportFrame>
       </div>
-      <p className="text-xs text-text-secondary">{footnote}</p>
+      <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-text-secondary">
+        <span className="font-medium text-text-primary">
+          {viewportLabel(device)} · {VIEWPORT_WIDTHS[device]}px
+        </span>
+        <span aria-hidden>·</span>
+        <span>{footnote}</span>
+      </p>
     </section>
   );
 }

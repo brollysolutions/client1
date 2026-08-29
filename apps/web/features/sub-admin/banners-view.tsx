@@ -2,10 +2,12 @@
 /* eslint-disable @next/next/no-img-element */
 
 import * as React from "react";
+import Link from "next/link";
 import {
   Archive,
   CheckCircle2,
   CopyPlus,
+  Images,
   Inbox,
   ImageIcon,
   Plus,
@@ -75,6 +77,8 @@ import { isSafeLocalHref } from "@/lib/safe-local-href";
 
 import { audienceSummary } from "./audience-rule-fields";
 import { BannerForm } from "./banner-form";
+import { BANNER_USAGE_TYPES_BY_PLACEMENT } from "@/lib/campaign-artwork";
+
 import { CampaignMediaPicker } from "./campaign-media-picker";
 import { filterBanners } from "./cms-filters";
 import { BannerPreview } from "./cms-previews";
@@ -287,9 +291,11 @@ export function BannersView({ embedded = false }: { embedded?: boolean }) {
         min: 0,
         max: 2_147_483_647,
       }),
+      // Public campaigns need artwork from one of the two sources, not
+      // specifically a template. The API rejects both together and neither.
       templateId:
-        banner.placement !== "dashboard" && !draft.templateId
-          ? "Artwork template is required."
+        banner.placement !== "dashboard" && !draft.templateId && !draft.mediaAssetId
+          ? "Choose category artwork or Media Library artwork."
           : undefined,
     };
     if (
@@ -316,8 +322,8 @@ export function BannersView({ embedded = false }: { embedded?: boolean }) {
       subtitle: draft.subtitle.trim() || null,
       cta_label: draft.ctaLabel.trim() || null,
       deep_link: draft.propertyId ? null : draft.deepLink.trim() || null,
-      template_id: banner.placement === "dashboard" ? null : draft.templateId,
-      media_asset_id: banner.placement === "dashboard" ? draft.mediaAssetId || null : undefined,
+      template_id: banner.placement === "dashboard" ? null : draft.templateId || null,
+      media_asset_id: draft.mediaAssetId || null,
       offer_id: null,
       property_id: categoryAllowsProperty && draft.propertyId ? draft.propertyId : null,
       priority: Number(draft.priority) || 0,
@@ -445,7 +451,18 @@ export function BannersView({ embedded = false }: { embedded?: boolean }) {
         }
         actions={
           !isAdmin ? (
-            <Button onClick={() => setCreateOpen(true)}><Plus className="h-4 w-4" />New banner</Button>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button asChild variant="outline">
+                <Link href="/dashboard/media-library">
+                  <Images className="h-4 w-4" aria-hidden />
+                  Media library
+                </Link>
+              </Button>
+              <Button onClick={() => setCreateOpen(true)}>
+                <Plus className="h-4 w-4" aria-hidden />
+                New banner
+              </Button>
+            </div>
           ) : undefined
         }
       />}
@@ -547,20 +564,57 @@ export function BannersView({ embedded = false }: { embedded?: boolean }) {
                           <FieldError id="banner-edit-link-error">{fieldErrors.deepLink}</FieldError>
                         </div>
                       </div>
-                      {active.placement !== "dashboard" ? (
-                        <div>
-                          <Label htmlFor="edit-template">Artwork template <RequiredIndicator /></Label>
-                          <Select value={draft.templateId || undefined} disabled={!canEdit} onValueChange={(templateId) => { setDraft({ ...draft, templateId, propertyId: "" }); setFieldErrors((current) => ({ ...current, templateId: undefined })); }}>
-                            <SelectTrigger id="edit-template" aria-required="true" aria-invalid={Boolean(fieldErrors.templateId)} aria-describedby={fieldErrors.templateId ? "banner-edit-template-error" : undefined}><SelectValue placeholder="Choose a template" /></SelectTrigger>
-                            <SelectContent>
-                              {editableTemplates.map((template) => (
-                                <SelectItem key={template.id} value={template.id}>{template.label} · version {template.version}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <FieldError id="banner-edit-template-error">{fieldErrors.templateId}</FieldError>
+                      {/* A campaign takes artwork from one source. Public
+                          placements may use a governed category template or
+                          Media Library artwork; the dashboard uses the library
+                          only. Choosing in one control clears the other, which
+                          is what the API requires on save. */}
+                      {canEdit ? (
+                        <div className="space-y-4">
+                          {active.placement !== "dashboard" ? (
+                            <div>
+                              <Label htmlFor="edit-template">Category artwork</Label>
+                              <Select
+                                value={draft.templateId || undefined}
+                                onValueChange={(templateId) => {
+                                  setDraft({ ...draft, templateId, propertyId: "", mediaAssetId: "" });
+                                  setDraftMediaUrl(null);
+                                  setFieldErrors((current) => ({ ...current, templateId: undefined }));
+                                }}
+                              >
+                                <SelectTrigger id="edit-template" aria-invalid={Boolean(fieldErrors.templateId)} aria-describedby={fieldErrors.templateId ? "banner-edit-template-error" : undefined}><SelectValue placeholder="Choose a category" /></SelectTrigger>
+                                <SelectContent>
+                                  {editableTemplates.map((template) => (
+                                    <SelectItem key={template.id} value={template.id}>{template.label} · version {template.version}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <FieldError id="banner-edit-template-error">{fieldErrors.templateId}</FieldError>
+                            </div>
+                          ) : null}
+                          <CampaignMediaPicker
+                            usageTypes={BANNER_USAGE_TYPES_BY_PLACEMENT[active.placement]}
+                            businessLine={active.business_line as "loans" | "real_estate" | "both"}
+                            value={draft.mediaAssetId}
+                            label={active.placement === "dashboard" ? "Artwork" : "Media Library artwork"}
+                            onChange={(id, asset) => {
+                              setDraft({ ...draft, mediaAssetId: id, ...(id ? { templateId: "", propertyId: "" } : {}) });
+                              setDraftMediaUrl(asset?.image_url ?? null);
+                            }}
+                          />
                         </div>
-                      ) : canEdit ? <CampaignMediaPicker usageType="dashboard_banner" businessLine={active.business_line as "loans" | "real_estate" | "both"} value={draft.mediaAssetId} onChange={(id, asset) => { setDraft({ ...draft, mediaAssetId: id }); setDraftMediaUrl(asset?.image_url ?? null); }} /> : <div><p className="text-xs font-medium text-text-secondary">Dashboard artwork</p><p className="mt-1 text-sm">{active.media_asset_id ? "Reusable Media Library asset" : "No reusable artwork selected"}</p></div>}
+                      ) : (
+                        <div>
+                          <p className="text-xs font-medium text-text-secondary">Artwork</p>
+                          <p className="mt-1 text-sm">
+                            {active.template_id
+                              ? "Governed category artwork"
+                              : active.media_asset_id
+                                ? "Media Library artwork"
+                                : "No artwork selected"}
+                          </p>
+                        </div>
+                      )}
                       {categoryAllowsProperty ? (
                         <div>
                           <Label htmlFor="edit-property">Advertised property (optional)</Label>

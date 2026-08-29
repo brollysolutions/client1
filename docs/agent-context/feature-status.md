@@ -9,6 +9,83 @@ Evidence baseline: `abcc1fd`
 verified Admin operational-visibility work in
 [PR #173](https://github.com/brollysolutions/client1/pull/173).
 
+**In progress - Sub Admin banner and offer authoring redesign:**
+`claude/20260829-091848-lets-plan-subadmin-banners-and-offers-righ` (direct user
+instruction; no formal requirement or completion-percentage change) rebuilds the
+authoring experience PR #259 shipped around a sound data model.
+
+Four defects drove it. The preview clamped `max-width` instead of using the
+1440/768/390 viewports its own specification requires, so inside the ~480px
+authoring column "Desktop" laid the production carousel out at roughly 480 CSS
+pixels and fired mobile breakpoints under a panel labelled "Exact banner
+preview". That preview sat inside hand-drawn furniture: an invented nav bar, a
+fake Login pill, three grey skeleton blocks and a hardcoded cream that is not the
+page background. Public artwork was a text dropdown of "label - version" strings,
+and the API returned 422 for any `media_asset_id` outside the dashboard, so
+uploading an image for the homepage, sponsor or section carousels was impossible
+by design. Dashboard banners and dashboard offers had no bundled artwork at all
+while every library thumbnail was force-cropped to 2:1, leaving a 9:5 hero and a
+16:9 sponsor visually identical.
+
+A campaign now takes artwork from exactly one source: a governed category
+template, or a Media Library asset chosen or uploaded for that campaign alone.
+Property promotion still requires a template, because the category decides which
+listings a campaign may advertise. `campaign_media_assets.usage_type` splits per
+rendered surface (`homepage_banner`, `section_banner`, `sponsor`,
+`dashboard_banner`, `dashboard_offer`, `campaign`), upload validates the ratio
+against that surface's target within +/-0.08 rather than one 1.45-2.75 band, and
+the Media Library and in-form picker group by surface with thumbnails at each
+surface's real shape. Fourteen bundled dashboard/offer assets are generated
+deterministically from already-licensed campaign WebPs and registered by migration
+`b7c9d1e3f5a8`. Banner authoring is a three-step wizard (Where, Artwork, Message)
+with a persistent preview; `/dashboard/banners` and `/dashboard/offers` are
+separate pages that both reach the Media Library as a destination and as an
+in-form picker, and `/dashboard/campaigns` redirects so pre-split notification
+links keep resolving.
+
+Two latent defects were found and fixed on the way. Six call sites resolved a
+banner/offer `image_key` through `storage.public_asset_url`, which returns None
+for the bundled `/banner-templates/...` references the Media Library already
+stored -- such campaigns rendered imageless and `validate_offer_for_review`
+rejected the offer outright, so bundled artwork could never be submitted. And the
+`allow_legacy` escape hatch matched every media-backed public banner, so a PATCH
+clearing `media_asset_id` would have left a public banner with no artwork.
+
+Fresh evidence: API Ruff check and format pass; the migration applies cleanly and
+Alembic reports the single `b7c9d1e3f5a8` head; OpenAPI and generated TypeScript
+contracts were regenerated and contain only the expected `usage_type` enum delta.
+Thirteen new API tests cover media-backed public banners at all four public
+placements, both artwork sources rejected together, cross-surface artwork
+rejected, artwork-less public banners rejected on create and on patch, bundled
+`image_url` resolution, and offer submission on bundled artwork. The full
+changed-and-adjacent set -- campaign media, banners, offers, public banners,
+personalization, banner catalogue, platform-scope RLS, media processing and CMS
+activation -- passes 185 tests against the final tree. The aggregate run reached
+1,819 passes / 17 failures / 10 skips in 1h39m on the shared stateful database;
+none is change-owned. The only campaign-adjacent one,
+`test_cms_activation.py::test_legacy_offer_link_does_not_gate_banner_activation`,
+passes 23/23 in isolation, and the remaining sixteen are the documented
+payout, content-block, catalogue, mobile-change, notification, telecaller,
+vehicle-arrangement and employee-assignment baselines that predate this branch. Web lint, strict
+typecheck and all 81 files / 521 unit tests pass, including new surface-geometry
+and preview-chrome tests and an extended asset-contract test pinning the seeded
+artwork by geometry and hash. Live browser verification on the Docker stack
+confirms the preview lays out at 1440 CSS pixels and renders scaled to 946, the
+mobile toggle switches the real layout width to 390, the library segregates into
+six surface sections whose thumbnails measure 1.80/1.78/2.50, the picker swaps
+artwork sets with the placement, both authoring pages reach the Media Library,
+the legacy `/dashboard/campaigns` links redirect, heading order is h1 then h2, and
+390px has no page-level horizontal overflow with no console errors. The Windows
+`pnpm build` reaches "Compiled successfully", type validation and 93/93 pages
+before the established standalone-symlink `EPERM`, which reproduces identically on
+a clean baseline tree. Security review found no reachable issue: client-settable
+`image_key` remains pattern-locked to `public/(banners|campaign-media)/<uuid>/`,
+`image_ref` is database-constrained and `..`-free, per-placement usage types and
+the business-line check gate every attach, and the listing now returns fewer
+fields than before. Design review moved the library heading level under the page
+h1, moved `aria-invalid` off a wrapper div onto the radiogroup widgets, gave
+images explicit intrinsic dimensions, and named the wizard's form controls.
+
 **Done - [PR #259](https://github.com/brollysolutions/client1/pull/259) - Sub
 Admin Campaign Studio, campaign Media Library, and Admin approval desk:**
 `codex/20260828-222513-banners-and-offers-are-managed-by-subadmin`

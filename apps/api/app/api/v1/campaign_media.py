@@ -33,6 +33,7 @@ from app.services.campaign_media import (
     presign_campaign_media,
     read_asset,
     update_asset,
+    usage_counts,
 )
 
 router = APIRouter()
@@ -98,7 +99,10 @@ async def list_media(
             else CampaignMediaAsset.business_line.in_((business_line, "both"))
         )
     assets = (await db.scalars(stmt)).all()
-    return CampaignMediaListResponse(assets=[await read_asset(db, item) for item in assets])
+    counts = await usage_counts(db, [item.id for item in assets])
+    return CampaignMediaListResponse(
+        assets=[await read_asset(db, item, usage_count=counts.get(item.id, 0)) for item in assets]
+    )
 
 
 @router.get("/{asset_id}", response_model=CampaignMediaRead)

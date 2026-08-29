@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app import campaign_artwork
 from app.core.deps import (
     CurrentUser,
     get_active_user,
@@ -27,10 +28,13 @@ from app.schemas.offers import (
     OfferUpdate,
 )
 from app.schemas.personalization import AudienceRules, audience_rules_to_storage
-from app.services import storage
 from app.services.audit_log import record as record_audit
 from app.services.banners import IMAGE_MAX_BYTES, UnsupportedImageType, presign_banner_image_upload
-from app.services.campaign_media import CampaignMediaInvalid, resolve_campaign_asset
+from app.services.campaign_media import (
+    CampaignMediaInvalid,
+    asset_image_url,
+    resolve_campaign_asset,
+)
 from app.services.offers import (
     OfferIllegalTransition,
     OfferInvalidConfiguration,
@@ -44,7 +48,7 @@ _EDITABLE_STATUSES = (OfferStatus.DRAFT, OfferStatus.REJECTED)
 
 def _read(offer: Offer) -> OfferRead:
     return OfferRead.model_validate(offer, from_attributes=True).model_copy(
-        update={"image_url": storage.public_asset_url(offer.image_key) if offer.image_key else None}
+        update={"image_url": asset_image_url(offer.image_key) if offer.image_key else None}
     )
 
 
@@ -81,7 +85,7 @@ async def create_offer(
             db,
             asset_id=payload.media_asset_id,
             business_line=payload.business_line,
-            allowed_usage_types={"dashboard_offer", "campaign"},
+            allowed_usage_types=campaign_artwork.OFFER_USAGE_TYPES,
         )
     except CampaignMediaInvalid as exc:
         raise HTTPException(
@@ -164,7 +168,7 @@ async def update_offer(
                 db,
                 asset_id=payload.media_asset_id,
                 business_line=offer.business_line,
-                allowed_usage_types={"dashboard_offer", "campaign"},
+                allowed_usage_types=campaign_artwork.OFFER_USAGE_TYPES,
             )
         except CampaignMediaInvalid as exc:
             raise HTTPException(
