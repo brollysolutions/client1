@@ -9,6 +9,29 @@ Evidence baseline: `abcc1fd`
 verified Admin operational-visibility work in
 [PR #173](https://github.com/brollysolutions/client1/pull/173).
 
+**In progress - campaign phone preview withdrawn:**
+`claude/20260829-131005-remove-phone-preview-as-of-now` (direct user
+instruction; no formal requirement or completion-percentage change) removes the
+phone preview added in PR #261. With a single width remaining, the size control
+is removed rather than left rendering one option.
+
+`ViewportFrame` now renders at `DESKTOP_VIEWPORT_WIDTH` and takes no viewport
+prop; `VIEWPORT_WIDTHS`, `ViewportName`, `viewportLabel` and the `PreviewDevice`
+type are removed, as is the device state in the banner wizard, offer form,
+banner queue and offer queue. `CampaignPreviewPanel` and `WorkspacePreviewFrame`
+state the previewed width as static text. The scaling, centring, `inert`
+treatment and production-component parity are unchanged, and the file documents
+what restoring a phone preview would take.
+
+Fresh evidence: web lint, strict typecheck, and all 82 files / 523 unit tests
+pass; the viewport-contract test now asserts a single width and the absence of a
+size switcher. Live browser review on the Docker stack confirms no `Preview
+size` group and no phone or desktop control on the banner wizard, the offer
+form, or the banner edit workspace, a static `Desktop · 1440px` caption on all
+three, and the preview still laying out at 1440 CSS pixels while rendering
+scaled to 1258, with no console errors. No API, contract, migration,
+authorization, or RLS behaviour changed.
+
 **In progress - campaign authoring follow-up:**
 `claude/20260829-122607-the-current-ui-is-good-for-banner` (direct user
 instruction; no formal requirement or completion-percentage change) closes six

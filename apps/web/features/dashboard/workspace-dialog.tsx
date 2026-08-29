@@ -1,20 +1,14 @@
 "use client";
 
 import * as React from "react";
-import { Monitor, Smartphone, X } from "lucide-react";
+import { X } from "lucide-react";
 
 import { CLOSE_BUTTON_CLASS } from "@/components/ui/close-button";
-import { Button } from "@/components/ui/button";
 import { DialogClose, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 
-import {
-  VIEWPORT_WIDTHS,
-  ViewportFrame,
-  type ViewportName,
-  viewportLabel,
-} from "./viewport-frame";
+import { DESKTOP_VIEWPORT_WIDTH, ViewportFrame } from "./viewport-frame";
 
 /**
  * Two dialog shapes for staff detail surfaces.
@@ -125,17 +119,16 @@ export function WorkspaceLayout({
   );
 }
 
-/** Named for the viewport it renders at; see `ViewportFrame`. */
-export type PreviewDevice = ViewportName;
-
+/**
+ * Desktop only. The phone preview beside it has been withdrawn, so there is no
+ * width to switch between; `ViewportFrame` owns the one that remains.
+ */
 export function WorkspacePreviewFrame({
   title,
   description,
   contexts,
   context,
   onContextChange,
-  device,
-  onDeviceChange,
   footnote = "Preview only. Approval, targeting, schedule, ranking, and page context determine actual visibility.",
   children,
 }: {
@@ -144,8 +137,6 @@ export function WorkspacePreviewFrame({
   contexts?: readonly { value: string; label: string }[];
   context?: string;
   onContextChange?: (value: string) => void;
-  device: PreviewDevice;
-  onDeviceChange: (device: PreviewDevice) => void;
   footnote?: string;
   children: React.ReactNode;
 }) {
@@ -171,41 +162,13 @@ export function WorkspacePreviewFrame({
               </TabsList>
             </Tabs>
           ) : null}
-          <div
-            className="flex rounded-lg border border-border bg-card p-0.5"
-            role="group"
-            aria-label="Preview size"
-          >
-            <Button
-              type="button"
-              size="icon"
-              variant={device === "desktop" ? "outline" : "ghost"}
-              onClick={() => onDeviceChange("desktop")}
-              aria-pressed={device === "desktop"}
-              aria-label="Desktop preview"
-            >
-              <Monitor className="h-4 w-4" aria-hidden="true" />
-            </Button>
-            <Button
-              type="button"
-              size="icon"
-              variant={device === "mobile" ? "outline" : "ghost"}
-              onClick={() => onDeviceChange("mobile")}
-              aria-pressed={device === "mobile"}
-              aria-label="Phone preview"
-            >
-              <Smartphone className="h-4 w-4" aria-hidden="true" />
-            </Button>
-          </div>
         </div>
       </div>
       <div className="rounded-xl border border-border bg-white p-3">
-        <ViewportFrame viewport={device}>{children}</ViewportFrame>
+        <ViewportFrame>{children}</ViewportFrame>
       </div>
       <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-text-secondary">
-        <span className="font-medium text-text-primary">
-          {viewportLabel(device)} · {VIEWPORT_WIDTHS[device]}px
-        </span>
+        <span className="font-medium text-text-primary">Desktop · {DESKTOP_VIEWPORT_WIDTH}px</span>
         <span aria-hidden>·</span>
         <span>{footnote}</span>
       </p>

@@ -27,7 +27,6 @@ import { OFFER_USAGE_TYPES } from "@/lib/campaign-artwork";
 import { CampaignMediaPicker } from "./campaign-media-picker";
 import { OfferPreview } from "./cms-previews";
 import { CampaignPreviewPanel } from "./campaign-preview-panel";
-import type { PreviewDevice } from "./cms-workspace";
 
 type Schemas = components["schemas"];
 type DiscountType = "percentage" | "flat" | "cashback-tie";
@@ -106,7 +105,6 @@ export function OfferForm({
   );
   const [errors, setErrors] = React.useState<Record<string, string>>({});
   const [submitting, setSubmitting] = React.useState(false);
-  const [previewDevice, setPreviewDevice] = React.useState<PreviewDevice>("desktop");
   const [previewUrl, setPreviewUrl] = React.useState<string | null>(() => initialOffer?.image_url ?? null);
   const formRef = React.useRef<HTMLFormElement>(null);
 
@@ -229,8 +227,6 @@ export function OfferForm({
         {/* Full width above the fields, matching the banner wizard: a 20rem
             aside could not show the signed-in dashboard at a useful size. */}
         <CampaignPreviewPanel
-          device={previewDevice}
-          onDeviceChange={setPreviewDevice}
           caption="Signed-in dashboard — the only surface a coupon appears on"
         >
           <OfferPreview

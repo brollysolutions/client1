@@ -46,7 +46,7 @@ import {
 import { audienceSummary } from "./audience-rule-fields";
 import { filterOffers } from "./cms-filters";
 import { OfferPreview } from "./cms-previews";
-import { CmsPreviewFrame, CmsWorkspaceHeader, CmsWorkspaceLayout, CMS_WORKSPACE_DIALOG_CLASS, type PreviewDevice } from "./cms-workspace";
+import { CmsPreviewFrame, CmsWorkspaceHeader, CmsWorkspaceLayout, CMS_WORKSPACE_DIALOG_CLASS } from "./cms-workspace";
 import { OfferForm } from "./offer-form";
 import { useOfferQueue } from "./use-offer-queue";
 
@@ -107,7 +107,6 @@ export function OffersView({
   const [reviewNote, setReviewNote] = React.useState("");
   const [reviewAction, setReviewAction] = React.useState<"changes" | "remove" | null>(null);
   const [busy, setBusy] = React.useState(false);
-  const [device, setDevice] = React.useState<PreviewDevice>("desktop");
   const { confirm, confirmDialog } = useConfirm();
   const pendingCount = items.filter((item) => item.status === "pending_approval").length;
   React.useEffect(() => onPendingCount?.(pendingCount), [onPendingCount, pendingCount]);
@@ -307,7 +306,7 @@ export function OffersView({
                   {!isAdmin && (active.status === "scheduled" || active.status === "active" || active.status === "expired") ? <Button variant="outline" disabled={busy} onClick={() => void transition(archiveOffer, active, "Offer archived")}><Archive className="h-4 w-4" />Archive</Button> : null}
                 </DialogFooter>
               </div>}
-              preview={<CmsPreviewFrame title="Dashboard appearance" description="Coupon codes are never rendered on public pages." contexts={[{ value: "dashboard", label: "Dashboard" }]} context="dashboard" onContextChange={() => undefined} device={device} onDeviceChange={setDevice}><OfferPreview offer={active} /></CmsPreviewFrame>}
+              preview={<CmsPreviewFrame title="Dashboard appearance" description="Coupon codes are never rendered on public pages." contexts={[{ value: "dashboard", label: "Dashboard" }]} context="dashboard" onContextChange={() => undefined}><OfferPreview offer={active} /></CmsPreviewFrame>}
             />
           </> : null}
         </DialogContent>
