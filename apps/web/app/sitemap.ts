@@ -16,6 +16,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     "/contact",
     "/privacy",
     "/terms",
+    "/cookies",
   ];
   const calculatorPaths = CALCULATOR_SLUGS.map((slug) => `/calculators/${slug}`);
   return [...staticPaths, ...calculatorPaths].map((path) => ({

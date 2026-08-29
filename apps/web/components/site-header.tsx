@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { ArrowRight, Phone } from "lucide-react";
 
+import { Logo } from "@/components/logo";
 import { Button } from "@/components/ui/button";
 import {
   NavigationMenu,
@@ -46,7 +47,7 @@ export function SiteHeader() {
           on the bar while the actions sit flush against the page's right edge
           (only the page gutter padding separates them from the corner). */}
       <div className="grid h-16 w-full grid-cols-[1fr_auto_1fr] items-center px-4 sm:px-6 lg:px-8">
-        <div className="col-start-1 justify-self-start" />
+        <Logo className="col-start-1 justify-self-start" />
 
         <NavigationMenu className="col-start-2 hidden min-w-0 justify-self-center lg:flex">
           <NavigationMenuList>

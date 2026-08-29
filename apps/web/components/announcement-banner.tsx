@@ -4,7 +4,7 @@ import * as React from "react";
 import { TriangleAlertIcon, X } from "lucide-react";
 
 import { CLOSE_BUTTON_CLASS } from "@/components/ui/close-button";
-import { TRUST_LINE } from "@/lib/site";
+import { TRUST_LINE } from "@/lib/brand";
 import { cn } from "@/lib/utils";
 
 // The announcement copy — icon + text as one unit — rendered twice inside the

@@ -73,7 +73,7 @@ describe("CMS previews", () => {
         }}
       />,
     );
-    expect(markup).toContain("DhanaDhara");
+    expect(markup).toContain("Dhanadhara");
     expect(markup).toContain("Continue your application");
     // The card sits inside the same wrapper the real dashboard uses for its
     // highlights band, not an invented content area.

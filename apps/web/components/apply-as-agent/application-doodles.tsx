@@ -25,8 +25,8 @@ function ApplyGlyph({ kind }: { kind: string }) {
         <svg viewBox="0 0 40 40" className="h-full w-full">
           <rect x="4" y="10" width="32" height="22" rx="3" fill="#FFFFFF" stroke="#293681" strokeWidth="2" />
           <circle cx="13" cy="21" r="5" fill="#F3F3EE" stroke="#293681" strokeWidth="1.5" />
-          <line x1="21" y1="17" x2="32" y2="17" stroke="#4274D9" strokeWidth="2.2" strokeLinecap="round" />
-          <line x1="21" y1="22" x2="29" y2="22" stroke="#4274D9" strokeWidth="2.2" strokeLinecap="round" />
+          <line x1="21" y1="17" x2="32" y2="17" stroke="#315FC7" strokeWidth="2.2" strokeLinecap="round" />
+          <line x1="21" y1="22" x2="29" y2="22" stroke="#315FC7" strokeWidth="2.2" strokeLinecap="round" />
           <line x1="21" y1="27" x2="26" y2="27" stroke="#95CCDD" strokeWidth="2" strokeLinecap="round" />
         </svg>
       );
@@ -34,7 +34,7 @@ function ApplyGlyph({ kind }: { kind: string }) {
       return (
         <svg viewBox="0 0 40 40" fill="none" className="h-full w-full">
           <path d="M12 24 Q18 10 24 18 Q28 24 32 12" stroke="#293681" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-          <circle cx="32" cy="12" r="2.6" fill="#4274D9" />
+          <circle cx="32" cy="12" r="2.6" fill="#315FC7" />
           <path d="M8 30 Q16 26 24 30 Q28 32 32 29" stroke="#95CCDD" strokeWidth="2.2" strokeLinecap="round" />
         </svg>
       );
@@ -50,7 +50,7 @@ function ApplyGlyph({ kind }: { kind: string }) {
     case "briefcase":
       return (
         <svg viewBox="0 0 40 40" fill="none" className="h-full w-full">
-          <rect x="6" y="16" width="28" height="18" rx="3" fill="#4274D9" stroke="#293681" strokeWidth="2" />
+          <rect x="6" y="16" width="28" height="18" rx="3" fill="#315FC7" stroke="#293681" strokeWidth="2" />
           <rect x="15" y="10" width="10" height="7" rx="2" fill="none" stroke="#293681" strokeWidth="2.4" />
           <rect x="17" y="23" width="6" height="5" rx="1" fill="#95CCDD" />
           <line x1="6" y1="24" x2="34" y2="24" stroke="#293681" strokeWidth="1.5" />

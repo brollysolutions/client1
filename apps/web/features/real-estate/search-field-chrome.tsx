@@ -41,7 +41,7 @@ export function SearchFieldIcon({ className }: { className?: string }) {
     <span
       aria-hidden="true"
       className={cn(
-        "ml-2 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-cta-tint text-brand-cta transition-all duration-300 ease-out group-focus-within/search:scale-110 group-focus-within/search:rotate-6 group-focus-within/search:bg-brand-cta group-focus-within/search:text-white motion-reduce:transition-none motion-reduce:group-focus-within/search:scale-100 motion-reduce:group-focus-within/search:rotate-0",
+        "ml-2 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-cta-tint text-brand-cta transition-[background-color,color,transform] duration-300 ease-out group-focus-within/search:scale-110 group-focus-within/search:rotate-6 group-focus-within/search:bg-brand-cta group-focus-within/search:text-white motion-reduce:transition-none motion-reduce:group-focus-within/search:scale-100 motion-reduce:group-focus-within/search:rotate-0",
         className,
       )}
     >

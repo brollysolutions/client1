@@ -2,6 +2,7 @@ import * as React from "react";
 
 import { NAV_ITEMS } from "@/components/navbars/nav-items";
 import { NAV_ITEMS as DASHBOARD_NAV_ITEMS } from "@/features/dashboard/nav-items";
+import { SITE_NAME } from "@/lib/brand";
 
 /**
  * Page furniture drawn around a campaign preview so a Sub Admin sees the
@@ -16,17 +17,15 @@ import { NAV_ITEMS as DASHBOARD_NAV_ITEMS } from "@/features/dashboard/nav-items
  * that behaviour in.
  */
 
-const BRAND = "DhanaDhara";
-
 const PUBLIC_NAV_LABELS = NAV_ITEMS.filter((item) => item.href !== "/").map((item) => item.label);
 
 function BrandMark({ compact = false }: { compact?: boolean }) {
   return (
     <span className="flex items-center gap-2 font-heading text-lg font-semibold text-[var(--nav-text)]">
       <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-[var(--nav-primary)] text-sm font-bold text-white">
-        DD
+        D
       </span>
-      <span className={compact ? "hidden sm:inline" : undefined}>{BRAND}</span>
+      <span className={compact ? "hidden sm:inline" : undefined}>{SITE_NAME}</span>
     </span>
   );
 }

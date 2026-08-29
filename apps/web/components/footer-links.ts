@@ -11,6 +11,13 @@ import { PROPERTY_CATEGORIES } from "@/lib/properties";
 export type FooterLink = { label: string; href: string };
 export type FooterColumn = { heading: string; links: FooterLink[] };
 
+export const LEGAL_LINKS: FooterLink[] = [
+  { label: "Privacy", href: "/privacy" },
+  { label: "Terms", href: "/terms" },
+  { label: "Cookies", href: "/cookies" },
+  { label: "Sitemap", href: "/sitemap.xml" },
+];
+
 // Core loan types only, deliberately excluding "credit-cards" and "insurance"
 // (both still get real anchors on /loans via lib/products.ts, just not a
 // footer link) — keeps the column matching the 5-row Loans column the
