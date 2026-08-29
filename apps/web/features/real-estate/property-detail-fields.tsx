@@ -210,6 +210,9 @@ function ApprovalFields({ form, errors, setDetailField }: Pick<Props, "form" | "
 export function PropertyDetailFields({ form, errors, setField, setDetailField }: Props) {
   const family = propertyFormFamily(form.propertySubtype);
   const d = form.details;
+  // A rental has no new-vs-resale dimension, and the API rejects a sale type
+  // on a rent listing outright.
+  const isRent = form.listingIntent === "rent";
   if (!family) {
     return (
       <DashboardFormSection
@@ -263,7 +266,7 @@ export function PropertyDetailFields({ form, errors, setField, setDetailField }:
             <Field id="unit-area" label="Unit or plot area" suffix="sq ft" type="number" value={d.unitAreaSqft} onChange={(value) => setDetailField("unitAreaSqft", value)} error={errors.unitAreaSqft} />
             <Field id="uds-area" label="Undivided share" suffix="sq ft" type="number" value={d.udsSqft} onChange={(value) => setDetailField("udsSqft", value)} error={errors.udsSqft} optional />
             <Field id="price-per-sqft" label="Price per square foot" suffix="₹" type="number" value={d.rateRupees} onChange={(value) => setDetailField("rateRupees", value)} error={errors.rateRupees} />
-            <Choice id="sale-type" label="Sale type" value={d.saleType} onChange={(value) => setDetailField("saleType", value)} options={SALE_OPTIONS} error={errors.saleType} />
+            {isRent ? null : <Choice id="sale-type" label="Sale type" value={d.saleType} onChange={(value) => setDetailField("saleType", value)} options={SALE_OPTIONS} error={errors.saleType} />}
             <Choice id="plot-facing" label="Plot facing" value={d.plotFacing} onChange={(value) => setDetailField("plotFacing", value)} options={FACING_OPTIONS} error={errors.plotFacing} optional />
             <Choice id="entrance-facing" label="Entrance facing" value={d.facing} onChange={(value) => setDetailField("facing", value)} options={FACING_OPTIONS} error={errors.facing} />
             <Field id="handover" label="Expected handover date" type="date" value={d.expectedHandoverDate} onChange={(value) => setDetailField("expectedHandoverDate", value)} error={errors.expectedHandoverDate} optional={form.constructionStatus !== "under_construction"} />
@@ -294,7 +297,7 @@ export function PropertyDetailFields({ form, errors, setField, setDetailField }:
             <Field id="commercial-total-area" label="Total area" suffix="sq ft" type="number" value={d.totalAreaSqft} onChange={(value) => setDetailField("totalAreaSqft", value)} error={errors.totalAreaSqft} />
             <Field id="commercial-unit-area" label="Unit area" suffix="sq ft" type="number" value={d.unitAreaSqft} onChange={(value) => setDetailField("unitAreaSqft", value)} error={errors.unitAreaSqft} />
             <Choice id="commercial-facing" label="Facing" value={d.facing} onChange={(value) => setDetailField("facing", value)} options={FACING_OPTIONS} error={errors.facing} />
-            <Choice id="commercial-sale-type" label="Sale type" value={d.saleType} onChange={(value) => setDetailField("saleType", value)} options={SALE_OPTIONS} error={errors.saleType} />
+            {isRent ? null : <Choice id="commercial-sale-type" label="Sale type" value={d.saleType} onChange={(value) => setDetailField("saleType", value)} options={SALE_OPTIONS} error={errors.saleType} />}
             <Choice id="income-start" label="Rental income starts" value={d.rentalIncomeStart} onChange={(value) => setDetailField("rentalIncomeStart", value)} options={[{ value: "immediate", label: "From day one" }, { value: "from_handover", label: "From handover" }, { value: "not_applicable", label: "Not applicable" }]} error={errors.rentalIncomeStart} />
             <Field id="commercial-income" label="Monthly rental income" suffix="₹" type="number" value={d.monthlyRentalIncomeRupees} onChange={(value) => setDetailField("monthlyRentalIncomeRupees", value)} error={errors.monthlyRentalIncomeRupees} optional />
             <ApprovalFields form={form} errors={errors} setDetailField={setDetailField} />
@@ -312,7 +315,7 @@ export function PropertyDetailFields({ form, errors, setField, setDetailField }:
             <Field id="total-plots" label="Total plots" type="number" value={d.totalPlots} onChange={(value) => setDetailField("totalPlots", value)} error={errors.totalPlots} />
             <Choice id="plot-facing-choice" label="Facing" value={d.facing} onChange={(value) => setDetailField("facing", value)} options={FACING_OPTIONS} error={errors.facing} />
             <Field id="price-per-sqyd" label="Price per square yard" suffix="₹" type="number" value={d.rateRupees} onChange={(value) => setDetailField("rateRupees", value)} error={errors.rateRupees} />
-            <Choice id="plot-sale-type" label="Sale type" value={d.saleType} onChange={(value) => setDetailField("saleType", value)} options={SALE_OPTIONS} error={errors.saleType} />
+            {isRent ? null : <Choice id="plot-sale-type" label="Sale type" value={d.saleType} onChange={(value) => setDetailField("saleType", value)} options={SALE_OPTIONS} error={errors.saleType} />}
             <Choice id="project-status" label="Project status" value={d.projectStatus} onChange={(value) => setDetailField("projectStatus", value)} options={[{ value: "under_development", label: "Under development" }, { value: "completed", label: "Completed" }]} error={errors.projectStatus} />
             <ApprovalFields form={form} errors={errors} setDetailField={setDetailField} />
             <Narrative id="plot-amenities" label="Amenities description" value={d.amenitiesDescription} onChange={(value) => setDetailField("amenitiesDescription", value)} maxWords={150} error={errors.amenitiesDescription} optional />

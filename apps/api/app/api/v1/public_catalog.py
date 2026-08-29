@@ -54,6 +54,7 @@ from app.services.financial_catalog import (
     provider_logo_url,
 )
 from app.services.properties import media_by_property, media_urls_by_property
+from app.services.property_submissions import format_inr_amount
 from app.services.public_catalog import (
     get_public_content_block_by_slug,
     get_public_property,
@@ -89,6 +90,13 @@ def _public_property_data(property_listing: Property) -> dict:
     return {
         **property_listing.__dict__,
         "structured_details": structured_details,
+        # Rendered, not paise: the anonymous shapes deliberately never carry
+        # exact minor units (see PublicPropertyDetailRead).
+        "security_deposit_display": (
+            format_inr_amount(property_listing.security_deposit_paise)
+            if property_listing.security_deposit_paise is not None
+            else None
+        ),
     }
 
 

@@ -6242,7 +6242,7 @@ export interface components {
             other_information?: string | null;
             ownership_type: components["schemas"]["CommercialOwnership"];
             rental_income_start: components["schemas"]["RentalIncomeStart"];
-            sale_type: components["schemas"]["SaleType"];
+            sale_type?: components["schemas"]["SaleType"] | null;
             /** Total Area Sqft */
             total_area_sqft: number;
             /** Unit Area Sqft */
@@ -7127,6 +7127,33 @@ export interface components {
             /** Total */
             total: number;
         };
+        /**
+         * ListingIntent
+         * @description Whether the listing is offered for sale or for rent/lease.
+         *
+         *     Deliberately two-valued. Indian practice distinguishes short-term "rent"
+         *     from long-term/commercial "lease", but they share every field this catalog
+         *     captures (headline amount, deposit, minimum term, availability date), so a
+         *     single ``rent`` intent labelled "Rent / Lease" carries both. Splitting them
+         *     later is an additive ALTER TYPE ... ADD VALUE, the same shape as every other
+         *     enum extension here.
+         * @enum {string}
+         */
+        ListingIntent: "sale" | "rent";
+        /**
+         * ListingLink
+         * @description One external link. ``platform`` is derived, never trusted from input.
+         */
+        ListingLink: {
+            platform?: components["schemas"]["ListingLinkPlatform"] | null;
+            /** Url */
+            url: string;
+        };
+        /**
+         * ListingLinkPlatform
+         * @enum {string}
+         */
+        ListingLinkPlatform: "youtube" | "instagram" | "facebook";
         /** LoanApplicationCreate */
         LoanApplicationCreate: {
             /** Answers */
@@ -8151,7 +8178,7 @@ export interface components {
             /** Project Name */
             project_name: string;
             project_status: components["schemas"]["PlotProjectStatus"];
-            sale_type: components["schemas"]["SaleType"];
+            sale_type?: components["schemas"]["SaleType"] | null;
             /** Total Plots */
             total_plots: number;
             /** Total Project Area Acres */
@@ -8236,7 +8263,7 @@ export interface components {
             project_area_acres: number;
             /** Project Name */
             project_name: string;
-            sale_type: components["schemas"]["SaleType"];
+            sale_type?: components["schemas"]["SaleType"] | null;
             /** Total Units */
             total_units: number;
             /** Uds Sqft */
@@ -8354,6 +8381,8 @@ export interface components {
             amenities: string[];
             /** Area Sqft */
             area_sqft: number;
+            /** Available From */
+            available_from: string | null;
             /** Bhk */
             bhk: number;
             category: components["schemas"]["PropertyCategory"];
@@ -8373,6 +8402,9 @@ export interface components {
             id: string;
             /** Image */
             image: string | null;
+            listing_intent: components["schemas"]["ListingIntent"];
+            /** Listing Links */
+            listing_links: components["schemas"]["ListingLink"][] | null;
             /** Locality */
             locality: string;
             /** Location */
@@ -8383,6 +8415,8 @@ export interface components {
             media_urls?: string[];
             /** Meta */
             meta: string | null;
+            /** Minimum Lease Months */
+            minimum_lease_months: number | null;
             /** Pincode */
             pincode: string;
             /** Price Display */
@@ -8394,6 +8428,8 @@ export interface components {
             /** Rera Number */
             rera_number: string | null;
             rera_verification_status: components["schemas"]["ReraVerificationStatus"];
+            /** Security Deposit Paise */
+            security_deposit_paise: number | null;
             /** State */
             state: string | null;
             /** Structured Details */
@@ -8732,6 +8768,9 @@ export interface components {
          *     This remains deliberately separate from ``PropertyRead``. The detail page
          *     exposes useful buyer facets, but never internal publication state, exact
          *     minor-unit pricing, reviewer identity, or timestamps.
+         *
+         *     The deposit therefore ships as a rendered ``security_deposit_display``
+         *     string, derived the same way ``price_display`` is, rather than as paise.
          */
         PublicPropertyDetailRead: {
             /** Age Years */
@@ -8740,6 +8779,8 @@ export interface components {
             amenities: string[];
             /** Area Sqft */
             area_sqft: number;
+            /** Available From */
+            available_from: string | null;
             /** Bhk */
             bhk: number;
             category: components["schemas"]["PropertyCategory"];
@@ -8754,6 +8795,9 @@ export interface components {
             id: string;
             /** Image */
             image: string | null;
+            listing_intent: components["schemas"]["ListingIntent"];
+            /** Listing Links */
+            listing_links: components["schemas"]["ListingLink"][] | null;
             /** Locality */
             locality: string;
             /** Location */
@@ -8764,6 +8808,8 @@ export interface components {
             media_urls?: string[];
             /** Meta */
             meta: string | null;
+            /** Minimum Lease Months */
+            minimum_lease_months: number | null;
             /** Pincode */
             pincode: string;
             /** Price Display */
@@ -8773,6 +8819,8 @@ export interface components {
             /** Rera Number */
             rera_number: string | null;
             rera_verification_status: components["schemas"]["ReraVerificationStatus"];
+            /** Security Deposit Display */
+            security_deposit_display?: string | null;
             /** State */
             state: string | null;
             /** Structured Details */
@@ -8798,6 +8846,9 @@ export interface components {
          *     city, locality) and internal metadata (active, created_at). `rera_number`
          *     is included only after Admin verification; exemption-verified listings have
          *     no public registration number.
+         *
+         *     ``listing_intent`` is included because the Rent/Sale badge is card-level
+         *     information; the rent terms behind it stay on the detail shape.
          */
         PublicPropertyRead: {
             category: components["schemas"]["PropertyCategory"];
@@ -8808,6 +8859,7 @@ export interface components {
             id: string;
             /** Image */
             image: string | null;
+            listing_intent: components["schemas"]["ListingIntent"];
             /** Location */
             location: string;
             /** Media */
@@ -9221,6 +9273,12 @@ export interface components {
         ResidentialConfiguration: "1_bhk" | "2_bhk" | "3_bhk" | "4_bhk" | "5_plus_bhk" | "studio";
         /**
          * SaleType
+         * @description New-vs-resale, meaningful only for a sale listing.
+         *
+         *     Optional on the detail models because a rent/lease listing has no sale type.
+         *     It is not freely optional though: ``SubmissionFacts`` requires it when
+         *     ``listing_intent`` is ``sale`` and rejects it when the intent is ``rent``,
+         *     so a sale listing can still never omit it.
          * @enum {string}
          */
         SaleType: "new_sale" | "resale";
@@ -9477,6 +9535,8 @@ export interface components {
              * @default 0
              */
             area_sqft: number;
+            /** Available From */
+            available_from?: string | null;
             /**
              * Bhk
              * @default 0
@@ -9487,6 +9547,10 @@ export interface components {
             city: string;
             construction_status?: components["schemas"]["ConstructionStatus"] | null;
             furnishing?: components["schemas"]["Furnishing"] | null;
+            /** @default sale */
+            listing_intent: components["schemas"]["ListingIntent"];
+            /** Listing Links */
+            listing_links?: components["schemas"]["ListingLink"][] | null;
             /** Locality */
             locality: string;
             /** Location */
@@ -9495,6 +9559,8 @@ export interface components {
             media: components["schemas"]["SubmissionMediaInput"][];
             /** Meta */
             meta?: string | null;
+            /** Minimum Lease Months */
+            minimum_lease_months?: number | null;
             /** Pincode */
             pincode: string;
             /** Price Paise */
@@ -9503,6 +9569,8 @@ export interface components {
             rera_applicability: components["schemas"]["ReraApplicability"];
             /** Rera Number */
             rera_number?: string | null;
+            /** Security Deposit Paise */
+            security_deposit_paise?: number | null;
             /** State */
             state: string;
             /** Structured Details */
@@ -9572,6 +9640,8 @@ export interface components {
             approved_property_id: string | null;
             /** Area Sqft */
             area_sqft: number;
+            /** Available From */
+            available_from: string | null;
             /** Bhk */
             bhk: number;
             category: components["schemas"]["PropertyCategory"];
@@ -9597,6 +9667,9 @@ export interface components {
             id: string;
             /** Image */
             image: string | null;
+            listing_intent: components["schemas"]["ListingIntent"];
+            /** Listing Links */
+            listing_links: components["schemas"]["ListingLink"][] | null;
             /** Locality */
             locality: string;
             /** Location */
@@ -9605,6 +9678,8 @@ export interface components {
             media?: components["schemas"]["SubmissionMediaRead"][];
             /** Meta */
             meta: string | null;
+            /** Minimum Lease Months */
+            minimum_lease_months: number | null;
             /** Pincode */
             pincode: string;
             /** Price Paise */
@@ -9622,6 +9697,8 @@ export interface components {
             reviewed_at: string | null;
             /** Reviewed By Uuid */
             reviewed_by_uuid: string | null;
+            /** Security Deposit Paise */
+            security_deposit_paise: number | null;
             /** State */
             state: string | null;
             status: components["schemas"]["SubmissionStatus"];
@@ -9664,6 +9741,8 @@ export interface components {
              * @default 0
              */
             area_sqft: number;
+            /** Available From */
+            available_from?: string | null;
             /**
              * Bhk
              * @default 0
@@ -9674,12 +9753,18 @@ export interface components {
             city: string;
             construction_status?: components["schemas"]["ConstructionStatus"] | null;
             furnishing?: components["schemas"]["Furnishing"] | null;
+            /** @default sale */
+            listing_intent: components["schemas"]["ListingIntent"];
+            /** Listing Links */
+            listing_links?: components["schemas"]["ListingLink"][] | null;
             /** Locality */
             locality: string;
             /** Location */
             location: string;
             /** Meta */
             meta?: string | null;
+            /** Minimum Lease Months */
+            minimum_lease_months?: number | null;
             /** Pincode */
             pincode: string;
             /** Price Paise */
@@ -9688,6 +9773,8 @@ export interface components {
             rera_applicability: components["schemas"]["ReraApplicability"];
             /** Rera Number */
             rera_number?: string | null;
+            /** Security Deposit Paise */
+            security_deposit_paise?: number | null;
             /** State */
             state: string;
             /** Structured Details */

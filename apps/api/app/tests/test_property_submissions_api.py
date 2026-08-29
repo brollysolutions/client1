@@ -8,6 +8,7 @@ as an agent/admin for the endpoint under test.
 
 from __future__ import annotations
 
+import json
 import uuid
 from datetime import UTC, datetime, timedelta
 
@@ -1230,3 +1231,138 @@ async def test_media_lifecycle_retains_references_and_purges_expired_objects(
     assert active_public[0].object_key not in deleted
     assert recent_orphan_key not in deleted
     assert summary == {"scanned": len(private_objects) + len(public_objects), "deleted": 4}
+
+
+@pytest.mark.asyncio
+async def test_rent_listing_with_links_survives_approval(client: AsyncClient) -> None:
+    """A rental reaches the catalogue with its terms, links, and rent-shaped price.
+
+    The approval path builds the Property row with a hand-written constructor
+    rather than the generic field copy, so a new column can silently fail to
+    cross that seam. This is the test that catches it.
+    """
+    _, mobile = await full_registration(client, lines=["real_estate"])
+    uid = await _auth_user_uuid(mobile)
+    payload = _payload(uid)
+    payload["listing_intent"] = "rent"
+    payload["price_paise"] = 25_000_00
+    payload["security_deposit_paise"] = 1_50_000_00
+    payload["minimum_lease_months"] = 11
+    payload["available_from"] = "2026-10-01"
+    payload["listing_links"] = [
+        {"url": "https://youtu.be/walkthrough"},
+        # Platform is deliberately wrong; the server must overwrite it.
+        {"url": "https://www.instagram.com/reel/tour/", "platform": "youtube"},
+    ]
+    # _payload() is a shallow copy, so replace the nested dict rather than
+    # popping from it — mutating in place would strip sale_type from the shared
+    # module-level _PAYLOAD and break every later test.
+    payload["structured_details"] = {
+        key: value for key, value in payload["structured_details"].items() if key != "sale_type"
+    }
+
+    created = await client.post(
+        "/api/v1/property-submissions",
+        json=payload,
+        headers={"Authorization": f"Bearer {_agent_token(uid)}"},
+    )
+    assert created.status_code == 201, created.text
+    assert created.json()["listing_intent"] == "rent"
+
+    sub_id = created.json()["id"]
+    admin_headers = {"Authorization": f"Bearer {_admin_token(uid)}"}
+    await _review_rera(client, sub_id, admin_headers)
+    approved = await client.post(
+        f"/api/v1/property-submissions/{sub_id}/approve",
+        headers=admin_headers,
+    )
+    assert approved.status_code == 200, approved.text
+
+    property_id = approved.json()["approved_property_id"]
+    prop = await client.get(
+        f"/api/v1/properties/{property_id}",
+        headers=admin_headers,
+    )
+    assert prop.status_code == 200
+    body = prop.json()
+    assert body["listing_intent"] == "rent"
+    # Not "₹0.25 L" — the whole point of the intent-aware formatter.
+    assert body["price_display"] == "₹25,000/month"
+    assert body["security_deposit_paise"] == 1_50_000_00
+    assert body["minimum_lease_months"] == 11
+    assert body["available_from"] == "2026-10-01"
+    assert [link["platform"] for link in body["listing_links"]] == ["youtube", "instagram"]
+
+    # And the anonymous detail shape renders the deposit rather than paise.
+    public = await client.get(f"/api/v1/public/properties/{property_id}")
+    assert public.status_code == 200
+    public_body = public.json()
+    assert public_body["listing_intent"] == "rent"
+    assert public_body["price_display"] == "₹25,000/month"
+    assert public_body["security_deposit_display"] == "₹1.5 L"
+    assert "security_deposit_paise" not in public_body
+    assert len(public_body["listing_links"]) == 2
+
+
+@pytest.mark.asyncio
+async def test_rejects_a_listing_link_outside_the_host_allowlist(client: AsyncClient) -> None:
+    _, mobile = await full_registration(client, lines=["real_estate"])
+    uid = await _auth_user_uuid(mobile)
+    payload = _payload(uid)
+    payload["listing_links"] = [{"url": "https://youtube.com.evil.example/watch"}]
+
+    res = await client.post(
+        "/api/v1/property-submissions",
+        json=payload,
+        headers={"Authorization": f"Bearer {_agent_token(uid)}"},
+    )
+    assert res.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_stored_bad_link_does_not_break_the_submissions_list(client: AsyncClient) -> None:
+    """One off-allowlist stored link must hide itself, not 500 the whole list.
+
+    The allowlist can shrink, and a row written before it did would otherwise be
+    re-validated on every read and take the author's entire submissions page
+    down with it.
+    """
+    _, mobile = await full_registration(client, lines=["real_estate"])
+    uid = await _auth_user_uuid(mobile)
+    payload = _payload(uid)
+    payload["listing_links"] = [{"url": "https://youtu.be/walkthrough"}]
+    created = await client.post(
+        "/api/v1/property-submissions",
+        json=payload,
+        headers={"Authorization": f"Bearer {_agent_token(uid)}"},
+    )
+    assert created.status_code == 201, created.text
+    sub_id = created.json()["id"]
+
+    # Simulate the allowlist shrinking under an already-stored row.
+    import app.db.session as session_module
+
+    async with session_module.AsyncSessionLocal() as session:
+        await session.execute(
+            text("UPDATE property_submissions SET listing_links = :links WHERE id = :id"),
+            {
+                "links": json.dumps(
+                    [
+                        {"url": "https://retired.example/listing", "platform": "youtube"},
+                        {"url": "https://youtu.be/walkthrough", "platform": "youtube"},
+                    ]
+                ),
+                "id": str(sub_id),
+            },
+        )
+        await session.commit()
+
+    headers = {"Authorization": f"Bearer {_agent_token(uid)}"}
+    listed = await client.get("/api/v1/property-submissions?mine=true", headers=headers)
+    assert listed.status_code == 200, listed.text
+    row = next(item for item in listed.json()["submissions"] if item["id"] == sub_id)
+    assert [link["url"] for link in row["listing_links"]] == ["https://youtu.be/walkthrough"]
+
+    detail = await client.get(f"/api/v1/property-submissions/{sub_id}", headers=headers)
+    assert detail.status_code == 200
+    assert len(detail.json()["listing_links"]) == 1

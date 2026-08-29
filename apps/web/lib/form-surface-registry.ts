@@ -91,6 +91,7 @@ export const FORM_SURFACE_REGISTRY = {
   "features/property-deals/property-deal-progress-controls.tsx": "mutation",
   "features/real-estate/property-action-dialog.tsx": "mutation",
   "features/real-estate/published-listings-panel.tsx": "mutation",
+  "features/real-estate/listing-links-field.tsx": "composite",
   "features/real-estate/property-detail-fields.tsx": "composite",
   "features/real-estate/property-filter-body.tsx": "filter",
   "features/real-estate/property-search-bar.tsx": "filter",

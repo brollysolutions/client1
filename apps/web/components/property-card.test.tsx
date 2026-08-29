@@ -10,6 +10,7 @@ const LISTING: PropertyListing = {
   title: "Lake View Villa",
   location: "Baner, Pune",
   price: "₹1.2 Cr",
+  listingIntent: "sale",
   type: "Villa",
   category: "villas",
 };

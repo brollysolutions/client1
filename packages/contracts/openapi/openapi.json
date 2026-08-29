@@ -6206,7 +6206,14 @@
             "$ref": "#/components/schemas/RentalIncomeStart"
           },
           "sale_type": {
-            "$ref": "#/components/schemas/SaleType"
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SaleType"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "total_area_sqft": {
             "exclusiveMinimum": 0.0,
@@ -6226,7 +6233,6 @@
           "total_area_sqft",
           "unit_area_sqft",
           "facing",
-          "sale_type",
           "rental_income_start",
           "about_property"
         ],
@@ -8560,6 +8566,50 @@
         ],
         "title": "LeadsReportRow",
         "type": "object"
+      },
+      "ListingIntent": {
+        "description": "Whether the listing is offered for sale or for rent/lease.\n\nDeliberately two-valued. Indian practice distinguishes short-term \"rent\"\nfrom long-term/commercial \"lease\", but they share every field this catalog\ncaptures (headline amount, deposit, minimum term, availability date), so a\nsingle ``rent`` intent labelled \"Rent / Lease\" carries both. Splitting them\nlater is an additive ALTER TYPE ... ADD VALUE, the same shape as every other\nenum extension here.",
+        "enum": [
+          "sale",
+          "rent"
+        ],
+        "title": "ListingIntent",
+        "type": "string"
+      },
+      "ListingLink": {
+        "additionalProperties": false,
+        "description": "One external link. ``platform`` is derived, never trusted from input.",
+        "properties": {
+          "platform": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ListingLinkPlatform"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "url": {
+            "maxLength": 1000,
+            "title": "Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "url"
+        ],
+        "title": "ListingLink",
+        "type": "object"
+      },
+      "ListingLinkPlatform": {
+        "enum": [
+          "youtube",
+          "instagram",
+          "facebook"
+        ],
+        "title": "ListingLinkPlatform",
+        "type": "string"
       },
       "LoanApplicationCreate": {
         "properties": {
@@ -12018,7 +12068,14 @@
             "$ref": "#/components/schemas/PlotProjectStatus"
           },
           "sale_type": {
-            "$ref": "#/components/schemas/SaleType"
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SaleType"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "total_plots": {
             "maximum": 100000.0,
@@ -12040,7 +12097,6 @@
           "total_plots",
           "facing",
           "price_per_sqyd_paise",
-          "sale_type",
           "project_status",
           "about_project"
         ],
@@ -12283,7 +12339,14 @@
             "type": "string"
           },
           "sale_type": {
-            "$ref": "#/components/schemas/SaleType"
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SaleType"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "total_units": {
             "maximum": 100000.0,
@@ -12319,7 +12382,6 @@
           "configurations",
           "unit_or_plot_area_sqft",
           "price_per_sqft_paise",
-          "sale_type",
           "amenities_description",
           "about_project"
         ],
@@ -12680,6 +12742,18 @@
             "title": "Area Sqft",
             "type": "integer"
           },
+          "available_from": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Available From"
+          },
           "bhk": {
             "title": "Bhk",
             "type": "integer"
@@ -12732,6 +12806,23 @@
             ],
             "title": "Image"
           },
+          "listing_intent": {
+            "$ref": "#/components/schemas/ListingIntent"
+          },
+          "listing_links": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/ListingLink"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Listing Links"
+          },
           "locality": {
             "title": "Locality",
             "type": "string"
@@ -12764,6 +12855,17 @@
               }
             ],
             "title": "Meta"
+          },
+          "minimum_lease_months": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Minimum Lease Months"
           },
           "pincode": {
             "title": "Pincode",
@@ -12803,6 +12905,17 @@
           },
           "rera_verification_status": {
             "$ref": "#/components/schemas/ReraVerificationStatus"
+          },
+          "security_deposit_paise": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Security Deposit Paise"
           },
           "state": {
             "anyOf": [
@@ -12863,11 +12976,16 @@
         },
         "required": [
           "id",
+          "listing_intent",
           "title",
           "type",
           "location",
           "price_display",
           "price_paise",
+          "security_deposit_paise",
+          "minimum_lease_months",
+          "available_from",
+          "listing_links",
           "meta",
           "image",
           "category",
@@ -13794,7 +13912,7 @@
         "type": "object"
       },
       "PublicPropertyDetailRead": {
-        "description": "Anonymous detail shape for one Admin-published property.\n\nThis remains deliberately separate from ``PropertyRead``. The detail page\nexposes useful buyer facets, but never internal publication state, exact\nminor-unit pricing, reviewer identity, or timestamps.",
+        "description": "Anonymous detail shape for one Admin-published property.\n\nThis remains deliberately separate from ``PropertyRead``. The detail page\nexposes useful buyer facets, but never internal publication state, exact\nminor-unit pricing, reviewer identity, or timestamps.\n\nThe deposit therefore ships as a rendered ``security_deposit_display``\nstring, derived the same way ``price_display`` is, rather than as paise.",
         "properties": {
           "age_years": {
             "title": "Age Years",
@@ -13810,6 +13928,18 @@
           "area_sqft": {
             "title": "Area Sqft",
             "type": "integer"
+          },
+          "available_from": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Available From"
           },
           "bhk": {
             "title": "Bhk",
@@ -13858,6 +13988,23 @@
             ],
             "title": "Image"
           },
+          "listing_intent": {
+            "$ref": "#/components/schemas/ListingIntent"
+          },
+          "listing_links": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/ListingLink"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Listing Links"
+          },
           "locality": {
             "title": "Locality",
             "type": "string"
@@ -13890,6 +14037,17 @@
               }
             ],
             "title": "Meta"
+          },
+          "minimum_lease_months": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Minimum Lease Months"
           },
           "pincode": {
             "title": "Pincode",
@@ -13925,6 +14083,17 @@
           },
           "rera_verification_status": {
             "$ref": "#/components/schemas/ReraVerificationStatus"
+          },
+          "security_deposit_display": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Security Deposit Display"
           },
           "state": {
             "anyOf": [
@@ -13985,10 +14154,14 @@
         },
         "required": [
           "id",
+          "listing_intent",
           "title",
           "type",
           "location",
           "price_display",
+          "minimum_lease_months",
+          "available_from",
+          "listing_links",
           "meta",
           "image",
           "category",
@@ -14028,7 +14201,7 @@
         "type": "object"
       },
       "PublicPropertyRead": {
-        "description": "Anonymous-read shape (docs/specs/public-property-catalog.md).\n\nDeliberately NOT PropertyRead: a separate schema means a future sensitive\ncolumn added to the authenticated read can never silently surface here.\nExcludes the dashboard's entire filter-facet vocabulary (price_paise, bhk,\narea_sqft, furnishing, construction_status, amenities, age_years, pincode,\ncity, locality) and internal metadata (active, created_at). `rera_number`\nis included only after Admin verification; exemption-verified listings have\nno public registration number.",
+        "description": "Anonymous-read shape (docs/specs/public-property-catalog.md).\n\nDeliberately NOT PropertyRead: a separate schema means a future sensitive\ncolumn added to the authenticated read can never silently surface here.\nExcludes the dashboard's entire filter-facet vocabulary (price_paise, bhk,\narea_sqft, furnishing, construction_status, amenities, age_years, pincode,\ncity, locality) and internal metadata (active, created_at). `rera_number`\nis included only after Admin verification; exemption-verified listings have\nno public registration number.\n\n``listing_intent`` is included because the Rent/Sale badge is card-level\ninformation; the rent terms behind it stay on the detail shape.",
         "properties": {
           "category": {
             "$ref": "#/components/schemas/PropertyCategory"
@@ -14048,6 +14221,9 @@
               }
             ],
             "title": "Image"
+          },
+          "listing_intent": {
+            "$ref": "#/components/schemas/ListingIntent"
           },
           "location": {
             "title": "Location",
@@ -14154,6 +14330,7 @@
         },
         "required": [
           "id",
+          "listing_intent",
           "title",
           "type",
           "location",
@@ -15165,6 +15342,7 @@
         "type": "string"
       },
       "SaleType": {
+        "description": "New-vs-resale, meaningful only for a sale listing.\n\nOptional on the detail models because a rent/lease listing has no sale type.\nIt is not freely optional though: ``SubmissionFacts`` requires it when\n``listing_intent`` is ``sale`` and rejects it when the intent is ``rent``,\nso a sale listing can still never omit it.",
         "enum": [
           "new_sale",
           "resale"
@@ -15782,6 +15960,18 @@
             "title": "Area Sqft",
             "type": "integer"
           },
+          "available_from": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Available From"
+          },
           "bhk": {
             "default": 0,
             "minimum": 0.0,
@@ -15817,6 +16007,24 @@
               }
             ]
           },
+          "listing_intent": {
+            "$ref": "#/components/schemas/ListingIntent",
+            "default": "sale"
+          },
+          "listing_links": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/ListingLink"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Listing Links"
+          },
           "locality": {
             "maxLength": 120,
             "minLength": 1,
@@ -15850,6 +16058,19 @@
             ],
             "title": "Meta"
           },
+          "minimum_lease_months": {
+            "anyOf": [
+              {
+                "maximum": 600.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Minimum Lease Months"
+          },
           "pincode": {
             "pattern": "^[1-9][0-9]{5}$",
             "title": "Pincode",
@@ -15877,6 +16098,18 @@
               }
             ],
             "title": "Rera Number"
+          },
+          "security_deposit_paise": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Security Deposit Paise"
           },
           "state": {
             "maxLength": 120,
@@ -16116,6 +16349,18 @@
             "title": "Area Sqft",
             "type": "integer"
           },
+          "available_from": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Available From"
+          },
           "bhk": {
             "title": "Bhk",
             "type": "integer"
@@ -16184,6 +16429,23 @@
             ],
             "title": "Image"
           },
+          "listing_intent": {
+            "$ref": "#/components/schemas/ListingIntent"
+          },
+          "listing_links": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/ListingLink"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Listing Links"
+          },
           "locality": {
             "title": "Locality",
             "type": "string"
@@ -16209,6 +16471,17 @@
               }
             ],
             "title": "Meta"
+          },
+          "minimum_lease_months": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Minimum Lease Months"
           },
           "pincode": {
             "title": "Pincode",
@@ -16292,6 +16565,17 @@
             ],
             "title": "Reviewed By Uuid"
           },
+          "security_deposit_paise": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Security Deposit Paise"
+          },
           "state": {
             "anyOf": [
               {
@@ -16370,6 +16654,7 @@
           "reviewed_by_uuid",
           "reviewed_at",
           "approved_property_id",
+          "listing_intent",
           "title",
           "type",
           "location",
@@ -16382,6 +16667,10 @@
           "state",
           "pincode",
           "price_paise",
+          "security_deposit_paise",
+          "minimum_lease_months",
+          "available_from",
+          "listing_links",
           "bhk",
           "area_sqft",
           "furnishing",
@@ -16434,6 +16723,18 @@
             "title": "Area Sqft",
             "type": "integer"
           },
+          "available_from": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Available From"
+          },
           "bhk": {
             "default": 0,
             "minimum": 0.0,
@@ -16469,6 +16770,24 @@
               }
             ]
           },
+          "listing_intent": {
+            "$ref": "#/components/schemas/ListingIntent",
+            "default": "sale"
+          },
+          "listing_links": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/ListingLink"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Listing Links"
+          },
           "locality": {
             "maxLength": 120,
             "minLength": 1,
@@ -16492,6 +16811,19 @@
               }
             ],
             "title": "Meta"
+          },
+          "minimum_lease_months": {
+            "anyOf": [
+              {
+                "maximum": 600.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Minimum Lease Months"
           },
           "pincode": {
             "pattern": "^[1-9][0-9]{5}$",
@@ -16520,6 +16852,18 @@
               }
             ],
             "title": "Rera Number"
+          },
+          "security_deposit_paise": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Security Deposit Paise"
           },
           "state": {
             "maxLength": 120,

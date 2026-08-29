@@ -40,12 +40,13 @@ from __future__ import annotations
 
 import enum
 import uuid
-from datetime import datetime
+from datetime import date, datetime
 
 from sqlalchemy import (
     ARRAY,
     BigInteger,
     Boolean,
+    Date,
     DateTime,
     ForeignKey,
     Integer,
@@ -57,6 +58,21 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
 from app.models.user import business_line_enum
+
+
+class ListingIntent(enum.StrEnum):
+    """Whether the listing is offered for sale or for rent/lease.
+
+    Deliberately two-valued. Indian practice distinguishes short-term "rent"
+    from long-term/commercial "lease", but they share every field this catalog
+    captures (headline amount, deposit, minimum term, availability date), so a
+    single ``rent`` intent labelled "Rent / Lease" carries both. Splitting them
+    later is an additive ALTER TYPE ... ADD VALUE, the same shape as every other
+    enum extension here.
+    """
+
+    SALE = "sale"
+    RENT = "rent"
 
 
 class PropertyCategory(enum.StrEnum):
@@ -117,6 +133,9 @@ class ReraVerificationStatus(enum.StrEnum):
 
 
 _ev = lambda x: [e.value for e in x]  # noqa: E731
+listing_intent_enum = ENUM(
+    ListingIntent, name="re_listing_intent", create_type=False, values_callable=_ev
+)
 property_category_enum = ENUM(
     PropertyCategory, name="re_property_category", create_type=False, values_callable=_ev
 )
@@ -147,6 +166,12 @@ class Property(Base):
     # RLS predicate + prod-empty gate. Inactive rows are admin-only.
     active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
 
+    # Sale vs rent/lease. NOT NULL with a "sale" server default: every row that
+    # predates this column was a sale listing, so the backfill is exact.
+    listing_intent: Mapped[ListingIntent] = mapped_column(
+        listing_intent_enum, nullable=False, default=ListingIntent.SALE
+    )
+
     # Display fields the card renders verbatim.
     title: Mapped[str] = mapped_column(String(200), nullable=False)
     type: Mapped[str] = mapped_column(String(40), nullable=False)  # badge: "House", "Office"
@@ -168,6 +193,12 @@ class Property(Base):
     # Money in integer minor units (source of truth; price_display is authored
     # alongside). BigInteger: ₹2.6 Cr = 2_600_000_000 paise exceeds int32.
     price_paise: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    # Rent-only terms. Nullable because they are meaningless for a sale listing,
+    # and the schema layer rejects them unless listing_intent is "rent" — so
+    # NULL here is "not a rental", never "a rental we forgot to price".
+    security_deposit_paise: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
+    minimum_lease_months: Mapped[int | None] = mapped_column(SmallInteger, nullable=True)
+    available_from: Mapped[date | None] = mapped_column(Date, nullable=True)
     bhk: Mapped[int] = mapped_column(
         SmallInteger, nullable=False, default=0
     )  # 0 = N/A (plot/commercial)
@@ -196,6 +227,13 @@ class Property(Base):
     rera_verified_by_uuid: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("auth_users.id", ondelete="SET NULL"), nullable=True
     )
+
+    # Author-supplied links to this property elsewhere (YouTube walkthrough,
+    # Instagram reel, Facebook post). JSONB rather than a child table: the list
+    # is capped at ListingLink.MAX_LINKS, is only ever read with its parent, and
+    # a child table would need its own policy + grants for no benefit. Every
+    # entry is host-allowlisted at write AND re-checked at render.
+    listing_links: Mapped[list | None] = mapped_column(JSONB, nullable=True)
 
     # Overflow for anything not promoted to a typed column.
     details: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)

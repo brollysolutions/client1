@@ -13,6 +13,7 @@ const LISTING: REListing = {
   locality: "Baner",
   city: "Pune",
   pincode: "411045",
+  listingIntent: "sale",
   category: "apartments",
   propertySubtype: "standalone_apartment",
   type: "Apartment",

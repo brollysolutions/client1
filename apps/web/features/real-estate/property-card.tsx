@@ -87,8 +87,15 @@ export function PropertyCard({ listing, fluid = false }: { listing: REListing; f
           </button>
         </div>
 
-        <span className="pointer-events-none absolute bottom-3 left-3 rounded-full bg-card/90 px-2.5 py-1 text-xs font-medium text-text-primary ring-1 ring-border">
-          {listing.type}
+        <span className="pointer-events-none absolute bottom-3 left-3 flex items-center gap-1.5">
+          <span className="rounded-full bg-card/90 px-2.5 py-1 text-xs font-medium text-text-primary ring-1 ring-border">
+            {listing.type}
+          </span>
+          {listing.listingIntent === "rent" ? (
+            <span className="rounded-full bg-amber-100/95 px-2.5 py-1 text-xs font-semibold text-amber-900 ring-1 ring-amber-200">
+              For rent
+            </span>
+          ) : null}
         </span>
       </div>
 

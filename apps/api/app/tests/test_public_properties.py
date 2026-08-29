@@ -245,6 +245,7 @@ async def test_response_omits_internal_fields(client: AsyncClient) -> None:
         exposed = set(row.keys())
         assert exposed == {
             "id",
+            "listing_intent",
             "title",
             "type",
             "location",
@@ -281,6 +282,13 @@ async def test_response_omits_internal_fields(client: AsyncClient) -> None:
             "rera_applicability",
             "locality",
             "details",
+            # Rent terms are detail-shape only. The card carries the intent so
+            # it can show a badge, never the deposit or the lease term.
+            "security_deposit_paise",
+            "security_deposit_display",
+            "minimum_lease_months",
+            "available_from",
+            "listing_links",
         ):
             assert internal_field not in row
     finally:
