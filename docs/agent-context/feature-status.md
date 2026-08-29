@@ -9,6 +9,58 @@ Evidence baseline: `abcc1fd`
 verified Admin operational-visibility work in
 [PR #173](https://github.com/brollysolutions/client1/pull/173).
 
+**In progress - campaign authoring follow-up:**
+`claude/20260829-122607-the-current-ui-is-good-for-banner` (direct user
+instruction; no formal requirement or completion-percentage change) closes six
+defects reported against PR #260.
+
+The banner workspace used `DashboardFormPage` without an aside, which caps at
+`max-w-5xl`; inside the full-screen dialog that left an empty band down the
+right-hand side. A `wide` mode now lets a form that carries its own full-width
+content fill the workspace, and both the banner wizard and the offer form use
+it -- the offer form's preview moves out of a 20rem aside and above the fields,
+where a signed-in dashboard can actually be read.
+
+The preview offered three viewports; the middle one sat between two sizes that
+already bracket every breakpoint. It is now desktop and phone only. The phone
+preview also rendered unscaled and left-aligned in a panel far wider than the
+device: `ViewportFrame` now hugs the scaled content, centres it, and frames the
+phone as a device.
+
+Every destructive confirmation used `window.confirm`, which Chrome renders as
+browser chrome pinned to the top of the window rather than over the workspace
+that asked -- reported as "popping from top of the chrome browser". `useConfirm`
+replaces all twelve call sites across the banner, offer, media library, artwork
+upload, referral and broadcast views with an in-app dialog carrying real titles,
+consequences and destructive styling. Handlers that must stay synchronous
+(`onOpenChange`) keep their dialog open and let the confirmation above it
+decide. The broadcast gate keeps its exact semantics, recipient count included.
+
+Preview chrome carried the `Logo` component's "Loans & Real Estate" wordmark; it
+now carries DhanaDhara. The offer preview rendered a lone `max-w-md` card in an
+invented content area, and now renders inside the same `Dashboard highlights`
+band and three-column grid `personalized-placements.tsx` uses in production.
+
+The approvals desk opened on every campaign ever created, with nothing marking
+the few that needed a decision, under a heading that repeated its own page
+title. It now opens filtered to `pending_approval`, carries per-tab outstanding
+counts and a workload chip, drops the duplicate heading, and gives reviewers a
+preview-led layout where the composition leads and the read-only fields support
+it.
+
+Fresh evidence: web lint, strict typecheck, and all 82 files / 524 unit tests
+pass, including a new source-scanning guard that fails if `window.confirm`
+returns to application code and a viewport-contract test that fails if a third
+preview size is reintroduced. Live browser review on the Docker stack confirms
+the workspace right-hand gap is now only the dialog's own 46px padding (was
+~380px), exactly two device controls labelled Desktop and Phone, the phone
+preview centred at 390px inside a device frame, DhanaDhara present and the old
+wordmark gone, the offer preview inside the real highlights band, in-app
+confirmations on both the wizard and the media library with **zero** native
+dialogs captured across the whole run, and the approvals desk reporting
+"125 campaigns waiting" with per-tab badges (95 / 30) and a Pending approval
+filter. No API, contract, migration, authorization, or RLS behaviour changed.
+
 **In progress - Sub Admin banner and offer authoring redesign:**
 `claude/20260829-091848-lets-plan-subadmin-banners-and-offers-righ` (direct user
 instruction; no formal requirement or completion-percentage change) rebuilds the

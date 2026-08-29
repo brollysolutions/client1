@@ -7,6 +7,7 @@ import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 import { Dialog, DialogContent, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -57,6 +58,7 @@ export function MediaLibraryView() {
   const [showArchived, setShowArchived] = React.useState(false);
   const [selected, setSelected] = React.useState<CampaignMediaAsset | null>(null);
   const [uploadOpen, setUploadOpen] = React.useState(false);
+  const { confirm, confirmDialog } = useConfirm();
 
   const load = React.useCallback(async () => {
     setLoading(true);
@@ -119,9 +121,13 @@ export function MediaLibraryView() {
   }
 
   async function remove(asset: CampaignMediaAsset) {
-    const confirmed = window.confirm(
-      `Permanently delete “${asset.title}”? This is allowed only while nothing uses it.`,
-    );
+    const confirmed = await confirm({
+      title: `Permanently delete “${asset.title}”?`,
+      description:
+        "The file is removed from storage for good. This is allowed only while no campaign uses it.",
+      confirmLabel: "Delete artwork",
+      destructive: true,
+    });
     if (!confirmed) return;
     const response = await deleteCampaignMedia(asset.id);
     if (!response.ok) {
@@ -135,6 +141,7 @@ export function MediaLibraryView() {
 
   return (
     <DashboardPage>
+      {confirmDialog}
       <DashboardHeader
         title="Campaign Media Library"
         description="Artwork grouped by the surface it is made for. Upload once, reuse across campaigns, and see what depends on each image."
@@ -346,6 +353,7 @@ function AssetDetailDialog({
   const [tags, setTags] = React.useState("");
   const [source, setSource] = React.useState("");
   const [busy, setBusy] = React.useState(false);
+  const { confirm, confirmDialog } = useConfirm();
 
   const [usages, setUsages] = React.useState<CampaignMediaAsset["usages"]>([]);
 
@@ -423,11 +431,21 @@ function AssetDetailDialog({
       open={asset !== null}
       onOpenChange={(open) => {
         if (open || busy) return;
-        if (dirty && !window.confirm("Discard unsaved artwork details?")) return;
-        onClose();
+        if (!dirty) return onClose();
+        // Synchronous handler: keep the dialog open and let the confirmation
+        // above it decide.
+        void confirm({
+          title: "Discard unsaved artwork details?",
+          description: "Your changes to the title, alt text, tags, or source note will be lost.",
+          confirmLabel: "Discard changes",
+          destructive: true,
+        }).then((confirmed) => {
+          if (confirmed) onClose();
+        });
       }}
     >
       <DialogContent showCloseButton={false} className="max-h-[92dvh] max-w-3xl overflow-y-auto">
+        {confirmDialog}
         {asset && surface ? (
           <>
             <CmsWorkspaceHeader

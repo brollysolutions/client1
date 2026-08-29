@@ -19,6 +19,7 @@ import { toast } from "sonner";
 
 import { useAuth } from "@/components/auth/session-provider";
 import { Button } from "@/components/ui/button";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 import { FieldError, RequiredIndicator } from "@/components/ui/field-error";
 import { Dialog, DialogContent, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -146,11 +147,23 @@ function toDraft(banner: Banner): Draft {
   };
 }
 
-export function BannersView({ embedded = false }: { embedded?: boolean }) {
+export function BannersView({
+  embedded = false,
+  initialStatus,
+  onPendingCount,
+}: {
+  embedded?: boolean;
+  /** Preselect a status so the approvals desk opens on actionable work. */
+  initialStatus?: FilterBarValue["status"];
+  /** Reports how many campaigns are awaiting review, for the tab badge. */
+  onPendingCount?: (count: number) => void;
+}) {
   const { session } = useAuth();
   const isAdmin = session?.role === "admin";
   const { items, loading, error, reload } = useBannerQueue();
-  const [filters, setFilters] = React.useState<FilterBarValue>(EMPTY_FILTERS);
+  const [filters, setFilters] = React.useState<FilterBarValue>(() =>
+    initialStatus ? { ...EMPTY_FILTERS, status: initialStatus } : EMPTY_FILTERS,
+  );
   const [active, setActive] = React.useState<Banner | null>(null);
   const [draft, setDraft] = React.useState<Draft | null>(null);
   const [templates, setTemplates] = React.useState<BannerTemplate[]>([]);
@@ -164,6 +177,9 @@ export function BannersView({ embedded = false }: { embedded?: boolean }) {
   const [device, setDevice] = React.useState<PreviewDevice>("desktop");
   const [createOpen, setCreateOpen] = React.useState(false);
   const [createDirty, setCreateDirty] = React.useState(false);
+  const { confirm, confirmDialog } = useConfirm();
+  const pendingCount = items.filter((item) => item.status === "pending_approval").length;
+  React.useEffect(() => onPendingCount?.(pendingCount), [onPendingCount, pendingCount]);
   const [draftMediaUrl, setDraftMediaUrl] = React.useState<string | null>(null);
   const dialogRef = React.useRef<HTMLDivElement>(null);
 
@@ -252,19 +268,45 @@ export function BannersView({ embedded = false }: { embedded?: boolean }) {
       ? [selectedProperty, ...editableProperties]
       : editableProperties;
 
-  function closeWorkspace(openState: boolean) {
-    if (openState || busy) return;
-    if (dirty && !window.confirm("Discard unsaved banner changes?")) return;
+  function discardWorkspace() {
     setActive(null);
     setDraft(null);
     setDraftMediaUrl(null);
   }
 
+  // `onOpenChange` is synchronous, so a dirty close cannot await the answer.
+  // The workspace stays open and the confirmation opens above it; only its
+  // resolution closes anything.
+  function closeWorkspace(openState: boolean) {
+    if (openState || busy) return;
+    if (!dirty) return discardWorkspace();
+    void confirm({
+      title: "Discard unsaved banner changes?",
+      description: "Your edits to this campaign will be lost.",
+      confirmLabel: "Discard changes",
+      destructive: true,
+    }).then((confirmed) => {
+      if (confirmed) discardWorkspace();
+    });
+  }
+
   function closeCreate(openState: boolean) {
     if (openState) return setCreateOpen(true);
-    if (createDirty && !window.confirm("Discard this banner draft?")) return;
-    setCreateOpen(false);
-    setCreateDirty(false);
+    if (!createDirty) {
+      setCreateOpen(false);
+      setCreateDirty(false);
+      return;
+    }
+    void confirm({
+      title: "Discard this banner draft?",
+      description: "Nothing has been saved yet, so this draft will be lost.",
+      confirmLabel: "Discard draft",
+      destructive: true,
+    }).then((confirmed) => {
+      if (!confirmed) return;
+      setCreateOpen(false);
+      setCreateDirty(false);
+    });
   }
 
   function openBanner(banner: Banner) {
@@ -388,7 +430,14 @@ export function BannersView({ embedded = false }: { embedded?: boolean }) {
   }
 
   async function removeDraft(banner: Banner) {
-    if (!window.confirm("Delete this never-submitted draft? This cannot be undone.")) return;
+    const confirmed = await confirm({
+      title: "Delete this draft?",
+      description:
+        "This campaign has never been submitted for review, so deleting it leaves no record. This cannot be undone.",
+      confirmLabel: "Delete draft",
+      destructive: true,
+    });
+    if (!confirmed) return;
     setBusy(true);
     const result = await deleteBanner(banner.id);
     setBusy(false);
@@ -400,7 +449,12 @@ export function BannersView({ embedded = false }: { embedded?: boolean }) {
   }
 
   async function archive(banner: Banner) {
-    if (!window.confirm("Archive this banner? It will stop appearing publicly.")) return;
+    const confirmed = await confirm({
+      title: "Archive this banner?",
+      description: "It stops appearing on the customer-facing surface. Reviewed history is kept.",
+      confirmLabel: "Archive banner",
+    });
+    if (!confirmed) return;
     await advance(archiveBanner, banner, "Banner archived");
   }
 
@@ -440,9 +494,11 @@ export function BannersView({ embedded = false }: { embedded?: boolean }) {
 
   return (
     <DashboardPage>
-      {embedded ? (
-        <div className="flex flex-wrap items-end justify-between gap-3"><div><h2 className="font-heading text-xl font-semibold">{isAdmin ? "Banner review & removal" : "Banner campaigns"}</h2><p className="mt-1 text-sm text-text-secondary">{isAdmin ? "Review pending work or open any campaign for a reasoned removal." : "Visual campaigns for public and dashboard placements."}</p></div>{!isAdmin ? <Button onClick={() => setCreateOpen(true)}><Plus className="h-4 w-4" />New banner</Button> : null}</div>
-      ) : <DashboardHeader
+      {confirmDialog}
+      {/* Embedded is the approvals desk, whose page header and tab label
+          already name this queue; a second heading here only pushed the work
+          further down the page. */}
+      {embedded ? null : <DashboardHeader
         title={isAdmin ? "Banner approvals" : "Banner campaigns"}
         description={
           isAdmin
@@ -531,6 +587,7 @@ export function BannersView({ embedded = false }: { embedded?: boolean }) {
                 description={`${STATUS_LABEL[active.status]} · ${active.placement.replaceAll("_", " ")} · ${audienceSummary(active.audience_rules)}`}
               />
               <CmsWorkspaceLayout
+                previewFirst={isAdmin}
                 editor={
                   <div className="space-y-5">
                     <section className="space-y-4 rounded-xl border border-border p-4">

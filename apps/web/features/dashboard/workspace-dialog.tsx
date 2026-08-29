@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Monitor, Smartphone, Tablet, X } from "lucide-react";
+import { Monitor, Smartphone, X } from "lucide-react";
 
 import { CLOSE_BUTTON_CLASS } from "@/components/ui/close-button";
 import { Button } from "@/components/ui/button";
@@ -88,11 +88,28 @@ export function WorkspaceDialogHeader({
 export function WorkspaceLayout({
   editor,
   preview,
+  previewFirst = false,
 }: {
   editor: React.ReactNode;
   /** Optional right column; without it the editor gets the full width. */
   preview?: React.ReactNode;
+  /**
+   * Put the preview first and give it the larger share.
+   *
+   * An author is filling in fields and glancing at the result; a reviewer is
+   * judging the result and glancing at the fields. The approval desk reads
+   * better with those weights reversed.
+   */
+  previewFirst?: boolean;
 }) {
+  if (preview && previewFirst) {
+    return (
+      <div className="grid min-h-0 gap-5 overflow-y-auto xl:grid-cols-[minmax(30rem,1.3fr)_minmax(20rem,0.7fr)]">
+        <div className="min-w-0 py-1">{preview}</div>
+        <aside className="min-w-0 py-1 xl:sticky xl:top-0 xl:self-start">{editor}</aside>
+      </div>
+    );
+  }
   return (
     <div
       className={cn(
@@ -154,12 +171,17 @@ export function WorkspacePreviewFrame({
               </TabsList>
             </Tabs>
           ) : null}
-          <div className="flex rounded-lg border border-border bg-card p-0.5" role="group" aria-label="Preview size">
+          <div
+            className="flex rounded-lg border border-border bg-card p-0.5"
+            role="group"
+            aria-label="Preview size"
+          >
             <Button
               type="button"
               size="icon"
               variant={device === "desktop" ? "outline" : "ghost"}
               onClick={() => onDeviceChange("desktop")}
+              aria-pressed={device === "desktop"}
               aria-label="Desktop preview"
             >
               <Monitor className="h-4 w-4" aria-hidden="true" />
@@ -167,18 +189,10 @@ export function WorkspacePreviewFrame({
             <Button
               type="button"
               size="icon"
-              variant={device === "tablet" ? "outline" : "ghost"}
-              onClick={() => onDeviceChange("tablet")}
-              aria-label="Tablet preview"
-            >
-              <Tablet className="h-4 w-4" aria-hidden="true" />
-            </Button>
-            <Button
-              type="button"
-              size="icon"
               variant={device === "mobile" ? "outline" : "ghost"}
               onClick={() => onDeviceChange("mobile")}
-              aria-label="Mobile preview"
+              aria-pressed={device === "mobile"}
+              aria-label="Phone preview"
             >
               <Smartphone className="h-4 w-4" aria-hidden="true" />
             </Button>
