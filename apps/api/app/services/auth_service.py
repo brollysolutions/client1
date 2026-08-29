@@ -88,6 +88,15 @@ from app.services.otp_delivery import deliver_otp
 logger = logging.getLogger(__name__)
 
 _GENERIC_LOGIN_ERROR = "Invalid mobile number or password."
+# A valid Argon2id hash for a non-secret placeholder. Unknown-account logins
+# verify against it so the generic response does not retain a gross password-
+# hashing timing oracle. The hash is verification-only and never authenticates
+# an account.
+_DUMMY_PASSWORD_HASH = (
+    "$argon2id$v=19$m=65536,t=3,p=4$CVr/MUCclKm0U/1TOY9YYA$"
+    "sQiz20+4e/hWj8IEsNbGOvEzhAXgdR6rm4Xbnemgll4"
+)
+_RESET_TOKEN_EXPIRE_MINUTES = 10
 
 
 class NoActiveAccessProfile(Exception):
@@ -630,9 +639,28 @@ async def login(
     await check_login_rate_ip(cache, ip)
     user = await db.scalar(select(User).where(User.mobile == req.mobile))
     if not user or not user.password_hash:
-        # Unknown mobile still counts against the source IP: credential
-        # spraying exercises exactly this path, one number after another.
+        # Match the dominant work performed for a known account with a bad
+        # password. Generic copy alone is insufficient when the unknown branch
+        # otherwise returns before Argon2 verification.
+        await verify_password(req.password, _DUMMY_PASSWORD_HASH)
+        # Apply the same per-identifier and per-IP budgets as the known-account
+        # branch. Skipping the identifier counter would leave another observable
+        # cache-work distinction and let an unknown identifier avoid the normal
+        # five-attempt cooldown.
+        await record_login_failure(cache, req.mobile)
         await record_login_failure_ip(cache, ip)
+        # Keep the security-event trail and post-Argon work aligned with the
+        # known-account bad-password branch. A nullable subject is the explicit
+        # auth-event model for a failed login that resolved no identity.
+        await _log_event(
+            db,
+            auth_user_uuid=None,
+            event_type="login_fail",
+            mobile=req.mobile,
+            ip=ip,
+            user_agent=user_agent,
+            success=False,
+        )
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail=_GENERIC_LOGIN_ERROR,
@@ -923,7 +951,10 @@ async def forgot_verify(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid or expired verification code.",
         ) from exc
-    reset_token = create_access_token({"purpose": "reset", "mobile": req.mobile})
+    reset_token = create_access_token(
+        {"purpose": "reset", "mobile": req.mobile},
+        expires_delta=timedelta(minutes=_RESET_TOKEN_EXPIRE_MINUTES),
+    )
     return ResetTokenResponse(reset_token=reset_token)
 
 

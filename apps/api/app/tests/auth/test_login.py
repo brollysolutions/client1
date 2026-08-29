@@ -6,10 +6,17 @@ Requires: running Postgres + Redis (docker compose up -d).
 
 from __future__ import annotations
 
+from types import SimpleNamespace
+from uuid import uuid4
+
+import pytest
+from fastapi import HTTPException
 from httpx import AsyncClient
 from sqlalchemy import select
 
 from app.core.config import settings
+from app.schemas.auth import LoginRequest
+from app.services import auth_service
 from conftest import PASSWORD, full_registration, unique_mobile
 
 
@@ -51,7 +58,13 @@ async def test_login_refresh_cookie_set(client: AsyncClient) -> None:
     _, mobile = await full_registration(client)
     resp = await client.post("/api/v1/auth/login", json={"mobile": mobile, "password": PASSWORD})
     set_cookie = resp.headers.get("set-cookie", "")
-    assert "refresh_token" in set_cookie
+    cookie = set_cookie.lower()
+    assert "refresh_token" in cookie
+    assert "httponly" in cookie
+    assert "secure" in cookie
+    assert "samesite=strict" in cookie
+    assert "path=/api/v1/auth/refresh" in cookie
+    assert "domain=" not in cookie
 
 
 async def test_login_wrong_password_returns_401(client: AsyncClient) -> None:
@@ -86,6 +99,68 @@ async def test_login_unknown_and_wrong_pw_same_message(client: AsyncClient) -> N
         "/api/v1/auth/login", json={"mobile": unique_mobile(), "password": PASSWORD}
     )
     assert wrong_pw.json()["detail"] == unknown.json()["detail"]
+
+
+async def test_login_unknown_and_wrong_password_both_verify_one_hash(
+    monkeypatch,
+) -> None:
+    """Generic copy must not leave an Argon2 timing oracle for account existence."""
+    mobile = unique_mobile()
+    unknown_mobile = unique_mobile()
+    verification_hashes: list[str] = []
+    mobile_failures: list[str] = []
+    failed_events: list[dict[str, object]] = []
+
+    class _LoginDb:
+        def __init__(self) -> None:
+            self.users = [
+                SimpleNamespace(id=uuid4(), password_hash="$argon2id$known-account-hash"),
+                None,
+            ]
+
+        async def scalar(self, _query):
+            return self.users.pop(0)
+
+    async def _noop(*_args, **_kwargs) -> None:
+        return None
+
+    async def _record_verification(_password: str, password_hash: str) -> bool:
+        verification_hashes.append(password_hash)
+        return False
+
+    async def _record_mobile_failure(_cache, failed_mobile: str) -> None:
+        mobile_failures.append(failed_mobile)
+
+    async def _record_event(_db, **event: object) -> None:
+        failed_events.append(event)
+
+    monkeypatch.setattr(auth_service, "verify_password", _record_verification)
+    monkeypatch.setattr(auth_service, "_log_event", _record_event)
+    monkeypatch.setattr(auth_service, "check_login_lock", _noop)
+    monkeypatch.setattr(auth_service, "check_login_rate_ip", _noop)
+    monkeypatch.setattr(auth_service, "record_login_failure", _record_mobile_failure)
+    monkeypatch.setattr(auth_service, "record_login_failure_ip", _noop)
+
+    db = _LoginDb()
+    failures: list[HTTPException] = []
+    for request in (
+        LoginRequest(mobile=mobile, password="Wrong@9"),
+        LoginRequest(mobile=unknown_mobile, password=PASSWORD),
+    ):
+        with pytest.raises(HTTPException) as raised:
+            await auth_service.login(db, object(), request)
+        failures.append(raised.value)
+
+    assert [failure.status_code for failure in failures] == [401, 401]
+    assert failures[0].detail == failures[1].detail
+    assert len(verification_hashes) == 2
+    assert all(password_hash.startswith("$argon2id$") for password_hash in verification_hashes)
+    assert mobile_failures == [mobile, unknown_mobile]
+    assert len(failed_events) == 2
+    assert all(event["event_type"] == "login_fail" for event in failed_events)
+    assert all(event["success"] is False for event in failed_events)
+    assert failed_events[0]["auth_user_uuid"] is not None
+    assert failed_events[1]["auth_user_uuid"] is None
 
 
 async def test_login_lockout_after_5_failures_returns_429(client: AsyncClient) -> None:

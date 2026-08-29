@@ -528,7 +528,10 @@ async def test_maker_checker_completion_updates_identity_and_revokes_sessions(
             )
         ).one()
         assert row.mobile == replacement
-        assert row.session_version == 2
+        # Registration starts at generation 1. Mobile replacement revokes the
+        # original sessions by advancing to 2, and the successful password
+        # reset exercised above must independently advance it again to 3.
+        assert row.session_version == 3
         lead_numbers = (
             await db.execute(
                 text(
