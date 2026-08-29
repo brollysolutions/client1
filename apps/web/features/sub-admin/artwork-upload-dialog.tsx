@@ -6,6 +6,7 @@ import { toast } from "sonner";
 
 import { FileField } from "@/components/apply-as-agent/file-field";
 import { Button } from "@/components/ui/button";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 import { Dialog, DialogContent, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -67,6 +68,7 @@ export function ArtworkUploadDialog({
   const [line, setLine] = React.useState<BusinessLine>(defaultBusinessLine);
   const [usage, setUsage] = React.useState<ArtworkUsageType>(fixedUsageType ?? defaultUsageType);
   const [busy, setBusy] = React.useState(false);
+  const { confirm, confirmDialog } = useConfirm();
 
   React.useEffect(() => {
     if (fixedUsageType) setUsage(fixedUsageType);
@@ -87,11 +89,25 @@ export function ArtworkUploadDialog({
     setSource("");
   }
 
+  // Synchronous handler: on a dirty close the dialog stays open and the
+  // confirmation opens above it.
   function close(next: boolean) {
     if (!next && busy) return;
-    if (!next && dirty && !window.confirm("Discard this unsaved artwork upload?")) return;
-    if (!next) reset();
-    onOpenChange(next);
+    if (next || !dirty) {
+      if (!next) reset();
+      onOpenChange(next);
+      return;
+    }
+    void confirm({
+      title: "Discard this artwork upload?",
+      description: "The selected file and the details you entered will be cleared.",
+      confirmLabel: "Discard upload",
+      destructive: true,
+    }).then((confirmed) => {
+      if (!confirmed) return;
+      reset();
+      onOpenChange(false);
+    });
   }
 
   async function submit() {
@@ -125,6 +141,7 @@ export function ArtworkUploadDialog({
 
   return (
     <Dialog open={open} onOpenChange={close}>
+      {confirmDialog}
       <DialogContent showCloseButton={false} className={PANEL_DIALOG_WIDE_CLASS}>
         <WorkspaceDialogHeader
           title="Upload campaign artwork"

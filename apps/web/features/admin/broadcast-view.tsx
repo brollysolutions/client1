@@ -5,6 +5,7 @@ import { Loader2, Send, Users } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 import { FieldError, RequiredIndicator } from "@/components/ui/field-error";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -54,6 +55,7 @@ export function BroadcastView() {
   const [previewCount, setPreviewCount] = React.useState<number | null>(null);
   const [previewing, setPreviewing] = React.useState(false);
   const [sending, setSending] = React.useState(false);
+  const { confirm, confirmDialog } = useConfirm();
   const [error, setError] = React.useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = React.useState<Record<string, string>>({});
   const composerRef = React.useRef<HTMLDivElement>(null);
@@ -106,9 +108,14 @@ export function BroadcastView() {
     showFieldErrors(next);
     if (Object.keys(next).length > 0) return;
 
-    const confirmed = window.confirm(
-      `Send this notification to ${previewCount} ${previewCount === 1 ? "person" : "people"}? This cannot be undone.`,
-    );
+    // The recipient count stays in the question and the action stays
+    // unretractable -- only the presentation moves in-app.
+    const confirmed = await confirm({
+      title: `Send this notification to ${previewCount} ${previewCount === 1 ? "person" : "people"}?`,
+      description: "Notifications cannot be recalled once sent.",
+      confirmLabel: "Send notification",
+      destructive: true,
+    });
     if (!confirmed) return;
 
     setSending(true);
@@ -141,6 +148,7 @@ export function BroadcastView() {
 
   return (
     <DashboardPage>
+      {confirmDialog}
       <DashboardHeader
         title="Broadcast"
         description="Send a notification to every matching user. Preview the audience first because a broadcast cannot be undone."

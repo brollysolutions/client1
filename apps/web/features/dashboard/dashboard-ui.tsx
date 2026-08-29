@@ -163,6 +163,7 @@ export function DashboardFormPage({
   children,
   aside,
   embedded = false,
+  wide = false,
 }: {
   title: string;
   description: string;
@@ -173,12 +174,21 @@ export function DashboardFormPage({
   children: ReactNode;
   aside?: ReactNode;
   embedded?: boolean;
+  /**
+   * Fill the available width instead of stopping at `max-w-5xl`.
+   *
+   * The measured cap suits a single column of fields on a full page. Inside the
+   * full-screen workspace dialog it left an empty band down the right-hand
+   * side, so forms that carry their own full-width content -- a campaign
+   * preview, a wide artwork grid -- opt out of it.
+   */
+  wide?: boolean;
 }) {
   const formLayout = (
     <div
       className={cn(
         "grid items-start gap-4",
-        aside ? "xl:grid-cols-[minmax(0,1fr)_20rem]" : "max-w-5xl",
+        aside ? "xl:grid-cols-[minmax(0,1fr)_20rem]" : wide ? "w-full" : "max-w-5xl",
       )}
     >
       <DashboardPanel title={formTitle} description={formDescription}>

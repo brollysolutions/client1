@@ -111,7 +111,10 @@ export function OfferPreview({ offer }: { offer: OfferPreviewValue }) {
   };
   return (
     <DashboardPreviewChrome>
-      <div className="max-w-md">
+      {/* The real dashboard lays offers out in this grid
+          (personalized-placements.tsx), so one authored offer occupies a third
+          of the row rather than the full width a lone card would take. */}
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3" aria-label="Offers for you">
         <DashboardOfferCard offer={value} interactive={false} />
       </div>
     </DashboardPreviewChrome>

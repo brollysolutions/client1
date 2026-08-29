@@ -6,6 +6,7 @@ import { toast } from "sonner";
 
 import { useAuth } from "@/components/auth/session-provider";
 import { Button } from "@/components/ui/button";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 import {
   Dialog,
   DialogContent,
@@ -79,6 +80,7 @@ export function ReferralsView() {
   const [activityFilters, setActivityFilters] = React.useState<FilterBarValue>(EMPTY_FILTERS);
   const [createOpen, setCreateOpen] = React.useState(false);
   const [createDirty, setCreateDirty] = React.useState(false);
+  const { confirm, confirmDialog } = useConfirm();
   const [busyId, setBusyId] = React.useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = React.useState<ReferralBonusConfig | null>(null);
 
@@ -119,14 +121,28 @@ export function ReferralsView() {
     void reload();
   }, [deleteTarget, reload]);
 
+  // Synchronous handler: on a dirty close the dialog stays open and the
+  // confirmation opens above it.
   function closeCreate(open: boolean) {
     if (open) {
       setCreateOpen(true);
       return;
     }
-    if (createDirty && !window.confirm("Discard this referral rule?")) return;
-    setCreateOpen(false);
-    setCreateDirty(false);
+    if (!createDirty) {
+      setCreateOpen(false);
+      setCreateDirty(false);
+      return;
+    }
+    void confirm({
+      title: "Discard this referral rule?",
+      description: "Nothing has been saved yet, so the rule will be lost.",
+      confirmLabel: "Discard rule",
+      destructive: true,
+    }).then((confirmed) => {
+      if (!confirmed) return;
+      setCreateOpen(false);
+      setCreateDirty(false);
+    });
   }
 
   const ruleColumns = React.useMemo<readonly DataColumn<ReferralBonusConfig>[]>(
@@ -242,6 +258,7 @@ export function ReferralsView() {
 
   return (
     <DashboardPage>
+      {confirmDialog}
       <DashboardHeader
         title="Referral bonus rules"
         description={

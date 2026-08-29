@@ -26,7 +26,8 @@ import { OFFER_USAGE_TYPES } from "@/lib/campaign-artwork";
 
 import { CampaignMediaPicker } from "./campaign-media-picker";
 import { OfferPreview } from "./cms-previews";
-import { CmsPreviewFrame, type PreviewDevice } from "./cms-workspace";
+import { CampaignPreviewPanel } from "./campaign-preview-panel";
+import type { PreviewDevice } from "./cms-workspace";
 
 type Schemas = components["schemas"];
 type DiscountType = "percentage" | "flat" | "cashback-tie";
@@ -222,13 +223,30 @@ export function OfferForm({
           : "Drafts remain private until Admin review and activation."
       }
       embedded={embedded}
-      aside={
-        <CmsPreviewFrame title="Dashboard preview" description="This is the only surface where the coupon appears." contexts={[{ value: "dashboard", label: "Dashboard" }]} context="dashboard" onContextChange={() => undefined} device={previewDevice} onDeviceChange={setPreviewDevice}>
-          <OfferPreview offer={{ title, description: description || null, discount_type: discountType, discount_value: discountValue || "0", code: code || null, partner_name: partnerName || null, image_url: previewUrl, redemption_url: redemptionUrl || null, terms_summary: termsSummary || null }} />
-        </CmsPreviewFrame>
-      }
+      wide
     >
       <form ref={formRef} className="space-y-6" onSubmit={(event) => void onSubmit(event)} noValidate>
+        {/* Full width above the fields, matching the banner wizard: a 20rem
+            aside could not show the signed-in dashboard at a useful size. */}
+        <CampaignPreviewPanel
+          device={previewDevice}
+          onDeviceChange={setPreviewDevice}
+          caption="Signed-in dashboard — the only surface a coupon appears on"
+        >
+          <OfferPreview
+            offer={{
+              title,
+              description: description || null,
+              discount_type: discountType,
+              discount_value: discountValue || "0",
+              code: code || null,
+              partner_name: partnerName || null,
+              image_url: previewUrl,
+              redemption_url: redemptionUrl || null,
+              terms_summary: termsSummary || null,
+            }}
+          />
+        </CampaignPreviewPanel>
         {initialOffer?.review_note ? (
           <p className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950">
             <strong>Reviewer note:</strong> {initialOffer.review_note}

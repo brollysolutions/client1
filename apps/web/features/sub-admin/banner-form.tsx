@@ -3,7 +3,7 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, ArrowRight, Check, Loader2, Monitor, Smartphone, Tablet } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 import type { components } from "@contracts/generated/schema";
@@ -13,7 +13,6 @@ import { FieldError, RequiredIndicator } from "@/components/ui/field-error";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { DashboardFormPage } from "@/features/dashboard/dashboard-ui";
-import { ViewportFrame, viewportLabel, VIEWPORT_WIDTHS } from "@/features/dashboard/viewport-frame";
 import type { PreviewDevice } from "@/features/dashboard/workspace-dialog";
 import {
   ARTWORK_SURFACES,
@@ -36,6 +35,7 @@ import { cn } from "@/lib/utils";
 
 import { AudienceRuleFields, emptyAudienceRules } from "./audience-rule-fields";
 import { CampaignMediaPicker } from "./campaign-media-picker";
+import { CampaignPreviewPanel } from "./campaign-preview-panel";
 import { BannerPreview, placementLabel } from "./cms-previews";
 import { PropertyCampaignSelect } from "./property-campaign-select";
 
@@ -371,11 +371,12 @@ export function BannerForm({
       formTitle="Banner"
       formDescription="Saved as a private draft. Admin approval is required before it goes live."
       embedded={embedded}
+      wide
     >
       <form ref={formRef} className="space-y-6" onSubmit={onSubmit} noValidate>
         <StepIndicator current={step} onSelect={setStep} hasArtwork={hasArtwork} />
 
-        <PreviewPanel
+        <CampaignPreviewPanel
           device={previewDevice}
           onDeviceChange={setPreviewDevice}
           caption={placementLabel(placement)}
@@ -395,7 +396,7 @@ export function BannerForm({
               rera_verified: selectedProperty?.rera_verification_status === "verified",
             }}
           />
-        </PreviewPanel>
+        </CampaignPreviewPanel>
 
         {step === "where" ? (
           <StepPanel
@@ -917,66 +918,6 @@ function StepPanel({
         <p className="mt-1 text-sm leading-6 text-text-secondary">{description}</p>
       </div>
       {children}
-    </section>
-  );
-}
-
-function PreviewPanel({
-  device,
-  onDeviceChange,
-  caption,
-  children,
-}: {
-  device: PreviewDevice;
-  onDeviceChange: (device: PreviewDevice) => void;
-  caption: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <section
-      aria-label="Campaign preview"
-      className="space-y-3 rounded-xl border border-border bg-muted/20 p-4"
-    >
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h3 className="text-sm font-semibold text-text-primary">Live preview</h3>
-          <p className="mt-0.5 text-xs text-text-secondary">{caption}</p>
-        </div>
-        <div
-          className="flex rounded-lg border border-border bg-card p-0.5"
-          role="group"
-          aria-label="Preview size"
-        >
-          {(
-            [
-              ["desktop", Monitor],
-              ["tablet", Tablet],
-              ["mobile", Smartphone],
-            ] as const
-          ).map(([value, Icon]) => (
-            <Button
-              key={value}
-              type="button"
-              size="icon"
-              variant={device === value ? "outline" : "ghost"}
-              onClick={() => onDeviceChange(value)}
-              aria-pressed={device === value}
-              aria-label={`${viewportLabel(value)} preview`}
-            >
-              <Icon className="h-4 w-4" aria-hidden />
-            </Button>
-          ))}
-        </div>
-      </div>
-      <div className="overflow-hidden rounded-xl border border-border bg-white">
-        <ViewportFrame viewport={device}>{children}</ViewportFrame>
-      </div>
-      <p className="text-xs text-text-secondary">
-        <span className="font-medium text-text-primary">
-          {viewportLabel(device)} · {VIEWPORT_WIDTHS[device]}px
-        </span>{" "}
-        · Preview only. Approval, targeting, schedule, and ranking decide actual visibility.
-      </p>
     </section>
   );
 }

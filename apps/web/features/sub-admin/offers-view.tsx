@@ -19,6 +19,7 @@ import { toast } from "sonner";
 
 import { useAuth } from "@/components/auth/session-provider";
 import { Button } from "@/components/ui/button";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 import { Dialog, DialogContent, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -82,11 +83,23 @@ function discountText(offer: Offer): string {
   return `₹${offer.discount_value} off`;
 }
 
-export function OffersView({ embedded = false }: { embedded?: boolean }) {
+export function OffersView({
+  embedded = false,
+  initialStatus,
+  onPendingCount,
+}: {
+  embedded?: boolean;
+  /** Preselect a status so the approvals desk opens on actionable work. */
+  initialStatus?: FilterBarValue["status"];
+  /** Reports how many campaigns are awaiting review, for the tab badge. */
+  onPendingCount?: (count: number) => void;
+}) {
   const { session } = useAuth();
   const isAdmin = session?.role === "admin";
   const { items, loading, error, reload } = useOfferQueue();
-  const [filters, setFilters] = React.useState<FilterBarValue>(EMPTY_FILTERS);
+  const [filters, setFilters] = React.useState<FilterBarValue>(() =>
+    initialStatus ? { ...EMPTY_FILTERS, status: initialStatus } : EMPTY_FILTERS,
+  );
   const filtered = React.useMemo(() => filterOffers(items, filters), [filters, items]);
   const page = useFilteredPage(filtered, filters);
   const [active, setActive] = React.useState<Offer | null>(null);
@@ -95,6 +108,9 @@ export function OffersView({ embedded = false }: { embedded?: boolean }) {
   const [reviewAction, setReviewAction] = React.useState<"changes" | "remove" | null>(null);
   const [busy, setBusy] = React.useState(false);
   const [device, setDevice] = React.useState<PreviewDevice>("desktop");
+  const { confirm, confirmDialog } = useConfirm();
+  const pendingCount = items.filter((item) => item.status === "pending_approval").length;
+  React.useEffect(() => onPendingCount?.(pendingCount), [onPendingCount, pendingCount]);
   const [createOpen, setCreateOpen] = React.useState(false);
   const [createDirty, setCreateDirty] = React.useState(false);
   const canEdit = Boolean(active && !isAdmin && EDITABLE.has(active.status));
@@ -114,11 +130,44 @@ export function OffersView({ embedded = false }: { embedded?: boolean }) {
     setReviewAction(null);
   }
 
+  // `onOpenChange` is synchronous, so a dirty close cannot await the answer.
+  // The workspace stays open and the confirmation opens above it.
   function closeWorkspace(nextOpen: boolean) {
     if (nextOpen || busy) return;
-    if (workspaceDirty && !window.confirm("Discard unsaved offer changes?")) return;
-    setActive(null);
-    setWorkspaceDirty(false);
+    if (!workspaceDirty) {
+      setActive(null);
+      setWorkspaceDirty(false);
+      return;
+    }
+    void confirm({
+      title: "Discard unsaved offer changes?",
+      description: "Your edits to this campaign will be lost.",
+      confirmLabel: "Discard changes",
+      destructive: true,
+    }).then((confirmed) => {
+      if (!confirmed) return;
+      setActive(null);
+      setWorkspaceDirty(false);
+    });
+  }
+
+  function closeCreate(nextOpen: boolean) {
+    if (nextOpen) return setCreateOpen(true);
+    if (!createDirty) {
+      setCreateOpen(false);
+      setCreateDirty(false);
+      return;
+    }
+    void confirm({
+      title: "Discard this offer draft?",
+      description: "Nothing has been saved yet, so this draft will be lost.",
+      confirmLabel: "Discard draft",
+      destructive: true,
+    }).then((confirmed) => {
+      if (!confirmed) return;
+      setCreateOpen(false);
+      setCreateDirty(false);
+    });
   }
 
   async function transition(
@@ -158,7 +207,14 @@ export function OffersView({ embedded = false }: { embedded?: boolean }) {
   }
 
   async function removeDraft(item: Offer) {
-    if (!window.confirm("Delete this never-submitted draft? This cannot be undone.")) return;
+    const confirmed = await confirm({
+      title: "Delete this draft?",
+      description:
+        "This campaign has never been submitted for review, so deleting it leaves no record. This cannot be undone.",
+      confirmLabel: "Delete draft",
+      destructive: true,
+    });
+    if (!confirmed) return;
     setBusy(true);
     const result = await deleteOffer(item.id);
     setBusy(false);
@@ -170,7 +226,9 @@ export function OffersView({ embedded = false }: { embedded?: boolean }) {
 
   return (
     <DashboardPage>
-      {embedded ? <div className="flex flex-wrap items-end justify-between gap-3"><div><h2 className="font-heading text-xl font-semibold">{isAdmin ? "Offer review & removal" : "Dashboard offers"}</h2><p className="mt-1 text-sm text-text-secondary">{isAdmin ? "Review pending work or open any campaign for a reasoned removal." : "Authenticated partner campaigns with clear coupon terms."}</p></div>{!isAdmin ? <Button onClick={() => setCreateOpen(true)}><Plus className="h-4 w-4" />New offer</Button> : null}</div> : <DashboardHeader
+      {confirmDialog}
+      {/* See banners-view: the approvals desk already labels this queue. */}
+      {embedded ? null : <DashboardHeader
         title={isAdmin ? "Offer approvals" : "Dashboard offers"}
         description={isAdmin ? "Approve complete partner coupon campaigns before they can reach a dashboard." : "Create role-targeted partner coupons, submit them for approval, then schedule or activate them."}
         actions={
@@ -227,6 +285,7 @@ export function OffersView({ embedded = false }: { embedded?: boolean }) {
           </> : active ? <>
             <CmsWorkspaceHeader title={active.title} description={`${STATUS_LABEL[active.status]} · ${active.partner_name ?? "Partner incomplete"} · ${discountText(active)}`} />
             <CmsWorkspaceLayout
+              previewFirst={isAdmin}
               editor={<div className="space-y-5">
                 <section className="space-y-4 rounded-xl border border-border p-4">
                   <ReadOnlyField label="Campaign title" value={active.title} />
@@ -254,7 +313,7 @@ export function OffersView({ embedded = false }: { embedded?: boolean }) {
         </DialogContent>
       </Dialog>
 
-      {isAdmin ? null : <Dialog open={createOpen} onOpenChange={(next) => { if (!next && createDirty && !window.confirm("Discard this offer draft?")) return; setCreateOpen(next); if (!next) setCreateDirty(false); }}><DialogContent showCloseButton={false} className={CMS_WORKSPACE_DIALOG_CLASS}><CmsWorkspaceHeader title="New dashboard offer" description="Create a complete private draft before sending it to Admin." /><div className="min-h-0 overflow-y-auto py-2"><OfferForm embedded onDirtyChange={setCreateDirty} onCreated={() => { setCreateDirty(false); setCreateOpen(false); void reload(); }} /></div></DialogContent></Dialog>}
+      {isAdmin ? null : <Dialog open={createOpen} onOpenChange={closeCreate}><DialogContent showCloseButton={false} className={CMS_WORKSPACE_DIALOG_CLASS}><CmsWorkspaceHeader title="New dashboard offer" description="Create a complete private draft before sending it to Admin." /><div className="min-h-0 overflow-y-auto py-2"><OfferForm embedded onDirtyChange={setCreateDirty} onCreated={() => { setCreateDirty(false); setCreateOpen(false); void reload(); }} /></div></DialogContent></Dialog>}
     </DashboardPage>
   );
 }
