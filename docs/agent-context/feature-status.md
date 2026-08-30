@@ -9,6 +9,58 @@ Evidence baseline: `abcc1fd`
 verified Admin operational-visibility work in
 [PR #173](https://github.com/brollysolutions/client1/pull/173).
 
+**Runtime-image contract complete locally — [PR #272](https://github.com/brollysolutions/client1/pull/272) — release remains NO-GO:**
+`security/runtime-image-pinning` now covers all six production service images
+present after merged PR #271. PostgreSQL 18.6, Redis 8.10.1, ClamAV 1.4.6 LTS,
+PgBouncer 1.25.2, and nginx 1.30.4 use versioned, upstream-manifest-pinned bases
+and exact patched Alpine packages. The media worker uses its existing digest-
+pinned Python 3.12 slim base and checked-in Dockerfile. Production Compose no
+longer builds or accepts a mutable tag for any of the six: each human-readable
+release tag requires a supplied 64-character final registry manifest hash,
+including `MEDIA_RUNTIME_IMAGE_SHA256`.
+
+Trivy 0.74.0 reports zero high and zero critical findings in each of the five
+existing local service outputs; their CycloneDX inventories contain 54, 23, 42,
+26, and 72 components respectively. The exact media-worker output reviewed in
+merged PR #271 is
+`sha256:2646e443e722b471149ee63359dbad253f36c0f1e06d1fca1c60110907e2d403`;
+its 294-component SBOM and scan report 137 high rows, 7 critical rows, 45 unique
+advisories across 24 packages, and no reported fix. Isolation contains those
+findings but does not remediate, waive, or make them release-acceptable.
+
+A fresh no-cache media rebuild completed as local OCI index `c18d048c4111…`
+after Debian supplied newer OpenSSL packages, demonstrating why only the final
+published manifest is deployable. Its fresh Trivy run did not complete: the C:
+drive reached zero free space while downloading the scanner database and Docker
+Desktop stopped responding. The failed invocation produced no evidence file,
+and `c18d048c4111…` is explicitly unreviewed and must not be published. The
+operator must publish an exact reviewed artifact, record all six registry
+hashes, pull and rescan those references, and resolve or specifically accept the
+worker findings before the exact-candidate rehearsal.
+
+The prior five-image branch evidence remains: cold-start/health/config/runtime-
+user checks; a Linux API aggregate with 1,885 passes, the same 13 unrelated
+baseline failures, and zero errors; web lint/typecheck/602 tests and 94-route
+Linux production build; one Alembic head; and exact cleanup. The PR #271 worker
+evidence remains: 7/7 unit tests, real 1920x1080 H.264/AAC round-trip, five
+sequential transcodes with concurrent health probes, and the secretless,
+internal, non-root, read-only resource limits. This integration adds negative
+contracts for the sixth release build/final reference and preserves the merged
+CORS, media, and human-sign-off records. Formal feature coverage is unchanged,
+and all other rehearsal and human gates remain open.
+
+Fresh integration evidence runs 34 script/runtime/tracking tests: 33 pass and
+one has the expected Windows POSIX-resource skip. Another 54 focused
+media/config API tests pass with one Linux-only skip; Ruff and format pass
+across all 503 API files, with one Alembic head,
+web lint and strict typecheck, and all 91 files / 602 web tests. Both Compose
+models render with synthetic configuration; the production render includes all
+six final registry references and fails closed when the media digest is absent.
+The native web build compiles, typechecks, and generates 94/94 routes before the
+established Windows standalone-symlink `EPERM`. The fresh worker scan/SBOM,
+runtime smoke, Linux production build, and aggregate repository gate remain
+unverified after Docker became unavailable; a skipped gate is not a pass.
+
 **Done - [PR #270](https://github.com/brollysolutions/client1/pull/270) - credentialed browser CORS method/header hardening:**
 `security/cors-policy` removes the API's wildcard method and request-header
 grants. The explicit browser surface is now `GET`, `POST`, `PUT`, `PATCH`, and

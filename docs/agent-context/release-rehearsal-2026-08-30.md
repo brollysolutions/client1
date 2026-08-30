@@ -124,6 +124,111 @@ the unique-advisory column makes that duplication visible.
 | `edoburu/pgbouncer:v1.23.1-p3` | 47 | 2 | 25 | 49 | **Block**; publisher tag is current but its Alpine 3.20 base is EOL |
 | `nginx:1.27-alpine` | 33 | 2 | 27 | 35 | **Block**; publisher tag is current but reported fixes are available |
 
+## Follow-up: production service image remediation
+
+Status: **SOURCE CONTRACT PASS; EXACT-ARTIFACT REVIEW, DEPLOYMENT, AND RELEASE REMAIN NO-GO**
+
+Follow-up baseline: `87a0dbe`, refreshed through merged PR #271 at `539a074` on
+`security/runtime-image-pinning` and delivered in
+[PR #272](https://github.com/brollysolutions/client1/pull/272). This addendum
+does not rewrite the frozen-candidate evidence above. It records all six direct
+production service images now present at that integrated baseline.
+
+The release build file now uses the same established publishers with explicit
+patch versions and upstream multi-architecture manifest digests. Small Alpine
+wrappers install only exact fixed package versions. The prior PgBouncer image's
+Alpine 3.20 base passed its 1 April 2026 end-of-support date; the replacement
+uses Alpine 3.23, supported through 1 November 2027. The selected Alpine 3.24
+bases are supported through 1 June 2028. ClamAV remains on its 1.4 LTS feature
+line, and nginx moves to the security-fixed 1.30.4 stable release.
+
+Production Compose does not consume a local build tag. Each of the six service
+references contains a fixed human-readable release tag and requires a
+64-character final registry-manifest hash; omission fails Compose
+interpolation. The exact local outputs below have not been published because
+this task has no approved
+registry namespace or package-write authority. Their local OCI index IDs are
+therefore evidence only, not substituted for deployable registry digests. The
+release stays NO-GO until an operator publishes the exact reviewed artifacts,
+records those hashes, and reruns the scan against the pulled registry refs.
+
+The five service-remediation scans used the digest-pinned Trivy 0.74.0 image
+with database version 2 updated at `2026-08-30T01:19:05Z` and downloaded at
+`2026-08-30T06:20:52Z`. Their base counts show why digest pinning alone was
+insufficient; every reported base row had a publisher fix. Their final scans
+used `--exit-code 1 --severity HIGH,CRITICAL`. The media row carries forward
+merged PR #271's exact Trivy 0.74.0 artifact evidence; that source record did
+not separately retain a base-image count.
+
+| Service | Reviewed version/base | Base high / critical / fixable rows | Exact local OCI index ID | Final high / critical | CycloneDX components | SBOM SHA-256 |
+| --- | --- | ---: | --- | ---: | ---: | --- |
+| PostgreSQL | `18.6-alpine3.24` | 23 / 1 / 24 | `cdbc6c84e6a6eef0b2738079278cdf2461b011470625339dc4914b028055fc61` | 0 / 0 | 54 | `eaf40a44264c650fe9484df27ea1446277bbfa8998d9d4f43679a27edf84cfc4` |
+| Redis | `8.10.1-alpine3.23` | 2 / 0 / 2 | `a6922711f60f1e5af5fd68aa34eb5a37eeda604b20abd7b37ad98cf07e69e521` | 0 / 0 | 23 | `304e0ed8c7326c631a4cdec1e9ee136edfb7bfd22821f067952a810da71c73bf` |
+| ClamAV | `1.4.6` on Alpine 3.24 | 2 / 0 / 2 | `235632828205e20ed115d961cc3f502461c2936dd41a3dcf66768e71a82dccd3` | 0 / 0 | 42 | `5a182cfb82c7238f603f0123b350e1e3ac4320ae32888b972480b6d452961272` |
+| PgBouncer | `1.25.2-p0` on Alpine 3.23 | 10 / 0 / 10 | `00a192ca4287f9b31ddfee73530bafcc74054772d0f688feace3966f141cabf7` | 0 / 0 | 26 | `43b653ca29a5cd2571fa5dc5478e78abf8e0194deff408e32744914614e3b819` |
+| nginx | `1.30.4-alpine3.24` | 2 / 0 / 2 | `033ce9bb4c58b0af9d89bb89796afba1953ec2ee23442e173935ae084cc98fca` | 0 / 0 | 72 | `0bedf8ef9a55ffa6ce4a0c8bcec9bcc25a54e23acdfd4ac34cd79d4821f4c681` |
+| media runtime | `python:3.12-slim` manifest plus FFmpeg 7.1.5 | Not separately recorded | `2646e443e722b471149ee63359dbad253f36c0f1e06d1fca1c60110907e2d403` | 137 / 7 | 294 | `90671df49e3ce6e1b15e4a0d4699648e3fa87a717fc4c59515bc8b61e7676e89` |
+
+Fresh compatibility evidence uses only uniquely named synthetic Docker
+resources. A brand-new PostgreSQL volume initialized 18.6 and became healthy
+with both the configured user and PID 1 at uid/gid 70. PgBouncer remained
+uid/gid 70, became healthy with the existing environment contract, and passed
+`SELECT 1` through SCRAM authentication. Redis became healthy and its entrypoint
+dropped PID 1 from the root image configuration to uid 999. ClamAV returned
+`PONG`; its root `tini` supervisor contained `freshclam` and `clamd` running as
+`clamav`. nginx 1.30.4 passed `nginx -t` and `/nginx-health`; the master retained
+the existing bounded root requirement for ports 80/443 while workers ran as
+`nginx`. All task-specific containers, network, and synthetic volumes were
+removed after inspection.
+
+Fresh branch verification passes feature tracking (7), migration/RLS tracking
+(11), the runtime-image contracts (6), Ruff/format across all 502 API files,
+and the single Alembic head. A fresh isolated Linux aggregate applied every
+migration and exercised the full API suite against these hardened PostgreSQL
+and Redis outputs: 1,885 tests passed, the same 13 unrelated baseline tests
+failed, and there were zero setup errors. Web frozen install, lint, strict
+typecheck, all 91 files / 602 tests, and a Linux production build through 94/94
+pages and final image export pass. Both Compose files validate; the production
+render contains each fixed release tag plus a syntactically complete
+64-character hexadecimal manifest hash.
+
+The PR #271 integration refresh runs 34 script/runtime/tracking tests: 33 pass
+and one has the expected Windows POSIX-resource skip. Another 54 focused
+media/config API tests pass with one Linux-only skip; Ruff/format over 503 API
+files, one Alembic head, web lint/typecheck, and 91 files / 602 tests pass.
+Production Compose renders six immutable
+registry references with synthetic settings and fails when
+`MEDIA_RUNTIME_IMAGE_SHA256` is absent; the six-image build input also renders.
+The native web build compiles, typechecks, and generates 94/94 routes before the
+established Windows standalone-symlink `EPERM`. The new worker scan/SBOM,
+runtime smoke, Linux build, and aggregate repository gate are unverified after
+Docker became unavailable and are not counted as passes.
+
+The Windows-host `./scripts/verify.sh --ci` attempt is not represented as a
+pass. Its API phase terminated with 276 passes, 1,459 skips, 46 failures, and
+117 setup errors because the native `_greenlet` DLL could not load and the
+local database/Redis fixtures were unavailable; it exited before the web gate.
+The isolated Linux aggregate above supplies the applicable API result, and the
+web/migration/tracking gates were then run separately to completion.
+
+There is no residual high/critical advisory in the five non-media local
+outputs. The merged media worker remains blocked by 137 high and 7 critical
+finding rows; its isolation is a mitigation, not acceptance. A fresh no-cache
+worker rebuild completed as local OCI index `c18d048c4111…` after Debian
+supplied newer OpenSSL packages, but its scan attempt exhausted the C: drive
+while downloading the vulnerability database and left Docker Desktop
+unresponsive. It produced no scan file or SBOM, so that new output is not a
+reviewed artifact and must not be published. Any registry rebuild must fail the
+release gate unless its exact pulled digest is inventoried and its findings are
+remediated or an accountable owner records specific, reachable, expiring
+acceptance. Every other blocker above is unchanged.
+
+Provenance references: [Alpine release support](https://www.alpinelinux.org/releases/),
+[ClamAV official Docker guidance](https://docs.clamav.net/manual/Installing/Docker.html),
+[PgBouncer image release](https://github.com/edoburu/docker-pgbouncer/releases/tag/v1.25.2-p0),
+[nginx stable downloads](https://nginx.org/en/download.html), and
+[nginx security advisories](https://nginx.org/en/security_advisories.html).
+
 The API critical set reported by the scanner is `CVE-2026-13221`,
 `CVE-2026-34873`, `CVE-2026-34875`, `CVE-2026-42496`, `CVE-2026-58016`,
 `CVE-2026-6653`, and `CVE-2026-8376`. This list is triage input, not a claim
