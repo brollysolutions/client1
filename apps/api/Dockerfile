@@ -13,6 +13,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 # Managed video is decoded and re-encoded before any playback URL exists.
 # Install the distribution-patched binaries in both dev and prod stages.
 RUN apt-get update \
+    && apt-get upgrade -y --no-install-recommends \
     && apt-get install -y --no-install-recommends ffmpeg \
     && rm -rf /var/lib/apt/lists/*
 
@@ -27,7 +28,6 @@ RUN uv sync --frozen --no-install-project
 
 # ---------- prod ----------
 FROM base AS prod
-ENV UV_SYSTEM_PYTHON=1
 COPY pyproject.toml uv.lock ./
 RUN uv sync --frozen --no-dev --no-install-project
 
@@ -38,3 +38,9 @@ RUN addgroup --system app \
     && chown -R app:app /app
 
 USER app
+
+# `uv sync` creates /app/.venv. Run that environment directly in production:
+# the locked-down app user deliberately has no home directory, so invoking
+# `uv run` at runtime would try to create `/nonexistent/.cache/uv` and abort
+# before Uvicorn or the scheduler starts.
+ENV PATH="/app/.venv/bin:${PATH}"

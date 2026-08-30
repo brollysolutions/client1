@@ -49,8 +49,12 @@ jobs:
       # may drop the ecdsa dependency or the advisory may gain a real fix.
       - name: Python audit
         run: |
-          pip install uv
-          if [ -f apps/api/pyproject.toml ]; then ( cd apps/api && uv pip compile pyproject.toml -o /tmp/req.txt && uv tool run pip-audit -r /tmp/req.txt --ignore-vuln PYSEC-2026-1325 ); fi
+          pip install uv==0.12.1
+          if [ -f apps/api/pyproject.toml ]; then
+            ( cd apps/api \
+              && uv export --frozen --no-dev --no-emit-project --format requirements-txt --output-file /tmp/req.txt >/dev/null \
+              && uv tool run --from pip-audit==2.10.1 pip-audit -r /tmp/req.txt --ignore-vuln PYSEC-2026-1325 )
+          fi
       - name: Node audit
         run: |
           corepack enable

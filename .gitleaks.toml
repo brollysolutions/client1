@@ -1,0 +1,25 @@
+title = "Dhanadhara Gitleaks configuration"
+
+[extend]
+useDefault = true
+
+# Both entries below are historical generic-api-key false positives.  They are
+# constrained by rule, introducing commit, exact repository path, and the
+# non-secret line shape so a later credential-like value is still reported.
+[[allowlists]]
+description = "Property-submission migration prose names the api_user role"
+targetRules = ["generic-api-key"]
+condition = "AND"
+regexTarget = "line"
+commits = ["c807fb01b8638788accfc9413c53173363caf008"]
+paths = ['''^apps/api/alembic/versions/c3d4e5f6a7b8_add_property_submissions\.py$''']
+regexes = ['''^\s*to api_user: approval/rejection run in a bypass superuser session\s*$''']
+
+[[allowlists]]
+description = "The committed development-only JWT key is rejected outside development"
+targetRules = ["generic-api-key"]
+condition = "AND"
+regexTarget = "line"
+commits = ["12ff71051632f6c9faa786423519897eeacf99f5"]
+paths = ['''^apps/api/app/core/config\.py$''']
+regexes = ['''^\s*_INSECURE_DEFAULT_SECRET\s*=\s*"[0-9a-f]{64}"\s*$''']

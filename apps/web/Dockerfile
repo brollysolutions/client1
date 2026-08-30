@@ -71,6 +71,14 @@ ENV NODE_ENV=production \
     NEXT_PUBLIC_CONTACT_HOURS=${NEXT_PUBLIC_CONTACT_HOURS} \
     NEXT_PUBLIC_CONTACT_ADDRESS=${NEXT_PUBLIC_CONTACT_ADDRESS}
 
+# The standalone server needs Node, not npm/Corepack/pnpm. Keep vulnerable or
+# unnecessary package-manager code out of the runtime image, and apply current
+# Alpine security updates before dropping privileges.
+RUN apk upgrade --no-cache \
+    && rm -rf /usr/local/lib/node_modules/npm /usr/local/lib/node_modules/corepack \
+    && rm -f /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack \
+        /usr/local/bin/pnpm /usr/local/bin/pnpx /usr/local/bin/yarn /usr/local/bin/yarnpkg
+
 RUN addgroup --system nodejs \
     && adduser --system --ingroup nodejs --no-create-home nextjs
 
