@@ -8,21 +8,20 @@ test("Home restores the Loans band and places calculators after Properties", asy
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/", { waitUntil: "domcontentloaded", timeout: 90_000 });
 
-  const loansHeading = page.getByRole("heading", {
-    name: "Loans, cards, and insurance that fit you",
-  });
-  const propertiesHeading = page.getByRole("heading", { name: "Buy your property with confidence" });
-  const calculatorsHeading = page.getByRole("heading", { name: "Calculate before you decide" });
+  // The same Loans copy can legitimately appear in a live campaign hero. The
+  // stable section ids identify the three homepage bands this test orders.
+  const loansHeading = page.locator("#loans-heading");
+  const propertiesHeading = page.locator("#real-estate-heading");
+  const calculatorsHeading = page.locator("#home-calculators-heading");
   await expect(loansHeading).toBeVisible();
   await expect(propertiesHeading).toBeVisible();
   await expect(calculatorsHeading).toBeVisible();
-  const headings = await page.locator("main h2").allTextContents();
-  expect(headings.indexOf("Loans, cards, and insurance that fit you")).toBeLessThan(
-    headings.indexOf("Buy your property with confidence"),
-  );
-  expect(headings.indexOf("Buy your property with confidence")).toBeLessThan(
-    headings.indexOf("Calculate before you decide"),
-  );
+  const bands = await page
+    .locator('#loans, #real-estate, section[aria-labelledby="home-calculators-heading"]')
+    .evaluateAll((elements) =>
+      elements.map((element) => element.id || element.getAttribute("aria-labelledby")),
+    );
+  expect(bands).toEqual(["loans", "real-estate", "home-calculators-heading"]);
   await expect(page.getByText("Free planning tools")).toHaveCount(0);
   const calculators = page.locator('section[aria-labelledby="home-calculators-heading"]');
   for (const href of [
@@ -66,9 +65,12 @@ test("catalogue cards and provider applications remain inside Dhanadhara", async
   const providerLinks = await page.locator("#providers a").evaluateAll((links) =>
     links.map((link) => (link as HTMLAnchorElement).getAttribute("href") ?? ""),
   );
-  expect(providerLinks.every((href) => href.startsWith("/loans/") || href.startsWith("/login"))).toBe(
-    true,
-  );
+  expect(providerLinks.length).toBeGreaterThan(0);
+  for (const href of providerLinks) {
+    // Apply and enquiry actions are both internal. Reject absolute and
+    // protocol-relative destinations without hard-coding every valid route.
+    expect(href).toMatch(/^\/(?!\/)/);
+  }
 });
 
 test("catalogue results filter as you type under a sticky, button-free bar", async ({ page }) => {

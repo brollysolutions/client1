@@ -10,6 +10,19 @@ test.setTimeout(150_000);
 test("registration saves Salaried and a manually searched location", async ({ page }) => {
   const mobile = "+919876543210";
   const password = `Browser#Pass9${Date.now()}`;
+  const authTokens = {
+    access_token: tokenWith({
+      sub: "00000000-0000-4000-8000-000000000001",
+      role: "client",
+      business_line: "both",
+      exp: Math.floor(Date.now() / 1000) + 1800,
+      force_reset: false,
+    }),
+    token_type: "bearer",
+    expires_in: 1800,
+    phone_verified: true,
+    email_verified: false,
+  };
   let savedProfile: Record<string, unknown> | undefined;
   await page.route("**/api/v1/auth/register/initiate", async (route) => {
     await route.fulfill({
@@ -33,19 +46,17 @@ test("registration saves Salaried and a manually searched location", async ({ pa
     await route.fulfill({
       status: 201,
       contentType: "application/json",
-      body: JSON.stringify({
-        access_token: tokenWith({
-          sub: "00000000-0000-4000-8000-000000000001",
-          role: "client",
-          business_line: "both",
-          exp: Math.floor(Date.now() / 1000) + 1800,
-          force_reset: false,
-        }),
-        token_type: "bearer",
-        expires_in: 1800,
-        phone_verified: true,
-        email_verified: false,
-      }),
+      body: JSON.stringify(authTokens),
+    });
+  });
+  // Entering the authenticated route group mounts its own provider, which
+  // restores the real session through the HttpOnly refresh cookie. Mirror that
+  // handoff instead of letting this otherwise-mocked journey hit the web 404.
+  await page.route("**/api/v1/auth/refresh", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify(authTokens),
     });
   });
   await page.route("**/api/v1/auth/me", async (route) => {
