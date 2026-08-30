@@ -436,7 +436,12 @@ async def test_add_loan_txn_for_unowned_application_is_404(client: AsyncClient) 
 
     res = await client.post(
         f"/api/v1/telecaller/loan-applications/{application_id}/txn-history",
-        json={"bank_name": "HDFC"},
+        json={
+            "bank_name": "HDFC",
+            "amount": "500000",
+            "interest_rate": "8.5",
+            "txn_date": "2026-07-01",
+        },
         headers={"Authorization": f"Bearer {_telecaller_token(auth_uuid, staff_uuid)}"},
     )
     assert res.status_code == 404
@@ -451,7 +456,9 @@ async def test_non_loans_application_is_rejected_by_database(client: AsyncClient
 
 
 @pytest.mark.asyncio
-async def test_raise_task_success(client: AsyncClient) -> None:
+async def test_raise_task_without_employee_stays_in_retry_pool(
+    client: AsyncClient, isolated_active_employees: None
+) -> None:
     auth_uuid, staff_uuid = await _seed_telecaller("loans")
     lead_id = await _seed_assigned_lead("loans", staff_uuid)
 
