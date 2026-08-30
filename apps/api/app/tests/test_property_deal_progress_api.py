@@ -15,9 +15,10 @@ import uuid
 
 import pytest
 from httpx import AsyncClient
-from sqlalchemy import update
+from sqlalchemy import select, update
 
 from app.core.security import create_access_token
+from app.models.audit_log import AuditAction, AuditLog
 from conftest import do_login, full_registration, unique_mobile
 
 
@@ -281,6 +282,24 @@ async def test_status_advances_and_terms_gated_until_booked(client: AsyncClient)
     assert res.status_code == 200, res.text
     assert res.json()["status"] == "contacted"
 
+    import app.db.session as _session_mod
+
+    async with _session_mod.AsyncSessionLocal() as db:
+        audit = await db.scalar(
+            select(AuditLog).where(
+                AuditLog.entity_uuid == uuid.UUID(deal["id"]),
+                AuditLog.action == AuditAction.PROPERTY_DEAL_UPDATED,
+            )
+        )
+    assert audit is not None
+    assert audit.actor_uuid == uuid.UUID(tc_uid)
+    assert audit.detail == {
+        "previous_status": "new",
+        "status": "contacted",
+        "fields": ["status"],
+        "status_reason_recorded": False,
+    }
+
     # Terms before BOOKED are rejected.
     res = await client.patch(
         f"/api/v1/telecaller/property-deals/{deal['id']}",
@@ -306,6 +325,23 @@ async def test_status_advances_and_terms_gated_until_booked(client: AsyncClient)
     body = res.json()
     assert body["price_quoted"] == "8000000.00"
     assert body["booking_amount"] == "500000.00"
+
+    async with _session_mod.AsyncSessionLocal() as db:
+        terms_audit = await db.scalar(
+            select(AuditLog)
+            .where(
+                AuditLog.entity_uuid == uuid.UUID(deal["id"]),
+                AuditLog.action == AuditAction.PROPERTY_DEAL_UPDATED,
+            )
+            .order_by(AuditLog.created_at.desc())
+        )
+    assert terms_audit is not None
+    assert terms_audit.detail == {
+        "previous_status": "booked",
+        "status": "booked",
+        "fields": ["booking_amount", "price_quoted"],
+        "status_reason_recorded": False,
+    }
 
 
 @pytest.mark.asyncio

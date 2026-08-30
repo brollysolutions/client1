@@ -13,7 +13,9 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.models.audit_log import AuditAction
 from app.models.content_block import ContentBlock, ContentStatus
+from app.services.audit_log import record as record_audit
 
 # Forward-only edges. A draft can be archived without ever going live (abandoned
 # copy); archived is terminal — nothing is ever un-archived or un-published.
@@ -48,6 +50,7 @@ async def advance_content_block(
     target_status: ContentStatus,
     db: AsyncSession,
     *,
+    actor_role: str,
     can_manage_any: bool = False,
 ) -> ContentBlock | None:
     # Unlocked existence/ownership check first: Postgres RLS applies a table's
@@ -65,11 +68,29 @@ async def advance_content_block(
     block = await db.scalar(
         select(ContentBlock).where(ContentBlock.id == block_id).with_for_update()
     )
-    if target_status not in _TRANSITIONS.get(block.status, set()):
+    previous_status = block.status
+    if target_status not in _TRANSITIONS.get(previous_status, set()):
         raise ContentIllegalTransition
     if target_status is ContentStatus.PUBLISHED and not (block.body or "").strip():
         raise ContentBodyRequired
     block.status = target_status
+    await record_audit(
+        db,
+        action=(
+            AuditAction.CONTENT_BLOCK_PUBLISHED
+            if target_status is ContentStatus.PUBLISHED
+            else AuditAction.CONTENT_BLOCK_ARCHIVED
+        ),
+        entity_type="content_block",
+        entity_uuid=block.id,
+        actor_uuid=owner_uuid,
+        actor_role=actor_role,
+        business_line=block.business_line,
+        detail={
+            "previous_status": previous_status.value,
+            "status": target_status.value,
+        },
+    )
     await db.commit()
     await db.refresh(block)
     return block

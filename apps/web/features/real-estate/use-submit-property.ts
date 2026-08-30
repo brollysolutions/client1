@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
 import {
+  correctApprovedSubmission,
   submitProperty,
   updateSubmission,
   uploadPropertyMedia,
@@ -20,7 +21,10 @@ import {
   type SubmitFormState,
 } from "@/lib/property-submit";
 
-export function useSubmitProperty(submission?: Submission) {
+export function useSubmitProperty(
+  submission?: Submission,
+  { adminCorrection = false }: { adminCorrection?: boolean } = {},
+) {
   const router = useRouter();
   const [form, setForm] = React.useState<SubmitFormState>(() =>
     submission ? submissionToFormState(submission) : EMPTY_FORM,
@@ -28,6 +32,7 @@ export function useSubmitProperty(submission?: Submission) {
   const [errors, setErrors] = React.useState<Record<string, string>>({});
   const [submitting, setSubmitting] = React.useState(false);
   const [uploadProgress, setUploadProgress] = React.useState<string | null>(null);
+  const [correctionReason, setCorrectionReason] = React.useState("");
 
   const setField = React.useCallback(
     <K extends keyof SubmitFormState>(field: K, value: SubmitFormState[K]) => {
@@ -66,6 +71,9 @@ export function useSubmitProperty(submission?: Submission) {
 
   const submit = React.useCallback(async () => {
     const found = validateForm(form, { requireImages: submission == null });
+    if (adminCorrection && correctionReason.trim() === "") {
+      found.correctionReason = "Correction reason is required.";
+    }
     setErrors(found);
     if (Object.keys(found).length > 0) {
       toast.error("Please fix the highlighted fields.");
@@ -73,17 +81,28 @@ export function useSubmitProperty(submission?: Submission) {
     }
     setSubmitting(true);
     if (submission) {
-      setUploadProgress("Saving changes");
-      const res = await updateSubmission(submission.id, buildSubmissionUpdatePayload(form));
+      setUploadProgress(adminCorrection ? "Staging correction" : "Saving changes");
+      const updatePayload = buildSubmissionUpdatePayload(form);
+      const res = adminCorrection
+        ? await correctApprovedSubmission(submission.id, {
+            ...updatePayload,
+            reason: correctionReason.trim(),
+          })
+        : await updateSubmission(submission.id, updatePayload);
       setSubmitting(false);
       setUploadProgress(null);
       if (res.ok) {
-        toast.success(
-          submission.status === "approved"
-            ? "Changes sent for Admin review. The approved version remains public."
-            : "Listing changes saved for review.",
-        );
-        router.push("/dashboard/my-submissions");
+        if (adminCorrection) {
+          toast.success("Correction staged for RERA review. The current listing remains live.");
+          router.push("/dashboard/property-review");
+        } else {
+          toast.success(
+            submission.status === "approved"
+              ? "Changes sent for Admin review. The approved version remains public."
+              : "Listing changes saved for review.",
+          );
+          router.push("/dashboard/my-submissions");
+        }
       } else {
         toast.error(res.error || "Could not update the listing.");
       }
@@ -113,7 +132,7 @@ export function useSubmitProperty(submission?: Submission) {
     } else {
       toast.error(res.error || "Could not submit the listing.");
     }
-  }, [form, router, submission]);
+  }, [adminCorrection, correctionReason, form, router, submission]);
 
   return {
     form,
@@ -124,6 +143,9 @@ export function useSubmitProperty(submission?: Submission) {
     setImages,
     setDocuments,
     setPanorama,
+    adminCorrection,
+    correctionReason,
+    setCorrectionReason,
     editing: submission != null,
     existingMedia: submission?.media ?? [],
     errors,

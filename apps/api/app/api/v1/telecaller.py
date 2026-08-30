@@ -372,7 +372,13 @@ async def update_loan_application_progress(
         ) from exc
 
     try:
-        application = await apply_progress_update(db, application, payload)
+        application = await apply_progress_update(
+            db,
+            application,
+            payload,
+            actor_uuid=current_user.id,
+            actor_role=current_user.role,
+        )
     except TerminalApplication as exc:
         raise HTTPException(
             status.HTTP_409_CONFLICT, "This application is already closed."
@@ -465,7 +471,13 @@ async def update_property_deal_progress(
         ) from exc
 
     try:
-        deal = await apply_deal_progress_update(db, deal, payload)
+        deal = await apply_deal_progress_update(
+            db,
+            deal,
+            payload,
+            actor_uuid=current_user.id,
+            actor_role=current_user.role,
+        )
     except TerminalDeal as exc:
         raise HTTPException(status.HTTP_409_CONFLICT, "This deal is already closed.") from exc
     except InvalidDealStatusTransition as exc:

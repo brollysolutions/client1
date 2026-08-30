@@ -9,6 +9,42 @@ Evidence baseline: `abcc1fd`
 verified Admin operational-visibility work in
 [PR #173](https://github.com/brollysolutions/client1/pull/173).
 
+**Implemented — delivery PR pending - FR-2.2 Admin controlled-correction and operational audit remediation:**
+`codex/20260829-163717-implement` closes the original typed approved-listing
+correction gap and all seven named audit families. The correction is a platform-
+Admin-only, reason-required staged edit of an approved submission: the current
+public catalogue row and approved media remain unchanged until RERA re-review
+and approval update that same row. Content authoring/lifecycle, loan progression,
+and property-deal progression now append same-transaction business audits;
+later merged banner, offer, referral-rule, and automatic-task assignment writers
+have explicit registry and regression coverage. Audit detail records operation,
+status transitions, changed field names, identifiers, and the required correction
+reason without copying customer, financial, or protected field values.
+
+The exhaustive registry separately identifies two newer read-only visibility
+gaps for `field_visibility_config` and `financial_service_enquiries`, so FR-2.2
+remains Partial rather than being overstated as globally complete. Protected
+secrets, locations, private media/documents, immutable ledgers, payouts,
+ownership, RLS, and business-line boundaries are unchanged. The frozen-release
+rehearsal and human launch sign-offs remain separate next phases.
+
+Fresh evidence: all 502 API files pass Ruff and formatting; the final affected
+registry/schema/property/content/loan/deal set passes 174 tests. The Docker
+aggregate completes 1,881 passes, 15 failures, and 2 skips in 63m35s; all 15
+failures match the unrelated stale/shared-state baseline documented by PR #259,
+while the changed families are green in the final focused run. The audit
+migration round-trip and exactly one Alembic head pass; generated OpenAPI and
+TypeScript contracts are current. Feature tracking (7), migration/RLS tracking
+(11), the base-ref co-change guard, and `git diff --check` pass. Web lint,
+strict typecheck, and all 91 files / 602 tests pass. The native build compiles,
+typechecks, and generates 94/94 routes before the established Windows
+standalone-symlink `EPERM`; the strict Linux production image completes through
+standalone export and includes the correction route. An authenticated Admin
+browser pass covers Published -> Edit -> Open correction plus the 390x844 form,
+required reason, retained-media copy, return navigation, no horizontal overflow,
+and no changed-page console error. Security, design/accessibility, and final
+maintainer review found no remaining change-owned issue.
+
 **Done - [PR #266](https://github.com/brollysolutions/client1/pull/266) - pre-deployment authentication and session assurance:**
 `codex/20260829-163717-implement` closes two bounded gaps found while tracing
 the password and session lifecycle for the direct pre-deployment request.
@@ -122,7 +158,7 @@ production image compiled, typechecked, generated 94/94 pages, completed
 standalone tracing/copy, and exported successfully. The pre-existing dev web
 container was restored and returned to its healthy startup path afterward.
 
-**In progress - rent/lease listings and external listing links:**
+**Done - [PR #263](https://github.com/brollysolutions/client1/pull/263) - rent/lease listings and external listing links:**
 `claude/20260829-133027-rent-for-properties-link-option-while-list` ([PR #263](https://github.com/brollysolutions/client1/pull/263); direct user instruction; no formal requirement or completion-percentage
 change) adds a sale-vs-rent axis to the real-estate catalogue and a structured,
 host-allowlisted place for author-supplied links out to the property elsewhere.
@@ -172,7 +208,7 @@ and generates all 93 pages; the standalone symlink copy step fails with EPERM on
 this Windows host, which is an environment limitation of `output: "standalone"`
 and unrelated to this change.
 
-**In progress - campaign phone preview withdrawn:**
+**Done - [PR #262](https://github.com/brollysolutions/client1/pull/262) - campaign phone preview withdrawn:**
 `claude/20260829-131005-remove-phone-preview-as-of-now` (direct user
 instruction; no formal requirement or completion-percentage change) removes the
 phone preview added in PR #261. With a single width remaining, the size control
@@ -195,7 +231,7 @@ three, and the preview still laying out at 1440 CSS pixels while rendering
 scaled to 1258, with no console errors. No API, contract, migration,
 authorization, or RLS behaviour changed.
 
-**In progress - campaign authoring follow-up:**
+**Done - [PR #261](https://github.com/brollysolutions/client1/pull/261) - campaign authoring follow-up:**
 `claude/20260829-122607-the-current-ui-is-good-for-banner` (direct user
 instruction; no formal requirement or completion-percentage change) closes six
 defects reported against PR #260.
@@ -247,7 +283,7 @@ dialogs captured across the whole run, and the approvals desk reporting
 "125 campaigns waiting" with per-tab badges (95 / 30) and a Pending approval
 filter. No API, contract, migration, authorization, or RLS behaviour changed.
 
-**In progress - Sub Admin banner and offer authoring redesign:**
+**Done - [PR #260](https://github.com/brollysolutions/client1/pull/260) - Sub Admin banner and offer authoring redesign:**
 `claude/20260829-091848-lets-plan-subadmin-banners-and-offers-righ` (direct user
 instruction; no formal requirement or completion-percentage change) rebuilds the
 authoring experience PR #259 shipped around a sound data model.
@@ -3337,15 +3373,14 @@ head; the monolithic API suite reached the 30-minute local bound without a
 final report and is inconclusive. No role, RLS, account-deletion, or production
 registration behavior changes.
 
-The remaining **FR-2.2 Admin operational coverage audit** has an exhaustive,
-test-enforced baseline across 47 mapped tables and all 68 current
-platform-scope RLS policies. The visibility-remediation slice closes all eight
-confirmed read gaps: soft-deleted accounts serialize with tombstone contact
-values redacted, Users & staff includes per-line Client profile context, and a
-dedicated paginated Admin workspace exposes minimized authentication events,
-enquiries, lead activities, loan transaction history, site visits, and
-transactions. Eight confirmed gaps remain: one typed approved-listing
-correction and seven append-only audit-event families. Payout controls,
+The **FR-2.2 Admin operational coverage audit** has an exhaustive, test-enforced
+baseline across the mapped tables and all current platform-scope RLS policies.
+The original visibility-remediation slice closed its eight confirmed read gaps,
+and the current slice closes its one typed approved-listing correction plus
+seven append-only audit-event families. The registry now isolates two newer
+read-only visibility gaps: `field_visibility_config` and
+`financial_service_enquiries`. FR-2.2 therefore remains Partial until those
+separately discovered rows have an explicit safe Admin surface. Payout controls,
 private-document access, secret/location minimization, immutable ledgers, and
 business-line segregation remain non-negotiable compatibility constraints.
 
@@ -3820,7 +3855,7 @@ The following requirements are complete on the evidence baseline:
 | Requirement | Status | Implemented slice | Remaining work |
 | --- | --- | --- | --- |
 | FR-1.1 | Complete | Every mapped table and managed-media purpose is inventoried; operational rows require one immutable Loans/Real Estate tag, parent/source copies must match, and only reviewed staged/global/identity exceptions remain nullable or allow `both`. | Preserve the exhaustive ledger and migration/negative tests for every future table, relation, content audience, and media purpose. |
-| FR-2.2 | Partial | Admin dashboards cover users, leads, tasks, agents, loans, deals, payouts, content, audit, reports, and a new paginated Operational records workspace. The test-enforced contract classifies all 47 mapped tables and all 68 current platform-scope policies. All eight view gaps are closed with minimized generated contracts, soft-deleted contact redaction, per-line Client profile context, `private, no-store`, accessible UI, and fresh platform-Admin/negative-role PostgreSQL evidence. | Remediate the eight remaining tables: one typed approved-listing correction gap (`properties`) and seven append-only audit gaps (`banners`, `content_blocks`, `loan_applications`, `offers`, `property_deals`, `referral_bonus_config`, `tasks`). Preserve protected secrets/location/media, immutable ledgers, command-bound updates, RLS, and safe audit details. |
+| FR-2.2 | Partial | Admin dashboards cover users, leads, tasks, agents, loans, deals, payouts, content, audit, reports, and a paginated Operational records workspace. The exhaustive contract classifies every mapped table and current platform-scope policy. The original eight view gaps are closed with minimized generated contracts, soft-deleted contact redaction, per-line Client profile context, `private, no-store`, accessible UI, and platform-Admin/negative-role PostgreSQL evidence. The approved-property correction is now a typed, platform-Admin-only, reason-required staged command that preserves the live listing and approved media until re-review. All seven named operational mutation families have append-only, same-transaction, value-minimized audit coverage: `banners`, `content_blocks`, `loan_applications`, `offers`, `property_deals`, `referral_bonus_config`, and `tasks`. | Add safe read-only Admin visibility decisions for the two newer registry gaps, `field_visibility_config` and `financial_service_enquiries`. Preserve protected secrets/location/media, immutable ledgers, command-bound updates, RLS, and safe audit details. |
 | FR-2.8 | Complete | Lead name and journey notes carry immutable creator descriptors; Agent and Client edits follow explicit lifecycle cutoffs, Admin corrections preserve ownership and require an audited reason, and Telecaller notes remain append-only activities. Service checks, row locks, command-specific RLS, and a database trigger deny cross-owner, cross-role, cross-line, lifecycle, allowed-column, and descriptor-planting bypasses. | Preserve the ownership initializer/backfill, least-data no-store response, audit-value minimization, and direct SQL denial tests when adding future editable lead-detail paths. |
 | FR-4.2 | Complete | Agent-introduced leads are atomically attributed and assigned through a durable, active-only same-line round-robin cursor, queued for bounded retry without capacity, and bound to a same-mobile Client only after OTP-proven registration. | Preserve global Agent ownership, expiry deadlines, generic-link authority boundaries, stable Telecaller order, cursor isolation, and concurrency tests as the workflow evolves. |
 | FR-4.3 | Complete | Registration captures explicit one/both-line intent while retaining both Client profiles; each requested journey is independently bound and assigned through its line's separate round-robin cursor without cross-line leakage. | Preserve explicit intent, per-line uniqueness, deterministic assignment ordering, and account-deletion closure. |

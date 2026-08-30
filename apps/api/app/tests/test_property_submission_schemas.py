@@ -8,7 +8,7 @@ import pytest
 from pydantic import ValidationError
 
 from app.schemas.listing_links import ListingLink, safe_stored_listing_links
-from app.schemas.property_submissions import SubmissionCreate
+from app.schemas.property_submissions import AdminPropertyCorrection, SubmissionCreate
 
 _PROJECT_AMENITIES = " ".join(["landscaped"] * 150)
 
@@ -78,6 +78,19 @@ def test_accepts_ten_images_and_two_documents() -> None:
     parsed = SubmissionCreate.model_validate(_payload(media))
 
     assert len(parsed.media) == 12
+
+
+def test_admin_correction_requires_a_non_blank_reason_and_rejects_extra_fields() -> None:
+    payload = _payload([_asset(0)])
+    payload.pop("media")
+
+    with pytest.raises(ValidationError, match="at least 1 character"):
+        AdminPropertyCorrection.model_validate({**payload, "reason": "   "})
+
+    with pytest.raises(ValidationError, match="Extra inputs are not permitted"):
+        AdminPropertyCorrection.model_validate(
+            {**payload, "reason": "Verified correction.", "status": "approved"}
+        )
 
 
 def test_accepts_one_managed_panorama() -> None:

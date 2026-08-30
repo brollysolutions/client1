@@ -232,6 +232,14 @@ class SubmissionUpdate(SubmissionFacts):
     """Editable listing facts; managed media remains immutable after intake."""
 
 
+class AdminPropertyCorrection(SubmissionUpdate):
+    """Full replacement facts plus the reason for an approved-listing correction."""
+
+    model_config = ConfigDict(str_strip_whitespace=True, extra="forbid")
+
+    reason: str = Field(min_length=1, max_length=1000)
+
+
 class SubmissionMediaRead(BaseModel):
     id: UUID
     kind: Literal["image", "document", "panorama"]

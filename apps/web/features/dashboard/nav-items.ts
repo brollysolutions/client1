@@ -536,7 +536,7 @@ export const DASHBOARD_ROUTE_RULES: readonly DashboardRouteRule[] = [
   { path: "/dashboard/offers", exact: true, capabilities: ["cms"] },
   { path: "/dashboard/payouts", exact: true, capabilities: ["admin", "subAdminPayouts"] },
   { path: "/dashboard/property-deals", exact: true, capabilities: ["admin"] },
-  { path: "/dashboard/property-review", exact: true, capabilities: ["admin"] },
+  { path: "/dashboard/property-review", capabilities: ["admin"] },
   {
     path: "/dashboard/property-submit",
     exact: true,

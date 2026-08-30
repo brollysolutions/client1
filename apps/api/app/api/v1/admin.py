@@ -971,7 +971,7 @@ async def update_loan_application_progress(
     application_id: UUID,
     payload: LoanApplicationProgressUpdate,
     response: Response,
-    current_user: CurrentUser = Depends(require_platform_admin),  # noqa: ARG001
+    current_user: CurrentUser = Depends(require_platform_admin),
     db: AsyncSession = Depends(get_db),
 ) -> AdminLoanApplicationRead:
     response.headers["Cache-Control"] = "private, no-store"
@@ -980,7 +980,13 @@ async def update_loan_application_progress(
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Loan application not found.")
 
     try:
-        application = await apply_progress_update(db, application, payload)
+        application = await apply_progress_update(
+            db,
+            application,
+            payload,
+            actor_uuid=current_user.id,
+            actor_role=current_user.role,
+        )
     except TerminalApplication as exc:
         raise HTTPException(
             status.HTTP_409_CONFLICT, "This application is already closed."
@@ -1027,7 +1033,7 @@ async def list_property_deals(
 async def update_property_deal_progress(
     deal_id: UUID,
     payload: PropertyDealProgressUpdate,
-    current_user: CurrentUser = Depends(require_platform_admin),  # noqa: ARG001
+    current_user: CurrentUser = Depends(require_platform_admin),
     db: AsyncSession = Depends(get_db),
 ) -> AdminPropertyDealRead:
     deal = await get_deal_for_admin(db, deal_id)
@@ -1035,7 +1041,13 @@ async def update_property_deal_progress(
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Property deal not found.")
 
     try:
-        deal = await apply_deal_progress_update(db, deal, payload)
+        deal = await apply_deal_progress_update(
+            db,
+            deal,
+            payload,
+            actor_uuid=current_user.id,
+            actor_role=current_user.role,
+        )
     except TerminalDeal as exc:
         raise HTTPException(status.HTTP_409_CONFLICT, "This deal is already closed.") from exc
     except InvalidDealStatusTransition as exc:

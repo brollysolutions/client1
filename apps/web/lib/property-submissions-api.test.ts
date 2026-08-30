@@ -1,7 +1,11 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { registerTokenGetter, registerTokenRefresher } from "@/lib/api/client";
-import { getSubmission, uploadPropertyMedia } from "@/lib/property-submissions-api";
+import {
+  correctApprovedSubmission,
+  getSubmission,
+  uploadPropertyMedia,
+} from "@/lib/property-submissions-api";
 
 function response(status: number, body?: unknown): Response {
   return {
@@ -128,6 +132,28 @@ describe("getSubmission", () => {
     expect(fetchMock).toHaveBeenCalledWith(
       expect.stringContaining(`/api/v1/property-submissions/${submission.id}`),
       expect.any(Object),
+    );
+  });
+});
+
+describe("correctApprovedSubmission", () => {
+  it("uses the dedicated reasoned correction command", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(response(200, { id: "submission-id" }));
+    vi.stubGlobal("fetch", fetchMock);
+    const payload = {
+      title: "Corrected listing",
+      reason: "Verified against source paperwork.",
+    } as Parameters<typeof correctApprovedSubmission>[1];
+
+    const result = await correctApprovedSubmission("submission-id", payload);
+
+    expect(result.ok).toBe(true);
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining("/api/v1/property-submissions/submission-id/correction"),
+      expect.objectContaining({
+        method: "PATCH",
+        body: JSON.stringify(payload),
+      }),
     );
   });
 });

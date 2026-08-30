@@ -11,10 +11,11 @@ import uuid
 
 import pytest
 from httpx import AsyncClient
-from sqlalchemy import text
+from sqlalchemy import select, text
 from sqlalchemy.exc import IntegrityError
 
 from app.core.security import create_access_token
+from app.models.audit_log import AuditAction, AuditLog
 from conftest import full_registration, loan_application_payload
 
 from .test_telecaller_api import (
@@ -107,6 +108,24 @@ async def test_telecaller_advances_status_success(client: AsyncClient) -> None:
     client_auth_uuid = await _client_auth_uuid_for_application(application_id)
     assert await _unread_notification_count(client_auth_uuid) == 1
 
+    import app.db.session as _session_mod
+
+    async with _session_mod.AsyncSessionLocal() as db:
+        audit = await db.scalar(
+            select(AuditLog).where(
+                AuditLog.entity_uuid == uuid.UUID(application_id),
+                AuditLog.action == AuditAction.LOAN_APPLICATION_UPDATED,
+            )
+        )
+    assert audit is not None
+    assert audit.actor_uuid == uuid.UUID(auth_uuid)
+    assert audit.detail == {
+        "previous_status": "new",
+        "status": "contacted",
+        "fields": ["status"],
+        "status_reason_recorded": False,
+    }
+
 
 @pytest.mark.asyncio
 async def test_terms_only_update_emits_no_notification(client: AsyncClient) -> None:
@@ -133,6 +152,25 @@ async def test_terms_only_update_emits_no_notification(client: AsyncClient) -> N
     assert res.json()["bank_id"] == bank_id
     # Still 1 — the terms-only PATCH above must not have emitted a second one.
     assert await _unread_notification_count(client_auth_uuid) == 1
+
+    import app.db.session as _session_mod
+
+    async with _session_mod.AsyncSessionLocal() as db:
+        audit = await db.scalar(
+            select(AuditLog)
+            .where(
+                AuditLog.entity_uuid == uuid.UUID(application_id),
+                AuditLog.action == AuditAction.LOAN_APPLICATION_UPDATED,
+            )
+            .order_by(AuditLog.created_at.desc())
+        )
+    assert audit is not None
+    assert audit.detail == {
+        "previous_status": "submitted_to_bank",
+        "status": "submitted_to_bank",
+        "fields": ["bank_id", "interest_rate"],
+        "status_reason_recorded": False,
+    }
 
 
 @pytest.mark.asyncio

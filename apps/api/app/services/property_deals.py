@@ -26,6 +26,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 
+from app.models.audit_log import AuditAction
 from app.models.lead import Lead
 from app.models.notification import NotificationType
 from app.models.profile import ClientProfile
@@ -34,6 +35,7 @@ from app.models.property_deal import PropertyDeal, PropertyDealStatus
 from app.models.site_visit import SiteVisit
 from app.schemas.property_deals import PropertyDealProgressUpdate
 from app.services import referrals
+from app.services.audit_log import record as record_audit
 from app.services.leads import resolve_realestate_client_profile
 from app.services.notifications import emit_notification
 
@@ -145,7 +147,12 @@ async def create_deal_for_lead(db: AsyncSession, lead: Lead, property_id: UUID) 
 
 
 async def apply_progress_update(
-    db: AsyncSession, deal: PropertyDeal, payload: PropertyDealProgressUpdate
+    db: AsyncSession,
+    deal: PropertyDeal,
+    payload: PropertyDealProgressUpdate,
+    *,
+    actor_uuid: UUID,
+    actor_role: str,
 ) -> PropertyDeal:
     # Race guard: lock the row before evaluating/mutating (assign_lead_to_telecaller
     # in services/leads.py is the precedent). `deal` was fetched without a lock by
@@ -158,6 +165,14 @@ async def apply_progress_update(
     if deal.status in TERMINAL_STATUSES:
         raise TerminalDeal
 
+    tracked_fields = (
+        "status",
+        "status_reason",
+        "site_visit_uuid",
+        "price_quoted",
+        "booking_amount",
+    )
+    previous_values = {field: getattr(deal, field) for field in tracked_fields}
     client_auth_user_uuid = await db.scalar(
         select(ClientProfile.auth_user_uuid).where(ClientProfile.id == deal.client_profile_uuid)
     )
@@ -203,6 +218,26 @@ async def apply_progress_update(
     if payload.booking_amount is not None:
         deal.booking_amount = payload.booking_amount
 
+    await db.flush()
+    changed_fields = sorted(
+        field for field in tracked_fields if getattr(deal, field) != previous_values[field]
+    )
+    if changed_fields:
+        await record_audit(
+            db,
+            action=AuditAction.PROPERTY_DEAL_UPDATED,
+            entity_type="property_deal",
+            entity_uuid=deal.id,
+            actor_uuid=actor_uuid,
+            actor_role=actor_role,
+            business_line=deal.business_line,
+            detail={
+                "previous_status": current_status.value,
+                "status": deal.status.value,
+                "fields": changed_fields,
+                "status_reason_recorded": "status_reason" in changed_fields,
+            },
+        )
     await db.commit()
     # Named attribute_names refreshes ONLY these scalar columns (re-reading
     # DB-normalized NUMERIC values, same reason as loan_applications) without

@@ -24,11 +24,13 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 
+from app.models.audit_log import AuditAction
 from app.models.loan import Bank, LoanApplication, LoanStatus
 from app.models.notification import NotificationType
 from app.models.profile import ClientProfile
 from app.schemas.loans import LoanApplicationProgressUpdate
 from app.services import referrals
+from app.services.audit_log import record as record_audit
 from app.services.loan_config import is_bank_available
 from app.services.notifications import emit_notification
 
@@ -110,6 +112,9 @@ async def apply_progress_update(
     db: AsyncSession,
     application: LoanApplication,
     payload: LoanApplicationProgressUpdate,
+    *,
+    actor_uuid: UUID,
+    actor_role: str,
 ) -> LoanApplication:
     # Race guard: lock the row before evaluating/mutating (assign_lead_to_telecaller
     # in services/leads.py is the precedent). `application` was fetched without a
@@ -122,6 +127,16 @@ async def apply_progress_update(
     if application.status in TERMINAL_STATUSES:
         raise TerminalApplication
 
+    tracked_fields = (
+        "status",
+        "status_reason",
+        "bank_id",
+        "amount_sanctioned",
+        "interest_rate",
+        "processing_fee",
+        "fee_outcome",
+    )
+    previous_values = {field: getattr(application, field) for field in tracked_fields}
     status_changed = False
     current_status = application.status
 
@@ -189,6 +204,28 @@ async def apply_progress_update(
     if payload.fee_outcome is not None:
         application.fee_outcome = payload.fee_outcome
 
+    # Relationship assignment (bank) synchronizes its foreign key on flush;
+    # compare after that synchronization so a bank-only command cannot evade audit.
+    await db.flush()
+    changed_fields = sorted(
+        field for field in tracked_fields if getattr(application, field) != previous_values[field]
+    )
+    if changed_fields:
+        await record_audit(
+            db,
+            action=AuditAction.LOAN_APPLICATION_UPDATED,
+            entity_type="loan_application",
+            entity_uuid=application.id,
+            actor_uuid=actor_uuid,
+            actor_role=actor_role,
+            business_line=application.business_line,
+            detail={
+                "previous_status": current_status.value,
+                "status": application.status.value,
+                "fields": changed_fields,
+                "status_reason_recorded": "status_reason" in changed_fields,
+            },
+        )
     await db.commit()
     # Named attribute_names refreshes ONLY these scalar columns (re-reading
     # DB-normalized NUMERIC values, same reason as api/v1/loans.py's create

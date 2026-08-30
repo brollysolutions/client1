@@ -98,6 +98,16 @@ export async function updateSubmission(
   });
 }
 
+export async function correctApprovedSubmission(
+  id: string,
+  payload: Schemas["AdminPropertyCorrection"],
+): Promise<ApiResponse<Submission>> {
+  return apiRequest<Submission>(`/api/v1/property-submissions/${id}/correction`, {
+    method: "PATCH",
+    body: payload,
+  });
+}
+
 export async function withdrawSubmission(id: string): Promise<ApiResponse<null>> {
   return apiRequest<null>(`/api/v1/property-submissions/${id}`, { method: "DELETE" });
 }

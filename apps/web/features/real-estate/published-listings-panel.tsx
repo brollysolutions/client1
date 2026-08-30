@@ -372,10 +372,10 @@ export function PublishedListingsPanel({ onChanged }: { onChanged?: () => void }
             <Button
               onClick={() => {
                 if (!pendingEdit) return;
-                router.push(`/dashboard/my-submissions/${pendingEdit.submission.id}/edit`);
+                router.push(`/dashboard/property-review/${pendingEdit.submission.id}/correct`);
               }}
             >
-              Edit listing
+              Open correction
             </Button>
           </DialogFooter>
         </DialogContent>

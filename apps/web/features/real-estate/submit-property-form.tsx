@@ -32,8 +32,14 @@ function FieldError({ msg }: { msg?: string }) {
   return <p className="mt-1 text-sm text-destructive">{msg}</p>;
 }
 
-export function SubmitPropertyForm({ submission }: { submission?: Submission }) {
-  const f = useSubmitProperty(submission);
+export function SubmitPropertyForm({
+  submission,
+  adminCorrection = false,
+}: {
+  submission?: Submission;
+  adminCorrection?: boolean;
+}) {
+  const f = useSubmitProperty(submission, { adminCorrection });
   const isRent = f.form.listingIntent === "rent";
   const [amenityDraft, setAmenityDraft] = React.useState("");
   const imagePreviews = React.useMemo(
@@ -73,17 +79,23 @@ export function SubmitPropertyForm({ submission }: { submission?: Submission }) 
 
   return (
     <DashboardFormPage
-      title={f.editing ? "Edit property" : "Submit a property"}
+      title={
+        f.adminCorrection ? "Correct approved listing" : f.editing ? "Edit property" : "Submit a property"
+      }
       description={
-        f.editing
+        f.adminCorrection
+          ? "Stage corrected facts with a mandatory audit reason. The published listing stays unchanged until RERA review and approval."
+          : f.editing
           ? "Update the listing facts. Approved changes return to Admin review while the published version stays available."
           : "Capture listing details, managed media, and private reviewer documents for Admin review."
       }
-      backHref="/dashboard/my-submissions"
-      backLabel="Back to submissions"
-      formTitle={f.editing ? "Listing details" : "Listing submission"}
+      backHref={f.adminCorrection ? "/dashboard/property-review" : "/dashboard/my-submissions"}
+      backLabel={f.adminCorrection ? "Back to property review" : "Back to submissions"}
+      formTitle={f.adminCorrection ? "Controlled correction" : f.editing ? "Listing details" : "Listing submission"}
       formDescription={
-        f.editing
+        f.adminCorrection
+          ? "Only listing facts change here. Property identity, submitter, business line, and reviewed media are retained."
+          : f.editing
           ? "Managed media remains unchanged while you edit the approved listing facts."
           : "Nothing becomes public until the review team approves the submission."
       }
@@ -95,6 +107,33 @@ export function SubmitPropertyForm({ submission }: { submission?: Submission }) 
           void f.submit();
         }}
       >
+        {f.adminCorrection ? (
+          <DashboardFormSection
+            title="Correction evidence"
+            description="Explain what was verified and why the approved facts need correction."
+          >
+            <div>
+              <Label htmlFor="correction-reason">
+                Correction reason <span aria-hidden="true" className="text-destructive">*</span>
+              </Label>
+              <Textarea
+                id="correction-reason"
+                required
+                rows={4}
+                maxLength={1000}
+                value={f.correctionReason}
+                onChange={(event) => f.setCorrectionReason(event.target.value)}
+                aria-invalid={Boolean(f.errors.correctionReason)}
+                aria-describedby={f.errors.correctionReason ? "correction-reason-error" : undefined}
+                placeholder="Record the verified source and the correction needed. Avoid unnecessary personal data."
+              />
+              <div id="correction-reason-error">
+                <FieldError msg={f.errors.correctionReason} />
+              </div>
+            </div>
+          </DashboardFormSection>
+        ) : null}
+
         <DashboardFormSection
           title="Listing basics"
           description="Provide the public title, property type, and catalogue category."
@@ -412,7 +451,12 @@ export function SubmitPropertyForm({ submission }: { submission?: Submission }) 
 
         <Button type="submit" disabled={f.submitting} className="w-full sm:w-auto">
           {f.submitting ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : null}
-          {f.uploadProgress ?? (f.editing ? "Save changes" : "Submit for review")}
+          {f.uploadProgress ??
+            (f.adminCorrection
+              ? "Stage correction"
+              : f.editing
+                ? "Save changes"
+                : "Submit for review")}
         </Button>
       </form>
     </DashboardFormPage>

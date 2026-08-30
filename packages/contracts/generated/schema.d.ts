@@ -3404,6 +3404,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/property-submissions/{submission_id}/correction": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Correct Approved Property
+         * @description Stage a reasoned Admin correction for RERA re-review before publication.
+         */
+        patch: operations["correct_approved_property_api_v1_property_submissions__submission_id__correction_patch"];
+        trace?: never;
+    };
     "/api/v1/property-submissions/{submission_id}/media/{media_id}/access": {
         parameters: {
             query?: never;
@@ -4633,6 +4653,68 @@ export interface components {
             /** Title */
             title: string;
         };
+        /**
+         * AdminPropertyCorrection
+         * @description Full replacement facts plus the reason for an approved-listing correction.
+         */
+        AdminPropertyCorrection: {
+            /**
+             * Age Years
+             * @default 0
+             */
+            age_years: number;
+            /** Amenities */
+            amenities?: string[];
+            /**
+             * Area Sqft
+             * @default 0
+             */
+            area_sqft: number;
+            /** Available From */
+            available_from?: string | null;
+            /**
+             * Bhk
+             * @default 0
+             */
+            bhk: number;
+            category: components["schemas"]["PropertyCategory"];
+            /** City */
+            city: string;
+            construction_status?: components["schemas"]["ConstructionStatus"] | null;
+            furnishing?: components["schemas"]["Furnishing"] | null;
+            /** @default sale */
+            listing_intent: components["schemas"]["ListingIntent"];
+            /** Listing Links */
+            listing_links?: components["schemas"]["ListingLink"][] | null;
+            /** Locality */
+            locality: string;
+            /** Location */
+            location: string;
+            /** Meta */
+            meta?: string | null;
+            /** Minimum Lease Months */
+            minimum_lease_months?: number | null;
+            /** Pincode */
+            pincode: string;
+            /** Price Paise */
+            price_paise: number;
+            property_subtype: components["schemas"]["PropertySubtype"];
+            /** Reason */
+            reason: string;
+            rera_applicability: components["schemas"]["ReraApplicability"];
+            /** Rera Number */
+            rera_number?: string | null;
+            /** Security Deposit Paise */
+            security_deposit_paise?: number | null;
+            /** State */
+            state: string;
+            /** Structured Details */
+            structured_details: components["schemas"]["ProjectResidenceDetails"] | components["schemas"]["IndividualPropertyDetails"] | components["schemas"]["CommercialPropertyDetails"] | components["schemas"]["PlotDetails"] | components["schemas"]["AgriculturalLandDetails"];
+            /** Title */
+            title: string;
+            /** Type */
+            type: string;
+        };
         /** AdminPropertyDealListResponse */
         AdminPropertyDealListResponse: {
             /** Deals */
@@ -5540,7 +5622,7 @@ export interface components {
          *     `services/fee_cashbacks.py` (FR-6.6 processing-fee cashback).
          * @enum {string}
          */
-        AuditAction: "agent_approved" | "agent_rejected" | "staff_created" | "staff_feature_granted" | "staff_feature_revoked" | "staff_invite_created" | "staff_invite_revoked" | "account_removed" | "account_status_updated" | "payout_approved" | "payout_rejected" | "payout_manual_issued" | "payout_manual_cleared" | "payout_manual_failed" | "payout_manual_reversed" | "property_submission_approved" | "property_submission_rejected" | "property_listing_updated" | "support_ticket_advanced" | "retention_purged" | "loan_type_created" | "loan_type_updated" | "bank_created" | "bank_updated" | "bank_deleted" | "bank_availability_updated" | "agent_invite_created" | "agent_invite_revoked" | "financial_product_offer_created" | "financial_product_offer_updated" | "commission_entered" | "commission_cancelled" | "fee_cashback_entered" | "fee_cashback_cancelled" | "document_verified" | "document_unverified" | "payout_link_reconciled" | "notification_broadcast" | "agent_lead_expired" | "lead_assigned" | "employee_work_assigned" | "lead_details_updated" | "field_visibility_updated" | "mobile_change_verified" | "mobile_changed" | "mobile_change_rejected" | "vehicle_arrangement_updated" | "banner_created" | "banner_updated" | "banner_submitted" | "banner_approved" | "banner_rejected" | "banner_archived" | "banner_activated" | "banner_deleted" | "banner_template_versioned" | "referral_rule_created" | "referral_rule_updated" | "referral_rule_deleted" | "offer_created" | "offer_updated" | "offer_submitted" | "offer_approved" | "offer_rejected" | "offer_scheduled" | "offer_activated" | "offer_expired" | "offer_archived" | "offer_deleted" | "campaign_media_created" | "campaign_media_updated" | "campaign_media_archived" | "campaign_media_deleted";
+        AuditAction: "agent_approved" | "agent_rejected" | "staff_created" | "staff_feature_granted" | "staff_feature_revoked" | "staff_invite_created" | "staff_invite_revoked" | "account_removed" | "account_status_updated" | "payout_approved" | "payout_rejected" | "payout_manual_issued" | "payout_manual_cleared" | "payout_manual_failed" | "payout_manual_reversed" | "property_submission_approved" | "property_submission_rejected" | "property_listing_updated" | "property_listing_corrected" | "support_ticket_advanced" | "retention_purged" | "loan_type_created" | "loan_type_updated" | "bank_created" | "bank_updated" | "bank_deleted" | "bank_availability_updated" | "agent_invite_created" | "agent_invite_revoked" | "financial_product_offer_created" | "financial_product_offer_updated" | "commission_entered" | "commission_cancelled" | "fee_cashback_entered" | "fee_cashback_cancelled" | "document_verified" | "document_unverified" | "payout_link_reconciled" | "notification_broadcast" | "agent_lead_expired" | "lead_assigned" | "employee_work_assigned" | "lead_details_updated" | "field_visibility_updated" | "mobile_change_verified" | "mobile_changed" | "mobile_change_rejected" | "vehicle_arrangement_updated" | "banner_created" | "banner_updated" | "banner_submitted" | "banner_approved" | "banner_rejected" | "banner_archived" | "banner_activated" | "banner_deleted" | "banner_template_versioned" | "referral_rule_created" | "referral_rule_updated" | "referral_rule_deleted" | "offer_created" | "offer_updated" | "offer_submitted" | "offer_approved" | "offer_rejected" | "offer_scheduled" | "offer_activated" | "offer_expired" | "offer_archived" | "offer_deleted" | "campaign_media_created" | "campaign_media_updated" | "campaign_media_archived" | "campaign_media_deleted" | "content_block_created" | "content_block_updated" | "content_block_published" | "content_block_archived" | "loan_application_updated" | "property_deal_updated";
         /** AuditLogListResponse */
         AuditLogListResponse: {
             /** Entries */
@@ -17631,6 +17713,41 @@ export interface operations {
             cookie?: never;
         };
         requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SubmissionRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    correct_approved_property_api_v1_property_submissions__submission_id__correction_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                submission_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminPropertyCorrection"];
+            };
+        };
         responses: {
             /** @description Successful Response */
             200: {

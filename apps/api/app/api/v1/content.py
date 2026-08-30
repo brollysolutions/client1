@@ -24,6 +24,7 @@ from app.core.deps import (
     require_sub_admin_or_platform_admin,
 )
 from app.db.session import get_db
+from app.models.audit_log import AuditAction
 from app.models.content_block import ContentBlock, ContentStatus
 from app.schemas.content import (
     ContentBlockCreate,
@@ -31,6 +32,7 @@ from app.schemas.content import (
     ContentBlockRead,
     ContentBlockUpdate,
 )
+from app.services.audit_log import record as record_audit
 from app.services.content import (
     ContentBodyRequired,
     ContentIllegalTransition,
@@ -58,6 +60,17 @@ async def create_content_block(
     block = ContentBlock(created_by_uuid=current_user.id, **payload.model_dump())
     db.add(block)
     try:
+        await db.flush()
+        await record_audit(
+            db,
+            action=AuditAction.CONTENT_BLOCK_CREATED,
+            entity_type="content_block",
+            entity_uuid=block.id,
+            actor_uuid=current_user.id,
+            actor_role=current_user.role,
+            business_line=block.business_line,
+            detail={"status": block.status.value},
+        )
         await db.commit()
     except IntegrityError as exc:
         # uq_content_blocks_slug — the only unique constraint on this table.
@@ -124,7 +137,11 @@ async def update_content_block(
             status_code=status.HTTP_409_CONFLICT,
             detail="An archived content block cannot be edited.",
         )
-    for field, value in payload.model_dump(exclude_unset=True).items():
+    values = payload.model_dump(exclude_unset=True)
+    changed_fields = sorted(
+        field for field, value in values.items() if getattr(block, field) != value
+    )
+    for field, value in values.items():
         setattr(block, field, value)
     # A published block must keep a non-empty body — the publish gate would have
     # rejected it, so blanking it afterwards would smuggle empty copy live.
@@ -133,7 +150,18 @@ async def update_content_block(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="A published content block must have a body.",
         )
-    await db.commit()
+    if changed_fields:
+        await record_audit(
+            db,
+            action=AuditAction.CONTENT_BLOCK_UPDATED,
+            entity_type="content_block",
+            entity_uuid=block.id,
+            actor_uuid=current_user.id,
+            actor_role=current_user.role,
+            business_line=block.business_line,
+            detail={"fields": changed_fields, "status": block.status.value},
+        )
+        await db.commit()
     await db.refresh(block)
     return ContentBlockRead.model_validate(block, from_attributes=True)
 
@@ -143,7 +171,12 @@ async def _advance(
 ) -> ContentBlockRead:
     try:
         block = await advance_content_block(
-            block_id, current_user.id, target, db, can_manage_any=is_platform_admin(current_user)
+            block_id,
+            current_user.id,
+            target,
+            db,
+            actor_role=current_user.role,
+            can_manage_any=is_platform_admin(current_user),
         )
     except ContentNotOwned as exc:
         raise HTTPException(
