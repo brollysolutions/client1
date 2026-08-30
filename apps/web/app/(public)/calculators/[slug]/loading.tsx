@@ -9,13 +9,21 @@ export default function CalculatorLoading() {
       <div className="w-full bg-[var(--nav-bg)]">
         <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 sm:py-16 lg:px-8">
           <Skeleton className="h-4 w-56" />
-          <div className="mt-6 grid items-center gap-8 lg:grid-cols-[1fr_auto]">
-            <div>
-              <Skeleton className="h-10 w-2/3 max-w-md sm:h-11" />
+          <div className="mt-6 grid items-center gap-8 md:grid-cols-[1fr_auto]">
+            {/* Same named container as calculator-shell, so the heading
+                skeleton steps on the same measurements. Reserves line-height at
+                each tier: 36 / 40 / 48px (the shell caps at text-5xl). */}
+            <div className="@container/hero-copy">
+              <Skeleton className="h-9 w-2/3 max-w-md @min-[340px]/hero-copy:h-10 @min-[440px]/hero-copy:h-12" />
               <Skeleton className="mt-4 h-5 w-full max-w-2xl" />
               <Skeleton className="mt-2 h-5 w-5/6 max-w-xl" />
             </div>
-            <Skeleton className="hidden h-48 w-48 shrink-0 rounded-xl lg:block" />
+            {/* Tracks CalculatorHeroArt's width ladder. loading.tsx gets no route
+                params, so there's one shared ratio: aspect-square is exact for
+                17 of the 18 assets, and over-reserves for the 3:2 emi.svg. */}
+            <div className="flex w-full items-center justify-center md:w-[260px] lg:w-[460px]">
+              <Skeleton className="aspect-square w-full max-w-[220px] rounded-2xl sm:max-w-[300px] md:max-w-none" />
+            </div>
           </div>
         </div>
       </div>

@@ -16,7 +16,9 @@ import { useEffect, useRef } from "react";
 // step strip is the accessible content and the mobile layout. No floating
 // cursor: each interaction is shown by the element pressing with a ripple.
 
-type Step = { n: string; title: string; text: string };
+// Shares the step shape with the below-lg StepFlow render in refer-and-earn.tsx
+// so one array feeds both branches; the extra `icon` field is unused here.
+type Step = { n: number; title: string; copy: string };
 
 // Decorative stand-in for a real referral code (which is per-account and
 // never rendered here — this scene is aria-hidden and unauthenticated). Eight
@@ -268,7 +270,7 @@ export function ReferFlowScene({ steps }: { steps: Step[] }) {
                 {step.title}
               </h3>
               <p className="mt-1.5 text-sm leading-relaxed text-text-secondary">
-                {step.text}
+                {step.copy}
               </p>
             </div>
           </li>

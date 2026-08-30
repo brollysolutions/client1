@@ -77,7 +77,7 @@ export default async function ApplyAsAgentPage({
       {/* Hero */}
       <section className="relative w-full overflow-hidden bg-[var(--nav-bg)]">
         <div className="relative mx-auto max-w-7xl px-4 py-14 sm:px-6 sm:py-20 lg:px-8">
-          <div className="grid items-center gap-8 lg:grid-cols-[1fr_auto]">
+          <div className="grid items-center gap-8 md:grid-cols-[1fr_auto]">
             <div>
               <h1 className="max-w-2xl font-heading text-4xl font-semibold text-[var(--nav-text)] sm:text-5xl lg:text-6xl">
                 <span className="block">Apply to become</span>
@@ -89,9 +89,19 @@ export default async function ApplyAsAgentPage({
                 apply.
               </p>
             </div>
+            {/* Takes the same scoped exception to the "illustrations render
+                lg+, never phone/tablet" rule that EarnHero documents (see
+                components/earn-with-us/hero.tsx): the hero art shows at every
+                breakpoint so phone and tablet get a visual anchor. Below md the
+                grid collapses and this box falls under the copy — heading,
+                paragraph, art — with no DOM reorder. Capped per breakpoint so
+                it complements the copy instead of eating the viewport; the 1:1
+                width/height matches the asset's 500x500 viewBox so Next
+                reserves the box and nothing shifts. The rule still holds for
+                the rest of the page (ScrollCue, ApplicationDoodles). */}
             <div
               aria-hidden
-              className="hidden shrink-0 items-center justify-center lg:flex lg:w-[460px]"
+              className="flex w-full items-center justify-center md:w-[260px] lg:w-[460px]"
             >
               <Image
                 src="/illustrations/heroes/apply-as-agent.svg"
@@ -99,8 +109,8 @@ export default async function ApplyAsAgentPage({
                 aria-hidden
                 width={500}
                 height={500}
-                sizes="460px"
-                className="h-auto w-full max-w-[460px]"
+                sizes="(min-width: 1024px) 460px, (min-width: 768px) 260px, (min-width: 640px) 300px, 220px"
+                className="h-auto w-full max-w-[220px] sm:max-w-[300px] md:max-w-none"
                 priority
               />
             </div>

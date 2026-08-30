@@ -1,14 +1,16 @@
 import { Skeleton } from "@/components/ui/skeleton";
 
-// Mirrors /earn-with-us (hero + earning tracks). Two-column hero with two CTAs
-// and an illustration slot on lg+, then a card row and a two-track row.
+// Mirrors /earn-with-us (hero + earning tracks). Two-column-from-md hero with
+// two CTAs and an illustration slot at every breakpoint (this hero is the one
+// place the lg+-only illustration rule is waived), then a card row and a
+// two-track row.
 export default function EarnWithUsLoading() {
   return (
     <div aria-hidden className="w-full bg-[var(--nav-bg)]">
       {/* Hero */}
       <section className="w-full">
         <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 sm:py-20 lg:px-8">
-          <div className="grid items-center gap-8 lg:grid-cols-[1fr_auto]">
+          <div className="grid items-center gap-8 md:grid-cols-[1fr_auto]">
             <div>
               <Skeleton className="h-12 w-full max-w-2xl sm:h-14" />
               <Skeleton className="mt-3 h-12 w-3/4 max-w-xl sm:h-14" />
@@ -19,7 +21,13 @@ export default function EarnWithUsLoading() {
                 <Skeleton className="h-10 w-full rounded-md sm:w-36" />
               </div>
             </div>
-            <Skeleton className="hidden h-[320px] w-[440px] rounded-2xl lg:block" />
+            {/* Illustration slot. Reserved at every breakpoint to match the
+                hero, which shows its art on phone and tablet too. Square at
+                every width because the asset is 1:1 (500x500 viewBox), and
+                centred below md like the hero, so nothing shifts when the real
+                hero swaps in (mx-auto is a no-op from md, where the grid column
+                is sized to the art). */}
+            <Skeleton className="mx-auto aspect-square w-[220px] rounded-2xl sm:w-[300px] md:w-[260px] lg:w-[460px]" />
           </div>
         </div>
       </section>

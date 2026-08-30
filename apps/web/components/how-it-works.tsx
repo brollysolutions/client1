@@ -1,5 +1,6 @@
 import { BadgeCheck, HeartHandshake, MessageSquareText } from "lucide-react";
-import { type LucideIcon } from "lucide-react";
+
+import { StepFlow, type FlowStep } from "@/components/step-flow";
 
 // Home "How it works": platform-level 3-step flow that covers both business
 // lines (loans + real estate) in one voice. Blue-only like the rest of the
@@ -9,15 +10,10 @@ import { type LucideIcon } from "lucide-react";
 // lg+: the three numbered nodes sit on a horizontal connector line to read as a
 // process. The line is masked behind each circle by a bg-colored ring, so
 // it joins node to node instead of running through them. Below lg the steps
-// stack into a single centered column and the connector is hidden.
-type Step = {
-  n: number;
-  title: string;
-  copy: string;
-  icon: LucideIcon;
-};
-
-const STEPS: Step[] = [
+// stack into a single centered column and the connector is hidden. The step
+// markup itself lives in components/step-flow.tsx, shared with the two
+// /earn-with-us process sections.
+const STEPS: FlowStep[] = [
   {
     n: 1,
     title: "Tell us what you need",
@@ -58,36 +54,13 @@ export function HowItWorks() {
           </p>
         </div>
 
-        <div className="relative mt-14">
-          {/* Connector line: spans between the first and last node centers
-              (columns sit at 1/6, 1/2, 5/6 of the row width). lg+ only; the
-              per-node surface ring hides it behind each circle. */}
-          <div
-            aria-hidden
-            className="pointer-events-none absolute left-[16.6667%] right-[16.6667%] top-8 hidden h-px bg-[var(--nav-border)] lg:block"
-          />
-          <ol className="grid gap-12 lg:grid-cols-3 lg:gap-8">
-            {STEPS.map((step) => (
-              <li
-                key={step.n}
-                className="flex flex-col items-center text-center"
-              >
-                <span className="relative z-10 flex h-16 w-16 items-center justify-center rounded-full bg-[var(--nav-primary)] font-heading text-2xl font-semibold text-white ring-8 ring-[var(--nav-bg)]">
-                  {step.n}
-                  <span className="absolute -bottom-1 -right-1 flex h-7 w-7 items-center justify-center rounded-full bg-[var(--nav-tint)] text-brand-blue ring-1 ring-[var(--nav-border)]">
-                    <step.icon className="h-4 w-4" aria-hidden />
-                  </span>
-                </span>
-                <h3 className="mt-6 font-heading text-xl font-semibold text-foreground">
-                  {step.title}
-                </h3>
-                <p className="mt-2 max-w-xs text-base text-text-secondary">
-                  {step.copy}
-                </p>
-              </li>
-            ))}
-          </ol>
-        </div>
+        {/* Connector spans between the first and last node centers (columns sit
+            at 1/6, 1/2, 5/6 of the row width) and is lg+ only. */}
+        <StepFlow
+          steps={STEPS}
+          gridClassName="lg:grid-cols-3 lg:gap-8"
+          connectorClassName="left-[16.6667%] right-[16.6667%] top-8 hidden lg:block"
+        />
       </div>
     </section>
   );

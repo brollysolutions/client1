@@ -12,6 +12,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
+import { IconChip } from "@/components/icon-chip";
 import { Button } from "@/components/ui/button";
 
 // Home "Why choose us": a bento benefit grid (no invented stats) that turns the
@@ -59,26 +60,6 @@ const BENEFITS: Benefit[] = [
     icon: Wallet,
   },
 ];
-
-function IconChip({
-  icon: Icon,
-  large = false,
-}: {
-  icon: LucideIcon;
-  large?: boolean;
-}) {
-  return (
-    <span
-      className={
-        large
-          ? "flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-[var(--nav-primary)]/10 text-[var(--nav-primary)] ring-1 ring-[var(--nav-primary)]/20"
-          : "flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[var(--nav-tint)] text-brand-blue ring-1 ring-[var(--nav-border)]"
-      }
-    >
-      <Icon className={large ? "h-7 w-7" : "h-5 w-5"} aria-hidden />
-    </span>
-  );
-}
 
 export function WhyChooseUs() {
   return (
