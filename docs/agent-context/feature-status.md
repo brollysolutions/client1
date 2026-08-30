@@ -9,6 +9,37 @@ Evidence baseline: `abcc1fd`
 verified Admin operational-visibility work in
 [PR #173](https://github.com/brollysolutions/client1/pull/173).
 
+**Rehearsed — NO-GO — [PR #268](https://github.com/brollysolutions/client1/pull/268) — frozen release candidate and launch evidence:**
+`chore/frozen-release-rehearsal` freezes merged PR #267 at `3cc6bc0` and records
+the full result in
+[`release-rehearsal-2026-08-30.md`](release-rehearsal-2026-08-30.md). The work
+corrects frozen-lock dependency auditing, five Python dependency findings, a
+production API startup failure under its no-home user, and all 13 high/critical
+findings in the web runtime. It also adds narrow historical Gitleaks false-
+positive handling and production-runtime contract coverage.
+
+The candidate is not launch-ready. Hosted GitHub jobs did not start because of
+the account payment/spending-limit condition. The rebuilt API and directly
+referenced service images retain unaccepted high/critical findings; pgBouncer's
+base is EOL and production tags are not digest-pinned. Docker Desktop then
+failed with engine HTTP 500 during the fresh aggregate API run and isolated
+production/recovery exercise, leaving the aggregate, runtime CORS/auth/upload/
+webhook journeys, and timed restore inconclusive. Real DNS/TLS, secrets,
+backups, monitoring, incident ownership, and the named legal/privacy/trademark/
+processor decisions remain external human gates. The essential-authentication-
+cookie decision remains unchanged: no banner until non-essential storage is
+introduced, then equally clear Accept/Reject controls where consent is required.
+
+Fresh completed evidence: all 502 API files pass Ruff/format; exactly one
+Alembic head plus 7 feature-tracking, 11 migration/RLS, and 4 production-runtime
+tests pass; frozen Python and production Node dependency audits have no
+unaccepted finding; a 492-commit Gitleaks run reports no leak and detects its
+synthetic canary. Web lint, typecheck, 91 files / 602 tests, strict 94-route
+Linux production build, non-root runtime, headers/redirects, and a zero-high/
+zero-critical image scan pass. The fresh API aggregate reached 64% before the
+engine failure and has no final total, so prior PR evidence is not presented as
+a rehearsal pass.
+
 **Done - [PR #267](https://github.com/brollysolutions/client1/pull/267) - FR-2.2 Admin controlled-correction and operational audit remediation:**
 `codex/20260829-163717-implement` closes the original typed approved-listing
 correction gap and all seven named audit families. The correction is a platform-
