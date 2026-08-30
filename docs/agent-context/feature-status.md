@@ -9,6 +9,31 @@ Evidence baseline: `abcc1fd`
 verified Admin operational-visibility work in
 [PR #173](https://github.com/brollysolutions/client1/pull/173).
 
+**Exact-candidate rehearsal complete — NO-GO — PR pending:** merged PR #272 is
+frozen at `c37b9d5fb68ea30daa5f4f55dd15f97cf27ce547`; the current evidence is in
+[`release-rehearsal-2026-08-30.md`](release-rehearsal-2026-08-30.md). Exact
+Linux API/web/media artifacts, fresh Trivy/SBOM evidence, production-mode
+headers/CORS/auth/role/upload-presign/webhook probes, and timed isolated
+database/object restores now have terminal local results. The security-focused
+API set passes 93/93; web lint/typecheck and 91 files / 602 tests pass; the
+strict Linux build produces all 94 routes. The full API aggregate remains red
+at 1,931 passes / 13 failures; a fresh-database rerun passes two order-sensitive
+cases and reproduces 11 known stale-policy/UUID-fixture/validation-order tests.
+Playwright has one pass, one flaky retry, and three failures requiring a current
+locator plus reachable production-like catalogue data.
+
+Launch remains blocked. Hosted CI/Security/sync jobs executed zero steps because
+of the account billing/spending-limit condition. The exact API image retains 14
+high / 3 critical finding rows, and the exact isolated media image retains 137
+high / 7 critical rows; no fix is reported and no acceptance exists. The six
+service outputs lack final published registry-manifest hashes. The local restore
+does not prove production backup controls or RPO, a positive external upload was
+not exercised, and real DNS/TLS, secrets, monitoring, incident ownership, and
+all nine human/environment register rows remain open. No application behavior
+or formal feature-coverage count changes. Essential authentication storage still
+needs no consent banner; privacy/security review and clear Accept/Reject controls
+are required before enabling non-essential storage where consent applies.
+
 **Runtime-image contract complete locally — [PR #272](https://github.com/brollysolutions/client1/pull/272) — release remains NO-GO:**
 `security/runtime-image-pinning` now covers all six production service images
 present after merged PR #271. PostgreSQL 18.6, Redis 8.10.1, ClamAV 1.4.6 LTS,

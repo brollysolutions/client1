@@ -18,6 +18,11 @@ final go/no-go in the
 [`launch-signoff-register.md`](launch-signoff-register.md). The register starts
 NO-GO; creating or linking it does not approve any gate.
 
+Current technical rehearsal: exact merged PR #272 candidate `c37b9d5` remains
+**NO-GO**; see
+[`release-rehearsal-2026-08-30.md`](release-rehearsal-2026-08-30.md). No box
+below is checked by that engineering exercise.
+
 ## Current launch foundation
 
 The source code now establishes these baselines:
