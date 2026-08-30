@@ -9,8 +9,9 @@ Evidence baseline: `abcc1fd`
 verified Admin operational-visibility work in
 [PR #173](https://github.com/brollysolutions/client1/pull/173).
 
-**Exact-candidate rehearsal complete — NO-GO — PR pending:** merged PR #272 is
-frozen at `c37b9d5fb68ea30daa5f4f55dd15f97cf27ce547`; the current evidence is in
+**Exact-candidate rehearsal complete — NO-GO — [PR #273](https://github.com/brollysolutions/client1/pull/273):**
+merged PR #272 is frozen at `c37b9d5fb68ea30daa5f4f55dd15f97cf27ce547`;
+the current evidence is in
 [`release-rehearsal-2026-08-30.md`](release-rehearsal-2026-08-30.md). Exact
 Linux API/web/media artifacts, fresh Trivy/SBOM evidence, production-mode
 headers/CORS/auth/role/upload-presign/webhook probes, and timed isolated

@@ -9,8 +9,8 @@ Initial candidate: `3cc6bc07d98554b32924423e2f535b54fb21bb72`
 ([merged PR #267](https://github.com/brollysolutions/client1/pull/267))
 
 Rehearsal branch: `chore/frozen-release-rehearsal`
-([initial PR #268](https://github.com/brollysolutions/client1/pull/268); exact-candidate
-rerun PR pending)
+([initial PR #268](https://github.com/brollysolutions/client1/pull/268);
+[exact-candidate PR #273](https://github.com/brollysolutions/client1/pull/273))
 
 This record reports what was actually exercised. It is not production approval,
 does not check any human-owned box in
