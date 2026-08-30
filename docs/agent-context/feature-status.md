@@ -9,6 +9,49 @@ Evidence baseline: `abcc1fd`
 verified Admin operational-visibility work in
 [PR #173](https://github.com/brollysolutions/client1/pull/173).
 
+**Runtime-image blocker build complete locally — delivery PR pending — release remains NO-GO:**
+`security/runtime-image-pinning` replaces the five blocked direct service
+references present at baseline `87a0dbe` with checked-in release builds. Their
+PostgreSQL 18.6, Redis 8.10.1, ClamAV 1.4.6 LTS, PgBouncer 1.25.2, and nginx
+1.30.4 bases are versioned and pinned to upstream manifest digests. The small
+wrappers pin the exact fixed Alpine OpenSSL/PostgreSQL-client packages; the
+PostgreSQL artifact also removes the vulnerable Go `gosu` helper and starts as
+`postgres`. Production Compose no longer builds or accepts a mutable tag for
+these services: it requires each human-readable release tag plus a supplied
+64-character registry manifest hash.
+
+Fresh Trivy 0.74.0 scans using the 2026-08-30 database report zero high and
+zero critical findings across all five local outputs. CycloneDX inventories
+contain 54 PostgreSQL, 23 Redis, 42 ClamAV, 26 PgBouncer, and 72 nginx
+components. A new PostgreSQL volume initializes and becomes healthy as uid 70;
+PgBouncer stays uid 70 and passes a SCRAM-backed query; Redis PID 1 drops to uid
+999; ClamAV's root supervisor contains `clamd` and `freshclam` running as
+`clamav`; and nginx passes the mounted config/health probe with its workers as
+`nginx`. Runtime contracts reject missing base digests, mutable final-image
+references, the former PgBouncer/Alpine image, and all other obsolete tags.
+
+No registry publication was authorized or performed, so local image IDs are
+evidence rather than deployable manifest hashes. An operator must publish these
+exact scanned outputs to the approved registry and populate the required
+production hashes. The separate unmerged media-runtime work introduces another
+production image; after it lands, that image/base must join the same immutable
+digest, SBOM, and scan set before an exact-candidate rehearsal. Formal feature
+coverage is unchanged, and every other rehearsal/human gate remains open.
+
+Fresh branch verification passes feature tracking (7), migration/RLS tracking
+(11), runtime contracts (6), all 502 API files under Ruff/format, and one
+Alembic head. A fresh isolated Linux aggregate against the hardened PostgreSQL
+and Redis outputs applies every migration and completes with 1,885 passes, the
+same 13 unrelated baseline failures, and zero errors. Web frozen install, lint,
+strict typecheck, all 91 files / 602 tests, and a Linux production build through
+94/94 pages and image export pass. Production Compose renders all five final
+references with version context plus 64-character digest syntax; the release
+build Compose renders the five exact release tags. The Windows-host monolithic
+gate is not counted as a pass: its API phase terminated with 276 passes, 1,459
+skips, 46 failures, and 117 errors because the native `_greenlet` DLL and local
+database/Redis fixtures were unavailable; the isolated Linux run supplies the
+applicable aggregate result.
+
 **Rehearsed — NO-GO — [PR #268](https://github.com/brollysolutions/client1/pull/268) — frozen release candidate and launch evidence:**
 `chore/frozen-release-rehearsal` freezes merged PR #267 at `3cc6bc0` and records
 the full result in
