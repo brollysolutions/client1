@@ -8,6 +8,9 @@ from __future__ import annotations
 
 from httpx import AsyncClient
 
+from app.core.security import decode_access_token
+from app.schemas.auth import ForgotVerifyRequest
+from app.services import auth_service
 from conftest import PASSWORD, full_registration, initiate_and_get_otp, unique_mobile
 
 # ---------------------------------------------------------------------------
@@ -168,6 +171,21 @@ async def test_forgot_verify_reset_token_is_non_empty_string(client: AsyncClient
     resp = await client.post("/api/v1/auth/forgot/verify", json={"mobile": mobile, "otp": otp})
     token = resp.json()["reset_token"]
     assert isinstance(token, str) and len(token) > 10
+
+
+async def test_forgot_verify_reset_token_expires_in_ten_minutes(monkeypatch) -> None:
+    async def _verified(*_args, **_kwargs) -> None:
+        return None
+
+    monkeypatch.setattr(auth_service, "verify_otp", _verified)
+    response = await auth_service.forgot_verify(
+        object(),
+        object(),
+        ForgotVerifyRequest(mobile=unique_mobile(), otp="123456"),
+    )
+
+    claims = decode_access_token(response.reset_token)
+    assert claims["exp"] - claims["iat"] == 10 * 60
 
 
 async def test_forgot_verify_wrong_otp_returns_400(client: AsyncClient) -> None:

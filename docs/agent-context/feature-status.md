@@ -2,12 +2,45 @@
 
 Status: **Derived living implementation ledger**
 
-As of: **2026-08-29**
+As of: **2026-08-30**
 
 Evidence baseline: `abcc1fd`
 ([PR #175](https://github.com/brollysolutions/client1/pull/175)), plus the
 verified Admin operational-visibility work in
 [PR #173](https://github.com/brollysolutions/client1/pull/173).
+
+**Done - [PR #266](https://github.com/brollysolutions/client1/pull/266) - pre-deployment authentication and session assurance:**
+`codex/20260829-163717-implement` closes two bounded gaps found while tracing
+the password and session lifecycle for the direct pre-deployment request.
+Unknown-mobile login now performs one verification against a valid non-secret
+Argon2id placeholder and follows the same identifier/IP failure budgets,
+nullable-subject security-event persistence, and generic rejection as a known
+account with a bad password. Password-reset capabilities now carry a dedicated
+ten-minute expiry instead of inheriting the general access-token lifetime.
+
+Signed reset purpose/mobile claims, atomic token single use, neutral account-
+state failures, refresh rotation/reuse detection, and password-triggered
+access/refresh revocation are preserved. The cookie regression asserts
+`HttpOnly`, `Secure`, `SameSite=Strict`, the exact refresh path, and host-only
+scope. The adjacent mobile-change test now correctly proves generation 1 -> 2
+for mobile replacement and 2 -> 3 for the password reset already in that
+scenario. There is no MFA/SSO, identity, role, RLS, migration, dependency, API-
+shape, or auth-screen change.
+
+Fresh evidence: both focused regressions failed before implementation and the
+final direct service tests pass; the Docker-backed auth directory passed all
+267 tests before the final audit/rate-symmetry follow-up, and the adjacent
+mobile-change regression passes afterward. All 501 API files pass Ruff and
+format checks. The aggregate API run completed with 1,877 passes and 16
+failures in 74 minutes; correcting and rerunning the one adjacent stale
+assertion leaves the same 15 unrelated stale/shared-state baselines documented
+by PR #259. Web lint, strict typecheck, and all 91 files / 601 tests pass. The
+native production build compiles, typechecks, and generates all 94 pages before
+the established Windows standalone-symlink `EPERM`; the Linux retry became
+infrastructure-inconclusive when Docker Desktop's engine stopped responding.
+Feature tracking (7), migration/RLS tracking (11), the base-ref co-change gate,
+and exactly one Alembic head pass. Security and maintainer review found no
+remaining actionable issue.
 
 **Done - shared dashboard interaction foundation:**
 `codex/20260829-163717-implement` ([PR #265](https://github.com/brollysolutions/client1/pull/265)) continues the direct pre-deployment request
