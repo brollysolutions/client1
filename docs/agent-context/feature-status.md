@@ -9,7 +9,7 @@ Evidence baseline: `abcc1fd`
 verified Admin operational-visibility work in
 [PR #173](https://github.com/brollysolutions/client1/pull/173).
 
-**Rehearsed — NO-GO — frozen release candidate and launch evidence:**
+**Rehearsed — NO-GO — [PR #268](https://github.com/brollysolutions/client1/pull/268) — frozen release candidate and launch evidence:**
 `chore/frozen-release-rehearsal` freezes merged PR #267 at `3cc6bc0` and records
 the full result in
 [`release-rehearsal-2026-08-30.md`](release-rehearsal-2026-08-30.md). The work
