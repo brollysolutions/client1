@@ -40,7 +40,7 @@ zero-critical image scan pass. The fresh API aggregate reached 64% before the
 engine failure and has no final total, so prior PR evidence is not presented as
 a rehearsal pass.
 
-**Done - PR pending - `security/media-runtime-isolation` - frozen-release native-media blocker:**
+**Done — [PR #271](https://github.com/brollysolutions/client1/pull/271) — `security/media-runtime-isolation` — frozen-release native-media blocker:**
 Attacker-controlled MP4 parsing no longer executes in the credentialed API or
 scheduler image. A digest-pinned, secretless worker performs FFprobe/FFmpeg
 processing as UID/GID 10001 with a read-only root, an owned bounded noexec tmpfs,
