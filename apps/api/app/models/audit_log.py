@@ -72,6 +72,7 @@ class AuditAction(enum.StrEnum):
     PROPERTY_SUBMISSION_APPROVED = "property_submission_approved"
     PROPERTY_SUBMISSION_REJECTED = "property_submission_rejected"
     PROPERTY_LISTING_UPDATED = "property_listing_updated"
+    PROPERTY_LISTING_CORRECTED = "property_listing_corrected"
     SUPPORT_TICKET_ADVANCED = "support_ticket_advanced"
     RETENTION_PURGED = "retention_purged"
     LOAN_TYPE_CREATED = "loan_type_created"
@@ -127,6 +128,12 @@ class AuditAction(enum.StrEnum):
     CAMPAIGN_MEDIA_UPDATED = "campaign_media_updated"
     CAMPAIGN_MEDIA_ARCHIVED = "campaign_media_archived"
     CAMPAIGN_MEDIA_DELETED = "campaign_media_deleted"
+    CONTENT_BLOCK_CREATED = "content_block_created"
+    CONTENT_BLOCK_UPDATED = "content_block_updated"
+    CONTENT_BLOCK_PUBLISHED = "content_block_published"
+    CONTENT_BLOCK_ARCHIVED = "content_block_archived"
+    LOAN_APPLICATION_UPDATED = "loan_application_updated"
+    PROPERTY_DEAL_UPDATED = "property_deal_updated"
 
 
 _ev = lambda x: [e.value for e in x]  # noqa: E731

@@ -1403,6 +1403,245 @@
         "title": "AdminPendingItem",
         "type": "object"
       },
+      "AdminPropertyCorrection": {
+        "additionalProperties": false,
+        "description": "Full replacement facts plus the reason for an approved-listing correction.",
+        "properties": {
+          "age_years": {
+            "default": 0,
+            "minimum": 0.0,
+            "title": "Age Years",
+            "type": "integer"
+          },
+          "amenities": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 30,
+            "title": "Amenities",
+            "type": "array"
+          },
+          "area_sqft": {
+            "default": 0,
+            "minimum": 0.0,
+            "title": "Area Sqft",
+            "type": "integer"
+          },
+          "available_from": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Available From"
+          },
+          "bhk": {
+            "default": 0,
+            "minimum": 0.0,
+            "title": "Bhk",
+            "type": "integer"
+          },
+          "category": {
+            "$ref": "#/components/schemas/PropertyCategory"
+          },
+          "city": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "City",
+            "type": "string"
+          },
+          "construction_status": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ConstructionStatus"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "furnishing": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Furnishing"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "listing_intent": {
+            "$ref": "#/components/schemas/ListingIntent",
+            "default": "sale"
+          },
+          "listing_links": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/ListingLink"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Listing Links"
+          },
+          "locality": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Locality",
+            "type": "string"
+          },
+          "location": {
+            "maxLength": 160,
+            "minLength": 1,
+            "title": "Location",
+            "type": "string"
+          },
+          "meta": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meta"
+          },
+          "minimum_lease_months": {
+            "anyOf": [
+              {
+                "maximum": 600.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Minimum Lease Months"
+          },
+          "pincode": {
+            "pattern": "^[1-9][0-9]{5}$",
+            "title": "Pincode",
+            "type": "string"
+          },
+          "price_paise": {
+            "exclusiveMinimum": 0.0,
+            "title": "Price Paise",
+            "type": "integer"
+          },
+          "property_subtype": {
+            "$ref": "#/components/schemas/PropertySubtype"
+          },
+          "reason": {
+            "maxLength": 1000,
+            "minLength": 1,
+            "title": "Reason",
+            "type": "string"
+          },
+          "rera_applicability": {
+            "$ref": "#/components/schemas/ReraApplicability"
+          },
+          "rera_number": {
+            "anyOf": [
+              {
+                "maxLength": 40,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rera Number"
+          },
+          "security_deposit_paise": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Security Deposit Paise"
+          },
+          "state": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "State",
+            "type": "string"
+          },
+          "structured_details": {
+            "discriminator": {
+              "mapping": {
+                "agricultural_land": "#/components/schemas/AgriculturalLandDetails",
+                "commercial_property": "#/components/schemas/CommercialPropertyDetails",
+                "individual_property": "#/components/schemas/IndividualPropertyDetails",
+                "plot": "#/components/schemas/PlotDetails",
+                "project_residence": "#/components/schemas/ProjectResidenceDetails"
+              },
+              "propertyName": "kind"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ProjectResidenceDetails"
+              },
+              {
+                "$ref": "#/components/schemas/IndividualPropertyDetails"
+              },
+              {
+                "$ref": "#/components/schemas/CommercialPropertyDetails"
+              },
+              {
+                "$ref": "#/components/schemas/PlotDetails"
+              },
+              {
+                "$ref": "#/components/schemas/AgriculturalLandDetails"
+              }
+            ],
+            "title": "Structured Details"
+          },
+          "title": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          },
+          "type": {
+            "maxLength": 40,
+            "minLength": 1,
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "type",
+          "location",
+          "category",
+          "property_subtype",
+          "city",
+          "locality",
+          "state",
+          "pincode",
+          "price_paise",
+          "rera_applicability",
+          "structured_details",
+          "reason"
+        ],
+        "title": "AdminPropertyCorrection",
+        "type": "object"
+      },
       "AdminPropertyDealListResponse": {
         "properties": {
           "deals": {
@@ -3902,6 +4141,7 @@
           "property_submission_approved",
           "property_submission_rejected",
           "property_listing_updated",
+          "property_listing_corrected",
           "support_ticket_advanced",
           "retention_purged",
           "loan_type_created",
@@ -3956,7 +4196,13 @@
           "campaign_media_created",
           "campaign_media_updated",
           "campaign_media_archived",
-          "campaign_media_deleted"
+          "campaign_media_deleted",
+          "content_block_created",
+          "content_block_updated",
+          "content_block_published",
+          "content_block_archived",
+          "loan_application_updated",
+          "property_deal_updated"
         ],
         "title": "AuditAction",
         "type": "string"
@@ -31261,6 +31507,65 @@
           }
         ],
         "summary": "Approve",
+        "tags": [
+          "property-submissions"
+        ]
+      }
+    },
+    "/api/v1/property-submissions/{submission_id}/correction": {
+      "patch": {
+        "description": "Stage a reasoned Admin correction for RERA re-review before publication.",
+        "operationId": "correct_approved_property_api_v1_property_submissions__submission_id__correction_patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "submission_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Submission Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminPropertyCorrection"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubmissionRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Correct Approved Property",
         "tags": [
           "property-submissions"
         ]

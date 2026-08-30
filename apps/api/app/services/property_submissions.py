@@ -37,6 +37,7 @@ from app.models.property_media import (
 from app.models.property_submission import PropertySubmission, SubmissionStatus
 from app.schemas.property_submissions import (
     SubmissionCreate,
+    SubmissionFacts,
     SubmissionMediaInput,
     SubmissionUpdate,
 )
@@ -99,6 +100,18 @@ class MediaNotReady(Exception):
 
 class SubmissionNotEditable(Exception):
     """Raised when a withdrawn listing is targeted for another edit."""
+
+
+class AdminCorrectionReasonRequired(Exception):
+    """Raised when an approved Admin correction lacks a valid bounded reason."""
+
+
+class ApprovedCorrectionRequired(Exception):
+    """Raised when a correction does not target an approved catalogue listing."""
+
+
+class CorrectionHasNoChanges(Exception):
+    """Raised when a correction would append an audit row without changing facts."""
 
 
 class ReraReviewRequired(Exception):
@@ -284,7 +297,10 @@ def _can_manage_submission(
 
 
 def _payload_fact_values(payload: SubmissionCreate | SubmissionUpdate) -> dict[str, object]:
-    values = payload.model_dump(exclude={"media", "structured_details", "listing_links"})
+    values = payload.model_dump(
+        include=set(SubmissionFacts.model_fields),
+        exclude={"media", "structured_details", "listing_links"},
+    )
     values["structured_details"] = payload.structured_details.model_dump(mode="json")
     # JSON mode so the derived platform lands in JSONB as its string value and
     # not as an enum member the driver would have to coerce.
@@ -322,6 +338,8 @@ async def update_submission(
     *,
     actor_role: str,
     platform_scope: str | None,
+    correction_reason: str | None = None,
+    approved_correction_only: bool = False,
 ) -> bool:
     """Update listing facts under a row lock and return reviewed rows to review."""
     async with AsyncSessionLocal() as session:
@@ -332,12 +350,32 @@ async def update_submission(
             return False
         if sub.status == SubmissionStatus.WITHDRAWN:
             raise SubmissionNotEditable
+        is_platform_admin = actor_role == "admin" and platform_scope == "true"
+        normalized_correction_reason = (correction_reason or "").strip() or None
+        if approved_correction_only and (
+            not is_platform_admin
+            or sub.status != SubmissionStatus.APPROVED
+            or sub.approved_property_id is None
+        ):
+            raise ApprovedCorrectionRequired
+        if approved_correction_only and (
+            normalized_correction_reason is None or len(normalized_correction_reason) > 1000
+        ):
+            raise AdminCorrectionReasonRequired
+        if (
+            is_platform_admin
+            and sub.status == SubmissionStatus.APPROVED
+            and not approved_correction_only
+        ):
+            raise AdminCorrectionReasonRequired
         previous_status = sub.status
         values = _payload_fact_values(payload)
         changed_fields = sorted(
             field for field, value in values.items() if getattr(sub, field) != value
         )
         if not changed_fields:
+            if approved_correction_only:
+                raise CorrectionHasNoChanges
             return True
         _copy_submission_facts(sub, payload)
         sub.status = SubmissionStatus.PENDING
@@ -348,22 +386,34 @@ async def update_submission(
         sub.rera_verified_at = None
         sub.rera_verified_by_uuid = None
         sub.rera_review_note = None
+        audit_detail: dict[str, object] = {
+            "operation": "correction_staged" if approved_correction_only else "facts_updated",
+            "previous_status": previous_status.value,
+            "changed_fields": changed_fields,
+            "approved_property_uuid": (
+                str(sub.approved_property_id) if sub.approved_property_id else None
+            ),
+        }
+        if approved_correction_only:
+            audit_detail.update(
+                {
+                    "reason": normalized_correction_reason,
+                    "submission_uuid": str(sub.id),
+                }
+            )
         await record_audit(
             session,
-            action=AuditAction.PROPERTY_LISTING_UPDATED,
-            entity_type="property_submission",
-            entity_uuid=sub.id,
+            action=(
+                AuditAction.PROPERTY_LISTING_CORRECTED
+                if approved_correction_only
+                else AuditAction.PROPERTY_LISTING_UPDATED
+            ),
+            entity_type="property" if approved_correction_only else "property_submission",
+            entity_uuid=sub.approved_property_id if approved_correction_only else sub.id,
             actor_uuid=actor_uuid,
             actor_role=actor_role,
             business_line=sub.business_line,
-            detail={
-                "operation": "facts_updated",
-                "previous_status": previous_status.value,
-                "changed_fields": changed_fields,
-                "approved_property_uuid": (
-                    str(sub.approved_property_id) if sub.approved_property_id else None
-                ),
-            },
+            detail=audit_detail,
         )
         await session.commit()
         return True

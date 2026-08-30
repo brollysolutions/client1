@@ -25,6 +25,7 @@ from app.db.session import get_db
 from app.models.property_media import PropertyMedia, PropertySubmissionMedia
 from app.models.property_submission import PropertySubmission, SubmissionStatus
 from app.schemas.property_submissions import (
+    AdminPropertyCorrection,
     PropertyMediaUploadRequest,
     PropertyMediaUploadResponse,
     RejectRequest,
@@ -38,6 +39,9 @@ from app.schemas.property_submissions import (
 )
 from app.services import storage
 from app.services.property_submissions import (
+    AdminCorrectionReasonRequired,
+    ApprovedCorrectionRequired,
+    CorrectionHasNoChanges,
     InvalidReraReview,
     MediaContentMismatch,
     MediaNotReady,
@@ -211,6 +215,53 @@ async def update_submission(
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="A withdrawn listing cannot be edited.",
+        ) from exc
+    except AdminCorrectionReasonRequired as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail=(
+                "Approved listings must be changed through the Admin correction command "
+                "with a reason."
+            ),
+        ) from exc
+    if not updated:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Submission not found.")
+    sub = await db.scalar(select(PropertySubmission).where(PropertySubmission.id == submission_id))
+    if sub is None:  # pragma: no cover - authorization and service checks agree
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Submission not found.")
+    media = await _media_for_submissions(db, [sub.id])
+    return _to_read(sub, media[sub.id])
+
+
+@router.patch("/{submission_id}/correction", response_model=SubmissionRead)
+async def correct_approved_property(
+    submission_id: UUID,
+    payload: AdminPropertyCorrection,
+    response: Response,
+    current_user: CurrentUser = Depends(require_platform_admin),
+    db: AsyncSession = Depends(get_db),
+) -> SubmissionRead:
+    """Stage a reasoned Admin correction for RERA re-review before publication."""
+    response.headers["Cache-Control"] = "private, no-store"
+    try:
+        updated = await update_submission_service(
+            submission_id,
+            payload,
+            current_user.id,
+            actor_role=current_user.role,
+            platform_scope=current_user.platform_scope,
+            correction_reason=payload.reason,
+            approved_correction_only=True,
+        )
+    except ApprovedCorrectionRequired as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Only an approved catalogue listing can be corrected.",
+        ) from exc
+    except CorrectionHasNoChanges as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="At least one listing fact must change.",
         ) from exc
     if not updated:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Submission not found.")

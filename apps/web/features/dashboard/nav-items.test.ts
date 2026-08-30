@@ -271,6 +271,12 @@ describe("dashboard direct-route UX access", () => {
     expect(isDashboardPathAllowed("/dashboard/content", context("admin"))).toBe(false);
     expect(isDashboardPathAllowed("/dashboard/content", context("sub_admin"))).toBe(false);
     expect(isDashboardPathAllowed("/dashboard/audit-log", context("admin"))).toBe(true);
+    expect(
+      isDashboardPathAllowed("/dashboard/property-review/listing-id/correct", context("admin")),
+    ).toBe(true);
+    expect(
+      isDashboardPathAllowed("/dashboard/property-review/listing-id/correct", context("sub_admin")),
+    ).toBe(false);
   });
 
   it("keeps Client and cross-line features out of staff workspaces", () => {

@@ -13,9 +13,10 @@ import uuid
 
 import pytest
 from httpx import AsyncClient
-from sqlalchemy import text
+from sqlalchemy import select, text
 
 from app.core.security import create_access_token
+from app.models.audit_log import AuditAction, AuditLog
 from conftest import full_registration
 
 _URL = "/api/v1/content-blocks"
@@ -226,6 +227,28 @@ async def test_publish_then_archive(client: AsyncClient) -> None:
     assert res.status_code == 200, res.text
     assert res.json()["status"] == "archived"
 
+    import app.db.session as _session_mod
+
+    async with _session_mod.AsyncSessionLocal() as db:
+        entries = (
+            (
+                await db.execute(
+                    select(AuditLog)
+                    .where(AuditLog.entity_uuid == uuid.UUID(block["id"]))
+                    .order_by(AuditLog.created_at)
+                )
+            )
+            .scalars()
+            .all()
+        )
+    assert [entry.action for entry in entries] == [
+        AuditAction.CONTENT_BLOCK_CREATED,
+        AuditAction.CONTENT_BLOCK_PUBLISHED,
+        AuditAction.CONTENT_BLOCK_ARCHIVED,
+    ]
+    assert entries[1].detail == {"previous_status": "draft", "status": "published"}
+    assert entries[2].detail == {"previous_status": "published", "status": "archived"}
+
 
 @pytest.mark.asyncio
 async def test_draft_can_archive_without_publishing(client: AsyncClient) -> None:
@@ -329,6 +352,18 @@ async def test_edit_draft(client: AsyncClient) -> None:
     res = await client.patch(f"{_URL}/{block['id']}", json={"title": "Rewritten"}, headers=headers)
     assert res.status_code == 200, res.text
     assert res.json()["title"] == "Rewritten"
+
+    import app.db.session as _session_mod
+
+    async with _session_mod.AsyncSessionLocal() as db:
+        audit = await db.scalar(
+            select(AuditLog).where(
+                AuditLog.entity_uuid == uuid.UUID(block["id"]),
+                AuditLog.action == AuditAction.CONTENT_BLOCK_UPDATED,
+            )
+        )
+    assert audit is not None
+    assert audit.detail == {"fields": ["title"], "status": "draft"}
 
 
 @pytest.mark.asyncio

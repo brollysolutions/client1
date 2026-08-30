@@ -148,6 +148,11 @@ const ACTION_META: Record<AuditAction, { label: string; icon: LucideIcon; tone: 
     icon: Home,
     tone: "bg-warning/10 text-warning",
   },
+  property_listing_corrected: {
+    label: "Listing correction staged",
+    icon: FilePenLine,
+    tone: "bg-warning/10 text-warning",
+  },
   support_ticket_advanced: {
     label: "Support ticket updated",
     icon: Headset,
@@ -352,6 +357,12 @@ const ACTION_META: Record<AuditAction, { label: string; icon: LucideIcon; tone: 
   campaign_media_updated: { label: "Campaign media updated", icon: FilePenLine, tone: "bg-loans-soft text-loans-accent" },
   campaign_media_archived: { label: "Campaign media archived", icon: Archive, tone: "bg-muted text-text-secondary" },
   campaign_media_deleted: { label: "Campaign media deleted", icon: Eraser, tone: "bg-error/10 text-error" },
+  content_block_created: { label: "Content block created", icon: FilePenLine, tone: "bg-loans-soft text-loans-accent" },
+  content_block_updated: { label: "Content block updated", icon: FilePenLine, tone: "bg-loans-soft text-loans-accent" },
+  content_block_published: { label: "Content block published", icon: Megaphone, tone: "bg-success/10 text-success" },
+  content_block_archived: { label: "Content block archived", icon: Archive, tone: "bg-muted text-text-secondary" },
+  loan_application_updated: { label: "Loan application updated", icon: ClipboardList, tone: "bg-loans-soft text-loans-accent" },
+  property_deal_updated: { label: "Property deal updated", icon: Home, tone: "bg-realestate-soft text-realestate-accent" },
   vehicle_arrangement_updated: {
     label: "Vehicle arrangement updated",
     icon: CarFront,
