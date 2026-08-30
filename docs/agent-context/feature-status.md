@@ -9,48 +9,101 @@ Evidence baseline: `abcc1fd`
 verified Admin operational-visibility work in
 [PR #173](https://github.com/brollysolutions/client1/pull/173).
 
-**Runtime-image blocker build complete locally — [PR #272](https://github.com/brollysolutions/client1/pull/272) — release remains NO-GO:**
-`security/runtime-image-pinning` replaces the five blocked direct service
-references present at baseline `87a0dbe` with checked-in release builds. Their
-PostgreSQL 18.6, Redis 8.10.1, ClamAV 1.4.6 LTS, PgBouncer 1.25.2, and nginx
-1.30.4 bases are versioned and pinned to upstream manifest digests. The small
-wrappers pin the exact fixed Alpine OpenSSL/PostgreSQL-client packages; the
-PostgreSQL artifact also removes the vulnerable Go `gosu` helper and starts as
-`postgres`. Production Compose no longer builds or accepts a mutable tag for
-these services: it requires each human-readable release tag plus a supplied
-64-character registry manifest hash.
+**Runtime-image contract complete locally — [PR #272](https://github.com/brollysolutions/client1/pull/272) — release remains NO-GO:**
+`security/runtime-image-pinning` now covers all six production service images
+present after merged PR #271. PostgreSQL 18.6, Redis 8.10.1, ClamAV 1.4.6 LTS,
+PgBouncer 1.25.2, and nginx 1.30.4 use versioned, upstream-manifest-pinned bases
+and exact patched Alpine packages. The media worker uses its existing digest-
+pinned Python 3.12 slim base and checked-in Dockerfile. Production Compose no
+longer builds or accepts a mutable tag for any of the six: each human-readable
+release tag requires a supplied 64-character final registry manifest hash,
+including `MEDIA_RUNTIME_IMAGE_SHA256`.
 
-Fresh Trivy 0.74.0 scans using the 2026-08-30 database report zero high and
-zero critical findings across all five local outputs. CycloneDX inventories
-contain 54 PostgreSQL, 23 Redis, 42 ClamAV, 26 PgBouncer, and 72 nginx
-components. A new PostgreSQL volume initializes and becomes healthy as uid 70;
-PgBouncer stays uid 70 and passes a SCRAM-backed query; Redis PID 1 drops to uid
-999; ClamAV's root supervisor contains `clamd` and `freshclam` running as
-`clamav`; and nginx passes the mounted config/health probe with its workers as
-`nginx`. Runtime contracts reject missing base digests, mutable final-image
-references, the former PgBouncer/Alpine image, and all other obsolete tags.
+Trivy 0.74.0 reports zero high and zero critical findings in each of the five
+existing local service outputs; their CycloneDX inventories contain 54, 23, 42,
+26, and 72 components respectively. The exact media-worker output reviewed in
+merged PR #271 is
+`sha256:2646e443e722b471149ee63359dbad253f36c0f1e06d1fca1c60110907e2d403`;
+its 294-component SBOM and scan report 137 high rows, 7 critical rows, 45 unique
+advisories across 24 packages, and no reported fix. Isolation contains those
+findings but does not remediate, waive, or make them release-acceptable.
 
-No registry publication was authorized or performed, so local image IDs are
-evidence rather than deployable manifest hashes. An operator must publish these
-exact scanned outputs to the approved registry and populate the required
-production hashes. The separate unmerged media-runtime work introduces another
-production image; after it lands, that image/base must join the same immutable
-digest, SBOM, and scan set before an exact-candidate rehearsal. Formal feature
-coverage is unchanged, and every other rehearsal/human gate remains open.
+A fresh no-cache media rebuild completed as local OCI index `c18d048c4111…`
+after Debian supplied newer OpenSSL packages, demonstrating why only the final
+published manifest is deployable. Its fresh Trivy run did not complete: the C:
+drive reached zero free space while downloading the scanner database and Docker
+Desktop stopped responding. The failed invocation produced no evidence file,
+and `c18d048c4111…` is explicitly unreviewed and must not be published. The
+operator must publish an exact reviewed artifact, record all six registry
+hashes, pull and rescan those references, and resolve or specifically accept the
+worker findings before the exact-candidate rehearsal.
 
-Fresh branch verification passes feature tracking (7), migration/RLS tracking
-(11), runtime contracts (6), all 502 API files under Ruff/format, and one
-Alembic head. A fresh isolated Linux aggregate against the hardened PostgreSQL
-and Redis outputs applies every migration and completes with 1,885 passes, the
-same 13 unrelated baseline failures, and zero errors. Web frozen install, lint,
-strict typecheck, all 91 files / 602 tests, and a Linux production build through
-94/94 pages and image export pass. Production Compose renders all five final
-references with version context plus 64-character digest syntax; the release
-build Compose renders the five exact release tags. The Windows-host monolithic
-gate is not counted as a pass: its API phase terminated with 276 passes, 1,459
-skips, 46 failures, and 117 errors because the native `_greenlet` DLL and local
-database/Redis fixtures were unavailable; the isolated Linux run supplies the
-applicable aggregate result.
+The prior five-image branch evidence remains: cold-start/health/config/runtime-
+user checks; a Linux API aggregate with 1,885 passes, the same 13 unrelated
+baseline failures, and zero errors; web lint/typecheck/602 tests and 94-route
+Linux production build; one Alembic head; and exact cleanup. The PR #271 worker
+evidence remains: 7/7 unit tests, real 1920x1080 H.264/AAC round-trip, five
+sequential transcodes with concurrent health probes, and the secretless,
+internal, non-root, read-only resource limits. This integration adds negative
+contracts for the sixth release build/final reference and preserves the merged
+CORS, media, and human-sign-off records. Formal feature coverage is unchanged,
+and all other rehearsal and human gates remain open.
+
+Fresh integration evidence passes 34 script/runtime/tracking tests with the one
+expected Windows POSIX-resource skip, 54 focused media/config API tests with one
+Linux-only skip, Ruff and format across all 503 API files, one Alembic head,
+web lint and strict typecheck, and all 91 files / 602 web tests. Both Compose
+models render with synthetic configuration; the production render includes all
+six final registry references and fails closed when the media digest is absent.
+The native web build compiles, typechecks, and generates 94/94 routes before the
+established Windows standalone-symlink `EPERM`. The fresh worker scan/SBOM,
+runtime smoke, Linux production build, and aggregate repository gate remain
+unverified after Docker became unavailable; a skipped gate is not a pass.
+
+**Done - [PR #270](https://github.com/brollysolutions/client1/pull/270) - credentialed browser CORS method/header hardening:**
+`security/cors-policy` removes the API's wildcard method and request-header
+grants. The explicit browser surface is now `GET`, `POST`, `PUT`, `PATCH`, and
+`DELETE`, with `Authorization`, `Content-Type`, and `X-Business-Line` as the
+only non-safelisted request headers. `X-Report-Truncated` is explicitly exposed
+for the existing report download client. Configured origin matching and
+credential support are unchanged, while configuration now fails closed for
+wildcard, opaque `null`, userinfo, malformed-port, path/query/fragment, and
+non-HTTP(S) entries. An empty origin list remains valid and denies all
+cross-origin grants.
+
+The inventory covers the central browser wrapper, refresh-cookie and Bearer
+paths, business-line requests, report downloads, and both direct browser
+uploads. Those uploads POST multipart form data to object storage rather than
+the API and therefore retain their separate provider CORS policy. The secure,
+host-only, path-scoped, SameSite-Strict refresh cookie is unchanged. There is no
+API route, schema, generated contract, auth/RLS, business-line, upload policy,
+dependency, CSRF, or proxy-trust change.
+
+Fresh evidence: all 48 focused CORS/config tests pass on the host, and the
+pre-final 42-test set passes inside the Linux API image. Positive cases cover a
+production-style HTTPS origin across refresh, Bearer, business-line, JSON
+upload-presign, report-download, and every approved method; negative cases
+cover arbitrary, opaque `null`, suffix-confusion origins, HEAD/TRACE, and an
+invented header. Simple requests and requests without `Origin` retain their
+normal application responses. All 503 API files pass Ruff and format checks;
+exactly one Alembic head, 11 migration/RLS tracking tests, and 4 production-
+runtime tests pass. Web lint, strict typecheck, and all 91 files / 602 tests
+pass. The native build compiles, typechecks, and generates 94/94 routes before
+the established Windows standalone-symlink `EPERM`; the strict Linux
+production image completes the same build, standalone copy, and image export.
+
+The fresh Linux API aggregate completes with 1,911 passes and 13 failures. An
+exact rerun of those failures on a newly migrated database makes the payout
+grace-window and task-assignment cases pass, confirming order/shared-state
+sensitivity; the remaining 11 reproduce stale content-block policy, UUID
+property fixture, and validation-order expectations. No CORS/config test fails,
+and the changed 48-test set is green after the aggregate. The repository's Bash
+wrapper could not execute because this Windows host has no installed WSL
+distribution; every available constituent gate above was run directly.
+Security and maintainer review found no change-owned issue. Residual evidence
+is the real deployed browser, reverse-proxy, and object-storage edge probe
+against the exact release candidate. Next priority is the remaining frozen-
+release blocker remediation and exact-candidate rerun.
 
 **Rehearsed — NO-GO — [PR #268](https://github.com/brollysolutions/client1/pull/268) — frozen release candidate and launch evidence:**
 `chore/frozen-release-rehearsal` freezes merged PR #267 at `3cc6bc0` and records
@@ -82,6 +135,78 @@ Linux production build, non-root runtime, headers/redirects, and a zero-high/
 zero-critical image scan pass. The fresh API aggregate reached 64% before the
 engine failure and has no final total, so prior PR evidence is not presented as
 a rehearsal pass.
+
+**Done — [PR #271](https://github.com/brollysolutions/client1/pull/271) — `security/media-runtime-isolation` — frozen-release native-media blocker:**
+Attacker-controlled MP4 parsing no longer executes in the credentialed API or
+scheduler image. A digest-pinned, secretless worker performs FFprobe/FFmpeg
+processing as UID/GID 10001 with a read-only root, an owned bounded noexec tmpfs,
+all capabilities dropped, no-new-privileges, no volumes or public port, and no
+route to the database, Redis, object storage, or other application networks.
+Only the scheduler joins the internal `media-control` network. The API shares
+and validates the exact production worker origin because its Settings model is
+common, but it has neither a worker call path nor membership in that network.
+
+The scheduler still owns the database row lock, object transfer, fail-closed
+ClamAV scan, canonical replacement, retryable/private processing state, cleanup,
+and retention. Existing authentication, ownership/RLS, private storage,
+signature/type/size validation, quotas, idempotency, deletion, and upload API
+contracts are unchanged. Missing or unsafe production worker configuration
+refuses application startup; worker or scanner unavailability leaves work
+private and retryable and removes partial output.
+
+Runtime contracts assert the reviewed base pin and explicit one-CPU, 768 MiB
+real-memory, 64-PID, 32-child-process, 185-second child-CPU, 180-second wall,
+1.25 GiB child address-space, 20 MiB input/output/file, 128 MiB allocation,
+single-thread codec/filter, and 64-descriptor bounds. The higher virtual-address
+limit is intentionally distinct from the lower hard container memory cap: real
+1080p H.264 encoding failed at 1 GiB virtual space, passed at 1.125 GiB, and
+uses 1.25 GiB for bounded headroom while the 768 MiB cgroup cap remains intact.
+The final 10-second health budget stayed healthy during intended transcode load.
+
+Fresh evidence: focused API config/transport/storage/retry/scheduler tests pass
+61; the hardened Linux worker passes 7/7 unit tests and a real 1920x1080
+H.264/AAC round-trip; five sequential transcodes and four concurrent health
+probes all return HTTP 200 with 21 ms maximum probe latency. Production-runtime
+contracts pass 7, feature tracking 7, migration/RLS tracking 11, Ruff and format
+all 503 API files, exactly one Alembic head, regenerated contracts with no diff,
+production Compose rendering, web lint/typecheck, and 91 files / 602 tests.
+The Linux API aggregate completes 1,899 passes and the same 13 unrelated
+baseline failures; the native web build compiles, typechecks, and generates
+94/94 pages before the established Windows standalone-symlink `EPERM`.
+
+The exact worker image is
+`sha256:2646e443e722b471149ee63359dbad253f36c0f1e06d1fca1c60110907e2d403`
+with a 294-component CycloneDX 1.7 SBOM. Its Trivy 0.74.0 scan reports 137 high
+rows, 7 critical rows, 45 unique advisory IDs, and 24 affected packages; no row
+reported a fixed version. These native/transitive findings are contained by the
+boundary, not removed, waived, or asserted unreachable. Container/kernel escape
+and worker availability remain residual risks. The API image separately proves
+FFmpeg/FFprobe absent but retains 14 high / 3 critical scan rows. Image/PDF
+native parsing, ClamAV/service isolation, remaining API/service image findings,
+hosted-CI recovery, immutable replacement of other production images,
+exact-candidate rehearsal, recovery evidence, and all human/
+environment sign-offs remain release blockers and the next priority. This slice
+does not change SRS completion counts or the release NO-GO decision. Security
+and maintainer review found no remaining change-owned actionable defect. After
+integrating merged PRs #269 and #270, the combined config/CORS/media set passes
+74 tests with one expected Windows POSIX skip; both seven-test runtime suites,
+the tracking/RLS guards, and full 503-file Ruff/format checks pass.
+
+**Human launch sign-off register prepared — approvals remain open — [PR
+#269](https://github.com/brollysolutions/client1/pull/269):**
+[`launch-signoff-register.md`](launch-signoff-register.md) adds a canonical,
+evidence-linked decision register for trademark, legal entity, Terms,
+privacy/data inventory, processors, DNS/TLS, secrets, monitoring, and incident
+ownership. It defines valid
+approver/date/evidence fields and bounded risk-acceptance rules without placing
+secrets, private contracts, production exports, customer data, or privileged
+legal material in Git. Every gate deliberately remains `Open`; this
+documentation is not legal advice, environment proof, or launch approval. The
+essential-authentication-cookie decision is unchanged, and non-essential
+storage still requires prior privacy/security review and clear Accept/Reject
+controls where consent applies. Fresh verification: every changed relative
+Markdown link resolves, all 7 feature-tracking tests pass, `git diff --check`
+passes, and security/maintainer review found no actionable issue.
 
 **Done - [PR #267](https://github.com/brollysolutions/client1/pull/267) - FR-2.2 Admin controlled-correction and operational audit remediation:**
 `codex/20260829-163717-implement` closes the original typed approved-listing

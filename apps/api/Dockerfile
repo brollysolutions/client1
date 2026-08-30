@@ -10,11 +10,10 @@ COPY --from=ghcr.io/astral-sh/uv:0.5 /uv /uvx /bin/
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
 
-# Managed video is decoded and re-encoded before any playback URL exists.
-# Install the distribution-patched binaries in both dev and prod stages.
+# Apply distribution security updates without installing native media parsers.
+# Attacker-controlled video is decoded only in apps/media-runtime.
 RUN apt-get update \
     && apt-get upgrade -y --no-install-recommends \
-    && apt-get install -y --no-install-recommends ffmpeg \
     && rm -rf /var/lib/apt/lists/*
 
 # ---------- dev ----------

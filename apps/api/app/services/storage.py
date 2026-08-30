@@ -22,7 +22,6 @@ falls back to SPACES_ENDPOINT_URL — no double config needed there.
 from __future__ import annotations
 
 import logging
-from pathlib import Path
 
 import boto3
 from botocore.client import BaseClient
@@ -260,45 +259,6 @@ def put_object_bytes(object_key: str, content: bytes, content_type: str) -> None
         Key=object_key,
         Body=content,
         ContentType=content_type,
-    )
-
-
-def download_object_to_file(object_key: str, path: Path, *, max_bytes: int) -> int:
-    """Stream one bounded private object to a caller-owned temporary path."""
-    try:
-        resp = _client(settings.SPACES_ENDPOINT_URL).get_object(
-            Bucket=settings.SPACES_BUCKET, Key=object_key
-        )
-    except ClientError as exc:
-        code = exc.response.get("Error", {}).get("Code")
-        if code in ("404", "NoSuchKey"):
-            return 0
-        raise
-    content_length = int(resp.get("ContentLength", 0))
-    if content_length < 1 or content_length > max_bytes:
-        return 0
-    written = 0
-    with path.open("wb") as output:
-        while chunk := resp["Body"].read(min(1024 * 1024, max_bytes + 1 - written)):
-            written += len(chunk)
-            if written > max_bytes:
-                output.close()
-                path.unlink(missing_ok=True)
-                return 0
-            output.write(chunk)
-    if written != content_length:
-        path.unlink(missing_ok=True)
-        return 0
-    return written
-
-
-def upload_file(object_key: str, path: Path, content_type: str) -> None:
-    """Upload a locally generated canonical file without exposing its path."""
-    _client(settings.SPACES_ENDPOINT_URL).upload_file(
-        str(path),
-        settings.SPACES_BUCKET,
-        object_key,
-        ExtraArgs={"ContentType": content_type},
     )
 
 

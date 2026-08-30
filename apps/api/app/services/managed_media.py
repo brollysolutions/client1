@@ -22,6 +22,7 @@ from app.services.media_processing import (
     InvalidVideo,
     MalwareDetected,
     MediaProcessingError,
+    MediaProcessorUnavailable,
     ScannerUnavailable,
     VideoDurationExceeded,
     VideoPolicy,
@@ -136,7 +137,7 @@ async def _process_one(
                 max_duration_seconds=max_duration_seconds,
             ),
         )
-    except ScannerUnavailable:
+    except (MediaProcessorUnavailable, ScannerUnavailable):
         try:
             await _finish(model, media_id, source_key, retry=True)
         finally:

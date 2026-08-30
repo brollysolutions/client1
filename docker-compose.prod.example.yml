@@ -87,6 +87,32 @@ services:
       retries: 5
     restart: always
 
+  # This is the only image containing FFmpeg. It receives no application
+  # secrets or data-service network and has no persistent or host-mounted
+  # storage. A compromised parser is confined to bounded disposable input,
+  # output, and availability of this one worker.
+  media-runtime:
+    # Publish the reviewed worker from docker-compose.runtime-images.yml, then
+    # supply its final registry manifest hash. Production never builds it.
+    image: "${RUNTIME_IMAGE_REGISTRY?set RUNTIME_IMAGE_REGISTRY to the approved registry namespace}/media-runtime:python3.12-slim-ffmpeg-20260830@sha256:${MEDIA_RUNTIME_IMAGE_SHA256?set MEDIA_RUNTIME_IMAGE_SHA256 to the reviewed 64-character registry manifest hash}"
+    init: true
+    user: "10001:10001"
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,mode=1770,uid=10001,gid=10001,noexec,nosuid,nodev
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    cpus: 1.0
+    mem_limit: 768m
+    pids_limit: 64
+    expose:
+      - "8080"
+    networks:
+      - media-control
+    restart: always
+
   api:
     build:
       context: ./apps/api
@@ -97,6 +123,7 @@ services:
     environment:
       MEDIA_MALWARE_SCAN_MODE: clamav
       CLAMAV_HOST: clamav
+      MEDIA_VIDEO_PROCESSOR_URL: http://media-runtime:8080
     depends_on:
       pgbouncer:
         condition: service_healthy
@@ -126,6 +153,7 @@ services:
     environment:
       MEDIA_MALWARE_SCAN_MODE: clamav
       CLAMAV_HOST: clamav
+      MEDIA_VIDEO_PROCESSOR_URL: http://media-runtime:8080
     depends_on:
       pgbouncer:
         condition: service_healthy
@@ -133,6 +161,11 @@ services:
         condition: service_healthy
       clamav:
         condition: service_healthy
+      media-runtime:
+        condition: service_healthy
+    networks:
+      - default
+      - media-control
     deploy:
       replicas: 1   # exactly one scheduler instance — never scale this service
       resources:
@@ -236,3 +269,7 @@ services:
 volumes:
   postgres_data:
   clamav_data:
+
+networks:
+  media-control:
+    internal: true

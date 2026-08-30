@@ -1,5 +1,6 @@
 from pathlib import Path
 from typing import Literal
+from urllib.parse import urlsplit
 
 from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -125,8 +126,11 @@ class Settings(BaseSettings):
     LOAN_VIDEO_MAX_PER_APPLICATION: int = 2
     TASK_FEEDBACK_MAX_UPLOAD_BYTES: int = 5 * 1024 * 1024
     TASK_FEEDBACK_MAX_PER_TASK: int = 5
-    MEDIA_FFMPEG_BINARY: str = "ffmpeg"
-    MEDIA_FFPROBE_BINARY: str = "ffprobe"
+    # Only the scheduler can reach this internal service in the documented
+    # Compose topology. The API image has no FFmpeg binaries and the isolated
+    # runtime receives no application env file, database/storage credentials,
+    # or public network route.
+    MEDIA_VIDEO_PROCESSOR_URL: str = ""
     MEDIA_TRANSCODE_TIMEOUT_SECONDS: int = 180
     MEDIA_FAILED_RETENTION_DAYS: int = 7
     MEDIA_PRIVATE_RETENTION_DAYS: int = 90
@@ -349,6 +353,33 @@ class Settings(BaseSettings):
             raise ValueError(f"Media-processing settings must be positive: {', '.join(invalid)}.")
         if self.MEDIA_MALWARE_SCAN_MODE == "clamav" and not self.CLAMAV_HOST.strip():
             raise ValueError("CLAMAV_HOST is required when ClamAV scanning is enabled.")
+        processor_url = self.MEDIA_VIDEO_PROCESSOR_URL.strip()
+        if self.ENV != "development" and not processor_url:
+            raise ValueError("MEDIA_VIDEO_PROCESSOR_URL is required outside development.")
+        if processor_url:
+            parsed = urlsplit(processor_url)
+            try:
+                port = parsed.port
+            except ValueError as exc:
+                raise ValueError("MEDIA_VIDEO_PROCESSOR_URL has an invalid port.") from exc
+            if (
+                parsed.scheme not in {"http", "https"}
+                or not parsed.hostname
+                or parsed.username is not None
+                or parsed.password is not None
+                or parsed.path not in {"", "/"}
+                or parsed.query
+                or parsed.fragment
+                or port is None
+            ):
+                raise ValueError(
+                    "MEDIA_VIDEO_PROCESSOR_URL must be an http(s) origin with an explicit port."
+                )
+            if self.ENV != "development" and processor_url != "http://media-runtime:8080":
+                raise ValueError(
+                    "MEDIA_VIDEO_PROCESSOR_URL must be http://media-runtime:8080 "
+                    "outside development."
+                )
         return self
 
     @model_validator(mode="after")
@@ -412,8 +443,6 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def _guard_public_web_origin(self) -> "Settings":
-        from urllib.parse import urlsplit
-
         parsed = urlsplit(self.PUBLIC_WEB_ORIGIN)
         invalid_origin = (
             parsed.scheme not in {"http", "https"}
@@ -426,6 +455,32 @@ class Settings(BaseSettings):
             )
         if self.ENV != "development" and parsed.scheme != "https":
             raise ValueError("PUBLIC_WEB_ORIGIN must use https outside development.")
+        return self
+
+    @model_validator(mode="after")
+    def _guard_allowed_origins(self) -> "Settings":
+        for origin in self.ALLOWED_ORIGINS:
+            parsed = urlsplit(origin)
+            try:
+                _ = parsed.port
+            except ValueError as exc:
+                raise ValueError("ALLOWED_ORIGINS entries must use valid ports.") from exc
+            invalid_origin = (
+                origin in {"*", "null"}
+                or parsed.scheme not in {"http", "https"}
+                or not parsed.netloc
+                or parsed.hostname is None
+                or parsed.username is not None
+                or parsed.password is not None
+                or bool(parsed.path)
+                or bool(parsed.query)
+                or bool(parsed.fragment)
+            )
+            if invalid_origin:
+                raise ValueError(
+                    "ALLOWED_ORIGINS entries must be explicit HTTP(S) origins without "
+                    "credentials, paths, queries, or fragments."
+                )
         return self
 
 
