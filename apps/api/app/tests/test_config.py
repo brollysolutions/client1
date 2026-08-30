@@ -69,6 +69,40 @@ def test_placeholder_storage_credentials_allowed_in_development() -> None:
 
 
 @pytest.mark.parametrize(
+    "origin",
+    [
+        "*",
+        "null",
+        "app.example.com",
+        "https://user@app.example.com",
+        "https://app.example.com:invalid",
+        "https://app.example.com/",
+        "https://app.example.com/path",
+        "https://app.example.com?tenant=loans",
+        "https://app.example.com#fragment",
+        "ftp://app.example.com",
+    ],
+)
+def test_cors_origins_must_be_explicit_http_origins(origin: str) -> None:
+    with pytest.raises(ValidationError):
+        Settings(ENV="development", ALLOWED_ORIGINS=[origin])
+
+
+def test_explicit_cors_origins_are_preserved() -> None:
+    origins = ["http://localhost:3000", "https://app.example.com"]
+
+    configured = Settings(ENV="development", ALLOWED_ORIGINS=origins)
+
+    assert origins == configured.ALLOWED_ORIGINS
+
+
+def test_empty_cors_origin_list_remains_fail_closed() -> None:
+    configured = Settings(ENV="development", ALLOWED_ORIGINS=[])
+
+    assert configured.ALLOWED_ORIGINS == []
+
+
+@pytest.mark.parametrize(
     ("override", "value"),
     [
         ("PUSH_ENDPOINT_ALLOWED_HOSTS", ""),

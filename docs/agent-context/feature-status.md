@@ -9,6 +9,51 @@ Evidence baseline: `abcc1fd`
 verified Admin operational-visibility work in
 [PR #173](https://github.com/brollysolutions/client1/pull/173).
 
+**Done - [PR #270](https://github.com/brollysolutions/client1/pull/270) - credentialed browser CORS method/header hardening:**
+`security/cors-policy` removes the API's wildcard method and request-header
+grants. The explicit browser surface is now `GET`, `POST`, `PUT`, `PATCH`, and
+`DELETE`, with `Authorization`, `Content-Type`, and `X-Business-Line` as the
+only non-safelisted request headers. `X-Report-Truncated` is explicitly exposed
+for the existing report download client. Configured origin matching and
+credential support are unchanged, while configuration now fails closed for
+wildcard, opaque `null`, userinfo, malformed-port, path/query/fragment, and
+non-HTTP(S) entries. An empty origin list remains valid and denies all
+cross-origin grants.
+
+The inventory covers the central browser wrapper, refresh-cookie and Bearer
+paths, business-line requests, report downloads, and both direct browser
+uploads. Those uploads POST multipart form data to object storage rather than
+the API and therefore retain their separate provider CORS policy. The secure,
+host-only, path-scoped, SameSite-Strict refresh cookie is unchanged. There is no
+API route, schema, generated contract, auth/RLS, business-line, upload policy,
+dependency, CSRF, or proxy-trust change.
+
+Fresh evidence: all 48 focused CORS/config tests pass on the host, and the
+pre-final 42-test set passes inside the Linux API image. Positive cases cover a
+production-style HTTPS origin across refresh, Bearer, business-line, JSON
+upload-presign, report-download, and every approved method; negative cases
+cover arbitrary, opaque `null`, suffix-confusion origins, HEAD/TRACE, and an
+invented header. Simple requests and requests without `Origin` retain their
+normal application responses. All 503 API files pass Ruff and format checks;
+exactly one Alembic head, 11 migration/RLS tracking tests, and 4 production-
+runtime tests pass. Web lint, strict typecheck, and all 91 files / 602 tests
+pass. The native build compiles, typechecks, and generates 94/94 routes before
+the established Windows standalone-symlink `EPERM`; the strict Linux
+production image completes the same build, standalone copy, and image export.
+
+The fresh Linux API aggregate completes with 1,911 passes and 13 failures. An
+exact rerun of those failures on a newly migrated database makes the payout
+grace-window and task-assignment cases pass, confirming order/shared-state
+sensitivity; the remaining 11 reproduce stale content-block policy, UUID
+property fixture, and validation-order expectations. No CORS/config test fails,
+and the changed 48-test set is green after the aggregate. The repository's Bash
+wrapper could not execute because this Windows host has no installed WSL
+distribution; every available constituent gate above was run directly.
+Security and maintainer review found no change-owned issue. Residual evidence
+is the real deployed browser, reverse-proxy, and object-storage edge probe
+against the exact release candidate. Next priority is the remaining frozen-
+release blocker remediation and exact-candidate rerun.
+
 **Rehearsed — NO-GO — [PR #268](https://github.com/brollysolutions/client1/pull/268) — frozen release candidate and launch evidence:**
 `chore/frozen-release-rehearsal` freezes merged PR #267 at `3cc6bc0` and records
 the full result in
@@ -72,7 +117,7 @@ Fresh evidence: focused API config/transport/storage/retry/scheduler tests pass
 H.264/AAC round-trip; five sequential transcodes and four concurrent health
 probes all return HTTP 200 with 21 ms maximum probe latency. Production-runtime
 contracts pass 7, feature tracking 7, migration/RLS tracking 11, Ruff and format
-all 502 API files, exactly one Alembic head, regenerated contracts with no diff,
+all 503 API files, exactly one Alembic head, regenerated contracts with no diff,
 production Compose rendering, web lint/typecheck, and 91 files / 602 tests.
 The Linux API aggregate completes 1,899 passes and the same 13 unrelated
 baseline failures; the native web build compiles, typechecks, and generates
@@ -87,11 +132,30 @@ boundary, not removed, waived, or asserted unreachable. Container/kernel escape
 and worker availability remain residual risks. The API image separately proves
 FFmpeg/FFprobe absent but retains 14 high / 3 critical scan rows. Image/PDF
 native parsing, ClamAV/service isolation, remaining API/service image findings,
-hosted-CI recovery, immutable replacement of other production images, CORS
-narrowing, exact-candidate rehearsal, recovery evidence, and all human/
+hosted-CI recovery, immutable replacement of other production images,
+exact-candidate rehearsal, recovery evidence, and all human/
 environment sign-offs remain release blockers and the next priority. This slice
 does not change SRS completion counts or the release NO-GO decision. Security
-and maintainer review found no remaining change-owned actionable defect.
+and maintainer review found no remaining change-owned actionable defect. After
+integrating merged PRs #269 and #270, the combined config/CORS/media set passes
+74 tests with one expected Windows POSIX skip; both seven-test runtime suites,
+the tracking/RLS guards, and full 503-file Ruff/format checks pass.
+
+**Human launch sign-off register prepared — approvals remain open — [PR
+#269](https://github.com/brollysolutions/client1/pull/269):**
+[`launch-signoff-register.md`](launch-signoff-register.md) adds a canonical,
+evidence-linked decision register for trademark, legal entity, Terms,
+privacy/data inventory, processors, DNS/TLS, secrets, monitoring, and incident
+ownership. It defines valid
+approver/date/evidence fields and bounded risk-acceptance rules without placing
+secrets, private contracts, production exports, customer data, or privileged
+legal material in Git. Every gate deliberately remains `Open`; this
+documentation is not legal advice, environment proof, or launch approval. The
+essential-authentication-cookie decision is unchanged, and non-essential
+storage still requires prior privacy/security review and clear Accept/Reject
+controls where consent applies. Fresh verification: every changed relative
+Markdown link resolves, all 7 feature-tracking tests pass, `git diff --check`
+passes, and security/maintainer review found no actionable issue.
 
 **Done - [PR #267](https://github.com/brollysolutions/client1/pull/267) - FR-2.2 Admin controlled-correction and operational audit remediation:**
 `codex/20260829-163717-implement` closes the original typed approved-listing
