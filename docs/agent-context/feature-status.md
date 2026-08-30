@@ -85,6 +85,22 @@ zero-critical image scan pass. The fresh API aggregate reached 64% before the
 engine failure and has no final total, so prior PR evidence is not presented as
 a rehearsal pass.
 
+**Human launch sign-off register prepared — approvals remain open — [PR
+#269](https://github.com/brollysolutions/client1/pull/269):**
+[`launch-signoff-register.md`](launch-signoff-register.md) adds a canonical,
+evidence-linked decision register for trademark, legal entity, Terms,
+privacy/data inventory, processors, DNS/TLS, secrets, monitoring, and incident
+ownership. It defines valid
+approver/date/evidence fields and bounded risk-acceptance rules without placing
+secrets, private contracts, production exports, customer data, or privileged
+legal material in Git. Every gate deliberately remains `Open`; this
+documentation is not legal advice, environment proof, or launch approval. The
+essential-authentication-cookie decision is unchanged, and non-essential
+storage still requires prior privacy/security review and clear Accept/Reject
+controls where consent applies. Fresh verification: every changed relative
+Markdown link resolves, all 7 feature-tracking tests pass, `git diff --check`
+passes, and security/maintainer review found no actionable issue.
+
 **Done - [PR #267](https://github.com/brollysolutions/client1/pull/267) - FR-2.2 Admin controlled-correction and operational audit remediation:**
 `codex/20260829-163717-implement` closes the original typed approved-listing
 correction gap and all seven named audit families. The correction is a platform-
