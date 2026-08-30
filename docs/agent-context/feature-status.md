@@ -9,7 +9,7 @@ Evidence baseline: `abcc1fd`
 verified Admin operational-visibility work in
 [PR #173](https://github.com/brollysolutions/client1/pull/173).
 
-**Done - PR pending - credentialed browser CORS method/header hardening:**
+**Done - [PR #270](https://github.com/brollysolutions/client1/pull/270) - credentialed browser CORS method/header hardening:**
 `security/cors-policy` removes the API's wildcard method and request-header
 grants. The explicit browser surface is now `GET`, `POST`, `PUT`, `PATCH`, and
 `DELETE`, with `Authorization`, `Content-Type`, and `X-Business-Line` as the
