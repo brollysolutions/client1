@@ -128,8 +128,9 @@ the unique-advisory column makes that duplication visible.
 
 Status: **LOCAL BUILD PASS; DEPLOYMENT AND RELEASE REMAIN NO-GO**
 
-Follow-up baseline: `87a0dbe` on `security/runtime-image-pinning` (delivery PR
-pending). This addendum does not rewrite the frozen-candidate evidence above.
+Follow-up baseline: `87a0dbe` on `security/runtime-image-pinning`, delivered in
+[PR #272](https://github.com/brollysolutions/client1/pull/272). This addendum
+does not rewrite the frozen-candidate evidence above.
 It records the five direct production service images that exist at this
 baseline; it does not claim coverage for a service introduced by an unmerged
 branch.

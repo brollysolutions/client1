@@ -9,7 +9,7 @@ Evidence baseline: `abcc1fd`
 verified Admin operational-visibility work in
 [PR #173](https://github.com/brollysolutions/client1/pull/173).
 
-**Runtime-image blocker build complete locally — delivery PR pending — release remains NO-GO:**
+**Runtime-image blocker build complete locally — [PR #272](https://github.com/brollysolutions/client1/pull/272) — release remains NO-GO:**
 `security/runtime-image-pinning` replaces the five blocked direct service
 references present at baseline `87a0dbe` with checked-in release builds. Their
 PostgreSQL 18.6, Redis 8.10.1, ClamAV 1.4.6 LTS, PgBouncer 1.25.2, and nginx
