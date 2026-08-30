@@ -27,15 +27,17 @@ authenticated route-group provider mounts, eliminating its intermittent redirect
 to Home.
 
 Fresh evidence: web lint and strict typecheck pass; all 91 files / 602 unit tests
-pass; the fixture-backed production-build command passes 4/4; and three repeated
-runs against the exact production image and 12 live catalogue cards pass 12/12.
+pass; the fixture-backed production server passes 4/4 before the launcher is
+tightened; the final fail-closed launcher passes Node syntax checks and enumerates
+exactly four tests; and three repeated runs against the exact production image
+and 12 live catalogue cards pass 12/12.
 The pre-fix image reproduced both financial assertions, while five repeated
 registration runs reproduced one 60-second Home redirect and four passes. The
 strict pre-change image builds all 94 routes. The post-change image reinstall
 passed the frozen 645-entry supply-chain check, then Docker stopped responding
-during compilation; it was interrupted and no post-change image export is
-claimed. Hosted CI remains blocked by billing, so the new gate has not yet run on
-GitHub. No application component, API, contract, authorization/RLS, cookie,
+during compilation; it was interrupted, so no post-change image export or final
+standalone-gate execution is claimed. Hosted CI remains blocked by billing, so
+the new gate has not yet run on GitHub. No application component, API, contract, authorization/RLS, cookie,
 upload, payment, schema, migration, dependency, or formal feature-coverage count
 changed. Launch remains NO-GO pending a complete exact-candidate rehearsal and
 the existing image, registry, recovery, edge, secrets, monitoring, upload, and
