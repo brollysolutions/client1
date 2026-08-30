@@ -63,6 +63,14 @@ from app.db.session import engine, get_db
 logger = logging.getLogger("app")
 logging.basicConfig(level=settings.LOG_LEVEL.upper())
 
+# Browser API requests are centralized in apps/web/lib/api/client.ts. Its
+# request type and the two direct-to-storage upload callers establish this
+# closed set: storage multipart POSTs bypass the API and have their own CORS
+# policy. Keep this list synchronized with that client boundary.
+CORS_ALLOW_METHODS = ("GET", "POST", "PUT", "PATCH", "DELETE")
+CORS_ALLOW_HEADERS = ("Authorization", "Content-Type", "X-Business-Line")
+CORS_EXPOSE_HEADERS = ("X-Report-Truncated",)
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
@@ -96,8 +104,9 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.ALLOWED_ORIGINS,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=CORS_ALLOW_METHODS,
+    allow_headers=CORS_ALLOW_HEADERS,
+    expose_headers=CORS_EXPOSE_HEADERS,
 )
 
 app.include_router(auth_router, prefix="/api/v1/auth", tags=["auth"])
