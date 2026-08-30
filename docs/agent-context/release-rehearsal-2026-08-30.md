@@ -1,19 +1,124 @@
-# Frozen-release rehearsal — 30 August 2026
+# Frozen-release rehearsals — 30 August 2026
 
 Status: **NO-GO**
 
-Frozen candidate: `3cc6bc07d98554b32924423e2f535b54fb21bb72`
+Current exact candidate: `c37b9d5fb68ea30daa5f4f55dd15f97cf27ce547`
+([merged PR #272](https://github.com/brollysolutions/client1/pull/272))
+
+Initial candidate: `3cc6bc07d98554b32924423e2f535b54fb21bb72`
 ([merged PR #267](https://github.com/brollysolutions/client1/pull/267))
 
 Rehearsal branch: `chore/frozen-release-rehearsal`
-([PR #268](https://github.com/brollysolutions/client1/pull/268))
+([initial PR #268](https://github.com/brollysolutions/client1/pull/268);
+[exact-candidate PR #273](https://github.com/brollysolutions/client1/pull/273))
 
 This record reports what was actually exercised. It is not production approval,
 does not check any human-owned box in
 [`pre-deployment-checklist.md`](pre-deployment-checklist.md), and contains no
 production secret, customer data, database dump, or object.
 
-## Decision summary
+## Exact-candidate rerun after merged PR #272
+
+This is the current decision record. It supersedes the earlier report's
+interrupted Docker, unreviewed `c18d048…` media rebuild, and unverified recovery
+statements. It does not supersede the original defect history or turn local
+evidence into production or human approval.
+
+The exact candidate is still **NO-GO**:
+
+1. Hosted CI, Security, and main-to-production sync are attached to the correct
+   `c37b9d5` SHA but did not execute a job step because the account reports a
+   failed payment or exhausted spending limit.
+2. The exact production API image has 14 high and 3 critical finding rows, and
+   the exact native-media image has 137 high and 7 critical rows. Trivy reports
+   no fixed version for any of those rows. Isolation is a mitigation, not an
+   advisory waiver or launch approval.
+3. None of the six reviewed service outputs has been published to an approved
+   registry namespace and re-pulled by final registry-manifest hash. Local OCI
+   index identities are evidence, not deployable production references.
+4. The Linux API aggregate is not green: 1,931 tests pass and 13 fail. A fresh-
+   database rerun makes the payout grace-window and automatic task-assignment
+   cases pass; the other 11 reproduce superseded content-policy assertions,
+   invalid property UUID fixtures, and validation-order expectations. These
+   known test defects remain failures until corrected in a separate PR.
+5. The exact standalone web artifact passes headers and two mocked registration
+   journeys, but one profile journey is flaky and all three Financial Services
+   Playwright cases fail: one uses a non-unique heading locator, while two need
+   published catalogue data that was absent because the build-time internal
+   API endpoint was intentionally unreachable. A release-artifact browser gate
+   with reachable production-like catalogue data remains open.
+6. Production-artifact upload evidence reaches HTTPS, private owner/application-
+   scoped presigning and denial cases, but no approved external object provider
+   was available for a positive object transfer. Live payout execution was not
+   attempted. Missing-secret/invalid-signature webhook behavior fails closed.
+7. The local synthetic database and object restores pass, but they do not prove
+   production backup scheduling, encryption, retention, off-account copies,
+   cross-store reference reconciliation, achieved RPO, or operator access.
+8. Real DNS/TLS, secret-manager controls, monitoring/alert delivery, incident
+   ownership, trademark, entity/Terms, privacy/data inventory, and processor
+   approvals remain open in
+   [`launch-signoff-register.md`](launch-signoff-register.md).
+
+### Exact verification ledger
+
+| Gate | Result | Exact-candidate evidence |
+| --- | --- | --- |
+| Candidate identity | Pass | Branch and merged PR #272 resolve to `c37b9d5fb68ea30daa5f4f55dd15f97cf27ce547`. |
+| Hosted workflows | **Blocked** | [CI 33314962625](https://github.com/brollysolutions/client1/actions/runs/33314962625), [Security 33314962620](https://github.com/brollysolutions/client1/actions/runs/33314962620), and [sync 33314962985](https://github.com/brollysolutions/client1/actions/runs/33314962985) each report the payment/spending-limit block. Their four jobs ran zero steps. |
+| Repository wrapper | **Incomplete** | The canonical `./scripts/verify.sh --ci` invocation passed 7 feature-tracking, 11 migration/RLS, 9 production-runtime and 6/7 media-runtime checks (one expected Windows POSIX skip), plus API Ruff/format. Its duplicate native-Windows API phase was stopped at 7% because it was skipping service-dependent cases and repeating the completed 82-minute Linux aggregate. It did not reach the web phase and is not counted as a pass. |
+| API aggregate | **Fail — known baseline** | Exact isolated Linux run: 1,931 passed / 13 failed in 1:22:39. Fresh-database rerun: 2 passed / 11 failed. The reproducible failures are stale content-policy, UUID-fixture, and validation-order expectations; none is hidden or counted as passing. |
+| Security-focused API | Pass | Fresh database: 93/93 login/session, CORS, loan-document API/RLS, managed-media, webhook/idempotency, and route-authorization tests pass. All 503 API files pass Ruff/format; Alembic reports the single `d9f1a3b5c7e0` head. |
+| Contract drift | Pass | Fresh OpenAPI and TypeScript client generation produces no tracked diff. |
+| Web unit/build | Pass | Frozen install, lint, strict typecheck, and 91 files / 602 tests pass. The exact Linux production build compiles, typechecks, generates 94/94 routes, copies standalone output, and exports OCI index `068178315215320e…`. |
+| Playwright | **Fail / flaky** | Mocked registration: one pass and one pass only on retry. Financial Services: 3/3 fail for the non-unique locator and absent build-time catalogue data described above. |
+| Secrets/dependencies | Pass with existing exception | Gitleaks 8.30.1 scans 503 commits with zero leaks. Production `pnpm audit` reports no vulnerability. Frozen `pip-audit==2.10.1` reports no known vulnerability and the one documented `PYSEC-2026-1325` exception. |
+| Web headers | Pass locally | `/`, `/login`, `/privacy`, `/dashboard`, and a 404 all carry CSP, `nosniff`, `DENY`, strict referrer policy, Permissions Policy, COOP, and one-year production HSTS. Dashboard returns 307 to its encoded login return path. The real TLS edge remains unverified. |
+| API health/CORS | Pass locally | Exact production image is healthy against isolated PostgreSQL/Redis. The configured HTTPS origin receives the five approved methods, three non-safelisted request headers, credentials, and exact ACAO. Arbitrary, `null`, suffix-confusion, HEAD/TRACE, and invented-header cases return 400 without an ACAO grant. |
+| Auth/roles | Pass locally | Client/Admin login, `/me`, refresh rotation, Client-to-Admin denial, Admin home access, logout, revoked-token replay denial, unknown-login denial, and Secure/HttpOnly/SameSite=Strict refresh-only cookie scope pass. Runtime logs contain no tested password, JWT, refresh cookie, or synthetic mobile. |
+| Upload/webhook | Partial / external block | Client loan-document presign is HTTPS, bounded and private owner/application scoped; another Client gets 404 and `text/html` gets 422. Exact unsigned webhook returns 400 without payload logging; the 93-test set covers valid signature, state transition and idempotency. No real provider transfer or live payout ran. |
+| Synthetic database restore | Pass locally | A 458,860-byte custom archive (`ba024a36…`) restores to a fresh database in 6.72 seconds. Source/target match at head `d9f1a3b5c7e0`, 55 tables, 11 synthetic users, and identity/status digest `07302e6b…`. Backup creation takes 1.33 seconds. |
+| Synthetic object restore | Pass locally | After destroying the source volume, three private PDF/JPEG/MP4 objects (79 bytes) restore to a fresh store in 2.15 seconds with identical manifest `537a746e…` and preserved content types. Production recovery controls remain blocked as described above. |
+| Human/environment gates | **Blocked** | All nine canonical register rows remain `Open`; no accountable name, approval, date, or production evidence has been supplied. |
+
+### Exact image and SBOM evidence
+
+Trivy 0.74.0 used a fresh database updated at
+`2026-08-30T13:05:01Z` and downloaded at `2026-08-30T14:08:37Z`.
+Finding counts are rows; unique advisory counts distinguish duplicate package
+rows. No image environment contains a sensitive configuration variable name.
+
+| Artifact | Exact local OCI index ID | High / critical | Unique advisories | CycloneDX components | Evidence digest / result |
+| --- | --- | ---: | ---: | ---: | --- |
+| API | `5f97a404aada60afaebfdaee6e0c6c42427811fbc99433402475abd16cd169a0` | 14 / 3 | 14 | 189 | Scan `5a3a5af3…`; SBOM `043f0777…`; **block** |
+| Web | `068178315215320ebba560e67d0f3f337aeec24daade08b9b79a30d2ec08d9cb` | 0 / 0 | 0 | 46 | Scan `a4728843…`; SBOM `7f45269e…`; pass |
+| Media | `c18d048c411132bf7d6b6251a49c338cf9acfb91440c24841aa2ff1fa5f15bb9` | 137 / 7 | 45 | 294 | Scan `26629136…`; SBOM `ffedfc76…`; **block** |
+| PostgreSQL | `cdbc6c84e6a6eef0b2738079278cdf2461b011470625339dc4914b028055fc61` | 0 / 0 | 0 | 54 | Pass |
+| Redis | `a6922711f60f1e5af5fd68aa34eb5a37eeda604b20abd7b37ad98cf07e69e521` | 0 / 0 | 0 | 23 | Pass |
+| ClamAV | `235632828205e20ed115d961cc3f502461c2936dd41a3dcf66768e71a82dccd3` | 0 / 0 | 0 | 42 | Pass |
+| PgBouncer | `00a192ca4287f9b31ddfee73530bafcc74054772d0f688feace3966f141cabf7` | 0 / 0 | 0 | 26 | Pass |
+| nginx | `033ce9bb4c58b0af9d89bb89796afba1953ec2ee23442e173935ae084cc98fca` | 0 / 0 | 0 | 72 | Pass |
+
+The media runtime also passes a real synthetic three-second 1920×1080 H.264/
+AAC transcode as UID/GID 10001 with no network, read-only root, bounded noexec
+tmpfs, all capabilities dropped, no-new-privileges, one CPU, 768 MiB memory and
+64 PIDs. The canonical output is H.264 1920×1080 plus AAC, and health remains
+OK. The API and web run as `app` and `nextjs` respectively with read-only roots,
+all capabilities dropped and no-new-privileges.
+
+### Exact-rerun cleanup
+
+The old `client1-rehearsal-*` resources named by the initial report were absent
+after Docker recovery, and the unused scanner-cache volume was removed after
+confirming no attached container. Exact-rerun object source, backup and restore
+volumes were destroyed after their checks. The exact API/web/journey/test,
+PostgreSQL and Redis containers, task network, anonymous synthetic database
+volume, and synthetic environment list were removed after terminal results were
+captured. All exercised data and credentials were synthetic; no production
+source was accessed.
+
+## Initial candidate decision summary
+
+The remainder of this section is the historical PR #268 decision at `3cc6bc0`.
 
 The candidate is not ready to launch. The rehearsal corrected four concrete
 release defects, but the following release blockers remain:
