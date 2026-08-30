@@ -9,7 +9,7 @@ Evidence baseline: `abcc1fd`
 verified Admin operational-visibility work in
 [PR #173](https://github.com/brollysolutions/client1/pull/173).
 
-**Implemented — delivery PR pending - FR-2.2 Admin controlled-correction and operational audit remediation:**
+**Done - [PR #267](https://github.com/brollysolutions/client1/pull/267) - FR-2.2 Admin controlled-correction and operational audit remediation:**
 `codex/20260829-163717-implement` closes the original typed approved-listing
 correction gap and all seven named audit families. The correction is a platform-
 Admin-only, reason-required staged edit of an approved submission: the current
