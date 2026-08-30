@@ -40,7 +40,8 @@ zero-critical image scan pass. The fresh API aggregate reached 64% before the
 engine failure and has no final total, so prior PR evidence is not presented as
 a rehearsal pass.
 
-**Human launch sign-off register prepared — approvals remain open:**
+**Human launch sign-off register prepared — approvals remain open — [PR
+#269](https://github.com/brollysolutions/client1/pull/269):**
 [`launch-signoff-register.md`](launch-signoff-register.md) adds a canonical,
 evidence-linked decision register for trademark, legal entity, Terms,
 privacy/data inventory, processors, DNS/TLS, secrets, monitoring, and incident
