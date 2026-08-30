@@ -49,9 +49,10 @@ contracts for the sixth release build/final reference and preserves the merged
 CORS, media, and human-sign-off records. Formal feature coverage is unchanged,
 and all other rehearsal and human gates remain open.
 
-Fresh integration evidence passes 34 script/runtime/tracking tests with the one
-expected Windows POSIX-resource skip, 54 focused media/config API tests with one
-Linux-only skip, Ruff and format across all 503 API files, one Alembic head,
+Fresh integration evidence runs 34 script/runtime/tracking tests: 33 pass and
+one has the expected Windows POSIX-resource skip. Another 54 focused
+media/config API tests pass with one Linux-only skip; Ruff and format pass
+across all 503 API files, with one Alembic head,
 web lint and strict typecheck, and all 91 files / 602 web tests. Both Compose
 models render with synthetic configuration; the production render includes all
 six final registry references and fails closed when the media digest is absent.

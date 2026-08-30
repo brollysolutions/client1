@@ -192,10 +192,11 @@ pages and final image export pass. Both Compose files validate; the production
 render contains each fixed release tag plus a syntactically complete
 64-character hexadecimal manifest hash.
 
-The PR #271 integration refresh passes 34 script/runtime/tracking tests with one
-expected Windows POSIX-resource skip, 54 focused media/config API tests with one
-Linux-only skip, Ruff/format over 503 API files, one Alembic head, web lint and
-typecheck, and 91 files / 602 tests. Production Compose renders six immutable
+The PR #271 integration refresh runs 34 script/runtime/tracking tests: 33 pass
+and one has the expected Windows POSIX-resource skip. Another 54 focused
+media/config API tests pass with one Linux-only skip; Ruff/format over 503 API
+files, one Alembic head, web lint/typecheck, and 91 files / 602 tests pass.
+Production Compose renders six immutable
 registry references with synthetic settings and fails when
 `MEDIA_RUNTIME_IMAGE_SHA256` is absent; the six-image build input also renders.
 The native web build compiles, typechecks, and generates 94/94 routes before the
