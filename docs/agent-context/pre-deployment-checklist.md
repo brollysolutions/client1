@@ -13,6 +13,11 @@ checked only when its named owner links current evidence. Legal items require
 qualified counsel for the launch jurisdictions; this document is not legal
 advice.
 
+Record accountable names, decisions, dates, evidence links, expiries, and the
+final go/no-go in the
+[`launch-signoff-register.md`](launch-signoff-register.md). The register starts
+NO-GO; creating or linking it does not approve any gate.
+
 ## Current launch foundation
 
 The source code now establishes these baselines:
