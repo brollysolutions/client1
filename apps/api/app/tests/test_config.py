@@ -18,6 +18,7 @@ _REAL_SPACES = {
     "SPACES_SECRET_KEY": "real-secret-key",
     "PUBLIC_WEB_ORIGIN": "https://app.example.com",
     "MEDIA_MALWARE_SCAN_MODE": "clamav",
+    "MEDIA_VIDEO_PROCESSOR_URL": "http://media-runtime:8080",
 }
 
 
@@ -133,6 +134,41 @@ def test_disabled_media_scanner_rejected_outside_development() -> None:
 def test_clamav_media_scanner_accepted_outside_development() -> None:
     settings = Settings(ENV="production", SECRET_KEY=_GOOD_KEY, **_REAL_SPACES)
     assert settings.MEDIA_MALWARE_SCAN_MODE == "clamav"
+
+
+def test_isolated_media_processor_is_required_outside_development() -> None:
+    with pytest.raises(ValidationError):
+        Settings(
+            ENV="production",
+            SECRET_KEY=_GOOD_KEY,
+            **{
+                key: value
+                for key, value in _REAL_SPACES.items()
+                if key != "MEDIA_VIDEO_PROCESSOR_URL"
+            },
+        )
+
+
+@pytest.mark.parametrize(
+    "processor_url",
+    [
+        "file:///tmp/media.sock",
+        "http://user:secret@media-runtime:8080",
+        "http://media-runtime:8080/transcode",
+        "http://media-runtime:8080/",
+        "http://media-runtime",
+        "https://processor.example.com:443",
+        "http://127.0.0.1:8080",
+        "http://media-runtime:8081",
+    ],
+)
+def test_media_processor_url_rejects_unsafe_or_ambiguous_shapes(processor_url: str) -> None:
+    with pytest.raises(ValidationError):
+        Settings(
+            ENV="production",
+            SECRET_KEY=_GOOD_KEY,
+            **{**_REAL_SPACES, "MEDIA_VIDEO_PROCESSOR_URL": processor_url},
+        )
 
 
 def test_non_https_storage_endpoint_rejected_in_production() -> None:

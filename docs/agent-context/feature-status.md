@@ -85,6 +85,62 @@ zero-critical image scan pass. The fresh API aggregate reached 64% before the
 engine failure and has no final total, so prior PR evidence is not presented as
 a rehearsal pass.
 
+**Done — [PR #271](https://github.com/brollysolutions/client1/pull/271) — `security/media-runtime-isolation` — frozen-release native-media blocker:**
+Attacker-controlled MP4 parsing no longer executes in the credentialed API or
+scheduler image. A digest-pinned, secretless worker performs FFprobe/FFmpeg
+processing as UID/GID 10001 with a read-only root, an owned bounded noexec tmpfs,
+all capabilities dropped, no-new-privileges, no volumes or public port, and no
+route to the database, Redis, object storage, or other application networks.
+Only the scheduler joins the internal `media-control` network. The API shares
+and validates the exact production worker origin because its Settings model is
+common, but it has neither a worker call path nor membership in that network.
+
+The scheduler still owns the database row lock, object transfer, fail-closed
+ClamAV scan, canonical replacement, retryable/private processing state, cleanup,
+and retention. Existing authentication, ownership/RLS, private storage,
+signature/type/size validation, quotas, idempotency, deletion, and upload API
+contracts are unchanged. Missing or unsafe production worker configuration
+refuses application startup; worker or scanner unavailability leaves work
+private and retryable and removes partial output.
+
+Runtime contracts assert the reviewed base pin and explicit one-CPU, 768 MiB
+real-memory, 64-PID, 32-child-process, 185-second child-CPU, 180-second wall,
+1.25 GiB child address-space, 20 MiB input/output/file, 128 MiB allocation,
+single-thread codec/filter, and 64-descriptor bounds. The higher virtual-address
+limit is intentionally distinct from the lower hard container memory cap: real
+1080p H.264 encoding failed at 1 GiB virtual space, passed at 1.125 GiB, and
+uses 1.25 GiB for bounded headroom while the 768 MiB cgroup cap remains intact.
+The final 10-second health budget stayed healthy during intended transcode load.
+
+Fresh evidence: focused API config/transport/storage/retry/scheduler tests pass
+61; the hardened Linux worker passes 7/7 unit tests and a real 1920x1080
+H.264/AAC round-trip; five sequential transcodes and four concurrent health
+probes all return HTTP 200 with 21 ms maximum probe latency. Production-runtime
+contracts pass 7, feature tracking 7, migration/RLS tracking 11, Ruff and format
+all 503 API files, exactly one Alembic head, regenerated contracts with no diff,
+production Compose rendering, web lint/typecheck, and 91 files / 602 tests.
+The Linux API aggregate completes 1,899 passes and the same 13 unrelated
+baseline failures; the native web build compiles, typechecks, and generates
+94/94 pages before the established Windows standalone-symlink `EPERM`.
+
+The exact worker image is
+`sha256:2646e443e722b471149ee63359dbad253f36c0f1e06d1fca1c60110907e2d403`
+with a 294-component CycloneDX 1.7 SBOM. Its Trivy 0.74.0 scan reports 137 high
+rows, 7 critical rows, 45 unique advisory IDs, and 24 affected packages; no row
+reported a fixed version. These native/transitive findings are contained by the
+boundary, not removed, waived, or asserted unreachable. Container/kernel escape
+and worker availability remain residual risks. The API image separately proves
+FFmpeg/FFprobe absent but retains 14 high / 3 critical scan rows. Image/PDF
+native parsing, ClamAV/service isolation, remaining API/service image findings,
+hosted-CI recovery, immutable replacement of other production images,
+exact-candidate rehearsal, recovery evidence, and all human/
+environment sign-offs remain release blockers and the next priority. This slice
+does not change SRS completion counts or the release NO-GO decision. Security
+and maintainer review found no remaining change-owned actionable defect. After
+integrating merged PRs #269 and #270, the combined config/CORS/media set passes
+74 tests with one expected Windows POSIX skip; both seven-test runtime suites,
+the tracking/RLS guards, and full 503-file Ruff/format checks pass.
+
 **Human launch sign-off register prepared — approvals remain open — [PR
 #269](https://github.com/brollysolutions/client1/pull/269):**
 [`launch-signoff-register.md`](launch-signoff-register.md) adds a canonical,

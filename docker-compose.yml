@@ -123,6 +123,30 @@ services:
       exit 0;
       "
 
+  # Secretless native-code boundary for attacker-controlled loan videos. It
+  # has no env_file, application/data-service network, persistent volume, or
+  # host-published port. Only scheduler joins media-control.
+  media-runtime:
+    build:
+      context: ./apps/media-runtime
+    init: true
+    user: "10001:10001"
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,mode=1770,uid=10001,gid=10001,noexec,nosuid,nodev
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    cpus: 1.0
+    mem_limit: 768m
+    pids_limit: 64
+    expose:
+      - "8080"
+    networks:
+      - media-control
+    restart: unless-stopped
+
   api:
     build:
       context: ./apps/api
@@ -136,6 +160,7 @@ services:
     environment:
       MEDIA_MALWARE_SCAN_MODE: clamav
       CLAMAV_HOST: clamav
+      MEDIA_VIDEO_PROCESSOR_URL: http://media-runtime:8080
     ports:
       - "8000:8000"
     depends_on:
@@ -173,6 +198,7 @@ services:
     environment:
       MEDIA_MALWARE_SCAN_MODE: clamav
       CLAMAV_HOST: clamav
+      MEDIA_VIDEO_PROCESSOR_URL: http://media-runtime:8080
     depends_on:
       pgbouncer:
         condition: service_healthy
@@ -183,6 +209,11 @@ services:
         condition: service_healthy
       clamav:
         condition: service_healthy
+      media-runtime:
+        condition: service_healthy
+    networks:
+      - default
+      - media-control
     healthcheck:
       # No HTTP port; assert the heartbeat job refreshed its liveness marker recently.
       test: ["CMD", "python", "-c", "import os,time,sys; f='/tmp/scheduler.alive'; sys.exit(0 if os.path.exists(f) and time.time()-os.path.getmtime(f)<150 else 1)"]
@@ -238,3 +269,7 @@ volumes:
   api_venv:
   minio_data:
   clamav_data:
+
+networks:
+  media-control:
+    internal: true
