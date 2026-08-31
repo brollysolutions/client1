@@ -44,6 +44,6 @@ services:
         BASE_IMAGE: nginx:1.30.4-alpine3.24@sha256:97d490c12ba55b4946b01546d1c3ed324e8d41ab1c9fcb2a616aa470620e5b46
 
   media-runtime:
-    image: ${RUNTIME_IMAGE_REGISTRY?set RUNTIME_IMAGE_REGISTRY to the approved registry namespace}/media-runtime:python3.12-slim-ffmpeg-20260830
+    image: ${RUNTIME_IMAGE_REGISTRY?set RUNTIME_IMAGE_REGISTRY to the approved registry namespace}/media-runtime:python3.12-alpine3.23-ffmpeg8-20260831
     build:
       context: ./apps/media-runtime

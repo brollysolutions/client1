@@ -50,7 +50,7 @@ class ProductionRuntimeContractTests(unittest.TestCase):
             "/clamav:1.4.6-alpine3.24-20260830@sha256:${CLAMAV_IMAGE_SHA256?",
             "/pgbouncer:1.25.2-alpine3.23-20260830@sha256:${PGBOUNCER_IMAGE_SHA256?",
             "/nginx:1.30.4-alpine3.24-20260830@sha256:${NGINX_IMAGE_SHA256?",
-            "/media-runtime:python3.12-slim-ffmpeg-20260830@sha256:"
+            "/media-runtime:python3.12-alpine3.23-ffmpeg8-20260831@sha256:"
             "${MEDIA_RUNTIME_IMAGE_SHA256?",
         )
         for reference in expected_final_references:
@@ -59,7 +59,7 @@ class ProductionRuntimeContractTests(unittest.TestCase):
         self.assertNotIn("BASE_IMAGE:", compose)
         self.assertNotIn("@sha256:${", build_compose)
         self.assertIn(
-            "/media-runtime:python3.12-slim-ffmpeg-20260830",
+            "/media-runtime:python3.12-alpine3.23-ffmpeg8-20260831",
             build_compose,
         )
         self.assertIn("context: ./apps/media-runtime", build_compose)
@@ -101,9 +101,35 @@ class ProductionRuntimeContractTests(unittest.TestCase):
         dockerfile = (ROOT / "apps/api/Dockerfile").read_text(encoding="utf-8")
         production_stage = dockerfile.split("FROM base AS prod", maxsplit=1)[1]
 
+        self.assertIn(
+            "FROM python:3.12-alpine3.23@sha256:"
+            "31a768b01976652c222e318fe5bd6e7c252f056cbf489c88fa256f1bf0af58e3 AS base",
+            dockerfile,
+        )
+        self.assertIn(
+            "FROM ghcr.io/astral-sh/uv:0.5@sha256:"
+            "7bff3c3776ec467fc1437960f2c469d8beb30f536a6465a3350c647ccd260ec2 AS uv-bin",
+            dockerfile,
+        )
+        self.assertIn('"libcrypto3=3.5.8-r0"', dockerfile)
+        self.assertIn('"libssl3=3.5.8-r0"', dockerfile)
+        self.assertIn('"sqlite-libs=3.53.4-r0"', dockerfile)
+        self.assertNotIn("apt-get", dockerfile)
         self.assertIn('ENV PATH="/app/.venv/bin:${PATH}"', production_stage)
         self.assertNotIn("ENV UV_SYSTEM_PYTHON=1", production_stage)
         self.assertLess(production_stage.index("USER app"), production_stage.index("ENV PATH="))
+        self.assertNotIn("COPY --from=uv-bin", production_stage)
+
+    def test_api_jwt_dependency_avoids_the_unused_ecdsa_implementation(self) -> None:
+        pyproject = (ROOT / "apps/api/pyproject.toml").read_text(encoding="utf-8")
+        security_source = (ROOT / "apps/api/app/core/security.py").read_text(
+            encoding="utf-8"
+        )
+
+        self.assertIn('"PyJWT[crypto]>=2.10.1,<3"', pyproject)
+        self.assertNotIn("python-jose", pyproject)
+        self.assertNotIn("from jose", security_source)
+        self.assertIn("from jwt import PyJWTError as JWTError", security_source)
 
     def test_api_and_scheduler_image_contains_no_native_media_parser(self) -> None:
         dockerfile = (ROOT / "apps/api/Dockerfile").read_text(encoding="utf-8")
@@ -149,7 +175,7 @@ class ProductionRuntimeContractTests(unittest.TestCase):
         api_block = compose.split("  api:", maxsplit=1)[1].split("\n  scheduler:", maxsplit=1)[0]
 
         for required in (
-            "/media-runtime:python3.12-slim-ffmpeg-20260830@sha256:"
+            "/media-runtime:python3.12-alpine3.23-ffmpeg8-20260831@sha256:"
             "${MEDIA_RUNTIME_IMAGE_SHA256?",
             'user: "10001:10001"',
             "read_only: true",
@@ -174,11 +200,16 @@ class ProductionRuntimeContractTests(unittest.TestCase):
         dockerfile = (ROOT / "apps/media-runtime/Dockerfile").read_text(encoding="utf-8")
 
         self.assertIn(
-            "FROM python:3.12-slim@sha256:"
-            "09f7da3bc104798d0afb40bc08d23ab2da20a76130cec1f2ef170848f5d85217",
+            "FROM alpine:3.23@sha256:"
+            "fd791d74b68913cbb027c6546007b3f0d3bc45125f797758156952bc2d6daf40",
             dockerfile,
         )
-        self.assertIn("apt-get install -y --no-install-recommends ffmpeg", dockerfile)
+        self.assertIn('"python3=3.12.14-r0"', dockerfile)
+        self.assertIn('"ffmpeg=8.0.1-r1"', dockerfile)
+        self.assertIn('"libcrypto3=3.5.8-r0"', dockerfile)
+        self.assertIn('"libssl3=3.5.8-r0"', dockerfile)
+        self.assertIn('"sqlite-libs=3.53.4-r0"', dockerfile)
+        self.assertNotIn("apt-get", dockerfile)
         self.assertIn("MEDIA_TRANSCODE_TIMEOUT_SECONDS=180", dockerfile)
         self.assertIn("MEDIA_PROCESS_ADDRESS_SPACE_BYTES=1342177280", dockerfile)
         self.assertIn("MEDIA_PROCESS_FILE_SIZE_BYTES=20971520", dockerfile)

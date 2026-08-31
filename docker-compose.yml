@@ -173,7 +173,7 @@ services:
       clamav:
         condition: service_healthy
     healthcheck:
-      # python:slim has no curl; use stdlib urllib to hit the readiness probe.
+      # The API runtime has no curl; use stdlib urllib to hit the readiness probe.
       test: ["CMD", "python", "-c", "import json,sys,urllib.request; r=urllib.request.urlopen('http://localhost:8000/health', timeout=3); sys.exit(0 if r.status==200 and json.load(r).get('status')=='ok' else 1)"]
       interval: 15s
       timeout: 5s
