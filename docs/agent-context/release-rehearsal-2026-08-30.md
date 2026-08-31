@@ -2,20 +2,101 @@
 
 Status: **NO-GO**
 
-Current exact candidate: `c37b9d5fb68ea30daa5f4f55dd15f97cf27ce547`
-([merged PR #272](https://github.com/brollysolutions/client1/pull/272))
+Current exact candidate: `fb692260c4793562b49915e740fbac09dd893b6d`
+([merged PR #275](https://github.com/brollysolutions/client1/pull/275))
 
 Initial candidate: `3cc6bc07d98554b32924423e2f535b54fb21bb72`
 ([merged PR #267](https://github.com/brollysolutions/client1/pull/267))
 
-Rehearsal branch: `chore/frozen-release-rehearsal`
-([initial PR #268](https://github.com/brollysolutions/client1/pull/268);
-[exact-candidate PR #273](https://github.com/brollysolutions/client1/pull/273))
+Current rehearsal branch: `chore/frozen-release-rehearsal-final`.
+Historical evidence was delivered in
+[initial PR #268](https://github.com/brollysolutions/client1/pull/268) and
+[exact-candidate PR #273](https://github.com/brollysolutions/client1/pull/273).
+This final rerun is delivered in [PR #TBD](https://github.com/brollysolutions/client1/pulls).
 
 This record reports what was actually exercised. It is not production approval,
 does not check any human-owned box in
 [`pre-deployment-checklist.md`](pre-deployment-checklist.md), and contains no
 production secret, customer data, database dump, or object.
+
+## Final exact-candidate rerun after merged PRs #274 and #275
+
+This is the current decision record. It freezes merged PR #275 exactly at
+`fb692260c4793562b49915e740fbac09dd893b6d` and supersedes only the prior
+candidate's API and Playwright result rows. Earlier defect history remains
+historical evidence. The rerun used synthetic identities, credentials, data,
+objects, and payout events only; it did not access production configuration,
+move real money, publish an image, deploy, or approve a human-owned gate.
+
+The exact candidate remains **NO-GO**:
+
+1. GitHub-hosted CI, Security, and main-to-production sync are attached to the
+   exact SHA but executed zero job steps because of the repository billing or
+   spending-limit condition. No paid capacity is available, and the missing
+   independent run is recorded rather than waived.
+2. The fresh Trivy database reports 14 high / 3 critical rows in the exact API
+   image and 137 high / 7 critical rows in the isolated media-runtime image.
+   None has a reported fixed version. The web image remains zero high/critical.
+   Isolation is a mitigation, not an advisory acceptance.
+3. No approved registry namespace or final re-pulled registry-manifest hash was
+   supplied for the six production service outputs. Local OCI identities are
+   reproducible evidence, not production deployment references.
+4. Exact production artifacts pass local headers, CORS, Client/Admin auth and
+   denial, refresh replay revocation, bounded private upload presigning, invalid
+   upload denial, negative webhook, and valid idempotent synthetic webhook
+   probes. No approved external object-provider upload or live payout ran.
+5. Fresh synthetic database and object-store restores match their sources, but
+   do not prove production scheduling, encryption, retention, off-account
+   copies, cross-store reconciliation, achieved RPO, or operator access.
+6. Real DNS/TLS, secret-manager controls, monitoring/alert delivery, incident
+   ownership, trademark, entity/Terms, privacy/data inventory, and processor
+   approvals remain open in
+   [`launch-signoff-register.md`](launch-signoff-register.md).
+
+### Final exact-candidate verification ledger
+
+| Gate | Result | Exact-candidate evidence |
+| --- | --- | --- |
+| Candidate identity | Pass | `upstream/main` and the task base resolve to merged PR #275 SHA `fb692260c4793562b49915e740fbac09dd893b6d`. |
+| Hosted workflows | **Blocked** | [CI 33345587948](https://github.com/brollysolutions/client1/actions/runs/33345587948), [Security 33345587961](https://github.com/brollysolutions/client1/actions/runs/33345587961), and [sync 33345587946](https://github.com/brollysolutions/client1/actions/runs/33345587946) each contain zero executed steps under the billing/spending-limit block. |
+| Repository wrapper | Split equivalent; single wrapper not passed | The canonical host invocation stopped before its first test because the existing Windows virtualenv could not load the `greenlet` DLL. Its structural, API, migration, contract, web, build, and browser constituents are executed separately, with API/migrations in a secretless Linux image. The failed host bootstrap is not counted as a passing wrapper. |
+| Structural/API style | Pass with one platform skip | All 503 API files pass Ruff and format checks; Alembic reports only `d9f1a3b5c7e0`; 33 tracking, migration/RLS, production-runtime, and media-runtime tests pass, with the expected Windows-only skip for the Linux POSIX-resource assertion. |
+| API aggregate | Pass | The authoritative secretless Linux run used a freshly migrated one-head `app_test_final` database and isolated Redis database 1 on a dedicated task network: 1,944/1,944 tests pass with no skips or retries in 1:12:07. Earlier attempts that shared stores, left orphaned processes, or traversed a timing-out Docker Desktop published port were discarded and are not release evidence. |
+| Contract drift | Pass | OpenAPI exported inside the secretless Linux test image and the pinned `openapi-typescript@7.13.0` output both match the committed contracts; the byte-hash difference in JSON is CRLF/LF only. |
+| Web unit/build | Pass | Lint, strict typecheck, and 91 files / 602 unit tests pass. The exact Linux production build compiled, typechecked, generated 94/94 routes, copied standalone output, and exported OCI index `630102c84307801e...`. |
+| Playwright | Pass | The exact frozen web image passes all four Financial Services and registration journeys in 22.5 seconds with one worker and zero retries against the loopback contract-shaped catalogue fixture. The earlier host-saturated 3/4 run and focused diagnostic repetitions are not substituted for this authoritative 4/4 result. |
+| Secrets/dependencies | Pass with existing exception | Gitleaks 8.30.1 scanned all 508 commits with zero leaks. Production `pnpm audit` reports no known vulnerability. Frozen `pip-audit==2.10.1` reports no known vulnerability and the one documented `PYSEC-2026-1325` exception. |
+| Web headers/cookies | Pass locally | Exact image `/` returns 200 with CSP, one-year HSTS, `nosniff`, `DENY`, strict referrer policy, Permissions Policy, and COOP. It sets no cookie. The current essential-only cookie decision remains unchanged. |
+| API health/CORS | Pass locally | The exact production image fails closed on malformed origin JSON and missing proxy trust, then starts healthy with valid synthetic production settings. The configured HTTPS origin receives only GET/POST/PUT/PATCH/DELETE, the closed header set, credentials, and exact ACAO; arbitrary and `null` origins receive 400 without ACAO, and TRACE receives 400. |
+| Auth/roles | Pass locally | Client/Admin login, `/me`, Client-to-Admin 403, Admin home, refresh rotation, rotated-token and chain replay 401s, logout, and unknown/wrong-password 401 equivalence pass. The refresh cookie is Secure, HttpOnly, SameSite=Strict, refresh-path-only, and host-only. |
+| Upload/webhook | Partial / external block | Client loan-document presign is HTTPS, 5 MiB bounded, private staging/application scoped, and `private, no-store`; another Client receives 404 and `text/html` receives 422. Unsigned/invalid webhook requests receive 400 without payload logging. A synthetic signed event moves one initiated payout to paid with a ledger link, and exact replay returns 200 without changing that link. No external upload or live payout ran. |
+| Synthetic database restore | Pass locally | A 447,624-byte custom backup (`810abf11...`) was created in 0.99 seconds and restored to a new database in 4.14 seconds. Source/target match at head `d9f1a3b5c7e0`, 55 tables, three synthetic users, and the ordered identity/status digest. |
+| Synthetic object restore | Pass locally | After destroying the source volume, a 55,808-byte cold object-store archive (`5814c5c8...`) restored to a fresh volume in 1.88 seconds. Three private PDF/JPEG/MP4 objects retain identical SHA-256 values, sizes, ETags, and content types. |
+| Isolated media runtime | Pass locally | The exact image is healthy as UID/GID 10001 with read-only root, bounded noexec tmpfs, all capabilities dropped, no-new-privileges, one CPU, 768 MiB and 64 PIDs. A real three-second H.264/AAC transcode returns protocol 1, bounded canonical bytes, preserved 1280x720 H.264/AAC streams, and healthy status afterward. |
+| Human/environment gates | **Blocked** | All nine canonical register rows remain `Open`; no accountable name, approval, date, or durable production evidence has been supplied. |
+
+### Final image and SBOM evidence
+
+Trivy 0.74.0 used a database freshly downloaded on 31 August 2026. Counts are
+finding rows; unique advisories distinguish duplicate package rows. Every
+reported API/media row lacks a fixed version.
+
+| Artifact | Exact local OCI index ID | High / critical | Unique advisories | CycloneDX components | Evidence digest / result |
+| --- | --- | ---: | ---: | ---: | --- |
+| API | `15467cd6150a4ef7fd4a1c5e4fd637f10d7f4023b29e4bcfafa37ad497dce988` | 14 / 3 | 14 | 189 | Scan `f39a99fb...`; SBOM `8c49e58a...`; **block** |
+| Web | `630102c84307801e372853c08b06c822bc9e463b8f916fa38f8fee4bac59dd14` | 0 / 0 | 0 | 46 | Scan `e6cf05fa...`; SBOM `88ca6450...`; pass |
+| Media runtime | `08366ea1105471488ebea6544ed34ec9d8243d2610ea0dba0158116ae96af84e` | 137 / 7 | 45 | 294 | Scan `cbf7b787...`; SBOM `73e5324e...`; **block** |
+
+### Workstation preparation and cleanup boundary
+
+With the user's prior approval, 2.54 GB of non-project installer/browser/tool
+caches and stale temporary profiles were moved from C: into the recoverable
+`D:\nonproject-cache-quarantine-20260831` quarantine. No project file, personal
+document, credential, Docker data VHDX, or unknown swap VHDX was touched. No
+Docker image, build cache, volume, or user container was pruned. Task-created
+synthetic containers, databases, volumes, and networks were removed after
+terminal evidence was captured. The exact local images were retained; no global
+Docker prune ran.
 
 ## Exact-candidate rerun after merged PR #272
 

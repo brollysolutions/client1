@@ -4,7 +4,7 @@ Status: **NO-GO — no human approval is recorded yet**
 
 Register owner: release decision maker (unassigned)
 
-Release candidate: `c37b9d5fb68ea30daa5f4f55dd15f97cf27ce547`
+Release candidate: `fb692260c4793562b49915e740fbac09dd893b6d`
 
 Current technical record:
 [`release-rehearsal-2026-08-30.md`](release-rehearsal-2026-08-30.md) —
@@ -13,7 +13,7 @@ block or approve any gate.
 
 Target launch window: unassigned
 
-Last reviewed: 30 August 2026
+Last reviewed: 31 August 2026
 
 This is the canonical decision register for the human- and environment-owned
 launch gates named by the
