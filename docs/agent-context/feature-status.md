@@ -9,7 +9,7 @@ Evidence baseline: `abcc1fd`
 verified Admin operational-visibility work in
 [PR #173](https://github.com/brollysolutions/client1/pull/173).
 
-**Post-CVE exact-candidate rehearsal complete — NO-GO — PR #TBD:** merged
+**Post-CVE exact-candidate rehearsal complete — NO-GO — [PR #278](https://github.com/brollysolutions/client1/pull/278):** merged
 PR #277 is frozen exactly at
 `eefc61d06708635f79055fe0187ede4fed3185cf`; the terminal record is
 [`release-rehearsal-2026-08-30.md`](release-rehearsal-2026-08-30.md). Fresh
