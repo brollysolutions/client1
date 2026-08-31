@@ -94,7 +94,7 @@ services:
   media-runtime:
     # Publish the reviewed worker from docker-compose.runtime-images.yml, then
     # supply its final registry manifest hash. Production never builds it.
-    image: "${RUNTIME_IMAGE_REGISTRY?set RUNTIME_IMAGE_REGISTRY to the approved registry namespace}/media-runtime:python3.12-slim-ffmpeg-20260830@sha256:${MEDIA_RUNTIME_IMAGE_SHA256?set MEDIA_RUNTIME_IMAGE_SHA256 to the reviewed 64-character registry manifest hash}"
+    image: "${RUNTIME_IMAGE_REGISTRY?set RUNTIME_IMAGE_REGISTRY to the approved registry namespace}/media-runtime:python3.12-alpine3.23-ffmpeg8-20260831@sha256:${MEDIA_RUNTIME_IMAGE_SHA256?set MEDIA_RUNTIME_IMAGE_SHA256 to the reviewed 64-character registry manifest hash}"
     init: true
     user: "10001:10001"
     read_only: true

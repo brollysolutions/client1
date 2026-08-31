@@ -1,45 +1,45 @@
-# Multi-stage: base → dev | prod
-# dev: uv creates /app/.venv (no UV_SYSTEM_PYTHON) so the named volume seeds correctly.
-# prod: UV_SYSTEM_PYTHON=1 installs to system Python; no venv needed in the final image.
+# Multi-stage: fixed Alpine base -> dev | deps -> prod.
+# The production image receives only the frozen virtualenv, never the uv binary
+# or a package-manager invocation at runtime.
 
-FROM python:3.12-slim AS base
+FROM python:3.12-alpine3.23@sha256:31a768b01976652c222e318fe5bd6e7c252f056cbf489c88fa256f1bf0af58e3 AS base
 WORKDIR /app
-
-COPY --from=ghcr.io/astral-sh/uv:0.5 /uv /uvx /bin/
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
 
-# Apply distribution security updates without installing native media parsers.
-# Attacker-controlled video is decoded only in apps/media-runtime.
-RUN apt-get update \
-    && apt-get upgrade -y --no-install-recommends \
-    && rm -rf /var/lib/apt/lists/*
+# Refresh the vulnerable libraries reported in the reviewed base manifest while
+# keeping native media parsers out of the API and scheduler image.
+RUN apk add --no-cache --upgrade \
+    "libcrypto3=3.5.8-r0" \
+    "libssl3=3.5.8-r0" \
+    "sqlite-libs=3.53.4-r0"
+
+FROM ghcr.io/astral-sh/uv:0.5@sha256:7bff3c3776ec467fc1437960f2c469d8beb30f536a6465a3350c647ccd260ec2 AS uv-bin
 
 # ---------- dev ----------
 # No UV_SYSTEM_PYTHON here: uv creates /app/.venv so the api_venv named volume
 # in docker-compose.dev.yml is seeded from the image on first use, preventing
 # the host Windows .venv from leaking in through the source mount.
 FROM base AS dev
+COPY --from=uv-bin /uv /uvx /bin/
 COPY pyproject.toml uv.lock ./
 RUN uv sync --frozen --no-install-project
-# Source is volume-mounted; CMD is set in docker-compose.yml
+# Source is volume-mounted; CMD is set in docker-compose.yml.
 
-# ---------- prod ----------
-FROM base AS prod
+# ---------- production dependencies ----------
+FROM base AS deps
+COPY --from=uv-bin /uv /uvx /bin/
 COPY pyproject.toml uv.lock ./
 RUN uv sync --frozen --no-dev --no-install-project
 
-COPY . .
+# ---------- production runtime ----------
+FROM base AS prod
+RUN addgroup -S app \
+    && adduser -S -D -H -G app app
 
-RUN addgroup --system app \
-    && adduser --system --ingroup app --no-create-home app \
-    && chown -R app:app /app
+COPY --from=deps --chown=app:app /app/.venv /app/.venv
+COPY --chown=app:app . .
 
 USER app
-
-# `uv sync` creates /app/.venv. Run that environment directly in production:
-# the locked-down app user deliberately has no home directory, so invoking
-# `uv run` at runtime would try to create `/nonexistent/.cache/uv` and abort
-# before Uvicorn or the scheduler starts.
 ENV PATH="/app/.venv/bin:${PATH}"

@@ -9,6 +9,64 @@ Evidence baseline: `abcc1fd`
 verified Admin operational-visibility work in
 [PR #173](https://github.com/brollysolutions/client1/pull/173).
 
+**API and isolated media-runtime High/Critical remediation complete locally — [PR #277](https://github.com/brollysolutions/client1/pull/277) — launch remains NO-GO:**
+`security/container-cve-remediation` replaces both vulnerable Debian runtime
+footprints with supported digest-pinned Alpine bases and exact fixed OpenSSL,
+SQLite, Python, and FFmpeg packages. The API production stage copies only its
+frozen virtual environment from a build-only, digest-pinned `uv` stage; it runs
+as `app` and contains neither `uv` nor FFmpeg. The unused `python-jose` ECDSA/RSA
+chain is replaced with PyJWT while preserving HS256 token claims and exception
+behavior through focused valid, expired, wrong-signature, and malformed-token
+tests. The isolated worker still has no application dependencies, credentials,
+persistent volume, or public port and retains non-root, read-only, capability-
+dropped, no-new-privileges, CPU, memory, PID, timeout, address-space, and output-
+size controls.
+
+The final local API image is
+`sha256:6a95bef6bc2451f1d0376dbde1bc5f779f15cbd6702a4e7cd8c610facce4a25d`
+(87,395,581 bytes); current Trivy reports 0 High/Critical rows, its secret scan
+reports 0 findings, and the CycloneDX inventory contains 123 components. The
+final media image is
+`sha256:4aee6affa6fe0a384218f36761e63a9ae3d1fadde83a038213d84e7c3182d064`
+(71,072,923 bytes); current Trivy reports 0 High/Critical rows and its inventory
+contains 132 components. The machine-readable reports are retained outside the
+repository at `D:\release-evidence-cve-d9edc53`; their API vulnerability, API
+secret, API SBOM, media vulnerability, and media SBOM SHA-256 values are
+`2EBDD9690A6A9EF606008C53FDAC3FEA3AB30E317A150995C51572D0A108DC1F`,
+`023692729B5DFD0BE9A27D2BD0580ACAC1E039249FB0F26A71152CA83592683B`,
+`C706180047B92572CA6004BC4566EBA6E5A0D7851D2D9A6C0AC8D46A78663D6B`,
+`1680FDA3BAECAA8C7463B7634E9237D2E6359622CB9AE5BEA684A7254A94CEB1`,
+and `9028D24F51C73514042C63D7E015C3C8C474995A78B7B4A7EECB2F3BC87B35A1`.
+
+Fresh verification passes a dedicated-network, freshly migrated Linux API
+aggregate at 1,948/1,948 tests in 1:15:55 without skips or retries; all 504 API
+files pass Ruff and format checks; the four direct JWT cases pass; Alembic has
+the single `d9f1a3b5c7e0` head; 34 structural/tracking/runtime tests pass with
+one expected Windows POSIX-resource skip; both Compose models render; and the
+final API runtime completes an HS256 round-trip without Jose/ECDSA, `uv`, or a
+native media parser. The final media image becomes healthy and completes real
+three-second 640x360 and policy-maximum 1920x1080 H.264/AAC transcodes under the
+documented production constraints. The frozen API dependency audit reports no
+known vulnerabilities after the existing documented `PYSEC-2026-1325`
+exception; the production web audit is clean, and web lint, strict typecheck,
+and all 91 files / 602 tests pass. The native Windows web build compiles,
+typechecks, and generates 94/94 routes before the known standalone symlink
+`EPERM`, so that host command is not claimed as a pass. A broad host auth attempt
+was superseded by the clean authoritative Linux aggregate after the host lacked
+the Compose-only `redis` DNS name.
+
+No endpoint, schema, migration, generated contract, authorization/RLS rule,
+cookie behavior, upload or payout, registry publication, deployment, production
+access, advisory acceptance, or human approval changed. Launch remains NO-GO:
+merge this remediation, freeze and rehearse that exact commit, publish/re-pull
+and scan final registry manifests, obtain external-provider and production
+recovery/DNS/TLS/secrets/monitoring evidence, and close all nine qualified human
+sign-off rows. Paid GitHub Actions remain unavailable and are recorded as
+unverified, not waived. Essential authentication cookies still require no
+consent banner; privacy/security review and clear Accept/Reject controls are
+required before enabling analytics, advertising, replay, attribution, chat, or
+other non-essential storage where consent applies.
+
 **Final exact-candidate rehearsal complete — NO-GO — [PR #276](https://github.com/brollysolutions/client1/pull/276):**
 merged PR #275 is frozen exactly at
 `fb692260c4793562b49915e740fbac09dd893b6d`; the terminal record is

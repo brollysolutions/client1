@@ -10,7 +10,7 @@ from datetime import UTC, datetime, timedelta
 from uuid import UUID
 
 from fastapi import BackgroundTasks, HTTPException, status
-from jose import JWTError
+from jwt import PyJWTError as JWTError
 from sqlalchemy import select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession

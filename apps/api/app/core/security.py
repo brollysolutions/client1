@@ -9,9 +9,10 @@ from random import SystemRandom
 from uuid import uuid4
 
 import anyio
+import jwt
 from argon2 import PasswordHasher
 from argon2.exceptions import VerifyMismatchError
-from jose import JWTError, jwt
+from jwt import PyJWTError as JWTError
 
 from app.core.config import settings
 
@@ -149,7 +150,7 @@ def hash_refresh_token(raw: str) -> str:
 
 
 def decode_access_token(token: str) -> dict:
-    """Decode + verify JWT. Raises jose.JWTError on any failure."""
+    """Decode and verify a JWT. Raises JWTError on any failure."""
     try:
         return jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
     except JWTError:
