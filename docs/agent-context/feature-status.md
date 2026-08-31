@@ -9,7 +9,7 @@ Evidence baseline: `abcc1fd`
 verified Admin operational-visibility work in
 [PR #173](https://github.com/brollysolutions/client1/pull/173).
 
-**Final exact-candidate rehearsal complete — NO-GO — [PR #TBD](https://github.com/brollysolutions/client1/pulls):**
+**Final exact-candidate rehearsal complete — NO-GO — [PR #276](https://github.com/brollysolutions/client1/pull/276):**
 merged PR #275 is frozen exactly at
 `fb692260c4793562b49915e740fbac09dd893b6d`; the terminal record is
 [`release-rehearsal-2026-08-30.md`](release-rehearsal-2026-08-30.md). The

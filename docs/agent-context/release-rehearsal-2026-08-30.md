@@ -12,7 +12,7 @@ Current rehearsal branch: `chore/frozen-release-rehearsal-final`.
 Historical evidence was delivered in
 [initial PR #268](https://github.com/brollysolutions/client1/pull/268) and
 [exact-candidate PR #273](https://github.com/brollysolutions/client1/pull/273).
-This final rerun is delivered in [PR #TBD](https://github.com/brollysolutions/client1/pulls).
+This final rerun is delivered in [PR #276](https://github.com/brollysolutions/client1/pull/276).
 
 This record reports what was actually exercised. It is not production approval,
 does not check any human-owned box in
