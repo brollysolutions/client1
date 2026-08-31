@@ -9,6 +9,31 @@ Evidence baseline: `abcc1fd`
 verified Admin operational-visibility work in
 [PR #173](https://github.com/brollysolutions/client1/pull/173).
 
+**Final exact-candidate rehearsal complete — NO-GO — [PR #276](https://github.com/brollysolutions/client1/pull/276):**
+merged PR #275 is frozen exactly at
+`fb692260c4793562b49915e740fbac09dd893b6d`; the terminal record is
+[`release-rehearsal-2026-08-30.md`](release-rehearsal-2026-08-30.md). The
+authoritative dedicated-network Linux aggregate passes 1,944/1,944 API tests in
+1:12:07 with no skips or retries. The exact frozen web image passes all four
+production-artifact Financial Services and registration journeys in 22.5
+seconds with one worker and no retries. Web lint, strict typecheck, 91 files /
+602 tests, the 94-route Linux production build, API style/format and one-head
+migration checks, current secret/dependency/container scans, exact local
+headers/CORS/auth/role/upload/webhook/media probes, and matching timed synthetic
+database/object restores all have terminal evidence.
+
+Launch remains NO-GO. GitHub CI, Security, and production-sync runs executed
+zero steps because no paid capacity is available. The API image retains 14 high
+/ 3 critical Trivy rows and the isolated media image retains 137 high / 7
+critical rows, all without a reported fix or acceptance. Final published
+registry references, an approved external-provider upload, and production
+recovery/DNS/TLS/secrets/monitoring evidence are absent. Every one of the nine
+qualified human sign-off rows remains Open. No application behavior, contract,
+schema, migration, dependency, authorization/RLS, or formal feature-coverage
+count changed. Essential authentication cookies still require no consent
+banner; privacy/security review and clear Accept/Reject controls are required
+before any non-essential storage is enabled where consent applies.
+
 **Production-artifact Playwright gate repaired - [PR #275](https://github.com/brollysolutions/client1/pull/275):**
 CI now installs pinned Chromium and runs four Financial Services/registration
 journeys against the standalone Next production server with retries disabled. A
