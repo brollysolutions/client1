@@ -9,7 +9,7 @@ Evidence baseline: `abcc1fd`
 verified Admin operational-visibility work in
 [PR #173](https://github.com/brollysolutions/client1/pull/173).
 
-**API and isolated media-runtime High/Critical remediation complete locally — PR pending — launch remains NO-GO:**
+**API and isolated media-runtime High/Critical remediation complete locally — [PR #277](https://github.com/brollysolutions/client1/pull/277) — launch remains NO-GO:**
 `security/container-cve-remediation` replaces both vulnerable Debian runtime
 footprints with supported digest-pinned Alpine bases and exact fixed OpenSSL,
 SQLite, Python, and FFmpeg packages. The API production stage copies only its
