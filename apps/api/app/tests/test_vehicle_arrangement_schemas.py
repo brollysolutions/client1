@@ -1,6 +1,7 @@
 """Pure validation and state-machine checks for vehicle arrangements."""
 
 from datetime import UTC, date, datetime, timedelta
+from uuid import uuid4
 
 import pytest
 from pydantic import ValidationError
@@ -17,7 +18,7 @@ from app.services.vehicle_arrangements import (
 
 def _visit_payload(**overrides: object) -> dict:
     payload = {
-        "property_ref": "prop-1",
+        "property_ref": str(uuid4()),
         "title": "Lake View Apartment",
         "locality": "Whitefield",
         "city": "Bengaluru",
