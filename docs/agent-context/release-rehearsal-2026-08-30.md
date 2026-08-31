@@ -1,28 +1,125 @@
-# Frozen-release rehearsals — 30 August 2026
+# Frozen-release rehearsals — 30–31 August 2026
 
 Status: **NO-GO**
 
-Current exact candidate: `fb692260c4793562b49915e740fbac09dd893b6d`
+Current exact candidate: `eefc61d06708635f79055fe0187ede4fed3185cf`
+([merged PR #277](https://github.com/brollysolutions/client1/pull/277))
+
+Previous exact candidate: `fb692260c4793562b49915e740fbac09dd893b6d`
 ([merged PR #275](https://github.com/brollysolutions/client1/pull/275))
 
 Initial candidate: `3cc6bc07d98554b32924423e2f535b54fb21bb72`
 ([merged PR #267](https://github.com/brollysolutions/client1/pull/267))
 
-Current rehearsal branch: `chore/frozen-release-rehearsal-final`.
+Current rehearsal branch: `chore/exact-candidate-rehearsal-post-cve`.
+The post-CVE rerun is delivered in
+[PR #278](https://github.com/brollysolutions/client1/pull/278).
 Historical evidence was delivered in
 [initial PR #268](https://github.com/brollysolutions/client1/pull/268) and
 [exact-candidate PR #273](https://github.com/brollysolutions/client1/pull/273).
-This final rerun is delivered in [PR #276](https://github.com/brollysolutions/client1/pull/276).
+The prior final rerun was delivered in
+[PR #276](https://github.com/brollysolutions/client1/pull/276).
 
 This record reports what was actually exercised. It is not production approval,
 does not check any human-owned box in
 [`pre-deployment-checklist.md`](pre-deployment-checklist.md), and contains no
 production secret, customer data, database dump, or object.
 
-## Final exact-candidate rerun after merged PRs #274 and #275
+## Post-CVE exact-candidate rerun after merged PR #277
 
-This is the current decision record. It freezes merged PR #275 exactly at
-`fb692260c4793562b49915e740fbac09dd893b6d` and supersedes only the prior
+This is the current technical decision record. It freezes merged PR #277
+exactly at `eefc61d06708635f79055fe0187ede4fed3185cf` and supersedes the prior
+candidate's local image, dependency, API, browser, runtime, and recovery result
+rows. Earlier defect history remains historical evidence. Every identity,
+credential, row, object, endpoint, and payout probe used here was synthetic.
+No production configuration or data was accessed; no image was published, no
+deployment or live payout ran, and no human-owned gate was approved.
+
+The exact candidate remains **NO-GO**, but the rehearsed container-vulnerability
+blocker is removed:
+
+1. GitHub-hosted CI, Security, and main-to-production sync are attached to the
+   exact SHA but executed zero job steps under the repository billing or
+   spending-limit condition. Local evidence is not substituted for that
+   independent execution.
+2. Fresh Trivy scans now report **0 High / 0 Critical** rows for all nine exact
+   application and production service outputs. No approved registry namespace
+   or re-pulled registry-manifest digest was supplied, so the local OCI
+   identities are evidence rather than deployable release references.
+3. Exact local private-presign, webhook/idempotency, and full-suite coverage is
+   retained, but no approved external object-provider transfer or live payout
+   was authorized for this rerun.
+4. Fresh synthetic database and cold object restores match their sources. They
+   do not prove production scheduling, encryption, retention, off-account
+   copies, achieved RPO/RTO, cross-store reconciliation, or operator access.
+5. The checked-in Security workflow still carries the obsolete
+   `PYSEC-2026-1325` ignore and comments from the removed Jose/ECDSA dependency.
+   A stricter frozen-lock audit without that ignore is clean, so this is a
+   future audit blind spot rather than evidence of a current vulnerable
+   package. Remove it before relying on the next hosted Security result.
+6. Real DNS/TLS, secret-manager controls, monitoring and alert delivery,
+   incident ownership, trademark, entity/Terms, privacy/data inventory, and
+   processor approvals remain open in
+   [`launch-signoff-register.md`](launch-signoff-register.md).
+
+### Post-CVE exact-candidate verification ledger
+
+| Gate | Result | Exact-candidate evidence |
+| --- | --- | --- |
+| Candidate identity | Pass | `upstream/main`, the detached build worktree, and the task base all resolved to merged PR #277 SHA `eefc61d06708635f79055fe0187ede4fed3185cf`. |
+| Hosted workflows | **Blocked** | [CI 33371719721](https://github.com/brollysolutions/client1/actions/runs/33371719721), [Security 33371719807](https://github.com/brollysolutions/client1/actions/runs/33371719807), and [sync 33371720001](https://github.com/brollysolutions/client1/actions/runs/33371720001) each concluded failure with zero executed steps under the billing/spending-limit block. |
+| Structural gates | Pass with one platform skip | Seven feature-tracking, 11 migration/RLS, 10 production-runtime, and six media-runtime tests pass. The seventh media check is the expected Windows skip for its Linux POSIX-resource assertion. Alembic reports only `d9f1a3b5c7e0`. |
+| API style and aggregate | Pass | All 504 API files pass Ruff and format checks. The authoritative dedicated-network Linux run used a freshly migrated database and isolated Redis: 1,948/1,948 tests pass with no skips or retries in 1:44:04. The read-only source mount produced only a harmless pytest-cache warning. |
+| Contract drift | Pass | OpenAPI exported from the exact container and the pinned `openapi-typescript@7.13.0` output match the committed contracts after line-ending normalization. |
+| Web unit/build | Pass | Frozen install, lint, strict typecheck, and 91 files / 602 tests pass. The exact Linux production build compiled, typechecked, generated 94/94 routes, completed standalone copy/export, and produced local OCI identity `4790757fc809...`. An initial build with a deliberately invalid placeholder host failed at the intended configuration guard and is not counted. |
+| Production-artifact Playwright | Pass | After installing the lockfile-pinned Playwright Chromium 1228, the exact frozen web image passes all four Financial Services and registration journeys in 26.0 seconds with one worker, zero retries, and a loopback contract-shaped catalogue fixture. The pre-install missing-browser result was tooling bootstrap, not an application result. |
+| Secrets and dependencies | Pass with follow-up | Gitleaks 8.30.1 scanned all 786 commits with zero findings. Production `pnpm audit` reports no known vulnerability. Frozen `pip-audit==2.10.1`, run more strictly without the stale workflow ignore, reports no known vulnerability. The exact API image's Trivy secret scan reports zero findings. |
+| Image vulnerabilities and SBOMs | Pass locally | A fresh Trivy 0.74.0 database downloaded on 31 August 2026 reports 0 High / 0 Critical for every artifact in the table below. CycloneDX inventories and machine reports are retained outside Git at `D:\release-evidence-eefc61d`. |
+| Web headers and runtime | Pass locally with topology note | Exact `/` returns 200 with CSP, one-year HSTS, `nosniff`, `DENY`, strict referrer policy, Permissions Policy, COOP, and no cookie. The production Compose web service uses a writable root and runs cleanly as `nextjs`. A stricter manual read-only-root probe still served the browser journeys but logged Next cache/ISR `EROFS` errors; because that is not the checked-in production topology, it is recorded as a hardening limitation rather than counted as a candidate failure or pass. |
+| API health/CORS/auth denial | Pass locally with topology note | A manual runtime probe runs the exact production image as `app` with all capabilities dropped, no-new-privileges, a 1 GiB memory limit, and 256-PID limit. Health reports database and Redis `ok`. Only the configured HTTPS origin receives the five allowed methods, closed header set, credentials, and exact ACAO; arbitrary and `null` origins receive 400 without ACAO, TRACE receives 405, and unknown login plus malformed Bearer credentials receive 401. Probe values do not appear in logs. Production Compose sets the memory limit and non-root image user but does not itself declare the capability, no-new-privileges, PID, or read-only-root controls; those remain hardening follow-up rather than deployed-state evidence. |
+| Auth/upload/webhook behavior | Pass in aggregate; external block | The 1,948-test aggregate retains HS256 valid/expired/wrong-signature/malformed-token, session rotation/replay, role denial, RLS/business-line, bounded private upload, invalid upload, signed/invalid webhook, payout transition, and idempotency coverage. Runtime inspection confirms PyJWT 2.13.0 and absence of Jose/ECDSA. No approved-provider transfer or live payout ran. |
+| Isolated media runtime | Pass locally | The exact image is healthy as UID/GID 10001 with read-only root, bounded noexec tmpfs, all capabilities dropped, no-new-privileges, one CPU, 768 MiB, 64 PIDs, and an internal-only network. Three-second 640x360 and policy-maximum 1920x1080 H.264/AAC transcodes return protocol 1, bounded canonical output, and healthy status afterward. |
+| Synthetic database restore | Pass locally | A 1,712,926-byte custom backup (`36aba008e8149bee00c51b083eacb53bf21b063b83c6ac4059862562f2ca7d8e`) was created in 3.318 seconds and restored to a new database in 8.872 seconds. Source and target match at head `d9f1a3b5c7e0`, 55 public tables, three synthetic probe rows, and digest `3342b735bc11259c96086f1668904319`. |
+| Synthetic object restore | Pass locally after engine recovery | A 401-byte archive (`8ebc796af702b16b0c4d86a3dde1fb98edd664abd76c8bf5e1cb6040f8dad678`) was created in 2.012 seconds, then the source volume was destroyed. Docker Desktop stalled during the first extraction and was restarted; the already-created backup survived. A clean second restore to a freshly recreated volume completed in 1.279 seconds. All six object/metadata files match manifest `e18f916df0a37b8db3f6a4e43f108046b6966c4667dabbffdc38cf05fc356680`, including PDF, JPEG, and MP4 content types. The workstation stall is retained as an operational observation, not hidden. |
+| Human/environment gates | **Blocked** | All nine canonical register rows remain `Open`; no accountable name, approval, date, durable production evidence, or risk acceptance has been supplied. |
+
+### Post-CVE image and SBOM evidence
+
+All identities are local Docker OCI/image identities built with `--pull` from
+the exact candidate. Counts are CycloneDX components. A second media identity
+appears because both the direct worker artifact and the production Compose
+service output were built and scanned.
+
+| Artifact | Exact local OCI/image ID | Size (bytes) | High / critical | Components | Scan SHA-256 | SBOM SHA-256 |
+| --- | --- | ---: | ---: | ---: | --- | --- |
+| API | `29c5f0fd3fb1d16f9b0ce071ecec576e1b63984908afd6f8af579565f211ba5a` | 82,584,221 | 0 / 0 | 123 | `889756c393e31685fca5a65d71783aa281a536a664d42e6415d87de6277d318b` | `5f2422be25eaa112c6f61bcb1a3538ea696365a2f0926476e3672d58983ec017` |
+| Web | `4790757fc8099c9b72cf2f5e8990dcd0b37521c3ec0d889011f0c73e9f636067` | 135,238,648 | 0 / 0 | 46 | `7ccf79926c0d522327fc43b30af1e677327d90fb9d43400adc2fb286ce131960` | `744b8eda418ca9ae00c3e561e9d3ec603bb64b886806e81287e42320eac7858f` |
+| Direct media worker | `67a9eac73bb41f7b8462caf0dc726cc536e67e15bba6d407d9ebfece204da275` | 71,072,923 | 0 / 0 | 132 | `010d7c79d041ca7cf83f33a409d3cfa770148c271d0bf6d82c0c08f46f789e4f` | `86baf839a06c0e2e38fb34b20658eef300263fc5e660640c56fbb7c2cfb9b9ae` |
+| PostgreSQL | `f5fdc7015c40a03dd84496553a4e0bf750364f2e9afc7aa32d5f023b2291c7ea` | 122,556,462 | 0 / 0 | 54 | `eb6fd951d6e214ccb47cb432a527f3ab62b1745032f0ff51802f2e98af129ada` | `42c6771ef745612756aecdfe2ad24a07a47544e45f630ae8e304a3a5b2a16de7` |
+| Redis | `f19af361db1b20c3d3b08d676dee8489819893932049f081a961e3d01f03bbf1` | 41,513,168 | 0 / 0 | 23 | `553a22cfb1edf282a4c63b4a46f4ab7122f134d4a19fe8370daf74b769bcef94` | `9ff477016a2c83ac92874e10ee8c7f85e8a43bfa67ad6a66ddad54a26139dec0` |
+| ClamAV | `3d0581dc3769f1b931024fbbf5326702f7b68b018b8700043093f8e9c044066a` | 155,180,427 | 0 / 0 | 42 | `b22ed884d855836e1b0530dd10e09cb86d5b7414c39301a4f1acb09196bd3214` | `111e062f99a7f23314859613a6e75ef056a1f48cabb4ea5deedd75f8602cab44` |
+| PgBouncer | `738c165d454e928a785ee876a84be9764884a88967b44c101fda8e532d727eeb` | 11,561,712 | 0 / 0 | 26 | `4cc6a66457059169fb7c032e2651ba5e74bacb111feade93bce29880ac13dfda` | `ad3641fabc136eb0ae151680de3b190264a68d98ff7107dabee79fc4e237b89d` |
+| nginx | `fbe12d8b9ebd847a3657fa552c925cb6bfe91c5bf510e133ed290944c5925d34` | 28,680,232 | 0 / 0 | 72 | `bf7af75c5df9338eb88d997601d98ef2777babf8dd2190b983bee7207e86d5e7` | `ffa9e75f7e9cccfa32a50c9e72a4042cd1a83b9acaa760d943312256f7ffa246` |
+| Compose media worker | `64aa12ecae1c34892b6e7b7a7a61ec9f14dacda7160818332d02c3e5ce2598c3` | 71,073,065 | 0 / 0 | 132 | `fba3671119262cb6da7e186d833d93f1782b2faaef3993c65210eb18039886b8` | `68b024d78668eb35d1374ed298009b3f7912fc13ac9fc7c790c38855bf64e478` |
+
+The API secret-scan report SHA-256 is
+`26658d8351fedc0c0303ecea81632b0763cd7ab0e65a279f5e207366810614e9`.
+The zero-finding full-history Gitleaks report SHA-256 is
+`37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570`.
+
+### Post-CVE cleanup boundary
+
+All task-created containers, synthetic databases, Docker volumes, and the task
+network named with `client1-rehearsal-eefc61d` were removed after terminal
+evidence was captured. The destroyed object source and removed backup/restore
+volumes are not recoverable; they contained synthetic rehearsal bytes only.
+Exact local images and the machine reports in `D:\release-evidence-eefc61d`
+were retained. No global Docker prune ran.
+
+## Prior exact-candidate rerun after merged PRs #274 and #275
+
+This was the decision record for that candidate. It freezes merged PR #275
+exactly at `fb692260c4793562b49915e740fbac09dd893b6d` and supersedes only the prior
 candidate's API and Playwright result rows. Earlier defect history remains
 historical evidence. The rerun used synthetic identities, credentials, data,
 objects, and payout events only; it did not access production configuration,
@@ -100,8 +197,8 @@ Docker prune ran.
 
 ## Exact-candidate rerun after merged PR #272
 
-This is the current decision record. It supersedes the earlier report's
-interrupted Docker, unreviewed `c18d048…` media rebuild, and unverified recovery
+This was the decision record for that candidate. It supersedes the earlier
+report's interrupted Docker, unreviewed `c18d048…` media rebuild, and unverified recovery
 statements. It does not supersede the original defect history or turn local
 evidence into production or human approval.
 

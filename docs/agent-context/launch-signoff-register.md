@@ -4,12 +4,12 @@ Status: **NO-GO — no human approval is recorded yet**
 
 Register owner: release decision maker (unassigned)
 
-Release candidate: `fb692260c4793562b49915e740fbac09dd893b6d`
+Release candidate: `eefc61d06708635f79055fe0187ede4fed3185cf`
 
 Current technical record:
 [`release-rehearsal-2026-08-30.md`](release-rehearsal-2026-08-30.md) —
-exact-candidate result is NO-GO. This link does not complete the final decision
-block or approve any gate.
+post-CVE exact-candidate result is NO-GO. This link does not complete the final
+decision block or approve any gate.
 
 Target launch window: unassigned
 

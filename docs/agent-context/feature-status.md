@@ -9,6 +9,44 @@ Evidence baseline: `abcc1fd`
 verified Admin operational-visibility work in
 [PR #173](https://github.com/brollysolutions/client1/pull/173).
 
+**Post-CVE exact-candidate rehearsal complete — NO-GO — [PR #278](https://github.com/brollysolutions/client1/pull/278):** merged
+PR #277 is frozen exactly at
+`eefc61d06708635f79055fe0187ede4fed3185cf`; the terminal record is
+[`release-rehearsal-2026-08-30.md`](release-rehearsal-2026-08-30.md). Fresh
+Trivy 0.74.0 scans report 0 High / 0 Critical rows across the exact API, web,
+direct media worker, PostgreSQL, Redis, ClamAV, PgBouncer, nginx, and Compose
+media outputs. Their CycloneDX inventories contain 123, 46, 132, 54, 23, 42,
+26, 72, and 132 components respectively. Gitleaks scans all 786 commits with
+zero findings, the API image secret scan is empty, production `pnpm audit` is
+clean, and the frozen Python lock is clean under `pip-audit==2.10.1` without
+the obsolete workflow exception.
+
+The authoritative isolated Linux API run passes 1,948/1,948 tests without
+skips or retries; all 504 files pass Ruff/format, Alembic has one
+`d9f1a3b5c7e0` head, and generated contracts match. Web lint, strict typecheck,
+91 files / 602 tests, the 94-route exact production build, and 4/4 exact-image
+Playwright journeys pass. The production API image is healthy against fresh
+PostgreSQL/Redis and passes exact-origin CORS plus negative auth probes. The
+isolated media worker passes both 640x360 and maximum 1920x1080 H.264/AAC
+round-trips under its production constraints. A 1,712,926-byte database backup
+restores to the same head, 55-table count, and synthetic digest in 8.872
+seconds; a cold object archive restores after source destruction with an
+identical six-file manifest in 1.279 seconds. Docker Desktop stalled during the
+first object extraction, was restarted, and the already-created backup then
+restored successfully; that operational event is retained in the record.
+
+Launch remains NO-GO. The exact GitHub CI, Security, and production-sync runs
+executed zero steps because paid capacity is unavailable. No approved registry
+publication/re-pull, approved external object transfer, live payout, production
+recovery/DNS/TLS/secrets/monitoring evidence, risk acceptance, or qualified
+human approval exists. The Security workflow's stale `PYSEC-2026-1325` ignore
+must be removed even though the stricter current audit is clean. Production
+Compose also does not enforce read-only roots for API/web; a stricter web probe
+showed Next cache/ISR requires an explicit writable-path design before that
+hardening can be claimed. No formal feature-coverage count, application
+behavior, schema, contract, migration, authorization/RLS rule, cookie decision,
+or production state changed.
+
 **API and isolated media-runtime High/Critical remediation complete locally — [PR #277](https://github.com/brollysolutions/client1/pull/277) — launch remains NO-GO:**
 `security/container-cve-remediation` replaces both vulnerable Debian runtime
 footprints with supported digest-pinned Alpine bases and exact fixed OpenSSL,
