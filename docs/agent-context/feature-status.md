@@ -43,6 +43,27 @@ changed. Launch remains NO-GO pending a complete exact-candidate rehearsal and
 the existing image, registry, recovery, edge, secrets, monitoring, upload, and
 human-approval gates.
 
+**API frozen-release baseline repaired - [PR #274](https://github.com/brollysolutions/client1/pull/274):**
+the 11 reproducible stale policy, invalid property-UUID fixture, and validation-
+order failures identified in PR #273 are corrected, together with the payout
+grace-window and automatic Employee-assignment cases that depended on aggregate
+order and shared state. Test journeys now create canonical active property UUIDs,
+validate request bodies before asserting non-enumerating ownership failures, and
+isolate Employee capacity when the intended outcome is the retry pool. The
+content-block RLS oracle now matches the merged platform-Admin override while
+retaining Sub Admin creator ownership and the typed application lifecycle.
+
+A fresh, directly addressed PostgreSQL database migrated to the single
+`d9f1a3b5c7e0` head; all 503 API files pass Ruff and format checks; the complete
+Linux aggregate passes 1,944/1,944 tests in 58:09. Maintainer and security review
+found no change-owned issue. No endpoint, schema, generated contract, application
+authorization, grant, RLS policy, migration, product workflow, dependency, or
+formal feature-coverage count changed. Launch remains NO-GO because this removes
+only the API baseline blocker: Playwright, hosted billing, image findings and
+registry evidence, external recovery/edge/secrets/monitoring evidence, positive
+provider upload, and all qualified human approvals remain open. Next priority is
+the production-artifact Playwright release gate with reachable catalogue data.
+
 **Exact-candidate rehearsal complete — NO-GO — [PR #273](https://github.com/brollysolutions/client1/pull/273):**
 merged PR #272 is frozen at `c37b9d5fb68ea30daa5f4f55dd15f97cf27ce547`;
 the current evidence is in

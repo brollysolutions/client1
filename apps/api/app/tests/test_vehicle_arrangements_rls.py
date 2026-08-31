@@ -101,14 +101,16 @@ async def _select_as(
 
 
 @pytest.mark.asyncio
-async def test_owner_assignee_and_platform_admin_visibility(client: AsyncClient) -> None:
+async def test_owner_assignee_and_platform_admin_visibility(
+    client: AsyncClient, active_property_id: str
+) -> None:
     owner_token, owner_mobile = await full_registration(client, lines=["real_estate"])
     _, other_mobile = await full_registration(client, lines=["real_estate"])
     created = await client.post(
         "/api/v1/site-visits",
         headers={"Authorization": f"Bearer {owner_token}"},
         json={
-            "property_ref": "rls-property",
+            "property_ref": active_property_id,
             "title": "RLS Property",
             "locality": "Whitefield",
             "city": "Bengaluru",

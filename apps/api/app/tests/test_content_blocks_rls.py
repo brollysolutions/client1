@@ -1,12 +1,11 @@
-"""content_blocks RLS — shared sub_admin visibility + narrow positive allowlist.
+"""content_blocks RLS — shared visibility + narrow positive write allowlist.
 
-Verifies migration d7e8f9a0b1c2: sub_admin sees EVERY content block (shared
-content-team surface), admin sees every block too (read-only oversight), and every
-other role (telecaller/employee/agent/client) sees NOTHING — denial by absence of
-a grant, not a filtered policy. Also checks INSERT WITH CHECK (only sub_admin,
-only as a fresh draft, only owning their own row) and that UPDATE is rejected for
-a non-owner sub_admin — like offers, ownership is the only RLS-enforced axis;
-status-direction is app-layer.
+Verifies migrations d7e8f9a0b1c2 and aa12bb34cc56: sub_admin sees EVERY content
+block (shared content-team surface), platform Admin can author across the queue,
+and every other role (telecaller/employee/agent/client) sees NOTHING — denial by
+absence of a grant, not a filtered policy. INSERT keeps creator ownership as the
+RLS axis while the typed application lifecycle owns status; UPDATE remains
+owner-scoped for Sub Admin and platform-wide for Admin.
 
 Additionally covers the one thing content_blocks does that neither banners nor
 offers do: a NULL business_line (cross-line/global content) must be visible and
@@ -198,7 +197,7 @@ async def test_plain_client_cannot_see_it(client: AsyncClient) -> None:
 
 
 @pytest.mark.asyncio
-async def test_insert_check_rejects_non_draft_initial_status(client: AsyncClient) -> None:
+async def test_insert_policy_defers_status_to_application_lifecycle(client: AsyncClient) -> None:
     _, mobile = await full_registration(client, lines=["loans"])
     uid = await _auth_user_uuid(mobile)
 
@@ -206,16 +205,16 @@ async def test_insert_check_rejects_non_draft_initial_status(client: AsyncClient
     try:
         async with engine.begin() as conn:
             await _set_context(conn, uid, "sub_admin", "both", "true")
-            with pytest.raises(Exception):  # noqa: B017 — asyncpg row-security violation
-                await conn.execute(
-                    text(
-                        "INSERT INTO content_blocks "
-                        "(id, slug, section, title, body, status, created_by_uuid) VALUES "
-                        "(gen_random_uuid(), :slug, 'homepage-hero', 'Sneaky live copy', "
-                        "'body', 'published', :uuid)"
-                    ),
-                    {"uuid": uid, "slug": _unique_slug()},
-                )
+            result = await conn.execute(
+                text(
+                    "INSERT INTO content_blocks "
+                    "(id, slug, section, title, body, status, created_by_uuid) VALUES "
+                    "(gen_random_uuid(), :slug, 'homepage-hero', 'Owned live copy', "
+                    "'body', 'published', :uuid)"
+                ),
+                {"uuid": uid, "slug": _unique_slug()},
+            )
+            assert result.rowcount == 1
     finally:
         await engine.dispose()
 
@@ -244,8 +243,8 @@ async def test_insert_check_rejects_foreign_creator(client: AsyncClient) -> None
 
 
 @pytest.mark.asyncio
-async def test_insert_rejected_for_non_sub_admin(client: AsyncClient) -> None:
-    """Denial by absence: an admin has SELECT oversight but no INSERT policy."""
+async def test_insert_allowed_for_platform_admin(client: AsyncClient) -> None:
+    """aa12bb34cc56 grants the override only to a platform-scoped Admin."""
     _, mobile = await full_registration(client, lines=["loans"])
     uid = await _auth_user_uuid(mobile)
 
@@ -253,16 +252,16 @@ async def test_insert_rejected_for_non_sub_admin(client: AsyncClient) -> None:
     try:
         async with engine.begin() as conn:
             await _set_context(conn, uid, "admin", "both", "true")
-            with pytest.raises(Exception):  # noqa: B017 — asyncpg row-security violation
-                await conn.execute(
-                    text(
-                        "INSERT INTO content_blocks "
-                        "(id, slug, section, title, body, status, created_by_uuid) VALUES "
-                        "(gen_random_uuid(), :slug, 'homepage-hero', 'Admin-authored', "
-                        "'body', 'draft', :uuid)"
-                    ),
-                    {"uuid": uid, "slug": _unique_slug()},
-                )
+            result = await conn.execute(
+                text(
+                    "INSERT INTO content_blocks "
+                    "(id, slug, section, title, body, status, created_by_uuid) VALUES "
+                    "(gen_random_uuid(), :slug, 'homepage-hero', 'Admin-authored', "
+                    "'body', 'draft', :uuid)"
+                ),
+                {"uuid": uid, "slug": _unique_slug()},
+            )
+            assert result.rowcount == 1
     finally:
         await engine.dispose()
 

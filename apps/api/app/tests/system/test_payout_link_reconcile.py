@@ -29,9 +29,13 @@ from app.services.payout_links import reconcile_payout_links
 from conftest import full_registration, unique_mobile
 
 _STALE = datetime.now(UTC) - timedelta(minutes=settings.PAYOUT_LINK_RECONCILE_GRACE_MINUTES + 5)
-_WITHIN_GRACE = datetime.now(UTC) - timedelta(
-    minutes=max(settings.PAYOUT_LINK_RECONCILE_GRACE_MINUTES - 5, 0)
-)
+
+
+def _within_grace() -> datetime:
+    """Anchor the young divergence when the test runs, not during collection."""
+    return datetime.now(UTC) - timedelta(
+        minutes=max(settings.PAYOUT_LINK_RECONCILE_GRACE_MINUTES - 5, 0)
+    )
 
 
 async def _user_id(mobile: str) -> str:
@@ -336,16 +340,18 @@ async def test_reconcile_respects_grace_window(client: AsyncClient) -> None:
         uid,
         payout_type=PayoutType.COMMISSION,
         status=PayoutStatus.PAID,
-        updated_at=_WITHIN_GRACE,
+        updated_at=_within_grace(),
         ledger_transaction_id=txn_id,
     )
     commission_id = await _seed_commission(
         agent_uid, agent_profile_uuid, status=CommissionStatus.PENDING, payout_uuid=payout_id
     )
 
-    summary = await reconcile_payout_links()
+    # The sweep is global and may repair unrelated divergence left by an earlier
+    # scenario. The target row is the grace-window invariant, not the aggregate
+    # work count for the whole database.
+    await reconcile_payout_links()
 
-    assert summary["repaired_paid"] == 0
     commission = await _get_commission(commission_id)
     assert commission["status"] == "pending"
 
