@@ -9,6 +9,40 @@ Evidence baseline: `abcc1fd`
 verified Admin operational-visibility work in
 [PR #173](https://github.com/brollysolutions/client1/pull/173).
 
+**Production-artifact Playwright gate repaired - [PR #275](https://github.com/brollysolutions/client1/pull/275):**
+CI now installs pinned Chromium and runs four Financial Services/registration
+journeys against the standalone Next production server with retries disabled. A
+loopback-only fixture serves generated-contract-shaped financial products and a
+provider offer through `API_INTERNAL_URL`; the gate fails if the standalone
+artifact is absent. This makes the previously missing runtime API explicit
+instead of accepting a production page with no catalogue data.
+
+The two stale browser assertions are corrected without changing UI behavior:
+the homepage test identifies the Loans, Properties, and calculator bands by
+their semantic section ids despite legitimate duplicate campaign copy, and the
+provider check accepts any root-relative internal action, including the existing
+`/contact` enquiry path, while rejecting absolute and protocol-relative links.
+The mocked registration journey now supplies the refresh response used when the
+authenticated route-group provider mounts, eliminating its intermittent redirect
+to Home.
+
+Fresh evidence: web lint and strict typecheck pass; all 91 files / 602 unit tests
+pass; the fixture-backed production server passes 4/4 before the launcher is
+tightened; the final fail-closed launcher passes Node syntax checks and enumerates
+exactly four tests; and three repeated runs against the exact production image
+and 12 live catalogue cards pass 12/12.
+The pre-fix image reproduced both financial assertions, while five repeated
+registration runs reproduced one 60-second Home redirect and four passes. The
+strict pre-change image builds all 94 routes. The post-change image reinstall
+passed the frozen 645-entry supply-chain check, then Docker stopped responding
+during compilation; it was interrupted, so no post-change image export or final
+standalone-gate execution is claimed. Hosted CI remains blocked by billing, so
+the new gate has not yet run on GitHub. No application component, API, contract, authorization/RLS, cookie,
+upload, payment, schema, migration, dependency, or formal feature-coverage count
+changed. Launch remains NO-GO pending a complete exact-candidate rehearsal and
+the existing image, registry, recovery, edge, secrets, monitoring, upload, and
+human-approval gates.
+
 **API frozen-release baseline repaired - [PR #274](https://github.com/brollysolutions/client1/pull/274):**
 the 11 reproducible stale policy, invalid property-UUID fixture, and validation-
 order failures identified in PR #273 are corrected, together with the payout
