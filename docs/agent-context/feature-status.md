@@ -9,7 +9,7 @@ Evidence baseline: `abcc1fd`
 verified Admin operational-visibility work in
 [PR #173](https://github.com/brollysolutions/client1/pull/173).
 
-**Hosted catalogue-filter navigation recovery is complete locally - PR pending - launch remains NO-GO:**
+**Hosted catalogue-filter navigation recovery is complete locally - [PR #284](https://github.com/brollysolutions/client1/pull/284) - launch remains NO-GO:**
 branch `fix/catalogue-filter-navigation-recovery` starts from merged PR #283
 commit `1e4181ee1f7983a4404eb59c712cc08ce25efec9`. Exact-candidate CI run
 `33493090662` passed the full repository gate and registration journey, but the
