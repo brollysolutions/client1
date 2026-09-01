@@ -35,8 +35,8 @@ RUN uv sync --frozen --no-dev --no-install-project
 
 # ---------- production runtime ----------
 FROM base AS prod
-RUN addgroup -S app \
-    && adduser -S -D -H -G app app
+RUN addgroup -S -g 101 app \
+    && adduser -S -D -H -u 100 -G app app
 
 COPY --from=deps --chown=app:app /app/.venv /app/.venv
 COPY --chown=app:app . .
