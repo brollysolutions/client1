@@ -1,5 +1,10 @@
 import { expect, test } from "@playwright/test";
 
+import {
+  installReleaseClientDelay,
+  selectToggleAfterHydration,
+} from "./helpers/release-client-readiness";
+
 function tokenWith(claims: Record<string, unknown>): string {
   const payload = Buffer.from(JSON.stringify(claims)).toString("base64url");
   return `header.${payload}.signature`;
@@ -84,11 +89,15 @@ test("registration saves Salaried and a manually searched location", async ({ pa
     });
   });
 
-  await page.goto("/register");
+  await installReleaseClientDelay(page);
+  await page.goto("/register", { waitUntil: "networkidle", timeout: 90_000 });
+  // Server-rendered controls are visible before their React handlers attach.
+  // Prove client ownership through the toggle's pressed state before entering
+  // controlled field values or submitting the form.
+  await selectToggleAfterHydration(page.getByRole("button", { name: "Loans" }));
   await page.getByLabel("First name").fill("Browser");
   await page.getByLabel("Last name").fill("Profile");
   await page.getByLabel("Phone number").fill(mobile.slice(3));
-  await page.getByRole("button", { name: "Loans" }).click();
 
   const initiateResponsePromise = page.waitForResponse((response) =>
     response.url().endsWith("/api/v1/auth/register/initiate"),

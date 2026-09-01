@@ -9,6 +9,30 @@ Evidence baseline: `abcc1fd`
 verified Admin operational-visibility work in
 [PR #173](https://github.com/brollysolutions/client1/pull/173).
 
+**Production-browser hydration synchronization repaired locally — PR pending — launch remains NO-GO:**
+the first hosted CI run after runner capacity returned passed the complete
+repository verification but failed two of four no-retry production-artifact
+journeys. Both tests acted on useful server-rendered controls without proving
+that their React handlers and initial client traffic had settled. A controlled
+delayed-chunk probe reproduces the catalogue failure with no console error: the
+search value changes while the URL remains `/loans`; the normal probe reaches
+`/loans?q=insurance`. The release journeys now wait for network quiescence and
+observable component-owned state—the catalogue keyboard-focus effect and the
+registration service-line `aria-pressed` transition—before typing or submitting.
+Hosted CI adds a bounded 1.5-second client-chunk delay, so this boundary is
+exercised deterministically while Playwright retries remain zero.
+
+Fresh evidence passes three repeated delayed-hydration runs at 12/12, the normal
+production-image journeys at 4/4, and the final rebuilt strict Linux image at
+4/4 under the same delay. Web lint, strict typecheck, 91 files / 602 unit tests,
+the 94-route production build/export, and all 44 repository script tests pass
+with one expected Windows POSIX-resource skip. No application component, API,
+auth mock response, endpoint, schema, migration, generated contract, auth/RLS,
+business-line, PII/KYC, upload, payout/webhook, cookie, dependency, runtime,
+deployment, registry, or approval behavior changes. The next engineering step
+after hosted PR CI passes and this repair merges is the exact-candidate release
+rehearsal; external production and human gates still keep launch NO-GO.
+
 **Production runtime least privilege complete locally — [PR #279](https://github.com/brollysolutions/client1/pull/279) — launch remains NO-GO:**
 `security/api-web-runtime-hardening` closes both engineering follow-ups from
 the merged PR #278 rehearsal in one change. The Security workflow no longer
