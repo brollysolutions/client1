@@ -9,6 +9,28 @@ Evidence baseline: `abcc1fd`
 verified Admin operational-visibility work in
 [PR #173](https://github.com/brollysolutions/client1/pull/173).
 
+**Hosted release-interaction diagnostics are complete locally - PR pending - launch remains NO-GO:**
+merge-result CI run `33478724802` passed full repository verification, then
+reproduced the same catalogue navigation and registration initiation failures
+after PR #281's controls reached their explicit enabled/`aria-busy` boundary.
+The runner generated a trace, screenshot, and error context but the workflow
+discarded them. Branch `test/release-gate-hosted-diagnostics` now retains that
+failure-only bundle for seven days through signature-verified, exact-pinned
+`actions/upload-artifact` v7.0.1. Test-only diagnostics distinguish browser
+input/click/submit delivery, marked-element replacement, console/page errors,
+and sanitized request outcomes while excluding entered values, bodies, headers,
+tokens, and response bodies. Fresh evidence passes the red/green upload
+contract, full web lint, strict typecheck, 91 files / 602 tests, exact four-test
+enumeration, a deliberate complete failure bundle, a delayed fresh-build
+registration journey, and all 45 script tests with one expected Windows skip.
+The native build compiles, type-validates, and generates 94/94 routes before the
+known Windows standalone symlink `EPERM`; Docker remains unavailable for the
+isolated catalogue fixture, so merge-result CI must provide the decisive bundle.
+Retries, chunk delay, original behavior assertions, and all application,
+API/auth, contract, schema/migration, RLS/business-line, PII/KYC, upload,
+payout/webhook, cookie, runtime, deployment, registry, and approval boundaries
+remain unchanged. This evidence PR does not claim the root fix.
+
 **Residual production-browser interaction readiness is repaired locally - [PR #281](https://github.com/brollysolutions/client1/pull/281) - launch remains NO-GO:**
 merge-result CI run `33464102303` passed the repository-wide verification and
 browser install, then reproducibly failed the same two of four no-retry

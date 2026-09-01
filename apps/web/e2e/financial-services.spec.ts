@@ -1,11 +1,20 @@
 import { expect, test } from "@playwright/test";
 
 import {
+  attachReleaseInteractionDiagnostics,
+  expectReleaseEvent,
   focusCatalogueAfterHydration,
   installReleaseClientDelay,
+  installReleaseInteractionDiagnostics,
+  markReleaseProbe,
 } from "./helpers/release-client-readiness";
 
 test.describe.configure({ timeout: 120_000 });
+test.afterEach(async ({ page }, testInfo) => {
+  if (testInfo.status !== testInfo.expectedStatus) {
+    await attachReleaseInteractionDiagnostics(page, testInfo);
+  }
+});
 
 test("Home restores the Loans band and places calculators after Properties", async ({
   page,
@@ -79,6 +88,7 @@ test("catalogue cards and provider applications remain inside Dhanadhara", async
 });
 
 test("catalogue results filter as you type under a sticky, button-free bar", async ({ page }) => {
+  await installReleaseInteractionDiagnostics(page);
   const delayed = await installReleaseClientDelay(page);
   await page.goto("/loans", {
     waitUntil: delayed ? "commit" : "domcontentloaded",
@@ -108,7 +118,11 @@ test("catalogue results filter as you type under a sticky, button-free bar", asy
   // that React owns this controlled input. The "/" focus shortcut is attached
   // by the same client island and is an observable readiness boundary.
   await focusCatalogueAfterHydration(page, search);
+  await markReleaseProbe(bar, "catalogue-search-form");
+  await markReleaseProbe(search, "catalogue-search-input");
   await search.fill("insurance");
+  await expectReleaseEvent(page, "catalogue-search-input", "input");
+  await expect(search).toHaveAttribute("data-release-probe", "catalogue-search-input");
   await expect(page).toHaveURL(/\/loans\?q=insurance$/, { timeout: 30_000 });
   await expect
     .poll(async () => catalogue.locator("article").count(), { timeout: 30_000 })
