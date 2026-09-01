@@ -6,6 +6,7 @@ type Schemas = components["schemas"];
 
 export type AdminAuthEvent = Schemas["AdminAuthEventRead"];
 export type AdminEnquiry = Schemas["AdminEnquiryRead"];
+export type AdminFieldVisibilityConfig = Schemas["AdminFieldVisibilityConfigRead"];
 export type AdminLeadActivity = Schemas["AdminLeadActivityRead"];
 export type AdminLoanTransactionHistory = Schemas["AdminLoanTransactionHistoryRead"];
 export type AdminSiteVisit = Schemas["AdminSiteVisitRead"];
@@ -31,6 +32,14 @@ export function listAdminEnquiries(
   page?: AdminOperationsPage,
 ): Promise<ApiResponse<Schemas["AdminEnquiryListResponse"]>> {
   return apiRequest(`/api/v1/admin/operations/enquiries?${pageQuery(page)}`);
+}
+
+export function listAdminFieldVisibilityConfigs(
+  page?: AdminOperationsPage,
+): Promise<ApiResponse<Schemas["AdminFieldVisibilityConfigListResponse"]>> {
+  return apiRequest(
+    `/api/v1/admin/operations/field-visibility-config?${pageQuery(page)}`,
+  );
 }
 
 export function listAdminLeadActivities(

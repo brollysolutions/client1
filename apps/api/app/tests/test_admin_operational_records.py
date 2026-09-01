@@ -16,6 +16,7 @@ from conftest import full_registration, unique_mobile
 OPERATION_PATHS = (
     "/api/v1/admin/operations/auth-events",
     "/api/v1/admin/operations/enquiries",
+    "/api/v1/admin/operations/field-visibility-config",
     "/api/v1/admin/operations/lead-activities",
     "/api/v1/admin/operations/loan-transaction-history",
     "/api/v1/admin/operations/site-visits",
@@ -53,6 +54,11 @@ async def _seed_operational_records(client: AsyncClient) -> tuple[str, dict[str,
     import app.db.session as session_module
     from app.models.auth import AuthEvent
     from app.models.enquiry import Enquiry, EnquiryStatus
+    from app.models.field_visibility import (
+        FieldTargetRole,
+        FieldVisibilityConfig,
+        FieldVisibilityMode,
+    )
     from app.models.lead import Lead, LeadOrigin, LeadStatus
     from app.models.lead_activity import CallDisposition, InterestLevel, LeadActivity
     from app.models.loan import Bank, LoanApplication, LoanTxnHistory, LoanType
@@ -151,6 +157,22 @@ async def _seed_operational_records(client: AsyncClient) -> tuple[str, dict[str,
             notes="Sensitive call notes",
             follow_up_at=datetime.now(UTC) + timedelta(days=1),
         )
+        visibility_config = await db.scalar(
+            select(FieldVisibilityConfig).where(
+                FieldVisibilityConfig.target_role == FieldTargetRole.EMPLOYEE,
+                FieldVisibilityConfig.entity == "lead",
+                FieldVisibilityConfig.field_key == "name",
+            )
+        )
+        if visibility_config is None:
+            visibility_config = FieldVisibilityConfig(
+                target_role=FieldTargetRole.EMPLOYEE,
+                entity="lead",
+                field_key="name",
+                mode=FieldVisibilityMode.ALLOW,
+                updated_by_uuid=uuid.UUID(client_user_id),
+            )
+            db.add(visibility_config)
         loan_history = LoanTxnHistory(
             loan_application_uuid=application.id,
             business_line="loans",
@@ -185,11 +207,22 @@ async def _seed_operational_records(client: AsyncClient) -> tuple[str, dict[str,
             reference="external-secret-reference",
             retained_ref="internal-retained-reference",
         )
-        db.add_all([auth_event, enquiry, activity, loan_history, visit, transaction])
+        db.add_all(
+            [
+                auth_event,
+                enquiry,
+                activity,
+                loan_history,
+                visit,
+                transaction,
+            ]
+        )
         await db.flush()
         record_ids = {
             "auth_event": str(auth_event.id),
             "enquiry": str(enquiry.id),
+            "visibility_config": str(visibility_config.id),
+            "visibility_mode": visibility_config.mode.value,
             "activity": str(activity.id),
             "loan_history": str(loan_history.id),
             "visit": str(visit.id),
@@ -238,7 +271,24 @@ async def test_platform_admin_lists_only_minimized_operational_fields(client: As
         "updated_at",
     }
 
-    activity = _find(responses[OPERATION_PATHS[2]].json()["activities"], record_ids["activity"])
+    visibility_config = _find(
+        responses[OPERATION_PATHS[2]].json()["configs"],
+        record_ids["visibility_config"],
+    )
+    assert set(visibility_config) == {
+        "id",
+        "target_role",
+        "entity",
+        "field_key",
+        "mode",
+        "updated_at",
+    }
+    assert visibility_config["target_role"] == "employee"
+    assert visibility_config["entity"] == "lead"
+    assert visibility_config["field_key"] == "name"
+    assert visibility_config["mode"] == record_ids["visibility_mode"]
+
+    activity = _find(responses[OPERATION_PATHS[3]].json()["activities"], record_ids["activity"])
     assert set(activity) == {
         "id",
         "lead_uuid",
@@ -251,7 +301,7 @@ async def test_platform_admin_lists_only_minimized_operational_fields(client: As
     }
 
     loan_history = _find(
-        responses[OPERATION_PATHS[3]].json()["entries"], record_ids["loan_history"]
+        responses[OPERATION_PATHS[4]].json()["entries"], record_ids["loan_history"]
     )
     assert set(loan_history) == {
         "id",
@@ -265,7 +315,7 @@ async def test_platform_admin_lists_only_minimized_operational_fields(client: As
         "created_at",
     }
 
-    visit = _find(responses[OPERATION_PATHS[4]].json()["visits"], record_ids["visit"])
+    visit = _find(responses[OPERATION_PATHS[5]].json()["visits"], record_ids["visit"])
     assert set(visit) == {
         "id",
         "user_uuid",
@@ -282,7 +332,7 @@ async def test_platform_admin_lists_only_minimized_operational_fields(client: As
     }
 
     transaction = _find(
-        responses[OPERATION_PATHS[5]].json()["transactions"], record_ids["transaction"]
+        responses[OPERATION_PATHS[6]].json()["transactions"], record_ids["transaction"]
     )
     assert set(transaction) == {
         "id",

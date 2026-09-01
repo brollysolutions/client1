@@ -374,22 +374,26 @@ ADMIN_OPERATIONAL_COVERAGE: dict[str, AdminCoverageEntry] = {
     ),
     "field_visibility_config": _entry(
         domain="Role field-visibility configuration",
-        view_mode=AdminViewMode.AUDIT_ONLY,
-        view_coverage=CoverageState.GAP,
+        view_mode=AdminViewMode.MINIMIZED,
+        view_coverage=CoverageState.COVERED,
         update_mode=AdminUpdateMode.SERVICE_MANAGED,
         update_coverage=CoverageState.GAP,
         audit_coverage=CoverageState.COVERED,
-        api_surfaces=(),
-        ui_surfaces=(),
+        api_surfaces=("/api/v1/admin/operations/field-visibility-config",),
+        ui_surfaces=("/dashboard/operations",),
         gap=(
-            "Gap: the Admin configuration surface was withdrawn; the policy is frozen "
-            "at the server-owned defaults until it is reinstated."
+            "Gap: the Admin configuration write surface remains withdrawn; policy "
+            "metadata is read-only and runtime defaults stay server-owned."
         ),
-        rls_expectation="Only platform Admin may write the closed server-owned catalogue.",
+        rls_expectation=(
+            "Only platform Admin may list persisted override metadata through the "
+            "dedicated projection; existing role reads and platform-Admin write policy remain unchanged."
+        ),
         audit_expectation="Every policy change appends field_visibility_updated without field values.",
         rationale=(
-            "With no write surface the runtime projection reads the closed catalogue "
-            "defaults, so no arbitrary JSON-path policy can be created at all."
+            "The Operational records workspace exposes persisted role, entity, field, "
+            "mode, and update-time metadata without restoring policy mutation or "
+            "returning the updater identity."
         ),
     ),
     "financial_product_provider_offers": _entry(

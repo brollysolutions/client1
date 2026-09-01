@@ -14,6 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.base import Base
 from app.models.auth import AuthEvent
 from app.models.enquiry import Enquiry
+from app.models.field_visibility import FieldVisibilityConfig
 from app.models.lead_activity import LeadActivity
 from app.models.loan import LoanTxnHistory
 from app.models.site_visit import SiteVisit
@@ -47,6 +48,21 @@ async def list_auth_events(
 
 async def list_enquiries(db: AsyncSession, *, limit: int, offset: int) -> tuple[list[Enquiry], int]:
     return await _list_page(db, Enquiry, limit=limit, offset=offset)
+
+
+async def list_field_visibility_configs(
+    db: AsyncSession, *, limit: int, offset: int
+) -> tuple[list[FieldVisibilityConfig], int]:
+    total = await db.scalar(select(func.count()).select_from(FieldVisibilityConfig)) or 0
+    rows = (
+        await db.scalars(
+            select(FieldVisibilityConfig)
+            .order_by(FieldVisibilityConfig.updated_at.desc(), FieldVisibilityConfig.id.desc())
+            .limit(limit)
+            .offset(offset)
+        )
+    ).all()
+    return list(rows), total
 
 
 async def list_lead_activities(

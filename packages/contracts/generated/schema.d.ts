@@ -751,6 +751,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/operations/field-visibility-config": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Field Visibility Configs */
+        get: operations["list_field_visibility_configs_api_v1_admin_operations_field_visibility_config_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/operations/lead-activities": {
         parameters: {
             query?: never;
@@ -4324,6 +4341,40 @@ export interface components {
              * Format: uuid
              */
             user_uuid: string;
+        };
+        /** AdminFieldVisibilityConfigListResponse */
+        AdminFieldVisibilityConfigListResponse: {
+            /** Configs */
+            configs: components["schemas"]["AdminFieldVisibilityConfigRead"][];
+            /** Total */
+            total: number;
+        };
+        /** AdminFieldVisibilityConfigRead */
+        AdminFieldVisibilityConfigRead: {
+            /** Entity */
+            entity: string;
+            /** Field Key */
+            field_key: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Mode
+             * @enum {string}
+             */
+            mode: "allow" | "deny" | "share_link";
+            /**
+             * Target Role
+             * @enum {string}
+             */
+            target_role: "agent" | "telecaller" | "employee";
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
         };
         /** AdminHomeResponse */
         AdminHomeResponse: {
@@ -12069,6 +12120,38 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AdminEnquiryListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_field_visibility_configs_api_v1_admin_operations_field_visibility_config_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminFieldVisibilityConfigListResponse"];
                 };
             };
             /** @description Validation Error */

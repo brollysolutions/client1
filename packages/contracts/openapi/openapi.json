@@ -498,6 +498,77 @@
         "title": "AdminEnquiryRead",
         "type": "object"
       },
+      "AdminFieldVisibilityConfigListResponse": {
+        "properties": {
+          "configs": {
+            "items": {
+              "$ref": "#/components/schemas/AdminFieldVisibilityConfigRead"
+            },
+            "title": "Configs",
+            "type": "array"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "configs",
+          "total"
+        ],
+        "title": "AdminFieldVisibilityConfigListResponse",
+        "type": "object"
+      },
+      "AdminFieldVisibilityConfigRead": {
+        "properties": {
+          "entity": {
+            "title": "Entity",
+            "type": "string"
+          },
+          "field_key": {
+            "title": "Field Key",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "mode": {
+            "enum": [
+              "allow",
+              "deny",
+              "share_link"
+            ],
+            "title": "Mode",
+            "type": "string"
+          },
+          "target_role": {
+            "enum": [
+              "agent",
+              "telecaller",
+              "employee"
+            ],
+            "title": "Target Role",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "target_role",
+          "entity",
+          "field_key",
+          "mode",
+          "updated_at"
+        ],
+        "title": "AdminFieldVisibilityConfigRead",
+        "type": "object"
+      },
       "AdminHomeResponse": {
         "properties": {
           "open_loan_applications_count": {
@@ -21866,6 +21937,67 @@
           }
         ],
         "summary": "List Enquiries",
+        "tags": [
+          "admin-operations"
+        ]
+      }
+    },
+    "/api/v1/admin/operations/field-visibility-config": {
+      "get": {
+        "operationId": "list_field_visibility_configs_api_v1_admin_operations_field_visibility_config_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 25,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminFieldVisibilityConfigListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "List Field Visibility Configs",
         "tags": [
           "admin-operations"
         ]

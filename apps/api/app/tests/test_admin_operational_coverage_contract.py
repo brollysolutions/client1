@@ -85,6 +85,18 @@ def test_newer_out_of_scope_gaps_remain_explicit() -> None:
     )
 
 
+def test_field_visibility_read_gap_closes_without_reinstating_policy_writes() -> None:
+    entry = ADMIN_OPERATIONAL_COVERAGE["field_visibility_config"]
+
+    assert entry.view_mode is AdminViewMode.MINIMIZED
+    assert entry.view_coverage is CoverageState.COVERED
+    assert entry.api_surfaces == ("/api/v1/admin/operations/field-visibility-config",)
+    assert entry.ui_surfaces == ("/dashboard/operations",)
+    assert entry.update_mode is AdminUpdateMode.SERVICE_MANAGED
+    assert entry.update_coverage is CoverageState.GAP
+    assert entry.audit_coverage is CoverageState.COVERED
+
+
 def test_protected_secrets_and_location_are_not_full_admin_views() -> None:
     protected = {
         DataSensitivity.KYC,
