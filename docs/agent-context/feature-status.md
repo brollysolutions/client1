@@ -9,7 +9,7 @@ Evidence baseline: `abcc1fd`
 verified Admin operational-visibility work in
 [PR #173](https://github.com/brollysolutions/client1/pull/173).
 
-**Production-browser hydration synchronization repaired locally — PR pending — launch remains NO-GO:**
+**Production-browser hydration synchronization repaired locally — [PR #280](https://github.com/brollysolutions/client1/pull/280) — launch remains NO-GO:**
 the first hosted CI run after runner capacity returned passed the complete
 repository verification but failed two of four no-retry production-artifact
 journeys. Both tests acted on useful server-rendered controls without proving
