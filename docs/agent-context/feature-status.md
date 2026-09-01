@@ -9,7 +9,7 @@ Evidence baseline: `abcc1fd`
 verified Admin operational-visibility work in
 [PR #173](https://github.com/brollysolutions/client1/pull/173).
 
-**Production runtime least privilege complete locally — PR pending — launch remains NO-GO:**
+**Production runtime least privilege complete locally — [PR #279](https://github.com/brollysolutions/client1/pull/279) — launch remains NO-GO:**
 `security/api-web-runtime-hardening` closes both engineering follow-ups from
 the merged PR #278 rehearsal in one change. The Security workflow no longer
 suppresses or documents `PYSEC-2026-1325`; `pip-audit==2.10.1` now checks the
