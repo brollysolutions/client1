@@ -8,6 +8,7 @@ export function Logo({ className }: { className?: string }) {
   return (
     <Link
       href="/"
+      prefetch={false}
       aria-label={`${SITE_NAME} home`}
       className={cn(
         "flex items-center gap-2 rounded-sm font-heading text-lg font-semibold text-[var(--nav-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nav-primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--nav-bg)]",

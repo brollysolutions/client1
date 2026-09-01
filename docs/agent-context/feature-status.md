@@ -9,6 +9,32 @@ Evidence baseline: `abcc1fd`
 verified Admin operational-visibility work in
 [PR #173](https://github.com/brollysolutions/client1/pull/173).
 
+**Hosted production-browser root-cause repair is complete locally - PR pending - launch remains NO-GO:**
+merge-result CI run `33486705171` passed full repository verification and then
+failed the same two release journeys, this time preserving the complete
+diagnostic bundle. Registration's trusted input, click, and submit events all
+reached the connected initialized form; the production bundle then attempted
+`http://localhost:8000/api/v1/auth/register/initiate`, which its own
+`connect-src 'self'` policy correctly blocked. Catalogue search delivered its
+trusted input event and began an HTTP 200 RSC request for the filtered URL, but
+that request was immediately aborted before history or results committed. The
+single `fix/release-gate-root-causes` task now defaults an unconfigured
+production browser API base to the documented same-origin nginx path, retaining
+explicit CSP-validated API origins and the non-production localhost fallback.
+Persistent public-header links keep their semantic click and keyboard behavior
+but no longer create a speculative RSC/chunk burst. Focused red/green coverage
+and adjacent API/CSP checks pass 15 tests; full web lint, strict typecheck, 93
+files / 606 tests, normal and delayed zero-retry release journeys at 4/4 each,
+and all 45 script tests with one expected Windows skip pass. The controlled
+source build compiles, type-validates, and generates 94/94 routes before the
+known Windows standalone symlink `EPERM`; merge-result hosted CI must prove the
+exact Linux standalone gate. Filter debounce/transition, server filtering,
+failure evidence, API/auth responses, authorization/RLS, schema/contracts,
+business-line, data, money, deployment, registry, approvals, and release NO-GO
+remain unchanged. Once hosted CI is green, the next engineering priority is a
+new exact-candidate frozen-release rehearsal while external and human sign-offs
+remain open.
+
 **Hosted release-interaction diagnostics are complete locally - [PR #282](https://github.com/brollysolutions/client1/pull/282) - launch remains NO-GO:**
 merge-result CI run `33478724802` passed full repository verification, then
 reproduced the same catalogue navigation and registration initiation failures
