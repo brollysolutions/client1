@@ -2,7 +2,7 @@
 
 Owner: product and engineering leads
 
-Last reviewed: 31 August 2026
+Last reviewed: 1 September 2026
 
 Scope: public website, authenticated dashboards, API, data stores, scheduler,
 object storage, payments, deployment edge, legal launch material, and operating
@@ -18,7 +18,7 @@ final go/no-go in the
 [`launch-signoff-register.md`](launch-signoff-register.md). The register starts
 NO-GO; creating or linking it does not approve any gate.
 
-Current technical rehearsal: exact merged PR #277 candidate `eefc61d` remains
+Current technical rehearsal: exact merged PR #284 candidate `9b9e763` remains
 **NO-GO**; see
 [`release-rehearsal-2026-08-30.md`](release-rehearsal-2026-08-30.md). No box
 below is checked by that engineering exercise.
