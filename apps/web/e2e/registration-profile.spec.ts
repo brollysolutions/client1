@@ -1,7 +1,11 @@
 import { expect, test } from "@playwright/test";
 
 import {
+  attachReleaseInteractionDiagnostics,
+  expectReleaseEvent,
   installReleaseClientDelay,
+  installReleaseInteractionDiagnostics,
+  markReleaseProbe,
   selectToggleAfterHydration,
 } from "./helpers/release-client-readiness";
 
@@ -11,6 +15,11 @@ function tokenWith(claims: Record<string, unknown>): string {
 }
 
 test.setTimeout(150_000);
+test.afterEach(async ({ page }, testInfo) => {
+  if (testInfo.status !== testInfo.expectedStatus) {
+    await attachReleaseInteractionDiagnostics(page, testInfo);
+  }
+});
 
 test("registration saves Salaried and a manually searched location", async ({ page }) => {
   const mobile = "+919876543210";
@@ -89,6 +98,7 @@ test("registration saves Salaried and a manually searched location", async ({ pa
     });
   });
 
+  await installReleaseInteractionDiagnostics(page);
   const delayed = await installReleaseClientDelay(page);
   await page.goto("/register", {
     waitUntil: delayed ? "commit" : "domcontentloaded",
@@ -101,14 +111,34 @@ test("registration saves Salaried and a manually searched location", async ({ pa
     timeout: 30_000,
   });
   await selectToggleAfterHydration(page.getByRole("button", { name: "Loans" }));
-  await page.getByLabel("First name").fill("Browser");
-  await page.getByLabel("Last name").fill("Profile");
-  await page.getByLabel("Phone number").fill(mobile.slice(3));
+  const registrationForm = page.locator("form").first();
+  const firstName = page.getByLabel("First name");
+  const lastName = page.getByLabel("Last name");
+  const phone = page.getByLabel("Phone number");
+  const continueButton = page.getByRole("button", { name: "Continue" });
+  await markReleaseProbe(registrationForm, "registration-form");
+  await markReleaseProbe(firstName, "registration-first-name");
+  await markReleaseProbe(lastName, "registration-last-name");
+  await markReleaseProbe(phone, "registration-phone");
+  await markReleaseProbe(continueButton, "registration-continue");
 
-  const initiateResponsePromise = page.waitForResponse((response) =>
-    response.url().endsWith("/api/v1/auth/register/initiate"),
+  await firstName.fill("Browser");
+  await expectReleaseEvent(page, "registration-first-name", "input");
+  await lastName.fill("Profile");
+  await expectReleaseEvent(page, "registration-last-name", "input");
+  await phone.fill(mobile.slice(3));
+  await expectReleaseEvent(page, "registration-phone", "input");
+  await expect(firstName).toHaveAttribute("data-release-probe", "registration-first-name");
+  await expect(lastName).toHaveAttribute("data-release-probe", "registration-last-name");
+  await expect(phone).toHaveAttribute("data-release-probe", "registration-phone");
+
+  const initiateResponsePromise = page.waitForResponse(
+    (response) => response.url().endsWith("/api/v1/auth/register/initiate"),
+    { timeout: 30_000 },
   );
-  await page.getByRole("button", { name: "Continue" }).click();
+  await continueButton.click();
+  await expectReleaseEvent(page, "registration-continue", "click");
+  await expectReleaseEvent(page, "registration-form", "submit");
   const initiateResponse = await initiateResponsePromise;
   expect(initiateResponse.ok(), await initiateResponse.text()).toBeTruthy();
   const initiation = (await initiateResponse.json()) as { otp_hint?: string | null };
