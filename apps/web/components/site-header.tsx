@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { ArrowRight, Phone } from "lucide-react";
+import * as React from "react";
 
 import { Logo } from "@/components/logo";
 import { Button } from "@/components/ui/button";
@@ -152,7 +153,7 @@ export function SiteHeader() {
                                         asChild
                                         className="group/item flex-row items-center gap-2.5 px-2 py-1.5 transition-colors hover:bg-[var(--nav-tint)]/60"
                                       >
-                                        <Link href={child.href}>
+                                        <Link href={child.href} prefetch={false}>
                                           {child.illustration ? (
                                             // Miniature spot illustration in a
                                             // tint tile; decorative, the label
@@ -192,7 +193,7 @@ export function SiteHeader() {
                           asChild
                           className="inline-flex w-auto flex-row items-center gap-1.5 px-2 py-2 text-sm font-medium text-[var(--nav-primary)] hover:bg-transparent hover:text-[var(--nav-primary-hover)]"
                         >
-                          <Link href={item.menu.overview.href}>
+                          <Link href={item.menu.overview.href} prefetch={false}>
                             {item.menu.overview.label}
                             <ArrowRight className="h-4 w-4" aria-hidden />
                           </Link>
@@ -207,7 +208,11 @@ export function SiteHeader() {
                     asChild
                     className={cn(linkClass, isActive && "text-[var(--nav-primary)]")}
                   >
-                    <Link href={item.href} aria-current={isActive ? "page" : undefined}>
+                    <Link
+                      href={item.href}
+                      prefetch={false}
+                      aria-current={isActive ? "page" : undefined}
+                    >
                       <span
                         className={cn(
                           "relative font-geist after:absolute after:inset-x-0 after:-bottom-1 after:h-0.5 after:origin-left after:rounded-full after:bg-[var(--nav-primary)] after:transition-transform after:duration-200 group-hover/navlink:after:scale-x-100 group-focus-visible/navlink:after:scale-x-100 motion-reduce:after:transition-none",
@@ -232,21 +237,25 @@ export function SiteHeader() {
               size="sm"
               className="font-geist text-base text-[var(--nav-text)] hover:bg-[var(--nav-tint)] hover:text-[var(--nav-primary)] focus-visible:ring-[var(--nav-primary)]"
             >
-              <Link href="/login">Login</Link>
+              <Link href="/login" prefetch={false}>Login</Link>
             </Button>
             <Button
               asChild
               size="sm"
               className="font-geist bg-[var(--nav-primary)] text-base text-white shadow-sm transition-colors hover:bg-[var(--nav-primary-hover)] focus-visible:ring-[var(--nav-primary)]"
             >
-              <Link href="/register">Register</Link>
+              <Link href="/register" prefetch={false}>Register</Link>
             </Button>
             <Button
               asChild
               size="sm"
               className="font-geist bg-[var(--nav-primary)] text-base text-white shadow-sm transition-colors hover:bg-[var(--nav-primary-hover)] focus-visible:ring-[var(--nav-primary)]"
             >
-              <Link href="/contact" className="inline-flex items-center gap-2">
+              <Link
+                href="/contact"
+                prefetch={false}
+                className="inline-flex items-center gap-2"
+              >
                 <Phone className="h-4 w-4 text-white" aria-hidden />
                 Contact
               </Link>
