@@ -9,7 +9,7 @@ Evidence baseline: `abcc1fd`
 verified Admin operational-visibility work in
 [PR #173](https://github.com/brollysolutions/client1/pull/173).
 
-**Hosted production-browser root-cause repair is complete locally - PR pending - launch remains NO-GO:**
+**Hosted production-browser root-cause repair is complete locally - [PR #283](https://github.com/brollysolutions/client1/pull/283) - launch remains NO-GO:**
 merge-result CI run `33486705171` passed full repository verification and then
 failed the same two release journeys, this time preserving the complete
 diagnostic bundle. Registration's trusted input, click, and submit events all
