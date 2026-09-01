@@ -9,8 +9,12 @@
 // Framework-free on purpose: the access token is read through a getter the auth
 // provider registers, so this module never imports React.
 
-const BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/$/, "") ?? "http://localhost:8000";
+import { resolveClientApiBaseUrl } from "@/lib/api/base-url";
+
+const BASE_URL = resolveClientApiBaseUrl(
+  process.env.NEXT_PUBLIC_API_BASE_URL,
+  process.env.NODE_ENV,
+);
 
 // The auth provider registers a getter here so requests can attach the in-memory
 // access token without this module knowing about React or where the token lives.
