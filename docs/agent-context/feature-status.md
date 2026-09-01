@@ -9,6 +9,40 @@ Evidence baseline: `abcc1fd`
 verified Admin operational-visibility work in
 [PR #173](https://github.com/brollysolutions/client1/pull/173).
 
+**1 September exact-candidate rehearsal complete — NO-GO — delivery PR pending:**
+merged PR #284 is frozen exactly at
+`9b9e763fa0255114ab2c1d33a66e252dd8c0f8fd`; the terminal record is
+[`release-rehearsal-2026-08-30.md`](release-rehearsal-2026-08-30.md). Exact-SHA
+[CI 33501907655](https://github.com/brollysolutions/client1/actions/runs/33501907655)
+passes 1,948 API tests, 94 files / 608 web tests, the 94-route Linux standalone
+build, four zero-retry production-browser journeys, and contract drift.
+[Security 33501907605](https://github.com/brollysolutions/client1/actions/runs/33501907605)
+passes frozen dependency audits; its Gitleaks merge range logged zero scanned
+commits, so a separate Gitleaks 8.30.1 run scanned 527 full-history commits with
+zero findings. [Sync 33501907627](https://github.com/brollysolutions/client1/actions/runs/33501907627)
+passed main-to-`prod` branch synchronization, not a deployment.
+
+Fresh local evidence passes 44 script tests with one expected Windows skip, API
+Ruff/format, one Alembic head, web lint/typecheck and 608 tests, both frozen
+dependency audits, and zero-finding API-image secret scanning. Eight distinct
+exact application/service images build and current Trivy 0.74.0 reports 0 High
+/ 0 Critical for all of them; CycloneDX inventories and machine reports remain
+outside Git at `D:\release-evidence-9b9e763`. Exact web headers, API
+health/CORS/auth denials, and a constrained real media transcode pass. A
+451,037-byte database archive and 334-byte cold object archive restore with
+matching synthetic source/target evidence. Docker Desktop returned HTTP 500
+during concurrent final image/probe work, recovered after one restart, and the
+completed exact images/reports/archives survived; invalid setup attempts are
+identified and not counted.
+
+Launch remains NO-GO. Local OCI identities are not approved published/re-pulled
+registry manifests; no external-provider transfer, live payout, production
+recovery/DNS/TLS/secrets/monitoring proof, risk acceptance, or deployment was
+authorized. All nine qualified human/environment rows remain `Open`. No
+application behavior, endpoint, schema/migration, generated contract,
+authorization/RLS/business-line boundary, PII/KYC, cookie decision, dependency,
+or formal feature-coverage count changed.
+
 **Hosted catalogue-filter navigation recovery is complete locally - [PR #284](https://github.com/brollysolutions/client1/pull/284) - launch remains NO-GO:**
 branch `fix/catalogue-filter-navigation-recovery` starts from merged PR #283
 commit `1e4181ee1f7983a4404eb59c712cc08ce25efec9`. Exact-candidate CI run
@@ -30,7 +64,8 @@ expected Windows skip pass. The controlled build compiles and generates 94/94
 routes before the known Windows standalone-symlink `EPERM`. API, auth/RLS,
 schema/contracts, business-line, PII/data, money, dependencies, deployment,
 registry, approval, and release NO-GO boundaries remain unchanged. Merge-result
-Linux standalone CI must prove this repair before the next frozen rehearsal.
+Linux standalone CI subsequently proved this repair in run `33501907655`; the
+new exact-candidate rehearsal above supersedes this row's pending-evidence note.
 
 **Hosted production-browser root-cause repair is complete locally - [PR #283](https://github.com/brollysolutions/client1/pull/283) - launch remains NO-GO:**
 merge-result CI run `33486705171` passed full repository verification and then
