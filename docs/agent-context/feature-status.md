@@ -9,7 +9,7 @@ Evidence baseline: `abcc1fd`
 verified Admin operational-visibility work in
 [PR #173](https://github.com/brollysolutions/client1/pull/173).
 
-**1 September exact-candidate rehearsal complete — NO-GO — delivery PR pending:**
+**1 September exact-candidate rehearsal complete — NO-GO — [PR #285](https://github.com/brollysolutions/client1/pull/285):**
 merged PR #284 is frozen exactly at
 `9b9e763fa0255114ab2c1d33a66e252dd8c0f8fd`; the terminal record is
 [`release-rehearsal-2026-08-30.md`](release-rehearsal-2026-08-30.md). Exact-SHA

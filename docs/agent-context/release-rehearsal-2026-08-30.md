@@ -12,7 +12,8 @@ Initial candidate: `3cc6bc07d98554b32924423e2f535b54fb21bb72`
 ([merged PR #267](https://github.com/brollysolutions/client1/pull/267))
 
 Current rehearsal branch: `chore/exact-candidate-rehearsal-2026-09-01`.
-The current rerun delivery PR is pending.
+The current rerun is delivered in
+[PR #285](https://github.com/brollysolutions/client1/pull/285).
 The post-CVE rerun was delivered in
 [PR #278](https://github.com/brollysolutions/client1/pull/278).
 Historical evidence was delivered in
