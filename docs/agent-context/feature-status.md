@@ -9,7 +9,7 @@ Evidence baseline: `abcc1fd`
 verified Admin operational-visibility work in
 [PR #173](https://github.com/brollysolutions/client1/pull/173).
 
-**Residual production-browser interaction readiness is repaired locally - PR pending - launch remains NO-GO:**
+**Residual production-browser interaction readiness is repaired locally - [PR #281](https://github.com/brollysolutions/client1/pull/281) - launch remains NO-GO:**
 merge-result CI run `33464102303` passed the repository-wide verification and
 browser install, then reproducibly failed the same two of four no-retry
 production-artifact journeys. The prior network, focus, and pressed-state probes
