@@ -79,8 +79,8 @@ RUN apk upgrade --no-cache \
     && rm -f /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack \
         /usr/local/bin/pnpm /usr/local/bin/pnpx /usr/local/bin/yarn /usr/local/bin/yarnpkg
 
-RUN addgroup --system nodejs \
-    && adduser --system --ingroup nodejs --no-create-home nextjs
+RUN addgroup --system --gid 101 nodejs \
+    && adduser --system --uid 100 --ingroup nodejs --no-create-home nextjs
 
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static

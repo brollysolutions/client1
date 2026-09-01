@@ -163,6 +163,57 @@ class ProductionRuntimeContractTests(unittest.TestCase):
         self.assertIn("uv export --frozen --no-dev --no-emit-project", workflow)
         self.assertIn("uv tool run --from pip-audit==2.10.1 pip-audit", workflow)
         self.assertNotIn("uv pip compile pyproject.toml", workflow)
+        self.assertNotIn("--ignore-vuln", workflow)
+        self.assertNotIn("PYSEC-2026-1325", workflow)
+        self.assertNotIn("python-jose", workflow)
+
+    def test_api_scheduler_and_web_runtime_is_read_only_and_least_privilege(
+        self,
+    ) -> None:
+        compose = (ROOT / "docker-compose.prod.example.yml").read_text(encoding="utf-8")
+        next_config = (ROOT / "apps/web/next.config.ts").read_text(encoding="utf-8")
+        api_dockerfile = (ROOT / "apps/api/Dockerfile").read_text(encoding="utf-8")
+        web_dockerfile = (ROOT / "apps/web/Dockerfile").read_text(encoding="utf-8")
+        api_block = compose.split("  api:", maxsplit=1)[1].split(
+            "\n  scheduler:", maxsplit=1
+        )[0]
+        scheduler_block = compose.split("  scheduler:", maxsplit=1)[1].split(
+            "\n  web:", maxsplit=1
+        )[0]
+        web_block = compose.split("  web:", maxsplit=1)[1].split(
+            "\n  nginx:", maxsplit=1
+        )[0]
+
+        for block in (api_block, scheduler_block, web_block):
+            for required in (
+                "init: true",
+                "read_only: true",
+                "cap_drop:\n      - ALL",
+                "security_opt:\n      - no-new-privileges:true",
+            ):
+                self.assertIn(required, block)
+            self.assertNotIn("volumes:", block)
+
+        api_tmpfs = "/tmp:size=64m,mode=1770,uid=100,gid=101,noexec,nosuid,nodev"
+        self.assertIn(api_tmpfs, api_block)
+        self.assertIn(api_tmpfs, scheduler_block)
+        self.assertIn("pids_limit: 256", api_block)
+        self.assertIn("pids: 256", api_block)
+        self.assertIn("pids_limit: 128", scheduler_block)
+        self.assertIn("pids: 128", scheduler_block)
+
+        self.assertIn(api_tmpfs, web_block)
+        self.assertNotIn("/app/.next/cache", web_block)
+        self.assertIn("pids_limit: 128", web_block)
+        self.assertIn("pids: 128", web_block)
+        self.assertIn("isrFlushToDisk: false", next_config)
+        self.assertIn("addgroup -S -g 101 app", api_dockerfile)
+        self.assertIn("adduser -S -D -H -u 100 -G app app", api_dockerfile)
+        self.assertIn("addgroup --system --gid 101 nodejs", web_dockerfile)
+        self.assertIn(
+            "adduser --system --uid 100 --ingroup nodejs --no-create-home nextjs",
+            web_dockerfile,
+        )
 
     def test_media_runtime_is_secretless_internal_and_least_privilege(self) -> None:
         compose = (ROOT / "docker-compose.prod.example.yml").read_text(encoding="utf-8")

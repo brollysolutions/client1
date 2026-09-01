@@ -117,6 +117,15 @@ services:
     build:
       context: ./apps/api
       target: prod
+    init: true
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,mode=1770,uid=100,gid=101,noexec,nosuid,nodev
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 256
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 4
     env_file:
       - ./apps/api/.env.prod
@@ -135,6 +144,7 @@ services:
       resources:
         limits:
           memory: 1G
+          pids: 256
     healthcheck:
       test: ["CMD", "python", "-c", "import json,sys,urllib.request; r=urllib.request.urlopen('http://localhost:8000/health', timeout=3); sys.exit(0 if r.status==200 and json.load(r).get('status')=='ok' else 1)"]
       interval: 15s
@@ -147,6 +157,17 @@ services:
     build:
       context: ./apps/api
       target: prod
+    init: true
+    read_only: true
+    tmpfs:
+      # Scheduler liveness is intentionally ephemeral and the healthcheck reads
+      # this same bounded path; application state remains in PostgreSQL/Redis.
+      - /tmp:size=64m,mode=1770,uid=100,gid=101,noexec,nosuid,nodev
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 128
     command: python -m app.scheduler.main
     env_file:
       - ./apps/api/.env.prod
@@ -171,6 +192,7 @@ services:
       resources:
         limits:
           memory: 1G
+          pids: 128
     healthcheck:
       test: ["CMD", "python", "-c", "import os,time,sys; f='/tmp/scheduler.alive'; sys.exit(0 if os.path.exists(f) and time.time()-os.path.getmtime(f)<150 else 1)"]
       interval: 30s
@@ -215,6 +237,17 @@ services:
         # allows this value or dev's localhost:9000, and there's no way to
         # notice the gap short of a blank hero card.
         NEXT_PUBLIC_ASSET_HOST: ${NEXT_PUBLIC_ASSET_HOST?set NEXT_PUBLIC_ASSET_HOST to the storage endpoint origin banner images are served from}
+    init: true
+    read_only: true
+    tmpfs:
+      # Next ISR and image responses use the bounded memory cache configured in
+      # next.config.ts; general temporary work is confined to this path.
+      - /tmp:size=64m,mode=1770,uid=100,gid=101,noexec,nosuid,nodev
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 128
     # No command override: the standalone prod image's CMD is `node server.js`
     # (pnpm and package.json scripts are not present in that image).
     #
@@ -233,6 +266,7 @@ services:
       resources:
         limits:
           memory: 1G
+          pids: 128
     healthcheck:
       test: ["CMD", "node", "-e", "const net=require('net'); const s=net.connect(3000,'127.0.0.1',()=>process.exit(0)); s.setTimeout(3000,()=>process.exit(1)); s.on('error',()=>process.exit(1));"]
       interval: 15s

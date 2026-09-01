@@ -31,6 +31,12 @@ const nextConfig: NextConfig = {
   // so the prod image ships that instead of the full dev+prod dependency tree.
   // Dev and `next start` behavior are unchanged.
   output: "standalone",
+  // Production runs with a read-only root. ISR still reads the build-time
+  // prerender seed from disk, then keeps revalidated entries in Next's bounded
+  // memory cache instead of trying to rewrite .next/server/app. Each replica
+  // therefore starts from the reviewed image and never carries stale rendered
+  // files across deployments.
+  cacheMaxMemorySize: 50 * 1024 * 1024,
   // Compression is terminated at nginx (infra/nginx/default.conf gzips HTML,
   // RSC payloads, and JSON uniformly for web + api). Leaving Next's built-in
   // gzip on too would double-compress and waste CPU. If web is ever exposed
@@ -42,6 +48,7 @@ const nextConfig: NextConfig = {
   // only the primitives a route uses are bundled (smaller client JS + faster
   // dev compile). lucide-react is already optimized by Next's defaults.
   experimental: {
+    isrFlushToDisk: false,
     optimizePackageImports: ["radix-ui"],
   },
   images: { remotePatterns },

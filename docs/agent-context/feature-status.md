@@ -2,12 +2,43 @@
 
 Status: **Derived living implementation ledger**
 
-As of: **2026-08-31**
+As of: **2026-09-01**
 
 Evidence baseline: `abcc1fd`
 ([PR #175](https://github.com/brollysolutions/client1/pull/175)), plus the
 verified Admin operational-visibility work in
 [PR #173](https://github.com/brollysolutions/client1/pull/173).
+
+**Production runtime least privilege complete locally — [PR #279](https://github.com/brollysolutions/client1/pull/279) — launch remains NO-GO:**
+`security/api-web-runtime-hardening` closes both engineering follow-ups from
+the merged PR #278 rehearsal in one change. The Security workflow no longer
+suppresses or documents `PYSEC-2026-1325`; `pip-audit==2.10.1` now checks the
+frozen production lock without any vulnerability allowlist and reports no
+known vulnerabilities. Production API, scheduler, and web services now use an
+init, read-only roots, all-capability drops, no-new-privileges, explicit PID
+limits, and bounded `noexec,nosuid,nodev` tmpfs mounts. API and scheduler expose
+only `/tmp`; fixed UID 100/GID 101 ownership keeps that contract stable across
+base-image changes, and the scheduler heartbeat stays there. Web likewise exposes only
+`/tmp`, while ISR revalidation and image optimization use the explicit bounded
+50 MiB memory cache with disk flushing disabled.
+
+Fresh fail-closed evidence passes 11 production-runtime contracts and all 44
+script tests (one expected Windows POSIX-resource skip), both production Compose
+renders, API/scheduler import and write-boundary probes, API Ruff/format over
+504 files, one Alembic head, production web dependency audit, web lint and
+strict typecheck, 91 files / 602 tests, a strict 94-route Linux production
+image, and 4/4 production-artifact Playwright journeys with retries disabled.
+Repeated stale homepage revalidation under the exact hardened web settings
+returns HTTP 200 with no filesystem, prerender-cache, or network errors; root
+writes fail while only the declared `/tmp` tmpfs accepts writes. Trivy 0.74.0
+reports 0 High/Critical rows for the final API and web images. Apart from the
+explicit non-root identity, the API/scheduler application image content is
+unchanged from the exact PR #278 candidate; application behavior, endpoint,
+schema, migration, generated contract, auth/RLS/business-line boundaries,
+PII/KYC, uploads, payouts/webhooks, cookies, dependencies, and release approval
+do not change. Registry publication/re-pull, deployment, provider transfer,
+production recovery/edge/secrets/monitoring evidence, and all nine human gates
+remain open, so this engineering completion does not change the release NO-GO.
 
 **Post-CVE exact-candidate rehearsal complete — NO-GO — [PR #278](https://github.com/brollysolutions/client1/pull/278):** merged
 PR #277 is frozen exactly at
