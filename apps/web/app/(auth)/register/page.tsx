@@ -185,6 +185,7 @@ function RegisterPageContent() {
   const [submitting, setSubmitting] = React.useState(false);
   const [e164, setE164] = React.useState("");
   const [registrationToken, setRegistrationToken] = React.useState("");
+  const [interactive, setInteractive] = React.useState(false);
   // True only while the code still matches what ?ref= supplied — cleared the
   // moment the person edits it themselves, so the confirmation never lies.
   const [refFromUrl, setRefFromUrl] = React.useState(false);
@@ -202,6 +203,7 @@ function RegisterPageContent() {
       setE164(saved.e164);
       setRegistrationToken(saved.registrationToken);
       setDetails((d) => ({ ...d, mobile: saved.mobile }));
+      setInteractive(true);
       return;
     }
     // Fresh start only — a resumed mid-wizard session never shows step 0
@@ -212,6 +214,7 @@ function RegisterPageContent() {
       setDetails((d) => ({ ...d, referralCode: normalized }));
       setRefFromUrl(true);
     }
+    setInteractive(true);
   }, [searchParams]);
 
   React.useEffect(() => {
@@ -421,7 +424,12 @@ function RegisterPageContent() {
             </p>
           </div>
 
-          <form onSubmit={submitDetails} noValidate className="mt-6 space-y-4">
+          <form
+            onSubmit={submitDetails}
+            noValidate
+            aria-busy={!interactive}
+            className="mt-6 space-y-4"
+          >
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="firstName" className="text-[15px]">
@@ -436,7 +444,7 @@ function RegisterPageContent() {
                   placeholder="Jane"
                   aria-invalid={!!errors.firstName}
                   aria-describedby={errors.firstName ? "firstName-error" : undefined}
-                  disabled={submitting}
+                  disabled={!interactive || submitting}
                   className="h-12 rounded-lg text-base"
                 />
                 {errors.firstName && (
@@ -458,7 +466,7 @@ function RegisterPageContent() {
                   placeholder="Doe"
                   aria-invalid={!!errors.lastName}
                   aria-describedby={errors.lastName ? "lastName-error" : undefined}
-                  disabled={submitting}
+                  disabled={!interactive || submitting}
                   className="h-12 rounded-lg text-base"
                 />
                 {errors.lastName && (
@@ -482,7 +490,7 @@ function RegisterPageContent() {
                 placeholder="98765 43210"
                 aria-invalid={!!errors.mobile}
                 aria-describedby={errors.mobile ? "mobile-error" : undefined}
-                disabled={submitting}
+                disabled={!interactive || submitting}
               />
               {errors.mobile && (
                 <p id="mobile-error" className="text-sm text-destructive">
@@ -519,7 +527,11 @@ function RegisterPageContent() {
                       key={line}
                       type="button"
                       aria-pressed={selected}
-                      disabled={submitting || (propertyIntent && line === "real_estate")}
+                      disabled={
+                        !interactive ||
+                        submitting ||
+                        (propertyIntent && line === "real_estate")
+                      }
                       onClick={() => toggleServiceLine(line)}
                       className={cn(
                         "h-12 rounded-lg border px-4 text-left text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
@@ -557,7 +569,7 @@ function RegisterPageContent() {
                 placeholder="AB12CD34"
                 aria-invalid={!!errors.referralCode}
                 aria-describedby={errors.referralCode ? "referralCode-error" : undefined}
-                disabled={submitting}
+                disabled={!interactive || submitting}
                 className="h-12 rounded-lg text-base font-mono uppercase tracking-widest"
               />
               {errors.referralCode ? (
@@ -573,7 +585,7 @@ function RegisterPageContent() {
               type="submit"
               size="lg"
               className={cn(AUTH_SUBMIT_CLASS, "h-12 w-full text-base")}
-              disabled={submitting}
+              disabled={!interactive || submitting}
             >
               {submitting ? "Sending code…" : "Continue"}
             </Button>

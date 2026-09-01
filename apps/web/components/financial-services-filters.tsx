@@ -68,6 +68,7 @@ export function FinancialServicesFilters({
   const router = useRouter();
   const [pending, startTransition] = React.useTransition();
   const inputRef = React.useRef<HTMLInputElement>(null);
+  const [interactive, setInteractive] = React.useState(false);
 
   const serverQuery = q ?? "";
   const [text, setText] = React.useState(serverQuery);
@@ -77,6 +78,11 @@ export function FinancialServicesFilters({
   // pill, the empty state's clear link) would be immediately undone by the
   // still-pending debounce from the previous keystroke.
   const appliedRef = React.useRef(serverQuery);
+
+  // Playwright and a fast real user can reach useful server-rendered markup
+  // before React owns its controlled value. Keep the JS control inert until a
+  // client commit completes.
+  React.useEffect(() => setInteractive(true), []);
 
   const navigate = React.useCallback(
     (href: string) => {
@@ -101,6 +107,7 @@ export function FinancialServicesFilters({
   }, [debounced, category, navigate]);
 
   React.useEffect(() => {
+    if (!interactive) return;
     function onKeyDown(event: KeyboardEvent) {
       if (event.key !== FOCUS_KEY) return;
       if (event.metaKey || event.ctrlKey || event.altKey) return;
@@ -110,7 +117,7 @@ export function FinancialServicesFilters({
     }
     document.addEventListener("keydown", onKeyDown);
     return () => document.removeEventListener("keydown", onKeyDown);
-  }, []);
+  }, [interactive]);
 
   function apply(next: string) {
     const trimmed = next.trim();
@@ -143,6 +150,7 @@ export function FinancialServicesFilters({
     <form
       action="/loans"
       role="search"
+      aria-busy={!interactive}
       onSubmit={(event) => {
         event.preventDefault();
         apply(text);
@@ -169,6 +177,7 @@ export function FinancialServicesFilters({
             type="search"
             name="q"
             value={text}
+            disabled={!interactive}
             maxLength={100}
             onChange={(event) => setText(event.target.value)}
             aria-label="Search financial services"
@@ -180,6 +189,7 @@ export function FinancialServicesFilters({
             <button
               type="button"
               onClick={clearSearch}
+              disabled={!interactive}
               aria-label="Clear search"
               className={cn("absolute right-2 top-1/2 -translate-y-1/2", CLOSE_BUTTON_CLASS)}
             >

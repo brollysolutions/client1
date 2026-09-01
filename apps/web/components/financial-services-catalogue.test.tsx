@@ -69,6 +69,9 @@ describe("Financial Services public discovery", () => {
     // label, so no eyebrow-style label text sits above the bar.
     expect(markup).not.toContain(">Search services<");
     expect(markup).toContain('aria-label="Search financial services"');
+    // The React-controlled input is inert in server markup so a fast user
+    // cannot lose an event during hydration.
+    expect(markup).toMatch(/<input type="search" disabled=""/);
 
     // Seats flush under the 64px sticky SiteHeader and below its z-40.
     expect(markup).toMatch(/class="[^"]*sticky top-16 z-30[^"]*"/);
