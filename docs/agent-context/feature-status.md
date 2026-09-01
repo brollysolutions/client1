@@ -6,9 +6,9 @@ As of: **2026-09-02**
 
 Evidence baseline: `921858e` (`upstream/main`), plus the read-only Admin
 field-visibility oversight delivery in
-[PR TBD](https://github.com/brollysolutions/client1/pulls).
+[PR #286](https://github.com/brollysolutions/client1/pull/286).
 
-**Admin field-visibility oversight is complete locally — [PR TBD](https://github.com/brollysolutions/client1/pulls):**
+**Admin field-visibility oversight is complete — [PR #286](https://github.com/brollysolutions/client1/pull/286):**
 platform Admin can inspect persisted `field_visibility_config` overrides in a
 read-only Field visibility tab within Operational records. The paginated API
 projection exposes only role, entity, field, visibility mode, and update time;
@@ -3979,7 +3979,7 @@ business-line segregation remain non-negotiable compatibility constraints.
 ## Delivered implementation
 
 - **Admin field-visibility oversight** (FR-2.2) is delivered locally in
-  [PR TBD](https://github.com/brollysolutions/client1/pulls). The existing
+  [PR #286](https://github.com/brollysolutions/client1/pull/286). The existing
   Operational records workspace gains a paginated Field visibility tab backed
   by a generated-contract, `private, no-store` projection of role/entity/field/
   mode/update-time metadata. Updater identity and all customer/contact values
