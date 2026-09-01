@@ -9,6 +9,29 @@ Evidence baseline: `abcc1fd`
 verified Admin operational-visibility work in
 [PR #173](https://github.com/brollysolutions/client1/pull/173).
 
+**Hosted catalogue-filter navigation recovery is complete locally - PR pending - launch remains NO-GO:**
+branch `fix/catalogue-filter-navigation-recovery` starts from merged PR #283
+commit `1e4181ee1f7983a4404eb59c712cc08ce25efec9`. Exact-candidate CI run
+`33493090662` passed the full repository gate and registration journey, but the
+catalogue journey again failed after trusted input: its same-route filtered RSC
+request received HTTP 200 headers in 6ms and remained uncommitted until the
+test closed. The retained 3.75MB artifact expires 8 September; every preceding
+card prefetch completed before the failed request, no marked element was
+replaced, and no console/page error occurred. Four consecutive hosted runs
+reproduced the navigation defect while repeated local `next start` runs passed.
+The repair keeps App Router replacement as the normal in-place path, then after
+eight seconds without URL commit performs a same-origin full-document replace
+and restores a one-time, 60-second scroll coordinate. Browser storage contains
+no query text or other user data. A deterministic browser regression stalls the
+filtered RSC request, proves fallback URL/results/scroll recovery, and then
+proves clear-filter navigation. Delayed and normal release journeys pass 4/4;
+web lint, typecheck, 94 files / 608 tests, and 44 tracking tests with one
+expected Windows skip pass. The controlled build compiles and generates 94/94
+routes before the known Windows standalone-symlink `EPERM`. API, auth/RLS,
+schema/contracts, business-line, PII/data, money, dependencies, deployment,
+registry, approval, and release NO-GO boundaries remain unchanged. Merge-result
+Linux standalone CI must prove this repair before the next frozen rehearsal.
+
 **Hosted production-browser root-cause repair is complete locally - [PR #283](https://github.com/brollysolutions/client1/pull/283) - launch remains NO-GO:**
 merge-result CI run `33486705171` passed full repository verification and then
 failed the same two release journeys, this time preserving the complete

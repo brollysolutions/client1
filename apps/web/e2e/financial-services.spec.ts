@@ -89,6 +89,26 @@ test("catalogue cards and provider applications remain inside Dhanadhara", async
 
 test("catalogue results filter as you type under a sticky, button-free bar", async ({ page }) => {
   await installReleaseInteractionDiagnostics(page);
+  // Reproduce the hosted standalone failure deterministically: the App Router
+  // RSC request never commits. A later full document request must remain
+  // unblocked so the application's bounded recovery path can finish the same
+  // navigation.
+  let stalledFilterRequest = false;
+  await page.route("**/loans?*", async (route) => {
+    const request = route.request();
+    const url = new URL(request.url());
+    if (
+      !stalledFilterRequest &&
+      request.headers().rsc === "1" &&
+      url.searchParams.get("q") === "insurance"
+    ) {
+      stalledFilterRequest = true;
+      await new Promise((resolve) => setTimeout(resolve, 10_000));
+      await route.abort("timedout").catch(() => undefined);
+      return;
+    }
+    await route.continue();
+  });
   const delayed = await installReleaseClientDelay(page);
   await page.goto("/loans", {
     waitUntil: delayed ? "commit" : "domcontentloaded",
@@ -110,6 +130,7 @@ test("catalogue results filter as you type under a sticky, button-free bar", asy
   const pinned = await bar.boundingBox();
   expect(pinned?.y).toBeGreaterThanOrEqual(60);
   expect(pinned?.y).toBeLessThanOrEqual(68);
+  const scrollBeforeFiltering = await page.evaluate(() => window.scrollY);
 
   // Typing alone updates the URL and the rendered results, with no click.
   const before = await catalogue.locator("article").count();
@@ -127,6 +148,13 @@ test("catalogue results filter as you type under a sticky, button-free bar", asy
   await expect
     .poll(async () => catalogue.locator("article").count(), { timeout: 30_000 })
     .toBeLessThan(before);
+  expect(stalledFilterRequest).toBe(true);
+  await expect
+    .poll(
+      async () => Math.abs((await page.evaluate(() => window.scrollY)) - scrollBeforeFiltering),
+      { timeout: 10_000 },
+    )
+    .toBeLessThanOrEqual(2);
   for (const label of await catalogue.locator('a[aria-label^="Explore "]').all()) {
     await expect(label).toHaveAttribute("aria-label", /Insurance/i);
   }
