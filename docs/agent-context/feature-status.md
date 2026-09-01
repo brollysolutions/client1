@@ -29,9 +29,11 @@ the 94-route production build/export, and all 44 repository script tests pass
 with one expected Windows POSIX-resource skip. No application component, API,
 auth mock response, endpoint, schema, migration, generated contract, auth/RLS,
 business-line, PII/KYC, upload, payout/webhook, cookie, dependency, runtime,
-deployment, registry, or approval behavior changes. The next engineering step
-after hosted PR CI passes and this repair merges is the exact-candidate release
-rehearsal; external production and human gates still keep launch NO-GO.
+deployment, registry, or approval behavior changes. Fork PRs currently report
+no hosted checks (as also observed on PRs #278 and #279), so the merge-result
+`main` CI run remains the final hosted evidence. After it passes, the next
+engineering step is the exact-candidate release rehearsal; external production
+and human gates still keep launch NO-GO.
 
 **Production runtime least privilege complete locally — [PR #279](https://github.com/brollysolutions/client1/pull/279) — launch remains NO-GO:**
 `security/api-web-runtime-hardening` closes both engineering follow-ups from
