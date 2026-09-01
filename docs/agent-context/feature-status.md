@@ -9,7 +9,7 @@ Evidence baseline: `abcc1fd`
 verified Admin operational-visibility work in
 [PR #173](https://github.com/brollysolutions/client1/pull/173).
 
-**Hosted release-interaction diagnostics are complete locally - PR pending - launch remains NO-GO:**
+**Hosted release-interaction diagnostics are complete locally - [PR #282](https://github.com/brollysolutions/client1/pull/282) - launch remains NO-GO:**
 merge-result CI run `33478724802` passed full repository verification, then
 reproduced the same catalogue navigation and registration initiation failures
 after PR #281's controls reached their explicit enabled/`aria-busy` boundary.

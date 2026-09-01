@@ -15,7 +15,7 @@ function diagnosticPath(rawUrl: string): string | null {
     const query = new URLSearchParams();
     for (const name of ["q", "category"]) {
       const value = url.searchParams.get(name);
-      if (value != null) query.set(name, value);
+      if (value != null) query.set(`${name}_length`, String(value.length));
     }
     const suffix = query.toString();
     return suffix ? `${url.pathname}?${suffix}` : url.pathname;
