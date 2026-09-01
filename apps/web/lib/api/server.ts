@@ -33,9 +33,22 @@ function errorMessage(status: number): string {
   return "Something didn't work. Please try again.";
 }
 
+function errorDetail(error: unknown): string {
+  if (error instanceof Error) {
+    return error.message ? `${error.name}: ${error.message}` : error.name;
+  }
+  return String(error);
+}
+
 export async function serverFetchJson<TResponse>(
   path: string,
-  { revalidate }: { revalidate: number },
+  {
+    revalidate,
+    expectedStatuses = [],
+  }: {
+    revalidate: number;
+    expectedStatuses?: readonly number[];
+  },
 ): Promise<ApiResponse<TResponse>> {
   let res: Response;
   try {
@@ -52,12 +65,17 @@ export async function serverFetchJson<TResponse>(
     // Includes prod-image-build-time failures (API_INTERNAL_URL unresolved
     // inside the builder) and a stopped/unreachable API at runtime. Callers
     // must treat this the same as an empty result, never let it throw.
-    console.error("serverFetchJson.network_error", path, error);
+    // Node's TimeoutError is a DOMException. Passing it to Next's logger as a
+    // raw object also prints every inherited legacy DOM error constant, burying
+    // the useful name/message in a large, misleading dump.
+    console.error("serverFetchJson.network_error", path, errorDetail(error));
     return { ok: false, status: 0, error: NETWORK_ERROR };
   }
 
   if (!res.ok) {
-    console.error("serverFetchJson.http_error", path, res.status);
+    if (!expectedStatuses.includes(res.status)) {
+      console.error("serverFetchJson.http_error", path, res.status);
+    }
     return { ok: false, status: res.status, error: errorMessage(res.status) };
   }
 

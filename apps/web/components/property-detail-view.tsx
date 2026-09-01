@@ -11,8 +11,10 @@ import {
   Ruler,
   ShieldCheck,
   Sofa,
+  Wallet,
 } from "lucide-react";
 
+import { ExternalListingLinks } from "@/components/external-listing-links";
 import { PanoramaViewer } from "@/components/panorama-viewer";
 import { PropertyDescription } from "@/components/property-description";
 import { PropertyDetailGallery } from "@/components/property-detail-gallery";
@@ -20,6 +22,17 @@ import { PropertyDetailsSummary } from "@/components/property-details-dialog";
 import { SimilarPropertiesPanel, type SimilarPropertyCardData } from "@/components/similar-properties-panel";
 import type { PropertyDetailListing } from "@/lib/properties";
 import { propertyDescription } from "@/lib/property-details";
+
+/** "2026-10-01" -> "1 Oct 2026"; falls back to the raw value if unparseable. */
+function formatAvailableFrom(value: string): string {
+  const date = new Date(`${value}T00:00:00`);
+  if (Number.isNaN(date.getTime())) return value;
+  return new Intl.DateTimeFormat("en-IN", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  }).format(date);
+}
 
 function humanize(value: string): string {
   return value
@@ -86,6 +99,35 @@ export function PropertyDetailView({
           },
         ]
       : []),
+    // Rent terms sit alongside the physical facts: a tenant reads deposit and
+    // minimum term as part of the same decision as area and furnishing.
+    ...(listing.securityDepositDisplay
+      ? [
+          {
+            label: "Security deposit",
+            value: listing.securityDepositDisplay,
+            icon: Wallet,
+          },
+        ]
+      : []),
+    ...(listing.minimumLeaseMonths
+      ? [
+          {
+            label: "Minimum lease",
+            value: `${listing.minimumLeaseMonths} ${listing.minimumLeaseMonths === 1 ? "month" : "months"}`,
+            icon: CalendarDays,
+          },
+        ]
+      : []),
+    ...(listing.availableFrom
+      ? [
+          {
+            label: "Available from",
+            value: formatAvailableFrom(listing.availableFrom),
+            icon: CalendarDays,
+          },
+        ]
+      : []),
   ];
   const panoramas = listing.media?.filter((item) => item.kind === "panorama") ?? [];
   const description = propertyDescription(listing.structuredDetails);
@@ -115,14 +157,17 @@ export function PropertyDetailView({
         <div className="mt-7 grid gap-8 lg:grid-cols-[minmax(0,1fr)_340px] lg:items-start lg:gap-10">
           <article className="min-w-0 space-y-8">
             <header className="border-b border-border pb-7">
-              {listing.reraNumber && listing.reraVerificationStatus === "verified" ? (
-                <div className="flex flex-wrap items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="inline-flex items-center rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
+                  {listing.listingIntent === "rent" ? "For rent / lease" : "For sale"}
+                </span>
+                {listing.reraNumber && listing.reraVerificationStatus === "verified" ? (
                   <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800">
                     <ShieldCheck className="h-3.5 w-3.5" aria-hidden />
                     RERA verified · {listing.reraNumber}
                   </span>
-                </div>
-              ) : null}
+                ) : null}
+              </div>
               <h1 className="mt-4 max-w-4xl font-heading text-3xl font-semibold tracking-tight text-foreground sm:text-4xl lg:text-5xl">
                 {listing.title}
               </h1>
@@ -200,6 +245,8 @@ export function PropertyDetailView({
                 </ul>
               </section>
             ) : null}
+
+            <ExternalListingLinks links={listing.listingLinks} />
 
             {panoramas.length > 0 ? (
               <section aria-labelledby="panorama-heading" className="space-y-4">

@@ -1,11 +1,10 @@
 "use client";
 
 import * as React from "react";
-import { ImageIcon, Inbox, Loader2, Plus } from "lucide-react";
+import { ImageIcon, Landmark, Loader2, Plus, Trash2 } from "lucide-react";
 import Image from "next/image";
 import { toast } from "sonner";
 
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -17,6 +16,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { FieldError, RequiredIndicator } from "@/components/ui/field-error";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -25,8 +25,27 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { DashboardPanel } from "@/features/dashboard/dashboard-ui";
+import {
+  DataTable,
+  DataTablePrimaryCell,
+  nextSort,
+  type DataColumn,
+  type SortState,
+} from "@/features/dashboard/data-table";
+import { FetchError } from "@/features/dashboard/fetch-error";
+import {
+  EMPTY_FILTERS,
+  FilterBar,
+  matchesSearch,
+  type FilterBarValue,
+} from "@/features/dashboard/filter-bar";
+import { ListEmptyState, ListLoadingState, ListPagination } from "@/features/dashboard/list-states";
+import { StatusBadge } from "@/features/dashboard/status-badge";
+import { useFilteredPage } from "@/features/dashboard/use-filtered-page";
 import {
   createBank,
+  deleteBank,
   updateBank,
   uploadProviderLogo,
   type AdminBank,
@@ -34,13 +53,29 @@ import {
 } from "@/lib/loan-config-api";
 import { isAllowedAssetUrl } from "@/lib/allowed-asset-url";
 import { formatLastUpdated } from "@/lib/format";
+import { apiIssuesToFieldErrors, requiredTextError } from "@/lib/form-validation";
 import { useBanks } from "./use-banks";
 
-const PROVIDERS_PER_PAGE = 24;
+const PROVIDER_TYPE_OPTIONS = [
+  { value: "bank", label: "Banks" },
+  { value: "small_finance_bank", label: "Small finance banks" },
+  { value: "nbfc", label: "NBFCs" },
+  { value: "hfc", label: "Housing finance companies" },
+  { value: "fintech", label: "Fintechs" },
+  { value: "other", label: "Other providers" },
+] as const;
+
+const PROVIDER_STATUS_OPTIONS = [
+  { value: "active", label: "Active" },
+  { value: "disabled", label: "Disabled" },
+  { value: "verified_logo", label: "Verified logo" },
+  { value: "missing_logo", label: "Missing verified logo" },
+] as const;
 
 export function BanksView() {
   const { items, loading, error, reload } = useBanks();
   const [active, setActive] = React.useState<AdminBank | null>(null);
+  const [deleteTarget, setDeleteTarget] = React.useState<AdminBank | null>(null);
   const [creating, setCreating] = React.useState(false);
   const [newName, setNewName] = React.useState("");
   const [newLegalName, setNewLegalName] = React.useState("");
@@ -52,25 +87,104 @@ export function BanksView() {
   const [logoFile, setLogoFile] = React.useState<File | null>(null);
   const [logoSource, setLogoSource] = React.useState("");
   const [busy, setBusy] = React.useState(false);
-  const [providerQuery, setProviderQuery] = React.useState("");
-  const [providerPage, setProviderPage] = React.useState(1);
+  const [createErrors, setCreateErrors] = React.useState<Record<string, string>>({});
+  const [editErrors, setEditErrors] = React.useState<Record<string, string>>({});
+  const [filters, setFilters] = React.useState<FilterBarValue>(EMPTY_FILTERS);
+  const [sort, setSort] = React.useState<SortState>({ key: "name", dir: "asc" });
 
   const filteredProviders = React.useMemo(() => {
-    const normalized = providerQuery.trim().toLocaleLowerCase("en-IN");
-    if (!normalized) return items;
-    return items.filter((provider) =>
-      [provider.name, provider.legal_name ?? "", provider.provider_type].some((value) =>
-        value.toLocaleLowerCase("en-IN").includes(normalized),
-      ),
-    );
-  }, [items, providerQuery]);
-  const providerPageCount = Math.max(
-    1,
-    Math.ceil(filteredProviders.length / PROVIDERS_PER_PAGE),
-  );
-  const visibleProviders = filteredProviders.slice(
-    (providerPage - 1) * PROVIDERS_PER_PAGE,
-    providerPage * PROVIDERS_PER_PAGE,
+    const rows = items.filter((provider) => {
+      if (
+        filters.search &&
+        !matchesSearch(
+          `${provider.name} ${provider.legal_name ?? ""} ${provider.provider_type}`,
+          filters.search,
+        )
+      ) {
+        return false;
+      }
+      if (filters.kind !== "all" && provider.provider_type !== filters.kind) return false;
+      if (filters.status === "active" && !provider.active) return false;
+      if (filters.status === "disabled" && provider.active) return false;
+      if (filters.status === "verified_logo" && provider.logo_verified_at == null) return false;
+      if (filters.status === "missing_logo" && provider.logo_verified_at != null) return false;
+      return true;
+    });
+    const direction = sort.dir === "asc" ? 1 : -1;
+    return [...rows].sort((left, right) => {
+      const result =
+        sort.key === "type"
+          ? left.provider_type.localeCompare(right.provider_type)
+          : sort.key === "usage"
+            ? left.application_count + left.offer_count - (right.application_count + right.offer_count)
+            : sort.key === "state"
+              ? Number(left.active) - Number(right.active)
+              : left.name.localeCompare(right.name);
+      return result * direction || left.name.localeCompare(right.name);
+    });
+  }, [filters, items, sort]);
+  const page = useFilteredPage(filteredProviders, [filters, sort]);
+
+  const columns = React.useMemo<readonly DataColumn<AdminBank>[]>(
+    () => [
+      {
+        key: "name",
+        header: "Provider",
+        sortable: true,
+        render: (provider) => (
+          <div className="flex items-center gap-3">
+            <span className="relative flex h-10 w-16 shrink-0 items-center justify-center overflow-hidden rounded-md border border-border bg-white">
+              {provider.logo_url && isAllowedAssetUrl(provider.logo_url) ? (
+                <Image src={provider.logo_url} alt="" fill sizes="64px" className="object-contain p-1" />
+              ) : (
+                <ImageIcon className="h-4 w-4 text-text-secondary" aria-hidden="true" />
+              )}
+            </span>
+            <DataTablePrimaryCell
+              title={provider.name}
+              subtitle={provider.legal_name || formatLastUpdated(provider.updated_at)}
+            />
+          </div>
+        ),
+      },
+      {
+        key: "type",
+        header: "Type",
+        sortable: true,
+        render: (provider) => provider.provider_type.replaceAll("_", " "),
+      },
+      {
+        key: "logo",
+        header: "Logo",
+        render: (provider) => (
+          <StatusBadge tone={provider.logo_verified_at ? "success" : "neutral"}>
+            {provider.logo_verified_at ? "Verified" : "Initials fallback"}
+          </StatusBadge>
+        ),
+      },
+      {
+        key: "usage",
+        header: "Usage",
+        sortable: true,
+        align: "right",
+        render: (provider) => (
+          <span className="whitespace-nowrap tabular-nums">
+            {provider.application_count} apps · {provider.offer_count} offers
+          </span>
+        ),
+      },
+      {
+        key: "state",
+        header: "State",
+        sortable: true,
+        render: (provider) => (
+          <StatusBadge tone={provider.active ? "success" : "neutral"}>
+            {provider.active ? "Active" : "Disabled"}
+          </StatusBadge>
+        ),
+      },
+    ],
+    [],
   );
 
   function openEdit(bank: AdminBank) {
@@ -81,12 +195,14 @@ export function BanksView() {
     setDraftActive(bank.active);
     setLogoFile(null);
     setLogoSource("");
+    setEditErrors({});
   }
 
   async function onCreate(e: React.FormEvent) {
     e.preventDefault();
-    if (newName.trim().length === 0) {
-      toast.error("Name can't be empty");
+    const nameError = requiredTextError(newName, "Display name", 200);
+    if (nameError) {
+      setCreateErrors({ name: nameError });
       return;
     }
     setBusy(true);
@@ -104,14 +220,21 @@ export function BanksView() {
       setCreating(false);
       void reload();
     } else {
+      const serverErrors = apiIssuesToFieldErrors(res.issues, {
+        name: "name",
+        legal_name: "legalName",
+        provider_type: "providerType",
+      });
+      if (Object.keys(serverErrors).length > 0) setCreateErrors(serverErrors);
       toast.error("Couldn't add bank", { description: res.error });
     }
   }
 
   async function onSaveEdit() {
     if (!active) return;
-    if (draftName.trim().length === 0) {
-      toast.error("Name can't be empty");
+    const nameError = requiredTextError(draftName, "Display name", 200);
+    if (nameError) {
+      setEditErrors({ name: nameError });
       return;
     }
     const nameChanged = draftName.trim() !== active.name;
@@ -125,7 +248,7 @@ export function BanksView() {
       return;
     }
     if (logoFile && logoSource.trim().length < 3) {
-      toast.error("Add the official or licensed source for this logo");
+      setEditErrors({ logoSource: "Add the official or licensed source for this logo." });
       return;
     }
     setBusy(true);
@@ -138,6 +261,12 @@ export function BanksView() {
       });
       if (!res.ok) {
         setBusy(false);
+        const serverErrors = apiIssuesToFieldErrors(res.issues, {
+          name: "name",
+          legal_name: "legalName",
+          provider_type: "providerType",
+        });
+        if (Object.keys(serverErrors).length > 0) setEditErrors(serverErrors);
         toast.error("Couldn't update provider", { description: res.error });
         return;
       }
@@ -151,137 +280,93 @@ export function BanksView() {
       setActive(null);
       void reload();
     } else {
+      setEditErrors({ logo: logoResult.error });
       toast.error("Provider details saved, but the logo was not updated", {
         description: logoResult.error,
       });
     }
   }
 
+  async function onDelete() {
+    if (!deleteTarget) return;
+    setBusy(true);
+    const response = await deleteBank(deleteTarget.id);
+    setBusy(false);
+    if (response.ok) {
+      toast.success("Provider deleted");
+      setDeleteTarget(null);
+      void reload();
+    } else {
+      toast.error("Couldn't delete provider", { description: response.error });
+      setDeleteTarget(null);
+      void reload();
+    }
+  }
+
   return (
     <div className="space-y-4">
-      <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
-        <p className="text-sm text-text-secondary">
-          Reusable provider and logo library for banks, NBFCs, housing-finance companies, and
-          fintechs. Disable instead of deleting so historical records stay intact.
-        </p>
-        <Button size="sm" onClick={() => setCreating(true)}>
-          <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
-          New provider
-        </Button>
-      </div>
+      <FilterBar
+        value={filters}
+        onChange={setFilters}
+        searchLabel="Search provider library"
+        searchPlaceholder="Provider, legal name, or type"
+        statusOptions={PROVIDER_STATUS_OPTIONS}
+        statusLabel="states"
+        kindOptions={PROVIDER_TYPE_OPTIONS}
+        kindLabel="Provider types"
+        showLine={false}
+        showDates={false}
+        note="Raster uploads only. Every logo keeps its official or licensed provenance."
+      />
 
-      {items.length > 0 ? (
-        <div className="grid max-w-md gap-1.5">
-          <Label htmlFor="provider-library-search">Search provider library</Label>
-          <Input
-            id="provider-library-search"
-            type="search"
-            value={providerQuery}
-            onChange={(event) => {
-              setProviderQuery(event.target.value);
-              setProviderPage(1);
-            }}
-            placeholder="Name or provider type"
+      <DashboardPanel
+        title="Providers & logos"
+        description="Reusable identities for operational assignment and explicit public product offers."
+        action={
+          <Button size="sm" onClick={() => setCreating(true)}>
+            <Plus className="h-4 w-4" aria-hidden="true" />
+            New provider
+          </Button>
+        }
+        bodyClassName="p-0"
+      >
+        {loading ? (
+          <div className="p-5">
+            <ListLoadingState rows={7} />
+          </div>
+        ) : error ? (
+          <div className="p-5">
+            <FetchError status={null} message={error} onRetry={() => void reload()} />
+          </div>
+        ) : filteredProviders.length === 0 ? (
+          <ListEmptyState
+            icon={Landmark}
+            title={items.length === 0 ? "No providers yet" : "No providers match these filters"}
+            description={
+              items.length === 0
+                ? "Add the first provider to build the reusable identity and logo library."
+                : "Clear or adjust the filters to return to the provider library."
+            }
+            className="m-5"
           />
-        </div>
-      ) : null}
-
-      {loading ? (
-        <div className="flex items-center justify-center rounded-2xl border border-border bg-card py-16">
-          <Loader2 className="h-6 w-6 animate-spin text-brand-navy" aria-hidden="true" />
-        </div>
-      ) : error ? (
-        <div className="rounded-2xl border border-border bg-card p-8 text-center">
-          <p className="text-sm text-text-secondary">{error}</p>
-          <Button variant="outline" className="mt-4" onClick={() => void reload()}>
-            Try again
-          </Button>
-        </div>
-      ) : items.length === 0 ? (
-        <div className="flex flex-col items-center rounded-2xl border border-border bg-card p-12 text-center">
-          <Inbox className="h-8 w-8 text-text-secondary" aria-hidden="true" />
-          <p className="mt-3 font-medium text-text-primary">No providers yet</p>
-          <p className="mt-1 text-sm text-text-secondary">
-            Add the first provider to build the reusable logo and offer library.
-          </p>
-        </div>
-      ) : filteredProviders.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-border bg-card p-10 text-center">
-          <p className="font-medium text-text-primary">No providers match that search</p>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="mt-2"
-            onClick={() => setProviderQuery("")}
-          >
-            Clear search
-          </Button>
-        </div>
-      ) : (
-        <>
-          <ul className="space-y-3">
-            {visibleProviders.map((bank) => (
-              <li key={bank.id}>
-                <button
-                  type="button"
-                  onClick={() => openEdit(bank)}
-                  className="flex w-full items-center justify-between gap-4 rounded-2xl border border-border bg-card p-4 text-left transition-colors hover:border-brand-cta focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-brand-cta/40"
-                >
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-3">
-                      <span className="relative flex h-10 w-16 shrink-0 items-center justify-center overflow-hidden rounded-md border border-border bg-white">
-                        {bank.logo_url && isAllowedAssetUrl(bank.logo_url) ? <Image src={bank.logo_url} alt="" fill sizes="64px" className="object-contain p-1" /> : <ImageIcon className="h-4 w-4 text-text-secondary" aria-hidden />}
-                      </span>
-                      <div className="min-w-0">
-                        <p className="truncate font-medium text-text-primary">{bank.name}</p>
-                        <p className="truncate text-xs text-text-secondary">{bank.provider_type.replaceAll("_", " ")}</p>
-                      </div>
-                    </div>
-                  <p className="mt-0.5 truncate text-xs text-text-secondary">
-                    {bank.application_count === 0
-                      ? "Not used yet"
-                      : `Funded ${bank.application_count} application${bank.application_count === 1 ? "" : "s"}`}
-                  </p>
-                  <p className="mt-0.5 text-xs text-text-secondary">
-                    {formatLastUpdated(bank.updated_at)}
-                  </p>
-                  </div>
-                  <Badge variant={bank.active ? "secondary" : "outline"} className="shrink-0">
-                    {bank.active ? "Active" : "Disabled"}
-                  </Badge>
-                </button>
-              </li>
-            ))}
-          </ul>
-          {providerPageCount > 1 ? (
-            <nav className="flex items-center justify-between gap-3" aria-label="Provider library pages">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                disabled={providerPage <= 1}
-                onClick={() => setProviderPage((current) => Math.max(1, current - 1))}
-              >
-                Previous
-              </Button>
-              <span className="text-xs tabular-nums text-text-secondary">
-                Page {providerPage} of {providerPageCount}
-              </span>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                disabled={providerPage >= providerPageCount}
-                onClick={() =>
-                  setProviderPage((current) => Math.min(providerPageCount, current + 1))
-                }
-              >
-                Next
-              </Button>
-            </nav>
-          ) : null}
-        </>
-      )}
+        ) : (
+          <>
+            <DataTable
+              columns={columns}
+              rows={page.pageRows}
+              rowKey={(provider) => provider.id}
+              sort={sort}
+              onSortChange={(key) => setSort((current) => nextSort(current, key))}
+              onRowClick={openEdit}
+              rowActionLabel="Edit provider"
+              minWidth="min-w-[860px]"
+            />
+            <div className="px-5 pb-5">
+              <ListPagination page={page.page} total={page.total} onPageChange={page.setPage} />
+            </div>
+          </>
+        )}
+      </DashboardPanel>
 
       <Dialog open={creating} onOpenChange={setCreating}>
         <DialogContent className="max-w-md">
@@ -293,14 +378,17 @@ export function BanksView() {
           </DialogHeader>
           <form className="space-y-4" onSubmit={(e) => void onCreate(e)}>
             <div>
-                <Label htmlFor="new-bank-name">Display name</Label>
+                <Label htmlFor="new-bank-name">Display name<RequiredIndicator /></Label>
               <Input
                 id="new-bank-name"
                 value={newName}
-                onChange={(ev) => setNewName(ev.target.value)}
+                onChange={(ev) => { setNewName(ev.target.value); setCreateErrors((current) => { const next = { ...current }; delete next.name; return next; }); }}
                 placeholder="Enter provider name"
                 maxLength={200}
+                aria-invalid={Boolean(createErrors.name)}
+                aria-describedby={createErrors.name ? "new-bank-name-error" : undefined}
               />
+              <FieldError id="new-bank-name-error" className="mt-1">{createErrors.name}</FieldError>
             </div>
             <div>
               <Label htmlFor="new-bank-legal-name">Legal name (optional)</Label>
@@ -345,13 +433,16 @@ export function BanksView() {
               </DialogHeader>
               <div className="space-y-4">
                 <div>
-                  <Label htmlFor="edit-bank-name">Display name</Label>
+                  <Label htmlFor="edit-bank-name">Display name<RequiredIndicator /></Label>
                   <Input
                     id="edit-bank-name"
                     value={draftName}
-                    onChange={(e) => setDraftName(e.target.value)}
+                    onChange={(e) => { setDraftName(e.target.value); setEditErrors((current) => { const next = { ...current }; delete next.name; return next; }); }}
                     maxLength={200}
+                    aria-invalid={Boolean(editErrors.name)}
+                    aria-describedby={editErrors.name ? "edit-bank-name-error" : undefined}
                   />
+                  <FieldError id="edit-bank-name-error" className="mt-1">{editErrors.name}</FieldError>
                 </div>
                 <div>
                   <Label htmlFor="edit-bank-legal-name">Legal name (optional)</Label>
@@ -384,10 +475,20 @@ export function BanksView() {
                     accept="image/jpeg,image/png,image/webp"
                     onChange={(event) => {
                       const nextFile = event.target.files?.[0] ?? null;
+                      if (nextFile && !["image/jpeg", "image/png", "image/webp"].includes(nextFile.type)) {
+                        setLogoFile(null);
+                        setEditErrors((current) => ({ ...current, logo: "Choose a JPEG, PNG, or WebP logo." }));
+                        event.currentTarget.value = "";
+                        return;
+                      }
                       setLogoFile(nextFile);
+                      setEditErrors((current) => { const next = { ...current }; delete next.logo; return next; });
                       if (nextFile) setLogoSource("");
                     }}
+                    aria-invalid={Boolean(editErrors.logo)}
+                    aria-describedby={editErrors.logo ? "edit-bank-logo-error" : undefined}
                   />
+                  <FieldError id="edit-bank-logo-error" className="text-xs">{editErrors.logo}</FieldError>
                   {active.logo_source ? (
                     <p className="break-all text-xs text-text-secondary">
                       Current source: {active.logo_source}
@@ -397,11 +498,14 @@ export function BanksView() {
                   <Input
                     id="edit-bank-logo-source"
                     value={logoSource}
-                    onChange={(event) => setLogoSource(event.target.value)}
+                    onChange={(event) => { setLogoSource(event.target.value); setEditErrors((current) => { const next = { ...current }; delete next.logoSource; return next; }); }}
                     placeholder="Official brand portal or user-supplied licence reference"
                     maxLength={500}
                     disabled={!logoFile}
+                    aria-invalid={Boolean(editErrors.logoSource)}
+                    aria-describedby={editErrors.logoSource ? "edit-bank-logo-source-error" : undefined}
                   />
+                  <FieldError id="edit-bank-logo-source-error" className="text-xs">{editErrors.logoSource}</FieldError>
                   <p className="text-xs text-text-secondary">
                     Raw SVG upload is disabled. Repository-reviewed SVGs may be assigned by
                     engineering after source verification.
@@ -418,10 +522,57 @@ export function BanksView() {
                   </Label>
                 </div>
               </div>
-              <DialogFooter>
+              <DialogFooter className="items-center justify-between sm:justify-between">
+                {active.application_count === 0 && active.offer_count === 0 ? (
+                  <Button
+                    variant="destructive"
+                    onClick={() => {
+                      setDeleteTarget(active);
+                      setActive(null);
+                    }}
+                    disabled={busy}
+                  >
+                    <Trash2 className="h-4 w-4" aria-hidden="true" />
+                    Delete provider
+                  </Button>
+                ) : (
+                  <p className="max-w-xs text-left text-xs leading-5 text-text-secondary">
+                    Used providers cannot be deleted. Disable this provider to preserve application
+                    and offer history.
+                  </p>
+                )}
                 <Button onClick={() => void onSaveEdit()} disabled={busy}>
                   {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
                   Save
+                </Button>
+              </DialogFooter>
+            </>
+          ) : null}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={deleteTarget !== null} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <DialogContent className="max-w-md">
+          {deleteTarget ? (
+            <>
+              <DialogHeader>
+                <DialogTitle>Delete {deleteTarget.name}?</DialogTitle>
+                <DialogDescription>
+                  This permanently removes the unused provider, its logo, and availability
+                  configuration. This action cannot be undone.
+                </DialogDescription>
+              </DialogHeader>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setDeleteTarget(null)} disabled={busy}>
+                  Cancel
+                </Button>
+                <Button variant="destructive" onClick={() => void onDelete()} disabled={busy}>
+                  {busy ? (
+                    <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                  ) : (
+                    <Trash2 className="h-4 w-4" aria-hidden="true" />
+                  )}
+                  Delete provider
                 </Button>
               </DialogFooter>
             </>

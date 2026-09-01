@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { DashboardFormSection } from "@/features/dashboard/dashboard-ui";
 
 type Schemas = components["schemas"];
 export type AudienceRules = Schemas["AudienceRules"];
@@ -33,6 +34,12 @@ const AGENT_SIGNALS: { value: AgentSignal; label: string }[] = [
   { value: "has_pending_commission", label: "Has pending commission" },
   { value: "has_paid_commission", label: "Has paid commission" },
 ];
+const USER_TYPE_LABEL: Record<UserType, string> = {
+  client: "Clients",
+  agent: "Agents",
+  employee: "Employees",
+  telecaller: "Telecallers",
+};
 
 export function emptyAudienceRules(): AudienceRules {
   return {
@@ -58,7 +65,7 @@ export function audienceSummary(rules?: AudienceRules | null): string {
   const normalized = normalizeAudienceRules(rules);
   const types = normalized.user_types ?? [];
   if (types.length === 0) return "Everyone";
-  const details: string[] = [types.map((type) => (type === "client" ? "Clients" : "Agents")).join(" + ")];
+  const details: string[] = [types.map((type) => USER_TYPE_LABEL[type]).join(" + ")];
   const signals =
     (normalized.client_journey_stages?.length ?? 0) + (normalized.agent_signals?.length ?? 0);
   if (signals > 0) details.push(`${signals} workflow ${signals === 1 ? "signal" : "signals"}`);
@@ -123,13 +130,9 @@ export function AudienceRuleFields({
       ...rules,
       user_types: nextTypes,
       client_journey_stages:
-        (type === "client" && !checked) || (type === "agent" && checked)
-          ? []
-          : clientStages,
+        nextTypes.length === 1 && nextTypes[0] === "client" ? clientStages : [],
       agent_signals:
-        (type === "agent" && !checked) || (type === "client" && checked)
-          ? []
-          : agentSignals,
+        nextTypes.length === 1 && nextTypes[0] === "agent" ? agentSignals : [],
       locations: nextTypes.length === 0 ? [] : locations,
     });
   }
@@ -144,12 +147,12 @@ export function AudienceRuleFields({
   }
 
   return (
-    <fieldset className="space-y-5 rounded-xl border border-border bg-muted/20 p-4" disabled={disabled}>
-      <legend className="text-sm font-semibold text-text-primary">Audience targeting</legend>
-      <p className="mt-1 text-xs text-text-secondary">
-        Different sections are combined. Multiple choices inside one section are alternatives.
-        {required ? " Select at least one user type." : " Leave user types empty for everyone."}
-      </p>
+    <fieldset className="min-w-0" disabled={disabled}>
+      <legend className="sr-only">Audience targeting</legend>
+      <DashboardFormSection
+        title="Audience targeting"
+        description={`Different sections are combined. Multiple choices inside one section are alternatives.${required ? " Select at least one user type." : " Leave user types empty for everyone."}`}
+      >
 
       <div className="space-y-2">
         <p className="text-sm font-medium text-text-primary">User type</p>
@@ -160,7 +163,7 @@ export function AudienceRuleFields({
                 checked={userTypes.includes(type)}
                 onCheckedChange={(checked) => setUserType(type, checked === true)}
               />
-              {type === "client" ? "Clients" : "Agents"}
+              {USER_TYPE_LABEL[type]}
             </Label>
           ))}
         </div>
@@ -268,6 +271,7 @@ export function AudienceRuleFields({
           </div>
         ))}
       </div>
+      </DashboardFormSection>
     </fieldset>
   );
 }

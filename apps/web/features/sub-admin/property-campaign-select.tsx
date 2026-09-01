@@ -56,7 +56,7 @@ export function PropertyCampaignSelect({
       </PopoverTrigger>
       <PopoverContent align="start" className="w-[var(--radix-popover-trigger-width)] p-0">
         <Command>
-          <CommandInput placeholder="Search title, location, or RERA status" />
+          <CommandInput placeholder="Search title, location, or RERA status" maxLength={100} />
           <CommandList>
             <CommandEmpty>No matching active properties.</CommandEmpty>
             <CommandItem

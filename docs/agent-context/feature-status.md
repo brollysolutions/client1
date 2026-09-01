@@ -2,12 +2,1756 @@
 
 Status: **Derived living implementation ledger**
 
-As of: **2026-08-23**
+As of: **2026-09-01**
 
 Evidence baseline: `abcc1fd`
 ([PR #175](https://github.com/brollysolutions/client1/pull/175)), plus the
 verified Admin operational-visibility work in
 [PR #173](https://github.com/brollysolutions/client1/pull/173).
+
+**Production runtime least privilege complete locally — [PR #279](https://github.com/brollysolutions/client1/pull/279) — launch remains NO-GO:**
+`security/api-web-runtime-hardening` closes both engineering follow-ups from
+the merged PR #278 rehearsal in one change. The Security workflow no longer
+suppresses or documents `PYSEC-2026-1325`; `pip-audit==2.10.1` now checks the
+frozen production lock without any vulnerability allowlist and reports no
+known vulnerabilities. Production API, scheduler, and web services now use an
+init, read-only roots, all-capability drops, no-new-privileges, explicit PID
+limits, and bounded `noexec,nosuid,nodev` tmpfs mounts. API and scheduler expose
+only `/tmp`; fixed UID 100/GID 101 ownership keeps that contract stable across
+base-image changes, and the scheduler heartbeat stays there. Web likewise exposes only
+`/tmp`, while ISR revalidation and image optimization use the explicit bounded
+50 MiB memory cache with disk flushing disabled.
+
+Fresh fail-closed evidence passes 11 production-runtime contracts and all 44
+script tests (one expected Windows POSIX-resource skip), both production Compose
+renders, API/scheduler import and write-boundary probes, API Ruff/format over
+504 files, one Alembic head, production web dependency audit, web lint and
+strict typecheck, 91 files / 602 tests, a strict 94-route Linux production
+image, and 4/4 production-artifact Playwright journeys with retries disabled.
+Repeated stale homepage revalidation under the exact hardened web settings
+returns HTTP 200 with no filesystem, prerender-cache, or network errors; root
+writes fail while only the declared `/tmp` tmpfs accepts writes. Trivy 0.74.0
+reports 0 High/Critical rows for the final API and web images. Apart from the
+explicit non-root identity, the API/scheduler application image content is
+unchanged from the exact PR #278 candidate; application behavior, endpoint,
+schema, migration, generated contract, auth/RLS/business-line boundaries,
+PII/KYC, uploads, payouts/webhooks, cookies, dependencies, and release approval
+do not change. Registry publication/re-pull, deployment, provider transfer,
+production recovery/edge/secrets/monitoring evidence, and all nine human gates
+remain open, so this engineering completion does not change the release NO-GO.
+
+**Post-CVE exact-candidate rehearsal complete — NO-GO — [PR #278](https://github.com/brollysolutions/client1/pull/278):** merged
+PR #277 is frozen exactly at
+`eefc61d06708635f79055fe0187ede4fed3185cf`; the terminal record is
+[`release-rehearsal-2026-08-30.md`](release-rehearsal-2026-08-30.md). Fresh
+Trivy 0.74.0 scans report 0 High / 0 Critical rows across the exact API, web,
+direct media worker, PostgreSQL, Redis, ClamAV, PgBouncer, nginx, and Compose
+media outputs. Their CycloneDX inventories contain 123, 46, 132, 54, 23, 42,
+26, 72, and 132 components respectively. Gitleaks scans all 786 commits with
+zero findings, the API image secret scan is empty, production `pnpm audit` is
+clean, and the frozen Python lock is clean under `pip-audit==2.10.1` without
+the obsolete workflow exception.
+
+The authoritative isolated Linux API run passes 1,948/1,948 tests without
+skips or retries; all 504 files pass Ruff/format, Alembic has one
+`d9f1a3b5c7e0` head, and generated contracts match. Web lint, strict typecheck,
+91 files / 602 tests, the 94-route exact production build, and 4/4 exact-image
+Playwright journeys pass. The production API image is healthy against fresh
+PostgreSQL/Redis and passes exact-origin CORS plus negative auth probes. The
+isolated media worker passes both 640x360 and maximum 1920x1080 H.264/AAC
+round-trips under its production constraints. A 1,712,926-byte database backup
+restores to the same head, 55-table count, and synthetic digest in 8.872
+seconds; a cold object archive restores after source destruction with an
+identical six-file manifest in 1.279 seconds. Docker Desktop stalled during the
+first object extraction, was restarted, and the already-created backup then
+restored successfully; that operational event is retained in the record.
+
+Launch remains NO-GO. The exact GitHub CI, Security, and production-sync runs
+executed zero steps because paid capacity is unavailable. No approved registry
+publication/re-pull, approved external object transfer, live payout, production
+recovery/DNS/TLS/secrets/monitoring evidence, risk acceptance, or qualified
+human approval exists. The Security workflow's stale `PYSEC-2026-1325` ignore
+must be removed even though the stricter current audit is clean. Production
+Compose also does not enforce read-only roots for API/web; a stricter web probe
+showed Next cache/ISR requires an explicit writable-path design before that
+hardening can be claimed. No formal feature-coverage count, application
+behavior, schema, contract, migration, authorization/RLS rule, cookie decision,
+or production state changed.
+
+**API and isolated media-runtime High/Critical remediation complete locally — [PR #277](https://github.com/brollysolutions/client1/pull/277) — launch remains NO-GO:**
+`security/container-cve-remediation` replaces both vulnerable Debian runtime
+footprints with supported digest-pinned Alpine bases and exact fixed OpenSSL,
+SQLite, Python, and FFmpeg packages. The API production stage copies only its
+frozen virtual environment from a build-only, digest-pinned `uv` stage; it runs
+as `app` and contains neither `uv` nor FFmpeg. The unused `python-jose` ECDSA/RSA
+chain is replaced with PyJWT while preserving HS256 token claims and exception
+behavior through focused valid, expired, wrong-signature, and malformed-token
+tests. The isolated worker still has no application dependencies, credentials,
+persistent volume, or public port and retains non-root, read-only, capability-
+dropped, no-new-privileges, CPU, memory, PID, timeout, address-space, and output-
+size controls.
+
+The final local API image is
+`sha256:6a95bef6bc2451f1d0376dbde1bc5f779f15cbd6702a4e7cd8c610facce4a25d`
+(87,395,581 bytes); current Trivy reports 0 High/Critical rows, its secret scan
+reports 0 findings, and the CycloneDX inventory contains 123 components. The
+final media image is
+`sha256:4aee6affa6fe0a384218f36761e63a9ae3d1fadde83a038213d84e7c3182d064`
+(71,072,923 bytes); current Trivy reports 0 High/Critical rows and its inventory
+contains 132 components. The machine-readable reports are retained outside the
+repository at `D:\release-evidence-cve-d9edc53`; their API vulnerability, API
+secret, API SBOM, media vulnerability, and media SBOM SHA-256 values are
+`2EBDD9690A6A9EF606008C53FDAC3FEA3AB30E317A150995C51572D0A108DC1F`,
+`023692729B5DFD0BE9A27D2BD0580ACAC1E039249FB0F26A71152CA83592683B`,
+`C706180047B92572CA6004BC4566EBA6E5A0D7851D2D9A6C0AC8D46A78663D6B`,
+`1680FDA3BAECAA8C7463B7634E9237D2E6359622CB9AE5BEA684A7254A94CEB1`,
+and `9028D24F51C73514042C63D7E015C3C8C474995A78B7B4A7EECB2F3BC87B35A1`.
+
+Fresh verification passes a dedicated-network, freshly migrated Linux API
+aggregate at 1,948/1,948 tests in 1:15:55 without skips or retries; all 504 API
+files pass Ruff and format checks; the four direct JWT cases pass; Alembic has
+the single `d9f1a3b5c7e0` head; 34 structural/tracking/runtime tests pass with
+one expected Windows POSIX-resource skip; both Compose models render; and the
+final API runtime completes an HS256 round-trip without Jose/ECDSA, `uv`, or a
+native media parser. The final media image becomes healthy and completes real
+three-second 640x360 and policy-maximum 1920x1080 H.264/AAC transcodes under the
+documented production constraints. The frozen API dependency audit reports no
+known vulnerabilities after the existing documented `PYSEC-2026-1325`
+exception; the production web audit is clean, and web lint, strict typecheck,
+and all 91 files / 602 tests pass. The native Windows web build compiles,
+typechecks, and generates 94/94 routes before the known standalone symlink
+`EPERM`, so that host command is not claimed as a pass. A broad host auth attempt
+was superseded by the clean authoritative Linux aggregate after the host lacked
+the Compose-only `redis` DNS name.
+
+No endpoint, schema, migration, generated contract, authorization/RLS rule,
+cookie behavior, upload or payout, registry publication, deployment, production
+access, advisory acceptance, or human approval changed. Launch remains NO-GO:
+merge this remediation, freeze and rehearse that exact commit, publish/re-pull
+and scan final registry manifests, obtain external-provider and production
+recovery/DNS/TLS/secrets/monitoring evidence, and close all nine qualified human
+sign-off rows. Paid GitHub Actions remain unavailable and are recorded as
+unverified, not waived. Essential authentication cookies still require no
+consent banner; privacy/security review and clear Accept/Reject controls are
+required before enabling analytics, advertising, replay, attribution, chat, or
+other non-essential storage where consent applies.
+
+**Final exact-candidate rehearsal complete — NO-GO — [PR #276](https://github.com/brollysolutions/client1/pull/276):**
+merged PR #275 is frozen exactly at
+`fb692260c4793562b49915e740fbac09dd893b6d`; the terminal record is
+[`release-rehearsal-2026-08-30.md`](release-rehearsal-2026-08-30.md). The
+authoritative dedicated-network Linux aggregate passes 1,944/1,944 API tests in
+1:12:07 with no skips or retries. The exact frozen web image passes all four
+production-artifact Financial Services and registration journeys in 22.5
+seconds with one worker and no retries. Web lint, strict typecheck, 91 files /
+602 tests, the 94-route Linux production build, API style/format and one-head
+migration checks, current secret/dependency/container scans, exact local
+headers/CORS/auth/role/upload/webhook/media probes, and matching timed synthetic
+database/object restores all have terminal evidence.
+
+Launch remains NO-GO. GitHub CI, Security, and production-sync runs executed
+zero steps because no paid capacity is available. The API image retains 14 high
+/ 3 critical Trivy rows and the isolated media image retains 137 high / 7
+critical rows, all without a reported fix or acceptance. Final published
+registry references, an approved external-provider upload, and production
+recovery/DNS/TLS/secrets/monitoring evidence are absent. Every one of the nine
+qualified human sign-off rows remains Open. No application behavior, contract,
+schema, migration, dependency, authorization/RLS, or formal feature-coverage
+count changed. Essential authentication cookies still require no consent
+banner; privacy/security review and clear Accept/Reject controls are required
+before any non-essential storage is enabled where consent applies.
+
+**Production-artifact Playwright gate repaired - [PR #275](https://github.com/brollysolutions/client1/pull/275):**
+CI now installs pinned Chromium and runs four Financial Services/registration
+journeys against the standalone Next production server with retries disabled. A
+loopback-only fixture serves generated-contract-shaped financial products and a
+provider offer through `API_INTERNAL_URL`; the gate fails if the standalone
+artifact is absent. This makes the previously missing runtime API explicit
+instead of accepting a production page with no catalogue data.
+
+The two stale browser assertions are corrected without changing UI behavior:
+the homepage test identifies the Loans, Properties, and calculator bands by
+their semantic section ids despite legitimate duplicate campaign copy, and the
+provider check accepts any root-relative internal action, including the existing
+`/contact` enquiry path, while rejecting absolute and protocol-relative links.
+The mocked registration journey now supplies the refresh response used when the
+authenticated route-group provider mounts, eliminating its intermittent redirect
+to Home.
+
+Fresh evidence: web lint and strict typecheck pass; all 91 files / 602 unit tests
+pass; the fixture-backed production server passes 4/4 before the launcher is
+tightened; the final fail-closed launcher passes Node syntax checks and enumerates
+exactly four tests; and three repeated runs against the exact production image
+and 12 live catalogue cards pass 12/12.
+The pre-fix image reproduced both financial assertions, while five repeated
+registration runs reproduced one 60-second Home redirect and four passes. The
+strict pre-change image builds all 94 routes. The post-change image reinstall
+passed the frozen 645-entry supply-chain check, then Docker stopped responding
+during compilation; it was interrupted, so no post-change image export or final
+standalone-gate execution is claimed. Hosted CI remains blocked by billing, so
+the new gate has not yet run on GitHub. No application component, API, contract, authorization/RLS, cookie,
+upload, payment, schema, migration, dependency, or formal feature-coverage count
+changed. Launch remains NO-GO pending a complete exact-candidate rehearsal and
+the existing image, registry, recovery, edge, secrets, monitoring, upload, and
+human-approval gates.
+
+**API frozen-release baseline repaired - [PR #274](https://github.com/brollysolutions/client1/pull/274):**
+the 11 reproducible stale policy, invalid property-UUID fixture, and validation-
+order failures identified in PR #273 are corrected, together with the payout
+grace-window and automatic Employee-assignment cases that depended on aggregate
+order and shared state. Test journeys now create canonical active property UUIDs,
+validate request bodies before asserting non-enumerating ownership failures, and
+isolate Employee capacity when the intended outcome is the retry pool. The
+content-block RLS oracle now matches the merged platform-Admin override while
+retaining Sub Admin creator ownership and the typed application lifecycle.
+
+A fresh, directly addressed PostgreSQL database migrated to the single
+`d9f1a3b5c7e0` head; all 503 API files pass Ruff and format checks; the complete
+Linux aggregate passes 1,944/1,944 tests in 58:09. Maintainer and security review
+found no change-owned issue. No endpoint, schema, generated contract, application
+authorization, grant, RLS policy, migration, product workflow, dependency, or
+formal feature-coverage count changed. Launch remains NO-GO because this removes
+only the API baseline blocker: Playwright, hosted billing, image findings and
+registry evidence, external recovery/edge/secrets/monitoring evidence, positive
+provider upload, and all qualified human approvals remain open. Next priority is
+the production-artifact Playwright release gate with reachable catalogue data.
+
+**Exact-candidate rehearsal complete — NO-GO — [PR #273](https://github.com/brollysolutions/client1/pull/273):**
+merged PR #272 is frozen at `c37b9d5fb68ea30daa5f4f55dd15f97cf27ce547`;
+the current evidence is in
+[`release-rehearsal-2026-08-30.md`](release-rehearsal-2026-08-30.md). Exact
+Linux API/web/media artifacts, fresh Trivy/SBOM evidence, production-mode
+headers/CORS/auth/role/upload-presign/webhook probes, and timed isolated
+database/object restores now have terminal local results. The security-focused
+API set passes 93/93; web lint/typecheck and 91 files / 602 tests pass; the
+strict Linux build produces all 94 routes. The full API aggregate remains red
+at 1,931 passes / 13 failures; a fresh-database rerun passes two order-sensitive
+cases and reproduces 11 known stale-policy/UUID-fixture/validation-order tests.
+Playwright has one pass, one flaky retry, and three failures requiring a current
+locator plus reachable production-like catalogue data.
+
+Launch remains blocked. Hosted CI/Security/sync jobs executed zero steps because
+of the account billing/spending-limit condition. The exact API image retains 14
+high / 3 critical finding rows, and the exact isolated media image retains 137
+high / 7 critical rows; no fix is reported and no acceptance exists. The six
+service outputs lack final published registry-manifest hashes. The local restore
+does not prove production backup controls or RPO, a positive external upload was
+not exercised, and real DNS/TLS, secrets, monitoring, incident ownership, and
+all nine human/environment register rows remain open. No application behavior
+or formal feature-coverage count changes. Essential authentication storage still
+needs no consent banner; privacy/security review and clear Accept/Reject controls
+are required before enabling non-essential storage where consent applies.
+
+**Runtime-image contract complete locally — [PR #272](https://github.com/brollysolutions/client1/pull/272) — release remains NO-GO:**
+`security/runtime-image-pinning` now covers all six production service images
+present after merged PR #271. PostgreSQL 18.6, Redis 8.10.1, ClamAV 1.4.6 LTS,
+PgBouncer 1.25.2, and nginx 1.30.4 use versioned, upstream-manifest-pinned bases
+and exact patched Alpine packages. The media worker uses its existing digest-
+pinned Python 3.12 slim base and checked-in Dockerfile. Production Compose no
+longer builds or accepts a mutable tag for any of the six: each human-readable
+release tag requires a supplied 64-character final registry manifest hash,
+including `MEDIA_RUNTIME_IMAGE_SHA256`.
+
+Trivy 0.74.0 reports zero high and zero critical findings in each of the five
+existing local service outputs; their CycloneDX inventories contain 54, 23, 42,
+26, and 72 components respectively. The exact media-worker output reviewed in
+merged PR #271 is
+`sha256:2646e443e722b471149ee63359dbad253f36c0f1e06d1fca1c60110907e2d403`;
+its 294-component SBOM and scan report 137 high rows, 7 critical rows, 45 unique
+advisories across 24 packages, and no reported fix. Isolation contains those
+findings but does not remediate, waive, or make them release-acceptable.
+
+A fresh no-cache media rebuild completed as local OCI index `c18d048c4111…`
+after Debian supplied newer OpenSSL packages, demonstrating why only the final
+published manifest is deployable. Its fresh Trivy run did not complete: the C:
+drive reached zero free space while downloading the scanner database and Docker
+Desktop stopped responding. The failed invocation produced no evidence file,
+and `c18d048c4111…` is explicitly unreviewed and must not be published. The
+operator must publish an exact reviewed artifact, record all six registry
+hashes, pull and rescan those references, and resolve or specifically accept the
+worker findings before the exact-candidate rehearsal.
+
+The prior five-image branch evidence remains: cold-start/health/config/runtime-
+user checks; a Linux API aggregate with 1,885 passes, the same 13 unrelated
+baseline failures, and zero errors; web lint/typecheck/602 tests and 94-route
+Linux production build; one Alembic head; and exact cleanup. The PR #271 worker
+evidence remains: 7/7 unit tests, real 1920x1080 H.264/AAC round-trip, five
+sequential transcodes with concurrent health probes, and the secretless,
+internal, non-root, read-only resource limits. This integration adds negative
+contracts for the sixth release build/final reference and preserves the merged
+CORS, media, and human-sign-off records. Formal feature coverage is unchanged,
+and all other rehearsal and human gates remain open.
+
+Fresh integration evidence runs 34 script/runtime/tracking tests: 33 pass and
+one has the expected Windows POSIX-resource skip. Another 54 focused
+media/config API tests pass with one Linux-only skip; Ruff and format pass
+across all 503 API files, with one Alembic head,
+web lint and strict typecheck, and all 91 files / 602 web tests. Both Compose
+models render with synthetic configuration; the production render includes all
+six final registry references and fails closed when the media digest is absent.
+The native web build compiles, typechecks, and generates 94/94 routes before the
+established Windows standalone-symlink `EPERM`. The fresh worker scan/SBOM,
+runtime smoke, Linux production build, and aggregate repository gate remain
+unverified after Docker became unavailable; a skipped gate is not a pass.
+
+**Done - [PR #270](https://github.com/brollysolutions/client1/pull/270) - credentialed browser CORS method/header hardening:**
+`security/cors-policy` removes the API's wildcard method and request-header
+grants. The explicit browser surface is now `GET`, `POST`, `PUT`, `PATCH`, and
+`DELETE`, with `Authorization`, `Content-Type`, and `X-Business-Line` as the
+only non-safelisted request headers. `X-Report-Truncated` is explicitly exposed
+for the existing report download client. Configured origin matching and
+credential support are unchanged, while configuration now fails closed for
+wildcard, opaque `null`, userinfo, malformed-port, path/query/fragment, and
+non-HTTP(S) entries. An empty origin list remains valid and denies all
+cross-origin grants.
+
+The inventory covers the central browser wrapper, refresh-cookie and Bearer
+paths, business-line requests, report downloads, and both direct browser
+uploads. Those uploads POST multipart form data to object storage rather than
+the API and therefore retain their separate provider CORS policy. The secure,
+host-only, path-scoped, SameSite-Strict refresh cookie is unchanged. There is no
+API route, schema, generated contract, auth/RLS, business-line, upload policy,
+dependency, CSRF, or proxy-trust change.
+
+Fresh evidence: all 48 focused CORS/config tests pass on the host, and the
+pre-final 42-test set passes inside the Linux API image. Positive cases cover a
+production-style HTTPS origin across refresh, Bearer, business-line, JSON
+upload-presign, report-download, and every approved method; negative cases
+cover arbitrary, opaque `null`, suffix-confusion origins, HEAD/TRACE, and an
+invented header. Simple requests and requests without `Origin` retain their
+normal application responses. All 503 API files pass Ruff and format checks;
+exactly one Alembic head, 11 migration/RLS tracking tests, and 4 production-
+runtime tests pass. Web lint, strict typecheck, and all 91 files / 602 tests
+pass. The native build compiles, typechecks, and generates 94/94 routes before
+the established Windows standalone-symlink `EPERM`; the strict Linux
+production image completes the same build, standalone copy, and image export.
+
+The fresh Linux API aggregate completes with 1,911 passes and 13 failures. An
+exact rerun of those failures on a newly migrated database makes the payout
+grace-window and task-assignment cases pass, confirming order/shared-state
+sensitivity; the remaining 11 reproduce stale content-block policy, UUID
+property fixture, and validation-order expectations. No CORS/config test fails,
+and the changed 48-test set is green after the aggregate. The repository's Bash
+wrapper could not execute because this Windows host has no installed WSL
+distribution; every available constituent gate above was run directly.
+Security and maintainer review found no change-owned issue. Residual evidence
+is the real deployed browser, reverse-proxy, and object-storage edge probe
+against the exact release candidate. Next priority is the remaining frozen-
+release blocker remediation and exact-candidate rerun.
+
+**Rehearsed — NO-GO — [PR #268](https://github.com/brollysolutions/client1/pull/268) — frozen release candidate and launch evidence:**
+`chore/frozen-release-rehearsal` freezes merged PR #267 at `3cc6bc0` and records
+the full result in
+[`release-rehearsal-2026-08-30.md`](release-rehearsal-2026-08-30.md). The work
+corrects frozen-lock dependency auditing, five Python dependency findings, a
+production API startup failure under its no-home user, and all 13 high/critical
+findings in the web runtime. It also adds narrow historical Gitleaks false-
+positive handling and production-runtime contract coverage.
+
+The candidate is not launch-ready. Hosted GitHub jobs did not start because of
+the account payment/spending-limit condition. The rebuilt API and directly
+referenced service images retain unaccepted high/critical findings; pgBouncer's
+base is EOL and production tags are not digest-pinned. Docker Desktop then
+failed with engine HTTP 500 during the fresh aggregate API run and isolated
+production/recovery exercise, leaving the aggregate, runtime CORS/auth/upload/
+webhook journeys, and timed restore inconclusive. Real DNS/TLS, secrets,
+backups, monitoring, incident ownership, and the named legal/privacy/trademark/
+processor decisions remain external human gates. The essential-authentication-
+cookie decision remains unchanged: no banner until non-essential storage is
+introduced, then equally clear Accept/Reject controls where consent is required.
+
+Fresh completed evidence: all 502 API files pass Ruff/format; exactly one
+Alembic head plus 7 feature-tracking, 11 migration/RLS, and 4 production-runtime
+tests pass; frozen Python and production Node dependency audits have no
+unaccepted finding; a 492-commit Gitleaks run reports no leak and detects its
+synthetic canary. Web lint, typecheck, 91 files / 602 tests, strict 94-route
+Linux production build, non-root runtime, headers/redirects, and a zero-high/
+zero-critical image scan pass. The fresh API aggregate reached 64% before the
+engine failure and has no final total, so prior PR evidence is not presented as
+a rehearsal pass.
+
+**Done — [PR #271](https://github.com/brollysolutions/client1/pull/271) — `security/media-runtime-isolation` — frozen-release native-media blocker:**
+Attacker-controlled MP4 parsing no longer executes in the credentialed API or
+scheduler image. A digest-pinned, secretless worker performs FFprobe/FFmpeg
+processing as UID/GID 10001 with a read-only root, an owned bounded noexec tmpfs,
+all capabilities dropped, no-new-privileges, no volumes or public port, and no
+route to the database, Redis, object storage, or other application networks.
+Only the scheduler joins the internal `media-control` network. The API shares
+and validates the exact production worker origin because its Settings model is
+common, but it has neither a worker call path nor membership in that network.
+
+The scheduler still owns the database row lock, object transfer, fail-closed
+ClamAV scan, canonical replacement, retryable/private processing state, cleanup,
+and retention. Existing authentication, ownership/RLS, private storage,
+signature/type/size validation, quotas, idempotency, deletion, and upload API
+contracts are unchanged. Missing or unsafe production worker configuration
+refuses application startup; worker or scanner unavailability leaves work
+private and retryable and removes partial output.
+
+Runtime contracts assert the reviewed base pin and explicit one-CPU, 768 MiB
+real-memory, 64-PID, 32-child-process, 185-second child-CPU, 180-second wall,
+1.25 GiB child address-space, 20 MiB input/output/file, 128 MiB allocation,
+single-thread codec/filter, and 64-descriptor bounds. The higher virtual-address
+limit is intentionally distinct from the lower hard container memory cap: real
+1080p H.264 encoding failed at 1 GiB virtual space, passed at 1.125 GiB, and
+uses 1.25 GiB for bounded headroom while the 768 MiB cgroup cap remains intact.
+The final 10-second health budget stayed healthy during intended transcode load.
+
+Fresh evidence: focused API config/transport/storage/retry/scheduler tests pass
+61; the hardened Linux worker passes 7/7 unit tests and a real 1920x1080
+H.264/AAC round-trip; five sequential transcodes and four concurrent health
+probes all return HTTP 200 with 21 ms maximum probe latency. Production-runtime
+contracts pass 7, feature tracking 7, migration/RLS tracking 11, Ruff and format
+all 503 API files, exactly one Alembic head, regenerated contracts with no diff,
+production Compose rendering, web lint/typecheck, and 91 files / 602 tests.
+The Linux API aggregate completes 1,899 passes and the same 13 unrelated
+baseline failures; the native web build compiles, typechecks, and generates
+94/94 pages before the established Windows standalone-symlink `EPERM`.
+
+The exact worker image is
+`sha256:2646e443e722b471149ee63359dbad253f36c0f1e06d1fca1c60110907e2d403`
+with a 294-component CycloneDX 1.7 SBOM. Its Trivy 0.74.0 scan reports 137 high
+rows, 7 critical rows, 45 unique advisory IDs, and 24 affected packages; no row
+reported a fixed version. These native/transitive findings are contained by the
+boundary, not removed, waived, or asserted unreachable. Container/kernel escape
+and worker availability remain residual risks. The API image separately proves
+FFmpeg/FFprobe absent but retains 14 high / 3 critical scan rows. Image/PDF
+native parsing, ClamAV/service isolation, remaining API/service image findings,
+hosted-CI recovery, immutable replacement of other production images,
+exact-candidate rehearsal, recovery evidence, and all human/
+environment sign-offs remain release blockers and the next priority. This slice
+does not change SRS completion counts or the release NO-GO decision. Security
+and maintainer review found no remaining change-owned actionable defect. After
+integrating merged PRs #269 and #270, the combined config/CORS/media set passes
+74 tests with one expected Windows POSIX skip; both seven-test runtime suites,
+the tracking/RLS guards, and full 503-file Ruff/format checks pass.
+
+**Human launch sign-off register prepared — approvals remain open — [PR
+#269](https://github.com/brollysolutions/client1/pull/269):**
+[`launch-signoff-register.md`](launch-signoff-register.md) adds a canonical,
+evidence-linked decision register for trademark, legal entity, Terms,
+privacy/data inventory, processors, DNS/TLS, secrets, monitoring, and incident
+ownership. It defines valid
+approver/date/evidence fields and bounded risk-acceptance rules without placing
+secrets, private contracts, production exports, customer data, or privileged
+legal material in Git. Every gate deliberately remains `Open`; this
+documentation is not legal advice, environment proof, or launch approval. The
+essential-authentication-cookie decision is unchanged, and non-essential
+storage still requires prior privacy/security review and clear Accept/Reject
+controls where consent applies. Fresh verification: every changed relative
+Markdown link resolves, all 7 feature-tracking tests pass, `git diff --check`
+passes, and security/maintainer review found no actionable issue.
+
+**Done - [PR #267](https://github.com/brollysolutions/client1/pull/267) - FR-2.2 Admin controlled-correction and operational audit remediation:**
+`codex/20260829-163717-implement` closes the original typed approved-listing
+correction gap and all seven named audit families. The correction is a platform-
+Admin-only, reason-required staged edit of an approved submission: the current
+public catalogue row and approved media remain unchanged until RERA re-review
+and approval update that same row. Content authoring/lifecycle, loan progression,
+and property-deal progression now append same-transaction business audits;
+later merged banner, offer, referral-rule, and automatic-task assignment writers
+have explicit registry and regression coverage. Audit detail records operation,
+status transitions, changed field names, identifiers, and the required correction
+reason without copying customer, financial, or protected field values.
+
+The exhaustive registry separately identifies two newer read-only visibility
+gaps for `field_visibility_config` and `financial_service_enquiries`, so FR-2.2
+remains Partial rather than being overstated as globally complete. Protected
+secrets, locations, private media/documents, immutable ledgers, payouts,
+ownership, RLS, and business-line boundaries are unchanged. The frozen-release
+rehearsal and human launch sign-offs remain separate next phases.
+
+Fresh evidence: all 502 API files pass Ruff and formatting; the final affected
+registry/schema/property/content/loan/deal set passes 174 tests. The Docker
+aggregate completes 1,881 passes, 15 failures, and 2 skips in 63m35s; all 15
+failures match the unrelated stale/shared-state baseline documented by PR #259,
+while the changed families are green in the final focused run. The audit
+migration round-trip and exactly one Alembic head pass; generated OpenAPI and
+TypeScript contracts are current. Feature tracking (7), migration/RLS tracking
+(11), the base-ref co-change guard, and `git diff --check` pass. Web lint,
+strict typecheck, and all 91 files / 602 tests pass. The native build compiles,
+typechecks, and generates 94/94 routes before the established Windows
+standalone-symlink `EPERM`; the strict Linux production image completes through
+standalone export and includes the correction route. An authenticated Admin
+browser pass covers Published -> Edit -> Open correction plus the 390x844 form,
+required reason, retained-media copy, return navigation, no horizontal overflow,
+and no changed-page console error. Security, design/accessibility, and final
+maintainer review found no remaining change-owned issue.
+
+**Done - [PR #266](https://github.com/brollysolutions/client1/pull/266) - pre-deployment authentication and session assurance:**
+`codex/20260829-163717-implement` closes two bounded gaps found while tracing
+the password and session lifecycle for the direct pre-deployment request.
+Unknown-mobile login now performs one verification against a valid non-secret
+Argon2id placeholder and follows the same identifier/IP failure budgets,
+nullable-subject security-event persistence, and generic rejection as a known
+account with a bad password. Password-reset capabilities now carry a dedicated
+ten-minute expiry instead of inheriting the general access-token lifetime.
+
+Signed reset purpose/mobile claims, atomic token single use, neutral account-
+state failures, refresh rotation/reuse detection, and password-triggered
+access/refresh revocation are preserved. The cookie regression asserts
+`HttpOnly`, `Secure`, `SameSite=Strict`, the exact refresh path, and host-only
+scope. The adjacent mobile-change test now correctly proves generation 1 -> 2
+for mobile replacement and 2 -> 3 for the password reset already in that
+scenario. There is no MFA/SSO, identity, role, RLS, migration, dependency, API-
+shape, or auth-screen change.
+
+Fresh evidence: both focused regressions failed before implementation and the
+final direct service tests pass; the Docker-backed auth directory passed all
+267 tests before the final audit/rate-symmetry follow-up, and the adjacent
+mobile-change regression passes afterward. All 501 API files pass Ruff and
+format checks. The aggregate API run completed with 1,877 passes and 16
+failures in 74 minutes; correcting and rerunning the one adjacent stale
+assertion leaves the same 15 unrelated stale/shared-state baselines documented
+by PR #259. Web lint, strict typecheck, and all 91 files / 601 tests pass. The
+native production build compiles, typechecks, and generates all 94 pages before
+the established Windows standalone-symlink `EPERM`; the Linux retry became
+infrastructure-inconclusive when Docker Desktop's engine stopped responding.
+Feature tracking (7), migration/RLS tracking (11), the base-ref co-change gate,
+and exactly one Alembic head pass. Security and maintainer review found no
+remaining actionable issue.
+
+**Done - shared dashboard interaction foundation:**
+`codex/20260829-163717-implement` ([PR #265](https://github.com/brollysolutions/client1/pull/265)) continues the direct pre-deployment request
+with a bounded shared-shell and primitive change. It adds dashboard bypass
+navigation and makes navigation resizing, press/hover feedback, dialogs,
+drawers, menus, and popovers use consistent restrained timing with equivalent
+reduced-motion states. It does not redesign individual workflows, add
+decorative looping motion, or alter API, authorization, RLS, business-line,
+session, payment, upload, dependency, or data behavior.
+
+The dashboard skip link is the first application-owned focus target and moves
+focus to the shared main landmark. Shared direct feedback completes in 150ms;
+structural shell/dialog/drawer changes complete in 200ms or less. Every changed
+spatial animation has a reduced-motion fallback, `transition-all` remains
+prohibited, and menu/select/tooltip/accordion/tab state remains perceivable
+without animation.
+
+Fresh evidence: the focused interaction contract failed four assertions before
+implementation and passes all four afterward; web lint and strict typecheck
+pass; all 91 web test files / 601 tests pass. A focused Playwright Client
+journey verifies visible skip focus and main-content transfer, computed
+`transition-property: none` under reduced motion, the 390px Workspace drawer,
+close behavior, and no horizontal overflow. The native build compiles,
+typechecks, and generates 94/94 pages before the established Windows
+standalone-symlink `EPERM`; the strict Linux production image completes the
+same build plus standalone copy and image export. Design/accessibility review
+found no actionable issue. The development Compose stack was restored after a
+base-only invocation briefly omitted its source-mount override; no tracked
+runtime configuration changed.
+
+**Done - pre-deployment launch foundation:**
+`codex/20260829-163717-implement` ([PR #264](https://github.com/brollysolutions/client1/pull/264); direct user instruction; no formal
+requirement or completion-percentage change) is the first cohesive slice of the
+broader pre-launch request. The public shell and campaign preview now use the
+single Dhanadhara identity, with the wordmark restored to desktop public chrome.
+Strict production-image configuration rejects missing, sample, malformed, or
+insecure public origin/contact/API/asset values while local previews retain
+explicit sample fallbacks. Privacy, Terms of Use, and the new responsive Cookie
+Notice are linked from every public footer and the sitemap. The notice records
+the two actual essential authentication cookies plus separate browser storage
+and explains why an accept-only banner would not provide meaningful consent.
+
+All web routes receive a centralized CSP, frame/object blocking, MIME-sniffing,
+referrer, permissions, opener, origin-agent, and production-only one-year HSTS
+baseline. HSTS deliberately excludes subdomains until the operator inventory
+proves they are permanently HTTPS. Normal-text brand/action/status tokens meet
+WCAG AA on white and cream; broad `transition-all` animations were replaced by
+the properties they actually animate, reduced-motion behavior was added to the
+affected shared controls, and public pages gained a first-focus skip link. The
+tracked pre-deployment checklist covers visual identity, brand promise,
+consumer psychology, narrative/claims, market execution, legal/trademark/data,
+cookies/consent, application/database/upload/payment security, TLS/secrets,
+restore/monitoring/incidents, release sign-off, and post-launch review.
+
+This slice deliberately does not introduce analytics, advertising cookies, a
+consent-management vendor, external telemetry, dependencies, auth/RLS/payment
+changes, or a page-by-page redesign. Those would widen the privacy, security,
+and regression surface beyond a reviewable launch-foundation change. Existing
+server-side authorization, secure refresh cookies, reset/session revocation,
+rate limits, upload controls, payment-webhook verification, RLS, secret guards,
+and audit logging remain unchanged and must continue to pass their existing
+gates.
+
+Fresh evidence: web lint and strict typecheck pass; all 90 test files / 597
+tests pass, including new identity, strict Docker/Compose wiring, cookie
+inventory, header/CSP/HSTS, legal-link, logo, and ten-token contrast gates. A
+fresh Next production build compiles, typechecks, and generates 94/94 pages,
+then reaches the repository's established Windows standalone-copy symlink
+`EPERM`. Desktop and 390px Playwright review returns 200 with no console error
+or horizontal overflow, exposes Dhanadhara in the shared header, puts the skip
+link first in keyboard focus, shows every cookie field as a mobile card, and
+turns off the announcement marquee under reduced motion. Security/design review
+fixed the absent public wordmark, hidden mobile table fields, overly broad
+transitions, client-side placeholder-bundle path, strict loopback allowance,
+sample-value acceptance, and premature HSTS subdomain scope. No actionable
+change-owned security or design finding remains. After an initial Docker Desktop
+engine HTTP 500/RPC EOF, the controlled retry passed: the strict Linux
+production image compiled, typechecked, generated 94/94 pages, completed
+standalone tracing/copy, and exported successfully. The pre-existing dev web
+container was restored and returned to its healthy startup path afterward.
+
+**Done - [PR #263](https://github.com/brollysolutions/client1/pull/263) - rent/lease listings and external listing links:**
+`claude/20260829-133027-rent-for-properties-link-option-while-list` ([PR #263](https://github.com/brollysolutions/client1/pull/263); direct user instruction; no formal requirement or completion-percentage
+change) adds a sale-vs-rent axis to the real-estate catalogue and a structured,
+host-allowlisted place for author-supplied links out to the property elsewhere.
+
+Before this change the catalogue was sale-only. `properties` and
+`property_submissions` had no listing-intent column, `format_inr_display` in
+`app/services/property_submissions.py` always produced lakh/crore strings, and
+`features/real-estate/property-filter-body.tsx` offered no transaction facet.
+Migration `c8d0e2f4a6b9` (off the single head `b7c9d1e3f5a8`) adds the
+`re_listing_intent` enum plus `listing_intent`, `security_deposit_paise`,
+`minimum_lease_months`, `available_from`, and `listing_links` to both tables, and
+a partial index on active rows. It is expand-only: `listing_intent` is NOT NULL
+with server default `sale`, which is an exact backfill because every pre-existing
+row was a sale listing. No RLS policy or grant changed -- `properties_rls` is a
+row-level `FOR SELECT` predicate with no column dimension, and the existing
+grants on both tables are table-wide.
+
+`price_paise` is reused as the headline amount (sale price, or monthly rent)
+rather than adding a parallel `monthly_rent_paise`, so every existing sort,
+filter, and index keeps working; `format_inr_display` branches on intent.
+Rent-only fields are rejected on a sale listing in both directions, which is what
+stops a draft switched back from Rent to Sale from shipping a stale deposit.
+`sale_type` is now optional on the project/commercial/plot detail models and is
+required for sale and forbidden for rent.
+
+The link field is a deliberate, narrow carve-out from the property no-links
+policy. `_normalize_public_text` in `app/schemas/property_details.py` still
+rejects every URL, email, and markdown link in free text, and that test still
+passes. `app/schemas/listing_links.py` derives the platform from an exact-match
+host allowlist instead of trusting an author-supplied value, so a link cannot
+wear a badge for somewhere it does not go, and `lib/listing-links.ts`
+re-resolves every stored link at render time so a row saved before an allowlist
+change cannot render as trusted. Links reach the public catalogue only through
+the existing Admin approval gate, and render with
+`target="_blank" rel="noopener noreferrer"`.
+
+Fresh evidence: API Ruff check and format pass; `alembic heads` reports exactly
+one head (`c8d0e2f4a6b9`); 61 property schema, submission, and price-display
+tests pass, including new coverage for the intent rules, host-allowlist
+rejection (non-HTTPS, embedded credentials, suffix-confusion `youtube.com.evil.example`,
+shorteners, `javascript:`, protocol-relative), platform-spoofing, the four-link
+cap, and the unchanged narrative link ban. Contracts regenerated and committed.
+Web lint passes, strict typecheck passes, and all 84 files / 567 unit tests pass,
+including the form-surface registry gate for the new
+`features/real-estate/listing-links-field.tsx`. `pnpm build` compiles, typechecks,
+and generates all 93 pages; the standalone symlink copy step fails with EPERM on
+this Windows host, which is an environment limitation of `output: "standalone"`
+and unrelated to this change.
+
+**Done - [PR #262](https://github.com/brollysolutions/client1/pull/262) - campaign phone preview withdrawn:**
+`claude/20260829-131005-remove-phone-preview-as-of-now` (direct user
+instruction; no formal requirement or completion-percentage change) removes the
+phone preview added in PR #261. With a single width remaining, the size control
+is removed rather than left rendering one option.
+
+`ViewportFrame` now renders at `DESKTOP_VIEWPORT_WIDTH` and takes no viewport
+prop; `VIEWPORT_WIDTHS`, `ViewportName`, `viewportLabel` and the `PreviewDevice`
+type are removed, as is the device state in the banner wizard, offer form,
+banner queue and offer queue. `CampaignPreviewPanel` and `WorkspacePreviewFrame`
+state the previewed width as static text. The scaling, centring, `inert`
+treatment and production-component parity are unchanged, and the file documents
+what restoring a phone preview would take.
+
+Fresh evidence: web lint, strict typecheck, and all 82 files / 523 unit tests
+pass; the viewport-contract test now asserts a single width and the absence of a
+size switcher. Live browser review on the Docker stack confirms no `Preview
+size` group and no phone or desktop control on the banner wizard, the offer
+form, or the banner edit workspace, a static `Desktop · 1440px` caption on all
+three, and the preview still laying out at 1440 CSS pixels while rendering
+scaled to 1258, with no console errors. No API, contract, migration,
+authorization, or RLS behaviour changed.
+
+**Done - [PR #261](https://github.com/brollysolutions/client1/pull/261) - campaign authoring follow-up:**
+`claude/20260829-122607-the-current-ui-is-good-for-banner` (direct user
+instruction; no formal requirement or completion-percentage change) closes six
+defects reported against PR #260.
+
+The banner workspace used `DashboardFormPage` without an aside, which caps at
+`max-w-5xl`; inside the full-screen dialog that left an empty band down the
+right-hand side. A `wide` mode now lets a form that carries its own full-width
+content fill the workspace, and both the banner wizard and the offer form use
+it -- the offer form's preview moves out of a 20rem aside and above the fields,
+where a signed-in dashboard can actually be read.
+
+The preview offered three viewports; the middle one sat between two sizes that
+already bracket every breakpoint. It is now desktop and phone only. The phone
+preview also rendered unscaled and left-aligned in a panel far wider than the
+device: `ViewportFrame` now hugs the scaled content, centres it, and frames the
+phone as a device.
+
+Every destructive confirmation used `window.confirm`, which Chrome renders as
+browser chrome pinned to the top of the window rather than over the workspace
+that asked -- reported as "popping from top of the chrome browser". `useConfirm`
+replaces all twelve call sites across the banner, offer, media library, artwork
+upload, referral and broadcast views with an in-app dialog carrying real titles,
+consequences and destructive styling. Handlers that must stay synchronous
+(`onOpenChange`) keep their dialog open and let the confirmation above it
+decide. The broadcast gate keeps its exact semantics, recipient count included.
+
+Preview chrome carried the `Logo` component's "Loans & Real Estate" wordmark; it
+now carries DhanaDhara. The offer preview rendered a lone `max-w-md` card in an
+invented content area, and now renders inside the same `Dashboard highlights`
+band and three-column grid `personalized-placements.tsx` uses in production.
+
+The approvals desk opened on every campaign ever created, with nothing marking
+the few that needed a decision, under a heading that repeated its own page
+title. It now opens filtered to `pending_approval`, carries per-tab outstanding
+counts and a workload chip, drops the duplicate heading, and gives reviewers a
+preview-led layout where the composition leads and the read-only fields support
+it.
+
+Fresh evidence: web lint, strict typecheck, and all 82 files / 524 unit tests
+pass, including a new source-scanning guard that fails if `window.confirm`
+returns to application code and a viewport-contract test that fails if a third
+preview size is reintroduced. Live browser review on the Docker stack confirms
+the workspace right-hand gap is now only the dialog's own 46px padding (was
+~380px), exactly two device controls labelled Desktop and Phone, the phone
+preview centred at 390px inside a device frame, DhanaDhara present and the old
+wordmark gone, the offer preview inside the real highlights band, in-app
+confirmations on both the wizard and the media library with **zero** native
+dialogs captured across the whole run, and the approvals desk reporting
+"125 campaigns waiting" with per-tab badges (95 / 30) and a Pending approval
+filter. No API, contract, migration, authorization, or RLS behaviour changed.
+
+**Done - [PR #260](https://github.com/brollysolutions/client1/pull/260) - Sub Admin banner and offer authoring redesign:**
+`claude/20260829-091848-lets-plan-subadmin-banners-and-offers-righ` (direct user
+instruction; no formal requirement or completion-percentage change) rebuilds the
+authoring experience PR #259 shipped around a sound data model.
+
+Four defects drove it. The preview clamped `max-width` instead of using the
+1440/768/390 viewports its own specification requires, so inside the ~480px
+authoring column "Desktop" laid the production carousel out at roughly 480 CSS
+pixels and fired mobile breakpoints under a panel labelled "Exact banner
+preview". That preview sat inside hand-drawn furniture: an invented nav bar, a
+fake Login pill, three grey skeleton blocks and a hardcoded cream that is not the
+page background. Public artwork was a text dropdown of "label - version" strings,
+and the API returned 422 for any `media_asset_id` outside the dashboard, so
+uploading an image for the homepage, sponsor or section carousels was impossible
+by design. Dashboard banners and dashboard offers had no bundled artwork at all
+while every library thumbnail was force-cropped to 2:1, leaving a 9:5 hero and a
+16:9 sponsor visually identical.
+
+A campaign now takes artwork from exactly one source: a governed category
+template, or a Media Library asset chosen or uploaded for that campaign alone.
+Property promotion still requires a template, because the category decides which
+listings a campaign may advertise. `campaign_media_assets.usage_type` splits per
+rendered surface (`homepage_banner`, `section_banner`, `sponsor`,
+`dashboard_banner`, `dashboard_offer`, `campaign`), upload validates the ratio
+against that surface's target within +/-0.08 rather than one 1.45-2.75 band, and
+the Media Library and in-form picker group by surface with thumbnails at each
+surface's real shape. Fourteen bundled dashboard/offer assets are generated
+deterministically from already-licensed campaign WebPs and registered by migration
+`b7c9d1e3f5a8`. Banner authoring is a three-step wizard (Where, Artwork, Message)
+with a persistent preview; `/dashboard/banners` and `/dashboard/offers` are
+separate pages that both reach the Media Library as a destination and as an
+in-form picker, and `/dashboard/campaigns` redirects so pre-split notification
+links keep resolving.
+
+Two latent defects were found and fixed on the way. Six call sites resolved a
+banner/offer `image_key` through `storage.public_asset_url`, which returns None
+for the bundled `/banner-templates/...` references the Media Library already
+stored -- such campaigns rendered imageless and `validate_offer_for_review`
+rejected the offer outright, so bundled artwork could never be submitted. And the
+`allow_legacy` escape hatch matched every media-backed public banner, so a PATCH
+clearing `media_asset_id` would have left a public banner with no artwork.
+
+Fresh evidence: API Ruff check and format pass; the migration applies cleanly and
+Alembic reports the single `b7c9d1e3f5a8` head; OpenAPI and generated TypeScript
+contracts were regenerated and contain only the expected `usage_type` enum delta.
+Thirteen new API tests cover media-backed public banners at all four public
+placements, both artwork sources rejected together, cross-surface artwork
+rejected, artwork-less public banners rejected on create and on patch, bundled
+`image_url` resolution, and offer submission on bundled artwork. The full
+changed-and-adjacent set -- campaign media, banners, offers, public banners,
+personalization, banner catalogue, platform-scope RLS, media processing and CMS
+activation -- passes 185 tests against the final tree. The aggregate run reached
+1,819 passes / 17 failures / 10 skips in 1h39m on the shared stateful database;
+none is change-owned. The only campaign-adjacent one,
+`test_cms_activation.py::test_legacy_offer_link_does_not_gate_banner_activation`,
+passes 23/23 in isolation, and the remaining sixteen are the documented
+payout, content-block, catalogue, mobile-change, notification, telecaller,
+vehicle-arrangement and employee-assignment baselines that predate this branch. Web lint, strict
+typecheck and all 81 files / 521 unit tests pass, including new surface-geometry
+and preview-chrome tests and an extended asset-contract test pinning the seeded
+artwork by geometry and hash. Live browser verification on the Docker stack
+confirms the preview lays out at 1440 CSS pixels and renders scaled to 946, the
+mobile toggle switches the real layout width to 390, the library segregates into
+six surface sections whose thumbnails measure 1.80/1.78/2.50, the picker swaps
+artwork sets with the placement, both authoring pages reach the Media Library,
+the legacy `/dashboard/campaigns` links redirect, heading order is h1 then h2, and
+390px has no page-level horizontal overflow with no console errors. The Windows
+`pnpm build` reaches "Compiled successfully", type validation and 93/93 pages
+before the established standalone-symlink `EPERM`, which reproduces identically on
+a clean baseline tree. Security review found no reachable issue: client-settable
+`image_key` remains pattern-locked to `public/(banners|campaign-media)/<uuid>/`,
+`image_ref` is database-constrained and `..`-free, per-placement usage types and
+the business-line check gate every attach, and the listing now returns fewer
+fields than before. Design review moved the library heading level under the page
+h1, moved `aria-invalid` off a wrapper div onto the radiogroup widgets, gave
+images explicit intrinsic dimensions, and named the wizard's form controls.
+
+**Done - [PR #259](https://github.com/brollysolutions/client1/pull/259) - Sub
+Admin Campaign Studio, campaign Media Library, and Admin approval desk:**
+`codex/20260828-222513-banners-and-offers-are-managed-by-subadmin`
+(direct user instruction; no formal requirement or completion-percentage
+change) moves banner and authenticated-offer authoring
+entirely to the shared Sub Admin team. Admin now has a read-only approval desk
+with production-matched desktop/tablet/mobile previews, approve, reasoned
+change request, and audited soft removal; removed campaigns are excluded from
+staff lists, public/personalized serving, activation jobs, and dashboard
+counts. Optimistic versions protect team edits, creator identity remains
+immutable provenance, reviewed campaigns retain history, and lifecycle
+decisions notify the original maker.
+
+The Sub Admin-only Media Library provides scanned/canonicalized JPEG, PNG, and
+WebP upload, business-line and placement metadata, alt text, tags, provenance,
+archive/restore, live where-used evidence, and permanent deletion only when no
+template/banner/offer reference exists. PostgreSQL RLS independently denies
+Admin and Client catalogue access. The existing 44 governed template images
+are registered without URL changes, historical uploaded references are
+backfilled, and three generated wide/text-free WebP starter images are added.
+Provider logos, public interface illustrations, listing fallbacks, notification
+icons, and private/customer uploads retain their existing purpose-specific
+ownership and storage boundaries. Legacy routes redirect into one uncluttered
+Campaign Studio or the approval desk, and navigation exposes Media Library only
+to Sub Admin.
+
+Fresh evidence: API Ruff and format checks pass; the additive migration
+downgrades/upgrades cleanly and Alembic reports the single
+`a6b8c0d2e4f7` head; OpenAPI and generated TypeScript contracts were regenerated.
+The broad changed/adjacent campaign, serving, scheduler, authorization, and RLS
+set passes 171 tests, and the final campaign media/banner/offer rerun passes 59
+tests. The aggregate API run produced 1,815 passes and 18 failures; three new
+exhaustive classification/policy-ledger failures were fixed and included in the
+171-test pass, leaving 15 unrelated stateful/stale payout, content-block,
+catalogue, mobile-change, notification, telecaller, and vehicle baselines.
+Web lint, strict typecheck, and all 80 files / 511 unit tests pass. Three focused
+live-stack Playwright role journeys pass for Sub Admin authoring/library/legacy
+redirects and Admin approval/media denial. The Linux production image compiles,
+typechecks, generates all 93 pages, and completes standalone tracing. Security
+review fixed public-object cleanup on failed media transactions and blank-note
+normalization; design review removed redundant campaign chips, associated new
+controls, preserved unsaved-upload confirmation, and added picker error/archive
+states. Final security, responsive/accessibility, and maintainer review found no
+remaining actionable issue. Delivery is linked in PR #259.
+
+**Done — [PR #258](https://github.com/brollysolutions/client1/pull/258) —
+invitation, staff access, finance, banner, offer, and responsive-dashboard
+overhaul:**
+`codex/20260828-165138-1-agent-invite-modify-agent-invite-ui` (
+direct user instruction; no formal requirement or completion-percentage change)
+moves Agent and staff invitation password creation into the existing auth shell
+without changing their public token URLs. Admin staff creation is now a floating
+workspace rather than an always-visible card; a one-use setup link is attempted
+immediately after creation and remains retryable beside the legacy one-time
+password fallback. Staff access and Operational accounts have full-view floating
+directories with advanced filters, while the page keeps compact previews.
+
+Sub Admin finance now has a dedicated overview, maker-only payout requests, and
+future-rule/referral activity separated from Admin review and settlement.
+Referral rules use live/retired language and can be permanently deleted only by
+their owner (or platform Admin) after retirement and only when no referral
+history references them; the foreign key and race translation preserve used
+rules. Admin owns immutable banner-media versioning, and Sub Admin lists/authors
+campaigns from approved media. Coupon offers are now image-led partner campaigns
+with draft, approval, scheduling, activation, expiry, and archive audit evidence;
+they require an HTTPS partner destination, code, artwork, visible terms, and an
+explicit Client/Agent/Employee/Telecaller audience. Anonymous offer serving and
+public banner coupon badges are removed. Dashboard users copy the code, open the
+partner checkout, and enter it before payment; Dhanadhara neither applies nor
+tracks redemption without a partner integration.
+
+Shared filter controls use responsive auto-fit layout, shared tables render as
+mobile cards below desktop widths, nested controls no longer trigger row opens,
+and global horizontal scrollbar chrome is removed without requiring page-level
+horizontal scrolling. Duplicate `/dashboard/banners/new` and
+`/dashboard/offers/new` pages are gone. The offer artwork orphan sweep now keeps
+both banner and offer references, line changes clear stale placement state, and
+malformed nullable PATCH fields fail at validation instead of reaching database
+constraints.
+
+Fresh evidence: API Ruff and format pass; the two migrations downgrade and
+upgrade cleanly and Alembic reports one head; OpenAPI and generated TypeScript
+contracts are current; 144 changed/adjacent API, RLS, scheduler, public-serving,
+orphan-cleanup, and authorization tests pass. Web lint, strict typecheck, and all
+80 unit-test files / 510 tests pass. The isolated Linux Docker production build
+compiles, typechecks, generates 90/90 pages, and completes standalone tracing.
+Eight focused Playwright scenarios pass for every role's navigation, Admin staff
+creation, removed authoring pages, and all three Sub Admin floating workspaces;
+manual review covered the changed Admin/Sub Admin pages and invalid invite links
+at desktop and 390px mobile widths. The aggregate API run stops on an unrelated
+stale content-block RLS assertion whose expected policy predates checked-in
+migration `aa12bb34cc56`; the full Playwright command also exhausts its existing
+per-IP OTP test budget and contains one unrelated provider-link expectation.
+Security, responsive design/accessibility, and maintainer review found no
+remaining change-owned defect.
+
+**Done on branch - Admin operational refinements for loan, filters, providers,
+staff layout, and Agent setup handoff:**
+`codex/20260828-123646-1-problem-with-the-floating-window-of`
+([PR #257](https://github.com/brollysolutions/client1/pull/257);
+direct user instruction; no requirement or completion-percentage change) makes
+the Admin loan-application window a bounded, content-sized wide panel; keeps
+Clear filters in the shared control grid instead of allocating a second action
+row; and gives Create staff account and Staff access equal desktop columns and
+matched panel height.
+
+Financial Providers now completes CRUD with guarded permanent deletion. Admin
+may delete only a provider with zero loan-application and zero configured-offer
+references; referenced providers remain disable-only. Application and offer
+counts are returned in the generated contract and shown in the provider table.
+The service locks the provider, rechecks both reference families, maps a final
+foreign-key race to `409`, appends `bank_deleted`, and cleans up only canonical
+managed logo objects after commit. An additive migration replaces the historical
+loan-application `SET NULL` foreign key with `RESTRICT`, grants Admin-only delete
+through RLS, and keeps availability rows as disposable cascading configuration.
+
+Agent approval now has the same safer link handoff as staff provisioning. A
+new Setup links tab lists approved active Agents still awaiting their first
+password, is refreshed whenever opened, and is paginated at ten rows; Admin can
+create/copy/share/revoke or replace a seven-day link immediately after approval
+or later. The public noindex `/agent-invite/{token}` page reuses the established
+password form. Link rows store only SHA-256 token hashes and lifecycle/identity
+foreign keys; a partial unique index permits one outstanding link per identity;
+Admin-only, column-scoped RLS protects issuance/revocation; anonymous preview
+and acceptance have separate IP budgets, rederive approved/profile/account
+eligibility, and consume the link atomically with password activation. Unknown,
+expired, used, and revoked tokens share one response, and audit details contain
+neither token nor applicant PII.
+
+Fresh evidence: API Ruff check/format and the exhaustive operational-coverage,
+route-authorization, business-line-classification, and platform-scope contracts
+pass. Eighty Docker-backed provider/invite/API/RLS and exhaustive-contract tests pass, covering
+unused deletion, application/offer refusal, role denial, link issue/reissue,
+revoke/expiry, password-policy non-consumption, acceptance/login, and delayed
+candidate removal. Web lint, strict typecheck, and all 80 files / 512 tests pass.
+The production build compiled, typechecked, and generated 90/90 pages before
+the established Windows standalone-symlink `EPERM`. Live Playwright at 1440px
+measured equal 554px staff panels, Clear filters on the same row, and the loan
+dialog at 1024x415 instead of 1408x968; the Agent Setup links tab loaded without
+console errors and the 390px body had no horizontal page overflow. The aggregate API run completed 1,799 passes / 22 failures in a
+stateful shared database; three new exhaustive-contract failures were fixed and
+pass in isolation, while the remaining failures are unrelated seeded-count,
+suite-order/RLS-state, payout/mobile, notification, telecaller, and vehicle
+tests outside this diff. Security, responsive design/accessibility, and
+maintainer review found no remaining change-owned issue.
+
+**Done on branch - restore one Alembic head after independent migrations:**
+`fix/merge-alembic-heads` addresses the Docker startup failure introduced when
+the Lead Details validation migration (`84a5b6c7d8e9`) and staff first-login
+invite migration (`b1f7c93ad204`) both landed as children of
+`73f4c2a91d6e`. Alembic correctly refuses the ambiguous singular `head`, so the
+API exits before binding its port and scheduler/web dependencies cannot start.
+The fix is an empty merge revision with both revisions as parents. It does not
+change schema, data, grants, RLS, either parent's upgrade/downgrade logic, API
+contracts, or requirement completion.
+
+Fresh evidence: host and container `alembic heads` report only
+`c2d8e4f6a901`; the live database records that mergepoint. Startup applied the
+outstanding staff-invite branch and then the merge revision, while the already
+applied loan-transaction branch remained intact. Database inspection confirms
+both `staff_invite_links` and the non-empty transaction-history check. The
+migration/RLS and Ruff checks pass, and API, scheduler, and web all reach
+healthy. Downgrading the merge revision intentionally changes no object and
+only re-exposes the two parent heads.
+
+**Done - concise server-fetch timeout diagnostics** on
+`codex/20260827-065108-the-lead-details-page-ui-its-kinda` ([PR
+#245](https://github.com/brollysolutions/client1/pull/245); direct user-reported
+Docker log noise; no requirement or completion-percentage change): the
+five-second anonymous server-fetch guard, typed failure result, and fail-soft
+homepage behavior are unchanged. Network exceptions are now logged as a
+bounded name/message string instead of a raw Node `DOMException`,
+so Next.js no longer prints `INDEX_SIZE_ERR` through `DATA_CLONE_ERR` around an
+otherwise actionable timeout. The regression failed first against the raw
+object and passes with the concise `TimeoutError` diagnostic. ESLint, strict
+typecheck, and all 80 web test files / 511 tests pass. The production build
+compiled, typechecked, and generated 93/93 pages; its unavailable build-time
+API reproduced concise timeout/fetch diagnostics before the unchanged Windows
+standalone-symlink `EPERM`. No API, contract, authorization/RLS, data,
+dependency, timeout policy, parse-error diagnostics, or rendered UI changed.
+**Done - Admin/Sub Admin dashboard overhaul, Phases 1-9:** the work was rebased
+and merged one phase at a time through [PR #246](https://github.com/brollysolutions/client1/pull/246),
+[#247](https://github.com/brollysolutions/client1/pull/247),
+[#248](https://github.com/brollysolutions/client1/pull/248),
+[#249](https://github.com/brollysolutions/client1/pull/249),
+[#250](https://github.com/brollysolutions/client1/pull/250),
+[#251](https://github.com/brollysolutions/client1/pull/251),
+[#252](https://github.com/brollysolutions/client1/pull/252),
+[#253](https://github.com/brollysolutions/client1/pull/253), and
+[#254](https://github.com/brollysolutions/client1/pull/254). Conflict resolution
+preserved the newer shared 25-row pagination and Lead Details validation work
+that landed after the original overhaul branch diverged. Final cumulative
+evidence is strict typecheck plus all 81 web test files / 515 tests; the commit
+gates also pass feature tracking, migration/RLS checks, API lint/format, and web
+lint. The detailed phase sections below retain their contemporaneous evidence.
+
+**Done - optional public content-block 404 log classification** on
+`codex/20260827-065108-the-lead-details-page-ui-its-kinda` ([PR
+#244](https://github.com/brollysolutions/client1/pull/244); direct user-reported
+operational noise; no requirement or completion-percentage change): PostgreSQL
+checkpoint completion and PgBouncer login-attempt entries are normal. The
+public API intentionally retains `404` for a missing or
+unpublished optional block, while the server-only fetch wrapper now lets this
+specific caller declare that status expected without changing its typed failure
+result. Unexpected `404`/`500`, network, and parse failures remain logged.
+Fresh evidence: the focused 11-test regression and neighboring 44-test public
+fetch set pass; ESLint and strict typecheck pass; all 80 web test files / 511
+tests pass. Live Docker verification records the API's intentional
+`homepage-closing` `404` as INFO, the homepage as `200`, and no matching web
+`serverFetchJson.http_error`. The production build compiled, typechecked, and
+generated 93/93 pages before the unchanged Windows standalone-symlink `EPERM`;
+host-side Docker-only `api` DNS failures continued to fall back and log.
+
+**Done - explicit pagination for growing dashboard lists** on
+`codex/20260827-065108-the-lead-details-page-ui-its-kinda` ([PR
+#243](https://github.com/brollysolutions/client1/pull/243); direct user instruction;
+no requirement or completion-percentage change): the audit confirmed that the
+application had no infinite-scroll implementation. A shared accessible 25-row
+Previous/Next control now bounds every identified primary growing dashboard
+history or work queue that previously rendered its full fetched collection:
+Client loan applications, transactions, support tickets, referrals, property
+submissions, and loan-media application groups; Agent leads and commission
+history; Telecaller leads; Employee tasks and vehicle arrangements; and Admin
+commission/cashback/referral/support queues, financial products, document
+verification groups, and all report tables. Existing Admin/Sub Admin paginated
+surfaces reuse the compatible shared control. Pages clamp safely after a
+collection shrinks, and filter/sort changes reset affected views to page one.
+
+No API, generated contract, authorization, RLS, business-line scope, query
+ordering, filter semantics, totals, or money-transition behavior changed.
+Finite child lists tied to one lead/application, intentionally capped dashboard
+previews, fixed configuration matrices, and already server-paginated catalogue
+or audit views remain unchanged. Fresh evidence: web lint and typecheck pass;
+all 80 Vitest files / 510 tests pass, including four focused helper tests. The
+production build compiled, typechecked, and generated 93/93 pages before the
+established Windows standalone-symlink `EPERM`; unrelated public API fetches
+timed out during static generation and used their existing fallbacks. A
+source-level design/accessibility review found no actionable issue. Live
+Playwright could reach the local web app but the prior authenticated session had
+expired (`/api/v1/auth/refresh` returned 401), and the environment had no
+synthetic 26-row role dataset, so interactive Next-page verification remains the
+documented residual gap rather than mutating seed data solely for proof.
+
+**Done - Telecaller Lead Details validation and workflow hierarchy** on
+`codex/20260827-065108-the-lead-details-page-ui-its-kinda` ([PR
+#242](https://github.com/brollysolutions/client1/pull/242);
+direct user-reported defect and UI follow-up; no requirement or completion-
+percentage change): loan transaction creation now requires a trimmed bank,
+positive amount, 0-100% interest rate, and date at both web and FastAPI
+boundaries. Numeric precision matches the PostgreSQL columns, extra request
+fields are rejected, and an additive migration removes only wholly blank
+legacy rows before adding a narrow non-empty check; partial historical rows,
+append-only behavior, grants, RLS, assigned-lead authorization, and business-
+line isolation are preserved. Field tasks now require trimmed instructions and
+future optional due times; call follow-ups, loan progress terms, and property
+deal terms have matching inline validation, API issue mapping, and first-invalid
+focus. The generated OpenAPI and TypeScript contracts are updated.
+
+The page now puts application/deal work first, collapses submitted application
+answers, presents immutable transaction history as a labelled table, groups
+status and call logging in a compact desktop rail, and orders those call controls
+immediately after the business workflow on mobile. The header exposes visible
+Phone and WhatsApp buttons. Fresh evidence: API Ruff/format; 22 schema tests;
+three Docker-backed API/database-RLS tests; migration downgrade/upgrade/upgrade
+and one Alembic head; web lint/typecheck and 79 files / 506 tests (including seven
+new focused validators); production compilation, type validation, and 93/93 page
+generation before the established Windows standalone-symlink `EPERM`; and live
+desktop/mobile Playwright review. An empty browser submission showed all four
+field errors, focused Bank, and emitted no transaction request; the migrated
+page retained its meaningful row without the two blank rows. The aggregate API
+run reached 19% before the unchanged Admin coverage-contract failure for
+`financial_product_provider_offers`, reproduced with `--lf -x`. Security,
+design/accessibility, and maintainer review found no change-owned issue.
+**In progress - Admin/Sub Admin dashboard overhaul Phase 9: remaining CMS
+queues, property submissions, and staff Website content removal** on
+`claude/20260827-admin-subadmin-ui-foundation` (direct user instruction;
+completion coverage remains 99.4% pending a formal SRS revision): Banners and
+offers now use the full-width dashboard shell and the shared `FilterBar`,
+`DataTable`, status badge, loading/empty/error states, pagination, and row-open
+workspace interaction. Admin can still approve, reject, archive, and inspect
+banner records but cannot edit draft/rejected fields; the Admin offers view is
+read-only. Sub Admin retains the existing banner/offer authoring actions,
+replacement rules, schedules, audience grammar, raster-media validation,
+approval lifecycle, and dirty-close protections. Referral and banner authoring
+now use the shared form-section hierarchy, as do audience targeting fields.
+
+My property submissions moves from a card list to the shared data table and
+opens a centred record dialog containing its state, listing details, reviewer
+note, and the existing Edit and irreversible Withdraw actions. Property
+submission and subtype-detail forms now use shared form sections without
+changing taxonomy, validation, RERA, media, edit, or withdrawal behavior.
+
+The final direct product instruction removes Website content management from
+both staff roles. The Admin/Sub Admin navigation and route grants, Sub Admin
+home metric/quick action, `/dashboard/content` pages, staff content queue/form,
+guide, preview, filter, API client, form-registry entries, and browser/unit
+expectations have been removed. Direct navigation now returns 404 for both
+roles. This does not delete existing content records or public-site copy:
+public content-block rendering and tests remain, and backend content endpoints,
+authorization, data, and lifecycle rules are unchanged. Earlier ledger entries
+describing the former Sub Admin content workspace remain historical evidence
+and are superseded only as to current staff UI availability.
+
+Fresh evidence: `pnpm lint`, `pnpm typecheck`, and all 81 web test files / 515
+tests pass. Browser verification covered Admin and Sub Admin at desktop and 390
+x 844, including the banner, offer, referral-rule, property-submission, and new
+property workspaces; it confirmed Admin read-only fields, the new form-section
+hierarchy, both-role content-route 404s, and no submitted mutation. Root/body
+overflow is clipped horizontally, and wide nested tables preserve scrolling
+while reporting hidden horizontal scrollbar chrome. The normal Docker web
+service was restored healthy. The requested `design-review` skill was not
+installed, so the responsive review used the repository design primitives
+directly and found no remaining change-owned issue. No API contract, migration,
+auth, RLS, approval, payout, media, or public-rendering behavior changed.
+
+**In progress - Admin/Sub Admin dashboard overhaul Phase 8: Analytics,
+Broadcast, and immutable Audit log** on
+`claude/20260827-admin-subadmin-ui-foundation` (direct user instruction; no
+requirement or completion-percentage change): all three views now use the
+full-width dashboard shell. Analytics replaces its one-off stat tiles with
+shared `MetricGrid`/`MetricCard` and composes report dates, line, presets,
+weekly/monthly grouping, and multi-Agent selection through the shared filter
+container. The generic sortable `ReportTable`, server-side pagination, CSV and
+Excel export, Agent team summaries, and `useReport` request-id race guard are
+unchanged. No chart was added, so the plan's conditional `dataviz` skill did
+not apply.
+
+Broadcast is now a shared dashboard panel without weakening its irreversible
+action boundary. Send stays disabled until Preview audience succeeds; changing
+audience or business line invalidates that preview; field and same-origin link
+validation still runs; and `window.confirm` still names the exact recipient
+count and says the action cannot be undone. Browser verification resolved 612
+matching Clients, opened the exact-count confirmation, dismissed it, and
+confirmed from network history that only the preview endpoint ran—no broadcast
+was sent.
+
+Audit log moves from a bespoke card feed onto shared `FilterBar`, `DataTable`,
+loading/empty/error states, and pagination. Rows remain keyboard/click
+operable and open the existing structured-detail dialog, including nested JSON.
+The generated-contract-backed `ACTION_META` map remains exhaustive, retaining
+the compile-time failure when a backend action is added without a label/icon.
+Actor automation versus deleted-account wording, role labels, record ids,
+business line, and timestamps remain visible. The form-surface registry now
+correctly classifies the shared filter rather than the Audit wrapper.
+
+Fresh evidence: `pnpm lint`, `pnpm typecheck`, and all 79 web test files / 505
+tests pass. Playwright covered Analytics, Broadcast, and Audit log at 1440 px
+and 390 x 844; the document and body matched each viewport, mobile Audit's wide
+table retained non-zero `scrollLeft` with hidden scrollbar chrome, an Audit
+detail payload rendered, and Broadcast Send was disabled before preview. The
+only console error was the repository's pre-existing missing favicon; no
+changed-route request or runtime error occurred. No API contract, migration,
+auth, RLS, report query/export, audit immutability, or notification-delivery
+behavior changed.
+
+**In progress - Admin/Sub Admin dashboard overhaul Phase 7: finance ledgers,
+payout controls, and referral rules** on
+`claude/20260827-admin-subadmin-ui-foundation` (direct user instruction; no
+requirement or completion-percentage change): the Payouts, Agent commissions,
+Processing-fee cashback, Referral payouts, and Referral bonus rules surfaces
+now use the full-width dashboard shell and the shared filter bar, data table,
+status badge, loading/empty states, and pagination. Search, status,
+business-line, date, and applicable payout-type filters are available without
+discarding cancellation reasons, referral ineligibility reasons, checker
+identity, or rejection context. The Phase 6 global treatment hides their
+nested horizontal scrollbar chrome without making wide finance tables expand
+the document.
+
+Commission and cashback were near-line-for-line copies. Their eligible and
+ledger tabs now share `MoneyLedgerView`, while the commission, cashback, and
+referral destination dialogs are thin domain wrappers over one
+`MoneyPayoutDialog`. Domain payload builders, API methods, entry dialogs,
+cancellation flows, and server validation remain separate. A pure
+`getMoneyPayoutRequestState` helper and three regression cases lock the exact
+tri-state rule behind the prior double-click defect: only an unlinked payable
+row offers Pay; a payable row with a payout id says Payout raised; terminal
+rows stay settled. The main Payouts table still permits Admin review, reports
+when the viewer is the maker, and renders Approve only when
+`viewer_can_approve`; manual cheque issue, clearance, failure, and reversal are
+unchanged.
+
+Referral rules retains the role boundary: Admin sees the configuration and
+payout history read-only, while Sub Admin can create and activate/deactivate
+rules. The authoring form remains in a full-screen workspace and retains the
+dirty-close confirmation. No API contract, migration, auth, RLS, ledger,
+payout, settlement, or business-line behavior changed.
+
+Fresh evidence: `pnpm lint` and `pnpm typecheck` pass; all 79 web test files /
+505 tests pass, including the new payout-state tests and the exhaustive form
+surface registry. Playwright checked all five Admin routes at 1440 px and 390 x
+844, opened a maker-checker review dialog without mutating it, and checked the
+Sub Admin referral-rule authoring workspace at 390 x 844. On every route,
+document and body widths matched the viewport; all horizontal utility
+scrollers reported hidden bars, and mobile wide-table scrollers retained
+programmatic scroll. The only browser errors were the pre-existing missing favicon and the expected refresh
+401 created while deliberately clearing the Admin session before the Sub
+Admin login; no changed-route request or runtime error occurred.
+
+**In progress - Admin/Sub Admin dashboard overhaul Phase 6: financial-product
+catalogue and provider configuration** on
+`claude/20260827-admin-subadmin-ui-foundation` (direct user instruction; no
+requirement or completion-percentage change): Financial products is now a
+filterable, sortable, paginated table rather than a stack of edit cards. Each
+row opens one full-screen product workspace with separate Details, Application
+form, and Providers tabs. Form edits keep the existing versioned schema
+contract. The Details tab carries the editable name/active/visibility/feature/
+order controls; the read-only public summary, description, highlights,
+eligibility, documents, and FAQs were removed from the workspace, so the
+frozen-copy boundary is now expressed by their absence rather than by a
+read-only rendering. The catalogue table carries explicit Edit and
+Activate/Deactivate row actions; there is still no hard delete, because
+historical applications keep the exact form version they were submitted
+against.
+The top-level surface now has only Product catalogue and Providers & logos;
+provider availability and public offers live together inside the selected
+product instead of competing as global tabs.
+
+The provider workspace keeps operational assignment and public publication as
+separate controls and derives one explicit presentation state: Live on landing
+page, Draft offer, Operational only, or Unavailable. Live requires an existing
+published offer, a verification date, an active/public product, and an active
+provider. Missing availability still defaults to operationally available for
+staff, but can never infer public display. A shared pure state helper now powers
+both the provider table and catalogue live-count column, with tests that turn
+off every publication gate independently. Provider creation/editing and the
+raster-only logo/provenance workflow remain intact on the redesigned provider
+library table. No API contract, migration, auth, RLS, or public-copy mutation
+surface changed.
+
+Per the direct follow-up to remove horizontal scrollbar chrome everywhere,
+`globals.css` now suppresses visible horizontal bars for every
+`overflow-x-auto`/`overflow-x-scroll` surface while retaining touch, trackpad,
+keyboard, and programmatic scrolling. Root overflow is clipped horizontally so
+a wide nested table cannot create a document-level bar. Mixed-axis scrollers
+retain their vertical bar. Browser evidence at 390 px confirms document and
+body widths equal the viewport, the table still accepts `scrollLeft`, and its
+horizontal scrollbar is hidden.
+
+Fresh evidence: `pnpm lint` and `pnpm typecheck` pass; all 78 web test files /
+502 tests pass, including 8 catalogue-state tests and the provider-draft
+validation suite. Desktop and 390 x 844 browser passes covered the catalogue,
+workspace tabs, provider picker/editor, frozen public copy, independent save
+actions, and scrollbar behavior. The requested `apple-design` and
+`design-review` skills were not installed in this session, so the responsive
+review was performed manually against the repository design primitives and
+found no remaining change-owned issue.
+
+**Implemented on branch - Admin/Sub Admin dashboard overhaul Phase 5: secure staff
+first-login invite links** on
+`claude/20260827-admin-subadmin-ui-foundation` (direct user instruction; no
+requirement or completion-percentage change): provisioning retains its existing
+one-time temporary-password fallback but now gives Admin the safer primary
+handoff: create a seven-day first-login link, Copy link, Share (with clipboard
+fallback), and Revoke. Reissuing revokes the outstanding link. The anonymous
+`/staff-invite/[token]` page displays only first name and role, reuses the
+shared password form and policy, then activates the identity and burns the link
+in one transaction; used, revoked, expired, malformed, and unknown tokens all
+produce the same public invalid state.
+
+The new `staff_invite_links` table contains no raw token or PII: only a SHA-256
+token hash, identity/profile/issuer foreign keys, expiry, and lifecycle
+timestamps. Its partial unique index permits one live link per invitee;
+Admin-only RLS plus column-scoped `UPDATE (used_at, revoked_at)` prevents a row
+from being repointed. Public validation and consumption run on the internal
+service session but rederive active-profile and `pending_password_reset`
+eligibility from the database, with `SELECT ... FOR UPDATE` serialising
+consumption. Preview and accept use separate IP rate-limit counters, and audit
+events contain link/profile ids but never the raw token, mobile, email, or
+password. An Admin-issued invite is refused once the owner has chosen a
+password, so the feature cannot become an account-reset primitive.
+
+Fresh evidence: `pnpm lint`, `pnpm typecheck`, and all 499 web unit tests pass;
+API `ruff check` and `ruff format --check` pass. The branch migration was
+applied to an isolated `app_test` database and all 8 focused integration tests
+pass, covering successful set-password/login, single use, replacement,
+revoke/expiry, staff/password-reset eligibility, password-policy rejection
+without burning the link, Admin-only issue/revoke, and indistinguishable invalid
+tokens. The requested `security-review` skill was not available in this
+session; a manual review of token persistence, anonymous exposure, RLS/grants,
+rate limiting, audit data, locking, and eligibility rechecks found one UX
+acceptance gap (no reusable Share action after creation), fixed it, and found no
+remaining change-owned security issue. Final private-window browser verification
+remains part of the end-of-track interactive pass.
+
+**Done - Real-estate browse-card redesign** on
+`claude/20260825-211218-remove-browse-by-type-section-in-explore` ([PR
+#236](https://github.com/brollysolutions/client1/pull/236)): the
+user-approved compact card now uses a 16:9 media band, available-only comparison
+facts, price, compact bookmark/compare controls, a verified-only RERA corner,
+and View details as its sole primary action. Failed approved media falls back to
+local subtype artwork. Enquiry, site-visit booking, media, full specifications,
+and the RERA number remain on the existing details page. Playwright verified the
+desktop/mobile composition and navigation; 72 Vitest files / 454 tests, lint,
+and typecheck pass. The build completed compilation, type validation, and 93/93
+page generation before the documented Windows standalone-symlink `EPERM`.
+
+**Done - Agent dashboard UI overhaul: demo banner removal, dashboard-primitive
+migration, copy-link UX, notification-bell dropdown unread filter, +91 phone
+default across application forms** on `claude/20260826-agent-dashboard-ui-overhaul`
+([PR #235](https://github.com/brollysolutions/client1/pull/235); branched
+fresh from `upstream/main` via a sibling worktree, since the prior task
+branch had unrelated uncommitted property-card/docs changes the user asked
+to leave untouched; direct user-reported UI/bug-fix batch, no requirement or
+completion-percentage change): seven changes across the agent dashboard, no
+auth/RLS/payout/migration/contract surface touched.
+
+(1) `apps/api/app/scripts/seed_demo.py`: the "Demo Loans workspace" and "Demo
+Real Estate workspace" `LIVE`-status seed banners are deleted outright (the
+`banner:pending` `PENDING_APPROVAL` row stays — it feeds the Sub Admin
+approval-queue UI, not the agent dashboard). `PersonalizedPlacements`
+(`apps/web/features/dashboard/personalized-placements.tsx`) already falls
+back to real, role-aware, non-synthetic copy (`fallbackBanner()`) when no live
+banner exists, so the agent dashboard now shows that fallback instead of the
+two demo cards, with no component change needed.
+
+(2) Leads (`agent-leads-view.tsx`), Earnings (`agent-earnings-view.tsx`), and
+Introduce-a-lead (`agent-introduce-lead-form.tsx`) — none of which previously
+used the shared `dashboard-ui.tsx` layout primitives Transactions/Agent Home
+already use — are migrated onto `DashboardPage`/`DashboardHeader`/
+`DashboardPanel`/`DashboardFormPage`/`DashboardFormSection`. Leads' table is
+re-homed inside a `DashboardPanel`, reusing Transactions' proven table-shell
+classes verbatim rather than extracting a new shared `DataTable` component
+(only two structurally-different table call sites exist; not enough to
+justify a generic abstraction yet). Earnings drops its local `StatTile`
+helper (which duplicated `MetricCard`) for a bespoke 3-column grid reusing
+`MetricCard` directly — `MetricGrid` itself is a fixed `sm:2/xl:4` layout and
+a 3-card row would leave an uneven cell, so Earnings keeps its own
+`grid gap-3 sm:grid-cols-3` wrapper around three `MetricCard`s instead,
+documented inline. Its empty state now matches the icon-in-circle
+convention Leads/Transactions already use, via `DASHBOARD_ICONS.earnings`
+instead of a direct `lucide-react` import. Introduce-a-lead moves onto
+`DashboardFormPage`/`DashboardFormSection` (the pattern already established
+in `features/sub-admin/offer-form.tsx`). Agent Home's and Leads' duplicated
+hand-rolled "Introduce a lead" CTA `<Link>` (raw `bg-brand-cta` classes) is
+normalized to `Button asChild` wrapping the same `Link`, preserving the exact
+brand-cta color via `className` (not the `Button` `cta` variant, which is a
+different token/color) so no visual regression.
+
+(3) `agent-lead-detail-view.tsx`'s `copyRegistrationLink` gains a temporary
+in-button "Copied" state: a `copied` boolean flips true on a successful
+`navigator.clipboard.writeText`, the button's icon/label swap (`Copy`/`Check`
+from `lucide-react`, label text) for ~2s via a cleanup-safe `setTimeout` (ref
+cleared on unmount), and the label is wrapped in `aria-live="polite"` so
+screen readers get the state change even if they miss the toast. The existing
+`sonner` toast is kept alongside it, not replaced. The copied URL itself
+(`${window.location.origin}/register`, generic, unpersonalized) is unchanged
+— no referral/ref-code work was in scope. Both of this view's hand-rolled
+`rounded-2xl border ... p-5` cards are wrapped in `DashboardPanel` in the same
+pass (the status pill moves into `DashboardPanel`'s `action` slot).
+
+(4) Notification bell dropdown preview: previously `notification-bell.tsx`
+rendered `items.slice(0, PREVIEW_LIMIT)` directly, so after "mark all as
+read" the preview kept showing the same (now-read) rows — a real, separate
+gap from the one the notification redesign entry below already fixed for the
+*full* `/dashboard/notifications` page (that page's Unread/All tab). A new
+pure helper `selectUnreadPreview(items, limit)` in `lib/notification-state.ts`
+filters to `readAt === null` *before* slicing (not after — a slice-then-filter
+would under-fill the preview if a read row occupied one of the first `limit`
+slots; a dedicated test locks this down). `notification-bell.tsx` now renders
+`selectUnreadPreview(items, PREVIEW_LIMIT)`; since every previewed row is
+unread by construction, the per-row `!notification.readAt` conditionals
+(unread dot, `bg-muted/40` highlight) simplify to unconditional. A new "You
+are all caught up" empty state (reusing the header subtitle's exact existing
+copy) is distinct from the true "No notifications yet" state. The shared
+`NotificationSnapshot`/`markAllNotificationsReadInSnapshot` mutation model in
+`notifications-provider.tsx`/`notification-state.ts` is untouched — it still
+flips `readAt` in place rather than removing items, since the full history
+page depends on that. `NotificationBell`/`NotificationsProvider` are each
+mounted exactly once in `app-shell.tsx`, so this is a single global fix
+already applied to every page, per direct user confirmation that only the
+dropdown preview (not the full history page) needed to empty out.
+
+(5)-(7) Every remaining user/agent-facing form missing the shared `+91`
+`MobileInput` UI (`components/auth/mobile-input.tsx`, already used by
+login/register/change-mobile/contact-form/agent-application-form) is
+converted: the public "Get a callback" dialog (`lead-dialog.tsx`), the
+real-estate Enquire/Book-a-site-visit dialog (`property-action-dialog.tsx`),
+the agent "Introduce a lead" form, and the dynamic loan-application `phone`
+field type (`financial-product-form.tsx`). The first two already had correct
+bare-digits state and `isValidMobile`/`normalizeMobile`/`toE164` usage under
+the hood — only the input UI needed swapping. `agent-introduce-lead-form.tsx`
+previously kept full E.164 state validated by a local
+`MOBILE_PATTERN = /^\+[1-9]\d{6,14}$/` with no digit-normalization at all
+(a second, independent paste-with-spaces exposure beyond the one below); it
+now holds bare digits and converts with `toE164()` at submit, matching every
+other converted form's pattern, since the backend `AgentLeadCreate.mobile`
+schema genuinely requires E.164. `financial-product-form.tsx`'s dynamic phone
+field is where the actual reported bug lived: it was validated with a raw
+regex (`/^[6-9][0-9]{9}$/`) against the *unnormalized* string and capped input
+at `maxLength={10}` **characters**, not digits — so pasting `"98765 43210"`
+(with a space) truncated to 10 chars including the space and then failed the
+anchored regex, a genuine false-negative. `validateProductAnswers` now calls
+`isValidMobile()` (which normalizes first), and the field gets its own
+`MobileInput`-backed branch ahead of the generic `<Input>` catch-all (which
+no longer handles `"phone"` in its `type`/`inputMode`/`maxLength` ternaries).
+No `toE164()` conversion was added here — this field is a generic
+`answers: Record<string, string>` blob forwarded as-is, not a dedicated
+contract field, so bare digits remain correct. Admin-only ops forms
+(`user-provisioning-view.tsx`, `vehicle-arrangements-view.tsx`) are
+explicitly out of scope per direct user decision — they're internal
+free-form E.164 entry tools, not self-service application forms.
+
+New/extended tests: `apps/web/lib/phone.test.ts` (new — `lib/phone.ts` had no
+dedicated test file before this change) covers `normalizeMobile`/
+`isValidMobile`/`toE164`/`formatMobile` against space-containing and
+`+91`-prefixed pasted inputs, the actual crux of the reported bug.
+`financial-product-form.test.ts` gains a `productWithPhone` fixture (kept
+separate from the existing `product` fixture to avoid coupling unrelated
+assertions) and two new cases: a pasted-with-spaces phone value validates,
+and a too-short one still correctly errors after normalization.
+`notification-state.test.ts` gains a `selectUnreadPreview` describe block:
+filters read items, returns `[]` once everything is read, and — the
+regression case that actually matters — caps at `limit` *after* filtering
+with 6 unread + 1 read item ahead of them, not before.
+
+Fresh evidence: `pnpm lint` (0 errors, 0 warnings — one interim `MetricGrid`
+unused-import warning surfaced and was fixed before the final run), `pnpm
+typecheck` (clean), and `pnpm test` (72 files, 468 tests, all passing,
+including the three new/extended files above) all pass. `pnpm build`
+generated all 93 pages successfully, then hit the same pre-existing
+Windows-host `output: "standalone"` symlink `EPERM` failure recorded
+repeatedly elsewhere in this document (reproduced identically, confirmed
+unrelated to this change — the failure is in the post-generation
+"Collecting build traces" copy step, after every page had already compiled
+and generated). Live interactive browser verification was not performed in
+this session (no running dev container); the `apple-design` skill's targeted
+review pass and a Playwright/manual click-through of the six changed agent
+surfaces plus the bell dropdown's empty/all-caught-up states is the
+recommended residual verification step before merge. `apps/api`'s pytest
+suite was not re-run for the seed-only change — no test asserts on
+`seed_demo.py`'s banner rows directly (confirmed: no reference to the two
+removed banner ids exists outside that file), so this is a documentation-only
+confirmation rather than a gap. Security and maintainer review were not
+separately requested for this direct user-reported UI/bug-fix batch; no API,
+contract, migration, or RLS surface changed.
+
+**Apple-design skill review pass** (per direct user request to apply it
+across the touched agent dashboard surfaces): reviewed
+`agent-home.tsx`/`agent-leads-view.tsx`/`agent-lead-detail-view.tsx`/
+`agent-earnings-view.tsx`/`agent-introduce-lead-form.tsx`/`notification-bell.tsx`
+against the accessibility, layout, feedback, and entering-data guideline
+references. Found and fixed three concrete issues: (1)
+`agent-introduce-lead-form.tsx`'s Mobile field had no visual required-field
+indicator and no inline per-field error state — unlike its sibling forms
+converted in this same PR (`lead-dialog.tsx`/`property-action-dialog.tsx`),
+which already show `aria-invalid`/`aria-describedby`-wired inline errors —
+now added (asterisk + `sr-only` "(required)" label, a `mobileError` state
+wired to `aria-invalid`/`aria-describedby`, cleared on next keystroke). (2)
+The notification bell header's "Mark all as read" icon button was `h-8 w-8`
+(32px) while the adjacent bell-icon badge span is `h-9 w-9` (36px) — a
+same-row sizing inconsistency, also below the desktop-comfortable target
+size next to a larger neighbor; both are now `h-9 w-9`. (3) The
+copy-registration-link button's "Copy registration link" → "Copied" label
+swap had no fixed width, causing a visible layout shift as the button
+shrank; added `min-w-[13rem] justify-center` to hold its footprint steady.
+Other findings were judged pre-existing, consistent-with-the-rest-of-the-app
+patterns not worth a one-off deviation in this PR: status pills across
+Leads/Earnings/Transactions convey state by color+text only (no icon/shape
+differentiator), matching the badge convention already established and
+reviewed elsewhere in the app; the unread dot in the bell dropdown is now
+technically redundant (every previewed row is unread by construction) but
+harmless and left as reinforcing, not misleading, feedback. Fresh evidence
+after these three fixes: `pnpm lint`, `pnpm typecheck`, and `pnpm test` (72
+files, 468 tests) all pass unchanged.
+
+**Done - Telecaller leads table and lead detail redesign: `DashboardPanel`
+migration, advanced filters, sortable columns, call-history timeline** on
+`claude/20260826-155030-switch-to-main-and-pull-changes`
+([PR #237](https://github.com/brollysolutions/client1/pull/237); direct user-reported UI
+overhaul request — "make it clean and state of the art, add animations, add
+advanced filters" for the leads table, "change the entire UI" for the lead
+form — no requirement or completion-percentage change): the telecaller leads
+table and lead detail page were the two screens the Agent Dashboard Overhaul
+(PR #235) deliberately left on the pre-migration hand-rolled layout; this
+closes that gap and adds real filtering/sorting on top.
+
+(1) `telecaller-leads-view.tsx` migrates onto `DashboardPage`/
+`DashboardHeader`/`DashboardPanel` (the same primitives `agent-leads-view.tsx`
+uses) and gains an always-visible filter bar (search by name/mobile, status,
+follow-up date-from/to — same `Input`/`Select` grid convention as
+`features/admin/assigned-leads-view.tsx`) plus sortable column headers
+(Lead/Status/Last disposition/Next follow-up) via new pure
+`filterTelecallerLeads`/`sortTelecallerLeads` helpers in
+`telecaller-lead-filters.ts` (unit-tested, mirrors
+`features/admin/operational-records-filter.ts`'s shape). Default sort is
+soonest-follow-up-first with never-called leads sinking to the bottom
+regardless of direction (confirmed with the user as the desired default over
+leaving the API's implicit order). No `MetricGrid` was added to this page —
+`telecaller-home.tsx` already shows the identical assigned/working/converted/
+follow-ups-due counts and links here, so a second copy would be pure
+duplication. No business-line filter `Select` either: `useLine()`'s
+`activeLine` already scopes `GET /api/v1/telecaller/leads` server-side via the
+`X-Business-Line` header/RLS for dual-line telecallers, so every row already
+shares one line — a redundant in-page filter would be a no-op. Fixed a real
+latent bug while touching this: `use-telecaller-leads.ts` didn't refetch when
+a dual-line telecaller flipped their active line via the global switcher
+while sitting on this page (unlike `telecaller-home.tsx`, which already
+re-fetches on `activeLine` change) — now it does. Motion is one restrained
+`animate-in fade-in-0 duration-200 motion-reduce:animate-none` on the table
+wrapper plus the existing row hover transition; no per-row stagger, since
+rows reorder on every filter keystroke and a stagger would re-fire
+disruptively.
+
+(2) `telecaller-lead-detail-view.tsx` is rebuilt on `DashboardPage`/
+`DashboardBackLink`/`DashboardPanel`/`DashboardFormSection` — one step
+further than its sibling `agent-lead-detail-view.tsx`, which still wraps its
+`DashboardPanel`s in a raw `max-w-3xl` div with no back-link; this file adds
+`DashboardBackLink` since the primitive already exists for exactly this. Two
+real bugs fixed in the same pass: the phone number was shown raw
+(`{lead.mobile}`) with a hand-rolled `toWaHref()` that only worked because
+`lead.mobile` happens to already be bare-digit — now uses `formatMobile()`/
+`toE164()` from `lib/phone.ts`, matching `agent-lead-detail-view.tsx`'s
+already-correct usage, and the WhatsApp helper moved into `lib/phone.ts`
+itself as a shared `toWaHref()` built on `normalizeMobile()`. The "Log a
+call" form rendered `follow_up_at` on two different DOM nodes
+(`follow_up_at`/`follow_up_at_connected`) depending on the disposition
+branch, both bound to the same state — only one was ever mounted, but the
+duplication was fragile; now renders once, unconditionally. Call history is
+now a CSS-only vertical timeline (`border-l` line + disposition-colored dot
+per activity) replacing the flat bordered-card list.
+`telecaller-loan-apps-section.tsx`/`telecaller-property-deals-section.tsx`/
+`telecaller-tasks-section.tsx` get an outer-wrapper-only swap onto
+`DashboardPanel` (no functional change — reviewed, no bugs found worth
+bundling in). Shared status/disposition maps that were duplicated verbatim
+between the table and detail view are extracted to `telecaller-lead-status.ts`.
+
+New/extended tests: `telecaller-lead-filters.test.ts` (new) covers
+search/status/date-range filtering and the follow-up sort's null-handling and
+direction behavior. `phone.test.ts` gains `toWaHref` cases (bare and
+`+91`-prefixed/spaced input). `isInDateRange` moved from
+`features/admin/admin-list-tools.tsx` to a new shared `lib/date-range.ts`
+(re-exported from its old location so all existing admin call sites are
+unaffected) rather than duplicating the same logic a second time for the
+telecaller filter file.
+
+Fresh evidence: `npm run typecheck` (clean), `npm run lint` (clean — caught
+and fixed an `aria-sort`-on-`<button>` placement issue, moved to the `<th>`
+per ARIA semantics), and `npm run test` (73 files, 477 tests, all passing,
+including the two new/extended files above). `npm run build` compiled,
+typechecked, and generated all 93 pages successfully, then hit the same
+pre-existing Windows-host `output: "standalone"` symlink `EPERM` failure
+recorded repeatedly elsewhere in this document (reproduced identically,
+confirmed unrelated — the failure is in the post-generation trace-copy step,
+after every page had already compiled). Live interactive browser
+verification was not possible in this sandbox: Playwright has no network
+access at all here (confirmed against `example.com`, not just localhost) — a
+standalone dev server was started in this worktree against the already-
+running API container as a fallback, and the dev-only idempotent
+`seed_demo.py` was re-run once to refresh stale demo credentials while
+attempting this, but the browser tool itself could not reach any URL.
+
+**Apple-design skill review pass** (per direct user request to verify with
+the skill at the end): reviewed `telecaller-leads-view.tsx`/
+`telecaller-lead-detail-view.tsx`/`telecaller-lead-status.ts`/
+`telecaller-lead-filters.ts`/the three sub-sections against the
+accessibility, color, layout, typography, motion, and entering-data
+guideline references, computing contrast ratios from `globals.css`'s actual
+token values since no live render was available. Found and fixed three
+concrete issues: (1) the sort-header's inactive-state icon used
+`text-text-secondary/50` (~2.24:1 against the card background, below the
+3:1 non-text-contrast minimum) — bumped to `/70` (~3.3:1). (2) The
+sort-header `<button>` had no padding, giving it a ~16px-tall click target
+well under the 20pt desktop-minimum control size — the button now fills the
+full `<th>` cell (`w-full px-5 py-3`), also making the header click target
+consistent with normal sortable-table UX. (3) The lead detail page had no
+page-level `<h1>` at all (every `DashboardPanel` title renders as `<h2>`,
+and this page — unlike the table — doesn't use `DashboardHeader`), a real
+screen-reader heading-navigation gap; added a visually-hidden
+`<h1>{lead.name}</h1>`. Other findings were judged systemic/pre-existing,
+shared with already-shipped agent screens, and out of this task's scope to
+fix unilaterally: `text-warning`/`text-success` on their `/10` tint pill
+backgrounds and `text-brand-cta` on white all sit under the 4.5:1
+text-contrast minimum (~3.3-4.1:1), but this is inherited design-system
+coloring used identically across Leads/Earnings/status pills app-wide — a
+candidate for a dedicated design-system-wide contrast pass, not a one-off
+deviation here. Security and maintainer review were not separately
+requested for this direct user-reported UI redesign; no auth, RLS, payout,
+migration, or contract surface changed.
+
+**Done - Clickable-row affordance and Employee task screens brought onto
+`DashboardPanel`** on `claude/20260826-155030-switch-to-main-and-pull-changes`
+([PR #238](https://github.com/brollysolutions/client1/pull/238); direct
+user-reported follow-up to PR #237 — "there is no way a telecaller can know
+to click on leads" plus "even same for employees"; no requirement or
+completion-percentage change): PR #237 shipped the telecaller leads
+table/detail redesign but left rows with only a subtle `hover:bg-muted/50`
+tint and a `cursor-pointer` as the sole clickability signal — genuinely too
+weak, confirmed by re-inspecting the live app via Playwright MCP (which
+regained sandbox network access mid-session, so this pass could
+browser-verify where PR #237 could not). Added a trailing chevron
+(`ChevronRight`) to every row that slides right on hover
+(`group-hover:translate-x-0.5`) and tints `text-brand-cta`, reusing the exact
+micro-interaction already established by `DashboardQuickAction` in
+`dashboard-ui.tsx` — not a new pattern. Applied to both
+`telecaller-leads-view.tsx` and, per the "even same for employees" follow-up,
+`employee-tasks-view.tsx` (previously untouched by PR #237, still on the
+pre-migration hand-rolled `max-w-5xl` layout). `employee-tasks-view.tsx` and
+`employee-task-detail-view.tsx` are migrated onto `DashboardPage`/
+`DashboardHeader`/`DashboardBackLink`/`DashboardPanel`, mirroring the
+telecaller pattern: a visually-hidden page `<h1>`, the same raw-phone-display
+bug fixed (`formatMobile`/`toE164` from `lib/phone.ts`, replacing
+`{task.lead_mobile}`/`tel:${task.lead_mobile}`), and the task-type/status/
+outcome badges moved into the header panel's `action` slot. The two
+sub-panels `employee-task-document-panel.tsx` and
+`employee-task-feedback-panel.tsx` get the same outer-wrapper-only
+`DashboardPanel` swap already applied to telecaller's three sub-sections in
+PR #237 (no functional change); the feedback panel's header — title +
+description + upload/photo buttons — maps directly onto `DashboardPanel`'s
+`title`/`description`/`action` props. All functional logic (task status
+transitions, `ALLOWED_TRANSITIONS`, contact-share-link creation, document
+upload/delete) is untouched. A live Playwright pass over the redesigned
+telecaller lead-detail page (login as the seeded demo Telecaller, "Charan
+Client" lead) found no actual rendering defect — computed styles, a cropped
+element screenshot, and checks at 1440px/390px widths all matched the
+intended design; an earlier read of a heavily-downscaled full-page screenshot
+had been misleading (a nested `bg-muted/25` box briefly looked dark in the
+compressed thumbnail but rendered correctly at native resolution, confirmed
+via `getComputedStyle`), noted here so a future pass doesn't re-chase the
+same non-issue (that live pass was against the code already merged in PR
+#237, checked out in the primary repo's running container — not this
+session's own worktree). Fresh evidence: `npm run typecheck` (clean), `npm
+run lint` (clean), `npm run test` (73 files, 477 tests, unchanged — no new
+test surface, this pass is UI-structure/affordance only) all pass. The
+chevron/hover affordance and the Employee screen migration themselves were
+**not** live-verified in a browser this pass: this worktree's running
+`client1-web-1` container bind-mounts the primary checkout
+(`D:\dhanadhara\client1\apps\web`), not this worktree, so edits made here
+only become visible in that container after this branch merges to `main` and
+someone pulls + restarts it there — confirmed by `docker exec client1-web-1
+grep ChevronRight ...` returning no match immediately after writing this
+change. Verified instead via `getComputedStyle`-level review against the
+already-live PR #237 code for the underlying patterns being reused
+(`DashboardPanel`, the `DashboardQuickAction` hover-chevron micro-interaction
+copied verbatim) plus typecheck/lint/tests. Live browser verification of
+this specific change is the recommended follow-up once merged and pulled.
+No auth, RLS, payout, migration, or contract surface changed; scope is
+`apps/web` only.
+
+**Done - Chevron affordance live-confirmed; Call/WhatsApp actions converted
+to icon-only buttons** on `claude/20260826-155030-switch-to-main-and-pull-changes`
+([PR #239](https://github.com/brollysolutions/client1/pull/239); direct
+user-reported follow-up — "the UI didn't change for the leads, still same"
+turned out to be the user's browser tab holding a stale bundle from before
+the PR #238 merge/restart (confirmed live via a fresh Playwright navigation
+against the running local stack immediately after their report: the chevron
+column and per-row `>` were present in the DOM and screenshot, so no code
+change was needed there — a hard refresh was the fix); then "Remove call
+from web, let it stay on phone, add whatsapp icon and phone icon"; no
+requirement or completion-percentage change): `telecaller-lead-detail-view.tsx`'s
+Call/WhatsApp actions were full text-labeled `Button`s
+(`variant="outline" size="sm"`, icon + "Call"/"WhatsApp" label) — a `tel:`
+link only does anything on a device that can actually dial, so presenting it
+as a primary labeled web action was the wrong affordance. Both are now
+icon-only (`size="icon"`, the same `h-9 w-9` variant already used in eight
+other files across the app — `notification-bell.tsx` among them — so this
+isn't a new pattern), each with `aria-label`/`title` since there's no longer
+visible text for screen readers or a mouse-hover hint. Applied the same
+icon-only treatment to `employee-task-detail-view.tsx`'s lone Call button for
+consistency (no WhatsApp exists on that screen, so no icon was added there —
+out of scope, not requested). Fresh evidence: `npm run typecheck` (clean),
+`npm run lint` (clean); `npm run test` unaffected (no logic changed, pure
+button markup). Not live-browser-verified this pass, for the same structural
+reason as the previous entry — this worktree's running container doesn't yet
+have this source change; the `size="icon"` variant being reused verbatim
+across eight already-live files is the basis for confidence here. No auth,
+RLS, payout, migration, or contract surface changed; scope is `apps/web`
+only.
+
+**Done - Telecaller lead-detail header given a hero treatment: avatar,
+status-accent border, entrance animation** on
+`claude/20260826-155030-switch-to-main-and-pull-changes`
+([PR #239](https://github.com/brollysolutions/client1/pull/239); direct user-reported
+follow-up — "I was talking UI changes for the lead detail page", clarifying
+that the "still same"/"looks broken" reports from a few turns back were about
+this page specifically, not the leads table (which PR #238's chevron already
+addressed and was confirmed live); no requirement or completion-percentage
+change): the structural `DashboardPanel` migration in PR #237 was correct and
+matched the design system, but read as too incremental against the original
+"change the Entire UI" ask — this pass adds genuine visual distinctiveness
+rather than more structure. The header card is no longer a `<DashboardPanel>`
+call: it's hand-composed with DashboardPanel's exact classes copied verbatim
+(so it stays pixel-consistent with every other panel on the page) because
+DashboardPanel's `title` prop is a plain string everywhere else in the app,
+and this is the one place that needed more than text there — a `UserAvatar`
+(`components/user-avatar.tsx`, the same deterministic letter-tile already
+used for the staff sidebar identity, size `lg`) now sits beside the lead's
+name. The header card also gains a `border-l-4` status-accent border (new
+`statusAccentBorderClass()` in `telecaller-lead-status.ts`: warning/success/
+brand-cta/border, mirroring `STATUS_STYLE`'s existing color vocabulary) and,
+along with the "Log a call" and "Call history" panels, a restrained
+`animate-in fade-in-0 duration-200 motion-reduce:animate-none` entrance
+(the same pattern already proven live on the leads table in PR #237/#238).
+No functional change — call logging, status transitions, and the business-
+line sub-sections are untouched. Fresh evidence: `npm run typecheck`
+(clean), `npm run lint` (clean), `npm run test` (73 files, 477 tests,
+unchanged) all pass. Not live-browser-verified this pass, for the same
+structural reason as the prior two entries — this worktree's running
+container doesn't yet have this source change; confidence rests on
+`UserAvatar` being an already-proven, already-live component and
+`border-l-4`-over-`border` being a standard, widely-documented Tailwind
+compositing pattern. No auth, RLS, payout, migration, or contract surface
+changed; scope is `apps/web` only.
+
+**Done - Telecaller lead-detail page rebuilt as a two-column layout, dropping
+the `max-w-3xl` single-column cap** on
+`claude/20260826-155030-switch-to-main-and-pull-changes`
+([PR #240](https://github.com/brollysolutions/client1/pull/240); direct user-reported
+follow-up after live-verifying the previous hero-treatment entry — "Still
+same its not full width"; no requirement or completion-percentage change):
+the previous entry's avatar/accent/animation polish landed inside a page
+still capped at `max-w-3xl`, so at desktop width most of the page was empty
+gray background — a real, valid complaint distinct from "add more visual
+flourish." Rather than just widen that single column edge-to-edge (which
+would have stretched the "Log a call" form fields uncomfortably wide),
+the page now splits into `grid items-start gap-4
+xl:grid-cols-[22rem_minmax(0,1fr)]` at the `xl` breakpoint — the exact
+grid-template-columns value `DashboardFormPage` already uses for its own
+main+aside layout, reused rather than invented. The 22rem sidebar holds the
+lead-identity hero card (avatar, contact actions, status toggle); the
+flexible main column holds "Log a call" and "Call history" stacked. Below
+that grid, the business-line section (`TelecallerLoanAppsSection`/
+`TelecallerPropertyDealsSection`) and `TelecallerTasksSection` stay full
+width, unchanged — those have their own internal `sm:grid-cols-2`/
+`sm:grid-cols-4` layouts that need the full page width to breathe, not a
+narrow sidebar. `DashboardPage`'s loading and error branches, previously
+their own hand-rolled `max-w-3xl` divs, are now plain `<DashboardPage>` calls
+too, so there's no width jump when the real content replaces the skeleton.
+Below `xl`, the grid collapses to the original single-column stack (sidebar
+first, then Log a call / Call history) since Tailwind's `xl:` prefix only
+takes effect at that breakpoint. Fresh evidence: `npm run typecheck`
+(clean), `npm run lint` (clean), `npm run test` (73 files, 477 tests,
+unchanged) all pass. Not live-browser-verified this pass — same structural
+limitation as the three entries before it (this worktree's running container
+still doesn't have this specific source change); confidence rests on the
+`xl:grid-cols-[22rem_minmax(0,1fr)]` value being copied verbatim from an
+already-live layout rather than invented fresh. No auth, RLS, payout,
+migration, or contract surface changed; scope is `apps/web` only.
+
+**Done - Real-estate Client dashboard property presentation** on
+`claude/20260825-211218-remove-browse-by-type-section-in-explore` (PR #233
+update; direct user-reported UI change, no requirement or
+completion-percentage change): nine generated local property-subtype artwork
+assets now cover every generated-contract subtype. A typed display resolver
+keeps approved uploaded imagery first, falls back to subtype art, then uses a
+category representative for legacy no-subtype rows; fallback art stays outside
+managed media and photo counts. Home’s Browse cards reuse the same visual
+family. Explore now suppresses zero-listing category rows; Home preserves
+category discovery. Dashboard full/mini cards use a consistent media/content/
+footer template, and an accessible folded corner appears only for the existing
+server-proven `verified` RERA status, while the registration number remains in
+the card content. `pnpm lint`, `pnpm typecheck`, focused property regressions,
+and the full `pnpm test` suite pass. `pnpm build` compiled, typechecked, and
+generated all 93 pages before the known Windows standalone-symlink `EPERM`
+tail; its host static fetches also cannot resolve Docker-only `api`. Focused
+Playwright was attempted twice after restarting the local web container, but
+local login/API connectivity failed before either run reached the changed
+dashboard surfaces. Design, security, and maintainer diff review found no
+actionable issue. API, contract, RLS, data, upload authority, and migrations
+are unchanged.
 
 **Done - Notification dropdown and page redesign: click-to-open, neutral
 icons, unread/type/date/search filters, pagination
@@ -1401,6 +3145,228 @@ work than several completed UI requirements.
 
 ## Current work
 
+**In progress - Admin and Sub Admin dashboard UI overhaul, phase 4 of 9** on
+`claude/20260827-admin-subadmin-ui-foundation` (direct user instruction; no
+requirement or completion-percentage change): agent applications and the
+operational account directory.
+
+Agent applications moves onto the shared table and the workspace dialog. Its
+four KYC documents were a list of download links; they now render as inline
+previews, because a photo and an Aadhaar scan are what the decision is actually
+made on. The lazy per-open detail fetch is unchanged - presigned URLs expire in
+about five minutes, so they cannot be baked into the list. The queue also gains
+a status filter: `GET /api/v1/admin/agents` hardcoded `status = pending`, making
+the queue a one-way door with no way to look back at what had been decided. The
+parameter defaults to `pending`, so omitting it preserves the old behavior, and
+takes an explicit `all` member rather than an empty string, which FastAPI
+validates against the Literal and rejects.
+
+The operational account directory had exactly one filter: a "Search this page"
+box that narrowed only the 25 already-fetched rows, so an account on page three
+was unreachable from page one. `GET /api/v1/admin/users` now accepts `search`,
+`status`, `role`, `business_line`, `created_from`, `created_to` and
+`never_logged_in`, all applied in the query so `total` stays correct for paging.
+`role` and `business_line` are EXISTS subqueries against the profile tables, not
+joins, so a user holding several profiles is still counted once. Search covers
+name, mobile and email only - the columns an Admin has in hand when someone
+contacts support - and runs against the stored values, so a soft-deleted account
+cannot be found by a mobile that has already been tombstoned. The panel is
+rebuilt on the shared table with a sign-in-history filter and real pagination;
+its rows stay non-clickable because suspend/reactivate is the only thing to do
+with an account here, and a whole-row target would be a lie.
+
+The generated OpenAPI spec and typed client are regenerated for the new query
+parameters. No response model, migration, auth, RLS, or business-line behavior
+changed.
+
+Evidence: all 499 web unit tests, web lint, and web typecheck pass. 20 agent and
+30 admin-user API tests pass against Postgres, including new coverage for the
+agent status filter and for server-side user filtering, `total` correctness, and
+422 on an invalid status. API Ruff check and format pass.
+
+**In progress - Admin and Sub Admin dashboard UI overhaul, phase 3 of 9** on
+`claude/20260827-admin-subadmin-ui-foundation` (direct user instruction; no
+requirement or completion-percentage change): listing approvals, support tickets,
+and document verification.
+
+Listing approvals moves from `features/real-estate/review-queue-view.tsx` to
+`features/admin/listing-approvals-view.tsx`. It was already an Admin console
+reaching across for `admin-list-tools` through a relative `../admin/` import; the
+submitting half of the same lifecycle stays under `features/real-estate/`. Its
+review is the richest in the codebase — a presigned media grid, the 360 panorama
+viewer, reviewer documents, the RERA registry sub-review and subtype detail — and
+now renders in the full-screen workspace dialog with the media on one side and
+the decision controls on the other instead of stacked in a `max-w-3xl` column.
+The approve gate is unchanged (RERA settled and every media asset `ready`) but
+the reason it is blocked is now stated beside the button rather than hidden in a
+`title` attribute. The 5-second media poll and per-asset URL minting are
+unchanged.
+
+Support tickets was the only admin queue with no search, no date range and no
+pagination. It gains all three plus a category filter — a field the record always
+carried and nothing exposed — and now passes `status` to the API. The client
+wrapper and the route have always accepted that parameter; the hook simply never
+sent it, so the console fetched every ticket ever raised and filtered them in the
+browser. The embedded mobile-change queue keeps its own tinted panel: it is a
+distinct queue with its own statuses, not a section of the ticket list.
+
+Document verification keeps its boolean model and its mandatory note on
+un-verify. The two-level lead-then-subject card nesting becomes one sortable
+table with search, review-state, source, business-line and upload-date filters,
+and real pagination — `business_line` and `offset` were already supported by the
+route, and the client wrapper was discarding the `total` needed to page. The
+review itself moves into the workspace dialog, where each document renders inline
+(image or PDF, with a download fallback) beside its own note and decision, so the
+reviewer decides from the artefact rather than the filename. A verify-all action
+covers the common case; there is deliberately no bulk counterpart for
+un-verifying, because each one requires its own note.
+
+No API contract, migration, auth, RLS, or business-line behavior changed.
+
+Evidence: all 499 web unit tests, web lint, and web typecheck pass.
+
+**In progress - Admin and Sub Admin dashboard UI overhaul, phase 2 of 9** on
+`claude/20260827-admin-subadmin-ui-foundation` (direct user instruction; no
+requirement or completion-percentage change): loan applications, property deals,
+and vehicle arrangements rebuilt on the phase-1 primitives.
+
+Three row-interaction models used to coexist across the admin queues, so whether
+a row could be clicked was unanswerable by looking. Loan applications and
+property deals expanded inline; vehicle arrangements had dead rows with side
+buttons. All three now open a floating window, matching the queues that already
+did. Loan applications and property deals use the full-screen workspace dialog
+because their detail is a progress form plus submitted answers; vehicle
+arrangements uses a centred panel that shows the arrangement read-only and
+carries the transport form and cancel action, so the row is worth clicking even
+when there is nothing to enter.
+
+Each view moves from its own `max-w-5xl` wrapper and bare `<h1>` onto
+`DashboardPage`/`DashboardHeader`/`DashboardPanel`, and from a `<ul>` of cards
+onto `DataTable` with sortable columns. Filters move into the shared `FilterBar`,
+which adds a business-line filter the records always carried but nothing exposed,
+and vehicle arrangements gains sortable pickup ordering. Vehicle arrangements
+was the one admin queue fetching inline in its component; the extracted
+`use-admin-vehicle-arrangements` hook matches every sibling queue. Status pills
+move onto `StatusBadge`, and the surfaced-but-unused `driver_mobile`,
+`completed_at`, `cancelled_at` and `cancellation_reason` now appear in the detail
+panel.
+
+No API contract, migration, auth, RLS, or business-line behavior changed.
+
+Evidence: all 499 web unit tests, web lint, and web typecheck pass. Loan
+applications and property deals leave the form-surface registry because their
+controls are now the shared filter bar; vehicle arrangements stays as a mutation
+surface.
+
+**In progress - Admin and Sub Admin dashboard UI overhaul, phase 1 of 9** on
+`claude/20260827-admin-subadmin-ui-foundation` (direct user instruction; no
+requirement or completion-percentage change). This phase is the shared
+foundation the remaining eight are built on, plus the two app-wide affordance
+corrections the user asked for.
+
+Both staff home pages showed their approval queue two or three rows at a time.
+That was never a data limit: each panel was pinned to a fixed height inside an
+xl-only two-column row. Admin's "Waiting on you" and Sub Admin's "Waiting on
+Admin" are the same queue seen from the two ends of one approval, so they now
+share one full-width `PendingReviewTable` whose rows are clickable and carry how
+long each item has waited, with Operational load promoted above it as a
+four-across strip. `admin_home._PENDING_QUEUE_LIMIT` rises 12 to 30 and
+`sub_admin._PENDING_APPROVAL_LIMIT` 10 to 30 to match the space now available;
+the counts rendered beside the queue were always uncapped and are unchanged.
+
+Eyebrows are removed application-wide. `DashboardHeader` and `DashboardFormPage`
+(where the prop was required) no longer accept one, and all 17 call sites plus
+the public `ProductPage` hero and `TrustStrip` drop it. The 404 status code and
+the broadcast composer's Step 1/Step 2 labels are kept: they share the visual
+shape but carry information rather than decorate.
+
+Close (X) controls had drifted into five treatments — an opacity fade, a tinted
+fill, an off-token `bg-blue-50`, a bordered pill, and one bare `<button>` with no
+styling. `components/ui/close-button.ts` now owns the single treatment: pointer
+cursor, no border, no background in any state, and the icon turning
+`--color-brand-cta` on hover. Applying it in `dialog.tsx` and `sheet.tsx` covers
+roughly 135 call sites; the remaining one-offs were converted individually.
+
+New `features/dashboard` primitives: `DataTable` (the clickable-row table proven
+on the telecaller leads list, with controlled sorting and an automatic trailing
+chevron), `FilterBar` (promoted from the CMS's `CmsFilterBar`, the most complete
+of five near-identical copies), `StatusBadge`, `ListEmptyState`/
+`ListLoadingState`/`ListPagination`, `useFilteredPage`, and the workspace dialog
+moved out of `features/sub-admin` now that Admin uses it too. A shim keeps the
+ten Sub Admin call sites compiling until those surfaces are rebuilt in phase 9.
+`lib/format.ts` gains the `formatDate` that six views each kept a private copy
+of, plus `formatAge`.
+
+No API contract, migration, auth, RLS, or business-line behavior changed.
+
+Evidence: all 499 web unit tests, web lint, and web typecheck pass; the 18 admin
+and sub-admin home API tests pass against a migrated Postgres and cover the
+raised queue cap; API Ruff check and format pass. Browser verification is
+deferred to the end of the sequence because the running compose stack serves the
+main checkout rather than this worktree.
+
+**Done - application-wide form validation consistency** on
+`codex/20260826-231901-add-validation-for-all-form-fields-anywher`
+([PR #241](https://github.com/brollysolutions/client1/pull/241); direct user
+instruction; no requirement or completion-percentage change): all
+113 non-primitive input-bearing web surfaces are now explicitly registered as
+mutation, filter, calculator, or composite surfaces. The structural Vitest scan
+covers standard/native fields plus command-search, searchable-select, slider,
+switch, and toggle controls and fails when a future surface lacks a decision.
+
+The implementation adds dependency-free typed text/email/E.164/numeric/date/
+PII-free validators, one accessible `FieldError`/required indicator, bounded
+filter normalization, first-invalid focus, and allowlisted FastAPI 422 field
+issues. The API client caps and sanitizes locations/messages and deliberately
+never carries Pydantic's rejected `input`; callers may map only named server
+locations to local fields. Profile/registration, support, Admin provisioning,
+banks, broadcasts, approvals/rejections, payout creation and manual cheque
+actions, provider offers, mobile-change review, vehicle arrangements, employee/
+telecaller outcomes, loan/property progress, Sub Admin CMS create/edit forms,
+and public/dash filters now expose bounded input and accessible inline errors
+instead of silent disabled-submit or toast-only failure. Existing strong auth,
+agent application, property submission, uploads, and role workflows were
+audited and retained rather than duplicated.
+
+The dynamic Financial Product renderer mirrors the authoritative Pydantic
+schema for form topology, canonical `requested_amount`, choice membership,
+conditional order, text/array cardinality, PIN/mobile/currency/integer/date/DOB
+rules, and travel date ordering. Shared payout-destination validation is reused
+by generic, commission, referral, and cashback payout dialogs without changing
+the strict rupee-to-paise conversion or idempotency-key lifecycle. Filters and
+calculators cap text/numeric ranges and reject NaN without turning optional
+exploration controls into required fields. Upload MIME/size/count checks remain
+fail-closed on both existing client hooks and the server.
+
+Fresh evidence: `pnpm lint` and `pnpm typecheck` pass; all 499 Vitest tests in
+78 files pass, including 42 focused validation/API/payout/dynamic/coverage
+tests. `pnpm build` compiled, typechecked, and generated 93/93 pages before the
+repository's established Windows standalone packaging failure (`EPERM` while
+creating `.next/standalone` symlinks). Against a local web server, two mocked
+registration/profile/lead Playwright scenarios pass. Three public Financial
+Services scenarios could not obtain catalogue data because the Docker-only
+`api` hostname was unavailable; the first also encounters the pre-existing
+strict-locator duplicate of the page heading. Those failures are environment/
+baseline evidence, not changed-path validation regressions.
+
+The repository wrapper passed seven feature-tracking tests, eleven migration/
+RLS tests, API Ruff and format checks; `uv run alembic heads` reports the sole
+`73f4c2a91d6e` head. The aggregate API suite reached 24% after a long stream of
+service-dependent skips, then one existing coverage failure and cascading
+fixture errors made it inconclusive. `uv run pytest -q --lf -x` isolates the
+unchanged failure: `test_every_mapped_table_has_an_admin_coverage_decision`
+reports `financial_product_provider_offers` missing from
+`ADMIN_OPERATIONAL_COVERAGE`. No API file changed in this slice.
+
+Security review found no new authorization or data boundary: no API, contract,
+migration, auth, RLS, business-line, or dependency change; rejected values and
+PII/KYC are not echoed; payout server gates/idempotency and upload validation
+remain authoritative. Design/accessibility review fixed scoped error focus,
+combobox required semantics, inline CMS edit errors, and invalid multiselect
+ARIA; maintainer diff review found no remaining change-owned issue. The next
+priority returns to the queued FR-2.2 approved-listing correction and seven
+append-only audit-event families.
+
 **Done - [PR #233](https://github.com/brollysolutions/client1/pull/233) - Real-estate
 dashboard search-bar redesign: shared animated omnibox, Explore's "Browse by
 property type" strip removed, Home's category pills become illustrated cards
@@ -1840,15 +3806,14 @@ head; the monolithic API suite reached the 30-minute local bound without a
 final report and is inconclusive. No role, RLS, account-deletion, or production
 registration behavior changes.
 
-The remaining **FR-2.2 Admin operational coverage audit** has an exhaustive,
-test-enforced baseline across 47 mapped tables and all 68 current
-platform-scope RLS policies. The visibility-remediation slice closes all eight
-confirmed read gaps: soft-deleted accounts serialize with tombstone contact
-values redacted, Users & staff includes per-line Client profile context, and a
-dedicated paginated Admin workspace exposes minimized authentication events,
-enquiries, lead activities, loan transaction history, site visits, and
-transactions. Eight confirmed gaps remain: one typed approved-listing
-correction and seven append-only audit-event families. Payout controls,
+The **FR-2.2 Admin operational coverage audit** has an exhaustive, test-enforced
+baseline across the mapped tables and all current platform-scope RLS policies.
+The original visibility-remediation slice closed its eight confirmed read gaps,
+and the current slice closes its one typed approved-listing correction plus
+seven append-only audit-event families. The registry now isolates two newer
+read-only visibility gaps: `field_visibility_config` and
+`financial_service_enquiries`. FR-2.2 therefore remains Partial until those
+separately discovered rows have an explicit safe Admin surface. Payout controls,
 private-document access, secret/location minimization, immutable ledgers, and
 business-line segregation remain non-negotiable compatibility constraints.
 
@@ -2323,7 +4288,7 @@ The following requirements are complete on the evidence baseline:
 | Requirement | Status | Implemented slice | Remaining work |
 | --- | --- | --- | --- |
 | FR-1.1 | Complete | Every mapped table and managed-media purpose is inventoried; operational rows require one immutable Loans/Real Estate tag, parent/source copies must match, and only reviewed staged/global/identity exceptions remain nullable or allow `both`. | Preserve the exhaustive ledger and migration/negative tests for every future table, relation, content audience, and media purpose. |
-| FR-2.2 | Partial | Admin dashboards cover users, leads, tasks, agents, loans, deals, payouts, content, audit, reports, and a new paginated Operational records workspace. The test-enforced contract classifies all 47 mapped tables and all 68 current platform-scope policies. All eight view gaps are closed with minimized generated contracts, soft-deleted contact redaction, per-line Client profile context, `private, no-store`, accessible UI, and fresh platform-Admin/negative-role PostgreSQL evidence. | Remediate the eight remaining tables: one typed approved-listing correction gap (`properties`) and seven append-only audit gaps (`banners`, `content_blocks`, `loan_applications`, `offers`, `property_deals`, `referral_bonus_config`, `tasks`). Preserve protected secrets/location/media, immutable ledgers, command-bound updates, RLS, and safe audit details. |
+| FR-2.2 | Partial | Admin dashboards cover users, leads, tasks, agents, loans, deals, payouts, content, audit, reports, and a paginated Operational records workspace. The exhaustive contract classifies every mapped table and current platform-scope policy. The original eight view gaps are closed with minimized generated contracts, soft-deleted contact redaction, per-line Client profile context, `private, no-store`, accessible UI, and platform-Admin/negative-role PostgreSQL evidence. The approved-property correction is now a typed, platform-Admin-only, reason-required staged command that preserves the live listing and approved media until re-review. All seven named operational mutation families have append-only, same-transaction, value-minimized audit coverage: `banners`, `content_blocks`, `loan_applications`, `offers`, `property_deals`, `referral_bonus_config`, and `tasks`. | Add safe read-only Admin visibility decisions for the two newer registry gaps, `field_visibility_config` and `financial_service_enquiries`. Preserve protected secrets/location/media, immutable ledgers, command-bound updates, RLS, and safe audit details. |
 | FR-2.8 | Complete | Lead name and journey notes carry immutable creator descriptors; Agent and Client edits follow explicit lifecycle cutoffs, Admin corrections preserve ownership and require an audited reason, and Telecaller notes remain append-only activities. Service checks, row locks, command-specific RLS, and a database trigger deny cross-owner, cross-role, cross-line, lifecycle, allowed-column, and descriptor-planting bypasses. | Preserve the ownership initializer/backfill, least-data no-store response, audit-value minimization, and direct SQL denial tests when adding future editable lead-detail paths. |
 | FR-4.2 | Complete | Agent-introduced leads are atomically attributed and assigned through a durable, active-only same-line round-robin cursor, queued for bounded retry without capacity, and bound to a same-mobile Client only after OTP-proven registration. | Preserve global Agent ownership, expiry deadlines, generic-link authority boundaries, stable Telecaller order, cursor isolation, and concurrency tests as the workflow evolves. |
 | FR-4.3 | Complete | Registration captures explicit one/both-line intent while retaining both Client profiles; each requested journey is independently bound and assigned through its line's separate round-robin cursor without cross-line leakage. | Preserve explicit intent, per-line uniqueness, deterministic assignment ordering, and account-deletion closure. |

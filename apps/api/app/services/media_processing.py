@@ -8,16 +8,14 @@ output, or temporary path is logged or returned to a client.
 
 from __future__ import annotations
 
-import json
+import http.client
 import math
 import socket
 import struct
-import subprocess
-import tempfile
 import warnings
 from dataclasses import dataclass
 from io import BytesIO
-from pathlib import Path
+from urllib.parse import urlsplit
 
 from PIL import Image, ImageOps, UnidentifiedImageError
 
@@ -42,6 +40,10 @@ class MalwareDetected(MediaProcessingError):
 
 
 class ScannerUnavailable(MediaProcessingError):
+    pass
+
+
+class MediaProcessorUnavailable(MediaProcessingError):
     pass
 
 
@@ -206,108 +208,71 @@ def canonicalize_object(
     return len(canonical)
 
 
-def _probe_video(path: Path, policy: VideoPolicy) -> float:
-    command = [
-        settings.MEDIA_FFPROBE_BINARY,
-        "-v",
-        "error",
-        "-show_entries",
-        "stream=codec_type,codec_name,width,height:format=duration",
-        "-of",
-        "json",
-        str(path),
-    ]
+def _transcode_video_isolated(content: bytes, policy: VideoPolicy) -> tuple[bytes, float]:
+    """Send bounded bytes to the secretless native-media trust boundary."""
+    processor_url = settings.MEDIA_VIDEO_PROCESSOR_URL.strip()
+    if not processor_url:
+        raise MediaProcessorUnavailable
+    parsed = urlsplit(processor_url)
+    connection_type = (
+        http.client.HTTPSConnection if parsed.scheme == "https" else http.client.HTTPConnection
+    )
+    connection = connection_type(
+        parsed.hostname,
+        parsed.port,
+        timeout=settings.MEDIA_TRANSCODE_TIMEOUT_SECONDS + 10,
+    )
     try:
-        completed = subprocess.run(
-            command,
-            check=True,
-            capture_output=True,
-            timeout=min(settings.MEDIA_TRANSCODE_TIMEOUT_SECONDS, 60),
+        connection.request(
+            "POST",
+            "/v1/transcode",
+            body=content,
+            headers={
+                "Connection": "close",
+                "Content-Length": str(len(content)),
+                "Content-Type": "video/mp4",
+                "X-Media-Max-Duration-Seconds": str(policy.max_duration_seconds),
+                "X-Media-Protocol": "1",
+            },
         )
-        payload = json.loads(completed.stdout)
-        streams = payload.get("streams") or []
-        video_stream = next(item for item in streams if item.get("codec_type") == "video")
-        audio_streams = [item for item in streams if item.get("codec_type") == "audio"]
-        duration = float(payload["format"]["duration"])
-        width = int(video_stream["width"])
-        height = int(video_stream["height"])
-    except (
-        FileNotFoundError,
-        KeyError,
-        IndexError,
-        TypeError,
-        ValueError,
-        json.JSONDecodeError,
-        subprocess.SubprocessError,
-    ) as exc:
-        raise InvalidVideo from exc
-    if (
-        video_stream.get("codec_name") != "h264"
-        or any(stream.get("codec_name") != "aac" for stream in audio_streams)
-        or not math.isfinite(duration)
-        or duration <= 0
-        or width < 1
-        or height < 1
-        or width * height > 3840 * 2160
-    ):
-        raise InvalidVideo
-    if duration > policy.max_duration_seconds:
-        raise VideoDurationExceeded
-    return duration
-
-
-def _transcode_video(source: Path, destination: Path) -> None:
-    command = [
-        settings.MEDIA_FFMPEG_BINARY,
-        "-nostdin",
-        "-hide_banner",
-        "-loglevel",
-        "error",
-        "-i",
-        str(source),
-        "-map",
-        "0:v:0",
-        "-map",
-        "0:a:0?",
-        "-sn",
-        "-dn",
-        "-vf",
-        "scale=min(1920\\,iw):min(1080\\,ih):"
-        "force_original_aspect_ratio=decrease:force_divisible_by=2",
-        "-c:v",
-        "libx264",
-        "-preset",
-        "medium",
-        "-crf",
-        "23",
-        "-pix_fmt",
-        "yuv420p",
-        "-c:a",
-        "aac",
-        "-b:a",
-        "128k",
-        "-map_metadata",
-        "-1",
-        "-metadata",
-        "title=",
-        "-metadata",
-        "comment=",
-        "-movflags",
-        "+faststart",
-        "-threads",
-        "2",
-        "-y",
-        str(destination),
-    ]
-    try:
-        subprocess.run(
-            command,
-            check=True,
-            capture_output=True,
-            timeout=settings.MEDIA_TRANSCODE_TIMEOUT_SECONDS,
-        )
-    except (FileNotFoundError, subprocess.SubprocessError) as exc:
-        raise InvalidVideo from exc
+        response = connection.getresponse()
+        error_code = response.getheader("X-Media-Error")
+        if response.status != 200:
+            response.read(1024)
+            if error_code == "duration_exceeded":
+                raise VideoDurationExceeded
+            if error_code == "output_too_large":
+                raise CanonicalOutputTooLarge
+            if error_code == "invalid_video":
+                raise InvalidVideo
+            raise MediaProcessorUnavailable
+        if (
+            response.getheader("X-Media-Protocol") != "1"
+            or response.getheader("Content-Type") != "video/mp4"
+        ):
+            raise MediaProcessorUnavailable
+        length_header = response.getheader("Content-Length")
+        duration_header = response.getheader("X-Media-Duration-Seconds")
+        if length_header is None or duration_header is None:
+            raise MediaProcessorUnavailable
+        output_size = int(length_header)
+        duration = float(duration_header)
+        if output_size < 1 or not math.isfinite(duration) or duration <= 0:
+            raise MediaProcessorUnavailable
+        if output_size > policy.max_bytes:
+            raise CanonicalOutputTooLarge
+        if duration > policy.max_duration_seconds:
+            raise VideoDurationExceeded
+        output = response.read(output_size + 1)
+        if len(output) != output_size:
+            raise MediaProcessorUnavailable
+        return output, duration
+    except MediaProcessingError:
+        raise
+    except (OSError, TimeoutError, ValueError, http.client.HTTPException) as exc:
+        raise MediaProcessorUnavailable from exc
+    finally:
+        connection.close()
 
 
 def process_video_object(
@@ -316,29 +281,21 @@ def process_video_object(
     *,
     policy: VideoPolicy,
 ) -> VideoResult:
-    """Scan, validate, transcode, strip metadata, and publish a canonical MP4."""
-    with tempfile.TemporaryDirectory(prefix="managed-media-") as temp_dir:
-        source = Path(temp_dir) / "source.mp4"
-        destination = Path(temp_dir) / "canonical.mp4"
-        downloaded = storage.download_object_to_file(source_key, source, max_bytes=policy.max_bytes)
-        if downloaded < 1:
-            raise InvalidVideo
-        content = source.read_bytes()
-        if storage.sniff_content_type(content[:32]) != "video/mp4":
-            raise InvalidVideo
-        scan_bytes(content)
-        duration = _probe_video(source, policy)
-        _transcode_video(source, destination)
-        output_size = destination.stat().st_size
-        if output_size < 1 or output_size > policy.max_bytes:
-            raise CanonicalOutputTooLarge
-        output = destination.read_bytes()
-        if storage.sniff_content_type(output[:32]) != "video/mp4":
-            raise InvalidVideo
-        scan_bytes(output)
-        storage.upload_file(destination_key, destination, "video/mp4")
-        if storage.head_object(
-            destination_key
-        ) != output_size or not storage.content_matches_declared_type(destination_key, "video/mp4"):
-            raise MediaProcessingError
+    """Scan, isolate native parsing, and publish one canonical private MP4."""
+    content = storage.read_object_bytes(source_key, max_bytes=policy.max_bytes)
+    if content is None or storage.sniff_content_type(content[:32]) != "video/mp4":
+        raise InvalidVideo
+    scan_bytes(content)
+    output, duration = _transcode_video_isolated(content, policy)
+    output_size = len(output)
+    if output_size < 1 or output_size > policy.max_bytes:
+        raise CanonicalOutputTooLarge
+    if storage.sniff_content_type(output[:32]) != "video/mp4":
+        raise InvalidVideo
+    scan_bytes(output)
+    storage.put_object_bytes(destination_key, output, "video/mp4")
+    if storage.head_object(
+        destination_key
+    ) != output_size or not storage.content_matches_declared_type(destination_key, "video/mp4"):
+        raise MediaProcessingError
     return VideoResult(size_bytes=output_size, duration_seconds=max(1, math.ceil(duration)))

@@ -49,6 +49,9 @@ class NotificationType(enum.StrEnum):
     MOBILE_CHANGED = "mobile_changed"
     MOBILE_CHANGE_REJECTED = "mobile_change_rejected"
     VEHICLE_ARRANGEMENT_UPDATED = "vehicle_arrangement_updated"
+    CAMPAIGN_APPROVED = "campaign_approved"
+    CAMPAIGN_CHANGES_REQUESTED = "campaign_changes_requested"
+    CAMPAIGN_REMOVED = "campaign_removed"
 
 
 _ev = lambda x: [e.value for e in x]  # noqa: E731

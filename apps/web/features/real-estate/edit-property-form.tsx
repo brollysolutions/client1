@@ -7,7 +7,13 @@ import { Button } from "@/components/ui/button";
 import { getSubmission, type Submission } from "@/lib/property-submissions-api";
 import { SubmitPropertyForm } from "./submit-property-form";
 
-export function EditPropertyForm({ submissionId }: { submissionId: string }) {
+export function EditPropertyForm({
+  submissionId,
+  adminCorrection = false,
+}: {
+  submissionId: string;
+  adminCorrection?: boolean;
+}) {
   const [submission, setSubmission] = React.useState<Submission | null>(null);
   const [error, setError] = React.useState<string | null>(null);
   const [retry, setRetry] = React.useState(0);
@@ -43,5 +49,5 @@ export function EditPropertyForm({ submissionId }: { submissionId: string }) {
       </div>
     );
   }
-  return <SubmitPropertyForm submission={submission} />;
+  return <SubmitPropertyForm submission={submission} adminCorrection={adminCorrection} />;
 }

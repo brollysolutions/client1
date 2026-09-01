@@ -112,6 +112,14 @@ class Facing(enum.StrEnum):
 
 
 class SaleType(enum.StrEnum):
+    """New-vs-resale, meaningful only for a sale listing.
+
+    Optional on the detail models because a rent/lease listing has no sale type.
+    It is not freely optional though: ``SubmissionFacts`` requires it when
+    ``listing_intent`` is ``sale`` and rejects it when the intent is ``rent``,
+    so a sale listing can still never omit it.
+    """
+
     NEW_SALE = "new_sale"
     RESALE = "resale"
 
@@ -190,7 +198,7 @@ class ProjectResidenceDetails(_DetailsBase):
     unit_or_plot_area_sqft: int = Field(gt=0, le=10_000_000)
     uds_sqft: int | None = Field(default=None, gt=0, le=10_000_000)
     price_per_sqft_paise: int = Field(gt=0)
-    sale_type: SaleType
+    sale_type: SaleType | None = None
     expected_handover_date: date | None = None
     plot_facing: Facing = Facing.NOT_APPLICABLE
     entrance_facing: Facing = Facing.NOT_APPLICABLE
@@ -219,7 +227,7 @@ class CommercialPropertyDetails(_DetailsBase):
     total_area_sqft: int = Field(gt=0, le=100_000_000)
     unit_area_sqft: int = Field(gt=0, le=100_000_000)
     facing: Facing
-    sale_type: SaleType
+    sale_type: SaleType | None = None
     rental_income_start: RentalIncomeStart
     monthly_rental_income_paise: int | None = Field(default=None, ge=0)
     local_approval: LocalApproval | None = None
@@ -237,7 +245,7 @@ class PlotDetails(_DetailsBase):
     total_plots: int = Field(ge=1, le=100000)
     facing: Facing
     price_per_sqyd_paise: int = Field(gt=0)
-    sale_type: SaleType
+    sale_type: SaleType | None = None
     project_status: PlotProjectStatus
     amenities_description: AmenitiesDescription | None = None
     about_project: ProjectAbout

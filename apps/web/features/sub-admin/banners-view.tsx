@@ -1,12 +1,15 @@
 "use client";
+/* eslint-disable @next/next/no-img-element */
 
 import * as React from "react";
+import Link from "next/link";
 import {
   Archive,
   CheckCircle2,
   CopyPlus,
+  Images,
   Inbox,
-  Loader2,
+  ImageIcon,
   Plus,
   Send,
   Trash2,
@@ -15,8 +18,9 @@ import {
 import { toast } from "sonner";
 
 import { useAuth } from "@/components/auth/session-provider";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { useConfirm } from "@/components/ui/confirm-dialog";
+import { FieldError, RequiredIndicator } from "@/components/ui/field-error";
 import { Dialog, DialogContent, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -28,14 +32,28 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { AdminPagination, ADMIN_PAGE_SIZE } from "@/features/admin/admin-list-tools";
+import {
+  apiIssuesToFieldErrors,
+  integerError,
+  focusFirstInvalidField,
+  optionalTextError,
+  requiredTextError,
+  type FieldErrors,
+} from "@/lib/form-validation";
 import { DASHBOARD_ICONS } from "@/features/dashboard/dashboard-icons";
 import {
   DashboardHeader,
   DashboardPage,
+  DashboardPanel,
   MetricCard,
   MetricGrid,
 } from "@/features/dashboard/dashboard-ui";
+import { DataTable, DataTablePrimaryCell, type DataColumn } from "@/features/dashboard/data-table";
+import { FetchError } from "@/features/dashboard/fetch-error";
+import { EMPTY_FILTERS, FilterBar, type FilterBarValue } from "@/features/dashboard/filter-bar";
+import { ListEmptyState, ListLoadingState, ListPagination } from "@/features/dashboard/list-states";
+import { StatusBadge, type StatusTone } from "@/features/dashboard/status-badge";
+import { useFilteredPage } from "@/features/dashboard/use-filtered-page";
 import {
   approveBanner,
   archiveBanner,
@@ -43,6 +61,7 @@ import {
   deleteBanner,
   listBannerTemplates,
   rejectBanner,
+  removeBanner,
   submitBanner,
   updateBanner,
   type Banner,
@@ -54,21 +73,21 @@ import {
   propertyCampaignImage,
   propertyMatchesCampaign,
 } from "@/lib/banner-properties";
-import { listOffers, type Offer } from "@/lib/offers-api";
 import { getAdminProperties, type AdminProperty } from "@/lib/properties-api";
+import { isSafeLocalHref } from "@/lib/safe-local-href";
 
 import { audienceSummary } from "./audience-rule-fields";
 import { BannerForm } from "./banner-form";
-import { BannerTemplateManager } from "./banner-template-manager";
-import { filterBanners, type QueueFilters } from "./cms-filters";
-import { BannerPreview, formatOfferBadge } from "./cms-previews";
+import { BANNER_USAGE_TYPES_BY_PLACEMENT } from "@/lib/campaign-artwork";
+
+import { CampaignMediaPicker } from "./campaign-media-picker";
+import { filterBanners } from "./cms-filters";
+import { BannerPreview } from "./cms-previews";
 import {
-  CmsFilterBar,
   CmsPreviewFrame,
   CmsWorkspaceHeader,
   CmsWorkspaceLayout,
   CMS_WORKSPACE_DIALOG_CLASS,
-  type PreviewDevice,
 } from "./cms-workspace";
 import { useBannerQueue } from "./use-banner-queue";
 import { PropertyCampaignSelect } from "./property-campaign-select";
@@ -78,24 +97,16 @@ const STATUS_LABEL: Record<Banner["status"], string> = {
   pending_approval: "Pending approval",
   approved: "Approved",
   live: "Live",
-  rejected: "Rejected",
+  rejected: "Changes requested",
   archived: "Archived",
 };
-const STATUS_VARIANT: Record<Banner["status"], "secondary" | "outline" | "destructive"> = {
-  draft: "outline",
-  pending_approval: "secondary",
-  approved: "secondary",
-  live: "secondary",
-  rejected: "destructive",
-  archived: "outline",
-};
-const EMPTY_FILTERS: QueueFilters = {
-  search: "",
-  status: "all",
-  line: "all",
-  kind: "all",
-  from: "",
-  to: "",
+const STATUS_TONE: Record<Banner["status"], StatusTone> = {
+  draft: "neutral",
+  pending_approval: "warning",
+  approved: "info",
+  live: "success",
+  rejected: "danger",
+  archived: "neutral",
 };
 const EDITABLE = new Set<Banner["status"]>(["draft", "rejected"]);
 const REPLACEABLE = new Set<Banner["status"]>(["approved", "live", "archived"]);
@@ -106,8 +117,8 @@ type Draft = {
   ctaLabel: string;
   deepLink: string;
   templateId: string;
-  offerId: string;
   propertyId: string;
+  mediaAssetId: string;
   priority: string;
   startsAt: string;
   endsAt: string;
@@ -127,62 +138,125 @@ function toDraft(banner: Banner): Draft {
     ctaLabel: banner.cta_label ?? "",
     deepLink: banner.deep_link ?? "",
     templateId: banner.template_id ?? "",
-    offerId: banner.offer_id ?? "",
     propertyId: banner.property_id ?? "",
+    mediaAssetId: banner.media_asset_id ?? "",
     priority: String(banner.priority),
     startsAt: localDateTime(banner.starts_at),
     endsAt: localDateTime(banner.ends_at),
   };
 }
 
-export function BannersView() {
+export function BannersView({
+  embedded = false,
+  initialStatus,
+  onPendingCount,
+}: {
+  embedded?: boolean;
+  /** Preselect a status so the approvals desk opens on actionable work. */
+  initialStatus?: FilterBarValue["status"];
+  /** Reports how many campaigns are awaiting review, for the tab badge. */
+  onPendingCount?: (count: number) => void;
+}) {
   const { session } = useAuth();
   const isAdmin = session?.role === "admin";
   const { items, loading, error, reload } = useBannerQueue();
-  const [filters, setFilters] = React.useState(EMPTY_FILTERS);
-  const [page, setPage] = React.useState(0);
+  const [filters, setFilters] = React.useState<FilterBarValue>(() =>
+    initialStatus ? { ...EMPTY_FILTERS, status: initialStatus } : EMPTY_FILTERS,
+  );
   const [active, setActive] = React.useState<Banner | null>(null);
   const [draft, setDraft] = React.useState<Draft | null>(null);
   const [templates, setTemplates] = React.useState<BannerTemplate[]>([]);
-  const [offers, setOffers] = React.useState<Offer[]>([]);
   const [properties, setProperties] = React.useState<AdminProperty[]>([]);
-  const [rejecting, setRejecting] = React.useState(false);
+  const [reviewAction, setReviewAction] = React.useState<"changes" | "remove" | null>(null);
   const [note, setNote] = React.useState("");
+  const [fieldErrors, setFieldErrors] = React.useState<
+    FieldErrors<keyof Draft | "reviewNote" | "schedule">
+  >({});
   const [busy, setBusy] = React.useState(false);
-  const [device, setDevice] = React.useState<PreviewDevice>("desktop");
   const [createOpen, setCreateOpen] = React.useState(false);
   const [createDirty, setCreateDirty] = React.useState(false);
+  const { confirm, confirmDialog } = useConfirm();
+  const pendingCount = items.filter((item) => item.status === "pending_approval").length;
+  React.useEffect(() => onPendingCount?.(pendingCount), [onPendingCount, pendingCount]);
+  const [draftMediaUrl, setDraftMediaUrl] = React.useState<string | null>(null);
+  const dialogRef = React.useRef<HTMLDivElement>(null);
 
   React.useEffect(() => {
-    void Promise.all([listBannerTemplates(false), listOffers(), getAdminProperties()]).then(
-      ([templateResult, offerResult, propertyResult]) => {
+    void Promise.all([listBannerTemplates(false), getAdminProperties()]).then(
+      ([templateResult, propertyResult]) => {
         if (templateResult.ok) setTemplates(templateResult.data);
-        if (offerResult.ok) setOffers(offerResult.data);
         if (propertyResult.ok) setProperties(propertyResult.data);
       },
     );
   }, []);
 
   const filtered = React.useMemo(() => filterBanners(items, filters), [filters, items]);
-  React.useEffect(() => setPage(0), [filters]);
-  const pageItems = filtered.slice(page * ADMIN_PAGE_SIZE, (page + 1) * ADMIN_PAGE_SIZE);
-  const dirty = Boolean(active && draft && JSON.stringify(draft) !== JSON.stringify(toDraft(active)));
+  const bannersPage = useFilteredPage(filtered, filters);
+  const canEdit = Boolean(active && !isAdmin && EDITABLE.has(active.status));
+  const dirty = Boolean(canEdit && active && draft && JSON.stringify(draft) !== JSON.stringify(toDraft(active)));
+
+  const columns = React.useMemo<readonly DataColumn<Banner>[]>(
+    () => [
+      {
+        key: "banner",
+        header: "Banner",
+        render: (banner) => (
+          <div className="flex min-w-0 items-center gap-3">
+            {templates.find((template) => template.id === banner.template_id)?.image_url ? (
+              <img
+                src={templates.find((template) => template.id === banner.template_id)?.image_url}
+                alt=""
+                width={80}
+                height={48}
+                loading="lazy"
+                className="h-12 w-20 shrink-0 rounded-lg border border-border object-cover"
+              />
+            ) : (
+              <span className="grid h-12 w-20 shrink-0 place-items-center rounded-lg border border-border bg-muted text-text-secondary">
+                <ImageIcon className="h-5 w-5" aria-hidden="true" />
+              </span>
+            )}
+            <DataTablePrimaryCell
+              title={banner.title}
+              subtitle={banner.category_key?.replaceAll("-", " ") ?? banner.banner_type}
+            />
+          </div>
+        ),
+      },
+      {
+        key: "placement",
+        header: "Placement",
+        render: (banner) => (
+          <span className="capitalize">{banner.placement.replaceAll("_", " ")}</span>
+        ),
+      },
+      {
+        key: "line",
+        header: "Line",
+        render: (banner) => banner.business_line === "both" ? "Both lines" : banner.business_line === "real_estate" ? "Real Estate" : "Loans",
+      },
+      { key: "priority", header: "Priority", align: "right", render: (banner) => banner.priority },
+      {
+        key: "updated",
+        header: "Updated",
+        render: (banner) => new Date(banner.updated_at).toLocaleDateString("en-IN"),
+      },
+      {
+        key: "state",
+        header: "State",
+        render: (banner) => (
+          <StatusBadge tone={STATUS_TONE[banner.status]}>{STATUS_LABEL[banner.status]}</StatusBadge>
+        ),
+      },
+    ],
+    [templates],
+  );
 
   const selectedTemplate = templates.find((template) => template.id === draft?.templateId);
-  const selectedOffer = offers.find((offer) => offer.id === draft?.offerId);
   const selectedProperty = properties.find((property) => property.id === draft?.propertyId);
-  const categoryNeedsOffer = selectedTemplate?.category_key === "offers";
   const categoryAllowsProperty = isPropertyCampaignTemplate(selectedTemplate);
   const editableTemplates = templates.filter(
     (template) => template.active && template.placement === active?.placement,
-  );
-  const editableOffers = offers.filter(
-    (offer) =>
-      (offer.status === "active" || offer.status === "scheduled") &&
-      (!active ||
-        active.business_line === "both" ||
-        offer.business_line === "both" ||
-        offer.business_line === active.business_line),
   );
   const editableProperties = selectedTemplate
     ? properties.filter((property) => propertyMatchesCampaign(property, selectedTemplate))
@@ -192,46 +266,105 @@ export function BannersView() {
       ? [selectedProperty, ...editableProperties]
       : editableProperties;
 
-  function closeWorkspace(openState: boolean) {
-    if (openState || busy) return;
-    if (dirty && !window.confirm("Discard unsaved banner changes?")) return;
+  function discardWorkspace() {
     setActive(null);
     setDraft(null);
+    setDraftMediaUrl(null);
+  }
+
+  // `onOpenChange` is synchronous, so a dirty close cannot await the answer.
+  // The workspace stays open and the confirmation opens above it; only its
+  // resolution closes anything.
+  function closeWorkspace(openState: boolean) {
+    if (openState || busy) return;
+    if (!dirty) return discardWorkspace();
+    void confirm({
+      title: "Discard unsaved banner changes?",
+      description: "Your edits to this campaign will be lost.",
+      confirmLabel: "Discard changes",
+      destructive: true,
+    }).then((confirmed) => {
+      if (confirmed) discardWorkspace();
+    });
   }
 
   function closeCreate(openState: boolean) {
     if (openState) return setCreateOpen(true);
-    if (createDirty && !window.confirm("Discard this banner draft?")) return;
-    setCreateOpen(false);
-    setCreateDirty(false);
+    if (!createDirty) {
+      setCreateOpen(false);
+      setCreateDirty(false);
+      return;
+    }
+    void confirm({
+      title: "Discard this banner draft?",
+      description: "Nothing has been saved yet, so this draft will be lost.",
+      confirmLabel: "Discard draft",
+      destructive: true,
+    }).then((confirmed) => {
+      if (!confirmed) return;
+      setCreateOpen(false);
+      setCreateDirty(false);
+    });
   }
 
   function openBanner(banner: Banner) {
     setActive(banner);
     setDraft(toDraft(banner));
-    setRejecting(false);
+    setDraftMediaUrl(banner.image_url ?? null);
+    setReviewAction(null);
     setNote("");
+    setFieldErrors({});
   }
 
   async function save(banner: Banner) {
-    if (!draft?.title.trim()) return void toast.error("Title cannot be empty.");
-    if (draft.startsAt && draft.endsAt && new Date(draft.endsAt) <= new Date(draft.startsAt)) {
-      return void toast.error("The archive time must be after the go-live time.");
+    if (!draft) return;
+    const errors: FieldErrors<keyof Draft | "reviewNote" | "schedule"> = {
+      title: requiredTextError(draft.title, "Title", 500),
+      subtitle: optionalTextError(draft.subtitle, "Subtitle", 300),
+      ctaLabel: optionalTextError(draft.ctaLabel, "Button label", 40),
+      deepLink:
+        draft.deepLink.trim() && !isSafeLocalHref(draft.deepLink.trim())
+          ? "Use a same-site path beginning with one slash."
+          : optionalTextError(draft.deepLink, "Internal destination", 1000),
+      priority: integerError(draft.priority, "Priority", {
+        required: true,
+        min: 0,
+        max: 2_147_483_647,
+      }),
+      // Public campaigns need artwork from one of the two sources, not
+      // specifically a template. The API rejects both together and neither.
+      templateId:
+        banner.placement !== "dashboard" && !draft.templateId && !draft.mediaAssetId
+          ? "Choose category artwork or Media Library artwork."
+          : undefined,
+    };
+    if (
+      (draft.startsAt && Number.isNaN(new Date(draft.startsAt).getTime())) ||
+      (draft.endsAt && Number.isNaN(new Date(draft.endsAt).getTime())) ||
+      (draft.startsAt && draft.endsAt && new Date(draft.endsAt) <= new Date(draft.startsAt))
+    ) {
+      errors.schedule = "The archive time must be a valid date after the go-live time.";
     }
-    if (banner.placement !== "dashboard" && !draft.templateId) {
-      return void toast.error("Choose an active artwork template.");
-    }
-    if (categoryNeedsOffer && !draft.offerId) {
-      return void toast.error("Choose the linked Offer.");
+    const nextErrors = Object.fromEntries(
+      Object.entries(errors).filter(([, validationError]) => validationError),
+    ) as typeof fieldErrors;
+    setFieldErrors(nextErrors);
+    if (Object.keys(nextErrors).length > 0) {
+      requestAnimationFrame(() => {
+        if (dialogRef.current) focusFirstInvalidField(dialogRef.current);
+      });
+      return;
     }
     setBusy(true);
     const result = await updateBanner(banner.id, {
+      expected_version: banner.version,
       title: draft.title.trim(),
       subtitle: draft.subtitle.trim() || null,
       cta_label: draft.ctaLabel.trim() || null,
       deep_link: draft.propertyId ? null : draft.deepLink.trim() || null,
-      template_id: banner.placement === "dashboard" ? null : draft.templateId,
-      offer_id: categoryNeedsOffer ? draft.offerId : null,
+      template_id: banner.placement === "dashboard" ? null : draft.templateId || null,
+      media_asset_id: draft.mediaAssetId || null,
+      offer_id: null,
       property_id: categoryAllowsProperty && draft.propertyId ? draft.propertyId : null,
       priority: Number(draft.priority) || 0,
       starts_at: draft.startsAt ? new Date(draft.startsAt).toISOString() : null,
@@ -239,11 +372,24 @@ export function BannersView() {
     });
     setBusy(false);
     if (!result.ok) {
+      const serverErrors = apiIssuesToFieldErrors(result.issues, {
+        title: "title",
+        subtitle: "subtitle",
+        cta_label: "ctaLabel",
+        deep_link: "deepLink",
+        template_id: "templateId",
+        property_id: "propertyId",
+        priority: "priority",
+        starts_at: "schedule",
+        ends_at: "schedule",
+      });
+      if (Object.keys(serverErrors).length > 0) setFieldErrors(serverErrors);
       return void toast.error("Could not update banner", { description: result.error });
     }
     toast.success("Banner updated");
     setActive(result.data);
     setDraft(toDraft(result.data));
+    setFieldErrors({});
     void reload();
   }
 
@@ -263,19 +409,33 @@ export function BannersView() {
   }
 
   async function reject(banner: Banner) {
-    if (!note.trim()) return void toast.error("Add a reason for the Sub Admin.");
+    const validationError = requiredTextError(note, "Change request", 1000);
+    setFieldErrors((current) => ({ ...current, reviewNote: validationError }));
+    if (validationError) {
+      requestAnimationFrame(() => {
+        if (dialogRef.current) focusFirstInvalidField(dialogRef.current);
+      });
+      return;
+    }
     setBusy(true);
     const result = await rejectBanner(banner.id, note.trim());
     setBusy(false);
-    if (!result.ok) return void toast.error("Could not reject", { description: result.error });
-    toast.success("Banner rejected");
+    if (!result.ok) return void toast.error("Could not request changes", { description: result.error });
+    toast.success("Changes requested");
     setActive(null);
     setDraft(null);
     void reload();
   }
 
   async function removeDraft(banner: Banner) {
-    if (!window.confirm("Delete this never-submitted draft? This cannot be undone.")) return;
+    const confirmed = await confirm({
+      title: "Delete this draft?",
+      description:
+        "This campaign has never been submitted for review, so deleting it leaves no record. This cannot be undone.",
+      confirmLabel: "Delete draft",
+      destructive: true,
+    });
+    if (!confirmed) return;
     setBusy(true);
     const result = await deleteBanner(banner.id);
     setBusy(false);
@@ -287,8 +447,32 @@ export function BannersView() {
   }
 
   async function archive(banner: Banner) {
-    if (!window.confirm("Archive this banner? It will stop appearing publicly.")) return;
+    const confirmed = await confirm({
+      title: "Archive this banner?",
+      description: "It stops appearing on the customer-facing surface. Reviewed history is kept.",
+      confirmLabel: "Archive banner",
+    });
+    if (!confirmed) return;
     await advance(archiveBanner, banner, "Banner archived");
+  }
+
+  async function removeReviewed(banner: Banner) {
+    const validationError = requiredTextError(note, "Removal reason", 1000);
+    setFieldErrors((current) => ({ ...current, reviewNote: validationError }));
+    if (validationError) {
+      requestAnimationFrame(() => {
+        if (dialogRef.current) focusFirstInvalidField(dialogRef.current);
+      });
+      return;
+    }
+    setBusy(true);
+    const result = await removeBanner(banner.id, note.trim());
+    setBusy(false);
+    if (!result.ok) return void toast.error("Could not remove banner", { description: result.error });
+    toast.success("Banner removed from serving");
+    setActive(null);
+    setDraft(null);
+    void reload();
   }
 
   async function replace(banner: Banner) {
@@ -308,71 +492,92 @@ export function BannersView() {
 
   return (
     <DashboardPage>
-      <DashboardHeader
-        eyebrow="Campaign content"
-        title="Banners"
-        description="Choose governed artwork, edit live copy, and move campaigns through Admin approval."
+      {confirmDialog}
+      {/* Embedded is the approvals desk, whose page header and tab label
+          already name this queue; a second heading here only pushed the work
+          further down the page. */}
+      {embedded ? null : <DashboardHeader
+        title={isAdmin ? "Banner approvals" : "Banner campaigns"}
+        description={
+          isAdmin
+            ? "Review campaign copy, audience, destination, schedule, and the immutable artwork version selected by the author."
+            : "Build campaigns from Admin-approved artwork, then submit them for review before they can go live."
+        }
         actions={
           !isAdmin ? (
-            <Button onClick={() => setCreateOpen(true)}><Plus className="h-4 w-4" />New banner</Button>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button asChild variant="outline">
+                <Link href="/dashboard/media-library">
+                  <Images className="h-4 w-4" aria-hidden />
+                  Media library
+                </Link>
+              </Button>
+              <Button onClick={() => setCreateOpen(true)}>
+                <Plus className="h-4 w-4" aria-hidden />
+                New banner
+              </Button>
+            </div>
           ) : undefined
         }
-      />
-      {isAdmin ? <BannerTemplateManager /> : null}
-      <MetricGrid>
+      />}
+      {!embedded ? <MetricGrid>
         <MetricCard label="Total banners" value={items.length} icon={DASHBOARD_ICONS.banners} />
         <MetricCard label="Drafts" value={items.filter((item) => item.status === "draft").length} icon={DASHBOARD_ICONS.websiteContent} />
         <MetricCard label="Waiting for approval" value={items.filter((item) => item.status === "pending_approval").length} icon={DASHBOARD_ICONS.documentVerification} attention={items.some((item) => item.status === "pending_approval")} />
         <MetricCard label="Live" value={items.filter((item) => item.status === "live").length} icon={DASHBOARD_ICONS.analytics} />
-      </MetricGrid>
-      <CmsFilterBar
+      </MetricGrid> : null}
+      <FilterBar
         value={filters}
         onChange={setFilters}
         searchLabel="Search banners"
+        searchPlaceholder="Title or subtitle"
         statusOptions={Object.entries(STATUS_LABEL).map(([value, label]) => ({ value, label }))}
+        statusLabel="banner states"
         kindLabel="banner types"
         kindOptions={[
           { value: "default", label: "Default" },
           { value: "action", label: "Action" },
           { value: "personalized", label: "Personalized" },
         ]}
+        note={embedded ? undefined : "Filters apply to the records already loaded for your authorized role."}
       />
-      {loading ? (
-        <Loading />
-      ) : error ? (
-        <ErrorState error={error} reload={reload} />
-      ) : filtered.length === 0 ? (
-        <Empty filtered={items.length > 0} />
+      {error ? (
+        <FetchError status={null} message={error} onRetry={() => void reload()} />
       ) : (
-        <>
-          <p className="text-sm text-text-secondary">
-            {filtered.length} {filtered.length === 1 ? "banner" : "banners"} shown
-          </p>
-          <ul className="space-y-3">
-            {pageItems.map((banner) => (
-              <li key={banner.id}>
-                <button
-                  type="button"
-                  onClick={() => openBanner(banner)}
-                  className="flex w-full items-center justify-between gap-4 rounded-xl border border-border bg-card p-4 text-left transition-colors hover:border-brand-cta focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue"
-                >
-                  <div className="min-w-0">
-                    <p className="truncate font-medium text-text-primary">{banner.title}</p>
-                    <p className="mt-0.5 truncate text-xs capitalize text-text-secondary">
-                      {banner.placement.replaceAll("_", " ")} · {banner.category_key?.replaceAll("-", " ") ?? banner.banner_type} · Priority {banner.priority}
-                    </p>
-                  </div>
-                  <Badge variant={STATUS_VARIANT[banner.status]}>{STATUS_LABEL[banner.status]}</Badge>
-                </button>
-              </li>
-            ))}
-          </ul>
-          <AdminPagination page={page} total={filtered.length} onPageChange={setPage} />
-        </>
+        <DashboardPanel
+          title={isAdmin ? "Campaign oversight" : "Campaign library"}
+          description={`${filtered.length} ${filtered.length === 1 ? "campaign" : "campaigns"} shown.`}
+          bodyClassName={embedded ? "p-4" : "p-0"}
+        >
+          {loading ? (
+            <div className="p-5"><ListLoadingState rows={5} /></div>
+          ) : filtered.length === 0 ? (
+            <ListEmptyState
+              icon={Inbox}
+              title={items.length ? "No banners match these filters" : "No banners yet"}
+              description={items.length ? "Clear or adjust the filters." : "Create the first banner draft to get started."}
+              className="m-5"
+            />
+          ) : (
+            <>
+              {embedded ? <ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">{bannersPage.pageRows.map((banner) => { const image = templates.find((template) => template.id === banner.template_id)?.image_url; return <li key={banner.id}><button type="button" onClick={() => openBanner(banner)} className="w-full overflow-hidden rounded-xl border border-border bg-background text-left transition hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><div className="relative aspect-[9/4] overflow-hidden bg-muted">{image ? <img src={image} alt="" width={900} height={400} className="h-full w-full object-cover" /> : <span className="grid h-full place-items-center text-text-secondary"><ImageIcon className="h-7 w-7" /></span>}<span className="absolute left-3 top-3"><StatusBadge tone={STATUS_TONE[banner.status]}>{STATUS_LABEL[banner.status]}</StatusBadge></span></div><div className="space-y-2 p-4"><p className="line-clamp-2 font-semibold text-text-primary">{banner.title}</p><p className="text-xs capitalize text-text-secondary">{banner.placement.replaceAll("_", " ")} · {banner.business_line.replace("_", " ")}</p><p className="text-xs text-text-secondary">{audienceSummary(banner.audience_rules)}</p></div></button></li>; })}</ul> : <DataTable
+                columns={columns}
+                rows={bannersPage.pageRows}
+                rowKey={(banner) => banner.id}
+                onRowClick={openBanner}
+                rowActionLabel="Open banner workspace"
+                minWidth="min-w-[900px]"
+              />}
+              <div className="px-5 pb-5">
+                <ListPagination page={bannersPage.page} total={bannersPage.total} onPageChange={bannersPage.setPage} />
+              </div>
+            </>
+          )}
+        </DashboardPanel>
       )}
 
       <Dialog open={active !== null} onOpenChange={closeWorkspace}>
-        <DialogContent showCloseButton={false} className={CMS_WORKSPACE_DIALOG_CLASS}>
+        <DialogContent ref={dialogRef} showCloseButton={false} className={CMS_WORKSPACE_DIALOG_CLASS}>
           {active && draft ? (
             <>
               <CmsWorkspaceHeader
@@ -380,56 +585,91 @@ export function BannersView() {
                 description={`${STATUS_LABEL[active.status]} · ${active.placement.replaceAll("_", " ")} · ${audienceSummary(active.audience_rules)}`}
               />
               <CmsWorkspaceLayout
+                previewFirst={isAdmin}
                 editor={
                   <div className="space-y-5">
                     <section className="space-y-4 rounded-xl border border-border p-4">
                       <div>
-                        <Label htmlFor="banner-title">Title</Label>
-                        <Input id="banner-title" value={draft.title} disabled={!EDITABLE.has(active.status)} onChange={(event) => setDraft({ ...draft, title: event.target.value })} />
+                        <Label htmlFor="banner-title">Title <RequiredIndicator /></Label>
+                        <Input id="banner-title" value={draft.title} disabled={!canEdit} maxLength={500} onChange={(event) => { setDraft({ ...draft, title: event.target.value }); setFieldErrors((current) => ({ ...current, title: undefined })); }} aria-invalid={Boolean(fieldErrors.title)} aria-describedby={fieldErrors.title ? "banner-edit-title-error" : undefined} />
+                        <FieldError id="banner-edit-title-error">{fieldErrors.title}</FieldError>
                       </div>
                       <div>
                         <Label htmlFor="banner-subtitle">Subtitle</Label>
-                        <Input id="banner-subtitle" value={draft.subtitle} disabled={!EDITABLE.has(active.status)} onChange={(event) => setDraft({ ...draft, subtitle: event.target.value })} />
+                        <Input id="banner-subtitle" value={draft.subtitle} disabled={!canEdit} maxLength={300} onChange={(event) => { setDraft({ ...draft, subtitle: event.target.value }); setFieldErrors((current) => ({ ...current, subtitle: undefined })); }} aria-invalid={Boolean(fieldErrors.subtitle)} aria-describedby={fieldErrors.subtitle ? "banner-edit-subtitle-error" : undefined} />
+                        <FieldError id="banner-edit-subtitle-error">{fieldErrors.subtitle}</FieldError>
                       </div>
                       <div className="grid gap-4 sm:grid-cols-2">
                         <div>
                           <Label htmlFor="banner-cta">Button label</Label>
-                          <Input id="banner-cta" value={draft.ctaLabel} disabled={!EDITABLE.has(active.status)} onChange={(event) => setDraft({ ...draft, ctaLabel: event.target.value })} />
+                          <Input id="banner-cta" value={draft.ctaLabel} disabled={!canEdit} maxLength={40} onChange={(event) => { setDraft({ ...draft, ctaLabel: event.target.value }); setFieldErrors((current) => ({ ...current, ctaLabel: undefined })); }} aria-invalid={Boolean(fieldErrors.ctaLabel)} aria-describedby={fieldErrors.ctaLabel ? "banner-edit-cta-error" : undefined} />
+                          <FieldError id="banner-edit-cta-error">{fieldErrors.ctaLabel}</FieldError>
                         </div>
                         <div>
                           <Label htmlFor="banner-link">Internal destination</Label>
                           <Input
                             id="banner-link"
                             value={selectedProperty ? propertyCampaignHref(selectedProperty) : draft.deepLink}
-                            disabled={!EDITABLE.has(active.status) || Boolean(selectedProperty)}
-                            onChange={(event) => setDraft({ ...draft, deepLink: event.target.value })}
+                            disabled={!canEdit || Boolean(selectedProperty)}
+                            maxLength={1000}
+                            onChange={(event) => { setDraft({ ...draft, deepLink: event.target.value }); setFieldErrors((current) => ({ ...current, deepLink: undefined })); }}
+                            aria-invalid={Boolean(fieldErrors.deepLink)}
+                            aria-describedby={fieldErrors.deepLink ? "banner-edit-link-error" : undefined}
                           />
+                          <FieldError id="banner-edit-link-error">{fieldErrors.deepLink}</FieldError>
                         </div>
                       </div>
-                      {active.placement !== "dashboard" ? (
-                        <div>
-                          <Label htmlFor="edit-template">Artwork template</Label>
-                          <Select value={draft.templateId || undefined} disabled={!EDITABLE.has(active.status)} onValueChange={(templateId) => setDraft({ ...draft, templateId, offerId: "", propertyId: "" })}>
-                            <SelectTrigger id="edit-template"><SelectValue placeholder="Choose a template" /></SelectTrigger>
-                            <SelectContent>
-                              {editableTemplates.map((template) => (
-                                <SelectItem key={template.id} value={template.id}>{template.label} · version {template.version}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                      {/* A campaign takes artwork from one source. Public
+                          placements may use a governed category template or
+                          Media Library artwork; the dashboard uses the library
+                          only. Choosing in one control clears the other, which
+                          is what the API requires on save. */}
+                      {canEdit ? (
+                        <div className="space-y-4">
+                          {active.placement !== "dashboard" ? (
+                            <div>
+                              <Label htmlFor="edit-template">Category artwork</Label>
+                              <Select
+                                value={draft.templateId || undefined}
+                                onValueChange={(templateId) => {
+                                  setDraft({ ...draft, templateId, propertyId: "", mediaAssetId: "" });
+                                  setDraftMediaUrl(null);
+                                  setFieldErrors((current) => ({ ...current, templateId: undefined }));
+                                }}
+                              >
+                                <SelectTrigger id="edit-template" aria-invalid={Boolean(fieldErrors.templateId)} aria-describedby={fieldErrors.templateId ? "banner-edit-template-error" : undefined}><SelectValue placeholder="Choose a category" /></SelectTrigger>
+                                <SelectContent>
+                                  {editableTemplates.map((template) => (
+                                    <SelectItem key={template.id} value={template.id}>{template.label} · version {template.version}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <FieldError id="banner-edit-template-error">{fieldErrors.templateId}</FieldError>
+                            </div>
+                          ) : null}
+                          <CampaignMediaPicker
+                            usageTypes={BANNER_USAGE_TYPES_BY_PLACEMENT[active.placement]}
+                            businessLine={active.business_line as "loans" | "real_estate" | "both"}
+                            value={draft.mediaAssetId}
+                            label={active.placement === "dashboard" ? "Artwork" : "Media Library artwork"}
+                            onChange={(id, asset) => {
+                              setDraft({ ...draft, mediaAssetId: id, ...(id ? { templateId: "", propertyId: "" } : {}) });
+                              setDraftMediaUrl(asset?.image_url ?? null);
+                            }}
+                          />
                         </div>
-                      ) : null}
-                      {categoryNeedsOffer ? (
+                      ) : (
                         <div>
-                          <Label htmlFor="edit-offer">Linked Offer</Label>
-                          <Select value={draft.offerId || undefined} disabled={!EDITABLE.has(active.status)} onValueChange={(offerId) => setDraft({ ...draft, offerId })}>
-                            <SelectTrigger id="edit-offer"><SelectValue placeholder="Choose an Offer" /></SelectTrigger>
-                            <SelectContent>
-                              {editableOffers.map((offer) => <SelectItem key={offer.id} value={offer.id}>{offer.title}</SelectItem>)}
-                            </SelectContent>
-                          </Select>
+                          <p className="text-xs font-medium text-text-secondary">Artwork</p>
+                          <p className="mt-1 text-sm">
+                            {active.template_id
+                              ? "Governed category artwork"
+                              : active.media_asset_id
+                                ? "Media Library artwork"
+                                : "No artwork selected"}
+                          </p>
                         </div>
-                      ) : null}
+                      )}
                       {categoryAllowsProperty ? (
                         <div>
                           <Label htmlFor="edit-property">Advertised property (optional)</Label>
@@ -438,7 +678,7 @@ export function BannersView() {
                             properties={propertyOptions}
                             value={draft.propertyId}
                             onChange={(propertyId) => setDraft({ ...draft, propertyId })}
-                            disabled={!EDITABLE.has(active.status)}
+                            disabled={!canEdit}
                           />
                           <p className="mt-1 text-xs text-text-secondary">
                             Property cover art, enquiry destination, and RERA verification are server-controlled.
@@ -448,34 +688,30 @@ export function BannersView() {
                       <div className="grid gap-4 sm:grid-cols-3">
                         <div>
                           <Label htmlFor="banner-priority">Priority</Label>
-                          <Input id="banner-priority" inputMode="numeric" value={draft.priority} disabled={!EDITABLE.has(active.status)} onChange={(event) => setDraft({ ...draft, priority: event.target.value.replace(/\D/g, "") })} />
+                          <Input id="banner-priority" inputMode="numeric" value={draft.priority} disabled={!canEdit} onChange={(event) => { setDraft({ ...draft, priority: event.target.value.replace(/\D/g, "") }); setFieldErrors((current) => ({ ...current, priority: undefined })); }} aria-invalid={Boolean(fieldErrors.priority)} aria-describedby={fieldErrors.priority ? "banner-edit-priority-error" : undefined} />
+                          <FieldError id="banner-edit-priority-error">{fieldErrors.priority}</FieldError>
                         </div>
                         <div>
                           <Label htmlFor="banner-start">Goes live at</Label>
-                          <Input id="banner-start" type="datetime-local" value={draft.startsAt} disabled={!EDITABLE.has(active.status)} onChange={(event) => setDraft({ ...draft, startsAt: event.target.value })} />
+                          <Input id="banner-start" type="datetime-local" value={draft.startsAt} disabled={!canEdit} onChange={(event) => { setDraft({ ...draft, startsAt: event.target.value }); setFieldErrors((current) => ({ ...current, schedule: undefined })); }} aria-invalid={Boolean(fieldErrors.schedule)} aria-describedby={fieldErrors.schedule ? "banner-edit-schedule-error" : undefined} />
                         </div>
                         <div>
                           <Label htmlFor="banner-end">Archives at</Label>
-                          <Input id="banner-end" type="datetime-local" value={draft.endsAt} disabled={!EDITABLE.has(active.status)} onChange={(event) => setDraft({ ...draft, endsAt: event.target.value })} />
+                          <Input id="banner-end" type="datetime-local" value={draft.endsAt} disabled={!canEdit} onChange={(event) => { setDraft({ ...draft, endsAt: event.target.value }); setFieldErrors((current) => ({ ...current, schedule: undefined })); }} aria-invalid={Boolean(fieldErrors.schedule)} aria-describedby={fieldErrors.schedule ? "banner-edit-schedule-error" : undefined} />
                         </div>
                       </div>
+                      <FieldError id="banner-edit-schedule-error">{fieldErrors.schedule}</FieldError>
                       {active.review_note ? <p className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">Review note: {active.review_note}</p> : null}
-                      {rejecting ? <Textarea value={note} onChange={(event) => setNote(event.target.value)} placeholder="Reason for rejection" /> : null}
+                      {reviewAction ? <div><Label htmlFor="banner-review-note">{reviewAction === "remove" ? "Removal reason" : "Change request"} <RequiredIndicator /></Label><Textarea id="banner-review-note" value={note} maxLength={1000} onChange={(event) => { setNote(event.target.value); setFieldErrors((current) => ({ ...current, reviewNote: undefined })); }} placeholder={reviewAction === "remove" ? "Explain why this campaign must be removed" : "Explain exactly what the Sub Admin should change"} aria-invalid={Boolean(fieldErrors.reviewNote)} aria-describedby={fieldErrors.reviewNote ? "banner-review-note-error" : "banner-review-note-hint"} /><p id="banner-review-note-hint" className="mt-1 text-xs text-text-secondary">This note is sent to the campaign author and retained in the audit trail.</p><FieldError id="banner-review-note-error">{fieldErrors.reviewNote}</FieldError></div> : null}
                     </section>
                     <DialogFooter className="flex-wrap">
-                      {isAdmin && active.status === "pending_approval" ? (
-                        rejecting ? (
-                          <>
-                            <Button variant="ghost" onClick={() => setRejecting(false)}>Back</Button>
-                            <Button variant="destructive" disabled={busy} onClick={() => void reject(active)}><XCircle className="h-4 w-4" />Confirm reject</Button>
-                          </>
-                        ) : (
-                          <>
-                            <Button variant="outline" onClick={() => setRejecting(true)}>Reject</Button>
-                            <Button disabled={busy} onClick={() => void advance(approveBanner, active, "Banner approved")}><CheckCircle2 className="h-4 w-4" />Approve</Button>
-                          </>
-                        )
-                      ) : !isAdmin && EDITABLE.has(active.status) ? (
+                      {isAdmin && reviewAction ? <>
+                        <Button variant="ghost" disabled={busy} onClick={() => { setReviewAction(null); setNote(""); setFieldErrors((current) => ({ ...current, reviewNote: undefined })); }}>Back</Button>
+                        <Button variant={reviewAction === "remove" ? "destructive" : "default"} disabled={busy} onClick={() => void (reviewAction === "remove" ? removeReviewed(active) : reject(active))}>{reviewAction === "remove" ? <Trash2 className="h-4 w-4" /> : <XCircle className="h-4 w-4" />}{reviewAction === "remove" ? "Confirm removal" : "Send change request"}</Button>
+                      </> : isAdmin && active.status === "pending_approval" ? <>
+                        <Button variant="outline" disabled={busy} onClick={() => setReviewAction("changes")}>Request changes</Button>
+                        <Button disabled={busy} onClick={() => void advance(approveBanner, active, "Banner approved")}><CheckCircle2 className="h-4 w-4" />Approve</Button>
+                      </> : !isAdmin && EDITABLE.has(active.status) ? (
                         <>
                           {active.status === "draft" ? <Button variant="destructive" disabled={busy} onClick={() => void removeDraft(active)}><Trash2 className="h-4 w-4" />Delete draft</Button> : null}
                           <Button variant="outline" disabled={busy || !dirty} onClick={() => void save(active)}>Save changes</Button>
@@ -484,7 +720,8 @@ export function BannersView() {
                       ) : !isAdmin && REPLACEABLE.has(active.status) ? (
                         <Button disabled={busy} onClick={() => void replace(active)}><CopyPlus className="h-4 w-4" />Create replacement</Button>
                       ) : null}
-                      {active.status !== "draft" && active.status !== "archived" ? (
+                      {isAdmin && !reviewAction ? <Button variant="destructive" disabled={busy} onClick={() => setReviewAction("remove")}><Trash2 className="h-4 w-4" />Remove</Button> : null}
+                      {!isAdmin && active.status !== "draft" && active.status !== "archived" ? (
                         <Button variant="outline" disabled={busy} onClick={() => void archive(active)}><Archive className="h-4 w-4" />Archive</Button>
                       ) : null}
                     </DialogFooter>
@@ -493,9 +730,7 @@ export function BannersView() {
                 preview={
                   <CmsPreviewFrame
                     title="Banner appearance"
-                    description="Artwork, copy, Offer badge, and CTA match the production composition."
-                    device={device}
-                    onDeviceChange={setDevice}
+                    description="Artwork, copy, and CTA match the production composition."
                   >
                     <BannerPreview
                       context={active.placement === "dashboard" ? "dashboard" : "public"}
@@ -508,8 +743,7 @@ export function BannersView() {
                         deep_link: selectedProperty ? propertyCampaignHref(selectedProperty) : draft.deepLink || null,
                         image_url:
                           propertyCampaignImage(selectedProperty, selectedTemplate) ??
-                          selectedTemplate?.image_url,
-                        offer_badge: formatOfferBadge(selectedOffer),
+                          selectedTemplate?.image_url ?? draftMediaUrl ?? active.image_url,
                         rera_verified: selectedProperty?.rera_verification_status === "verified",
                       }}
                     />
@@ -533,16 +767,4 @@ export function BannersView() {
       ) : null}
     </DashboardPage>
   );
-}
-
-function Loading() {
-  return <div className="flex min-h-64 items-center justify-center rounded-xl border border-border bg-card"><Loader2 className="h-6 w-6 animate-spin text-brand-navy" /></div>;
-}
-
-function ErrorState({ error, reload }: { error: string; reload: () => Promise<void> }) {
-  return <div className="rounded-xl border border-border bg-card p-8 text-center"><p className="text-sm text-text-secondary">{error}</p><Button variant="outline" className="mt-4" onClick={() => void reload()}>Try again</Button></div>;
-}
-
-function Empty({ filtered }: { filtered: boolean }) {
-  return <div className="flex min-h-56 flex-col items-center justify-center rounded-xl border border-border bg-card p-8 text-center"><Inbox className="h-8 w-8 text-text-secondary" /><p className="mt-3 font-medium">{filtered ? "No banners match these filters" : "No banners yet"}</p><p className="mt-1 text-sm text-text-secondary">{filtered ? "Clear or adjust the advanced filters." : "Create the first banner draft to get started."}</p></div>;
 }

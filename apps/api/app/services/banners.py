@@ -25,6 +25,7 @@ from uuid import UUID
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app import campaign_artwork
 from app.banner_catalog import (
     category_label,
     expected_business_line,
@@ -33,12 +34,15 @@ from app.banner_catalog import (
 from app.db.session import AsyncSessionLocal
 from app.models.audit_log import AuditAction
 from app.models.banner import Banner, BannerPlacement, BannerStatus, BannerTemplate
-from app.models.offer import Offer, OfferStatus
+from app.models.campaign_media import CampaignMediaAsset
+from app.models.notification import NotificationType
+from app.models.offer import Offer
 from app.models.property import Property, ReraVerificationStatus
 from app.schemas.banners import BannerTemplateCreate
 from app.schemas.personalization import AudienceRules, audience_rules_valid_for_banner
 from app.services import media_processing, storage
 from app.services.audit_log import record as record_audit
+from app.services.notifications import emit_notification
 
 
 class BannerAlreadyReviewed(Exception):
@@ -86,6 +90,7 @@ async def validate_banner_configuration(
     offer_id: UUID | None,
     property_id: UUID | None,
     allow_legacy: bool = False,
+    has_media_asset: bool = False,
 ) -> tuple[BannerTemplate | None, Offer | None, Property | None]:
     if placement == BannerPlacement.DASHBOARD:
         if template_id is not None or offer_id is not None or property_id is not None:
@@ -93,6 +98,17 @@ async def validate_banner_configuration(
         return None, None, None
 
     if template_id is None and allow_legacy and offer_id is None and property_id is None:
+        return None, None, None
+    # Public artwork may come from a governed category template or from a Media
+    # Library asset chosen for this campaign alone. Property promotion still
+    # requires a template, because the category is what decides which listings
+    # a campaign may advertise (property_category_matches_campaign below).
+    if template_id is None and has_media_asset:
+        if property_id is not None or offer_id is not None:
+            raise BannerInvalidConfiguration
+        required_line = expected_business_line(placement)
+        if required_line is not None and business_line != required_line:
+            raise BannerInvalidConfiguration
         return None, None, None
     template = await db.get(BannerTemplate, template_id) if template_id else None
     if template is None or not template.active or template.placement != placement:
@@ -103,21 +119,14 @@ async def validate_banner_configuration(
     if required_line is not None and business_line != required_line:
         raise BannerInvalidConfiguration
 
-    offer = await db.get(Offer, offer_id) if offer_id else None
+    # Coupon campaigns are dashboard-only. Public banners may use the governed
+    # "offers" artwork category, but never link or expose an offer/code.
+    if offer_id is not None:
+        raise BannerInvalidConfiguration
+    offer = None
     property_listing = await db.get(Property, property_id) if property_id else None
     if offer_id is not None and property_id is not None:
         raise BannerInvalidConfiguration
-    if template.category_key == "offers" and offer is None:
-        raise BannerInvalidConfiguration
-    if template.category_key != "offers" and offer is not None:
-        raise BannerInvalidConfiguration
-    if offer is not None:
-        if offer.status not in (OfferStatus.SCHEDULED, OfferStatus.ACTIVE):
-            raise BannerInvalidConfiguration
-        if offer.audience_rules != {}:
-            raise BannerInvalidConfiguration
-        if business_line != "both" and offer.business_line not in (business_line, "both"):
-            raise BannerInvalidConfiguration
     if property_id is not None and (
         property_listing is None
         or not property_listing.active
@@ -184,6 +193,28 @@ async def create_template_version(
         image_ref = destination_key
     else:
         raise BannerInvalidConfiguration
+    media_asset = await db.scalar(
+        select(CampaignMediaAsset).where(CampaignMediaAsset.image_ref == image_ref)
+    )
+    if media_asset is None:
+        mime_type = payload.content_type or (
+            "image/png" if image_ref.endswith(".png") else "image/webp"
+        )
+        media_asset = CampaignMediaAsset(
+            business_line=expected_business_line(payload.placement) or "both",
+            usage_type=campaign_artwork.template_usage_type(payload.placement),
+            title=f"{label} artwork",
+            alt_text=f"{label} campaign artwork",
+            tags=[payload.category_key, payload.placement.value],
+            image_ref=image_ref,
+            mime_type=mime_type,
+            source_type=("bundled" if image_ref.startswith("/") else "upload"),
+            source_reference=f"banner-template:{payload.placement.value}/{payload.category_key}",
+            active=True,
+            created_by_uuid=actor_uuid,
+        )
+        db.add(media_asset)
+        await db.flush()
     current = (
         await db.scalars(
             select(BannerTemplate)
@@ -209,6 +240,7 @@ async def create_template_version(
         label=label,
         version=(latest or 0) + 1,
         image_ref=image_ref,
+        media_asset_id=media_asset.id,
         active=True,
         created_by_uuid=actor_uuid,
     )
@@ -236,9 +268,25 @@ async def submit_banner(
     can_manage_any: bool = False,
 ) -> Banner | None:
     """Move draft/rejected to pending approval, optionally provenance-scoped."""
-    banner = await db.scalar(select(Banner).where(Banner.id == banner_id))
-    if banner is None:
+    visible_banner = await db.scalar(
+        select(Banner).where(Banner.id == banner_id, Banner.removed_at.is_(None))
+    )
+    if visible_banner is None:
         return None
+    if not can_manage_any and visible_banner.created_by_uuid != submitter_uuid:
+        raise BannerNotOwned
+    if visible_banner.status not in (BannerStatus.DRAFT, BannerStatus.REJECTED):
+        raise BannerAlreadyReviewed
+
+    # PostgreSQL applies the UPDATE policy to SELECT ... FOR UPDATE. Read the
+    # shared queue first so an existing non-editable row returns a conflict, not
+    # a misleading 404, then lock and recheck to close the race with another
+    # team member submitting or an Admin reviewing the campaign.
+    banner = await db.scalar(
+        select(Banner).where(Banner.id == banner_id, Banner.removed_at.is_(None)).with_for_update()
+    )
+    if banner is None:
+        raise BannerAlreadyReviewed
     if not can_manage_any and banner.created_by_uuid != submitter_uuid:
         raise BannerNotOwned
     if banner.status not in (BannerStatus.DRAFT, BannerStatus.REJECTED):
@@ -260,6 +308,7 @@ async def submit_banner(
         raise BannerInvalidAudience
     banner.status = BannerStatus.PENDING_APPROVAL
     banner.review_note = None
+    banner.version += 1
     await record_audit(
         db,
         action=AuditAction.BANNER_SUBMITTED,
@@ -302,6 +351,7 @@ async def approve_banner(banner_id: UUID, reviewer_uuid: UUID) -> Banner | None:
         banner.status = BannerStatus.APPROVED
         banner.approved_by_uuid = reviewer_uuid
         banner.review_note = None
+        banner.version += 1
         await record_audit(
             session,
             action=AuditAction.BANNER_APPROVED,
@@ -314,6 +364,13 @@ async def approve_banner(banner_id: UUID, reviewer_uuid: UUID) -> Banner | None:
         )
         await session.commit()
         await session.refresh(banner)
+        await emit_notification(
+            user_uuid=banner.created_by_uuid,
+            notification_type=NotificationType.CAMPAIGN_APPROVED,
+            title="Banner approved",
+            body=f"“{banner.title}” is ready for scheduling or publication.",
+            href="/dashboard/campaigns?type=banners",
+        )
         return banner
 
 
@@ -327,6 +384,7 @@ async def reject_banner(banner_id: UUID, reviewer_uuid: UUID, note: str) -> Bann
         banner.status = BannerStatus.REJECTED
         banner.approved_by_uuid = reviewer_uuid
         banner.review_note = note
+        banner.version += 1
         await record_audit(
             session,
             action=AuditAction.BANNER_REJECTED,
@@ -339,17 +397,25 @@ async def reject_banner(banner_id: UUID, reviewer_uuid: UUID, note: str) -> Bann
         )
         await session.commit()
         await session.refresh(banner)
+        await emit_notification(
+            user_uuid=banner.created_by_uuid,
+            notification_type=NotificationType.CAMPAIGN_CHANGES_REQUESTED,
+            title="Changes requested for banner",
+            body=f"Admin left feedback on “{banner.title}”.",
+            href="/dashboard/campaigns?type=banners",
+        )
         return banner
 
 
 async def archive_banner(banner_id: UUID, actor_uuid: UUID, actor_role: str) -> Banner | None:
     async with AsyncSessionLocal() as session:
         banner = await session.get(Banner, banner_id, with_for_update=True)
-        if banner is None:
+        if banner is None or banner.removed_at is not None:
             return None
         if banner.status in (BannerStatus.DRAFT, BannerStatus.ARCHIVED):
             raise BannerAlreadyReviewed
         banner.status = BannerStatus.ARCHIVED
+        banner.version += 1
         await record_audit(
             session,
             action=AuditAction.BANNER_ARCHIVED,
@@ -362,6 +428,45 @@ async def archive_banner(banner_id: UUID, actor_uuid: UUID, actor_role: str) -> 
         )
         await session.commit()
         await session.refresh(banner)
+        return banner
+
+
+async def remove_banner(banner_id: UUID, reviewer_uuid: UUID, note: str) -> Banner | None:
+    """Hide a campaign immediately while preserving its review and audit history."""
+    async with AsyncSessionLocal() as session:
+        banner = await session.get(Banner, banner_id, with_for_update=True)
+        if banner is None or banner.removed_at is not None:
+            return None
+        removed_at = datetime.now(UTC)
+        previous_status = banner.status
+        banner.status = BannerStatus.ARCHIVED
+        banner.removed_at = removed_at
+        banner.removed_by_uuid = reviewer_uuid
+        banner.removal_reason = note.strip()
+        banner.version += 1
+        await record_audit(
+            session,
+            action=AuditAction.BANNER_DELETED,
+            entity_type="banner",
+            entity_uuid=banner.id,
+            actor_uuid=reviewer_uuid,
+            actor_role="admin",
+            business_line=banner.business_line,
+            detail={
+                "mode": "soft_remove",
+                "from_status": previous_status.value,
+                "reason": banner.removal_reason,
+            },
+        )
+        await session.commit()
+        await session.refresh(banner)
+        await emit_notification(
+            user_uuid=banner.created_by_uuid,
+            notification_type=NotificationType.CAMPAIGN_REMOVED,
+            title="Banner removed",
+            body=f"Admin removed “{banner.title}” from campaign serving.",
+            href="/dashboard/campaigns?type=banners",
+        )
         return banner
 
 
@@ -414,12 +519,12 @@ _ORPHAN_MIN_AGE = timedelta(hours=1)
 
 
 async def purge_orphaned_uploads(*, min_age: timedelta = _ORPHAN_MIN_AGE) -> dict[str, int]:
-    """Delete objects under public/banners/ that no Banner row references.
+    """Delete old objects that no banner or dashboard offer references.
 
-    Same shape as services/agent_applications.py::purge_orphaned_uploads, one
-    referenced column instead of four. Runs on a fresh bypass session (no
-    request context in a scheduler tick) purely to read image_key -- RLS is
-    irrelevant to a read-only column scan with no row-level sensitivity.
+    Banner and offer artwork intentionally share the guarded public/banners/
+    upload boundary. The sweep therefore has to union both reference columns;
+    otherwise a saved offer image would look abandoned after the one-hour
+    in-progress floor. The fresh bypass session reads keys only.
     """
     cutoff = datetime.now(UTC) - min_age
     objects = storage.list_objects(_IMAGE_KEY_PREFIX)
@@ -428,11 +533,13 @@ async def purge_orphaned_uploads(*, min_age: timedelta = _ORPHAN_MIN_AGE) -> dic
         return {"scanned": len(objects), "deleted": 0}
 
     async with AsyncSessionLocal() as session:
-        referenced = set(
-            (
-                await session.scalars(select(Banner.image_key).where(Banner.image_key.is_not(None)))
-            ).all()
+        banner_keys = await session.scalars(
+            select(Banner.image_key).where(Banner.image_key.is_not(None))
         )
+        offer_keys = await session.scalars(
+            select(Offer.image_key).where(Offer.image_key.is_not(None))
+        )
+        referenced = set(banner_keys.all()) | set(offer_keys.all())
 
     deleted = 0
     for obj in candidates:

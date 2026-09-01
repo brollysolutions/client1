@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { FOOTER_COLUMNS } from "@/components/footer-links";
+import { FOOTER_COLUMNS, LEGAL_LINKS } from "@/components/footer-links";
 
 // Regression test for the lookup-miss risk in footer-links.ts: FOOTER_COLUMNS
 // is computed once at module load and rendered on every public page (via
@@ -44,5 +44,16 @@ describe("FOOTER_COLUMNS integrity", () => {
         expect(link.label).toBeTruthy();
       }
     }
+  });
+});
+
+describe("LEGAL_LINKS integrity", () => {
+  it("keeps every public legal notice discoverable from the shared footer", () => {
+    expect(LEGAL_LINKS).toEqual([
+      { label: "Privacy", href: "/privacy" },
+      { label: "Terms", href: "/terms" },
+      { label: "Cookies", href: "/cookies" },
+      { label: "Sitemap", href: "/sitemap.xml" },
+    ]);
   });
 });

@@ -13,6 +13,7 @@
         "test": "vitest run --passWithNoTests",
         "test:ui": "vitest --ui",
         "test:e2e": "playwright test",
+        "test:e2e:release": "playwright test --config playwright.release.config.ts",
         "assets:svgo": "svgo --config svgo.config.mjs -f public/illustrations -r"
     },
     "dependencies": {

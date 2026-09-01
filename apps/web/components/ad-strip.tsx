@@ -9,7 +9,9 @@ import Link from "next/link";
 import { X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { CLOSE_BUTTON_CLASS } from "@/components/ui/close-button";
 import type { HeroBanner } from "@/lib/banners";
+import { cn } from "@/lib/utils";
 
 // Sponsored ad band between the sticky header and the full-screen homepage
 // hero, fed by the `homepage_ad` banner placement.
@@ -104,7 +106,7 @@ export function AdStrip({
           type="button"
           onClick={() => setDismissed(true)}
           aria-label="Dismiss sponsored message"
-          className="absolute right-3 top-3 z-30 flex h-8 w-8 items-center justify-center rounded-full border border-brand-blue/15 bg-white/80 text-text-secondary shadow-sm backdrop-blur-sm transition-colors hover:bg-white hover:text-[var(--nav-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nav-primary)] sm:right-4 sm:top-4"
+          className={cn("absolute right-3 top-3 z-30", CLOSE_BUTTON_CLASS)}
         >
           <X className="h-4 w-4" aria-hidden />
         </button>

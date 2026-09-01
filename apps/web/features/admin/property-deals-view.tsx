@@ -1,140 +1,231 @@
 "use client";
 
 import * as React from "react";
-import { ChevronDown, ChevronUp, Home, Loader2 } from "lucide-react";
+import { Home } from "lucide-react";
 
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { DashboardHeader, DashboardPage, DashboardPanel } from "@/features/dashboard/dashboard-ui";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  DataTable,
+  DataTablePrimaryCell,
+  nextSort,
+  type DataColumn,
+  type SortState,
+} from "@/features/dashboard/data-table";
+import { FetchError } from "@/features/dashboard/fetch-error";
+import {
+  EMPTY_FILTERS,
+  FilterBar,
+  filtersAreActive,
+  matchesSearch,
+  type FilterBarValue,
+} from "@/features/dashboard/filter-bar";
+import { ListEmptyState, ListLoadingState, ListPagination } from "@/features/dashboard/list-states";
+import { StatusBadge, type StatusTone } from "@/features/dashboard/status-badge";
+import { useFilteredPage } from "@/features/dashboard/use-filtered-page";
+import { PANEL_DIALOG_CLASS, WorkspaceDialogHeader, WorkspaceLayout } from "@/features/dashboard/workspace-dialog";
 import {
   PropertyDealProgressControls,
   STATUS_LABEL,
   type PropertyDealStatus,
 } from "@/features/property-deals/property-deal-progress-controls";
+import { isInDateRange } from "@/lib/date-range";
+import { formatDate, formatINR } from "@/lib/format";
 
 import { useAdminPropertyDeals } from "./use-admin-property-deals";
-import { AdminPagination, ADMIN_PAGE_SIZE, isInDateRange } from "./admin-list-tools";
 
-const FILTER_OPTIONS: { value: PropertyDealStatus | "all"; label: string }[] = [
-  { value: "all", label: "All statuses" },
-  ...(Object.entries(STATUS_LABEL) as [PropertyDealStatus, string][]).map(([value, label]) => ({
-    value,
-    label,
-  })),
-];
+const STATUS_TONE: Record<PropertyDealStatus, StatusTone> = {
+  new: "warning",
+  contacted: "info",
+  site_visit_done: "info",
+  negotiation: "info",
+  booked: "success",
+  agreement_signed: "success",
+  closed: "neutral",
+  rejected: "danger",
+  on_hold: "warning",
+};
+
+const STATUS_OPTIONS = (Object.entries(STATUS_LABEL) as [PropertyDealStatus, string][]).map(
+  ([value, label]) => ({ value, label }),
+);
+
+type Deal = ReturnType<typeof useAdminPropertyDeals>["deals"][number];
+
+function money(value: string | null | undefined): string {
+  return value ? formatINR(Number(value)) : "-";
+}
 
 export function PropertyDealsView() {
-  const [statusFilter, setStatusFilter] = React.useState<PropertyDealStatus | "all">("all");
+  const [filters, setFilters] = React.useState<FilterBarValue>(EMPTY_FILTERS);
+  const [sort, setSort] = React.useState<SortState>({ key: "opened_at", dir: "desc" });
+  const [activeId, setActiveId] = React.useState<string | null>(null);
+
+  // Status is applied server-side by the hook; the rest filter in memory.
   const { deals, loading, error, reload, updateDeal } = useAdminPropertyDeals(
-    statusFilter === "all" ? undefined : statusFilter,
+    filters.status === "all" ? undefined : (filters.status as PropertyDealStatus),
   );
-  const [expandedId, setExpandedId] = React.useState<string | null>(null);
-  const [search, setSearch] = React.useState("");
-  const [dateFrom, setDateFrom] = React.useState("");
-  const [dateTo, setDateTo] = React.useState("");
-  const [page, setPage] = React.useState(0);
-  const filteredDeals = React.useMemo(() => deals.filter((deal) => (
-    isInDateRange(deal.opened_at, dateFrom, dateTo) &&
-    `${deal.property_title} ${deal.customer_code}`.toLowerCase().includes(search.toLowerCase())
-  )), [dateFrom, dateTo, deals, search]);
-  React.useEffect(() => setPage(0), [dateFrom, dateTo, search, statusFilter]);
-  const pageDeals = filteredDeals.slice(page * ADMIN_PAGE_SIZE, (page + 1) * ADMIN_PAGE_SIZE);
+
+  const filtered = React.useMemo(() => {
+    const rows = deals.filter(
+      (deal) =>
+        isInDateRange(deal.opened_at, filters.from, filters.to) &&
+        (filters.line === "all" || deal.business_line === filters.line) &&
+        matchesSearch(`${deal.property_title} ${deal.customer_code}`, filters.search),
+    );
+    const direction = sort.dir === "asc" ? 1 : -1;
+    return [...rows].sort((a, b) => {
+      switch (sort.key) {
+        case "property_title":
+          return a.property_title.localeCompare(b.property_title) * direction;
+        case "price_quoted":
+          return (Number(a.price_quoted ?? 0) - Number(b.price_quoted ?? 0)) * direction;
+        case "status":
+          return a.status.localeCompare(b.status) * direction;
+        default:
+          return (new Date(a.opened_at).getTime() - new Date(b.opened_at).getTime()) * direction;
+      }
+    });
+  }, [deals, filters, sort]);
+
+  const { page, setPage, pageRows, total } = useFilteredPage(filtered, filters);
+  const active = activeId ? deals.find((deal) => deal.id === activeId) ?? null : null;
+
+  const columns: DataColumn<Deal>[] = [
+    {
+      key: "property_title",
+      header: "Property",
+      sortable: true,
+      cellClassName: "max-w-[22rem]",
+      render: (deal) => (
+        <DataTablePrimaryCell title={deal.property_title} subtitle={deal.customer_code} />
+      ),
+    },
+    {
+      key: "price_quoted",
+      header: "Quoted",
+      sortable: true,
+      align: "right",
+      render: (deal) => (
+        <span className="tabular-nums text-text-primary">{money(deal.price_quoted)}</span>
+      ),
+    },
+    {
+      key: "booking_amount",
+      header: "Booking",
+      align: "right",
+      render: (deal) => (
+        <span className="tabular-nums text-text-secondary">{money(deal.booking_amount)}</span>
+      ),
+    },
+    {
+      key: "status",
+      header: "Status",
+      sortable: true,
+      render: (deal) => (
+        <StatusBadge tone={STATUS_TONE[deal.status] ?? "neutral"}>
+          {STATUS_LABEL[deal.status] ?? deal.status}
+        </StatusBadge>
+      ),
+    },
+    {
+      key: "opened_at",
+      header: "Opened",
+      sortable: true,
+      align: "right",
+      render: (deal) => (
+        <span className="tabular-nums text-text-secondary">{formatDate(deal.opened_at)}</span>
+      ),
+    },
+  ];
 
   return (
-    <div className="mx-auto w-full max-w-5xl space-y-6 px-4 sm:px-6 lg:px-10">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold text-text-primary">Property deals</h1>
-          <p className="text-sm text-text-secondary">
-            Track every real-estate deal through site visit, negotiation, and booking.
-          </p>
-        </div>
-        <div className="grid w-full gap-2 sm:grid-cols-2 lg:w-auto lg:grid-cols-4">
-          <Input aria-label="Search property deals" placeholder="Property or customer" value={search} onChange={(event) => setSearch(event.target.value)} />
-        <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as typeof statusFilter)}>
-          <SelectTrigger className="w-48">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {FILTER_OPTIONS.map((o) => (
-              <SelectItem key={o.value} value={o.value}>
-                {o.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-          <Input aria-label="Property deals from date" type="date" value={dateFrom} onChange={(event) => setDateFrom(event.target.value)} />
-          <Input aria-label="Property deals to date" type="date" min={dateFrom || undefined} value={dateTo} onChange={(event) => setDateTo(event.target.value)} />
-        </div>
-      </div>
+    <DashboardPage>
+      <DashboardHeader
+        title="Property deals"
+        description="Track every real-estate deal through site visit, negotiation, and booking."
+      />
+
+      <FilterBar
+        value={filters}
+        onChange={setFilters}
+        searchLabel="Search property deals"
+        searchPlaceholder="Property or customer"
+        statusOptions={STATUS_OPTIONS}
+        lineOptions={[
+          { value: "loans", label: "Loans" },
+          { value: "real_estate", label: "Real Estate" },
+        ]}
+        dateFromLabel="Opened from"
+        dateToLabel="Opened to"
+      />
 
       {loading ? (
-        <div className="flex items-center justify-center rounded-2xl border border-border bg-card py-16">
-          <Loader2 className="h-6 w-6 animate-spin text-brand-navy" aria-hidden="true" />
-        </div>
+        <ListLoadingState />
       ) : error ? (
-        <div className="rounded-2xl border border-border bg-card p-8 text-center">
-          <p className="text-sm text-text-secondary">{error}</p>
-          <Button variant="outline" className="mt-4" onClick={() => void reload()}>
-            Try again
-          </Button>
-        </div>
-      ) : filteredDeals.length === 0 ? (
-        <div className="flex flex-col items-center rounded-2xl border border-border bg-card p-12 text-center">
-          <Home className="h-8 w-8 text-text-secondary" aria-hidden="true" />
-          <p className="mt-3 font-medium text-text-primary">No property deals yet</p>
-          <p className="mt-1 text-sm text-text-secondary">
-            Deals telecallers open against real-estate leads will show up here.
-          </p>
-        </div>
+        <FetchError status={null} message={error} onRetry={() => void reload()} />
+      ) : total === 0 ? (
+        <ListEmptyState
+          icon={Home}
+          title={filtersAreActive(filters) ? "No deals match these filters" : "No property deals yet"}
+          description={
+            filtersAreActive(filters)
+              ? "Try a different search, status, line, or date range."
+              : "Deals telecallers open against real-estate leads will show up here."
+          }
+        />
       ) : (
-        <ul className="space-y-3">
-          {pageDeals.map((deal) => {
-            const expanded = expandedId === deal.id;
-            return (
-              <li key={deal.id} className="rounded-2xl border border-border bg-card">
-                <button
-                  type="button"
-                  onClick={() => setExpandedId(expanded ? null : deal.id)}
-                  className="flex w-full items-center justify-between gap-4 p-4 text-left"
-                  aria-expanded={expanded}
-                >
-                  <div className="min-w-0">
-                    <p className="truncate font-medium text-text-primary">{deal.property_title}</p>
-                    <p className="mt-0.5 truncate text-xs text-text-secondary">
-                      {deal.customer_code}
-                    </p>
-                  </div>
-                  <div className="flex shrink-0 items-center gap-3">
-                    <Badge variant="secondary">{STATUS_LABEL[deal.status]}</Badge>
-                    {expanded ? (
-                      <ChevronUp className="h-4 w-4 text-text-secondary" aria-hidden="true" />
-                    ) : (
-                      <ChevronDown className="h-4 w-4 text-text-secondary" aria-hidden="true" />
-                    )}
-                  </div>
-                </button>
-                {expanded ? (
-                  <div className="border-t border-border px-4 pb-4">
+        <DashboardPanel
+          title="Deals"
+          description={
+            filtersAreActive(filters) ? `${total} of ${deals.length} deals` : `${deals.length} deals`
+          }
+          bodyClassName="p-0"
+        >
+          <DataTable
+            columns={columns}
+            rows={pageRows}
+            rowKey={(deal) => deal.id}
+            sort={sort}
+            onSortChange={(key) => setSort((current) => nextSort(current, key))}
+            onRowClick={(deal) => setActiveId(deal.id)}
+            rowActionLabel="Open deal"
+            minWidth="min-w-[820px]"
+          />
+          <div className="px-5 pb-4">
+            <ListPagination page={page} total={total} onPageChange={setPage} />
+          </div>
+        </DashboardPanel>
+      )}
+
+      <Dialog open={active !== null} onOpenChange={(open) => !open && setActiveId(null)}>
+        <DialogContent showCloseButton={false} className={PANEL_DIALOG_CLASS}>
+          {active ? (
+            <>
+              <WorkspaceDialogHeader
+                title={active.property_title}
+                description={`${active.customer_code} · opened ${formatDate(active.opened_at)}`}
+                actions={
+                  <StatusBadge tone={STATUS_TONE[active.status] ?? "neutral"}>
+                    {STATUS_LABEL[active.status] ?? active.status}
+                  </StatusBadge>
+                }
+                closeLabel="Close deal"
+              />
+              <WorkspaceLayout
+                editor={
+                  <div className="mx-auto w-full max-w-3xl">
                     <PropertyDealProgressControls
-                      deal={deal}
-                      onUpdate={(payload) => updateDeal(deal.id, payload)}
+                      deal={active}
+                      onUpdate={(payload) => updateDeal(active.id, payload)}
                     />
                   </div>
-                ) : null}
-              </li>
-            );
-          })}
-        </ul>
-      )}
-      {!loading && !error && filteredDeals.length > 0 ? <AdminPagination page={page} total={filteredDeals.length} onPageChange={setPage} /> : null}
-    </div>
+                }
+              />
+            </>
+          ) : null}
+        </DialogContent>
+      </Dialog>
+    </DashboardPage>
   );
 }

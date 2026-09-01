@@ -12,9 +12,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { CLOSE_BUTTON_CLASS } from "@/components/ui/close-button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { AdminPendingItem } from "@/lib/admin-api";
+import { PANEL_DIALOG_FILTERED_CLASS } from "@/features/dashboard/workspace-dialog";
+import { cn } from "@/lib/utils";
 
 import { filterPendingReview, type PendingReviewFilters } from "./admin-home-pending-review";
 import { PendingReviewList, REVIEW_KIND_LABEL, REVIEW_LINE_LABEL } from "./pending-review-list";
@@ -46,7 +49,7 @@ export function PendingReviewDialog({
       </Button>
       <DialogContent
         showCloseButton={false}
-        className="!top-4 !left-4 !grid h-[calc(100dvh-2rem)] !w-[calc(100%-2rem)] !max-w-none !translate-x-0 !translate-y-0 grid-rows-[auto_auto_minmax(0,1fr)] rounded-xl p-5 sm:!max-w-none sm:p-6"
+        className={PANEL_DIALOG_FILTERED_CLASS}
       >
         <DialogHeader className="pr-12">
           <DialogTitle>Waiting on you</DialogTitle>
@@ -60,6 +63,7 @@ export function PendingReviewDialog({
             aria-label="Search review items"
             placeholder="Search title"
             value={filters.search}
+            maxLength={100}
             onChange={(event) => setFilters((current) => ({ ...current, search: event.target.value }))}
           />
           <Select value={filters.kind ?? "all"} onValueChange={(kind) => setFilters((current) => ({ ...current, kind: kind as PendingReviewFilters["kind"] }))}>
@@ -92,15 +96,13 @@ export function PendingReviewDialog({
         </div>
 
         <DialogClose asChild>
-          <Button
+          <button
             type="button"
-            variant="ghost"
-            size="icon"
             aria-label="Close review filters"
-            className="absolute top-4 right-4 hover:bg-brand-cta-tint hover:text-brand-cta"
+            className={cn("absolute top-3 right-3", CLOSE_BUTTON_CLASS)}
           >
             <X className="h-5 w-5" aria-hidden="true" />
-          </Button>
+          </button>
         </DialogClose>
       </DialogContent>
     </Dialog>

@@ -25,6 +25,7 @@ function wireListing(overrides: Partial<Schemas["PublicPropertyRead"]> = {}): Sc
     title: "2 BHK Apartment",
     type: "Apartment",
     location: "Baner, Pune",
+    listing_intent: "sale",
     price_display: "₹78 L",
     meta: "2 bed · 1,120 sqft",
     image: "/illustrations/properties/apartment-1.svg",
@@ -53,6 +54,10 @@ function wireDetail(
     amenities: ["lift", "gym"],
     age_years: 3,
     rera_applicability: "applicable",
+    security_deposit_display: null,
+    minimum_lease_months: null,
+    available_from: null,
+    listing_links: null,
     ...overrides,
   };
 }
@@ -69,6 +74,7 @@ describe("mapPublicListing()", () => {
       title: "2 BHK Apartment",
       location: "Baner, Pune",
       price: "₹78 L",
+      listingIntent: "sale",
       type: "Apartment",
       category: "apartments",
       propertySubtype: "standalone_apartment",

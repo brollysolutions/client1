@@ -20,11 +20,14 @@ import {
   EMPTY_OPTIONAL_PROFILE,
   OptionalProfileFields,
   optionalProfilePayload,
+  validateOptionalProfile,
 } from "@/components/profile/optional-profile-fields";
 import { Button } from "@/components/ui/button";
+import { FieldError } from "@/components/ui/field-error";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
+import { apiIssuesToFieldErrors, emailError, focusFirstInvalidField } from "@/lib/form-validation";
 import {
   describeAuthError,
   getMe,
@@ -46,7 +49,6 @@ import {
 // Defense-in-depth: never render a dev OTP hint in a production build, even if
 // the backend (which is the real gate) were ever misconfigured to send one (L3).
 const OTP_HINT_ALLOWED = process.env.NEXT_PUBLIC_ENV !== "production";
-const OPTIONAL_EMAIL_RE = /^[^\s@]+@[^\s@]+\.[A-Za-z]{2,}$/;
 
 // Steps 1-2 (OTP verify, set password) rest on server-side sessions (OTP +
 // reg_data, both TTL_OTP = 5 min) that a refresh doesn't touch — only this
@@ -177,6 +179,8 @@ function RegisterPageContent() {
   const [serviceLineError, setServiceLineError] = React.useState("");
   const [optionalProfile, setOptionalProfile] = React.useState(EMPTY_OPTIONAL_PROFILE);
   const [profileSaving, setProfileSaving] = React.useState(false);
+  const [profileErrors, setProfileErrors] = React.useState<Record<string, string>>({});
+  const profileFormRef = React.useRef<HTMLFormElement>(null);
   const [errors, setErrors] = React.useState<Partial<Record<keyof Details, string>>>({});
   const [submitting, setSubmitting] = React.useState(false);
   const [e164, setE164] = React.useState("");
@@ -328,12 +332,19 @@ function RegisterPageContent() {
     if (profileSaving) return;
 
     const email = profileEmail.trim().toLowerCase();
-    if (email && !OPTIONAL_EMAIL_RE.test(email)) {
-      toast.error("Enter a valid email address or leave it blank.");
+    const nextErrors: Record<string, string> = { ...validateOptionalProfile(optionalProfile) };
+    const nextEmailError = emailError(email);
+    if (nextEmailError) nextErrors.email = nextEmailError;
+    setProfileErrors(nextErrors);
+    if (Object.keys(nextErrors).length > 0) {
+      requestAnimationFrame(() => {
+        if (profileFormRef.current) focusFirstInvalidField(profileFormRef.current);
+      });
       return;
     }
     const parsed = optionalProfilePayload(optionalProfile);
     if (!parsed.ok) {
+      setProfileErrors({ [parsed.field]: parsed.error });
       toast.error(parsed.error);
       return;
     }
@@ -361,6 +372,15 @@ function RegisterPageContent() {
     });
     setProfileSaving(false);
     if (!result.ok) {
+      const serverErrors = apiIssuesToFieldErrors(result.issues, {
+        email: "email",
+        gender_self_description: "genderSelfDescription",
+        income_amount_minor: "incomeAmountRupees",
+        income_period: "incomePeriod",
+        occupation: "occupation",
+        location: "location",
+      });
+      if (Object.keys(serverErrors).length > 0) setProfileErrors(serverErrors);
       toast.error(result.error || "Couldn't save your profile.", {
         description: "Your account is ready. You can retry or skip and update Profile later.",
       });
@@ -694,7 +714,7 @@ function RegisterPageContent() {
             </p>
           </div>
 
-          <form onSubmit={submitOptionalProfile} noValidate className="space-y-5">
+          <form ref={profileFormRef} onSubmit={submitOptionalProfile} noValidate className="space-y-5">
             <div className="space-y-2">
               <Label htmlFor="profile-email">
                 Email <span className="font-normal text-text-secondary">(optional)</span>
@@ -703,22 +723,30 @@ function RegisterPageContent() {
                 id="profile-email"
                 type="email"
                 value={profileEmail}
-                onChange={(event) => setProfileEmail(event.target.value)}
+                onChange={(event) => { setProfileEmail(event.target.value); setProfileErrors((current) => { const next = { ...current }; delete next.email; return next; }); }}
                 autoComplete="email"
                 maxLength={254}
                 disabled={profileSaving}
                 placeholder="jane@example.com"
+                aria-invalid={Boolean(profileErrors.email)}
+                aria-describedby={profileErrors.email ? "profile-email-error" : "profile-email-help"}
               />
-              <p className="text-xs text-text-secondary">
+              <p id="profile-email-help" className="text-xs text-text-secondary">
                 If added, you can verify it later for recovery and important updates.
               </p>
+              <FieldError id="profile-email-error">{profileErrors.email}</FieldError>
             </div>
 
             <OptionalProfileFields
               idPrefix="registration-profile"
               value={optionalProfile}
-              onChange={setOptionalProfile}
+              onChange={(next) => { setOptionalProfile(next); setProfileErrors((current) => {
+                const remaining = { ...current };
+                for (const key of Object.keys(next)) delete remaining[key];
+                return remaining;
+              }); }}
               disabled={profileSaving}
+              errors={profileErrors}
             />
 
             <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">

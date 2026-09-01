@@ -28,10 +28,19 @@ type SearchStatus = "idle" | "loading" | "ready" | "error";
 export function RecipientPicker({
   value,
   onChange,
+  id,
+  "aria-invalid": ariaInvalid,
+  "aria-describedby": ariaDescribedBy,
 }: {
   value: PayoutRecipientChoice | null;
   onChange: (value: PayoutRecipientChoice | null) => void;
+  id?: string;
+  "aria-invalid"?: boolean;
+  "aria-describedby"?: string;
 }) {
+  const generatedId = React.useId();
+  const triggerId = id ?? generatedId;
+  const optionsId = `${triggerId}-options`;
   const [open, setOpen] = React.useState(false);
   const [query, setQuery] = React.useState("");
   const [hits, setHits] = React.useState<PayoutRecipient[]>([]);
@@ -74,8 +83,15 @@ export function RecipientPicker({
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <button
+          id={triggerId}
           type="button"
+          role="combobox"
+          aria-controls={optionsId}
+          aria-expanded={open}
+          aria-required="true"
           disabled={forbidden}
+          aria-invalid={ariaInvalid}
+          aria-describedby={ariaDescribedBy}
           className={cn(
             "flex h-11 w-full items-center justify-between gap-2 rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none transition-[color,box-shadow] focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50",
             !value && "text-muted-foreground",
@@ -96,10 +112,10 @@ export function RecipientPicker({
           <Command shouldFilter={false}>
             <CommandInput
               value={query}
-              onValueChange={setQuery}
+              onValueChange={(value) => setQuery(value.slice(0, 100))}
               placeholder="Search by name, code, or mobile"
             />
-            <CommandList>
+            <CommandList id={optionsId}>
               {query.trim().length < MIN_QUERY_LENGTH ? (
                 <CommandEmpty>Type at least 2 characters</CommandEmpty>
               ) : status === "loading" ? (

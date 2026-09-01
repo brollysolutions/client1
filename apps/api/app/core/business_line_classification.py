@@ -31,6 +31,7 @@ class ClassificationMode(enum.StrEnum):
 # an accidental classification policy.
 TABLE_CLASSIFICATION: dict[str, ClassificationMode] = {
     "agent_applications": ClassificationMode.OPERATIONAL,
+    "agent_invite_links": ClassificationMode.DERIVED,
     "agent_profiles": ClassificationMode.OPERATIONAL,
     "audit_log": ClassificationMode.OPTIONAL_AUDIT,
     "auth_events": ClassificationMode.IDENTITY,
@@ -45,6 +46,9 @@ TABLE_CLASSIFICATION: dict[str, ClassificationMode] = {
     "banner_templates": ClassificationMode.PLATFORM_CONFIG,
     "banners": ClassificationMode.GLOBAL_CONTENT,
     "bookmarks": ClassificationMode.FIXED_REAL_ESTATE,
+    # Reusable campaign artwork can be scoped to one business line or shared
+    # across both, matching banners/offers rather than operational row rules.
+    "campaign_media_assets": ClassificationMode.GLOBAL_CONTENT,
     "client_profiles": ClassificationMode.OPERATIONAL,
     "commissions": ClassificationMode.OPERATIONAL,
     "contact_share_links": ClassificationMode.DERIVED,
@@ -80,6 +84,7 @@ TABLE_CLASSIFICATION: dict[str, ClassificationMode] = {
     "site_visits": ClassificationMode.FIXED_REAL_ESTATE,
     "staff_profiles": ClassificationMode.PROFILE_SCOPE,
     "staff_feature_grants": ClassificationMode.PLATFORM_CONFIG,
+    "staff_invite_links": ClassificationMode.DERIVED,
     "support_tickets": ClassificationMode.IDENTITY,
     "task_documents": ClassificationMode.DERIVED,
     "task_feedback_media": ClassificationMode.OPERATIONAL,

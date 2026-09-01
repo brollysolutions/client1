@@ -5,6 +5,7 @@ import Image from "next/image";
 import { ArrowDown, ArrowUp, FileText, Loader2, Rotate3D, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { CLOSE_BUTTON_CLASS } from "@/components/ui/close-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -17,9 +18,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { DashboardFormPage } from "@/features/dashboard/dashboard-ui";
+import { DashboardFormPage, DashboardFormSection } from "@/features/dashboard/dashboard-ui";
+import { LISTING_INTENT_OPTIONS } from "@/lib/property-submit";
 import { PROPERTY_SUBTYPE_GROUPS } from "@/lib/property-taxonomy";
 import type { Submission } from "@/lib/property-submissions-api";
+import { cn } from "@/lib/utils";
+import { ListingLinksField } from "./listing-links-field";
 import { PropertyDetailFields } from "./property-detail-fields";
 import { useSubmitProperty } from "./use-submit-property";
 
@@ -28,8 +32,15 @@ function FieldError({ msg }: { msg?: string }) {
   return <p className="mt-1 text-sm text-destructive">{msg}</p>;
 }
 
-export function SubmitPropertyForm({ submission }: { submission?: Submission }) {
-  const f = useSubmitProperty(submission);
+export function SubmitPropertyForm({
+  submission,
+  adminCorrection = false,
+}: {
+  submission?: Submission;
+  adminCorrection?: boolean;
+}) {
+  const f = useSubmitProperty(submission, { adminCorrection });
+  const isRent = f.form.listingIntent === "rent";
   const [amenityDraft, setAmenityDraft] = React.useState("");
   const imagePreviews = React.useMemo(
     () => f.form.images.map((file) => ({ file, url: URL.createObjectURL(file) })),
@@ -68,18 +79,23 @@ export function SubmitPropertyForm({ submission }: { submission?: Submission }) 
 
   return (
     <DashboardFormPage
-      eyebrow="Property listings"
-      title={f.editing ? "Edit property" : "Submit a property"}
+      title={
+        f.adminCorrection ? "Correct approved listing" : f.editing ? "Edit property" : "Submit a property"
+      }
       description={
-        f.editing
+        f.adminCorrection
+          ? "Stage corrected facts with a mandatory audit reason. The published listing stays unchanged until RERA review and approval."
+          : f.editing
           ? "Update the listing facts. Approved changes return to Admin review while the published version stays available."
           : "Capture listing details, managed media, and private reviewer documents for Admin review."
       }
-      backHref="/dashboard/my-submissions"
-      backLabel="Back to submissions"
-      formTitle={f.editing ? "Listing details" : "Listing submission"}
+      backHref={f.adminCorrection ? "/dashboard/property-review" : "/dashboard/my-submissions"}
+      backLabel={f.adminCorrection ? "Back to property review" : "Back to submissions"}
+      formTitle={f.adminCorrection ? "Controlled correction" : f.editing ? "Listing details" : "Listing submission"}
       formDescription={
-        f.editing
+        f.adminCorrection
+          ? "Only listing facts change here. Property identity, submitter, business line, and reviewed media are retained."
+          : f.editing
           ? "Managed media remains unchanged while you edit the approved listing facts."
           : "Nothing becomes public until the review team approves the submission."
       }
@@ -91,12 +107,58 @@ export function SubmitPropertyForm({ submission }: { submission?: Submission }) 
           void f.submit();
         }}
       >
-        {/* Basics */}
-        <section className="space-y-4 rounded-xl border border-border bg-muted/20 p-4 sm:p-5">
+        {f.adminCorrection ? (
+          <DashboardFormSection
+            title="Correction evidence"
+            description="Explain what was verified and why the approved facts need correction."
+          >
+            <div>
+              <Label htmlFor="correction-reason">
+                Correction reason <span aria-hidden="true" className="text-destructive">*</span>
+              </Label>
+              <Textarea
+                id="correction-reason"
+                required
+                rows={4}
+                maxLength={1000}
+                value={f.correctionReason}
+                onChange={(event) => f.setCorrectionReason(event.target.value)}
+                aria-invalid={Boolean(f.errors.correctionReason)}
+                aria-describedby={f.errors.correctionReason ? "correction-reason-error" : undefined}
+                placeholder="Record the verified source and the correction needed. Avoid unnecessary personal data."
+              />
+              <div id="correction-reason-error">
+                <FieldError msg={f.errors.correctionReason} />
+              </div>
+            </div>
+          </DashboardFormSection>
+        ) : null}
+
+        <DashboardFormSection
+          title="Listing basics"
+          description="Provide the public title, property type, and catalogue category."
+        >
           <div>
-            <h2 className="text-sm font-semibold text-text-primary">Listing basics</h2>
-            <p className="mt-0.5 text-xs text-text-secondary">
-              Provide the public title, property type, and catalogue category.
+            <Label htmlFor="listing-intent">Listing for</Label>
+            <Select
+              value={f.form.listingIntent}
+              onValueChange={(value) =>
+                f.setField("listingIntent", value as typeof f.form.listingIntent)
+              }
+            >
+              <SelectTrigger id="listing-intent" className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {LISTING_INTENT_OPTIONS.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="mt-1 text-xs text-text-secondary">
+              This changes the price fields below and how the listing is shown to buyers.
             </p>
           </div>
           <div>
@@ -135,16 +197,13 @@ export function SubmitPropertyForm({ submission }: { submission?: Submission }) 
             </Select>
             <FieldError msg={f.errors.propertySubtype} />
           </div>
-        </section>
+        </DashboardFormSection>
 
-        {/* Location & price */}
-        <section className="grid gap-4 rounded-xl border border-border bg-muted/20 p-4 sm:grid-cols-2 sm:p-5">
-          <div className="sm:col-span-2">
-            <h2 className="text-sm font-semibold text-text-primary">Location and price</h2>
-            <p className="mt-0.5 text-xs text-text-secondary">
-              Add the searchable location fields and customer-facing price.
-            </p>
-          </div>
+        <DashboardFormSection
+          title="Location and price"
+          description="Add the searchable location fields and customer-facing price."
+        >
+          <div className="grid gap-4 sm:grid-cols-2">
           <div>
             <Label htmlFor="location">Location (display)</Label>
             <Input id="location" value={f.form.location} onChange={(e) => f.setField("location", e.target.value)} maxLength={160} />
@@ -172,13 +231,49 @@ export function SubmitPropertyForm({ submission }: { submission?: Submission }) 
             <FieldError msg={f.errors.pincode} />
           </div>
           <div>
-            <Label htmlFor="price">Price (₹)</Label>
-            <Input id="price" inputMode="numeric" placeholder="e.g. 5000000" value={f.form.priceRupees}
+            <Label htmlFor="price">{isRent ? "Monthly rent (₹)" : "Price (₹)"}</Label>
+            <Input id="price" inputMode="numeric" placeholder={isRent ? "e.g. 25000" : "e.g. 5000000"} value={f.form.priceRupees}
               onChange={(e) => f.setField("priceRupees", e.target.value.replace(/[^\d.]/g, ""))} />
             <p className="mt-1 text-xs text-text-secondary">Enter the amount in rupees.</p>
             <FieldError msg={f.errors.priceRupees} />
           </div>
-        </section>
+          {isRent ? (
+            <>
+              <div>
+                <Label htmlFor="security-deposit">Security deposit (₹)</Label>
+                <Input id="security-deposit" inputMode="numeric" placeholder="e.g. 150000"
+                  value={f.form.securityDepositRupees}
+                  onChange={(e) =>
+                    f.setField("securityDepositRupees", e.target.value.replace(/[^\d.]/g, ""))
+                  } />
+                <FieldError msg={f.errors.securityDepositRupees} />
+              </div>
+              <div>
+                <Label htmlFor="minimum-lease">Minimum lease (months)</Label>
+                <Input id="minimum-lease" inputMode="numeric" placeholder="e.g. 11"
+                  value={f.form.minimumLeaseMonths}
+                  onChange={(e) =>
+                    f.setField("minimumLeaseMonths", e.target.value.replace(/\D/g, "").slice(0, 3))
+                  } />
+                <FieldError msg={f.errors.minimumLeaseMonths} />
+              </div>
+              <div>
+                <Label htmlFor="available-from">Available from</Label>
+                <Input id="available-from" type="date" value={f.form.availableFrom}
+                  onChange={(e) => f.setField("availableFrom", e.target.value)} />
+                <p className="mt-1 text-xs text-text-secondary">Optional.</p>
+                <FieldError msg={f.errors.availableFrom} />
+              </div>
+            </>
+          ) : null}
+          </div>
+        </DashboardFormSection>
+
+        <ListingLinksField
+          links={f.form.listingLinks}
+          errors={f.errors}
+          onChange={(links) => f.setField("listingLinks", links)}
+        />
 
         <PropertyDetailFields
           form={f.form}
@@ -187,14 +282,10 @@ export function SubmitPropertyForm({ submission }: { submission?: Submission }) 
           setDetailField={f.setDetailField}
         />
 
-        {/* Amenities */}
-        <section className="space-y-4 rounded-xl border border-border bg-muted/20 p-4 sm:p-5">
-          <div>
-            <h2 className="text-sm font-semibold text-text-primary">Amenities or facilities</h2>
-            <p className="mt-0.5 text-xs text-text-secondary">
-              Add concise, customer-visible features one at a time.
-            </p>
-          </div>
+        <DashboardFormSection
+          title="Amenities or facilities"
+          description="Add concise, customer-visible features one at a time."
+        >
           <Label htmlFor="amenity">Feature</Label>
           <div className="flex gap-2">
             <Input id="amenity" value={amenityDraft}
@@ -208,23 +299,19 @@ export function SubmitPropertyForm({ submission }: { submission?: Submission }) 
               {f.form.amenities.map((a) => (
                 <li key={a} className="inline-flex items-center gap-1 rounded-full bg-muted px-3 py-1 text-sm">
                   {a}
-                  <button type="button" aria-label={`Remove ${a}`} onClick={() => f.removeAmenity(a)}>
+                  <button type="button" aria-label={`Remove ${a}`} onClick={() => f.removeAmenity(a)} className={cn("h-5 w-5", CLOSE_BUTTON_CLASS)}>
                     <X className="h-3.5 w-3.5" />
                   </button>
                 </li>
               ))}
             </ul>
           )}
-        </section>
+        </DashboardFormSection>
 
-        {/* Managed media + meta */}
-        <section className="space-y-4 rounded-xl border border-border bg-muted/20 p-4 sm:p-5">
-          <div>
-            <h2 className="text-sm font-semibold text-text-primary">Media and review material</h2>
-            <p className="mt-0.5 text-xs text-text-secondary">
-              Public media is scanned and normalized; reviewer PDFs always remain private.
-            </p>
-          </div>
+        <DashboardFormSection
+          title="Media and review material"
+          description="Public media is scanned and normalized; reviewer PDFs always remain private."
+        >
           {f.editing ? (
             <div className="rounded-lg border border-border bg-card p-4 text-sm text-text-secondary">
               <p className="font-medium text-text-primary">Managed media retained</p>
@@ -275,9 +362,9 @@ export function SubmitPropertyForm({ submission }: { submission?: Submission }) 
                       <Button type="button" variant="outline" size="icon" disabled={index === imagePreviews.length - 1 || f.submitting} aria-label={`Move ${file.name} later`} onClick={() => moveImage(index, 1)}>
                         <ArrowDown className="h-4 w-4" aria-hidden />
                       </Button>
-                      <Button type="button" variant="ghost" size="icon" disabled={f.submitting} aria-label={`Remove ${file.name}`} onClick={() => f.setImages(f.form.images.filter((_, itemIndex) => itemIndex !== index))}>
+                      <button type="button" className={cn("h-9 w-9", CLOSE_BUTTON_CLASS)} disabled={f.submitting} aria-label={`Remove ${file.name}`} onClick={() => f.setImages(f.form.images.filter((_, itemIndex) => itemIndex !== index))}>
                         <X className="h-4 w-4" aria-hidden />
-                      </Button>
+                      </button>
                     </div>
                   </li>
                 ))}
@@ -309,16 +396,15 @@ export function SubmitPropertyForm({ submission }: { submission?: Submission }) 
                 <div className="mt-2 flex items-center gap-2 text-sm">
                   <Rotate3D className="h-4 w-4 text-text-secondary" aria-hidden />
                   <span className="min-w-0 flex-1 truncate">{f.form.panorama.name}</span>
-                  <Button
+                  <button
                     type="button"
-                    variant="ghost"
-                    size="icon"
+                    className={cn("h-9 w-9", CLOSE_BUTTON_CLASS)}
                     disabled={f.submitting}
                     aria-label={`Remove ${f.form.panorama.name}`}
                     onClick={() => f.setPanorama(null)}
                   >
                     <X className="h-4 w-4" aria-hidden />
-                  </Button>
+                  </button>
                 </div>
               </div>
             ) : null}
@@ -347,9 +433,9 @@ export function SubmitPropertyForm({ submission }: { submission?: Submission }) 
                   <li key={`${file.name}-${file.lastModified}`} className="flex items-center gap-2 rounded-lg border p-2 text-sm">
                     <FileText className="h-4 w-4 text-text-secondary" aria-hidden />
                     <span className="min-w-0 flex-1 truncate">{file.name}</span>
-                    <Button type="button" variant="ghost" size="icon" disabled={f.submitting} aria-label={`Remove ${file.name}`} onClick={() => f.setDocuments(f.form.documents.filter((_, itemIndex) => itemIndex !== index))}>
+                    <button type="button" className={cn("h-9 w-9", CLOSE_BUTTON_CLASS)} disabled={f.submitting} aria-label={`Remove ${file.name}`} onClick={() => f.setDocuments(f.form.documents.filter((_, itemIndex) => itemIndex !== index))}>
                       <X className="h-4 w-4" aria-hidden />
-                    </Button>
+                    </button>
                   </li>
                 ))}
               </ul>
@@ -361,11 +447,16 @@ export function SubmitPropertyForm({ submission }: { submission?: Submission }) 
             <Label htmlFor="meta">Short note</Label>
             <Textarea id="meta" value={f.form.meta} onChange={(e) => f.setField("meta", e.target.value)} maxLength={120} />
           </div>
-        </section>
+        </DashboardFormSection>
 
         <Button type="submit" disabled={f.submitting} className="w-full sm:w-auto">
           {f.submitting ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : null}
-          {f.uploadProgress ?? (f.editing ? "Save changes" : "Submit for review")}
+          {f.uploadProgress ??
+            (f.adminCorrection
+              ? "Stage correction"
+              : f.editing
+                ? "Save changes"
+                : "Submit for review")}
         </Button>
       </form>
     </DashboardFormPage>

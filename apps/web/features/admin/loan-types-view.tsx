@@ -1,12 +1,10 @@
 "use client";
 
 import * as React from "react";
-import { Inbox, Loader2, Plus } from "lucide-react";
+import { Loader2, PackageOpen, Pencil, Plus } from "lucide-react";
 import { toast } from "sonner";
 
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -15,9 +13,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { FieldError, RequiredIndicator } from "@/components/ui/field-error";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -25,15 +23,38 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { DashboardPanel } from "@/features/dashboard/dashboard-ui";
+import {
+  DataTable,
+  DataTablePrimaryCell,
+  nextSort,
+  type DataColumn,
+  type SortState,
+} from "@/features/dashboard/data-table";
+import { FetchError } from "@/features/dashboard/fetch-error";
+import {
+  EMPTY_FILTERS,
+  FilterBar,
+  matchesSearch,
+  type FilterBarValue,
+} from "@/features/dashboard/filter-bar";
+import { ListEmptyState, ListLoadingState, ListPagination } from "@/features/dashboard/list-states";
+import { StatusBadge } from "@/features/dashboard/status-badge";
+import { useFilteredPage } from "@/features/dashboard/use-filtered-page";
+import { getProviderPresentationState } from "@/lib/loan-config";
 import {
   createLoanType,
+  listProviderOffers,
   updateLoanType,
   type AdminLoanType,
+  type AdminProviderOffer,
   type ProductCategory,
   type ProductFormDefinition,
 } from "@/lib/loan-config-api";
 import { formatLastUpdated } from "@/lib/format";
-import { FinancialProductFormBuilder } from "./financial-product-form-builder";
+import { focusFirstInvalidField, integerError, requiredTextError } from "@/lib/form-validation";
+import { FinancialProductWorkspace } from "./financial-product-workspace";
+import { useBanks } from "./use-banks";
 import { useLoanTypes } from "./use-loan-types";
 
 const CATEGORY_LABEL: Record<ProductCategory, string> = {
@@ -41,6 +62,18 @@ const CATEGORY_LABEL: Record<ProductCategory, string> = {
   credit_card: "Credit card",
   insurance: "Insurance",
 };
+
+const STATUS_OPTIONS = [
+  { value: "active", label: "Active" },
+  { value: "disabled", label: "Disabled" },
+  { value: "public", label: "Public" },
+  { value: "dashboard", label: "Dashboard only" },
+] as const;
+
+const CATEGORY_OPTIONS = Object.entries(CATEGORY_LABEL).map(([value, label]) => ({
+  value,
+  label,
+}));
 
 function starterForm(category: ProductCategory): ProductFormDefinition {
   const field =
@@ -69,267 +102,353 @@ function starterForm(category: ProductCategory): ProductFormDefinition {
   };
 }
 
-function cloneForm(form: ProductFormDefinition): ProductFormDefinition {
-  return JSON.parse(JSON.stringify(form)) as ProductFormDefinition;
-}
-
-function textLines(value: string): string[] {
-  return value.split("\n").map((line) => line.trim()).filter(Boolean);
-}
-
-function faqLines(value: string): Array<{ question: string; answer: string }> {
-  return textLines(value).flatMap((line) => {
-    const separator = line.indexOf("|");
-    if (separator < 1) return [];
-    const question = line.slice(0, separator).trim();
-    const answer = line.slice(separator + 1).trim();
-    return question && answer ? [{ question, answer }] : [];
-  });
-}
-
 export function LoanTypesView() {
   const { items, loading, error, reload } = useLoanTypes();
+  const { items: providers } = useBanks();
+  const [offers, setOffers] = React.useState<AdminProviderOffer[]>([]);
+  const [offersLoaded, setOffersLoaded] = React.useState(false);
   const [active, setActive] = React.useState<AdminLoanType | null>(null);
   const [creating, setCreating] = React.useState(false);
   const [newLabel, setNewLabel] = React.useState("");
   const [newCategory, setNewCategory] = React.useState<ProductCategory>("loan");
   const [newOrder, setNewOrder] = React.useState("1000");
-  const [draftLabel, setDraftLabel] = React.useState("");
-  const [draftActive, setDraftActive] = React.useState(true);
-  const [draftOrder, setDraftOrder] = React.useState("1000");
-  const [draftForm, setDraftForm] = React.useState<ProductFormDefinition | null>(null);
-  const [draftPublicVisible, setDraftPublicVisible] = React.useState(false);
-  const [draftSummary, setDraftSummary] = React.useState("");
-  const [draftDescription, setDraftDescription] = React.useState("");
-  const [draftHighlights, setDraftHighlights] = React.useState("");
-  const [draftEligibility, setDraftEligibility] = React.useState("");
-  const [draftDocuments, setDraftDocuments] = React.useState("");
-  const [draftFaq, setDraftFaq] = React.useState("");
-  const [draftFeatured, setDraftFeatured] = React.useState(false);
-  const [draftFeaturedOrder, setDraftFeaturedOrder] = React.useState("1000");
   const [busy, setBusy] = React.useState(false);
+  const [createErrors, setCreateErrors] = React.useState<Record<string, string>>({});
+  const [filters, setFilters] = React.useState<FilterBarValue>(EMPTY_FILTERS);
+  const [sort, setSort] = React.useState<SortState>({ key: "order", dir: "asc" });
+  const [stateBusy, setStateBusy] = React.useState<string | null>(null);
+  const [deactivating, setDeactivating] = React.useState<AdminLoanType | null>(null);
+  const createFormRef = React.useRef<HTMLFormElement>(null);
 
-  function openEdit(product: AdminLoanType) {
-    setActive(product);
-    setDraftLabel(product.label);
-    setDraftActive(product.active);
-    setDraftOrder(String(product.display_order));
-    setDraftForm(cloneForm(product.form_schema));
-    setDraftPublicVisible(product.public_visible);
-    setDraftSummary(product.public_summary ?? "");
-    setDraftDescription(product.public_description ?? "");
-    setDraftHighlights(product.public_highlights.join("\n"));
-    setDraftEligibility(product.public_eligibility.join("\n"));
-    setDraftDocuments(product.public_documents.join("\n"));
-    setDraftFaq(product.public_faq.map((item) => `${item.question} | ${item.answer}`).join("\n"));
-    setDraftFeatured(product.homepage_featured);
-    setDraftFeaturedOrder(String(product.homepage_feature_order));
-  }
+  // There is no delete for a financial product by design: historical applications
+  // keep the exact form version they were submitted against, so a product is
+  // retired by clearing its `active` flag rather than removed.
+  const setProductActive = React.useCallback(
+    async (product: AdminLoanType, active: boolean) => {
+      setStateBusy(product.id);
+      const response = await updateLoanType(product.id, { active });
+      setStateBusy(null);
+      setDeactivating(null);
+      if (!response.ok) {
+        toast.error(active ? "Couldn't activate product" : "Couldn't deactivate product", {
+          description: response.error,
+        });
+        return;
+      }
+      toast.success(active ? "Financial product activated" : "Financial product deactivated");
+      void reload();
+    },
+    [reload],
+  );
+
+  const reloadOffers = React.useCallback(async () => {
+    const response = await listProviderOffers();
+    if (response.ok) setOffers(response.data);
+    setOffersLoaded(response.ok);
+  }, []);
+
+  React.useEffect(() => {
+    void reloadOffers();
+  }, [reloadOffers]);
+
+  const activeProviderIds = React.useMemo(
+    () => new Set(providers.filter((provider) => provider.active).map((provider) => provider.id)),
+    [providers],
+  );
+
+  const liveProviderCount = React.useCallback(
+    (product: AdminLoanType) =>
+      offers.filter(
+        (offer) =>
+          offer.loan_type_id === product.id &&
+          getProviderPresentationState({
+            hasOffer: true,
+            offerPublished: offer.published,
+            offerVerified: offer.last_verified_at != null,
+            productActive: product.active,
+            productPublic: product.public_visible,
+            providerActive: activeProviderIds.has(offer.bank_id),
+            operational: false,
+          }) === "live",
+      ).length,
+    [activeProviderIds, offers],
+  );
+
+  const filtered = React.useMemo(() => {
+    const rows = items.filter((product) => {
+      if (
+        filters.search &&
+        !matchesSearch(`${product.label} ${product.name} ${CATEGORY_LABEL[product.category]}`, filters.search)
+      ) {
+        return false;
+      }
+      if (filters.kind !== "all" && product.category !== filters.kind) return false;
+      if (filters.status === "active" && !product.active) return false;
+      if (filters.status === "disabled" && product.active) return false;
+      if (filters.status === "public" && !product.public_visible) return false;
+      if (filters.status === "dashboard" && product.public_visible) return false;
+      return true;
+    });
+    const direction = sort.dir === "asc" ? 1 : -1;
+    return [...rows].sort((left, right) => {
+      const leftSubmissions = left.application_count + left.enquiry_count;
+      const rightSubmissions = right.application_count + right.enquiry_count;
+      const result =
+        sort.key === "label"
+          ? left.label.localeCompare(right.label)
+          : sort.key === "category"
+            ? CATEGORY_LABEL[left.category].localeCompare(CATEGORY_LABEL[right.category])
+            : sort.key === "version"
+              ? left.form_version - right.form_version
+              : sort.key === "submissions"
+                ? leftSubmissions - rightSubmissions
+                : sort.key === "providers"
+                  ? liveProviderCount(left) - liveProviderCount(right)
+                  : left.display_order - right.display_order;
+      return result * direction || left.label.localeCompare(right.label);
+    });
+  }, [filters, items, liveProviderCount, sort]);
+
+  const page = useFilteredPage(filtered, [filters, sort]);
+
+  const columns = React.useMemo<readonly DataColumn<AdminLoanType>[]>(
+    () => [
+      {
+        key: "label",
+        header: "Product",
+        sortable: true,
+        render: (product) => (
+          <DataTablePrimaryCell
+            title={product.label}
+            subtitle={`${formatLastUpdated(product.updated_at)} · order #${product.display_order}`}
+          />
+        ),
+      },
+      {
+        key: "category",
+        header: "Category",
+        sortable: true,
+        render: (product) => CATEGORY_LABEL[product.category],
+      },
+      {
+        key: "version",
+        header: "Form",
+        sortable: true,
+        render: (product) => <span className="tabular-nums">v{product.form_version}</span>,
+      },
+      {
+        key: "submissions",
+        header: "Submissions",
+        sortable: true,
+        align: "right",
+        render: (product) => (
+          <span className="tabular-nums">{product.application_count + product.enquiry_count}</span>
+        ),
+      },
+      {
+        key: "providers",
+        header: "Providers live",
+        sortable: true,
+        align: "right",
+        render: (product) => (
+          <span className="tabular-nums">{offersLoaded ? liveProviderCount(product) : "—"}</span>
+        ),
+      },
+      {
+        key: "state",
+        header: "State",
+        render: (product) => (
+          <div className="flex flex-wrap gap-1.5">
+            <StatusBadge tone={product.active ? "success" : "neutral"}>
+              {product.active ? "Active" : "Disabled"}
+            </StatusBadge>
+            <StatusBadge tone={product.public_visible ? "info" : "neutral"}>
+              {product.public_visible ? "Public" : "Dashboard only"}
+            </StatusBadge>
+          </div>
+        ),
+      },
+      {
+        key: "actions",
+        header: "Actions",
+        align: "right",
+        render: (product) => (
+          // The row itself opens the same workspace; these repeat it explicitly so
+          // editing and retiring a product are visible without discovering the row.
+          <div
+            className="flex justify-end gap-2"
+            onClick={(event) => event.stopPropagation()}
+            onKeyDown={(event) => event.stopPropagation()}
+          >
+            <Button size="sm" variant="outline" onClick={() => setActive(product)}>
+              <Pencil className="h-4 w-4" aria-hidden="true" />
+              Edit
+            </Button>
+            <Button
+              size="sm"
+              variant={product.active ? "outline" : "default"}
+              disabled={stateBusy === product.id}
+              onClick={() =>
+                product.active ? setDeactivating(product) : void setProductActive(product, true)
+              }
+            >
+              {stateBusy === product.id ? (
+                <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+              ) : product.active ? (
+                "Deactivate"
+              ) : (
+                "Activate"
+              )}
+            </Button>
+          </div>
+        ),
+      },
+    ],
+    [liveProviderCount, offersLoaded, setProductActive, stateBusy],
+  );
 
   async function onCreate(event: React.FormEvent) {
     event.preventDefault();
     const order = Number(newOrder);
-    if (newLabel.trim().length === 0) {
-      toast.error("Product name can't be empty");
-      return;
-    }
-    if (!Number.isInteger(order) || order < 0 || order > 10000) {
-      toast.error("Display order must be between 0 and 10,000");
+    const next: Record<string, string> = {};
+    const labelError = requiredTextError(newLabel, "Product name", 200);
+    const orderError = integerError(newOrder, "Display order", {
+      required: true,
+      min: 0,
+      max: 10_000,
+    });
+    if (labelError) next.label = labelError;
+    if (orderError) next.order = orderError;
+    setCreateErrors(next);
+    if (Object.keys(next).length > 0) {
+      requestAnimationFrame(() => {
+        if (createFormRef.current) focusFirstInvalidField(createFormRef.current);
+      });
       return;
     }
     setBusy(true);
-    const res = await createLoanType({
+    const response = await createLoanType({
       label: newLabel.trim(),
       category: newCategory,
       display_order: order,
       form_schema: starterForm(newCategory),
     });
     setBusy(false);
-    if (res.ok) {
-      toast.success("Financial product added");
-      setNewLabel("");
-      setNewCategory("loan");
-      setNewOrder("1000");
-      setCreating(false);
-      void reload();
-    } else {
-      toast.error("Couldn't add financial product", { description: res.error });
-    }
-  }
-
-  async function onSaveEdit() {
-    if (!active || !draftForm) return;
-    const order = Number(draftOrder);
-    if (draftLabel.trim().length === 0) {
-      toast.error("Product name can't be empty");
+    if (!response.ok) {
+      toast.error("Couldn't add financial product", { description: response.error });
       return;
     }
-    if (!Number.isInteger(order) || order < 0 || order > 10000) {
-      toast.error("Display order must be between 0 and 10,000");
-      return;
-    }
-    const labelChanged = draftLabel.trim() !== active.label;
-    const activeChanged = draftActive !== active.active;
-    const orderChanged = order !== active.display_order;
-    const formChanged = JSON.stringify(draftForm) !== JSON.stringify(active.form_schema);
-    const featuredOrder = Number(draftFeaturedOrder);
-    if (!Number.isInteger(featuredOrder) || featuredOrder < 0 || featuredOrder > 10000) {
-      toast.error("Homepage order must be between 0 and 10,000");
-      return;
-    }
-    if (draftPublicVisible && (!draftSummary.trim() || !draftDescription.trim())) {
-      toast.error("Public products need a summary and description");
-      return;
-    }
-    if (draftFeatured && !draftPublicVisible) {
-      toast.error("Publish the product before featuring it on Home");
-      return;
-    }
-    const faqSourceLines = textLines(draftFaq);
-    const parsedFaq = faqLines(draftFaq);
-    if (parsedFaq.length !== faqSourceLines.length) {
-      toast.error("Format every FAQ as Question | Answer");
-      return;
-    }
-    const marketing = {
-      public_visible: draftPublicVisible,
-      public_summary: draftSummary.trim() || null,
-      public_description: draftDescription.trim() || null,
-      public_highlights: textLines(draftHighlights),
-      public_eligibility: textLines(draftEligibility),
-      public_documents: textLines(draftDocuments),
-      public_faq: parsedFaq,
-      homepage_featured: draftFeatured,
-      homepage_feature_order: featuredOrder,
-    };
-    const marketingChanged = JSON.stringify(marketing) !== JSON.stringify({
-      public_visible: active.public_visible,
-      public_summary: active.public_summary,
-      public_description: active.public_description,
-      public_highlights: active.public_highlights,
-      public_eligibility: active.public_eligibility,
-      public_documents: active.public_documents,
-      public_faq: active.public_faq,
-      homepage_featured: active.homepage_featured,
-      homepage_feature_order: active.homepage_feature_order,
-    });
-    if (!labelChanged && !activeChanged && !orderChanged && !formChanged && !marketingChanged) {
-      setActive(null);
-      return;
-    }
-    setBusy(true);
-    const res = await updateLoanType(active.id, {
-      label: labelChanged ? draftLabel.trim() : undefined,
-      active: activeChanged ? draftActive : undefined,
-      display_order: orderChanged ? order : undefined,
-      form_schema: formChanged ? draftForm : undefined,
-      ...(marketingChanged ? marketing : {}),
-    });
-    setBusy(false);
-    if (res.ok) {
-      toast.success("Financial product published", {
-        description: formChanged
-          ? `Clients will now see form version ${res.data.form_version}.`
-          : undefined,
-      });
-      setActive(null);
-      void reload();
-    } else {
-      toast.error("Couldn't update financial product", { description: res.error });
-    }
+    toast.success("Financial product added");
+    setNewLabel("");
+    setNewCategory("loan");
+    setNewOrder("1000");
+    setCreating(false);
+    setActive(response.data);
+    void reload();
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between gap-4">
-        <p className="text-sm text-text-secondary">
-          One catalogue powers the Admin and Client dashboards. Published form changes are
-          versioned; existing applications retain the form they used.
-        </p>
-        <Button size="sm" onClick={() => setCreating(true)}>
-          <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
-          New product
-        </Button>
-      </div>
+    <>
+      <FilterBar
+        value={filters}
+        onChange={setFilters}
+        searchLabel="Search financial products"
+        searchPlaceholder="Search product or category"
+        statusOptions={STATUS_OPTIONS}
+        statusLabel="states"
+        kindOptions={CATEGORY_OPTIONS}
+        kindLabel="Categories"
+        showLine={false}
+        showDates={false}
+        note="Open a row to edit its details, application form, and providers. Deactivate retires a product without losing its history."
+      />
 
-      {loading ? (
-        <div className="flex items-center justify-center rounded-2xl border border-border bg-card py-16">
-          <Loader2 className="h-6 w-6 animate-spin text-brand-navy" aria-hidden="true" />
-        </div>
-      ) : error ? (
-        <div className="rounded-2xl border border-border bg-card p-8 text-center">
-          <p className="text-sm text-text-secondary">{error}</p>
-          <Button variant="outline" className="mt-4" onClick={() => void reload()}>
-            Try again
+      <DashboardPanel
+        title="Financial products"
+        description="One catalogue powers client applications and the public Financial Services pages."
+        action={
+          <Button size="sm" onClick={() => setCreating(true)}>
+            <Plus className="h-4 w-4" aria-hidden="true" />
+            New product
           </Button>
-        </div>
-      ) : items.length === 0 ? (
-        <div className="flex flex-col items-center rounded-2xl border border-border bg-card p-12 text-center">
-          <Inbox className="h-8 w-8 text-text-secondary" aria-hidden="true" />
-          <p className="mt-3 font-medium text-text-primary">No financial products yet</p>
-          <p className="mt-1 text-sm text-text-secondary">
-            Add the first product and configure the form clients will complete.
-          </p>
-        </div>
-      ) : (
-        <ul className="space-y-3">
-          {items.map((product) => {
-            const submissions = product.application_count + product.enquiry_count;
-            return (
-              <li key={product.id}>
-                <button
-                  type="button"
-                  onClick={() => openEdit(product)}
-                  className="flex w-full items-center justify-between gap-4 rounded-2xl border border-border bg-card p-4 text-left transition-colors hover:border-brand-cta focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-brand-cta/40"
-                >
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2">
-                      <p className="truncate font-medium text-text-primary">{product.label}</p>
-                      <span className="text-xs text-text-secondary">#{product.display_order}</span>
-                    </div>
-                    <p className="mt-0.5 truncate text-xs text-text-secondary">
-                      {CATEGORY_LABEL[product.category]} · Form v{product.form_version} · {submissions === 0
-                        ? "Not used yet"
-                        : `${submissions} submission${submissions === 1 ? "" : "s"}`}
-                    </p>
-                    <p className="mt-0.5 text-xs text-text-secondary">
-                      {formatLastUpdated(product.updated_at)}
-                    </p>
-                  </div>
-                  <div className="flex shrink-0 flex-col items-end gap-1">
-                    <Badge variant={product.active ? "secondary" : "outline"}>
-                      {product.active ? "Active" : "Disabled"}
-                    </Badge>
-                    <Badge variant={product.public_visible ? "default" : "outline"}>
-                      {product.public_visible ? "Public" : "Dashboard only"}
-                    </Badge>
-                  </div>
-                </button>
-              </li>
-            );
-          })}
-        </ul>
-      )}
+        }
+        bodyClassName="p-0"
+      >
+        {loading ? (
+          <div className="p-5">
+            <ListLoadingState rows={7} />
+          </div>
+        ) : error ? (
+          <div className="p-5">
+            <FetchError status={null} message={error} onRetry={() => void reload()} />
+          </div>
+        ) : filtered.length === 0 ? (
+          <ListEmptyState
+            icon={PackageOpen}
+            title={items.length === 0 ? "No financial products yet" : "No products match these filters"}
+            description={
+              items.length === 0
+                ? "Add the first product, then configure its versioned client form."
+                : "Clear or adjust the filters to return to the catalogue."
+            }
+            className="m-5"
+          />
+        ) : (
+          <>
+            <DataTable
+              columns={columns}
+              rows={page.pageRows}
+              rowKey={(product) => product.id}
+              sort={sort}
+              onSortChange={(key) => setSort((current) => nextSort(current, key))}
+              onRowClick={setActive}
+              rowActionLabel="Open product workspace"
+              minWidth="min-w-[920px]"
+            />
+            <div className="px-5 pb-5">
+              <ListPagination page={page.page} total={page.total} onPageChange={page.setPage} />
+            </div>
+          </>
+        )}
+      </DashboardPanel>
 
       <Dialog open={creating} onOpenChange={setCreating}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>New financial product</DialogTitle>
             <DialogDescription>
-              It appears in the Client dashboard immediately. You can customize its starter form
-              after creation.
+              Start with a safe form for its workflow, then finish configuration in the product
+              workspace.
             </DialogDescription>
           </DialogHeader>
-          <form className="space-y-4" onSubmit={(event) => void onCreate(event)}>
+          <form
+            ref={createFormRef}
+            className="space-y-4"
+            onSubmit={(event) => void onCreate(event)}
+            noValidate
+          >
             <div className="grid gap-1.5">
-              <Label htmlFor="new-product-label">Product name</Label>
+              <Label htmlFor="new-product-label">
+                Product name
+                <RequiredIndicator />
+              </Label>
               <Input
                 id="new-product-label"
                 value={newLabel}
-                onChange={(event) => setNewLabel(event.target.value)}
+                onChange={(event) => {
+                  setNewLabel(event.target.value);
+                  setCreateErrors((current) => {
+                    const next = { ...current };
+                    delete next.label;
+                    return next;
+                  });
+                }}
                 placeholder="Education Loan"
                 maxLength={200}
+                aria-invalid={Boolean(createErrors.label)}
+                aria-describedby={createErrors.label ? "new-product-label-error" : undefined}
               />
+              <FieldError id="new-product-label-error">{createErrors.label}</FieldError>
             </div>
             <div className="grid gap-1.5">
               <Label htmlFor="new-product-category">Workflow</Label>
@@ -337,28 +456,44 @@ export function LoanTypesView() {
                 value={newCategory}
                 onValueChange={(value: ProductCategory) => setNewCategory(value)}
               >
-                <SelectTrigger id="new-product-category"><SelectValue /></SelectTrigger>
+                <SelectTrigger id="new-product-category">
+                  <SelectValue />
+                </SelectTrigger>
                 <SelectContent>
                   {Object.entries(CATEGORY_LABEL).map(([value, label]) => (
-                    <SelectItem key={value} value={value}>{label}</SelectItem>
+                    <SelectItem key={value} value={value}>
+                      {label}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
             <div className="grid gap-1.5">
-              <Label htmlFor="new-product-order">Display order</Label>
+              <Label htmlFor="new-product-order">
+                Display order
+                <RequiredIndicator />
+              </Label>
               <Input
                 id="new-product-order"
                 type="number"
                 min={0}
-                max={10000}
+                max={10_000}
                 value={newOrder}
-                onChange={(event) => setNewOrder(event.target.value)}
+                onChange={(event) => {
+                  setNewOrder(event.target.value);
+                  setCreateErrors((current) => {
+                    const next = { ...current };
+                    delete next.order;
+                    return next;
+                  });
+                }}
+                aria-invalid={Boolean(createErrors.order)}
+                aria-describedby={createErrors.order ? "new-product-order-error" : undefined}
               />
+              <FieldError id="new-product-order-error">{createErrors.order}</FieldError>
             </div>
             <DialogFooter>
               <Button type="submit" disabled={busy}>
-                {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
                 Add product
               </Button>
             </DialogFooter>
@@ -366,139 +501,49 @@ export function LoanTypesView() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={active !== null} onOpenChange={(open) => !open && setActive(null)}>
-        <DialogContent className="max-h-[92vh] max-w-5xl overflow-y-auto">
-          {active && draftForm ? (
-            <>
-              <DialogHeader>
-                <DialogTitle>Edit {active.label}</DialogTitle>
-                <DialogDescription>
-                  Workflow: {CATEGORY_LABEL[active.category]}. Saving a form change publishes a new
-                  version to the Client dashboard.
-                  <span className="mt-1 block">{formatLastUpdated(active.updated_at)}</span>
-                </DialogDescription>
-              </DialogHeader>
-              <div className="grid gap-4 sm:grid-cols-[1fr_10rem]">
-                <div className="grid gap-1.5">
-                  <Label htmlFor="edit-product-label">Product name</Label>
-                  <Input
-                    id="edit-product-label"
-                    value={draftLabel}
-                    onChange={(event) => setDraftLabel(event.target.value)}
-                    maxLength={200}
-                  />
-                </div>
-                <div className="grid gap-1.5">
-                  <Label htmlFor="edit-product-order">Display order</Label>
-                  <Input
-                    id="edit-product-order"
-                    type="number"
-                    min={0}
-                    max={10000}
-                    value={draftOrder}
-                    onChange={(event) => setDraftOrder(event.target.value)}
-                  />
-                </div>
-                <div className="flex items-center gap-2 sm:col-span-2">
-                  <Checkbox
-                    id="edit-product-active"
-                    checked={draftActive}
-                    onCheckedChange={(checked) => setDraftActive(checked === true)}
-                  />
-                  <Label htmlFor="edit-product-active" className="font-normal">
-                    Active and visible to clients
-                  </Label>
-                </div>
-              </div>
-
-              <div className="border-t border-border pt-5">
-                <h3 className="font-heading text-lg font-semibold text-text-primary">
-                  Public service page
-                </h3>
-                <p className="mt-1 text-sm text-text-secondary">
-                  Publishing creates the catalogue card and internal detail page. Use one item per
-                  line for highlights, eligibility, and documents.
-                </p>
-                <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                  <div className="flex items-center gap-2 sm:col-span-2">
-                    <Checkbox
-                      id="edit-product-public"
-                      checked={draftPublicVisible}
-                      onCheckedChange={(checked) => {
-                        const visible = checked === true;
-                        setDraftPublicVisible(visible);
-                        if (!visible) setDraftFeatured(false);
-                      }}
-                    />
-                    <Label htmlFor="edit-product-public" className="font-normal">
-                      Publish on Financial Services and create its detail page
-                    </Label>
-                  </div>
-                  <div className="grid gap-1.5 sm:col-span-2">
-                    <Label htmlFor="edit-product-summary">Card summary</Label>
-                    <Input id="edit-product-summary" value={draftSummary} onChange={(event) => setDraftSummary(event.target.value)} maxLength={280} />
-                  </div>
-                  <div className="grid gap-1.5 sm:col-span-2">
-                    <Label htmlFor="edit-product-description">Page description</Label>
-                    <Textarea id="edit-product-description" value={draftDescription} onChange={(event) => setDraftDescription(event.target.value)} maxLength={4000} rows={4} />
-                  </div>
-                  <div className="grid gap-1.5">
-                    <Label htmlFor="edit-product-highlights">Highlights</Label>
-                    <Textarea id="edit-product-highlights" value={draftHighlights} onChange={(event) => setDraftHighlights(event.target.value)} rows={5} />
-                  </div>
-                  <div className="grid gap-1.5">
-                    <Label htmlFor="edit-product-eligibility">General eligibility</Label>
-                    <Textarea id="edit-product-eligibility" value={draftEligibility} onChange={(event) => setDraftEligibility(event.target.value)} rows={5} />
-                  </div>
-                  <div className="grid gap-1.5">
-                    <Label htmlFor="edit-product-documents">Documents to prepare</Label>
-                    <Textarea id="edit-product-documents" value={draftDocuments} onChange={(event) => setDraftDocuments(event.target.value)} rows={5} />
-                  </div>
-                  <div className="grid gap-1.5">
-                    <Label htmlFor="edit-product-faq">FAQs (Question | Answer)</Label>
-                    <Textarea id="edit-product-faq" value={draftFaq} onChange={(event) => setDraftFaq(event.target.value)} rows={5} />
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Checkbox id="edit-product-featured" checked={draftFeatured} onCheckedChange={(checked) => setDraftFeatured(checked === true)} />
-                    <Label htmlFor="edit-product-featured" className="font-normal">Feature on Home</Label>
-                  </div>
-                  <div className="grid gap-1.5">
-                    <Label htmlFor="edit-product-feature-order">Homepage order</Label>
-                    <Input id="edit-product-feature-order" type="number" min={0} max={10000} value={draftFeaturedOrder} onChange={(event) => setDraftFeaturedOrder(event.target.value)} />
-                  </div>
-                </div>
-              </div>
-
-              <div className="border-t border-border pt-5">
-                <h3 className="font-heading text-lg font-semibold text-text-primary">
-                  Client application form
-                </h3>
-                <p className="mt-1 text-sm text-text-secondary">
-                  Use professional labels and keep the questions in the order a client should
-                  answer them.
-                </p>
-                <div className="mt-4">
-                  <FinancialProductFormBuilder
-                    category={active.category}
-                    value={draftForm}
-                    onChange={setDraftForm}
-                    disabled={busy}
-                  />
-                </div>
-              </div>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setActive(null)} disabled={busy}>
-                  Cancel
-                </Button>
-                <Button onClick={() => void onSaveEdit()} disabled={busy}>
-                  {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-                  Publish changes
-                </Button>
-              </DialogFooter>
-            </>
-          ) : null}
+      <Dialog open={deactivating !== null} onOpenChange={(open) => !open && setDeactivating(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Deactivate {deactivating?.label}?</DialogTitle>
+            <DialogDescription>
+              It disappears from the public Financial Services catalogue and no client can start
+              a new application for it. Applications already submitted keep the exact form
+              version they used, and you can activate it again at any time.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeactivating(null)} disabled={stateBusy !== null}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={stateBusy !== null}
+              onClick={() => deactivating && void setProductActive(deactivating, false)}
+            >
+              {stateBusy !== null ? (
+                <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+              ) : null}
+              Deactivate product
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+      <FinancialProductWorkspace
+        product={active}
+        open={active !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setActive(null);
+            void reloadOffers();
+            void reload();
+          }
+        }}
+        onSaved={(updated) => {
+          setActive(updated);
+          void reload();
+          void reloadOffers();
+        }}
+      />
+    </>
   );
 }

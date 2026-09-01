@@ -24,6 +24,7 @@ from app.cache.redis_keys import (
 from app.db.session import AsyncSessionLocal
 from app.models.audit_log import AuditAction
 from app.models.property import (
+    ListingIntent,
     Property,
     ReraApplicability,
     ReraVerificationStatus,
@@ -36,6 +37,7 @@ from app.models.property_media import (
 from app.models.property_submission import PropertySubmission, SubmissionStatus
 from app.schemas.property_submissions import (
     SubmissionCreate,
+    SubmissionFacts,
     SubmissionMediaInput,
     SubmissionUpdate,
 )
@@ -98,6 +100,18 @@ class MediaNotReady(Exception):
 
 class SubmissionNotEditable(Exception):
     """Raised when a withdrawn listing is targeted for another edit."""
+
+
+class AdminCorrectionReasonRequired(Exception):
+    """Raised when an approved Admin correction lacks a valid bounded reason."""
+
+
+class ApprovedCorrectionRequired(Exception):
+    """Raised when a correction does not target an approved catalogue listing."""
+
+
+class CorrectionHasNoChanges(Exception):
+    """Raised when a correction would append an audit row without changing facts."""
 
 
 class ReraReviewRequired(Exception):
@@ -283,8 +297,18 @@ def _can_manage_submission(
 
 
 def _payload_fact_values(payload: SubmissionCreate | SubmissionUpdate) -> dict[str, object]:
-    values = payload.model_dump(exclude={"media", "structured_details"})
+    values = payload.model_dump(
+        include=set(SubmissionFacts.model_fields),
+        exclude={"media", "structured_details", "listing_links"},
+    )
     values["structured_details"] = payload.structured_details.model_dump(mode="json")
+    # JSON mode so the derived platform lands in JSONB as its string value and
+    # not as an enum member the driver would have to coerce.
+    values["listing_links"] = (
+        [link.model_dump(mode="json") for link in payload.listing_links]
+        if payload.listing_links is not None
+        else None
+    )
     return values
 
 
@@ -298,7 +322,7 @@ def _copy_submission_facts(target: PropertySubmission | Property, source: object
         setattr(target, field, value)
     target.details_version = 1 if values["structured_details"] is not None else None
     if isinstance(target, Property):
-        target.price_display = format_inr_display(target.price_paise)
+        target.price_display = format_inr_display(target.price_paise, target.listing_intent)
 
 
 def _copy_rera_review(target: Property, source: PropertySubmission) -> None:
@@ -314,6 +338,8 @@ async def update_submission(
     *,
     actor_role: str,
     platform_scope: str | None,
+    correction_reason: str | None = None,
+    approved_correction_only: bool = False,
 ) -> bool:
     """Update listing facts under a row lock and return reviewed rows to review."""
     async with AsyncSessionLocal() as session:
@@ -324,12 +350,32 @@ async def update_submission(
             return False
         if sub.status == SubmissionStatus.WITHDRAWN:
             raise SubmissionNotEditable
+        is_platform_admin = actor_role == "admin" and platform_scope == "true"
+        normalized_correction_reason = (correction_reason or "").strip() or None
+        if approved_correction_only and (
+            not is_platform_admin
+            or sub.status != SubmissionStatus.APPROVED
+            or sub.approved_property_id is None
+        ):
+            raise ApprovedCorrectionRequired
+        if approved_correction_only and (
+            normalized_correction_reason is None or len(normalized_correction_reason) > 1000
+        ):
+            raise AdminCorrectionReasonRequired
+        if (
+            is_platform_admin
+            and sub.status == SubmissionStatus.APPROVED
+            and not approved_correction_only
+        ):
+            raise AdminCorrectionReasonRequired
         previous_status = sub.status
         values = _payload_fact_values(payload)
         changed_fields = sorted(
             field for field, value in values.items() if getattr(sub, field) != value
         )
         if not changed_fields:
+            if approved_correction_only:
+                raise CorrectionHasNoChanges
             return True
         _copy_submission_facts(sub, payload)
         sub.status = SubmissionStatus.PENDING
@@ -340,22 +386,34 @@ async def update_submission(
         sub.rera_verified_at = None
         sub.rera_verified_by_uuid = None
         sub.rera_review_note = None
+        audit_detail: dict[str, object] = {
+            "operation": "correction_staged" if approved_correction_only else "facts_updated",
+            "previous_status": previous_status.value,
+            "changed_fields": changed_fields,
+            "approved_property_uuid": (
+                str(sub.approved_property_id) if sub.approved_property_id else None
+            ),
+        }
+        if approved_correction_only:
+            audit_detail.update(
+                {
+                    "reason": normalized_correction_reason,
+                    "submission_uuid": str(sub.id),
+                }
+            )
         await record_audit(
             session,
-            action=AuditAction.PROPERTY_LISTING_UPDATED,
-            entity_type="property_submission",
-            entity_uuid=sub.id,
+            action=(
+                AuditAction.PROPERTY_LISTING_CORRECTED
+                if approved_correction_only
+                else AuditAction.PROPERTY_LISTING_UPDATED
+            ),
+            entity_type="property" if approved_correction_only else "property_submission",
+            entity_uuid=sub.approved_property_id if approved_correction_only else sub.id,
             actor_uuid=actor_uuid,
             actor_role=actor_role,
             business_line=sub.business_line,
-            detail={
-                "operation": "facts_updated",
-                "previous_status": previous_status.value,
-                "changed_fields": changed_fields,
-                "approved_property_uuid": (
-                    str(sub.approved_property_id) if sub.approved_property_id else None
-                ),
-            },
+            detail=audit_detail,
         )
         await session.commit()
         return True
@@ -382,13 +440,19 @@ async def review_rera(
             sub.rera_applicability != ReraApplicability.EXEMPTION_CLAIMED
         ):
             raise InvalidReraReview
-        if outcome == ReraVerificationStatus.NOT_REVIEWED:
+        withdrawing = outcome == ReraVerificationStatus.NOT_REVIEWED
+        if withdrawing and sub.rera_verification_status == ReraVerificationStatus.NOT_REVIEWED:
+            # Nothing to take back; treat as a no-op rather than writing a
+            # reviewer stamp onto a row that was never reviewed.
             raise InvalidReraReview
 
         now = datetime.now(UTC)
         sub.rera_verification_status = outcome
-        sub.rera_verified_at = now
-        sub.rera_verified_by_uuid = reviewer_uuid
+        # Withdrawing clears the stamp: the row is genuinely un-reviewed again, so
+        # it must not keep pointing at a reviewer who no longer stands behind it.
+        # The note survives so the audit trail explains the withdrawal.
+        sub.rera_verified_at = None if withdrawing else now
+        sub.rera_verified_by_uuid = None if withdrawing else reviewer_uuid
         sub.rera_review_note = note.strip() if note else None
         catalogue_deactivated = False
         if sub.approved_property_id is not None:
@@ -396,9 +460,12 @@ async def review_rera(
             if prop is not None and (
                 sub.status == SubmissionStatus.APPROVED
                 or outcome == ReraVerificationStatus.MISMATCH
+                or withdrawing
             ):
                 _copy_rera_review(prop, sub)
-                if outcome == ReraVerificationStatus.MISMATCH and prop.active:
+                # A live listing must never keep serving as RERA-verified once the
+                # verification is gone — same rule that already covers a mismatch.
+                if (outcome == ReraVerificationStatus.MISMATCH or withdrawing) and prop.active:
                     prop.active = False
                     catalogue_deactivated = True
 
@@ -411,7 +478,7 @@ async def review_rera(
             actor_role=reviewer_role,
             business_line=sub.business_line,
             detail={
-                "operation": "rera_reviewed",
+                "operation": "rera_withdrawn" if withdrawing else "rera_reviewed",
                 "outcome": outcome.value,
                 "applicability": sub.rera_applicability.value,
                 "approved_property_uuid": (
@@ -470,9 +537,8 @@ async def withdraw_submission(
         return True
 
 
-def format_inr_display(paise: int) -> str:
-    """Derive the catalog display string from integer paise. >= 1 Cr -> 'Cr',
-    else 'L'. Trims trailing zeros: 78_00_000_00 paise -> '₹78 L'."""
+def format_inr_amount(paise: int) -> str:
+    """Render integer paise as a lakh/crore capital amount: '₹78 L', '₹2.6 Cr'."""
     rupees = paise // 100
     if rupees >= 10_000_000:  # >= 1 crore
         value = rupees / 10_000_000
@@ -482,6 +548,42 @@ def format_inr_display(paise: int) -> str:
         unit = "L"
     text = f"{value:.2f}".rstrip("0").rstrip(".")
     return f"₹{text} {unit}"
+
+
+def format_inr_rent(paise: int) -> str:
+    """Render integer paise as an exact monthly rent: '₹25,000/month'.
+
+    Rent is not a lakh/crore quantity — ``format_inr_amount`` would turn a
+    ₹25,000 rent into '₹0.25 L', which reads as a sale price and is useless to a
+    tenant. Grouping follows the Indian system (₹1,25,000, not ₹125,000).
+    """
+
+    rupees = paise // 100
+    digits = str(rupees)
+    if len(digits) > 3:
+        head, tail = digits[:-3], digits[-3:]
+        groups = []
+        while len(head) > 2:
+            groups.insert(0, head[-2:])
+            head = head[:-2]
+        if head:
+            groups.insert(0, head)
+        grouped = ",".join([*groups, tail])
+    else:
+        grouped = digits
+    return f"₹{grouped}/month"
+
+
+def format_inr_display(paise: int, intent: ListingIntent = ListingIntent.SALE) -> str:
+    """Derive the catalog display string from integer paise, intent-aware.
+
+    ``price_paise`` carries the sale price for a sale listing and the monthly
+    rent for a rental, so the same column needs two very different renderings.
+    """
+
+    if intent == ListingIntent.RENT:
+        return format_inr_rent(paise)
+    return format_inr_amount(paise)
 
 
 async def approve_submission(
@@ -582,10 +684,11 @@ async def approve_submission(
                 id=property_uuid,
                 business_line="real_estate",
                 active=True,
+                listing_intent=sub.listing_intent,
                 title=sub.title,
                 type=sub.type,
                 location=sub.location,
-                price_display=format_inr_display(sub.price_paise),
+                price_display=format_inr_display(sub.price_paise, sub.listing_intent),
                 meta=sub.meta,
                 image=sub.image,
                 category=sub.category,
@@ -595,6 +698,10 @@ async def approve_submission(
                 state=sub.state,
                 pincode=sub.pincode,
                 price_paise=sub.price_paise,
+                security_deposit_paise=sub.security_deposit_paise,
+                minimum_lease_months=sub.minimum_lease_months,
+                available_from=sub.available_from,
+                listing_links=(list(sub.listing_links) if sub.listing_links is not None else None),
                 bhk=sub.bhk,
                 area_sqft=sub.area_sqft,
                 furnishing=sub.furnishing,

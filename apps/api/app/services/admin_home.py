@@ -51,7 +51,11 @@ from app.schemas.admin import AdminHomeResponse, AdminPendingItem
 from app.services.loan_applications import TERMINAL_STATUSES as LOAN_TERMINAL_STATUSES
 from app.services.property_deals import TERMINAL_STATUSES as DEAL_TERMINAL_STATUSES
 
-_PENDING_QUEUE_LIMIT = 12
+# The dashboard renders this queue full width as a table, so it can show the
+# whole cap without scrolling; 12 was sized for a 270px box that has been
+# removed. Still bounded — the three counts beside it stay uncapped, and the
+# panel says "showing the N oldest of M" whenever the cap bites.
+_PENDING_QUEUE_LIMIT = 30
 
 
 def _agent_application_title(app: AgentApplication) -> str:
@@ -77,7 +81,10 @@ async def get_admin_home(db: AsyncSession) -> AdminHomeResponse:
         (
             await db.execute(
                 select(Banner)
-                .where(Banner.status == BannerStatus.PENDING_APPROVAL)
+                .where(
+                    Banner.status == BannerStatus.PENDING_APPROVAL,
+                    Banner.removed_at.is_(None),
+                )
                 .order_by(Banner.created_at.desc())
                 .limit(_PENDING_QUEUE_LIMIT)
             )
@@ -142,7 +149,7 @@ async def get_admin_home(db: AsyncSession) -> AdminHomeResponse:
     pending_banners_count = await db.scalar(
         select(func.count())
         .select_from(Banner)
-        .where(Banner.status == BannerStatus.PENDING_APPROVAL)
+        .where(Banner.status == BannerStatus.PENDING_APPROVAL, Banner.removed_at.is_(None))
     )
     pending_property_submissions_count = await db.scalar(
         select(func.count())

@@ -18,7 +18,7 @@ from datetime import UTC, datetime
 from uuid import UUID
 
 from pydantic import EmailStr, TypeAdapter, ValidationError
-from sqlalchemy import delete, func, select, text, update
+from sqlalchemy import delete, func, or_, select, text, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -95,12 +95,88 @@ async def is_primary_admin(
 
 
 async def list_operational_users(
-    db: AsyncSession, *, limit: int, offset: int
+    db: AsyncSession,
+    *,
+    limit: int,
+    offset: int,
+    search: str | None = None,
+    statuses: list[UserStatus] | None = None,
+    role: str | None = None,
+    business_line: str | None = None,
+    created_from: datetime | None = None,
+    created_to: datetime | None = None,
+    never_logged_in: bool | None = None,
 ) -> tuple[list[tuple[User, list[str], list[ClientProfile]]], int]:
-    total = await db.scalar(select(func.count()).select_from(User)) or 0
+    """Operational account directory, filtered server-side.
+
+    Every predicate here used to be absent, so the console could only search the
+    25 rows it had already fetched — a match on page three was invisible from
+    page one. `role` and `business_line` are EXISTS subqueries against the
+    profile tables rather than joins, so a user holding several profiles is
+    still counted once and `total` stays correct for paging.
+
+    `search` deliberately covers only name, mobile and email. Those are the
+    columns an Admin has in hand when someone contacts support; matching against
+    anything else would widen a PII surface for no operational gain. It is also
+    applied to the tombstoned column values, so a soft-deleted account cannot be
+    found by a mobile that has already been erased.
+    """
+    predicates = []
+
+    if search:
+        pattern = f"%{search.strip()}%"
+        predicates.append(
+            or_(
+                User.first_name.ilike(pattern),
+                User.last_name.ilike(pattern),
+                User.mobile.ilike(pattern),
+                User.email.ilike(pattern),
+            )
+        )
+    if statuses:
+        predicates.append(User.status.in_(statuses))
+    if created_from is not None:
+        predicates.append(User.created_at >= created_from)
+    if created_to is not None:
+        predicates.append(User.created_at < created_to)
+    if never_logged_in is True:
+        predicates.append(User.last_login_at.is_(None))
+    elif never_logged_in is False:
+        predicates.append(User.last_login_at.is_not(None))
+
+    if role == "agent":
+        predicates.append(
+            select(AgentProfile.id).where(AgentProfile.auth_user_uuid == User.id).exists()
+        )
+    elif role == "client":
+        predicates.append(
+            select(ClientProfile.id).where(ClientProfile.auth_user_uuid == User.id).exists()
+        )
+    elif role is not None:
+        predicates.append(
+            select(StaffProfile.id)
+            .where(
+                StaffProfile.auth_user_uuid == User.id,
+                StaffProfile.role == StaffRole(role),
+            )
+            .exists()
+        )
+
+    if business_line is not None:
+        predicates.append(
+            select(ClientProfile.id)
+            .where(
+                ClientProfile.auth_user_uuid == User.id,
+                ClientProfile.business_line == business_line,
+            )
+            .exists()
+        )
+
+    total = await db.scalar(select(func.count()).select_from(User).where(*predicates)) or 0
     users = (
         await db.scalars(
             select(User)
+            .where(*predicates)
             .order_by(User.created_at.desc(), User.id.desc())
             .limit(limit)
             .offset(offset)
@@ -115,8 +191,8 @@ async def list_operational_users(
             StaffProfile.auth_user_uuid.in_(user_ids)
         )
     )
-    for user_id, role in staff_rows.all():
-        roles[user_id].add(role.value)
+    for user_id, staff_role in staff_rows.all():
+        roles[user_id].add(staff_role.value)
     agent_ids = await db.scalars(
         select(AgentProfile.auth_user_uuid).where(AgentProfile.auth_user_uuid.in_(user_ids))
     )
@@ -372,7 +448,7 @@ async def create_staff(
         body=(
             f"A new {role.value.replace('_', ' ')} account was provisioned ({profile.staff_code})."
         ),
-        href="/dashboard/staff",
+        href="/dashboard/users",
         exclude_user_uuid=actor_id,
     )
 
@@ -586,6 +662,7 @@ async def approve_agent_application(
                 raise
 
     application.status = SubmissionStatus.APPROVED
+    application.applicant_auth_user_uuid = user.id
     application.reviewed_by_staff_profile_uuid = reviewer_staff_uuid
     application.reviewed_at = datetime.now(UTC)
     # entity is the application (the thing reviewed); the profile it produced goes

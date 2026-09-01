@@ -7,6 +7,7 @@ from app.core.admin_operational_coverage import (
     AdminViewMode,
     CoverageState,
     DataSensitivity,
+    confirmed_gap_tables,
 )
 from app.db.base import Base
 
@@ -58,6 +59,30 @@ def test_admin_operational_visibility_slice_closes_all_eight_view_gaps() -> None
         assert entry.view_coverage is CoverageState.COVERED
         assert entry.api_surfaces
         assert entry.ui_surfaces
+
+
+def test_original_fr_2_2_correction_and_audit_gaps_are_closed() -> None:
+    for table in {
+        "banners",
+        "content_blocks",
+        "loan_applications",
+        "offers",
+        "property_deals",
+        "referral_bonus_config",
+        "tasks",
+    }:
+        assert ADMIN_OPERATIONAL_COVERAGE[table].audit_coverage is CoverageState.COVERED
+
+    properties = ADMIN_OPERATIONAL_COVERAGE["properties"]
+    assert properties.update_mode is AdminUpdateMode.WORKFLOW_COMMAND
+    assert properties.update_coverage is CoverageState.COVERED
+    assert properties.audit_coverage is CoverageState.COVERED
+
+
+def test_newer_out_of_scope_gaps_remain_explicit() -> None:
+    assert confirmed_gap_tables() == frozenset(
+        {"field_visibility_config", "financial_service_enquiries"}
+    )
 
 
 def test_protected_secrets_and_location_are_not_full_admin_views() -> None:

@@ -11,6 +11,7 @@ import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import { FieldError, RequiredIndicator } from "@/components/ui/field-error";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -23,6 +24,15 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { getBanks, type Bank } from "@/lib/loans";
 import type { ApiResponse } from "@/lib/api/client";
+import {
+  apiIssuesToFieldErrors,
+  focusFirstInvalidField,
+  type FieldErrors,
+} from "@/lib/form-validation";
+import {
+  validateLoanProgressTerms,
+  type LoanProgressTermsField,
+} from "@/features/telecaller/telecaller-lead-detail-validation";
 
 export type LoanStatusValue =
   | "new"
@@ -122,6 +132,9 @@ export function LoanProgressForm({
   const [processingFee, setProcessingFee] = React.useState(application.processing_fee ?? "");
   const [feeOutcome, setFeeOutcome] = React.useState(application.fee_outcome ?? "");
   const [saving, setSaving] = React.useState(false);
+  const [reasonError, setReasonError] = React.useState<string>();
+  const [termErrors, setTermErrors] = React.useState<FieldErrors<LoanProgressTermsField>>({});
+  const formRef = React.useRef<HTMLFormElement>(null);
 
   React.useEffect(() => {
     let active = true;
@@ -153,8 +166,23 @@ export function LoanProgressForm({
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
+    const nextTermErrors = termsEnabled
+      ? validateLoanProgressTerms({ amountSanctioned, interestRate, processingFee })
+      : {};
     if (requiresReason && reason.trim().length === 0) {
-      toast.error("A reason is required for this status.");
+      setReasonError("A reason is required for this status.");
+      setTermErrors(nextTermErrors);
+      requestAnimationFrame(() => {
+        if (formRef.current) focusFirstInvalidField(formRef.current);
+      });
+      return;
+    }
+    setReasonError(undefined);
+    setTermErrors(nextTermErrors);
+    if (Object.keys(nextTermErrors).length > 0) {
+      requestAnimationFrame(() => {
+        if (formRef.current) focusFirstInvalidField(formRef.current);
+      });
       return;
     }
     const payload: LoanProgressUpdatePayload = {};
@@ -180,7 +208,19 @@ export function LoanProgressForm({
       toast.success("Loan application updated");
       setStatus("");
       setReason("");
+      setTermErrors({});
     } else {
+      const serverErrors = apiIssuesToFieldErrors(res.issues, {
+        amount_sanctioned: "amountSanctioned",
+        interest_rate: "interestRate",
+        processing_fee: "processingFee",
+      });
+      if (Object.keys(serverErrors).length > 0) {
+        setTermErrors(serverErrors);
+        requestAnimationFrame(() => {
+          if (formRef.current) focusFirstInvalidField(formRef.current);
+        });
+      }
       toast.error("Couldn't update", { description: (res as { error?: string }).error });
     }
   }
@@ -195,12 +235,17 @@ export function LoanProgressForm({
   }
 
   return (
-    <form className="space-y-4 rounded-xl border border-border p-4" onSubmit={(e) => void onSubmit(e)}>
+    <form
+      ref={formRef}
+      className="space-y-4 rounded-xl border border-border p-4"
+      noValidate
+      onSubmit={(e) => void onSubmit(e)}
+    >
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
-          <Label htmlFor={`status-${application.id}`}>Move status to</Label>
+          <Label htmlFor={`loan-progress-status-${application.id}`}>Move status to</Label>
           <Select value={status} onValueChange={(v) => setStatus(v as LoanStatusValue)}>
-            <SelectTrigger id={`status-${application.id}`} className="w-full">
+            <SelectTrigger id={`loan-progress-status-${application.id}`} className="w-full">
               <SelectValue placeholder="Keep current status" />
             </SelectTrigger>
             <SelectContent>
@@ -214,15 +259,27 @@ export function LoanProgressForm({
         </div>
         {requiresReason ? (
           <div>
-            <Label htmlFor={`reason-${application.id}`}>Reason (required)</Label>
+            <Label htmlFor={`loan-progress-reason-${application.id}`}>
+              Reason
+              <RequiredIndicator />
+            </Label>
             <Textarea
-              id={`reason-${application.id}`}
+              id={`loan-progress-reason-${application.id}`}
+              name="status_reason"
               rows={1}
               maxLength={1000}
               value={reason}
-              onChange={(e) => setReason(e.target.value)}
+              onChange={(e) => { setReason(e.target.value); setReasonError(undefined); }}
               placeholder="Why is this on hold or rejected?"
+              aria-invalid={Boolean(reasonError)}
+              aria-required="true"
+              aria-describedby={
+                reasonError ? `loan-progress-reason-${application.id}-error` : undefined
+              }
             />
+            <FieldError id={`loan-progress-reason-${application.id}-error`}>
+              {reasonError}
+            </FieldError>
           </div>
         ) : null}
       </div>
@@ -230,20 +287,35 @@ export function LoanProgressForm({
       {termsEnabled ? (
         <div className="grid gap-4 sm:grid-cols-4">
           <div>
-            <Label htmlFor={`sanctioned-${application.id}`}>Sanctioned (₹)</Label>
+            <Label htmlFor={`loan-progress-sanctioned-${application.id}`}>Sanctioned (₹)</Label>
             <Input
-              id={`sanctioned-${application.id}`}
+              id={`loan-progress-sanctioned-${application.id}`}
+              name="amount_sanctioned"
               type="number"
-              min={0}
+              min="0.01"
+              max="999999999999.99"
+              step="0.01"
               value={amountSanctioned}
-              onChange={(e) => setAmountSanctioned(e.target.value)}
+              onChange={(e) => {
+                setAmountSanctioned(e.target.value);
+                setTermErrors((current) => ({ ...current, amountSanctioned: undefined }));
+              }}
               placeholder="500000"
+              aria-invalid={Boolean(termErrors.amountSanctioned)}
+              aria-describedby={
+                termErrors.amountSanctioned
+                  ? `loan-progress-sanctioned-${application.id}-error`
+                  : undefined
+              }
             />
+            <FieldError id={`loan-progress-sanctioned-${application.id}-error`}>
+              {termErrors.amountSanctioned}
+            </FieldError>
           </div>
           <div>
-            <Label htmlFor={`bank-${application.id}`}>Bank</Label>
+            <Label htmlFor={`loan-progress-bank-${application.id}`}>Bank</Label>
             <Select value={bankId} onValueChange={setBankId}>
-              <SelectTrigger id={`bank-${application.id}`} className="w-full">
+              <SelectTrigger id={`loan-progress-bank-${application.id}`} className="w-full">
                 <SelectValue placeholder={banks.length ? "Choose a bank" : "No banks configured yet"} />
               </SelectTrigger>
               <SelectContent>
@@ -256,40 +328,68 @@ export function LoanProgressForm({
             </Select>
           </div>
           <div>
-            <Label htmlFor={`rate-${application.id}`}>Rate (%)</Label>
+            <Label htmlFor={`loan-progress-rate-${application.id}`}>Rate (%)</Label>
             <Input
-              id={`rate-${application.id}`}
+              id={`loan-progress-rate-${application.id}`}
+              name="interest_rate"
               type="number"
               min={0}
               max={100}
-              step="0.01"
+              step="0.001"
               value={interestRate}
-              onChange={(e) => setInterestRate(e.target.value)}
+              onChange={(e) => {
+                setInterestRate(e.target.value);
+                setTermErrors((current) => ({ ...current, interestRate: undefined }));
+              }}
               placeholder="8.5"
+              aria-invalid={Boolean(termErrors.interestRate)}
+              aria-describedby={
+                termErrors.interestRate
+                  ? `loan-progress-rate-${application.id}-error`
+                  : undefined
+              }
             />
+            <FieldError id={`loan-progress-rate-${application.id}-error`}>
+              {termErrors.interestRate}
+            </FieldError>
           </div>
           <div>
-            <Label htmlFor={`fee-${application.id}`}>Processing fee (₹)</Label>
+            <Label htmlFor={`loan-progress-fee-${application.id}`}>Processing fee (₹)</Label>
             <Input
-              id={`fee-${application.id}`}
+              id={`loan-progress-fee-${application.id}`}
+              name="processing_fee"
               type="number"
               min={0}
+              max="999999999999.99"
+              step="0.01"
               value={processingFee}
-              onChange={(e) => setProcessingFee(e.target.value)}
+              onChange={(e) => {
+                setProcessingFee(e.target.value);
+                setTermErrors((current) => ({ ...current, processingFee: undefined }));
+              }}
               placeholder="5000"
+              aria-invalid={Boolean(termErrors.processingFee)}
+              aria-describedby={
+                termErrors.processingFee
+                  ? `loan-progress-fee-${application.id}-error`
+                  : undefined
+              }
             />
+            <FieldError id={`loan-progress-fee-${application.id}-error`}>
+              {termErrors.processingFee}
+            </FieldError>
           </div>
         </div>
       ) : null}
 
       {feeOutcomeEnabled ? (
         <div className="sm:w-1/3">
-          <Label htmlFor={`fee-outcome-${application.id}`}>Fee outcome</Label>
+          <Label htmlFor={`loan-progress-fee-outcome-${application.id}`}>Fee outcome</Label>
           <Select
             value={feeOutcome}
             onValueChange={(v) => setFeeOutcome(v as "waived" | "cashback" | "none")}
           >
-            <SelectTrigger id={`fee-outcome-${application.id}`} className="w-full">
+            <SelectTrigger id={`loan-progress-fee-outcome-${application.id}`} className="w-full">
               <SelectValue placeholder="Not set" />
             </SelectTrigger>
             <SelectContent>

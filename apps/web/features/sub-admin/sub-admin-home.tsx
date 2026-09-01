@@ -1,9 +1,12 @@
 "use client";
 
 import * as React from "react";
-import { Clock } from "lucide-react";
+import { Clock, IndianRupee } from "lucide-react";
 
 import { Skeleton } from "@/components/ui/skeleton";
+import { DataTable, DataTablePrimaryCell } from "@/features/dashboard/data-table";
+import { ListEmptyState } from "@/features/dashboard/list-states";
+import { StatusBadge, type StatusTone } from "@/features/dashboard/status-badge";
 import { FetchError } from "@/features/dashboard/fetch-error";
 import { DASHBOARD_ICONS } from "@/features/dashboard/dashboard-icons";
 import {
@@ -16,15 +19,66 @@ import {
   MetricGrid,
   QuickActionGrid,
 } from "@/features/dashboard/dashboard-ui";
-import { formatPaiseCompact } from "@/lib/format";
+import { formatDate, formatPaiseCompact } from "@/lib/format";
 import { getSubAdminHome, type SubAdminHome as SubAdminHomeData } from "@/lib/sub-admin-api";
 import { PendingApprovalDialog } from "./pending-approval-dialog";
 import { PendingApprovalList } from "./pending-approval-list";
 
 type Status = "loading" | "ready" | "error";
 
+type ReferralPayoutRow = SubAdminHomeData["recent_referral_payouts"][number];
+
+const PAYOUT_TONE: Record<string, StatusTone> = {
+  paid: "success",
+  processing: "info",
+  pending: "warning",
+  failed: "danger",
+  reversed: "danger",
+};
+
+const LINE_LABEL: Record<string, string> = { loans: "Loans", real_estate: "Real Estate" };
+
+const PAYOUT_COLUMNS = [
+  {
+    key: "description",
+    header: "Payout",
+    render: (row: ReferralPayoutRow) => (
+      <DataTablePrimaryCell
+        title={row.description || "Referral payout"}
+        subtitle={LINE_LABEL[row.business_line] ?? row.business_line}
+      />
+    ),
+  },
+  {
+    key: "status",
+    header: "Status",
+    render: (row: ReferralPayoutRow) => (
+      <StatusBadge tone={PAYOUT_TONE[row.status] ?? "neutral"}>
+        {row.status.replaceAll("_", " ")}
+      </StatusBadge>
+    ),
+  },
+  {
+    key: "created_at",
+    header: "Raised",
+    render: (row: ReferralPayoutRow) => (
+      <span className="tabular-nums text-text-secondary">{formatDate(row.created_at)}</span>
+    ),
+  },
+  {
+    key: "amount_paise",
+    header: "Amount",
+    align: "right" as const,
+    render: (row: ReferralPayoutRow) => (
+      <span className="font-medium tabular-nums text-text-primary">
+        {formatPaiseCompact(row.amount_paise)}
+      </span>
+    ),
+  },
+];
+
 // Sub Admin's composed landing page (spec §6.1): pending-approval queue ->
-// live banners/offers -> content drafts -> recent referral payouts, backed by
+// live banners/offers -> recent referral payouts, backed by
 // one aggregated GET (services.sub_admin.get_sub_admin_home). Domain cards
 // stay as the secondary navigation into each surface.
 export function SubAdminHome() {
@@ -82,10 +136,9 @@ export function SubAdminHome() {
   return (
     <DashboardPage>
       <DashboardHeader
-        eyebrow="Content operations"
         title="Sub Admin workspace"
-        description="Create content, monitor approval status, and manage cross-line promotions."
-        actions={<DashboardTextLink href="/dashboard/banners/new">Create banner</DashboardTextLink>}
+        description="Monitor approval status and manage cross-line promotions."
+        actions={<DashboardTextLink href="/dashboard/campaigns">Manage campaigns</DashboardTextLink>}
       />
 
       <MetricGrid>
@@ -95,47 +148,51 @@ export function SubAdminHome() {
           icon={Clock}
           attention={home.pending_approval.length > 0}
         />
-        <MetricCard label="Live banners" value={home.live_banners_count} icon={DASHBOARD_ICONS.banners} href="/dashboard/banners" />
-        <MetricCard label="Active offers" value={home.live_offers_count} icon={DASHBOARD_ICONS.offers} href="/dashboard/offers" />
-        <MetricCard label="Content drafts" value={home.content_drafts_count} icon={DASHBOARD_ICONS.websiteContent} href="/dashboard/content" />
+        <MetricCard label="Live banners" value={home.live_banners_count} icon={DASHBOARD_ICONS.banners} href="/dashboard/campaigns?type=banners" />
+        <MetricCard label="Active offers" value={home.live_offers_count} icon={DASHBOARD_ICONS.offers} href="/dashboard/campaigns?type=offers" />
       </MetricGrid>
 
-      <div className="grid gap-4 xl:grid-cols-[1.4fr_1fr]">
-        <DashboardPanel title="Waiting on Admin" description="Your latest submitted work" action={<PendingApprovalDialog items={home.pending_approval} />} className="flex h-[310px] flex-col" bodyClassName="min-h-0 flex-1">
-          <div className="h-full overflow-y-auto pr-1">
-            <PendingApprovalList items={home.pending_approval} emptyMessage="Nothing of yours is waiting on Admin right now." />
-          </div>
-        </DashboardPanel>
+      {/* Full width, in DOM order, rather than a 1.4fr/1fr pair of 310px boxes:
+          the approval queue could only ever show two or three rows there. */}
+      <DashboardPanel
+        title="Waiting on Admin"
+        description="Work you have submitted that Admin has not decided yet"
+        action={<PendingApprovalDialog items={home.pending_approval} />}
+        bodyClassName="p-0"
+      >
+        <PendingApprovalList
+          items={home.pending_approval}
+          emptyMessage="Banners and property listings you submit for approval will appear here."
+        />
+      </DashboardPanel>
 
-        <DashboardPanel
-          title="Recent referral payouts"
-          description="Latest activity under the configured rules"
-          action={<DashboardTextLink href="/dashboard/referral-rules">View rules</DashboardTextLink>}
-          className="flex h-[310px] flex-col"
-          bodyClassName="min-h-0 flex-1 overflow-y-auto"
-        >
+      <DashboardPanel
+        title="Recent referral payouts"
+        description="Latest activity under the configured rules"
+        action={<DashboardTextLink href="/dashboard/referral-rules">View rules</DashboardTextLink>}
+        bodyClassName="p-0"
+      >
         {home.recent_referral_payouts.length === 0 ? (
-          <p className="text-sm text-text-secondary">No referral payouts yet.</p>
+          <ListEmptyState
+            icon={IndianRupee}
+            title="No referral payouts yet"
+            description="Payouts raised under the configured bonus rules will appear here."
+            className="m-5"
+          />
         ) : (
-          <ul className="space-y-2">
-            {home.recent_referral_payouts.map((row) => (
-              <li key={row.id} className="flex items-center justify-between text-sm">
-                <span className="text-text-secondary capitalize">{row.status}</span>
-                <span className="font-medium text-text-primary">
-                  {formatPaiseCompact(row.amount_paise)}
-                </span>
-              </li>
-            ))}
-          </ul>
+          <DataTable
+            columns={PAYOUT_COLUMNS}
+            rows={home.recent_referral_payouts}
+            rowKey={(row) => row.id}
+            minWidth="min-w-[560px]"
+          />
         )}
-        </DashboardPanel>
-      </div>
+      </DashboardPanel>
 
       <QuickActionGrid>
-        <DashboardQuickAction href="/dashboard/banners" title="Banners" description="Create drafts and submit them for Admin approval." icon={DASHBOARD_ICONS.banners} />
+        <DashboardQuickAction href="/dashboard/campaigns" title="Campaign Studio" description="Create banners and offers, then submit them for Admin approval." icon={DASHBOARD_ICONS.banners} />
         <DashboardQuickAction href="/dashboard/property-submit" title="Property listings" description="Submit a managed property listing for review." icon={DASHBOARD_ICONS.propertyListings} />
-        <DashboardQuickAction href="/dashboard/offers" title="Offers" description="Create and schedule customer promotions." icon={DASHBOARD_ICONS.offers} />
-        <DashboardQuickAction href="/dashboard/content" title="Website content" description="Write and publish approved public-site copy." icon={DASHBOARD_ICONS.websiteContent} />
+        <DashboardQuickAction href="/dashboard/media-library" title="Media library" description="Upload reusable campaign artwork and review where it is used." icon={DASHBOARD_ICONS.offers} />
         <DashboardQuickAction href="/dashboard/referral-rules" title="Referral bonus" description="Manage bonus rules and review payout activity." icon={DASHBOARD_ICONS.referrals} />
       </QuickActionGrid>
     </DashboardPage>

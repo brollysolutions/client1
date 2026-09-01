@@ -32,6 +32,7 @@ function wireBlock(
 }
 
 afterEach(() => {
+  vi.restoreAllMocks();
   vi.unstubAllGlobals();
 });
 
@@ -71,12 +72,37 @@ describe("getPublicContentBlocks()", () => {
   });
 
   it("returns an empty array on a non-2xx response", async () => {
+    const consoleError = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => undefined);
     vi.stubGlobal(
       "fetch",
       vi.fn(async () => fakeResponse(500, { detail: "boom" })),
     );
 
     expect(await getPublicContentBlocks()).toEqual([]);
+    expect(consoleError).toHaveBeenCalledWith(
+      "serverFetchJson.http_error",
+      "/api/v1/public/content-blocks",
+      500,
+    );
+  });
+
+  it("still logs an unexpected 404", async () => {
+    const consoleError = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => undefined);
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => fakeResponse(404, { detail: "Unexpected missing list route." })),
+    );
+
+    expect(await getPublicContentBlocks()).toEqual([]);
+    expect(consoleError).toHaveBeenCalledWith(
+      "serverFetchJson.http_error",
+      "/api/v1/public/content-blocks",
+      404,
+    );
   });
 
   it("returns an empty array when fetch throws", async () => {
@@ -121,22 +147,39 @@ describe("getPublicContentBlockBySlug()", () => {
   });
 
   it("returns null on a 404 (no published block at that slug)", async () => {
+    const consoleError = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => undefined);
     vi.stubGlobal(
       "fetch",
       vi.fn(async () => fakeResponse(404, { detail: "Content block not found." })),
     );
 
     expect(await getPublicContentBlockBySlug("missing-slug")).toBeNull();
+    expect(consoleError).not.toHaveBeenCalled();
   });
 
   it("returns null when fetch throws", async () => {
+    const timeout = new DOMException(
+      "The operation was aborted due to timeout",
+      "TimeoutError",
+    );
+    const consoleError = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => undefined);
     vi.stubGlobal(
       "fetch",
       vi.fn(async () => {
-        throw new Error("network down");
+        throw timeout;
       }),
     );
 
     expect(await getPublicContentBlockBySlug("homepage-closing")).toBeNull();
+    expect(consoleError).toHaveBeenCalledWith(
+      "serverFetchJson.network_error",
+      "/api/v1/public/content-blocks/homepage-closing",
+      "TimeoutError: The operation was aborted due to timeout",
+    );
+    expect(consoleError.mock.calls.flat()).not.toContain(timeout);
   });
 });

@@ -43,6 +43,7 @@ export function ProviderOfferFilters({
               id="provider-search"
               name="provider_q"
               defaultValue={q}
+              maxLength={100}
               placeholder="Lender or offer name"
               className="pl-9"
             />

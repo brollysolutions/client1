@@ -115,6 +115,7 @@ class AdminBankRead(BaseModel):
     created_at: datetime
     updated_at: datetime
     application_count: int
+    offer_count: int
 
 
 class AdminBankListResponse(BaseModel):

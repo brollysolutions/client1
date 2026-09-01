@@ -300,6 +300,10 @@
             "title": "Name",
             "type": "string"
           },
+          "offer_count": {
+            "title": "Offer Count",
+            "type": "integer"
+          },
           "provider_type": {
             "$ref": "#/components/schemas/ProviderType"
           },
@@ -321,7 +325,8 @@
           "active",
           "created_at",
           "updated_at",
-          "application_count"
+          "application_count",
+          "offer_count"
         ],
         "title": "AdminBankRead",
         "type": "object"
@@ -1396,6 +1401,245 @@
           "submitted_at"
         ],
         "title": "AdminPendingItem",
+        "type": "object"
+      },
+      "AdminPropertyCorrection": {
+        "additionalProperties": false,
+        "description": "Full replacement facts plus the reason for an approved-listing correction.",
+        "properties": {
+          "age_years": {
+            "default": 0,
+            "minimum": 0.0,
+            "title": "Age Years",
+            "type": "integer"
+          },
+          "amenities": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 30,
+            "title": "Amenities",
+            "type": "array"
+          },
+          "area_sqft": {
+            "default": 0,
+            "minimum": 0.0,
+            "title": "Area Sqft",
+            "type": "integer"
+          },
+          "available_from": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Available From"
+          },
+          "bhk": {
+            "default": 0,
+            "minimum": 0.0,
+            "title": "Bhk",
+            "type": "integer"
+          },
+          "category": {
+            "$ref": "#/components/schemas/PropertyCategory"
+          },
+          "city": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "City",
+            "type": "string"
+          },
+          "construction_status": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ConstructionStatus"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "furnishing": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Furnishing"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "listing_intent": {
+            "$ref": "#/components/schemas/ListingIntent",
+            "default": "sale"
+          },
+          "listing_links": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/ListingLink"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Listing Links"
+          },
+          "locality": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Locality",
+            "type": "string"
+          },
+          "location": {
+            "maxLength": 160,
+            "minLength": 1,
+            "title": "Location",
+            "type": "string"
+          },
+          "meta": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meta"
+          },
+          "minimum_lease_months": {
+            "anyOf": [
+              {
+                "maximum": 600.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Minimum Lease Months"
+          },
+          "pincode": {
+            "pattern": "^[1-9][0-9]{5}$",
+            "title": "Pincode",
+            "type": "string"
+          },
+          "price_paise": {
+            "exclusiveMinimum": 0.0,
+            "title": "Price Paise",
+            "type": "integer"
+          },
+          "property_subtype": {
+            "$ref": "#/components/schemas/PropertySubtype"
+          },
+          "reason": {
+            "maxLength": 1000,
+            "minLength": 1,
+            "title": "Reason",
+            "type": "string"
+          },
+          "rera_applicability": {
+            "$ref": "#/components/schemas/ReraApplicability"
+          },
+          "rera_number": {
+            "anyOf": [
+              {
+                "maxLength": 40,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rera Number"
+          },
+          "security_deposit_paise": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Security Deposit Paise"
+          },
+          "state": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "State",
+            "type": "string"
+          },
+          "structured_details": {
+            "discriminator": {
+              "mapping": {
+                "agricultural_land": "#/components/schemas/AgriculturalLandDetails",
+                "commercial_property": "#/components/schemas/CommercialPropertyDetails",
+                "individual_property": "#/components/schemas/IndividualPropertyDetails",
+                "plot": "#/components/schemas/PlotDetails",
+                "project_residence": "#/components/schemas/ProjectResidenceDetails"
+              },
+              "propertyName": "kind"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ProjectResidenceDetails"
+              },
+              {
+                "$ref": "#/components/schemas/IndividualPropertyDetails"
+              },
+              {
+                "$ref": "#/components/schemas/CommercialPropertyDetails"
+              },
+              {
+                "$ref": "#/components/schemas/PlotDetails"
+              },
+              {
+                "$ref": "#/components/schemas/AgriculturalLandDetails"
+              }
+            ],
+            "title": "Structured Details"
+          },
+          "title": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          },
+          "type": {
+            "maxLength": 40,
+            "minLength": 1,
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "type",
+          "location",
+          "category",
+          "property_subtype",
+          "city",
+          "locality",
+          "state",
+          "pincode",
+          "price_paise",
+          "rera_applicability",
+          "structured_details",
+          "reason"
+        ],
+        "title": "AdminPropertyCorrection",
         "type": "object"
       },
       "AdminPropertyDealListResponse": {
@@ -3133,6 +3377,143 @@
         "title": "AgentHomeResponse",
         "type": "object"
       },
+      "AgentInviteAcceptRequest": {
+        "properties": {
+          "confirm_password": {
+            "maxLength": 128,
+            "minLength": 8,
+            "title": "Confirm Password",
+            "type": "string"
+          },
+          "password": {
+            "maxLength": 128,
+            "minLength": 8,
+            "title": "Password",
+            "type": "string"
+          }
+        },
+        "required": [
+          "password",
+          "confirm_password"
+        ],
+        "title": "AgentInviteAcceptRequest",
+        "type": "object"
+      },
+      "AgentInviteCandidateListResponse": {
+        "properties": {
+          "agents": {
+            "items": {
+              "$ref": "#/components/schemas/AgentInviteCandidateRead"
+            },
+            "title": "Agents",
+            "type": "array"
+          }
+        },
+        "required": [
+          "agents"
+        ],
+        "title": "AgentInviteCandidateListResponse",
+        "type": "object"
+      },
+      "AgentInviteCandidateRead": {
+        "properties": {
+          "agent_code": {
+            "title": "Agent Code",
+            "type": "string"
+          },
+          "application_id": {
+            "format": "uuid",
+            "title": "Application Id",
+            "type": "string"
+          },
+          "approved_at": {
+            "format": "date-time",
+            "title": "Approved At",
+            "type": "string"
+          },
+          "business_line": {
+            "enum": [
+              "loans",
+              "real_estate"
+            ],
+            "title": "Business Line",
+            "type": "string"
+          },
+          "first_name": {
+            "title": "First Name",
+            "type": "string"
+          },
+          "last_name": {
+            "title": "Last Name",
+            "type": "string"
+          },
+          "mobile": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mobile"
+          }
+        },
+        "required": [
+          "application_id",
+          "agent_code",
+          "first_name",
+          "last_name",
+          "mobile",
+          "business_line",
+          "approved_at"
+        ],
+        "title": "AgentInviteCandidateRead",
+        "type": "object"
+      },
+      "AgentInviteLinkRead": {
+        "properties": {
+          "expires_at": {
+            "format": "date-time",
+            "title": "Expires At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "share_path": {
+            "title": "Share Path",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "share_path",
+          "expires_at"
+        ],
+        "title": "AgentInviteLinkRead",
+        "type": "object"
+      },
+      "AgentInvitePreview": {
+        "properties": {
+          "agent_code": {
+            "title": "Agent Code",
+            "type": "string"
+          },
+          "first_name": {
+            "title": "First Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "first_name",
+          "agent_code"
+        ],
+        "title": "AgentInvitePreview",
+        "type": "object"
+      },
       "AgentLeadCreate": {
         "properties": {
           "mobile": {
@@ -3719,11 +4100,13 @@
             "items": {
               "enum": [
                 "client",
-                "agent"
+                "agent",
+                "employee",
+                "telecaller"
               ],
               "type": "string"
             },
-            "maxItems": 2,
+            "maxItems": 4,
             "title": "User Types",
             "type": "array"
           },
@@ -3745,6 +4128,8 @@
           "staff_created",
           "staff_feature_granted",
           "staff_feature_revoked",
+          "staff_invite_created",
+          "staff_invite_revoked",
           "account_removed",
           "account_status_updated",
           "payout_approved",
@@ -3756,13 +4141,17 @@
           "property_submission_approved",
           "property_submission_rejected",
           "property_listing_updated",
+          "property_listing_corrected",
           "support_ticket_advanced",
           "retention_purged",
           "loan_type_created",
           "loan_type_updated",
           "bank_created",
           "bank_updated",
+          "bank_deleted",
           "bank_availability_updated",
+          "agent_invite_created",
+          "agent_invite_revoked",
           "financial_product_offer_created",
           "financial_product_offer_updated",
           "commission_entered",
@@ -3790,7 +4179,30 @@
           "banner_archived",
           "banner_activated",
           "banner_deleted",
-          "banner_template_versioned"
+          "banner_template_versioned",
+          "referral_rule_created",
+          "referral_rule_updated",
+          "referral_rule_deleted",
+          "offer_created",
+          "offer_updated",
+          "offer_submitted",
+          "offer_approved",
+          "offer_rejected",
+          "offer_scheduled",
+          "offer_activated",
+          "offer_expired",
+          "offer_archived",
+          "offer_deleted",
+          "campaign_media_created",
+          "campaign_media_updated",
+          "campaign_media_archived",
+          "campaign_media_deleted",
+          "content_block_created",
+          "content_block_updated",
+          "content_block_published",
+          "content_block_archived",
+          "loan_application_updated",
+          "property_deal_updated"
         ],
         "title": "AuditAction",
         "type": "string"
@@ -4067,6 +4479,33 @@
             "title": "Id",
             "type": "string"
           },
+          "image_url": {
+            "title": "Image Url",
+            "type": "string"
+          },
+          "partner_name": {
+            "title": "Partner Name",
+            "type": "string"
+          },
+          "redemption_url": {
+            "title": "Redemption Url",
+            "type": "string"
+          },
+          "terms_summary": {
+            "title": "Terms Summary",
+            "type": "string"
+          },
+          "terms_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Terms Url"
+          },
           "title": {
             "title": "Title",
             "type": "string"
@@ -4078,7 +4517,12 @@
           "description",
           "discount_type",
           "discount_value",
-          "code"
+          "code",
+          "partner_name",
+          "redemption_url",
+          "terms_summary",
+          "terms_url",
+          "image_url"
         ],
         "title": "AuthenticatedOfferRead",
         "type": "object"
@@ -4427,7 +4871,7 @@
             "anyOf": [
               {
                 "maxLength": 500,
-                "pattern": "^public/banners/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/[A-Za-z0-9._-]+$",
+                "pattern": "^public/(banners|campaign-media)/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/[A-Za-z0-9._-]+$",
                 "type": "string"
               },
               {
@@ -4435,6 +4879,18 @@
               }
             ],
             "title": "Image Key"
+          },
+          "media_asset_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Media Asset Id"
           },
           "offer_id": {
             "anyOf": [
@@ -4699,6 +5155,29 @@
             ],
             "title": "Image Key"
           },
+          "image_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Image Url"
+          },
+          "media_asset_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Media Asset Id"
+          },
           "offer_id": {
             "anyOf": [
               {
@@ -4729,6 +5208,41 @@
               }
             ],
             "title": "Property Id"
+          },
+          "removal_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Removal Reason"
+          },
+          "removed_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Removed At"
+          },
+          "removed_by_uuid": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Removed By Uuid"
           },
           "replaces_banner_id": {
             "anyOf": [
@@ -4799,6 +5313,10 @@
             "format": "date-time",
             "title": "Updated At",
             "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
           }
         },
         "required": [
@@ -4815,6 +5333,7 @@
           "subtitle",
           "cta_label",
           "image_key",
+          "media_asset_id",
           "deep_link",
           "audience_rules",
           "priority",
@@ -4822,6 +5341,10 @@
           "created_by_uuid",
           "approved_by_uuid",
           "review_note",
+          "version",
+          "removed_by_uuid",
+          "removal_reason",
+          "removed_at",
           "starts_at",
           "ends_at",
           "created_at",
@@ -4928,6 +5451,18 @@
             "title": "Label",
             "type": "string"
           },
+          "media_asset_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Media Asset Id"
+          },
           "placement": {
             "$ref": "#/components/schemas/BannerPlacement"
           },
@@ -4943,6 +5478,7 @@
           "label",
           "version",
           "image_url",
+          "media_asset_id",
           "active",
           "created_at"
         ],
@@ -5006,11 +5542,23 @@
             ],
             "title": "Ends At"
           },
+          "expected_version": {
+            "anyOf": [
+              {
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expected Version"
+          },
           "image_key": {
             "anyOf": [
               {
                 "maxLength": 500,
-                "pattern": "^public/banners/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/[A-Za-z0-9._-]+$",
+                "pattern": "^public/(banners|campaign-media)/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/[A-Za-z0-9._-]+$",
                 "type": "string"
               },
               {
@@ -5018,6 +5566,18 @@
               }
             ],
             "title": "Image Key"
+          },
+          "media_asset_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Media Asset Id"
           },
           "offer_id": {
             "anyOf": [
@@ -5339,6 +5899,429 @@
         "title": "CallDisposition",
         "type": "string"
       },
+      "CampaignMediaCreate": {
+        "properties": {
+          "alt_text": {
+            "maxLength": 300,
+            "minLength": 1,
+            "title": "Alt Text",
+            "type": "string"
+          },
+          "business_line": {
+            "pattern": "^(loans|real_estate|both)$",
+            "title": "Business Line",
+            "type": "string"
+          },
+          "content_type": {
+            "enum": [
+              "image/jpeg",
+              "image/png",
+              "image/webp"
+            ],
+            "title": "Content Type",
+            "type": "string"
+          },
+          "object_key": {
+            "maxLength": 500,
+            "minLength": 1,
+            "pattern": "^private/campaign-media/staging/[0-9a-f-]{36}/[A-Za-z0-9._-]+$",
+            "title": "Object Key",
+            "type": "string"
+          },
+          "source_reference": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Reference"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 12,
+            "title": "Tags",
+            "type": "array"
+          },
+          "title": {
+            "maxLength": 160,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          },
+          "usage_type": {
+            "enum": [
+              "homepage_banner",
+              "section_banner",
+              "sponsor",
+              "dashboard_banner",
+              "dashboard_offer",
+              "campaign"
+            ],
+            "title": "Usage Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "business_line",
+          "usage_type",
+          "title",
+          "alt_text",
+          "object_key",
+          "content_type"
+        ],
+        "title": "CampaignMediaCreate",
+        "type": "object"
+      },
+      "CampaignMediaListResponse": {
+        "properties": {
+          "assets": {
+            "items": {
+              "$ref": "#/components/schemas/CampaignMediaRead"
+            },
+            "title": "Assets",
+            "type": "array"
+          }
+        },
+        "required": [
+          "assets"
+        ],
+        "title": "CampaignMediaListResponse",
+        "type": "object"
+      },
+      "CampaignMediaRead": {
+        "properties": {
+          "active": {
+            "title": "Active",
+            "type": "boolean"
+          },
+          "alt_text": {
+            "title": "Alt Text",
+            "type": "string"
+          },
+          "archived_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Archived At"
+          },
+          "business_line": {
+            "title": "Business Line",
+            "type": "string"
+          },
+          "byte_size": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Byte Size"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "created_by_uuid": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created By Uuid"
+          },
+          "height": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Height"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "image_url": {
+            "title": "Image Url",
+            "type": "string"
+          },
+          "mime_type": {
+            "title": "Mime Type",
+            "type": "string"
+          },
+          "source_reference": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Reference"
+          },
+          "source_type": {
+            "title": "Source Type",
+            "type": "string"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Tags",
+            "type": "array"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated At"
+          },
+          "usage_count": {
+            "title": "Usage Count",
+            "type": "integer"
+          },
+          "usage_type": {
+            "title": "Usage Type",
+            "type": "string"
+          },
+          "usages": {
+            "items": {
+              "$ref": "#/components/schemas/CampaignMediaUsage"
+            },
+            "title": "Usages",
+            "type": "array"
+          },
+          "width": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Width"
+          }
+        },
+        "required": [
+          "id",
+          "business_line",
+          "usage_type",
+          "title",
+          "alt_text",
+          "tags",
+          "image_url",
+          "mime_type",
+          "width",
+          "height",
+          "byte_size",
+          "source_type",
+          "source_reference",
+          "active",
+          "created_by_uuid",
+          "created_at",
+          "updated_at",
+          "archived_at",
+          "usage_count",
+          "usages"
+        ],
+        "title": "CampaignMediaRead",
+        "type": "object"
+      },
+      "CampaignMediaUpdate": {
+        "properties": {
+          "active": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Active"
+          },
+          "alt_text": {
+            "anyOf": [
+              {
+                "maxLength": 300,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Alt Text"
+          },
+          "source_reference": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Reference"
+          },
+          "tags": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "maxItems": 12,
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tags"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "maxLength": 160,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          }
+        },
+        "title": "CampaignMediaUpdate",
+        "type": "object"
+      },
+      "CampaignMediaUploadRequest": {
+        "properties": {
+          "content_type": {
+            "enum": [
+              "image/jpeg",
+              "image/png",
+              "image/webp"
+            ],
+            "title": "Content Type",
+            "type": "string"
+          },
+          "filename": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Filename",
+            "type": "string"
+          }
+        },
+        "required": [
+          "content_type",
+          "filename"
+        ],
+        "title": "CampaignMediaUploadRequest",
+        "type": "object"
+      },
+      "CampaignMediaUploadResponse": {
+        "properties": {
+          "fields": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Fields",
+            "type": "object"
+          },
+          "max_bytes": {
+            "title": "Max Bytes",
+            "type": "integer"
+          },
+          "object_key": {
+            "title": "Object Key",
+            "type": "string"
+          },
+          "upload_url": {
+            "title": "Upload Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "object_key",
+          "upload_url",
+          "fields",
+          "max_bytes"
+        ],
+        "title": "CampaignMediaUploadResponse",
+        "type": "object"
+      },
+      "CampaignMediaUsage": {
+        "properties": {
+          "entity_id": {
+            "format": "uuid",
+            "title": "Entity Id",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "banner_template",
+              "banner",
+              "offer"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "entity_id",
+          "label",
+          "status"
+        ],
+        "title": "CampaignMediaUsage",
+        "type": "object"
+      },
       "ChangePasswordRequest": {
         "properties": {
           "confirm_password": {
@@ -5469,7 +6452,14 @@
             "$ref": "#/components/schemas/RentalIncomeStart"
           },
           "sale_type": {
-            "$ref": "#/components/schemas/SaleType"
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SaleType"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "total_area_sqft": {
             "exclusiveMinimum": 0.0,
@@ -5489,7 +6479,6 @@
           "total_area_sqft",
           "unit_area_sqft",
           "facing",
-          "sale_type",
           "rental_income_start",
           "about_property"
         ],
@@ -6989,170 +7978,6 @@
         "title": "FeeOutcome",
         "type": "string"
       },
-      "FieldVisibilityEntryRead": {
-        "properties": {
-          "allowed_modes": {
-            "items": {
-              "enum": [
-                "allow",
-                "deny",
-                "share_link"
-              ],
-              "type": "string"
-            },
-            "title": "Allowed Modes",
-            "type": "array"
-          },
-          "default_mode": {
-            "enum": [
-              "allow",
-              "deny",
-              "share_link"
-            ],
-            "title": "Default Mode",
-            "type": "string"
-          },
-          "entity": {
-            "title": "Entity",
-            "type": "string"
-          },
-          "field_key": {
-            "title": "Field Key",
-            "type": "string"
-          },
-          "id": {
-            "anyOf": [
-              {
-                "format": "uuid",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Id"
-          },
-          "label": {
-            "title": "Label",
-            "type": "string"
-          },
-          "lock_reason": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Lock Reason"
-          },
-          "locked": {
-            "title": "Locked",
-            "type": "boolean"
-          },
-          "mode": {
-            "enum": [
-              "allow",
-              "deny",
-              "share_link"
-            ],
-            "title": "Mode",
-            "type": "string"
-          },
-          "target_role": {
-            "enum": [
-              "agent",
-              "telecaller",
-              "employee"
-            ],
-            "title": "Target Role",
-            "type": "string"
-          },
-          "updated_at": {
-            "anyOf": [
-              {
-                "format": "date-time",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Updated At"
-          }
-        },
-        "required": [
-          "target_role",
-          "entity",
-          "field_key",
-          "label",
-          "mode",
-          "default_mode",
-          "allowed_modes",
-          "locked"
-        ],
-        "title": "FieldVisibilityEntryRead",
-        "type": "object"
-      },
-      "FieldVisibilityListResponse": {
-        "properties": {
-          "entries": {
-            "items": {
-              "$ref": "#/components/schemas/FieldVisibilityEntryRead"
-            },
-            "title": "Entries",
-            "type": "array"
-          }
-        },
-        "required": [
-          "entries"
-        ],
-        "title": "FieldVisibilityListResponse",
-        "type": "object"
-      },
-      "FieldVisibilityUpdateRequest": {
-        "properties": {
-          "entity": {
-            "maxLength": 64,
-            "minLength": 1,
-            "title": "Entity",
-            "type": "string"
-          },
-          "field_key": {
-            "maxLength": 64,
-            "minLength": 1,
-            "title": "Field Key",
-            "type": "string"
-          },
-          "mode": {
-            "enum": [
-              "allow",
-              "deny",
-              "share_link"
-            ],
-            "title": "Mode",
-            "type": "string"
-          },
-          "target_role": {
-            "enum": [
-              "agent",
-              "telecaller",
-              "employee"
-            ],
-            "title": "Target Role",
-            "type": "string"
-          }
-        },
-        "required": [
-          "target_role",
-          "entity",
-          "field_key",
-          "mode"
-        ],
-        "title": "FieldVisibilityUpdateRequest",
-        "type": "object"
-      },
       "FinancialServiceEnquiryCreate": {
         "properties": {
           "answers": {
@@ -7988,6 +8813,50 @@
         "title": "LeadsReportRow",
         "type": "object"
       },
+      "ListingIntent": {
+        "description": "Whether the listing is offered for sale or for rent/lease.\n\nDeliberately two-valued. Indian practice distinguishes short-term \"rent\"\nfrom long-term/commercial \"lease\", but they share every field this catalog\ncaptures (headline amount, deposit, minimum term, availability date), so a\nsingle ``rent`` intent labelled \"Rent / Lease\" carries both. Splitting them\nlater is an additive ALTER TYPE ... ADD VALUE, the same shape as every other\nenum extension here.",
+        "enum": [
+          "sale",
+          "rent"
+        ],
+        "title": "ListingIntent",
+        "type": "string"
+      },
+      "ListingLink": {
+        "additionalProperties": false,
+        "description": "One external link. ``platform`` is derived, never trusted from input.",
+        "properties": {
+          "platform": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ListingLinkPlatform"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "url": {
+            "maxLength": 1000,
+            "title": "Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "url"
+        ],
+        "title": "ListingLink",
+        "type": "object"
+      },
+      "ListingLinkPlatform": {
+        "enum": [
+          "youtube",
+          "instagram",
+          "facebook"
+        ],
+        "title": "ListingLinkPlatform",
+        "type": "string"
+      },
       "LoanApplicationCreate": {
         "properties": {
           "answers": {
@@ -8055,6 +8924,7 @@
         "type": "object"
       },
       "LoanApplicationProgressUpdate": {
+        "additionalProperties": false,
         "description": "Shared write shape for the Telecaller and Admin progression endpoints.\n\nShape-only validation here (types/ranges); the transition/reason/terms-\ngating rules depend on the application's CURRENT status, so they live in\nservices.loan_applications where that status is known.",
         "properties": {
           "amount_sanctioned": {
@@ -8064,7 +8934,7 @@
                 "type": "number"
               },
               {
-                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,12}|(?=[\\d.]{1,15}0*$)\\d{0,12}\\.\\d{0,2}0*$)",
                 "type": "string"
               },
               {
@@ -8103,7 +8973,7 @@
                 "type": "number"
               },
               {
-                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,3}|(?=[\\d.]{1,7}0*$)\\d{0,3}\\.\\d{0,3}0*$)",
                 "type": "string"
               },
               {
@@ -8119,7 +8989,7 @@
                 "type": "number"
               },
               {
-                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,12}|(?=[\\d.]{1,15}0*$)\\d{0,12}\\.\\d{0,2}0*$)",
                 "type": "string"
               },
               {
@@ -8624,34 +9494,26 @@
         "type": "string"
       },
       "LoanTxnCreate": {
+        "additionalProperties": false,
         "properties": {
           "amount": {
             "anyOf": [
               {
-                "minimum": 0.0,
+                "exclusiveMinimum": 0.0,
                 "type": "number"
               },
               {
-                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,12}|(?=[\\d.]{1,15}0*$)\\d{0,12}\\.\\d{0,2}0*$)",
                 "type": "string"
-              },
-              {
-                "type": "null"
               }
             ],
             "title": "Amount"
           },
           "bank_name": {
-            "anyOf": [
-              {
-                "maxLength": 200,
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Bank Name"
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Bank Name",
+            "type": "string"
           },
           "interest_rate": {
             "anyOf": [
@@ -8661,28 +9523,24 @@
                 "type": "number"
               },
               {
-                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,3}|(?=[\\d.]{1,7}0*$)\\d{0,3}\\.\\d{0,3}0*$)",
                 "type": "string"
-              },
-              {
-                "type": "null"
               }
             ],
             "title": "Interest Rate"
           },
           "txn_date": {
-            "anyOf": [
-              {
-                "format": "date",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Txn Date"
+            "format": "date",
+            "title": "Txn Date",
+            "type": "string"
           }
         },
+        "required": [
+          "bank_name",
+          "amount",
+          "interest_rate",
+          "txn_date"
+        ],
         "title": "LoanTxnCreate",
         "type": "object"
       },
@@ -9994,7 +10852,10 @@
           "mobile_change_requested",
           "mobile_changed",
           "mobile_change_rejected",
-          "vehicle_arrangement_updated"
+          "vehicle_arrangement_updated",
+          "campaign_approved",
+          "campaign_changes_requested",
+          "campaign_removed"
         ],
         "title": "NotificationType",
         "type": "string"
@@ -10063,11 +10924,61 @@
             ],
             "title": "Ends At"
           },
+          "image_key": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "pattern": "^public/(banners|campaign-media)/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/[A-Za-z0-9._-]+$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Image Key"
+          },
+          "media_asset_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Media Asset Id"
+          },
+          "partner_name": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Partner Name"
+          },
           "priority": {
             "default": 0,
+            "maximum": 2147483647.0,
             "minimum": 0.0,
             "title": "Priority",
             "type": "integer"
+          },
+          "redemption_url": {
+            "anyOf": [
+              {
+                "maxLength": 1000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Redemption Url"
           },
           "starts_at": {
             "anyOf": [
@@ -10080,6 +10991,30 @@
               }
             ],
             "title": "Starts At"
+          },
+          "terms_summary": {
+            "anyOf": [
+              {
+                "maxLength": 1000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Terms Summary"
+          },
+          "terms_url": {
+            "anyOf": [
+              {
+                "maxLength": 1000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Terms Url"
           },
           "title": {
             "maxLength": 500,
@@ -10095,6 +11030,62 @@
           "discount_value"
         ],
         "title": "OfferCreate",
+        "type": "object"
+      },
+      "OfferImageUploadRequest": {
+        "properties": {
+          "content_type": {
+            "enum": [
+              "image/jpeg",
+              "image/png",
+              "image/webp"
+            ],
+            "title": "Content Type",
+            "type": "string"
+          },
+          "filename": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Filename",
+            "type": "string"
+          }
+        },
+        "required": [
+          "content_type",
+          "filename"
+        ],
+        "title": "OfferImageUploadRequest",
+        "type": "object"
+      },
+      "OfferImageUploadResponse": {
+        "properties": {
+          "fields": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Fields",
+            "type": "object"
+          },
+          "max_bytes": {
+            "title": "Max Bytes",
+            "type": "integer"
+          },
+          "object_key": {
+            "title": "Object Key",
+            "type": "string"
+          },
+          "upload_url": {
+            "title": "Upload Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "object_key",
+          "upload_url",
+          "fields",
+          "max_bytes"
+        ],
+        "title": "OfferImageUploadResponse",
         "type": "object"
       },
       "OfferListResponse": {
@@ -10180,9 +11171,135 @@
             "title": "Id",
             "type": "string"
           },
+          "image_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Image Key"
+          },
+          "image_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Image Url"
+          },
+          "media_asset_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Media Asset Id"
+          },
+          "partner_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Partner Name"
+          },
           "priority": {
             "title": "Priority",
             "type": "integer"
+          },
+          "redemption_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Redemption Url"
+          },
+          "removal_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Removal Reason"
+          },
+          "removed_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Removed At"
+          },
+          "removed_by_uuid": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Removed By Uuid"
+          },
+          "review_note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Review Note"
+          },
+          "reviewed_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reviewed At"
+          },
+          "reviewed_by_uuid": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reviewed By Uuid"
           },
           "starts_at": {
             "anyOf": [
@@ -10199,9 +11316,40 @@
           "status": {
             "$ref": "#/components/schemas/OfferStatus"
           },
+          "terms_summary": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Terms Summary"
+          },
+          "terms_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Terms Url"
+          },
           "title": {
             "title": "Title",
             "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
           }
         },
         "required": [
@@ -10212,20 +11360,52 @@
           "discount_type",
           "discount_value",
           "code",
+          "partner_name",
+          "redemption_url",
+          "terms_summary",
+          "terms_url",
+          "image_key",
+          "media_asset_id",
           "audience_rules",
           "priority",
           "status",
           "created_by_uuid",
+          "review_note",
+          "reviewed_by_uuid",
+          "reviewed_at",
+          "version",
+          "removed_by_uuid",
+          "removal_reason",
+          "removed_at",
           "starts_at",
           "ends_at",
-          "created_at"
+          "created_at",
+          "updated_at"
         ],
         "title": "OfferRead",
+        "type": "object"
+      },
+      "OfferRejectRequest": {
+        "properties": {
+          "note": {
+            "maxLength": 1000,
+            "minLength": 1,
+            "title": "Note",
+            "type": "string"
+          }
+        },
+        "required": [
+          "note"
+        ],
+        "title": "OfferRejectRequest",
         "type": "object"
       },
       "OfferStatus": {
         "enum": [
           "draft",
+          "pending_approval",
+          "approved",
+          "rejected",
           "scheduled",
           "active",
           "expired",
@@ -10310,9 +11490,59 @@
             ],
             "title": "Ends At"
           },
+          "expected_version": {
+            "anyOf": [
+              {
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expected Version"
+          },
+          "image_key": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "pattern": "^public/(banners|campaign-media)/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/[A-Za-z0-9._-]+$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Image Key"
+          },
+          "media_asset_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Media Asset Id"
+          },
+          "partner_name": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Partner Name"
+          },
           "priority": {
             "anyOf": [
               {
+                "maximum": 2147483647.0,
                 "minimum": 0.0,
                 "type": "integer"
               },
@@ -10321,6 +11551,18 @@
               }
             ],
             "title": "Priority"
+          },
+          "redemption_url": {
+            "anyOf": [
+              {
+                "maxLength": 1000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Redemption Url"
           },
           "starts_at": {
             "anyOf": [
@@ -10333,6 +11575,30 @@
               }
             ],
             "title": "Starts At"
+          },
+          "terms_summary": {
+            "anyOf": [
+              {
+                "maxLength": 1000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Terms Summary"
+          },
+          "terms_url": {
+            "anyOf": [
+              {
+                "maxLength": 1000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Terms Url"
           },
           "title": {
             "anyOf": [
@@ -11048,7 +12314,14 @@
             "$ref": "#/components/schemas/PlotProjectStatus"
           },
           "sale_type": {
-            "$ref": "#/components/schemas/SaleType"
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SaleType"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "total_plots": {
             "maximum": 100000.0,
@@ -11070,7 +12343,6 @@
           "total_plots",
           "facing",
           "price_per_sqyd_paise",
-          "sale_type",
           "project_status",
           "about_project"
         ],
@@ -11313,7 +12585,14 @@
             "type": "string"
           },
           "sale_type": {
-            "$ref": "#/components/schemas/SaleType"
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SaleType"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "total_units": {
             "maximum": 100000.0,
@@ -11349,7 +12628,6 @@
           "configurations",
           "unit_or_plot_area_sqft",
           "price_per_sqft_paise",
-          "sale_type",
           "amenities_description",
           "about_project"
         ],
@@ -11398,6 +12676,7 @@
         "type": "object"
       },
       "PropertyDealProgressUpdate": {
+        "additionalProperties": false,
         "properties": {
           "booking_amount": {
             "anyOf": [
@@ -11407,7 +12686,7 @@
                 "type": "number"
               },
               {
-                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,12}|(?=[\\d.]{1,15}0*$)\\d{0,12}\\.\\d{0,2}0*$)",
                 "type": "string"
               },
               {
@@ -11424,7 +12703,7 @@
                 "type": "number"
               },
               {
-                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,12}|(?=[\\d.]{1,15}0*$)\\d{0,12}\\.\\d{0,2}0*$)",
                 "type": "string"
               },
               {
@@ -11709,6 +12988,18 @@
             "title": "Area Sqft",
             "type": "integer"
           },
+          "available_from": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Available From"
+          },
           "bhk": {
             "title": "Bhk",
             "type": "integer"
@@ -11761,6 +13052,23 @@
             ],
             "title": "Image"
           },
+          "listing_intent": {
+            "$ref": "#/components/schemas/ListingIntent"
+          },
+          "listing_links": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/ListingLink"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Listing Links"
+          },
           "locality": {
             "title": "Locality",
             "type": "string"
@@ -11793,6 +13101,17 @@
               }
             ],
             "title": "Meta"
+          },
+          "minimum_lease_months": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Minimum Lease Months"
           },
           "pincode": {
             "title": "Pincode",
@@ -11832,6 +13151,17 @@
           },
           "rera_verification_status": {
             "$ref": "#/components/schemas/ReraVerificationStatus"
+          },
+          "security_deposit_paise": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Security Deposit Paise"
           },
           "state": {
             "anyOf": [
@@ -11892,11 +13222,16 @@
         },
         "required": [
           "id",
+          "listing_intent",
           "title",
           "type",
           "location",
           "price_display",
           "price_paise",
+          "security_deposit_paise",
+          "minimum_lease_months",
+          "available_from",
+          "listing_links",
           "meta",
           "image",
           "category",
@@ -12463,17 +13798,6 @@
             ],
             "title": "Image Url"
           },
-          "offer_badge": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Offer Badge"
-          },
           "rera_verified": {
             "default": false,
             "title": "Rera Verified",
@@ -12833,84 +14157,8 @@
         "title": "PublicLeadResponse",
         "type": "object"
       },
-      "PublicOfferListResponse": {
-        "properties": {
-          "offers": {
-            "items": {
-              "$ref": "#/components/schemas/PublicOfferRead"
-            },
-            "title": "Offers",
-            "type": "array"
-          }
-        },
-        "required": [
-          "offers"
-        ],
-        "title": "PublicOfferListResponse",
-        "type": "object"
-      },
-      "PublicOfferRead": {
-        "description": "Anonymous-read shape (docs/specs/public-offer-serving.md).\n\nDeliberately NOT a subclass of OfferRead -- a future sensitive column\nadded to the authenticated read can never silently surface here.\n\n- status: constant \"active\" by construction on this path (see\n  services/public_catalog.py::list_public_offers). Exposing a constant\n  invites a client-side filter that would quietly become the de-facto\n  access control.\n- created_by_uuid: staff identity, never public.\n- starts_at / ends_at: the endpoint has already applied the window;\n  republishing it lets a client second-guess the server and discloses\n  unlaunched-campaign timing (same reasoning as PublicBannerRead).\n- created_at: internal metadata, no display use.\n- audience_rules: authenticated segmentation input; never disclose it to\n  anonymous catalogue consumers.\n- priority: authenticated placement ordering input, not display data.\n\nbusiness_line IS included, unlike PublicBannerRead: offers are line-scoped\nby design (an offer applies to loans, real_estate, or both) and the\nfrontend needs it to decide which strip(s) an offer renders in.",
-        "properties": {
-          "business_line": {
-            "title": "Business Line",
-            "type": "string"
-          },
-          "code": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Code"
-          },
-          "description": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Description"
-          },
-          "discount_type": {
-            "title": "Discount Type",
-            "type": "string"
-          },
-          "discount_value": {
-            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
-            "title": "Discount Value",
-            "type": "string"
-          },
-          "id": {
-            "format": "uuid",
-            "title": "Id",
-            "type": "string"
-          },
-          "title": {
-            "title": "Title",
-            "type": "string"
-          }
-        },
-        "required": [
-          "id",
-          "business_line",
-          "title",
-          "description",
-          "discount_type",
-          "discount_value",
-          "code"
-        ],
-        "title": "PublicOfferRead",
-        "type": "object"
-      },
       "PublicPropertyDetailRead": {
-        "description": "Anonymous detail shape for one Admin-published property.\n\nThis remains deliberately separate from ``PropertyRead``. The detail page\nexposes useful buyer facets, but never internal publication state, exact\nminor-unit pricing, reviewer identity, or timestamps.",
+        "description": "Anonymous detail shape for one Admin-published property.\n\nThis remains deliberately separate from ``PropertyRead``. The detail page\nexposes useful buyer facets, but never internal publication state, exact\nminor-unit pricing, reviewer identity, or timestamps.\n\nThe deposit therefore ships as a rendered ``security_deposit_display``\nstring, derived the same way ``price_display`` is, rather than as paise.",
         "properties": {
           "age_years": {
             "title": "Age Years",
@@ -12926,6 +14174,18 @@
           "area_sqft": {
             "title": "Area Sqft",
             "type": "integer"
+          },
+          "available_from": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Available From"
           },
           "bhk": {
             "title": "Bhk",
@@ -12974,6 +14234,23 @@
             ],
             "title": "Image"
           },
+          "listing_intent": {
+            "$ref": "#/components/schemas/ListingIntent"
+          },
+          "listing_links": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/ListingLink"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Listing Links"
+          },
           "locality": {
             "title": "Locality",
             "type": "string"
@@ -13006,6 +14283,17 @@
               }
             ],
             "title": "Meta"
+          },
+          "minimum_lease_months": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Minimum Lease Months"
           },
           "pincode": {
             "title": "Pincode",
@@ -13041,6 +14329,17 @@
           },
           "rera_verification_status": {
             "$ref": "#/components/schemas/ReraVerificationStatus"
+          },
+          "security_deposit_display": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Security Deposit Display"
           },
           "state": {
             "anyOf": [
@@ -13101,10 +14400,14 @@
         },
         "required": [
           "id",
+          "listing_intent",
           "title",
           "type",
           "location",
           "price_display",
+          "minimum_lease_months",
+          "available_from",
+          "listing_links",
           "meta",
           "image",
           "category",
@@ -13144,7 +14447,7 @@
         "type": "object"
       },
       "PublicPropertyRead": {
-        "description": "Anonymous-read shape (docs/specs/public-property-catalog.md).\n\nDeliberately NOT PropertyRead: a separate schema means a future sensitive\ncolumn added to the authenticated read can never silently surface here.\nExcludes the dashboard's entire filter-facet vocabulary (price_paise, bhk,\narea_sqft, furnishing, construction_status, amenities, age_years, pincode,\ncity, locality) and internal metadata (active, created_at). `rera_number`\nis included only after Admin verification; exemption-verified listings have\nno public registration number.",
+        "description": "Anonymous-read shape (docs/specs/public-property-catalog.md).\n\nDeliberately NOT PropertyRead: a separate schema means a future sensitive\ncolumn added to the authenticated read can never silently surface here.\nExcludes the dashboard's entire filter-facet vocabulary (price_paise, bhk,\narea_sqft, furnishing, construction_status, amenities, age_years, pincode,\ncity, locality) and internal metadata (active, created_at). `rera_number`\nis included only after Admin verification; exemption-verified listings have\nno public registration number.\n\n``listing_intent`` is included because the Rent/Sale badge is card-level\ninformation; the rent terms behind it stay on the detail shape.",
         "properties": {
           "category": {
             "$ref": "#/components/schemas/PropertyCategory"
@@ -13164,6 +14467,9 @@
               }
             ],
             "title": "Image"
+          },
+          "listing_intent": {
+            "$ref": "#/components/schemas/ListingIntent"
           },
           "location": {
             "title": "Location",
@@ -13270,6 +14576,7 @@
         },
         "required": [
           "id",
+          "listing_intent",
           "title",
           "type",
           "location",
@@ -13638,6 +14945,11 @@
             "format": "uuid",
             "title": "Id",
             "type": "string"
+          },
+          "is_referenced": {
+            "default": false,
+            "title": "Is Referenced",
+            "type": "boolean"
           },
           "rule": {
             "additionalProperties": true,
@@ -14129,6 +15441,7 @@
         "type": "string"
       },
       "ReraReviewRequest": {
+        "description": "One registry outcome, including withdrawing an earlier one.\n\n`not_reviewed` is the un-verify: an Admin who verified the wrong row, or who\nlearns the registry entry changed, has to be able to take the claim back.\nLike the other non-obvious outcomes it carries a mandatory note, so the audit\ntrail records *why* a verification was withdrawn rather than only that it was.",
         "properties": {
           "note": {
             "anyOf": [
@@ -14275,6 +15588,7 @@
         "type": "string"
       },
       "SaleType": {
+        "description": "New-vs-resale, meaningful only for a sale listing.\n\nOptional on the detail models because a rent/lease listing has no sale type.\nIt is not freely optional though: ``SubmissionFacts`` requires it when\n``listing_intent`` is ``sale`` and rejects it when the intent is ``rent``,\nso a sale listing can still never omit it.",
         "enum": [
           "new_sale",
           "resale"
@@ -14674,6 +15988,11 @@
       },
       "StaffCreateResponse": {
         "properties": {
+          "auth_user_uuid": {
+            "format": "uuid",
+            "title": "Auth User Uuid",
+            "type": "string"
+          },
           "business_line": {
             "anyOf": [
               {
@@ -14735,6 +16054,7 @@
           "role",
           "business_line",
           "staff_code",
+          "auth_user_uuid",
           "temp_password"
         ],
         "title": "StaffCreateResponse",
@@ -14757,6 +16077,72 @@
           "enabled"
         ],
         "title": "StaffFeatureUpdateRequest",
+        "type": "object"
+      },
+      "StaffInviteAcceptRequest": {
+        "properties": {
+          "confirm_password": {
+            "maxLength": 128,
+            "minLength": 8,
+            "title": "Confirm Password",
+            "type": "string"
+          },
+          "password": {
+            "maxLength": 128,
+            "minLength": 8,
+            "title": "Password",
+            "type": "string"
+          }
+        },
+        "required": [
+          "password",
+          "confirm_password"
+        ],
+        "title": "StaffInviteAcceptRequest",
+        "type": "object"
+      },
+      "StaffInviteLinkRead": {
+        "properties": {
+          "expires_at": {
+            "format": "date-time",
+            "title": "Expires At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "share_path": {
+            "title": "Share Path",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "share_path",
+          "expires_at"
+        ],
+        "title": "StaffInviteLinkRead",
+        "type": "object"
+      },
+      "StaffInvitePreview": {
+        "description": "What an anonymous holder of the token may see before setting a password.\n\nFirst name and role only. Enough to confirm the link is meant for the person\nholding it; nothing that turns a guessed token into contact details.",
+        "properties": {
+          "first_name": {
+            "title": "First Name",
+            "type": "string"
+          },
+          "role": {
+            "title": "Role",
+            "type": "string"
+          }
+        },
+        "required": [
+          "first_name",
+          "role"
+        ],
+        "title": "StaffInvitePreview",
         "type": "object"
       },
       "SubAdminHomeResponse": {
@@ -14820,6 +16206,18 @@
             "title": "Area Sqft",
             "type": "integer"
           },
+          "available_from": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Available From"
+          },
           "bhk": {
             "default": 0,
             "minimum": 0.0,
@@ -14855,6 +16253,24 @@
               }
             ]
           },
+          "listing_intent": {
+            "$ref": "#/components/schemas/ListingIntent",
+            "default": "sale"
+          },
+          "listing_links": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/ListingLink"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Listing Links"
+          },
           "locality": {
             "maxLength": 120,
             "minLength": 1,
@@ -14888,6 +16304,19 @@
             ],
             "title": "Meta"
           },
+          "minimum_lease_months": {
+            "anyOf": [
+              {
+                "maximum": 600.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Minimum Lease Months"
+          },
           "pincode": {
             "pattern": "^[1-9][0-9]{5}$",
             "title": "Pincode",
@@ -14915,6 +16344,18 @@
               }
             ],
             "title": "Rera Number"
+          },
+          "security_deposit_paise": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Security Deposit Paise"
           },
           "state": {
             "maxLength": 120,
@@ -15154,6 +16595,18 @@
             "title": "Area Sqft",
             "type": "integer"
           },
+          "available_from": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Available From"
+          },
           "bhk": {
             "title": "Bhk",
             "type": "integer"
@@ -15222,6 +16675,23 @@
             ],
             "title": "Image"
           },
+          "listing_intent": {
+            "$ref": "#/components/schemas/ListingIntent"
+          },
+          "listing_links": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/ListingLink"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Listing Links"
+          },
           "locality": {
             "title": "Locality",
             "type": "string"
@@ -15247,6 +16717,17 @@
               }
             ],
             "title": "Meta"
+          },
+          "minimum_lease_months": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Minimum Lease Months"
           },
           "pincode": {
             "title": "Pincode",
@@ -15330,6 +16811,17 @@
             ],
             "title": "Reviewed By Uuid"
           },
+          "security_deposit_paise": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Security Deposit Paise"
+          },
           "state": {
             "anyOf": [
               {
@@ -15408,6 +16900,7 @@
           "reviewed_by_uuid",
           "reviewed_at",
           "approved_property_id",
+          "listing_intent",
           "title",
           "type",
           "location",
@@ -15420,6 +16913,10 @@
           "state",
           "pincode",
           "price_paise",
+          "security_deposit_paise",
+          "minimum_lease_months",
+          "available_from",
+          "listing_links",
           "bhk",
           "area_sqft",
           "furnishing",
@@ -15472,6 +16969,18 @@
             "title": "Area Sqft",
             "type": "integer"
           },
+          "available_from": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Available From"
+          },
           "bhk": {
             "default": 0,
             "minimum": 0.0,
@@ -15507,6 +17016,24 @@
               }
             ]
           },
+          "listing_intent": {
+            "$ref": "#/components/schemas/ListingIntent",
+            "default": "sale"
+          },
+          "listing_links": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/ListingLink"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Listing Links"
+          },
           "locality": {
             "maxLength": 120,
             "minLength": 1,
@@ -15530,6 +17057,19 @@
               }
             ],
             "title": "Meta"
+          },
+          "minimum_lease_months": {
+            "anyOf": [
+              {
+                "maximum": 600.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Minimum Lease Months"
           },
           "pincode": {
             "pattern": "^[1-9][0-9]{5}$",
@@ -15558,6 +17098,18 @@
               }
             ],
             "title": "Rera Number"
+          },
+          "security_deposit_paise": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Security Deposit Paise"
           },
           "state": {
             "maxLength": 120,
@@ -15853,6 +17405,7 @@
         "type": "object"
       },
       "TaskCreate": {
+        "additionalProperties": false,
         "properties": {
           "due_at": {
             "anyOf": [
@@ -15867,18 +17420,15 @@
             "title": "Due At"
           },
           "notes": {
-            "anyOf": [
-              {
-                "maxLength": 1000,
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Notes"
+            "maxLength": 1000,
+            "minLength": 1,
+            "title": "Notes",
+            "type": "string"
           }
         },
+        "required": [
+          "notes"
+        ],
         "title": "TaskCreate",
         "type": "object"
       },
@@ -17697,15 +19247,57 @@
         "summary": "Root"
       }
     },
-    "/api/v1/admin/agents": {
+    "/api/v1/admin/agent-invite-links/{link_id}": {
+      "delete": {
+        "operationId": "revoke_agent_invite_link_api_v1_admin_agent_invite_links__link_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "link_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Link Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Revoke Agent Invite Link",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/agent-invites": {
       "get": {
-        "operationId": "list_pending_agent_applications_api_v1_admin_agents_get",
+        "description": "List approved Agents who still need to choose their first password.",
+        "operationId": "list_agent_invite_candidates_api_v1_admin_agent_invites_get",
         "responses": {
           "200": {
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AgentApplicationListResponse"
+                  "$ref": "#/components/schemas/AgentInviteCandidateListResponse"
                 }
               }
             },
@@ -17717,7 +19309,62 @@
             "OAuth2PasswordBearer": []
           }
         ],
-        "summary": "List Pending Agent Applications",
+        "summary": "List Agent Invite Candidates",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/agents": {
+      "get": {
+        "description": "Defaults to the pending queue, which is what the console opens on.\n\n`status` was previously hardcoded, so an Admin had no way to look back at\nwhat they had already approved or rejected. Omitting the parameter keeps the\noriginal behavior; `status=all` clears the filter. \"all\" is an explicit\nmember rather than an empty string because FastAPI validates `\"\"` against\nthe Literal and rejects it rather than reading it as \"unset\".",
+        "operationId": "list_agent_applications_api_v1_admin_agents_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "default": "pending",
+              "enum": [
+                "pending",
+                "approved",
+                "rejected",
+                "all"
+              ],
+              "title": "Status",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentApplicationListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "List Agent Applications",
         "tags": [
           "admin"
         ]
@@ -17815,6 +19462,54 @@
           }
         ],
         "summary": "Approve Agent",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/agents/{application_id}/invite-link": {
+      "post": {
+        "operationId": "create_agent_invite_link_api_v1_admin_agents__application_id__invite_link_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "application_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Application Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentInviteLinkRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Create Agent Invite Link",
         "tags": [
           "admin"
         ]
@@ -18158,6 +19853,45 @@
       }
     },
     "/api/v1/admin/banks/{bank_id}": {
+      "delete": {
+        "operationId": "delete_admin_bank_api_v1_admin_banks__bank_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "bank_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Bank Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Delete Admin Bank",
+        "tags": [
+          "admin"
+        ]
+      },
       "patch": {
         "operationId": "update_admin_bank_api_v1_admin_banks__bank_id__patch",
         "parameters": [
@@ -19274,76 +21008,6 @@
         ]
       }
     },
-    "/api/v1/admin/field-visibility": {
-      "get": {
-        "operationId": "get_field_visibility_api_v1_admin_field_visibility_get",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/FieldVisibilityListResponse"
-                }
-              }
-            },
-            "description": "Successful Response"
-          }
-        },
-        "security": [
-          {
-            "OAuth2PasswordBearer": []
-          }
-        ],
-        "summary": "Get Field Visibility",
-        "tags": [
-          "admin"
-        ]
-      },
-      "put": {
-        "operationId": "set_field_visibility_api_v1_admin_field_visibility_put",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/FieldVisibilityUpdateRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/FieldVisibilityEntryRead"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "security": [
-          {
-            "OAuth2PasswordBearer": []
-          }
-        ],
-        "summary": "Set Field Visibility",
-        "tags": [
-          "admin"
-        ]
-      }
-    },
     "/api/v1/admin/home": {
       "get": {
         "operationId": "home_api_v1_admin_home_get",
@@ -19365,6 +21029,47 @@
           }
         ],
         "summary": "Home",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/invite-links/{link_id}": {
+      "delete": {
+        "operationId": "revoke_staff_invite_link_api_v1_admin_invite_links__link_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "link_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Link Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Revoke Staff Invite Link",
         "tags": [
           "admin"
         ]
@@ -22530,6 +24235,7 @@
     },
     "/api/v1/admin/users": {
       "get": {
+        "description": "The operational account directory.\n\nFiltering is server-side because the console pages this list: filtering only\nthe fetched page meant a match on page three was invisible from page one.\nEvery parameter is optional and omitting all of them preserves the original\nunfiltered behavior.",
         "operationId": "list_users_api_v1_admin_users_get",
         "parameters": [
           {
@@ -22553,6 +24259,139 @@
               "minimum": 0,
               "title": "Offset",
               "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "search",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 100,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Search"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "active",
+                    "suspended",
+                    "pending_password_reset",
+                    "soft_deleted"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "in": "query",
+            "name": "role",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "admin",
+                    "sub_admin",
+                    "telecaller",
+                    "employee",
+                    "agent",
+                    "client"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Role"
+            }
+          },
+          {
+            "in": "query",
+            "name": "business_line",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "loans",
+                    "real_estate"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Business Line"
+            }
+          },
+          {
+            "in": "query",
+            "name": "created_from",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Created From"
+            }
+          },
+          {
+            "in": "query",
+            "name": "created_to",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Created To"
+            }
+          },
+          {
+            "in": "query",
+            "name": "never_logged_in",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Never Logged In"
             }
           }
         ],
@@ -22689,6 +24528,55 @@
           }
         ],
         "summary": "Delete User",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/users/{auth_user_uuid}/invite-link": {
+      "post": {
+        "description": "Issue a first-login link so the temp password never has to be relayed.\n\nCreating one revokes the invitee's outstanding link: two live links would\nmean two working credentials for one account. The raw token is returned\nexactly once, here, and only its SHA-256 hash is stored.",
+        "operationId": "create_staff_invite_link_api_v1_admin_users__auth_user_uuid__invite_link_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "auth_user_uuid",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Auth User Uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffInviteLinkRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Create Staff Invite Link",
         "tags": [
           "admin"
         ]
@@ -23066,6 +24954,100 @@
         "summary": "Presign Upload",
         "tags": [
           "agent-applications"
+        ]
+      }
+    },
+    "/api/v1/agent-invites/{token}": {
+      "get": {
+        "operationId": "get_agent_invite_api_v1_agent_invites__token__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "token",
+            "required": true,
+            "schema": {
+              "title": "Token",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentInvitePreview"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Agent Invite",
+        "tags": [
+          "agent-invites"
+        ]
+      }
+    },
+    "/api/v1/agent-invites/{token}/accept": {
+      "post": {
+        "operationId": "accept_agent_invite_api_v1_agent_invites__token__accept_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "token",
+            "required": true,
+            "schema": {
+              "title": "Token",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgentInviteAcceptRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Accept Agent Invite",
+        "tags": [
+          "agent-invites"
         ]
       }
     },
@@ -24542,6 +26524,64 @@
         ]
       }
     },
+    "/api/v1/banners/{banner_id}/remove": {
+      "post": {
+        "operationId": "remove_api_v1_banners__banner_id__remove_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "banner_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Banner Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RejectRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BannerRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Remove",
+        "tags": [
+          "banners"
+        ]
+      }
+    },
     "/api/v1/banners/{banner_id}/replacement": {
       "post": {
         "operationId": "create_replacement_api_v1_banners__banner_id__replacement_post",
@@ -24745,6 +26785,332 @@
         "summary": "Delete Bookmark",
         "tags": [
           "bookmarks"
+        ]
+      }
+    },
+    "/api/v1/campaign-media": {
+      "get": {
+        "operationId": "list_media_api_v1_campaign_media_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "active_only",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Active Only",
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "usage_type",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "homepage_banner",
+                    "section_banner",
+                    "sponsor",
+                    "dashboard_banner",
+                    "dashboard_offer",
+                    "campaign"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Usage Type"
+            }
+          },
+          {
+            "in": "query",
+            "name": "business_line",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "loans",
+                    "real_estate",
+                    "both"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Business Line"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CampaignMediaListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "List Media",
+        "tags": [
+          "campaign-media"
+        ]
+      },
+      "post": {
+        "operationId": "confirm_media_api_v1_campaign_media_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CampaignMediaCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CampaignMediaRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Confirm Media",
+        "tags": [
+          "campaign-media"
+        ]
+      }
+    },
+    "/api/v1/campaign-media/image-upload-url": {
+      "post": {
+        "operationId": "image_upload_url_api_v1_campaign_media_image_upload_url_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CampaignMediaUploadRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CampaignMediaUploadResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Image Upload Url",
+        "tags": [
+          "campaign-media"
+        ]
+      }
+    },
+    "/api/v1/campaign-media/{asset_id}": {
+      "delete": {
+        "operationId": "remove_media_api_v1_campaign_media__asset_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "asset_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Asset Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Remove Media",
+        "tags": [
+          "campaign-media"
+        ]
+      },
+      "get": {
+        "operationId": "get_media_api_v1_campaign_media__asset_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "asset_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Asset Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CampaignMediaRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Get Media",
+        "tags": [
+          "campaign-media"
+        ]
+      },
+      "patch": {
+        "operationId": "patch_media_api_v1_campaign_media__asset_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "asset_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Asset Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CampaignMediaUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CampaignMediaRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Patch Media",
+        "tags": [
+          "campaign-media"
         ]
       }
     },
@@ -27264,7 +29630,92 @@
         ]
       }
     },
+    "/api/v1/offers/image-upload-url": {
+      "post": {
+        "operationId": "get_offer_image_upload_url_api_v1_offers_image_upload_url_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OfferImageUploadRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OfferImageUploadResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Get Offer Image Upload Url",
+        "tags": [
+          "offers"
+        ]
+      }
+    },
     "/api/v1/offers/{offer_id}": {
+      "delete": {
+        "operationId": "delete_offer_draft_api_v1_offers__offer_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "offer_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Offer Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Delete Offer Draft",
+        "tags": [
+          "offers"
+        ]
+      },
       "get": {
         "operationId": "get_offer_api_v1_offers__offer_id__get",
         "parameters": [
@@ -27416,6 +29867,54 @@
         ]
       }
     },
+    "/api/v1/offers/{offer_id}/approve": {
+      "post": {
+        "operationId": "approve_api_v1_offers__offer_id__approve_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "offer_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Offer Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OfferRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Approve",
+        "tags": [
+          "offers"
+        ]
+      }
+    },
     "/api/v1/offers/{offer_id}/archive": {
       "post": {
         "operationId": "archive_api_v1_offers__offer_id__archive_post",
@@ -27464,6 +29963,122 @@
         ]
       }
     },
+    "/api/v1/offers/{offer_id}/reject": {
+      "post": {
+        "operationId": "reject_api_v1_offers__offer_id__reject_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "offer_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Offer Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OfferRejectRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OfferRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Reject",
+        "tags": [
+          "offers"
+        ]
+      }
+    },
+    "/api/v1/offers/{offer_id}/remove": {
+      "post": {
+        "operationId": "remove_api_v1_offers__offer_id__remove_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "offer_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Offer Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OfferRejectRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OfferRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Remove",
+        "tags": [
+          "offers"
+        ]
+      }
+    },
     "/api/v1/offers/{offer_id}/schedule": {
       "post": {
         "operationId": "schedule_api_v1_offers__offer_id__schedule_post",
@@ -27507,6 +30122,54 @@
           }
         ],
         "summary": "Schedule",
+        "tags": [
+          "offers"
+        ]
+      }
+    },
+    "/api/v1/offers/{offer_id}/submit": {
+      "post": {
+        "operationId": "submit_api_v1_offers__offer_id__submit_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "offer_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Offer Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OfferRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Submit",
         "tags": [
           "offers"
         ]
@@ -28849,6 +31512,65 @@
         ]
       }
     },
+    "/api/v1/property-submissions/{submission_id}/correction": {
+      "patch": {
+        "description": "Stage a reasoned Admin correction for RERA re-review before publication.",
+        "operationId": "correct_approved_property_api_v1_property_submissions__submission_id__correction_patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "submission_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Submission Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminPropertyCorrection"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubmissionRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Correct Approved Property",
+        "tags": [
+          "property-submissions"
+        ]
+      }
+    },
     "/api/v1/property-submissions/{submission_id}/media/{media_id}/access": {
       "get": {
         "operationId": "access_submission_media_api_v1_property_submissions__submission_id__media__media_id__access_get",
@@ -29463,27 +32185,6 @@
         ]
       }
     },
-    "/api/v1/public/offers": {
-      "get": {
-        "operationId": "list_offers_public_api_v1_public_offers_get",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PublicOfferListResponse"
-                }
-              }
-            },
-            "description": "Successful Response"
-          }
-        },
-        "summary": "List Offers Public",
-        "tags": [
-          "public"
-        ]
-      }
-    },
     "/api/v1/public/properties": {
       "get": {
         "operationId": "list_properties_public_api_v1_public_properties_get",
@@ -29744,6 +32445,45 @@
       }
     },
     "/api/v1/referral-bonus-config/{config_id}": {
+      "delete": {
+        "operationId": "delete_config_api_v1_referral_bonus_config__config_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "config_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Config Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Delete Config",
+        "tags": [
+          "referral-bonus-config"
+        ]
+      },
       "get": {
         "operationId": "get_config_api_v1_referral_bonus_config__config_id__get",
         "parameters": [
@@ -30171,6 +32911,101 @@
         "summary": "Cancel Site Visit Endpoint",
         "tags": [
           "site-visits"
+        ]
+      }
+    },
+    "/api/v1/staff-invites/{token}": {
+      "get": {
+        "operationId": "get_staff_invite_api_v1_staff_invites__token__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "token",
+            "required": true,
+            "schema": {
+              "title": "Token",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffInvitePreview"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Staff Invite",
+        "tags": [
+          "staff-invites"
+        ]
+      }
+    },
+    "/api/v1/staff-invites/{token}/accept": {
+      "post": {
+        "description": "Set the invitee's own password and burn the link.\n\nThe cap is the tighter of the two: this is the write, and no legitimate\ninvitee needs more than a handful of tries to satisfy the password policy.",
+        "operationId": "accept_staff_invite_api_v1_staff_invites__token__accept_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "token",
+            "required": true,
+            "schema": {
+              "title": "Token",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StaffInviteAcceptRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Accept Staff Invite",
+        "tags": [
+          "staff-invites"
         ]
       }
     },

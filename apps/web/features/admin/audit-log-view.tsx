@@ -16,7 +16,7 @@ import {
   Home,
   IndianRupee,
   Landmark,
-  Loader2,
+  Link2,
   Megaphone,
   RefreshCw,
   ScrollText,
@@ -29,8 +29,6 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -38,14 +36,28 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  DashboardHeader,
+  DashboardPage,
+  DashboardPanel,
+} from "@/features/dashboard/dashboard-ui";
+import {
+  DataTable,
+  DataTablePrimaryCell,
+  type DataColumn,
+} from "@/features/dashboard/data-table";
+import { FetchError } from "@/features/dashboard/fetch-error";
+import {
+  EMPTY_FILTERS,
+  FilterBar,
+  type FilterBarValue,
+} from "@/features/dashboard/filter-bar";
+import {
+  ListEmptyState,
+  ListLoadingState,
+  ListPagination,
+} from "@/features/dashboard/list-states";
+import { StatusBadge } from "@/features/dashboard/status-badge";
 import type { AuditAction, AuditLogEntry } from "@/lib/admin-api";
 import { cn } from "@/lib/utils";
 import { useAuditLog } from "./use-audit-log";
@@ -71,6 +83,26 @@ const ACTION_META: Record<AuditAction, { label: string; icon: LucideIcon; tone: 
   staff_feature_revoked: {
     label: "Staff access revoked",
     icon: ShieldCheck,
+    tone: "bg-warning/10 text-warning",
+  },
+  staff_invite_created: {
+    label: "Staff invite link issued",
+    icon: Link2,
+    tone: "bg-brand-cta-tint text-brand-cta",
+  },
+  staff_invite_revoked: {
+    label: "Staff invite link revoked",
+    icon: Link2,
+    tone: "bg-warning/10 text-warning",
+  },
+  agent_invite_created: {
+    label: "Agent setup link issued",
+    icon: Link2,
+    tone: "bg-brand-cta-tint text-brand-cta",
+  },
+  agent_invite_revoked: {
+    label: "Agent setup link revoked",
+    icon: Link2,
     tone: "bg-warning/10 text-warning",
   },
   account_removed: { label: "Account removed", icon: UserMinus, tone: "bg-error/10 text-error" },
@@ -116,6 +148,11 @@ const ACTION_META: Record<AuditAction, { label: string; icon: LucideIcon; tone: 
     icon: Home,
     tone: "bg-warning/10 text-warning",
   },
+  property_listing_corrected: {
+    label: "Listing correction staged",
+    icon: FilePenLine,
+    tone: "bg-warning/10 text-warning",
+  },
   support_ticket_advanced: {
     label: "Support ticket updated",
     icon: Headset,
@@ -145,6 +182,11 @@ const ACTION_META: Record<AuditAction, { label: string; icon: LucideIcon; tone: 
     label: "Bank updated",
     icon: Landmark,
     tone: "bg-loans-soft text-loans-accent",
+  },
+  bank_deleted: {
+    label: "Provider deleted",
+    icon: Landmark,
+    tone: "bg-error/10 text-error",
   },
   bank_availability_updated: {
     label: "Bank availability updated",
@@ -286,6 +328,41 @@ const ACTION_META: Record<AuditAction, { label: string; icon: LucideIcon; tone: 
     icon: RefreshCw,
     tone: "bg-loans-soft text-loans-accent",
   },
+  referral_rule_created: {
+    label: "Referral rule created",
+    icon: SlidersHorizontal,
+    tone: "bg-success/10 text-success",
+  },
+  referral_rule_updated: {
+    label: "Referral rule updated",
+    icon: FilePenLine,
+    tone: "bg-loans-soft text-loans-accent",
+  },
+  referral_rule_deleted: {
+    label: "Unused referral rule deleted",
+    icon: Eraser,
+    tone: "bg-error/10 text-error",
+  },
+  offer_created: { label: "Offer created", icon: Megaphone, tone: "bg-loans-soft text-loans-accent" },
+  offer_updated: { label: "Offer updated", icon: FilePenLine, tone: "bg-loans-soft text-loans-accent" },
+  offer_submitted: { label: "Offer submitted", icon: ScrollText, tone: "bg-warning/10 text-warning" },
+  offer_approved: { label: "Offer approved", icon: BadgeCheck, tone: "bg-success/10 text-success" },
+  offer_rejected: { label: "Offer changes requested", icon: Ban, tone: "bg-error/10 text-error" },
+  offer_scheduled: { label: "Offer scheduled", icon: RefreshCw, tone: "bg-warning/10 text-warning" },
+  offer_activated: { label: "Offer activated", icon: Megaphone, tone: "bg-success/10 text-success" },
+  offer_expired: { label: "Offer expired", icon: Archive, tone: "bg-muted text-text-secondary" },
+  offer_archived: { label: "Offer archived", icon: Archive, tone: "bg-muted text-text-secondary" },
+  offer_deleted: { label: "Offer removed", icon: Eraser, tone: "bg-error/10 text-error" },
+  campaign_media_created: { label: "Campaign media created", icon: FilePenLine, tone: "bg-loans-soft text-loans-accent" },
+  campaign_media_updated: { label: "Campaign media updated", icon: FilePenLine, tone: "bg-loans-soft text-loans-accent" },
+  campaign_media_archived: { label: "Campaign media archived", icon: Archive, tone: "bg-muted text-text-secondary" },
+  campaign_media_deleted: { label: "Campaign media deleted", icon: Eraser, tone: "bg-error/10 text-error" },
+  content_block_created: { label: "Content block created", icon: FilePenLine, tone: "bg-loans-soft text-loans-accent" },
+  content_block_updated: { label: "Content block updated", icon: FilePenLine, tone: "bg-loans-soft text-loans-accent" },
+  content_block_published: { label: "Content block published", icon: Megaphone, tone: "bg-success/10 text-success" },
+  content_block_archived: { label: "Content block archived", icon: Archive, tone: "bg-muted text-text-secondary" },
+  loan_application_updated: { label: "Loan application updated", icon: ClipboardList, tone: "bg-loans-soft text-loans-accent" },
+  property_deal_updated: { label: "Property deal updated", icon: Home, tone: "bg-realestate-soft text-realestate-accent" },
   vehicle_arrangement_updated: {
     label: "Vehicle arrangement updated",
     icon: CarFront,
@@ -293,13 +370,10 @@ const ACTION_META: Record<AuditAction, { label: string; icon: LucideIcon; tone: 
   },
 };
 
-const FILTER_OPTIONS: { value: AuditAction | "all"; label: string }[] = [
-  { value: "all", label: "All activity" },
-  ...(Object.keys(ACTION_META) as AuditAction[]).map((a) => ({
-    value: a,
-    label: ACTION_META[a].label,
-  })),
-];
+const ACTION_OPTIONS = (Object.keys(ACTION_META) as AuditAction[]).map((action) => ({
+  value: action,
+  label: ACTION_META[action].label,
+}));
 
 const ROLE_LABEL: Record<string, string> = {
   admin: "Admin",
@@ -360,126 +434,138 @@ function DetailRows({ detail }: { detail: Record<string, unknown> }) {
 }
 
 export function AuditLogView() {
-  const [action, setAction] = React.useState<AuditAction | "all">("all");
-  const [businessLine, setBusinessLine] = React.useState<"all" | "loans" | "real_estate">("all");
-  const [entityType, setEntityType] = React.useState("");
-  const [dateFrom, setDateFrom] = React.useState("");
-  const [dateTo, setDateTo] = React.useState("");
-  const { entries, total, offset, loading, error, reload, hasNextPage, hasPrevPage, nextPage, prevPage } =
-    useAuditLog({ action, businessLine, entityType, dateFrom, dateTo });
+  const [filters, setFilters] = React.useState<FilterBarValue>(EMPTY_FILTERS);
+  const { entries, total, loading, error, reload, page, pageSize, setPage } = useAuditLog({
+    action: filters.status as AuditAction | "all",
+    businessLine: filters.line as "all" | "loans" | "real_estate",
+    entityType: filters.search,
+    dateFrom: filters.from,
+    dateTo: filters.to,
+  });
   const [active, setActive] = React.useState<AuditLogEntry | null>(null);
 
-  return (
-    <div className="mx-auto w-full max-w-5xl space-y-6 px-4 sm:px-6 lg:px-10">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold text-text-primary">Activity log</h1>
-          <p className="text-sm text-text-secondary">
-            Every business action taken on the platform, in order. Entries can be added but never
-            edited or removed.
-          </p>
-        </div>
-        <div className="grid w-full gap-2 sm:grid-cols-2 xl:w-auto xl:grid-cols-5">
-          <Select value={action} onValueChange={(v) => setAction(v as AuditAction | "all")}>
-            <SelectTrigger aria-label="Filter activity by action">
-              <SelectValue placeholder="All activity" />
-            </SelectTrigger>
-            <SelectContent>
-              {FILTER_OPTIONS.map((o) => (
-                <SelectItem key={o.value} value={o.value}>
-                  {o.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select value={businessLine} onValueChange={(value) => setBusinessLine(value as typeof businessLine)}>
-            <SelectTrigger aria-label="Filter activity by business line"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All lines</SelectItem>
-              <SelectItem value="loans">Loans</SelectItem>
-              <SelectItem value="real_estate">Real Estate</SelectItem>
-            </SelectContent>
-          </Select>
-          <Input aria-label="Filter activity by record type" placeholder="Record type" value={entityType} onChange={(event) => setEntityType(event.target.value)} />
-          <Input aria-label="Filter activity from date" type="date" value={dateFrom} onChange={(event) => setDateFrom(event.target.value)} />
-          <Input aria-label="Filter activity to date" type="date" min={dateFrom || undefined} value={dateTo} onChange={(event) => setDateTo(event.target.value)} />
-        </div>
-      </div>
-
-      {loading ? (
-        <div className="flex items-center justify-center rounded-2xl border border-border bg-card py-16">
-          <Loader2 className="h-6 w-6 animate-spin text-brand-navy" aria-hidden="true" />
-        </div>
-      ) : error ? (
-        <div className="rounded-2xl border border-border bg-card p-8 text-center">
-          <p className="text-sm text-text-secondary">{error}</p>
-          <Button variant="outline" className="mt-4" onClick={() => void reload()}>
-            Try again
-          </Button>
-        </div>
-      ) : entries.length === 0 ? (
-        <div className="flex flex-col items-center rounded-2xl border border-border bg-card p-12 text-center">
-          <ScrollText className="h-8 w-8 text-text-secondary" aria-hidden="true" />
-          <p className="mt-3 font-medium text-text-primary">
-            {action === "all"
-              ? "Nothing has been recorded yet."
-              : "No activity of this kind yet."}
-          </p>
-          <p className="mt-1 text-sm text-text-secondary">
-            Approvals, payouts, and account removals show up here as they happen.
-          </p>
-        </div>
-      ) : (
-        <>
-          <ul className="overflow-hidden rounded-2xl border border-border bg-card divide-y divide-border">
-            {entries.map((e) => {
-              const meta = ACTION_META[e.action];
-              const Icon = meta.icon;
-              return (
-                <li key={e.id}>
-                  <button
-                    type="button"
-                    onClick={() => setActive(e)}
-                    className="flex w-full items-start gap-4 p-4 text-left transition-colors hover:bg-muted/30"
-                  >
-                    <span
-                      className={cn(
-                        "mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full",
-                        meta.tone,
-                      )}
-                    >
-                      <Icon className="h-4 w-4" aria-hidden="true" />
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <p className="font-medium text-text-primary">{meta.label}</p>
-                      <p className="mt-0.5 text-xs text-text-secondary">
-                        {actorLabel(e)}
-                        {e.actor_role ? ` (${ROLE_LABEL[e.actor_role] ?? e.actor_role})` : ""}
-                        {" · "}
-                        {formatWhen(e.created_at)}
-                      </p>
-                    </div>
-                    {e.business_line ? (
-                      <Badge variant="outline" className="shrink-0 capitalize">
-                        {e.business_line.replace("_", " ")}
-                      </Badge>
-                    ) : null}
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
-
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <p className="text-xs text-text-secondary">
-              Showing {offset + 1}-{offset + entries.length} of {total}
-            </p>
-            <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={prevPage} disabled={!hasPrevPage}>Previous</Button>
-              <Button variant="outline" size="sm" onClick={nextPage} disabled={!hasNextPage}>Next</Button>
+  const columns = React.useMemo<readonly DataColumn<AuditLogEntry>[]>(
+    () => [
+      {
+        key: "action",
+        header: "Action",
+        render: (entry) => {
+          const meta = ACTION_META[entry.action];
+          const Icon = meta.icon;
+          return (
+            <div className="flex min-w-0 items-center gap-3">
+              <span
+                className={cn(
+                  "flex h-9 w-9 shrink-0 items-center justify-center rounded-full",
+                  meta.tone,
+                )}
+              >
+                <Icon className="h-4 w-4" aria-hidden="true" />
+              </span>
+              <DataTablePrimaryCell title={meta.label} subtitle={entry.action} />
             </div>
-          </div>
-        </>
+          );
+        },
+      },
+      {
+        key: "actor",
+        header: "Actor",
+        render: (entry) => (
+          <DataTablePrimaryCell
+            title={actorLabel(entry)}
+            subtitle={entry.actor_role ? ROLE_LABEL[entry.actor_role] ?? entry.actor_role : "System"}
+          />
+        ),
+      },
+      {
+        key: "record",
+        header: "Record",
+        render: (entry) => (
+          <DataTablePrimaryCell
+            title={entry.entity_type.replaceAll("_", " ")}
+            subtitle={entry.entity_uuid ?? "No record id"}
+          />
+        ),
+      },
+      {
+        key: "line",
+        header: "Line",
+        render: (entry) => (
+          <StatusBadge tone={entry.business_line ? "info" : "neutral"}>
+            {entry.business_line
+              ? entry.business_line === "real_estate"
+                ? "Real Estate"
+                : "Loans"
+              : "Platform"}
+          </StatusBadge>
+        ),
+      },
+      { key: "when", header: "Recorded", render: (entry) => formatWhen(entry.created_at) },
+    ],
+    [],
+  );
+
+  return (
+    <DashboardPage>
+      <DashboardHeader
+        title="Activity log"
+        description="Every business action taken on the platform, in order. Entries can be added but never edited or removed."
+      />
+
+      <FilterBar
+        value={filters}
+        onChange={setFilters}
+        searchLabel="Filter activity by record type"
+        searchPlaceholder="Record type"
+        statusOptions={ACTION_OPTIONS}
+        statusLabel="actions"
+        note="Open a row to inspect its immutable structured detail."
+      />
+
+      {error ? (
+        <FetchError status={null} message={error} onRetry={() => void reload()} />
+      ) : (
+        <DashboardPanel
+          title="Immutable activity ledger"
+          description="Approvals, payouts, access changes, and platform automation in recorded order."
+          bodyClassName="p-0"
+        >
+          {loading ? (
+            <div className="p-5">
+              <ListLoadingState rows={8} />
+            </div>
+          ) : entries.length === 0 ? (
+            <ListEmptyState
+              icon={ScrollText}
+              title={
+                filters.status === "all"
+                  ? "Nothing has been recorded yet"
+                  : "No activity of this kind yet"
+              }
+              description="Clear or adjust the filters to return to the activity ledger."
+              className="m-5"
+            />
+          ) : (
+            <>
+              <DataTable
+                columns={columns}
+                rows={entries}
+                rowKey={(entry) => entry.id}
+                onRowClick={setActive}
+                rowActionLabel="Inspect activity detail"
+                minWidth="min-w-[980px]"
+              />
+              <div className="px-5 pb-5">
+                <ListPagination
+                  page={page}
+                  pageSize={pageSize}
+                  total={total}
+                  onPageChange={setPage}
+                />
+              </div>
+            </>
+          )}
+        </DashboardPanel>
       )}
 
       <Dialog open={active !== null} onOpenChange={(o) => !o && setActive(null)}>
@@ -504,9 +590,12 @@ export function AuditLogView() {
                   <span className="min-w-0 break-words sm:col-span-2">
                     {active.entity_type.replace(/_/g, " ")}
                     {active.entity_uuid ? (
-                      <span className="ml-1 font-mono text-xs text-text-secondary">
-                        {active.entity_uuid}
-                      </span>
+                      <>
+                        {" "}
+                        <span className="font-mono text-xs text-text-secondary">
+                          {active.entity_uuid}
+                        </span>
+                      </>
                     ) : null}
                   </span>
                 </div>
@@ -516,6 +605,6 @@ export function AuditLogView() {
           ) : null}
         </DialogContent>
       </Dialog>
-    </div>
+    </DashboardPage>
   );
 }

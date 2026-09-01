@@ -22,6 +22,7 @@ export function mapPublicListing(raw: Schemas["PublicPropertyRead"]): PropertyLi
     location: raw.location,
     price: raw.price_display,
     type: raw.type,
+    listingIntent: raw.listing_intent,
     category: raw.category,
     propertySubtype: raw.property_subtype ?? undefined,
     meta: raw.meta ?? undefined,
@@ -67,6 +68,10 @@ export function mapPublicPropertyDetail(
     amenities: raw.amenities,
     ageYears: raw.age_years,
     reraApplicability: raw.rera_applicability,
+    securityDepositDisplay: raw.security_deposit_display ?? null,
+    minimumLeaseMonths: raw.minimum_lease_months,
+    availableFrom: raw.available_from,
+    listingLinks: raw.listing_links,
   };
 }
 

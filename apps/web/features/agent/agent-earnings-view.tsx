@@ -1,11 +1,19 @@
 "use client";
 
+import * as React from "react";
 import Link from "next/link";
-import { IndianRupee } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { DASHBOARD_ICONS } from "@/features/dashboard/dashboard-icons";
+import {
+  DashboardHeader,
+  DashboardPage,
+  DashboardPanel,
+  MetricCard,
+} from "@/features/dashboard/dashboard-ui";
 import { FetchError } from "@/features/dashboard/fetch-error";
+import { ListPagination, useListPagination } from "@/features/dashboard/list-pagination";
 import { formatPaise } from "@/lib/format";
 
 import { useAgentEarnings } from "./use-agent-earnings";
@@ -32,21 +40,14 @@ function formatDate(iso: string | null | undefined): string {
     : d.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
 }
 
-function StatTile({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-2xl border border-border bg-card p-5">
-      <p className="text-sm text-text-secondary">{label}</p>
-      <p className="mt-1 text-2xl font-semibold text-text-primary">{value}</p>
-    </div>
-  );
-}
-
 export function AgentEarningsView() {
   const { earnings, status, error, errorStatus, retry } = useAgentEarnings();
+  const rows = earnings?.rows ?? [];
+  const { page, pageItems, setPage } = useListPagination(rows);
 
   if (status === "loading") {
     return (
-      <div className="mx-auto w-full max-w-5xl space-y-5 px-4 sm:px-6 lg:px-10">
+      <DashboardPage className="space-y-5">
         <Skeleton className="h-9 w-48 rounded-lg" />
         <div className="grid gap-4 sm:grid-cols-3">
           <Skeleton className="h-24 rounded-2xl" />
@@ -54,77 +55,93 @@ export function AgentEarningsView() {
           <Skeleton className="h-24 rounded-2xl" />
         </div>
         <Skeleton className="h-64 rounded-2xl" />
-      </div>
+      </DashboardPage>
     );
   }
 
   if (status === "error" || !earnings) {
     return (
-      <div className="mx-auto w-full max-w-5xl px-4 sm:px-6 lg:px-10">
+      <DashboardPage>
         <FetchError status={errorStatus} message={error} onRetry={retry} />
-      </div>
+      </DashboardPage>
     );
   }
 
   return (
-    <div className="mx-auto w-full max-w-5xl space-y-6 px-4 sm:px-6 lg:px-10">
-      <div>
-        <h1 className="text-2xl font-semibold text-text-primary">Earnings</h1>
-        <p className="mt-1 text-sm text-text-secondary">
-          Commissions Admin has recorded against your deals.
-        </p>
-      </div>
+    <DashboardPage>
+      <DashboardHeader title="Earnings" description="Commissions Admin has recorded against your deals." />
 
-      <div className="grid gap-4 sm:grid-cols-3">
-        <StatTile label="Pending" value={formatPaise(earnings.totals.pending_amount_paise)} />
-        <StatTile label="Paid" value={formatPaise(earnings.totals.paid_amount_paise)} />
-        <StatTile label="Total earned" value={formatPaise(earnings.totals.total_amount_paise)} />
+      {/* 3 metrics, not 4 — every other MetricGrid usage in the app has
+          exactly 4 cards to fill its sm:2/xl:4 grid evenly; a 3-card grid
+          would leave an uneven row, so this panel gets its own 3-column grid
+          instead, reusing MetricCard for the shared card styling/tokens. */}
+      <div className="grid gap-3 sm:grid-cols-3">
+        <MetricCard
+          label="Pending"
+          value={formatPaise(earnings.totals.pending_amount_paise)}
+          icon={DASHBOARD_ICONS.earnings}
+        />
+        <MetricCard
+          label="Paid"
+          value={formatPaise(earnings.totals.paid_amount_paise)}
+          icon={DASHBOARD_ICONS.earnings}
+        />
+        <MetricCard
+          label="Total earned"
+          value={formatPaise(earnings.totals.total_amount_paise)}
+          icon={DASHBOARD_ICONS.earnings}
+        />
       </div>
 
       {earnings.rows.length === 0 ? (
-        <div className="flex flex-col items-center rounded-2xl border border-border bg-card p-12 text-center">
-          <IndianRupee className="h-8 w-8 text-text-secondary" aria-hidden="true" />
-          <p className="mt-3 font-medium text-text-primary">No commissions recorded yet.</p>
-          <p className="mt-1 text-sm text-text-secondary">
+        <div className="flex flex-col items-center rounded-2xl border border-dashed border-border bg-card px-6 py-14 text-center">
+          <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-muted text-text-secondary">
+            <DASHBOARD_ICONS.earnings className="h-6 w-6" aria-hidden="true" />
+          </span>
+          <h2 className="mt-5 text-lg font-semibold text-text-primary">No commissions recorded yet</h2>
+          <p className="mx-auto mt-2 max-w-md text-sm text-text-secondary">
             Commissions appear here once Admin records one against a deal you sourced.
           </p>
         </div>
       ) : (
-        <ul className="space-y-3">
-          {earnings.rows.map((row) => (
-            <li
-              key={row.id}
-              className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border bg-card p-4"
-            >
-              <div className="min-w-0 space-y-1">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="font-semibold text-text-primary">
-                    {formatPaise(row.agreed_amount_paise)}
-                  </span>
-                  <Badge className={STATUS_STYLE[row.status] ?? "bg-muted text-text-secondary"}>
-                    {STATUS_LABEL[row.status] ?? row.status}
-                  </Badge>
+        <DashboardPanel title="Commission history" description="Deals Admin has recorded a commission against.">
+          <ul className="space-y-3">
+            {pageItems.map((row) => (
+              <li
+                key={row.id}
+                className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-card p-4"
+              >
+                <div className="min-w-0 space-y-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="font-semibold text-text-primary">
+                      {formatPaise(row.agreed_amount_paise)}
+                    </span>
+                    <Badge className={STATUS_STYLE[row.status] ?? "bg-muted text-text-secondary"}>
+                      {STATUS_LABEL[row.status] ?? row.status}
+                    </Badge>
+                  </div>
+                  <p className="truncate text-xs text-text-secondary">
+                    {LINE_LABEL[row.business_line] ?? row.business_line}
+                    {" · "}
+                    {row.deal_type === "loan_application" ? "Loan" : "Property deal"}
+                    {" · "}
+                    {formatDate(row.created_at)}
+                  </p>
                 </div>
-                <p className="truncate text-xs text-text-secondary">
-                  {LINE_LABEL[row.business_line] ?? row.business_line}
-                  {" · "}
-                  {row.deal_type === "loan_application" ? "Loan" : "Property deal"}
-                  {" · "}
-                  {formatDate(row.created_at)}
-                </p>
-              </div>
-              {row.status === "paid" && row.payout_txn_uuid ? (
-                <Link
-                  href="/dashboard/transactions"
-                  className="shrink-0 text-sm font-medium text-brand-cta hover:underline"
-                >
-                  View in transactions
-                </Link>
-              ) : null}
-            </li>
-          ))}
-        </ul>
+                {row.status === "paid" && row.payout_txn_uuid ? (
+                  <Link
+                    href="/dashboard/transactions"
+                    className="shrink-0 text-sm font-medium text-brand-cta hover:underline"
+                  >
+                    View in transactions
+                  </Link>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+          <ListPagination page={page} total={rows.length} onPageChange={setPage} label="Commission history pages" />
+        </DashboardPanel>
       )}
-    </div>
+    </DashboardPage>
   );
 }

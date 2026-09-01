@@ -3,6 +3,7 @@
 import { Search } from "lucide-react";
 
 import { Input } from "@/components/ui/input";
+import { FieldError } from "@/components/ui/field-error";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -41,11 +42,13 @@ export function OptionalProfileFields({
   onChange,
   disabled = false,
   idPrefix,
+  errors = {},
 }: {
   value: OptionalProfileDraft;
   onChange: (value: OptionalProfileDraft) => void;
   disabled?: boolean;
   idPrefix: string;
+  errors?: Partial<Record<keyof OptionalProfileDraft, string>>;
 }) {
   function set<K extends keyof OptionalProfileDraft>(key: K, next: OptionalProfileDraft[K]) {
     onChange({ ...value, [key]: next });
@@ -91,7 +94,12 @@ export function OptionalProfileFields({
             onChange={(event) => set("genderSelfDescription", event.target.value)}
             maxLength={100}
             disabled={disabled}
+            aria-invalid={Boolean(errors.genderSelfDescription)}
+            aria-describedby={errors.genderSelfDescription ? `${idPrefix}-gender-description-error` : undefined}
           />
+          <FieldError id={`${idPrefix}-gender-description-error`}>
+            {errors.genderSelfDescription}
+          </FieldError>
         </div>
       ) : null}
 
@@ -134,7 +142,12 @@ export function OptionalProfileFields({
           onChange={(event) => set("incomeAmountRupees", event.target.value)}
           disabled={disabled || !value.incomeSource}
           placeholder={value.incomeSource ? "50000" : "Choose an income source first"}
+          aria-invalid={Boolean(errors.incomeAmountRupees)}
+          aria-describedby={errors.incomeAmountRupees ? `${idPrefix}-income-amount-error` : undefined}
         />
+        <FieldError id={`${idPrefix}-income-amount-error`}>
+          {errors.incomeAmountRupees}
+        </FieldError>
       </div>
 
       <div className="space-y-2">
@@ -144,7 +157,7 @@ export function OptionalProfileFields({
           onValueChange={(next) => set("incomePeriod", next as IncomePeriod)}
           disabled={disabled || !value.incomeSource}
         >
-          <SelectTrigger id={`${idPrefix}-income-period`} className="w-full">
+          <SelectTrigger id={`${idPrefix}-income-period`} className="w-full" aria-invalid={Boolean(errors.incomePeriod)} aria-describedby={errors.incomePeriod ? `${idPrefix}-income-period-error` : undefined}>
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -152,6 +165,7 @@ export function OptionalProfileFields({
             <SelectItem value="annual">Annual</SelectItem>
           </SelectContent>
         </Select>
+        <FieldError id={`${idPrefix}-income-period-error`}>{errors.incomePeriod}</FieldError>
       </div>
 
       <div className="space-y-2 sm:col-span-2">
@@ -164,7 +178,10 @@ export function OptionalProfileFields({
           autoComplete="organization-title"
           disabled={disabled}
           placeholder="e.g. Teacher or business owner"
+          aria-invalid={Boolean(errors.occupation)}
+          aria-describedby={errors.occupation ? `${idPrefix}-occupation-error` : undefined}
         />
+        <FieldError id={`${idPrefix}-occupation-error`}>{errors.occupation}</FieldError>
       </div>
 
       <div className="space-y-2 sm:col-span-2">
@@ -185,12 +202,19 @@ export function OptionalProfileFields({
             disabled={disabled}
             placeholder="Search or enter a city or locality"
             className="pl-9"
-            aria-describedby={`${idPrefix}-location-help`}
+            aria-invalid={Boolean(errors.location)}
+            aria-describedby={
+              [
+                `${idPrefix}-location-help`,
+                errors.location ? `${idPrefix}-location-error` : undefined,
+              ].filter(Boolean).join(" ")
+            }
           />
         </div>
         <p id={`${idPrefix}-location-help`} className="text-xs text-text-secondary">
           Optional. Search for or enter a city or locality. Only this editable place name is saved.
         </p>
+        <FieldError id={`${idPrefix}-location-error`}>{errors.location}</FieldError>
       </div>
     </div>
   );
@@ -209,24 +233,18 @@ export function optionalProfilePayload(value: OptionalProfileDraft):
         location: string | null;
       };
     }
-  | { ok: false; error: string } {
-  const description = value.genderSelfDescription.trim();
-  if (value.gender === "self_described" && !description) {
-    return { ok: false, error: "Describe your gender or choose another option." };
+  | { ok: false; error: string; field: keyof OptionalProfileDraft } {
+  const errors = validateOptionalProfile(value);
+  const first = (Object.keys(errors) as (keyof OptionalProfileDraft)[])[0];
+  if (first && errors[first]) {
+    return { ok: false, error: errors[first], field: first };
   }
+
+  const description = value.genderSelfDescription.trim();
 
   let incomeAmountMinor: number | null = null;
   if (value.incomeSource) {
-    if (!/^\d+(?:\.\d{1,2})?$/.test(value.incomeAmountRupees)) {
-      return { ok: false, error: "Enter a valid income amount with up to two decimals." };
-    }
     incomeAmountMinor = Math.round(Number(value.incomeAmountRupees) * 100);
-    if (incomeAmountMinor < 1 || incomeAmountMinor > 1_000_000_000_000) {
-      return { ok: false, error: "Enter an income amount within the supported range." };
-    }
-    if (!value.incomePeriod) {
-      return { ok: false, error: "Choose whether the income amount is monthly or annual." };
-    }
   }
 
   return {
@@ -241,4 +259,33 @@ export function optionalProfilePayload(value: OptionalProfileDraft):
       location: value.location.trim() || null,
     },
   };
+}
+
+export function validateOptionalProfile(
+  value: OptionalProfileDraft,
+): Partial<Record<keyof OptionalProfileDraft, string>> {
+  const errors: Partial<Record<keyof OptionalProfileDraft, string>> = {};
+  if (value.gender === "self_described" && !value.genderSelfDescription.trim()) {
+    errors.genderSelfDescription = "Describe your gender or choose another option.";
+  }
+  if (value.incomeSource) {
+    if (!/^\d+(?:\.\d{1,2})?$/.test(value.incomeAmountRupees)) {
+      errors.incomeAmountRupees = "Enter a valid income amount with up to two decimals.";
+    } else {
+      const amountMinor = Math.round(Number(value.incomeAmountRupees) * 100);
+      if (amountMinor < 1 || amountMinor > 1_000_000_000_000) {
+        errors.incomeAmountRupees = "Enter an income amount within the supported range.";
+      }
+    }
+    if (!value.incomePeriod) {
+      errors.incomePeriod = "Choose whether the income amount is monthly or annual.";
+    }
+  }
+  if (value.occupation.trim().length > 120) {
+    errors.occupation = "Occupation must be 120 characters or fewer.";
+  }
+  if (value.location.trim().length > LOCATION_MAX_LENGTH) {
+    errors.location = `Location must be ${LOCATION_MAX_LENGTH} characters or fewer.`;
+  }
+  return errors;
 }

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Scale, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { CLOSE_BUTTON_CLASS } from "@/components/ui/close-button";
 import { DASHBOARD_ICONS } from "@/features/dashboard/dashboard-icons";
 import { DashboardHeader, DashboardPage, DashboardPanel, MetricCard, MetricGrid } from "@/features/dashboard/dashboard-ui";
 import { useBookmarks, useCompare } from "@/features/real-estate/store";
@@ -87,7 +88,7 @@ export function CompareView() {
                         type="button"
                         aria-label={`Remove ${listing.title} from compare`}
                         onClick={() => compare.remove(listing.id)}
-                        className="grid h-6 w-6 shrink-0 cursor-pointer place-items-center rounded-full text-text-secondary transition-colors hover:text-brand-cta focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue"
+                        className={cn("h-6 w-6 shrink-0 rounded-full", CLOSE_BUTTON_CLASS)}
                       >
                         <X className="h-3.5 w-3.5" aria-hidden="true" />
                       </button>

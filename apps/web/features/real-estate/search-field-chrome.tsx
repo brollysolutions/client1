@@ -1,5 +1,6 @@
 import { Search } from "lucide-react";
 
+import { CLOSE_BUTTON_CLASS } from "@/components/ui/close-button";
 import { cn } from "@/lib/utils";
 
 // Shared visual chrome for every property search field in the real-estate
@@ -24,10 +25,13 @@ export const SEARCH_FIELD_SHELL_CLASS =
 export const SEARCH_FIELD_BUTTON_MOTION_CLASS =
   "transition-transform duration-150 ease-out hover:shadow-md active:scale-[0.97] motion-reduce:transition-none motion-reduce:active:scale-100";
 
-// Shared clear ("x") button treatment, including a pop-in for the moment it
-// mounts (it only exists in the DOM while there is text to clear).
-export const SEARCH_FIELD_CLEAR_BUTTON_CLASS =
-  "flex h-11 w-11 shrink-0 cursor-pointer animate-in items-center justify-center rounded-lg text-text-secondary fade-in-0 zoom-in-90 duration-200 transition-colors hover:bg-muted hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cta/40 motion-reduce:animate-none";
+// The field's clear ("x") control. Takes the platform-wide close treatment and
+// adds only the taller tap target this 56px-high field wants plus the pop-in
+// for the moment it mounts (it is only in the DOM while there is text to clear).
+export const SEARCH_FIELD_CLEAR_BUTTON_CLASS = cn(
+  CLOSE_BUTTON_CLASS,
+  "h-11 w-11 shrink-0 animate-in fade-in-0 zoom-in-90 duration-200 motion-reduce:animate-none",
+);
 
 // Leading icon badge: a quiet tinted circle at rest that fills solid and
 // gives the glass a small pop the moment the field takes focus, so the whole
@@ -37,7 +41,7 @@ export function SearchFieldIcon({ className }: { className?: string }) {
     <span
       aria-hidden="true"
       className={cn(
-        "ml-2 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-cta-tint text-brand-cta transition-all duration-300 ease-out group-focus-within/search:scale-110 group-focus-within/search:rotate-6 group-focus-within/search:bg-brand-cta group-focus-within/search:text-white motion-reduce:transition-none motion-reduce:group-focus-within/search:scale-100 motion-reduce:group-focus-within/search:rotate-0",
+        "ml-2 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-cta-tint text-brand-cta transition-[background-color,color,transform] duration-300 ease-out group-focus-within/search:scale-110 group-focus-within/search:rotate-6 group-focus-within/search:bg-brand-cta group-focus-within/search:text-white motion-reduce:transition-none motion-reduce:group-focus-within/search:scale-100 motion-reduce:group-focus-within/search:rotate-0",
         className,
       )}
     >

@@ -9,10 +9,12 @@ import { useAuth } from "@/components/auth/session-provider";
 import {
   OptionalProfileFields,
   optionalProfilePayload,
+  validateOptionalProfile,
   type OptionalProfileDraft,
 } from "@/components/profile/optional-profile-fields";
 import { DeleteAccountDialog } from "@/components/settings/delete-account-dialog";
 import { Badge } from "@/components/ui/badge";
+import { FieldError, RequiredIndicator } from "@/components/ui/field-error";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -22,6 +24,12 @@ import { PushSubscriptionCard } from "@/features/push-notifications/push-subscri
 import { JourneyDetailsCard } from "@/features/settings/journey-details-card";
 import { PersonalizationSettingsCard } from "@/features/settings/personalization-settings-card";
 import { updateProfile, type Me } from "@/lib/auth";
+import {
+  apiIssuesToFieldErrors,
+  emailError,
+  focusFirstInvalidField,
+  requiredTextError,
+} from "@/lib/form-validation";
 
 export default function SettingsPage() {
   const { session } = useAuth();
@@ -139,6 +147,8 @@ function ProfileForm({
     location: initialLocation ?? "",
   });
   const [saving, setSaving] = React.useState(false);
+  const [fieldErrors, setFieldErrors] = React.useState<Record<string, string>>({});
+  const formRef = React.useRef<HTMLFormElement>(null);
 
   const emailChanged = email.trim().toLowerCase() !== (initialEmail ?? "").toLowerCase();
   const optionalChanged = includePersonalDetails && (
@@ -155,15 +165,38 @@ function ProfileForm({
     lastName.trim() !== initialLast ||
     emailChanged ||
     optionalChanged;
-  const canSave =
-    dirty &&
-    firstName.trim() !== "" &&
-    lastName.trim() !== "" &&
-    !saving;
+  const canSave = dirty && !saving;
+
+  function validate() {
+    const next: Record<string, string> = {};
+    const firstNameError = requiredTextError(firstName, "First name", 100);
+    const lastNameError = requiredTextError(lastName, "Last name", 100);
+    const nextEmailError = emailError(email);
+    if (firstNameError) next.firstName = firstNameError;
+    if (lastNameError) next.lastName = lastNameError;
+    if (nextEmailError) next.email = nextEmailError;
+    if (includePersonalDetails) Object.assign(next, validateOptionalProfile(optionalProfile));
+    setFieldErrors(next);
+    if (Object.keys(next).length > 0) {
+      requestAnimationFrame(() => {
+        if (formRef.current) focusFirstInvalidField(formRef.current);
+      });
+    }
+    return Object.keys(next).length === 0;
+  }
+
+  function clearError(field: string) {
+    setFieldErrors((current) => {
+      if (!current[field]) return current;
+      const next = { ...current };
+      delete next[field];
+      return next;
+    });
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!canSave) return;
+    if (!canSave || !validate()) return;
     setSaving(true);
     const basePayload = {
       firstName: firstName.trim(),
@@ -175,6 +208,7 @@ function ProfileForm({
       const parsed = optionalProfilePayload(optionalProfile);
       if (!parsed.ok) {
         setSaving(false);
+        setFieldErrors((current) => ({ ...current, [parsed.field]: parsed.error }));
         toast.error(parsed.error);
         return;
       }
@@ -193,6 +227,17 @@ function ProfileForm({
           : "Your details have been saved.",
       });
     } else {
+      const serverErrors = apiIssuesToFieldErrors(res.issues, {
+        first_name: "firstName",
+        last_name: "lastName",
+        email: "email",
+        gender_self_description: "genderSelfDescription",
+        income_amount_minor: "incomeAmountRupees",
+        income_period: "incomePeriod",
+        occupation: "occupation",
+        location: "location",
+      });
+      if (Object.keys(serverErrors).length > 0) setFieldErrors(serverErrors);
       toast.error(res.error || "Couldn't save your changes.", {
         description: "Please check your details and try again.",
       });
@@ -200,27 +245,33 @@ function ProfileForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6 rounded-xl border border-border bg-card p-6">
+    <form ref={formRef} onSubmit={handleSubmit} noValidate className="space-y-6 rounded-xl border border-border bg-card p-6">
       <div className="grid gap-5 sm:grid-cols-2">
         <div className="space-y-2">
-          <Label htmlFor="first-name">First name</Label>
+          <Label htmlFor="first-name">First name<RequiredIndicator /></Label>
           <Input
             id="first-name"
             value={firstName}
-            onChange={(e) => setFirstName(e.target.value)}
+            onChange={(e) => { setFirstName(e.target.value); clearError("firstName"); }}
             maxLength={100}
             autoComplete="given-name"
+            aria-invalid={Boolean(fieldErrors.firstName)}
+            aria-describedby={fieldErrors.firstName ? "first-name-error" : undefined}
           />
+          <FieldError id="first-name-error">{fieldErrors.firstName}</FieldError>
         </div>
         <div className="space-y-2">
-          <Label htmlFor="last-name">Last name</Label>
+          <Label htmlFor="last-name">Last name<RequiredIndicator /></Label>
           <Input
             id="last-name"
             value={lastName}
-            onChange={(e) => setLastName(e.target.value)}
+            onChange={(e) => { setLastName(e.target.value); clearError("lastName"); }}
             maxLength={100}
             autoComplete="family-name"
+            aria-invalid={Boolean(fieldErrors.lastName)}
+            aria-describedby={fieldErrors.lastName ? "last-name-error" : undefined}
           />
+          <FieldError id="last-name-error">{fieldErrors.lastName}</FieldError>
         </div>
         <div className="space-y-2 sm:col-span-2">
           <div className="flex items-center gap-2">
@@ -236,10 +287,13 @@ function ProfileForm({
             id="email"
             type="email"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={(e) => { setEmail(e.target.value); clearError("email"); }}
             autoComplete="email"
             maxLength={254}
+            aria-invalid={Boolean(fieldErrors.email)}
+            aria-describedby={fieldErrors.email ? "email-error" : undefined}
           />
+          <FieldError id="email-error">{fieldErrors.email}</FieldError>
           <p className="text-xs text-text-secondary">
             {emailChanged
               ? email.trim()
@@ -269,8 +323,13 @@ function ProfileForm({
             <OptionalProfileFields
               idPrefix="settings-profile"
               value={optionalProfile}
-              onChange={setOptionalProfile}
+              onChange={(next) => { setOptionalProfile(next); setFieldErrors((current) => {
+                const remaining = { ...current };
+                for (const key of Object.keys(next)) delete remaining[key];
+                return remaining;
+              }); }}
               disabled={saving}
+              errors={fieldErrors}
             />
           </div>
         ) : null}

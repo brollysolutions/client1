@@ -119,6 +119,26 @@ ADMIN_OPERATIONAL_COVERAGE: dict[str, AdminCoverageEntry] = {
         audit_expectation="Approval and rejection append agent_approved or agent_rejected entries.",
         rationale="The review projection provides purpose-bound KYC access without returning storage internals.",
     ),
+    "agent_invite_links": _entry(
+        domain="Approved-Agent first-login invitations",
+        # The table holds a one-way hash, never the raw credential. Admin sees
+        # the raw token only in the response that creates it and cannot recover
+        # an earlier link from this projection.
+        view_mode=AdminViewMode.MINIMIZED,
+        view_coverage=CoverageState.COVERED,
+        update_mode=AdminUpdateMode.WORKFLOW_COMMAND,
+        update_coverage=CoverageState.COVERED,
+        audit_coverage=CoverageState.COVERED,
+        api_surfaces=(
+            "/api/v1/admin/agent-invites",
+            "/api/v1/admin/agents/{application_id}/invite-link",
+            "/api/v1/admin/agent-invite-links/{link_id}",
+        ),
+        ui_surfaces=("/dashboard/agents",),
+        rls_expectation="Admin-only SELECT/INSERT/UPDATE; UPDATE is column-scoped to used_at and revoked_at so an invitation cannot be repointed.",
+        audit_expectation="Issue and revoke append link-id events without the raw token or applicant PII.",
+        rationale="The separate setup-link tab supports delayed credential handoff while preserving hash-only, expiring, single-use credentials.",
+    ),
     "agent_profiles": _entry(
         domain="Active Agent identity and business-line profile",
         sensitivity=(DataSensitivity.IDENTITY_PII,),
@@ -209,11 +229,11 @@ ADMIN_OPERATIONAL_COVERAGE: dict[str, AdminCoverageEntry] = {
         update_coverage=CoverageState.COVERED,
         audit_coverage=CoverageState.COVERED,
         api_surfaces=("/api/v1/banners",),
-        ui_surfaces=("/dashboard/banners",),
-        rls_expectation="Platform Admin may manage any row; Sub Admin remains creator-scoped for delegated authoring.",
+        ui_surfaces=("/dashboard/campaign-approvals",),
+        rls_expectation="Sub Admin owns team-wide authoring; platform Admin is restricted to reasoned approval, change-request, and soft-removal commands.",
         audit_expectation="Material authoring and lifecycle transitions need append-only business audit events.",
         rationale=(
-            "Admin authoring and approval exist, and every mutating transition now"
+            "Sub Admin authoring and Admin review exist, and every mutating transition"
             " writes an append-only audit event: create/update/delete at the router,"
             " submit/approve/reject/archive in the service, and activate/expire in the"
             " scheduler job so scheduler-driven go-live is not an untraced gap."
@@ -227,9 +247,9 @@ ADMIN_OPERATIONAL_COVERAGE: dict[str, AdminCoverageEntry] = {
         update_coverage=CoverageState.COVERED,
         audit_coverage=CoverageState.COVERED,
         api_surfaces=("/api/v1/banners/templates",),
-        ui_surfaces=("/dashboard/banners",),
+        ui_surfaces=("/dashboard/media-library",),
         rls_expectation=(
-            "Sub Admin and Admin may read the catalogue; only platform Admin may"
+            "Sub Admin and Admin may read the catalogue; only Sub Admin may"
             " insert or retire a version, and a database trigger makes a published"
             " version immutable so history cannot be rewritten in place."
         ),
@@ -239,6 +259,25 @@ ADMIN_OPERATIONAL_COVERAGE: dict[str, AdminCoverageEntry] = {
             " plus a category label. Versioning is append-only: retiring a version"
             " clears `active` rather than mutating the row, and every publish records"
             " BANNER_TEMPLATE_VERSIONED."
+        ),
+    ),
+    "campaign_media_assets": _entry(
+        domain="Reusable public campaign artwork and provenance",
+        view_mode=AdminViewMode.MINIMIZED,
+        view_coverage=CoverageState.COVERED,
+        update_mode=AdminUpdateMode.PROHIBITED,
+        update_coverage=CoverageState.PROTECTED,
+        audit_coverage=CoverageState.COVERED,
+        api_surfaces=("/api/v1/banners", "/api/v1/offers"),
+        ui_surfaces=("/dashboard/campaign-approvals",),
+        rls_expectation=(
+            "Only Sub Admin may query or mutate the Media Library directly; Admin sees"
+            " only the artwork attached to a campaign under review."
+        ),
+        audit_expectation="Create, metadata update, archive, and permanent deletion append bounded audit events.",
+        rationale=(
+            "Admin needs a rendered campaign preview, not library browsing, provenance"
+            " editing, or object deletion authority."
         ),
     ),
     "bookmarks": _entry(
@@ -298,13 +337,12 @@ ADMIN_OPERATIONAL_COVERAGE: dict[str, AdminCoverageEntry] = {
         view_coverage=CoverageState.COVERED,
         update_mode=AdminUpdateMode.WORKFLOW_COMMAND,
         update_coverage=CoverageState.COVERED,
-        audit_coverage=CoverageState.GAP,
+        audit_coverage=CoverageState.COVERED,
         api_surfaces=("/api/v1/content-blocks",),
         ui_surfaces=("/dashboard/content",),
         rls_expectation="Platform Admin may manage all content; Sub Admin remains creator-scoped.",
         audit_expectation="Create, correction, publish, and archive transitions require append-only history.",
-        rationale="The current mutable row stores only latest state, so it cannot by itself provide historical auditing.",
-        gap="Gap: content-block authoring and lifecycle transitions are not comprehensively represented in audit_log.",
+        rationale="Create, edit, publish, and archive commands append safe action metadata in the business transaction.",
     ),
     "enquiries": _entry(
         domain="Client property enquiries",
@@ -336,16 +374,36 @@ ADMIN_OPERATIONAL_COVERAGE: dict[str, AdminCoverageEntry] = {
     ),
     "field_visibility_config": _entry(
         domain="Role field-visibility configuration",
+        view_mode=AdminViewMode.AUDIT_ONLY,
+        view_coverage=CoverageState.GAP,
+        update_mode=AdminUpdateMode.SERVICE_MANAGED,
+        update_coverage=CoverageState.GAP,
+        audit_coverage=CoverageState.COVERED,
+        api_surfaces=(),
+        ui_surfaces=(),
+        gap=(
+            "Gap: the Admin configuration surface was withdrawn; the policy is frozen "
+            "at the server-owned defaults until it is reinstated."
+        ),
+        rls_expectation="Only platform Admin may write the closed server-owned catalogue.",
+        audit_expectation="Every policy change appends field_visibility_updated without field values.",
+        rationale=(
+            "With no write surface the runtime projection reads the closed catalogue "
+            "defaults, so no arbitrary JSON-path policy can be created at all."
+        ),
+    ),
+    "financial_product_provider_offers": _entry(
+        domain="Public product-provider offers",
         view_mode=AdminViewMode.FULL,
         view_coverage=CoverageState.COVERED,
         update_mode=AdminUpdateMode.CONFIGURATION_COMMAND,
         update_coverage=CoverageState.COVERED,
         audit_coverage=CoverageState.COVERED,
-        api_surfaces=("/api/v1/admin/field-visibility",),
-        ui_surfaces=("/dashboard/access-control",),
-        rls_expectation="Only platform Admin may write the closed server-owned catalogue.",
-        audit_expectation="Every policy change appends field_visibility_updated without field values.",
-        rationale="Closed keys and modes prevent arbitrary JSON-path policy creation.",
+        api_surfaces=("/api/v1/admin/product-provider-offers",),
+        ui_surfaces=("/dashboard/loan-config",),
+        rls_expectation="Platform Admin owns creation and publication; the public read path is anonymous and filtered to published, verified rows on active providers.",
+        audit_expectation="Create and update commands append financial_product_offer_created or financial_product_offer_updated.",
+        rationale="Admin-managed reference data with no PII. Publishing is what puts a provider on the public product page, so it is gated on an explicit verification date rather than inferred from operational availability.",
     ),
     "lead_activities": _entry(
         domain="Append-only Telecaller lead call activities",
@@ -417,13 +475,12 @@ ADMIN_OPERATIONAL_COVERAGE: dict[str, AdminCoverageEntry] = {
         view_coverage=CoverageState.COVERED,
         update_mode=AdminUpdateMode.WORKFLOW_COMMAND,
         update_coverage=CoverageState.COVERED,
-        audit_coverage=CoverageState.GAP,
+        audit_coverage=CoverageState.COVERED,
         api_surfaces=("/api/v1/admin/loans",),
         ui_surfaces=("/dashboard/loan-applications",),
         rls_expectation="Platform Admin can read and progress both-line applications; Client and staff paths stay owner/assignment scoped.",
         audit_expectation="Every Admin progression and material terms change needs append-only business history.",
-        rationale="The forward-only status service is safe, but the mutable row preserves only current status and reason.",
-        gap="Gap: Admin loan-application progress updates are not comprehensively represented in audit_log.",
+        rationale="The forward-only service now appends actor, status, and changed-field evidence without logging financial values.",
     ),
     "loan_documents": _entry(
         domain="Client loan documents",
@@ -504,13 +561,12 @@ ADMIN_OPERATIONAL_COVERAGE: dict[str, AdminCoverageEntry] = {
         view_coverage=CoverageState.COVERED,
         update_mode=AdminUpdateMode.WORKFLOW_COMMAND,
         update_coverage=CoverageState.COVERED,
-        audit_coverage=CoverageState.GAP,
+        audit_coverage=CoverageState.COVERED,
         api_surfaces=("/api/v1/offers",),
-        ui_surfaces=("/dashboard/offers",),
-        rls_expectation="Platform Admin may manage all rows; Sub Admin remains creator-scoped.",
+        ui_surfaces=("/dashboard/campaign-approvals",),
+        rls_expectation="Sub Admin owns team-wide authoring; platform Admin is restricted to review and reasoned soft removal.",
         audit_expectation="Create, correction, schedule, activate, and archive commands need append-only history.",
-        rationale="Current mutable records expose latest state but not a complete historical action trail.",
-        gap="Gap: offer authoring and lifecycle transitions are not comprehensively represented in audit_log.",
+        rationale="Every authoring and lifecycle command now records actor, transition, and bounded review context.",
     ),
     "payouts": _entry(
         domain="Outbound payout workflow",
@@ -542,15 +598,14 @@ ADMIN_OPERATIONAL_COVERAGE: dict[str, AdminCoverageEntry] = {
         domain="Approved property listings",
         view_mode=AdminViewMode.FULL,
         view_coverage=CoverageState.COVERED,
-        update_mode=AdminUpdateMode.STATUS_COMMAND,
-        update_coverage=CoverageState.GAP,
+        update_mode=AdminUpdateMode.WORKFLOW_COMMAND,
+        update_coverage=CoverageState.COVERED,
         audit_coverage=CoverageState.COVERED,
-        api_surfaces=("/api/v1/properties",),
+        api_surfaces=("/api/v1/properties", "/api/v1/property-submissions/{id}/correction"),
         ui_surfaces=("/dashboard/property-review",),
-        rls_expectation="Platform Admin sees active and inactive rows; status updates require platform Admin and preserve immutable line/media review facts.",
-        audit_expectation="Publish/hide changes append property_listing_updated with a bounded reason.",
-        rationale="Availability control exists, but reviewed listing facts have no reasoned correction command.",
-        gap="Gap: Admin cannot correct approved listing facts through a typed, audited workflow while preserving submission and media provenance.",
+        rls_expectation="Platform Admin may stage a typed correction on the approved source submission; live facts and reviewed media stay unchanged until RERA re-review and approval.",
+        audit_expectation="Publish/hide and reasoned correction commands append bounded action metadata in their business transaction.",
+        rationale="The correction command preserves the property id, submitter, line, source link, and media provenance while forcing reviewed facts back through approval.",
     ),
     "property_deals": _entry(
         domain="Real Estate deal progression",
@@ -559,13 +614,12 @@ ADMIN_OPERATIONAL_COVERAGE: dict[str, AdminCoverageEntry] = {
         view_coverage=CoverageState.COVERED,
         update_mode=AdminUpdateMode.WORKFLOW_COMMAND,
         update_coverage=CoverageState.COVERED,
-        audit_coverage=CoverageState.GAP,
+        audit_coverage=CoverageState.COVERED,
         api_surfaces=("/api/v1/admin/property-deals",),
         ui_surfaces=("/dashboard/property-deals",),
         rls_expectation="Platform Admin can read and progress deals; Client and staff reads remain owner/assignment scoped.",
         audit_expectation="Every Admin progression and terms command needs append-only business history.",
-        rationale="The status machine is controlled, but the mutable row retains only current status and reason.",
-        gap="Gap: Admin property-deal progress and terms changes are not comprehensively represented in audit_log.",
+        rationale="The status machine appends actor, status, and changed-field evidence without logging deal values or client identity.",
     ),
     "property_media": _entry(
         domain="Approved property image and panorama media",
@@ -628,13 +682,12 @@ ADMIN_OPERATIONAL_COVERAGE: dict[str, AdminCoverageEntry] = {
         view_coverage=CoverageState.COVERED,
         update_mode=AdminUpdateMode.CONFIGURATION_COMMAND,
         update_coverage=CoverageState.COVERED,
-        audit_coverage=CoverageState.GAP,
+        audit_coverage=CoverageState.COVERED,
         api_surfaces=("/api/v1/referral-bonus-config",),
         ui_surfaces=("/dashboard/referral-rules",),
         rls_expectation="Platform Admin may manage all rules; Sub Admin remains creator-scoped.",
         audit_expectation="Create and correction commands affecting future accruals need append-only history.",
-        rationale="Current rules are mutable financial configuration without a complete audit-log record.",
-        gap="Gap: referral-rule create/update actions are not comprehensively represented in audit_log.",
+        rationale="Create, correction, retirement, and guarded deletion commands append referral-rule audit events.",
     ),
     "referral_codes": _entry(
         domain="Client referral codes",
@@ -716,6 +769,29 @@ ADMIN_OPERATIONAL_COVERAGE: dict[str, AdminCoverageEntry] = {
         rls_expectation="Only platform Admin receives cross-line staff oversight; both-line staff never receive platform bypass.",
         audit_expectation="Provision, status, and feature changes append reasoned events.",
         rationale="Supported commands control access without arbitrary role, identity, or line rewrites.",
+    ),
+    "staff_invite_links": _entry(
+        domain="Staff first-login invitations",
+        # Deliberately NOT tagged SESSION_SECRET, unlike contact_share_links.
+        # That tag means "holds a reusable secret an Admin must never read", and
+        # the contract enforces no Admin projection for it. This table stores a
+        # one-way SHA-256 hash: the raw token exists only in the response that
+        # creates it and in the URL the issuing Admin already holds, so there is
+        # nothing here to re-read. Admin is the issuer of this credential, not a
+        # party who must be kept away from it.
+        view_mode=AdminViewMode.MINIMIZED,
+        view_coverage=CoverageState.COVERED,
+        update_mode=AdminUpdateMode.WORKFLOW_COMMAND,
+        update_coverage=CoverageState.COVERED,
+        audit_coverage=CoverageState.COVERED,
+        api_surfaces=(
+            "/api/v1/admin/users/{auth_user_uuid}/invite-link",
+            "/api/v1/admin/invite-links/{link_id}",
+        ),
+        ui_surfaces=("/dashboard/users",),
+        rls_expectation="Admin-only SELECT/INSERT/UPDATE; UPDATE is column-scoped to used_at and revoked_at so a link can never be repointed at another identity.",
+        audit_expectation="Issue and revoke are audited by link id; the raw token is returned once and never persisted, logged, or audited.",
+        rationale="Admin issues and revokes the handoff credential but only ever sees its hash — the raw token exists solely in the creating response and the URL the Admin shares.",
     ),
     "support_tickets": _entry(
         domain="Support and account-recovery tickets",

@@ -7,7 +7,11 @@
 // orphaned payout — review fix, 2026-07-27). Only the destination the
 // referrer actually receives money at is caller-supplied, so this reuses
 // payout-form.ts's destination options rather than duplicating them.
-import { DESTINATION_OPTIONS, type PayoutDestination } from "@/lib/payout-form";
+import {
+  DESTINATION_OPTIONS,
+  validatePayoutDestinationForm,
+  type PayoutDestination,
+} from "@/lib/payout-form";
 import type { ReferralPayoutRequest } from "@/lib/admin-referrals-api";
 
 export { DESTINATION_OPTIONS };
@@ -31,22 +35,7 @@ export const EMPTY_REFERRAL_PAYOUT_FORM: ReferralPayoutFormState = {
 export function validateReferralPayoutForm(
   form: ReferralPayoutFormState,
 ): Record<string, string> {
-  const errs: Record<string, string> = {};
-
-  if (form.destinationType === "") {
-    errs.destinationType = "Choose a destination.";
-  } else if (form.destinationType === "vpa") {
-    if (!form.vpa.trim() || !form.vpa.includes("@")) {
-      errs.vpa = "Enter a valid UPI VPA (name@bank).";
-    }
-  } else if (form.destinationType === "bank_account") {
-    if (!form.ifsc.trim()) errs.ifsc = "IFSC is required.";
-    if (form.accountNumber.trim().length < 6) {
-      errs.accountNumber = "Account number must be at least 6 digits.";
-    }
-  }
-
-  return errs;
+  return validatePayoutDestinationForm(form);
 }
 
 export function buildReferralPayoutPayload(

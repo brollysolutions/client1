@@ -47,6 +47,7 @@ export const DASHBOARD_ICONS = {
   siteVisits: CalendarCheck,
   agent: UserRound,
   propertyListings: Building2,
+  propertySubmit: FilePlus2,
   transactions: ArrowLeftRight,
   referrals: Gift,
   leads: PhoneCall,

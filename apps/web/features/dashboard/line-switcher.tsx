@@ -39,14 +39,14 @@ export function LineSwitcher() {
       onClick={switchLine}
       className={cn(
         "group inline-flex cursor-pointer items-center gap-2 rounded-full border border-dash-border bg-surface py-1.5 pl-3 pr-3.5 text-sm font-medium text-text-secondary shadow-sm",
-        "transition-all duration-200 ease-out",
+        "transition-[background-color,border-color,color,box-shadow,transform] duration-200 ease-out motion-reduce:transition-none",
         "hover:border-brand-cta hover:bg-brand-cta-tint hover:text-brand-cta hover:shadow-md",
         "active:scale-[0.97]",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue focus-visible:ring-offset-1 focus-visible:ring-offset-background",
       )}
     >
       <Repeat2
-        className="h-4 w-4 shrink-0 transition-transform duration-300 ease-out group-hover:rotate-180"
+        className="h-4 w-4 shrink-0 transition-transform duration-300 ease-out group-hover:rotate-180 motion-reduce:transition-none motion-reduce:group-hover:rotate-0"
         aria-hidden="true"
       />
       {/* Two collapsing tracks: the resting label sits in a 1fr track, the hover
@@ -55,14 +55,14 @@ export function LineSwitcher() {
           short, e.g. "Loans"). min-w-0 lets the collapsed track contribute 0. */}
       <span
         className={cn(
-          "hidden grid-flow-col transition-[grid-template-columns] duration-300 ease-out sm:grid",
+          "hidden grid-flow-col transition-[grid-template-columns] duration-300 ease-out motion-reduce:transition-none sm:grid",
           "[grid-template-columns:1fr_0fr] group-hover:[grid-template-columns:0fr_1fr]",
         )}
       >
-        <span className="min-w-0 overflow-hidden whitespace-nowrap opacity-100 transition-opacity duration-200 group-hover:opacity-0">
+        <span className="min-w-0 overflow-hidden whitespace-nowrap opacity-100 transition-opacity duration-200 group-hover:opacity-0 motion-reduce:transition-none">
           {LABELS[activeLine]}
         </span>
-        <span className="min-w-0 overflow-hidden whitespace-nowrap opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+        <span className="min-w-0 overflow-hidden whitespace-nowrap opacity-0 transition-opacity duration-200 group-hover:opacity-100 motion-reduce:transition-none">
           Switch to {LABELS[other]}
         </span>
       </span>

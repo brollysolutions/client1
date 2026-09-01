@@ -5,8 +5,8 @@ import { CheckCircle2, Loader2, Wallet, XCircle } from "lucide-react";
 import { toast } from "sonner";
 
 import { useAuth } from "@/components/auth/session-provider";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { FieldError, RequiredIndicator } from "@/components/ui/field-error";
 import {
   Dialog,
   DialogContent,
@@ -16,21 +16,32 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
+import { DashboardHeader, DashboardPage, DashboardPanel } from "@/features/dashboard/dashboard-ui";
+import {
+  DataTable,
+  DataTablePrimaryCell,
+  type DataColumn,
+} from "@/features/dashboard/data-table";
 import { FetchError } from "@/features/dashboard/fetch-error";
-import { formatPaise } from "@/lib/format";
+import {
+  EMPTY_FILTERS,
+  FilterBar,
+  matchesSearch,
+  type FilterBarValue,
+} from "@/features/dashboard/filter-bar";
+import {
+  ListEmptyState,
+  ListLoadingState,
+  ListPagination,
+} from "@/features/dashboard/list-states";
+import { StatusBadge, type StatusTone } from "@/features/dashboard/status-badge";
+import { useFilteredPage } from "@/features/dashboard/use-filtered-page";
+import { isInDateRange } from "@/lib/date-range";
+import { formatDate, formatPaise } from "@/lib/format";
 import type { Payout, PayoutStatus } from "@/lib/payouts-api";
 
 import { PayoutCreateDialog } from "./payout-create-dialog";
-import { AdminPagination, ADMIN_PAGE_SIZE, isInDateRange } from "./admin-list-tools";
 import { useAdminPayouts } from "./use-admin-payouts";
 
 const TYPE_LABEL: Record<string, string> = {
@@ -50,15 +61,15 @@ const STATUS_LABEL: Record<PayoutStatus, string> = {
   reversed: "Reversed",
 };
 
-const STATUS_BADGE_CLASS: Record<PayoutStatus, string> = {
-  pending_approval: "bg-warning/10 text-warning",
-  approved: "bg-warning/10 text-warning",
-  initiated: "bg-warning/10 text-warning",
-  processing: "bg-warning/10 text-warning",
-  paid: "bg-success/10 text-success",
-  rejected: "bg-destructive/10 text-destructive",
-  failed: "bg-destructive/10 text-destructive",
-  reversed: "bg-destructive/10 text-destructive",
+const STATUS_TONE: Record<PayoutStatus, StatusTone> = {
+  pending_approval: "warning",
+  approved: "warning",
+  initiated: "warning",
+  processing: "warning",
+  paid: "success",
+  rejected: "danger",
+  failed: "danger",
+  reversed: "danger",
 };
 
 const FILTER_OPTIONS: { value: string; label: string }[] = [
@@ -70,15 +81,9 @@ const FILTER_OPTIONS: { value: string; label: string }[] = [
   { value: "reversed", label: "Reversed" },
   { value: "initiated", label: "Initiated" },
   { value: "processing", label: "Processing" },
-  { value: "", label: "All" },
 ];
 
-function formatDate(iso: string): string {
-  const d = new Date(iso);
-  return Number.isNaN(d.getTime())
-    ? "-"
-    : d.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
-}
+const TYPE_OPTIONS = Object.entries(TYPE_LABEL).map(([value, label]) => ({ value, label }));
 
 function shortId(id: string): string {
   return `${id.slice(0, 8)}…`;
@@ -108,40 +113,69 @@ export function PayoutsView() {
   const [active, setActive] = React.useState<Payout | null>(null);
   const [rejecting, setRejecting] = React.useState(false);
   const [reason, setReason] = React.useState("");
+  const [reasonError, setReasonError] = React.useState<string>();
   const [busy, setBusy] = React.useState(false);
   const [createOpen, setCreateOpen] = React.useState(false);
   const [manualActive, setManualActive] = React.useState<Payout | null>(null);
   const [manualFailure, setManualFailure] = React.useState(false);
   const [manualValue, setManualValue] = React.useState("");
-  const [search, setSearch] = React.useState("");
-  const [typeFilter, setTypeFilter] = React.useState("all");
-  const [dateFrom, setDateFrom] = React.useState("");
-  const [dateTo, setDateTo] = React.useState("");
-  const [page, setPage] = React.useState(0);
-  const filteredPayouts = React.useMemo(() => payouts.filter((payout) => (
-    (typeFilter === "all" || payout.type === typeFilter) &&
-    isInDateRange(payout.created_at, dateFrom, dateTo) &&
-    `${payout.recipient_name ?? ""} ${payout.recipient_code ?? ""} ${payout.maker_name ?? ""}`.toLowerCase().includes(search.toLowerCase())
-  )), [dateFrom, dateTo, payouts, search, typeFilter]);
-  React.useEffect(() => setPage(0), [dateFrom, dateTo, search, statusFilter, typeFilter]);
-  const pagePayouts = filteredPayouts.slice(page * ADMIN_PAGE_SIZE, (page + 1) * ADMIN_PAGE_SIZE);
+  const [manualError, setManualError] = React.useState<string>();
+  const [filters, setFilters] = React.useState<FilterBarValue>({
+    ...EMPTY_FILTERS,
+    status: statusFilter,
+  });
+
+  React.useEffect(() => {
+    setFilters((current) => ({ ...current, status: statusFilter || "all" }));
+  }, [statusFilter]);
+
+  const filteredPayouts = React.useMemo(
+    () =>
+      payouts.filter(
+        (payout) =>
+          (filters.kind === "all" || payout.type === filters.kind) &&
+          (filters.line === "all" || payout.business_line === filters.line) &&
+          isInDateRange(payout.created_at, filters.from, filters.to) &&
+          (!filters.search ||
+            matchesSearch(
+              `${payout.recipient_name ?? ""} ${payout.recipient_code ?? ""} ${
+                payout.maker_name ?? ""
+              } ${payout.checker_name ?? ""} ${payout.destination_hint} ${
+                TYPE_LABEL[payout.type] ?? payout.type
+              }`,
+              filters.search,
+            )),
+      ),
+    [filters, payouts],
+  );
+  const page = useFilteredPage(filteredPayouts, filters);
+
+  function updateFilters(next: FilterBarValue) {
+    setFilters(next);
+    if (next.status !== filters.status) {
+      setStatusFilter(next.status === "all" ? "" : next.status);
+    }
+  }
 
   function openDecision(payout: Payout) {
     setActive(payout);
     setRejecting(false);
     setReason("");
+    setReasonError(undefined);
   }
 
   function openManualAction(payout: Payout) {
     setManualActive(payout);
     setManualFailure(false);
     setManualValue("");
+    setManualError(undefined);
   }
 
   function closeManualAction() {
     setManualActive(null);
     setManualFailure(false);
     setManualValue("");
+    setManualError(undefined);
   }
 
   async function onApprove(payout: Payout) {
@@ -158,9 +192,11 @@ export function PayoutsView() {
 
   async function onReject(payout: Payout) {
     if (reason.trim().length === 0) {
-      toast.error("Add a reason", { description: "Explain why this payout is being rejected." });
+      setReasonError("Explain why this payout is being rejected.");
+      requestAnimationFrame(() => document.getElementById("payout-rejection-reason")?.focus());
       return;
     }
+    setReasonError(undefined);
     setBusy(true);
     const res = await reject(payout.id, reason.trim());
     setBusy(false);
@@ -177,13 +213,16 @@ export function PayoutsView() {
   async function onManualAction(payout: Payout) {
     const value = manualValue.trim();
     if (payout.status === "approved" && value.length < 4) {
-      toast.error("Enter the cheque reference");
+      setManualError("Cheque reference must be at least 4 characters.");
+      requestAnimationFrame(() => document.getElementById("manual-cheque-reference")?.focus());
       return;
     }
     if ((manualFailure || payout.status === "paid") && value.length === 0) {
-      toast.error("Add a reason for this action");
+      setManualError("Add a reason for this action.");
+      requestAnimationFrame(() => document.getElementById("manual-cheque-reason")?.focus());
       return;
     }
+    setManualError(undefined);
 
     setBusy(true);
     const res =
@@ -211,127 +250,184 @@ export function PayoutsView() {
     closeManualAction();
   }
 
-  return (
-    <div className="mx-auto w-full max-w-5xl space-y-6 px-4 sm:px-6 lg:px-10">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold text-text-primary">Payouts</h1>
-          <p className="text-sm text-text-secondary">
-            Approve or reject cashback, referral, and commission disbursements.
-          </p>
-        </div>
-        <div className="grid w-full gap-2 sm:grid-cols-2 lg:w-auto lg:grid-cols-5">
-          <Input aria-label="Search payouts" placeholder="Recipient or maker" value={search} onChange={(event) => setSearch(event.target.value)} />
-          <Select value={statusFilter || "all"} onValueChange={(v) => setStatusFilter(v === "all" ? "" : v)}>
-            <SelectTrigger className="w-48">
-              <SelectValue placeholder="Awaiting approval" />
-            </SelectTrigger>
-            <SelectContent>
-              {FILTER_OPTIONS.map((o) => (
-                <SelectItem key={o.value || "all"} value={o.value || "all"}>
-                  {o.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select value={typeFilter} onValueChange={setTypeFilter}><SelectTrigger aria-label="Filter payouts by type"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All payout types</SelectItem>{Object.entries(TYPE_LABEL).map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent></Select>
-          <Input aria-label="Payouts from date" type="date" value={dateFrom} onChange={(event) => setDateFrom(event.target.value)} />
-          <Input aria-label="Payouts to date" type="date" min={dateFrom || undefined} value={dateTo} onChange={(event) => setDateTo(event.target.value)} />
-          <Button onClick={() => setCreateOpen(true)}>Raise a payout</Button>
-        </div>
-      </div>
+  const columns = React.useMemo<readonly DataColumn<Payout>[]>(
+    () => [
+      {
+        key: "recipient",
+        header: "Recipient",
+        render: (payout) => (
+          <DataTablePrimaryCell
+            title={payout.recipient_name ?? "Unknown recipient"}
+            subtitle={
+              payout.recipient_code ??
+              (payout.recipient_user_uuid
+                ? shortId(payout.recipient_user_uuid)
+                : "Deleted account")
+            }
+          />
+        ),
+      },
+      {
+        key: "type",
+        header: "Type / line",
+        render: (payout) => (
+          <DataTablePrimaryCell
+            title={TYPE_LABEL[payout.type] ?? payout.type}
+            subtitle={payout.business_line === "real_estate" ? "Real Estate" : "Loans"}
+          />
+        ),
+      },
+      {
+        key: "amount",
+        header: "Amount",
+        align: "right",
+        render: (payout) => (
+          <span className="font-medium tabular-nums">{formatPaise(payout.amount_paise)}</span>
+        ),
+      },
+      {
+        key: "destination",
+        header: "Destination",
+        render: (payout) => payout.destination_hint,
+      },
+      {
+        key: "maker",
+        header: "Raised",
+        render: (payout) => (
+          <DataTablePrimaryCell
+            title={payout.maker_name ?? "Another admin"}
+            subtitle={formatDate(payout.created_at)}
+          />
+        ),
+      },
+      {
+        key: "state",
+        header: "State",
+        render: (payout) => (
+          <div className="space-y-1">
+            <StatusBadge tone={STATUS_TONE[payout.status]}>{STATUS_LABEL[payout.status]}</StatusBadge>
+            {payout.status === "rejected" ? (
+              <p className="max-w-56 truncate text-xs text-destructive">
+                {payout.rejected_by_name ?? "Another admin"}: {payout.reject_reason}
+              </p>
+            ) : payout.failure_reason ? (
+              <p className="max-w-56 truncate text-xs text-destructive">{payout.failure_reason}</p>
+            ) : payout.checker_user_uuid ? (
+              <p className="max-w-56 truncate text-xs text-text-secondary">
+                Approved by {payout.checker_name ?? "another admin"}
+              </p>
+            ) : payout.viewer_is_maker && payout.status === "pending_approval" ? (
+              <p className="max-w-56 text-xs text-warning">Needs another Admin</p>
+            ) : null}
+          </div>
+        ),
+      },
+      {
+        key: "action",
+        header: "Action",
+        align: "right",
+        render: (payout) => {
+          const approvalAction = canReview && payout.status === "pending_approval";
+          const manualAction =
+            canReview &&
+            payout.provider === "manual" &&
+            (payout.status === "approved" ||
+              payout.status === "processing" ||
+              payout.status === "paid");
+          if (approvalAction) {
+            return (
+              <Button size="sm" variant="outline" onClick={() => openDecision(payout)}>
+                Review
+              </Button>
+            );
+          }
+          if (manualAction) {
+            return (
+              <Button size="sm" variant="outline" onClick={() => openManualAction(payout)}>
+                Update cheque
+              </Button>
+            );
+          }
+          return null;
+        },
+      },
+    ],
+    [canReview],
+  );
+  const visibleColumns = canReview
+    ? columns
+    : columns.filter((column) => column.key !== "maker" && column.key !== "action");
 
-      {status === "loading" ? (
-        <div className="space-y-3">
-          <Skeleton className="h-24 rounded-2xl" />
-          <Skeleton className="h-24 rounded-2xl" />
-          <Skeleton className="h-24 rounded-2xl" />
-        </div>
-      ) : status === "error" ? (
+  return (
+    <DashboardPage>
+      <DashboardHeader
+        title={canReview ? "Payouts" : "Payout requests"}
+        description={
+          canReview
+            ? "Approve, reject, and settle cashback, referral, and commission disbursements."
+            : "Prepare payout requests and follow only the requests you raised. Admin review and settlement are separate."
+        }
+        actions={<Button onClick={() => setCreateOpen(true)}>Raise a payout</Button>}
+      />
+
+      <FilterBar
+        value={filters}
+        onChange={updateFilters}
+        searchLabel="Search payouts"
+        searchPlaceholder={canReview ? "Recipient, maker, checker, or destination" : "Recipient or destination"}
+        statusOptions={FILTER_OPTIONS}
+        statusLabel="payout states"
+        kindOptions={TYPE_OPTIONS}
+        kindLabel="Payout types"
+        note={
+          canReview
+            ? "The Admin who raises a payout cannot approve it. Manual cheques settle only after clearance."
+            : "You can create and track requests. Approval, rejection, reconciliation, and cheque settlement remain Admin-only."
+        }
+      />
+
+      {status === "error" ? (
         <FetchError status={errorStatus} message={error} onRetry={retry} />
-      ) : filteredPayouts.length === 0 ? (
-        <div className="flex flex-col items-center rounded-2xl border border-border bg-card p-12 text-center">
-          <Wallet className="h-8 w-8 text-text-secondary" aria-hidden="true" />
-          <p className="mt-3 font-medium text-text-primary">
-            {statusFilter === "pending_approval"
-              ? "No payouts are waiting for approval."
-              : "No payouts match this filter."}
-          </p>
-        </div>
       ) : (
-        <>
-          <ul className="space-y-3">
-            {pagePayouts.map((p) => {
-              const approvalAction = canReview && p.status === "pending_approval";
-              const manualAction =
-                canReview &&
-                p.provider === "manual" &&
-                (p.status === "approved" || p.status === "processing" || p.status === "paid");
-              const clickable = approvalAction || manualAction;
-              const card = (
-                <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border bg-card p-4">
-                  <div className="min-w-0 space-y-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="font-semibold text-text-primary">
-                        {formatPaise(p.amount_paise)}
-                      </span>
-                      <Badge className={STATUS_BADGE_CLASS[p.status]}>
-                        {STATUS_LABEL[p.status]}
-                      </Badge>
-                    </div>
-                    <p className="truncate text-sm text-text-secondary">
-                      {p.recipient_name ?? "Unknown recipient"} ·{" "}
-                      {p.recipient_code ??
-                        (p.recipient_user_uuid ? shortId(p.recipient_user_uuid) : "Deleted account")}
-                    </p>
-                    <p className="truncate text-xs text-text-secondary">
-                      {TYPE_LABEL[p.type] ?? p.type} · {p.destination_hint} · Raised by{" "}
-                      {p.maker_name ?? "another admin"} · {formatDate(p.created_at)}
-                    </p>
-                    {p.status === "rejected" ? (
-                      <p className="truncate text-xs text-destructive">
-                        Rejected by {p.rejected_by_name ?? "another admin"}: {p.reject_reason}
-                      </p>
-                    ) : p.failure_reason ? (
-                      <p className="truncate text-xs text-destructive">{p.failure_reason}</p>
-                    ) : p.checker_user_uuid ? (
-                      <p className="truncate text-xs text-text-secondary">
-                        Approved by {p.checker_name ?? "another admin"}
-                      </p>
-                    ) : p.viewer_is_maker ? (
-                      <p className="truncate text-xs font-medium text-warning">
-                        Waiting for approval by another Admin
-                      </p>
-                    ) : null}
-                  </div>
-                </div>
-              );
-              return (
-                <li key={p.id}>
-                  {clickable ? (
-                    <button
-                      type="button"
-                      onClick={() =>
-                        approvalAction ? openDecision(p) : openManualAction(p)
-                      }
-                      className="w-full text-left transition-colors hover:[&>div]:border-brand-cta"
-                    >
-                      {card}
-                    </button>
-                  ) : (
-                    card
-                  )}
-                </li>
-              );
-            })}
-          </ul>
-          {truncated ? (
-            <p className="text-xs text-text-secondary">
-              Showing the 100 most recent. Filter by status to narrow this down.
-            </p>
-          ) : null}
-          <AdminPagination page={page} total={filteredPayouts.length} onPageChange={setPage} />
-        </>
+        <DashboardPanel
+          title={canReview ? "Payout ledger" : "My requests"}
+          description={canReview ? "Maker-checker approvals and settlement state across every money programme." : "Maker-side status for requests raised by your account."}
+          bodyClassName="p-0"
+        >
+          {status === "loading" ? (
+            <div className="p-5">
+              <ListLoadingState rows={7} />
+            </div>
+          ) : filteredPayouts.length === 0 ? (
+            <ListEmptyState
+              icon={Wallet}
+              title={
+                statusFilter === "pending_approval"
+                  ? "No payouts are waiting for approval"
+                  : "No payouts match these filters"
+              }
+              description="Clear or adjust the filters to return to the payout ledger."
+              className="m-5"
+            />
+          ) : (
+            <>
+              <DataTable
+                  columns={visibleColumns}
+                  rows={page.pageRows}
+                  rowKey={(payout) => payout.id}
+                  minWidth="min-w-[1080px]"
+                />
+              <div className="space-y-3 px-5 pb-5">
+                {truncated ? (
+                  <p className="text-xs text-text-secondary">
+                    Showing the 100 most recent. Filter by status to narrow this down.
+                  </p>
+                ) : null}
+                <ListPagination page={page.page} total={page.total} onPageChange={page.setPage} />
+              </div>
+            </>
+          )}
+        </DashboardPanel>
       )}
 
       <Dialog open={active !== null} onOpenChange={(o) => !o && setActive(null)}>
@@ -376,13 +472,22 @@ export function PayoutsView() {
                 </p>
 
                 {rejecting ? (
-                  <Textarea
-                    value={reason}
-                    onChange={(e) => setReason(e.target.value)}
-                    placeholder="Reason for rejection"
-                    rows={3}
-                    maxLength={200}
-                  />
+                  <div className="space-y-1.5">
+                    <label htmlFor="payout-rejection-reason" className="text-sm font-medium">
+                      Reason<RequiredIndicator />
+                    </label>
+                    <Textarea
+                      id="payout-rejection-reason"
+                      value={reason}
+                      onChange={(e) => { setReason(e.target.value); setReasonError(undefined); }}
+                      placeholder="Reason for rejection"
+                      rows={3}
+                      maxLength={200}
+                      aria-invalid={Boolean(reasonError)}
+                      aria-describedby={reasonError ? "payout-rejection-reason-error" : undefined}
+                    />
+                    <FieldError id="payout-rejection-reason-error">{reasonError}</FieldError>
+                  </div>
                 ) : null}
               </div>
 
@@ -453,19 +558,22 @@ export function PayoutsView() {
                 {manualActive.status === "approved" ? (
                   <div className="space-y-1.5">
                     <label htmlFor="manual-cheque-reference" className="text-sm font-medium">
-                      Cheque reference
+                      Cheque reference<RequiredIndicator />
                     </label>
                     <Input
                       id="manual-cheque-reference"
                       value={manualValue}
-                      onChange={(event) => setManualValue(event.target.value)}
+                      onChange={(event) => { setManualValue(event.target.value); setManualError(undefined); }}
                       placeholder="CHQ-2026-0001"
                       maxLength={64}
                       autoComplete="off"
+                      aria-invalid={Boolean(manualError)}
+                      aria-describedby={manualError ? "manual-cheque-reference-error" : "manual-cheque-reference-help"}
                     />
-                    <p className="text-xs text-text-secondary">
+                    <p id="manual-cheque-reference-help" className="text-xs text-text-secondary">
                       Only a masked reference and deduplication fingerprint are retained.
                     </p>
+                    <FieldError id="manual-cheque-reference-error">{manualError}</FieldError>
                   </div>
                 ) : manualActive.status === "processing" && !manualFailure ? (
                   <p className="rounded-lg bg-muted p-3 text-sm text-text-secondary">
@@ -482,7 +590,7 @@ export function PayoutsView() {
                     <Textarea
                       id="manual-cheque-reason"
                       value={manualValue}
-                      onChange={(event) => setManualValue(event.target.value)}
+                      onChange={(event) => { setManualValue(event.target.value); setManualError(undefined); }}
                       placeholder={
                         manualActive.status === "paid"
                           ? "Reason for reversal"
@@ -490,7 +598,10 @@ export function PayoutsView() {
                       }
                       rows={3}
                       maxLength={200}
+                      aria-invalid={Boolean(manualError)}
+                      aria-describedby={manualError ? "manual-cheque-reason-error" : undefined}
                     />
+                    <FieldError id="manual-cheque-reason-error">{manualError}</FieldError>
                   </div>
                 )}
               </div>
@@ -545,6 +656,6 @@ export function PayoutsView() {
         onOpenChange={setCreateOpen}
         onCreate={create}
       />
-    </div>
+    </DashboardPage>
   );
 }

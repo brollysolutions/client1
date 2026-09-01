@@ -9,7 +9,9 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { AdminPagination, ADMIN_PAGE_SIZE, isInDateRange } from "@/features/admin/admin-list-tools";
+import { ListPagination } from "@/features/dashboard/list-states";
+import { useFilteredPage } from "@/features/dashboard/use-filtered-page";
+import { isInDateRange } from "@/lib/date-range";
 import { DashboardHeader, DashboardPage, DashboardPanel } from "@/features/dashboard/dashboard-ui";
 import { FetchError } from "@/features/dashboard/fetch-error";
 import {
@@ -40,7 +42,6 @@ export default function NotificationsPage() {
   const [search, setSearch] = React.useState("");
   const [dateFrom, setDateFrom] = React.useState("");
   const [dateTo, setDateTo] = React.useState("");
-  const [page, setPage] = React.useState(0);
 
   const retry = React.useCallback(() => {
     void loadNotifications(true);
@@ -62,11 +63,10 @@ export default function NotificationsPage() {
     [items, unreadOnly, typeFilter, dateFrom, dateTo, search],
   );
 
-  React.useEffect(() => {
-    setPage(0);
-  }, [unreadOnly, typeFilter, dateFrom, dateTo, search]);
-
-  const pageItems = filteredItems.slice(page * ADMIN_PAGE_SIZE, (page + 1) * ADMIN_PAGE_SIZE);
+  const { page, setPage, pageRows: pageItems, total: filteredTotal } = useFilteredPage(
+    filteredItems,
+    [unreadOnly, typeFilter, dateFrom, dateTo, search],
+  );
 
   async function handleMarkRead(id: string) {
     await markRead(id);
@@ -128,6 +128,7 @@ export default function NotificationsPage() {
                 aria-label="Search notifications"
                 placeholder="Title or description"
                 value={search}
+                maxLength={100}
                 onChange={(event) => setSearch(event.target.value)}
               />
               <Select value={typeFilter} onValueChange={setTypeFilter}>
@@ -211,7 +212,7 @@ export default function NotificationsPage() {
                     );
                   })}
                 </ul>
-                <AdminPagination page={page} total={filteredItems.length} onPageChange={setPage} />
+                <ListPagination page={page} total={filteredTotal} onPageChange={setPage} />
               </>
             )}
           </DashboardPanel>

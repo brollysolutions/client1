@@ -5,6 +5,7 @@ import { Search, X } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { CLOSE_BUTTON_CLASS } from "@/components/ui/close-button";
 import { Command, CommandInput } from "@/components/ui/command";
 import { Popover, PopoverAnchor, PopoverContent } from "@/components/ui/popover";
 import {
@@ -301,7 +302,7 @@ export function PropertySearchBar({
                   ref={inputRef}
                   value={text}
                   onValueChange={(value) => {
-                    setText(value);
+                    setText(value.slice(0, 100));
                     setOpen(true);
                   }}
                   onFocus={() => setOpen(true)}
@@ -433,7 +434,7 @@ export function PropertySearchBar({
                 type="button"
                 onClick={chip.onRemove}
                 aria-label={`Remove ${chip.label} filter`}
-                className="cursor-pointer rounded-full hover:opacity-70"
+                className={cn("h-5 w-5 rounded-full", CLOSE_BUTTON_CLASS)}
               >
                 <X className="h-3 w-3" />
               </button>

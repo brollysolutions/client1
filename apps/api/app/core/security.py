@@ -9,9 +9,10 @@ from random import SystemRandom
 from uuid import uuid4
 
 import anyio
+import jwt
 from argon2 import PasswordHasher
 from argon2.exceptions import VerifyMismatchError
-from jose import JWTError, jwt
+from jwt import PyJWTError as JWTError
 
 from app.core.config import settings
 
@@ -111,14 +112,24 @@ def generate_temp_password(mobile: str = "") -> str:
 # ---------------------------------------------------------------------------
 
 
-def create_access_token(payload: dict) -> str:
-    """Issue a signed access JWT with exp + jti injected."""
+def create_access_token(payload: dict, *, expires_delta: timedelta | None = None) -> str:
+    """Issue a signed JWT with exp + jti injected.
+
+    Access sessions use the configured default. Narrow capability tokens may
+    supply a shorter, purpose-specific lifetime without weakening the access
+    token policy globally.
+    """
     now = datetime.now(UTC)
+    lifetime = (
+        expires_delta
+        if expires_delta is not None
+        else timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+    )
     data = {
         **payload,
         "jti": str(uuid4()),
         "iat": now,
-        "exp": now + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES),
+        "exp": now + lifetime,
     }
     return jwt.encode(data, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
 
@@ -139,7 +150,7 @@ def hash_refresh_token(raw: str) -> str:
 
 
 def decode_access_token(token: str) -> dict:
-    """Decode + verify JWT. Raises jose.JWTError on any failure."""
+    """Decode and verify a JWT. Raises JWTError on any failure."""
     try:
         return jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
     except JWTError:

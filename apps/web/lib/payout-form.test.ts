@@ -160,6 +160,36 @@ describe("validatePayoutForm()", () => {
     expect(errs.accountNumber).toBeTruthy();
   });
 
+  it("mirrors the API maximum lengths for payout destinations", () => {
+    const longVpa = validatePayoutForm(
+      form({
+        recipient: { authUserUuid: "u1", name: "Test User", code: null },
+        type: "cashback",
+        businessLine: "loans",
+        amountRupees: "10",
+        destinationType: "vpa",
+        vpa: `${"a".repeat(100)}@bank`,
+      }),
+    );
+    expect(longVpa.vpa).toBe("UPI VPA must be 100 characters or fewer.");
+
+    const longBankDetails = validatePayoutForm(
+      form({
+        recipient: { authUserUuid: "u1", name: "Test User", code: null },
+        type: "cashback",
+        businessLine: "loans",
+        amountRupees: "10",
+        destinationType: "bank_account",
+        ifsc: "I".repeat(21),
+        accountNumber: "1".repeat(41),
+      }),
+    );
+    expect(longBankDetails.ifsc).toBe("IFSC must be 20 characters or fewer.");
+    expect(longBankDetails.accountNumber).toBe(
+      "Account number must be 40 characters or fewer.",
+    );
+  });
+
   it("passes for a fully valid form", () => {
     const errs = validatePayoutForm(
       form({

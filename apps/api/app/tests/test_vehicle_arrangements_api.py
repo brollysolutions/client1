@@ -58,9 +58,9 @@ async def _isolate_eligible_employees() -> AsyncIterator[None]:
             await db.commit()
 
 
-def _visit_payload(*, pickup: bool = True) -> dict:
+def _visit_payload(property_ref: str, *, pickup: bool = True) -> dict:
     payload = {
-        "property_ref": "prop-vehicle-1",
+        "property_ref": property_ref,
         "title": "Lake View Apartment",
         "locality": "Whitefield",
         "city": "Bengaluru",
@@ -114,10 +114,14 @@ async def _seed_staff(role: StaffRole, business_line: str | None) -> tuple[str, 
 
 
 @pytest.mark.asyncio
-async def test_client_pickup_create_and_visit_cancel_are_atomic(client: AsyncClient) -> None:
+async def test_client_pickup_create_and_visit_cancel_are_atomic(
+    client: AsyncClient, active_property_id: str
+) -> None:
     token, _ = await full_registration(client, lines=["real_estate"])
     headers = {"Authorization": f"Bearer {token}"}
-    created = await client.post("/api/v1/site-visits", headers=headers, json=_visit_payload())
+    created = await client.post(
+        "/api/v1/site-visits", headers=headers, json=_visit_payload(active_property_id)
+    )
     assert created.status_code == 201, created.text
     arrangement = created.json()["vehicle_arrangement"]
     assert arrangement["status"] == "requested"
@@ -138,13 +142,13 @@ async def test_client_pickup_create_and_visit_cancel_are_atomic(client: AsyncCli
 
 @pytest.mark.asyncio
 async def test_arranged_update_survives_immediate_assignment_failure(
-    client: AsyncClient, monkeypatch: pytest.MonkeyPatch
+    client: AsyncClient, monkeypatch: pytest.MonkeyPatch, active_property_id: str
 ) -> None:
     client_token, _ = await full_registration(client, lines=["real_estate"])
     created = await client.post(
         "/api/v1/site-visits",
         headers={"Authorization": f"Bearer {client_token}"},
-        json=_visit_payload(),
+        json=_visit_payload(active_property_id),
     )
     arrangement_id = created.json()["vehicle_arrangement"]["id"]
     admin_token, _ = await _seed_staff(StaffRole.ADMIN, None)
@@ -174,11 +178,15 @@ async def test_arranged_update_survives_immediate_assignment_failure(
 
 
 @pytest.mark.asyncio
-async def test_admin_arranges_assigns_and_employee_completes(client: AsyncClient) -> None:
+async def test_admin_arranges_assigns_and_employee_completes(
+    client: AsyncClient, active_property_id: str
+) -> None:
     client_token, _ = await full_registration(client, lines=["real_estate"])
     client_headers = {"Authorization": f"Bearer {client_token}"}
     created = await client.post(
-        "/api/v1/site-visits", headers=client_headers, json=_visit_payload()
+        "/api/v1/site-visits",
+        headers=client_headers,
+        json=_visit_payload(active_property_id),
     )
     arrangement_id = created.json()["vehicle_arrangement"]["id"]
 
@@ -253,12 +261,14 @@ async def test_admin_arranges_assigns_and_employee_completes(client: AsyncClient
 
 
 @pytest.mark.asyncio
-async def test_admin_cannot_assign_loans_employee(client: AsyncClient) -> None:
+async def test_admin_cannot_assign_loans_employee(
+    client: AsyncClient, active_property_id: str
+) -> None:
     client_token, _ = await full_registration(client, lines=["real_estate"])
     created = await client.post(
         "/api/v1/site-visits",
         headers={"Authorization": f"Bearer {client_token}"},
-        json=_visit_payload(),
+        json=_visit_payload(active_property_id),
     )
     arrangement_id = created.json()["vehicle_arrangement"]["id"]
     admin_token, _ = await _seed_staff(StaffRole.ADMIN, None)

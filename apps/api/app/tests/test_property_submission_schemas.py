@@ -7,7 +7,8 @@ import uuid
 import pytest
 from pydantic import ValidationError
 
-from app.schemas.property_submissions import SubmissionCreate
+from app.schemas.listing_links import ListingLink, safe_stored_listing_links
+from app.schemas.property_submissions import AdminPropertyCorrection, SubmissionCreate
 
 _PROJECT_AMENITIES = " ".join(["landscaped"] * 150)
 
@@ -77,6 +78,19 @@ def test_accepts_ten_images_and_two_documents() -> None:
     parsed = SubmissionCreate.model_validate(_payload(media))
 
     assert len(parsed.media) == 12
+
+
+def test_admin_correction_requires_a_non_blank_reason_and_rejects_extra_fields() -> None:
+    payload = _payload([_asset(0)])
+    payload.pop("media")
+
+    with pytest.raises(ValidationError, match="at least 1 character"):
+        AdminPropertyCorrection.model_validate({**payload, "reason": "   "})
+
+    with pytest.raises(ValidationError, match="Extra inputs are not permitted"):
+        AdminPropertyCorrection.model_validate(
+            {**payload, "reason": "Verified correction.", "status": "approved"}
+        )
 
 
 def test_accepts_one_managed_panorama() -> None:
@@ -340,3 +354,217 @@ def test_rejects_unbounded_agricultural_facility_labels() -> None:
 
     with pytest.raises(ValidationError, match="at most 80 characters"):
         SubmissionCreate.model_validate(payload)
+
+
+def _rent_payload(**overrides: object) -> dict:
+    """A valid rent payload: intent flipped, deposit + term added, sale type dropped."""
+    payload = _payload([_asset(0)])
+    payload["listing_intent"] = "rent"
+    payload["security_deposit_paise"] = 15_000_000
+    payload["minimum_lease_months"] = 11
+    payload["structured_details"].pop("sale_type", None)
+    payload.update(overrides)
+    return payload
+
+
+def test_defaults_to_a_sale_listing() -> None:
+    parsed = SubmissionCreate.model_validate(_payload([_asset(0)]))
+
+    assert parsed.listing_intent == "sale"
+    assert parsed.security_deposit_paise is None
+    assert parsed.minimum_lease_months is None
+
+
+def test_accepts_a_rent_listing_with_terms() -> None:
+    parsed = SubmissionCreate.model_validate(_rent_payload(available_from="2026-10-01"))
+
+    assert parsed.listing_intent == "rent"
+    assert parsed.security_deposit_paise == 15_000_000
+    assert parsed.minimum_lease_months == 11
+    assert parsed.available_from.isoformat() == "2026-10-01"
+
+
+@pytest.mark.parametrize(
+    ("drop", "message"),
+    [
+        ("security_deposit_paise", "require a security deposit"),
+        ("minimum_lease_months", "require a minimum lease duration"),
+    ],
+)
+def test_rent_listing_requires_deposit_and_term(drop: str, message: str) -> None:
+    payload = _rent_payload()
+    del payload[drop]
+
+    with pytest.raises(ValidationError, match=message):
+        SubmissionCreate.model_validate(payload)
+
+
+def test_rent_listing_rejects_a_sale_type() -> None:
+    payload = _rent_payload()
+    payload["structured_details"]["sale_type"] = "new_sale"
+
+    with pytest.raises(ValidationError, match="do not accept a sale type"):
+        SubmissionCreate.model_validate(payload)
+
+
+@pytest.mark.parametrize(
+    ("field", "value", "message"),
+    [
+        ("security_deposit_paise", 15_000_000, "Only rental listings accept a security deposit"),
+        ("minimum_lease_months", 11, "Only rental listings accept a minimum lease duration"),
+        ("available_from", "2026-10-01", "Only rental listings accept an availability date"),
+    ],
+)
+def test_sale_listing_rejects_rent_only_fields(field: str, value: object, message: str) -> None:
+    """A draft switched back from Rent to Sale must not keep advertising a deposit."""
+    payload = _payload([_asset(0)])
+    payload[field] = value
+
+    with pytest.raises(ValidationError, match=message):
+        SubmissionCreate.model_validate(payload)
+
+
+def test_sale_listing_still_requires_a_sale_type() -> None:
+    payload = _payload([_asset(0)])
+    payload["structured_details"].pop("sale_type")
+
+    with pytest.raises(ValidationError, match="require a sale type"):
+        SubmissionCreate.model_validate(payload)
+
+
+@pytest.mark.parametrize(
+    ("url", "platform"),
+    [
+        ("https://www.youtube.com/watch?v=abc123", "youtube"),
+        ("https://youtu.be/abc123", "youtube"),
+        ("https://m.youtube.com/watch?v=abc123", "youtube"),
+        ("https://www.instagram.com/reel/abc123/", "instagram"),
+        ("https://www.facebook.com/listing/posts/1", "facebook"),
+        ("https://fb.watch/abc123/", "facebook"),
+    ],
+)
+def test_derives_the_platform_from_the_allowlisted_host(url: str, platform: str) -> None:
+    payload = _payload([_asset(0)])
+    payload["listing_links"] = [{"url": url}]
+
+    parsed = SubmissionCreate.model_validate(payload)
+
+    assert parsed.listing_links is not None
+    assert parsed.listing_links[0].platform == platform
+
+
+def test_platform_cannot_be_spoofed_by_the_author() -> None:
+    """A YouTube badge must never point somewhere else."""
+    payload = _payload([_asset(0)])
+    payload["listing_links"] = [
+        {"url": "https://www.instagram.com/reel/abc123/", "platform": "youtube"}
+    ]
+
+    parsed = SubmissionCreate.model_validate(payload)
+
+    assert parsed.listing_links is not None
+    assert parsed.listing_links[0].platform == "instagram"
+
+
+@pytest.mark.parametrize(
+    "url",
+    [
+        "http://www.youtube.com/watch?v=abc123",  # not HTTPS
+        "https://user:pass@www.youtube.com/watch?v=abc123",  # embedded credentials
+        "https://youtube.com.evil.example/watch?v=abc123",  # suffix-confusion host
+        "https://evil.example/youtube.com",  # path-confusion host
+        "https://bit.ly/abc123",  # shortener hides the destination
+        "javascript:alert(1)",  # scheme injection
+        "//www.youtube.com/watch?v=abc123",  # protocol-relative
+    ],
+)
+def test_rejects_links_outside_the_https_allowlist(url: str) -> None:
+    payload = _payload([_asset(0)])
+    payload["listing_links"] = [{"url": url}]
+
+    with pytest.raises(ValidationError, match="Listing links must be HTTPS"):
+        SubmissionCreate.model_validate(payload)
+
+
+def test_collapses_duplicate_listing_links() -> None:
+    payload = _payload([_asset(0)])
+    payload["listing_links"] = [
+        {"url": "https://youtu.be/abc123"},
+        {"url": "https://youtu.be/abc123"},
+    ]
+
+    parsed = SubmissionCreate.model_validate(payload)
+
+    assert parsed.listing_links is not None
+    assert len(parsed.listing_links) == 1
+
+
+def test_rejects_more_than_four_listing_links() -> None:
+    payload = _payload([_asset(0)])
+    payload["listing_links"] = [{"url": f"https://youtu.be/abc{index}"} for index in range(5)]
+
+    with pytest.raises(ValidationError, match="at most 4 listing links"):
+        SubmissionCreate.model_validate(payload)
+
+
+def test_narrative_link_ban_survives_the_structured_link_field() -> None:
+    """The carve-out is the structured field only; free text still rejects URLs."""
+    payload = _payload([_asset(0)])
+    payload["listing_links"] = [{"url": "https://youtu.be/abc123"}]
+    # Digit-free so the link rule is what fires, not the separate numbers rule.
+    payload["structured_details"]["about_project"] = (
+        "A calm community, see https://youtu.be/walkthrough for the tour."
+    )
+
+    with pytest.raises(ValidationError, match="cannot contain links"):
+        SubmissionCreate.model_validate(payload)
+
+
+def test_stored_links_are_filtered_not_raised_on_read() -> None:
+    """A stored link that no longer passes the allowlist must not 500 a read.
+
+    Read projections re-check every stored link. If that check raised instead of
+    filtering, one bad row would take the whole catalogue down for everyone
+    rather than hiding a single link -- the same failure mode
+    `_public_property_data` already contains for malformed structured_details.
+    """
+    safe = safe_stored_listing_links(
+        [
+            {"url": "https://youtu.be/walkthrough", "platform": "youtube"},
+            {"url": "https://phish.example/steal", "platform": "youtube"},
+            {"url": "http://www.youtube.com/insecure", "platform": "youtube"},
+            "not-a-dict",
+            {"platform": "youtube"},
+        ]
+    )
+
+    assert safe == [{"url": "https://youtu.be/walkthrough", "platform": "youtube"}]
+
+
+def test_stored_platform_is_re_derived_on_read() -> None:
+    safe = safe_stored_listing_links(
+        [{"url": "https://www.instagram.com/reel/tour/", "platform": "youtube"}]
+    )
+
+    assert safe == [{"url": "https://www.instagram.com/reel/tour/", "platform": "instagram"}]
+
+
+def test_stored_links_collapse_to_none_when_nothing_survives() -> None:
+    assert safe_stored_listing_links([{"url": "https://phish.example/x"}]) is None
+    assert safe_stored_listing_links(None) is None
+    assert safe_stored_listing_links("garbage") is None
+
+
+def test_stored_links_accept_already_built_models() -> None:
+    """Constructing a read model directly must not silently drop every link."""
+    safe = safe_stored_listing_links(
+        [
+            ListingLink(url="https://youtu.be/walkthrough"),
+            ListingLink(url="https://www.facebook.com/listing/posts/one"),
+        ]
+    )
+
+    assert safe == [
+        {"url": "https://youtu.be/walkthrough", "platform": "youtube"},
+        {"url": "https://www.facebook.com/listing/posts/one", "platform": "facebook"},
+    ]

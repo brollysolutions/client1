@@ -29,6 +29,7 @@ describe("PROPERTY_CATEGORIES integrity", () => {
 
 function makeListing(overrides: Partial<PropertyListing> & Pick<PropertyListing, "id" | "category">): PropertyListing {
   return {
+    listingIntent: "sale",
     title: "Test Listing",
     location: "Test City",
     price: "₹50 L",

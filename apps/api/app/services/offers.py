@@ -1,84 +1,208 @@
-"""Offer lifecycle advance — request-session only, no bypass.
-
-Unlike banners, offers has no Admin-approval step, so every write — including the
-lifecycle-advance actions — runs on the request session under RLS (narrow
-sub_admin-only allowlist, migration b5c6d7e8f9a0). advance_offer enforces the
-forward-only status machine in the app layer; RLS only gates ownership + role.
-"""
+"""Reviewed offer lifecycle and approval-readiness checks."""
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
+from urllib.parse import urlsplit
 from uuid import UUID
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.models.audit_log import AuditAction
+from app.models.notification import NotificationType
 from app.models.offer import Offer, OfferStatus
 from app.schemas.personalization import AudienceRules, audience_rules_valid_for_offer
+from app.services.audit_log import record as record_audit
+from app.services.campaign_media import asset_image_url
+from app.services.notifications import emit_notification
 
-# Forward-only edges for what a sub_admin HTTP request may do. `expired` has
-# no manual writer here by design -- it is scheduler-owned
-# (app/jobs/cms_activation.py flips active -> expired on ends_at, bypassing
-# this map entirely since the job runs on a superuser session, not a request).
-# Adding ACTIVE -> EXPIRED here would let a human expire an offer early, which
-# is exactly what ends_at exists to prevent. `archived` is reachable from
-# either scheduled or active (cancel-in-place) through this map.
-_TRANSITIONS: dict[OfferStatus, set[OfferStatus]] = {
-    OfferStatus.DRAFT: {OfferStatus.SCHEDULED},
+_SUB_ADMIN_TRANSITIONS: dict[OfferStatus, set[OfferStatus]] = {
+    OfferStatus.DRAFT: {OfferStatus.PENDING_APPROVAL, OfferStatus.ARCHIVED},
+    OfferStatus.REJECTED: {OfferStatus.PENDING_APPROVAL, OfferStatus.ARCHIVED},
+    OfferStatus.APPROVED: {
+        OfferStatus.SCHEDULED,
+        OfferStatus.ACTIVE,
+        OfferStatus.ARCHIVED,
+    },
     OfferStatus.SCHEDULED: {OfferStatus.ACTIVE, OfferStatus.ARCHIVED},
     OfferStatus.ACTIVE: {OfferStatus.ARCHIVED},
-    OfferStatus.EXPIRED: set(),
+    OfferStatus.PENDING_APPROVAL: set(),
+    OfferStatus.EXPIRED: {OfferStatus.ARCHIVED},
     OfferStatus.ARCHIVED: set(),
+}
+_ADMIN_TRANSITIONS: dict[OfferStatus, set[OfferStatus]] = {
+    OfferStatus.PENDING_APPROVAL: {OfferStatus.APPROVED, OfferStatus.REJECTED},
+}
+_AUDIT_ACTION = {
+    OfferStatus.PENDING_APPROVAL: AuditAction.OFFER_SUBMITTED,
+    OfferStatus.APPROVED: AuditAction.OFFER_APPROVED,
+    OfferStatus.REJECTED: AuditAction.OFFER_REJECTED,
+    OfferStatus.SCHEDULED: AuditAction.OFFER_SCHEDULED,
+    OfferStatus.ACTIVE: AuditAction.OFFER_ACTIVATED,
+    OfferStatus.ARCHIVED: AuditAction.OFFER_ARCHIVED,
 }
 
 
 class OfferIllegalTransition(Exception):
-    """Raised when an advance targets a status not reachable from the current one."""
+    """The requested lifecycle edge is not available to this actor."""
 
 
-class OfferNotOwned(Exception):
-    """Raised when an advance targets an offer created by a different sub_admin.
-
-    Distinct from "not found" — shared-visibility SELECT means the caller can
-    already see this row in their queue, so a 404 here would be confusing."""
+class OfferInvalidConfiguration(Exception):
+    """A campaign is missing required approval or redemption evidence."""
 
 
-class OfferInvalidAudience(Exception):
-    """Raised when a legacy or malformed rule set reaches activation."""
+def _is_safe_https_url(value: str | None) -> bool:
+    if not value:
+        return False
+    parsed = urlsplit(value)
+    return bool(
+        parsed.scheme == "https"
+        and parsed.hostname
+        and parsed.username is None
+        and parsed.password is None
+    )
 
 
-async def advance_offer(
+def validate_offer_for_review(offer: Offer) -> None:
+    """Fail closed before submission, approval, scheduling, or activation."""
+    try:
+        rules = AudienceRules.model_validate(offer.audience_rules)
+    except ValueError as exc:
+        raise OfferInvalidConfiguration from exc
+    if not audience_rules_valid_for_offer(rules):
+        raise OfferInvalidConfiguration
+    if not all(
+        (
+            offer.title and offer.title.strip(),
+            offer.partner_name and offer.partner_name.strip(),
+            offer.code and offer.code.strip(),
+            offer.terms_summary and offer.terms_summary.strip(),
+            offer.image_key and asset_image_url(offer.image_key),
+            _is_safe_https_url(offer.redemption_url),
+        )
+    ):
+        raise OfferInvalidConfiguration
+    if offer.terms_url and not _is_safe_https_url(offer.terms_url):
+        raise OfferInvalidConfiguration
+    if offer.starts_at and offer.ends_at and offer.ends_at <= offer.starts_at:
+        raise OfferInvalidConfiguration
+
+
+async def transition_offer(
     offer_id: UUID,
-    owner_uuid: UUID,
+    actor_uuid: UUID,
+    actor_role: str,
     target_status: OfferStatus,
     db: AsyncSession,
     *,
-    can_manage_any: bool = False,
+    review_note: str | None = None,
 ) -> Offer | None:
-    # Unlocked existence/ownership check first: Postgres RLS applies a table's
-    # UPDATE policy (not just SELECT) to a `SELECT ... FOR UPDATE`, so locking
-    # up front would make a non-owner's row disappear (404) instead of the
-    # intended 403 — the caller must already satisfy offers_update's ownership
-    # predicate before a locked re-select is safe to issue.
-    offer = await db.scalar(select(Offer).where(Offer.id == offer_id))
+    is_admin = actor_role == "admin"
+    offer = await db.scalar(
+        select(Offer).where(Offer.id == offer_id, Offer.removed_at.is_(None)).with_for_update()
+    )
     if offer is None:
         return None
-    if not can_manage_any and offer.created_by_uuid != owner_uuid:
-        raise OfferNotOwned
-    # Now that ownership is confirmed, re-select FOR UPDATE to serialize
-    # concurrent advances from the same owner (e.g. a double-clicked action),
-    # mirroring banners' approve_banner/reject_banner locking.
-    offer = await db.scalar(select(Offer).where(Offer.id == offer_id).with_for_update())
-    if target_status not in _TRANSITIONS.get(offer.status, set()):
+    transitions = _ADMIN_TRANSITIONS if is_admin else _SUB_ADMIN_TRANSITIONS
+    if target_status not in transitions.get(offer.status, set()):
         raise OfferIllegalTransition
-    if target_status in (OfferStatus.SCHEDULED, OfferStatus.ACTIVE):
-        try:
-            rules = AudienceRules.model_validate(offer.audience_rules)
-        except ValueError as exc:
-            raise OfferInvalidAudience from exc
-        if not audience_rules_valid_for_offer(rules):
-            raise OfferInvalidAudience
+
+    if target_status in {
+        OfferStatus.PENDING_APPROVAL,
+        OfferStatus.APPROVED,
+        OfferStatus.SCHEDULED,
+        OfferStatus.ACTIVE,
+    }:
+        validate_offer_for_review(offer)
+    if target_status == OfferStatus.REJECTED and not (review_note and review_note.strip()):
+        raise OfferInvalidConfiguration
+
+    if target_status == OfferStatus.PENDING_APPROVAL:
+        offer.review_note = None
+        offer.reviewed_by_uuid = None
+        offer.reviewed_at = None
+    elif target_status in {OfferStatus.APPROVED, OfferStatus.REJECTED}:
+        offer.review_note = review_note.strip() if review_note else None
+        offer.reviewed_by_uuid = actor_uuid
+        offer.reviewed_at = datetime.now(UTC)
+
+    previous_status = offer.status
     offer.status = target_status
+    offer.version += 1
+    await record_audit(
+        db,
+        action=_AUDIT_ACTION[target_status],
+        entity_type="offer",
+        entity_uuid=offer.id,
+        actor_uuid=actor_uuid,
+        actor_role=actor_role,
+        business_line=offer.business_line,
+        detail={
+            "from_status": previous_status.value,
+            "to_status": target_status.value,
+            **({"review_note": offer.review_note} if offer.review_note else {}),
+        },
+    )
     await db.commit()
     await db.refresh(offer)
+    if target_status == OfferStatus.APPROVED:
+        await emit_notification(
+            user_uuid=offer.created_by_uuid,
+            notification_type=NotificationType.CAMPAIGN_APPROVED,
+            title="Offer approved",
+            body=f"“{offer.title}” is ready to schedule.",
+            href="/dashboard/campaigns?type=offers",
+        )
+    elif target_status == OfferStatus.REJECTED:
+        await emit_notification(
+            user_uuid=offer.created_by_uuid,
+            notification_type=NotificationType.CAMPAIGN_CHANGES_REQUESTED,
+            title="Changes requested for offer",
+            body=f"Admin left feedback on “{offer.title}”.",
+            href="/dashboard/campaigns?type=offers",
+        )
+    return offer
+
+
+async def remove_offer(
+    offer_id: UUID,
+    reviewer_uuid: UUID,
+    note: str,
+    db: AsyncSession,
+) -> Offer | None:
+    offer = await db.scalar(
+        select(Offer).where(Offer.id == offer_id, Offer.removed_at.is_(None)).with_for_update()
+    )
+    if offer is None:
+        return None
+    previous_status = offer.status
+    offer.status = OfferStatus.ARCHIVED
+    offer.removed_at = datetime.now(UTC)
+    offer.removed_by_uuid = reviewer_uuid
+    offer.removal_reason = note.strip()
+    offer.version += 1
+    await record_audit(
+        db,
+        action=AuditAction.OFFER_DELETED,
+        entity_type="offer",
+        entity_uuid=offer.id,
+        actor_uuid=reviewer_uuid,
+        actor_role="admin",
+        business_line=offer.business_line,
+        detail={
+            "mode": "soft_remove",
+            "from_status": previous_status.value,
+            "reason": offer.removal_reason,
+        },
+    )
+    await db.commit()
+    await db.refresh(offer)
+    await emit_notification(
+        user_uuid=offer.created_by_uuid,
+        notification_type=NotificationType.CAMPAIGN_REMOVED,
+        title="Offer removed",
+        body=f"Admin removed “{offer.title}” from campaign serving.",
+        href="/dashboard/campaigns?type=offers",
+    )
     return offer

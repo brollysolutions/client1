@@ -7,8 +7,8 @@ import { Bell, CheckCheck, ChevronRight, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { selectUnreadPreview } from "@/lib/notification-state";
 import { isSafeLocalHref } from "@/lib/safe-local-href";
-import { cn } from "@/lib/utils";
 
 import { formatNotificationTime, NOTIFICATION_TYPE_ICON } from "./notification-presenter";
 import { useNotifications } from "./notifications-provider";
@@ -32,6 +32,11 @@ export function NotificationBell() {
   const loadPreview = React.useCallback(async () => {
     await loadNotifications();
   }, [loadNotifications]);
+
+  // The dropdown is an unread-only inbox: once every item is read, it empties
+  // out instead of keeping stale rows around. The full snapshot (`items`) is
+  // untouched — /dashboard/notifications still shows read+unread history.
+  const previewItems = selectUnreadPreview(items, PREVIEW_LIMIT);
 
   async function handleMarkAllRead() {
     if (markingAll || count === 0) return;
@@ -87,7 +92,7 @@ export function NotificationBell() {
                 aria-label="Mark all as read"
                 disabled={markingAll}
                 onClick={handleMarkAllRead}
-                className="h-8 w-8"
+                className="h-9 w-9"
               >
                 <CheckCheck className="h-4 w-4" aria-hidden="true" />
               </Button>
@@ -115,14 +120,20 @@ export function NotificationBell() {
               Try again
             </button>
           </div>
-        ) : items.length === 0 ? (
+        ) : previewItems.length === 0 ? (
           <div className="px-4 py-8 text-center">
-            <p className="text-sm font-medium text-text-primary">No notifications yet</p>
-            <p className="mt-1 text-xs text-text-secondary">Important workspace updates will appear here.</p>
+            <p className="text-sm font-medium text-text-primary">
+              {items.length > 0 ? "You are all caught up" : "No notifications yet"}
+            </p>
+            <p className="mt-1 text-xs text-text-secondary">
+              {items.length > 0
+                ? "No unread notifications right now."
+                : "Important workspace updates will appear here."}
+            </p>
           </div>
         ) : (
           <ul className="max-h-80 divide-y divide-border overflow-y-auto">
-            {items.slice(0, PREVIEW_LIMIT).map((notification) => {
+            {previewItems.map((notification) => {
               const Icon = NOTIFICATION_TYPE_ICON[notification.type];
               const content = (
                 <>
@@ -140,9 +151,8 @@ export function NotificationBell() {
                       {notification.body}
                     </span>
                   </span>
-                  {!notification.readAt ? (
-                    <span className="mt-2 h-2 w-2 shrink-0 rounded-full bg-text-primary" aria-label="Unread" />
-                  ) : null}
+                  {/* Every previewed row is unread by construction (selectUnreadPreview). */}
+                  <span className="mt-2 h-2 w-2 shrink-0 rounded-full bg-text-primary" aria-label="Unread" />
                 </>
               );
 
@@ -151,15 +161,13 @@ export function NotificationBell() {
                   {notification.href && isSafeLocalHref(notification.href) ? (
                     <Link
                       href={notification.href}
-                      className="flex gap-3 px-4 py-3 transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-blue"
+                      className="flex gap-3 bg-muted/40 px-4 py-3 transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-blue"
                       onClick={() => setOpen(false)}
                     >
                       {content}
                     </Link>
                   ) : (
-                    <div className={cn("flex gap-3 px-4 py-3", !notification.readAt && "bg-muted/40")}>
-                      {content}
-                    </div>
+                    <div className="flex gap-3 bg-muted/40 px-4 py-3">{content}</div>
                   )}
                 </li>
               );

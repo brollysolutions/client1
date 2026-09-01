@@ -1,5 +1,5 @@
-"""Public property/banner/offer/content-block read (docs/specs/public-property-catalog.md,
-docs/specs/public-banner-serving.md, docs/specs/public-offer-serving.md,
+"""Public property/banner/content-block read (docs/specs/public-property-catalog.md,
+docs/specs/public-banner-serving.md,
 docs/specs/public-content-block-serving.md).
 
 There is no anonymous Postgres role in this system: api_user is only ever
@@ -34,7 +34,6 @@ from sqlalchemy.orm import aliased
 
 from app.models.banner import Banner, BannerPlacement, BannerStatus, BannerTemplate, BannerType
 from app.models.content_block import ContentBlock, ContentStatus
-from app.models.offer import Offer, OfferStatus
 from app.models.property import Property
 
 PUBLIC_CATALOG_PER_CATEGORY = 12
@@ -109,7 +108,7 @@ async def get_public_property(db: AsyncSession, property_id: UUID) -> Property |
 
 async def list_public_banners(
     db: AsyncSession, placement: BannerPlacement = BannerPlacement.HOMEPAGE
-) -> Sequence[tuple[Banner, BannerTemplate | None, Offer | None, Property | None]]:
+) -> Sequence[tuple[Banner, BannerTemplate | None, Property | None]]:
     """The banner analogue of list_public_properties -- same no-RLS reasoning
     (module docstring above), different predicate shape. Three things this
     WHERE clause does beyond "status == live":
@@ -143,94 +142,25 @@ async def list_public_banners(
        that doesn't exist.
     """
     stmt = (
-        select(Banner, BannerTemplate, Offer, Property)
+        select(Banner, BannerTemplate, Property)
         .outerjoin(BannerTemplate, BannerTemplate.id == Banner.template_id)
-        .outerjoin(Offer, Offer.id == Banner.offer_id)
         .outerjoin(Property, Property.id == Banner.property_id)
         .where(
             # This predicate IS the access control on this route. No RLS runs here.
             Banner.status == BannerStatus.LIVE,
+            Banner.removed_at.is_(None),
             Banner.banner_type.in_((BannerType.DEFAULT, BannerType.ACTION)),
             Banner.audience_rules == {},
             Banner.placement == placement,
             or_(Banner.property_id.is_(None), Property.active.is_(True)),
             or_(Banner.starts_at.is_(None), Banner.starts_at <= func.now()),
             or_(Banner.ends_at.is_(None), Banner.ends_at > func.now()),
-            or_(
-                Banner.offer_id.is_(None),
-                (
-                    (Offer.status == OfferStatus.ACTIVE)
-                    & (Offer.audience_rules == {})
-                    & or_(Offer.starts_at.is_(None), Offer.starts_at <= func.now())
-                    & or_(Offer.ends_at.is_(None), Offer.ends_at > func.now())
-                ),
-            ),
         )
         .order_by(Banner.priority.desc(), Banner.created_at.asc(), Banner.id.asc())
         .limit(PUBLIC_BANNERS_LIMIT_BY_PLACEMENT[placement])
     )
     result = await db.execute(stmt)
     return result.all()
-
-
-# Capped PER business_line (not a flat LIMIT) via a row_number() window, same
-# shape as PUBLIC_CATALOG_PER_CATEGORY above -- NOT the same shape as
-# PUBLIC_BANNERS_LIMIT. The partition axis exists precisely BECAUSE the web
-# layer splits offers into a per-line strip (/loans, /real-estate): a flat
-# cap ordered newest-first lets one line's publishing volume starve the
-# other's out of the response entirely. The per-line ceiling prevents that
-# crowd-out even as active rows accumulate. Ceiling is 3 * 8 = 24 rows.
-PUBLIC_OFFERS_PER_LINE = 8
-
-
-async def list_public_offers(db: AsyncSession) -> Sequence[Offer]:
-    """The offer analogue of list_public_banners -- same no-RLS reasoning
-    (module docstring above). Differences from the banner query:
-
-    - Generic offers only: a canonical empty audience_rules object is public;
-      every non-empty rule set is reserved for authenticated matching.
-    - business_line IS exposed on PublicOfferRead (unlike PublicBannerRead):
-      offers are genuinely line-scoped and the frontend renders a separate
-      strip per line, reading business_line to decide which one(s) an offer
-      belongs in.
-    - starts_at/ends_at re-check is defence in depth only, not the access
-      control (status == ACTIVE is) -- guards against
-      app/jobs/cms_activation.py's scheduler container lagging or being
-      down. Same exact-complement boundary convention as banners: inclusive
-      start (starts_at <= now()), exclusive end (ends_at > now()). Changing
-      either operator alone silently creates a gap or an overlap.
-    - Ordered newest-first (created_at DESC) within each line's partition so a
-      newly activated generic offer does not silently sit past the public cap.
-    """
-    ranked = (
-        select(
-            Offer,
-            func.row_number()
-            .over(
-                partition_by=Offer.business_line,
-                order_by=(Offer.created_at.desc(), Offer.id.desc()),
-            )
-            .label("rn"),
-        )
-        .where(
-            # This predicate IS the access control on this route. No RLS runs here.
-            Offer.status == OfferStatus.ACTIVE,
-            # Non-empty audience rules are authenticated-only. Existing rows
-            # are backfilled to {}, preserving the current public catalogue.
-            Offer.audience_rules == {},
-            or_(Offer.starts_at.is_(None), Offer.starts_at <= func.now()),
-            or_(Offer.ends_at.is_(None), Offer.ends_at > func.now()),
-        )
-        .subquery()
-    )
-    o = aliased(Offer, ranked)
-    stmt = (
-        select(o)
-        .where(ranked.c.rn <= PUBLIC_OFFERS_PER_LINE)
-        .order_by(ranked.c.created_at.desc(), ranked.c.id.desc())
-    )
-    result = await db.execute(stmt)
-    return result.scalars().all()
 
 
 # Flat cap, same DoS-backstop role as PUBLIC_BANNERS_LIMIT -- no partition
@@ -241,7 +171,7 @@ PUBLIC_CONTENT_BLOCKS_LIMIT = 50
 
 
 async def list_public_content_blocks(db: AsyncSession) -> Sequence[ContentBlock]:
-    """The content-block analogue of list_public_banners/list_public_offers --
+    """The content-block analogue of list_public_banners --
     same no-RLS reasoning (module docstring above), but simpler than either:
 
     - No starts_at/ends_at re-check: unlike banners/offers, content_blocks has
@@ -255,7 +185,7 @@ async def list_public_content_blocks(db: AsyncSession) -> Sequence[ContentBlock]
       per-line strip of content blocks (yet) -- callers look a specific block
       up by its unique slug, so a flat cap is enough.
     - Ordered NEWEST-first (created_at DESC), not oldest-first: same
-      flat-cap-starvation reasoning as list_public_offers. A block is looked
+      flat-cap-starvation reasoning used by the other catalogues. A block is looked
       up by slug, not position, so ordering has no product meaning here --
       but PUBLIC_CONTENT_BLOCKS_LIMIT still exists as a DoS backstop, and an
       oldest-first order combined with any cap means a freshly published

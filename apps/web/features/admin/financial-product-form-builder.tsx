@@ -4,6 +4,7 @@ import { ArrowDown, ArrowUp, Plus, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { FieldError, RequiredIndicator } from "@/components/ui/field-error";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -70,11 +71,13 @@ export function FinancialProductFormBuilder({
   value,
   onChange,
   disabled = false,
+  errors = {},
 }: {
   category: ProductCategory;
   value: ProductFormDefinition;
   onChange: (value: ProductFormDefinition) => void;
   disabled?: boolean;
+  errors?: Record<string, string>;
 }) {
   function updateSection(index: number, patch: Partial<ProductFormDefinition["sections"][number]>) {
     const sections = value.sections.map((section, sectionIndex) =>
@@ -134,6 +137,7 @@ export function FinancialProductFormBuilder({
 
   return (
     <div className="space-y-5">
+      <FieldError id="product-form-definition-error">{errors.form}</FieldError>
       <div className="rounded-lg border border-border bg-muted/35 p-4 text-sm text-text-secondary">
         Full name and registered mobile number are filled securely from the client account and are
         always shown first. Configure only the additional information needed for this {category.replace("_", " ")} product.
@@ -144,13 +148,19 @@ export function FinancialProductFormBuilder({
           <div className="flex items-start gap-3">
             <div className="grid flex-1 gap-3 sm:grid-cols-2">
               <div className="grid gap-1.5">
-                <Label htmlFor={`section-title-${section.key}`}>Section title</Label>
+                <Label htmlFor={`section-title-${sectionIndex}`}>Section title<RequiredIndicator /></Label>
                 <Input
-                  id={`section-title-${section.key}`}
+                  id={`section-title-${sectionIndex}`}
                   value={section.title}
                   disabled={disabled}
+                  maxLength={120}
+                  aria-invalid={Boolean(errors[`section.${sectionIndex}.title`] || errors[`section.${sectionIndex}.key`])}
+                  aria-describedby={errors[`section.${sectionIndex}.title`] || errors[`section.${sectionIndex}.key`] ? `section-title-${sectionIndex}-error` : undefined}
                   onChange={(event) => updateSection(sectionIndex, { title: event.target.value })}
                 />
+                <FieldError id={`section-title-${sectionIndex}-error`}>
+                  {errors[`section.${sectionIndex}.title`] ?? errors[`section.${sectionIndex}.key`]}
+                </FieldError>
               </div>
               <div className="grid gap-1.5">
                 <Label htmlFor={`section-description-${section.key}`}>Description (optional)</Label>
@@ -158,10 +168,16 @@ export function FinancialProductFormBuilder({
                   id={`section-description-${section.key}`}
                   value={section.description ?? ""}
                   disabled={disabled}
+                  maxLength={240}
+                  aria-invalid={Boolean(errors[`section.${sectionIndex}.description`])}
+                  aria-describedby={errors[`section.${sectionIndex}.description`] ? `section-description-${section.key}-error` : undefined}
                   onChange={(event) =>
                     updateSection(sectionIndex, { description: event.target.value || null })
                   }
                 />
+                <FieldError id={`section-description-${section.key}-error`}>
+                  {errors[`section.${sectionIndex}.description`]}
+                </FieldError>
               </div>
             </div>
             <div className="flex gap-1">
@@ -223,7 +239,7 @@ export function FinancialProductFormBuilder({
               );
 
               return (
-                <div key={field.key} className="rounded-lg border border-border bg-card p-4">
+                <div key={`${field.key}-${fieldIndex}`} className="rounded-lg border border-border bg-card p-4">
                   {isCanonicalLoanAmount ? (
                     <p className="mb-3 text-xs text-text-secondary">
                       This loan amount field is always shown; its key, response type, and required
@@ -232,29 +248,41 @@ export function FinancialProductFormBuilder({
                   ) : null}
                   <div className="grid gap-3 md:grid-cols-2">
                     <div className="grid gap-1.5">
-                      <Label htmlFor={`field-label-${field.key}`}>Field label</Label>
+                      <Label htmlFor={`field-label-${sectionIndex}-${fieldIndex}`}>Field label<RequiredIndicator /></Label>
                       <Input
-                        id={`field-label-${field.key}`}
+                        id={`field-label-${sectionIndex}-${fieldIndex}`}
                         value={field.label}
                         disabled={disabled}
+                        maxLength={120}
+                        aria-invalid={Boolean(errors[`field.${sectionIndex}.${fieldIndex}.label`])}
+                        aria-describedby={errors[`field.${sectionIndex}.${fieldIndex}.label`] ? `field-label-${sectionIndex}-${fieldIndex}-error` : undefined}
                         onChange={(event) =>
                           updateField(sectionIndex, fieldIndex, { label: event.target.value })
                         }
                       />
+                      <FieldError id={`field-label-${sectionIndex}-${fieldIndex}-error`}>
+                        {errors[`field.${sectionIndex}.${fieldIndex}.label`]}
+                      </FieldError>
                     </div>
                     <div className="grid gap-1.5">
-                      <Label htmlFor={`field-key-${field.key}`}>Field key</Label>
+                      <Label htmlFor={`field-key-${sectionIndex}-${fieldIndex}`}>Field key<RequiredIndicator /></Label>
                       <Input
-                        id={`field-key-${field.key}`}
+                        id={`field-key-${sectionIndex}-${fieldIndex}`}
                         value={field.key}
                         pattern="[a-z][a-z0-9_]*"
                         disabled={disabled || isCanonicalLoanAmount}
+                        maxLength={64}
+                        aria-invalid={Boolean(errors[`field.${sectionIndex}.${fieldIndex}.key`])}
+                        aria-describedby={errors[`field.${sectionIndex}.${fieldIndex}.key`] ? `field-key-${sectionIndex}-${fieldIndex}-error` : undefined}
                         onChange={(event) =>
                           updateField(sectionIndex, fieldIndex, {
                             key: event.target.value.toLowerCase().replace(/[^a-z0-9_]/g, "_"),
                           })
                         }
                       />
+                      <FieldError id={`field-key-${sectionIndex}-${fieldIndex}-error`}>
+                        {errors[`field.${sectionIndex}.${fieldIndex}.key`]}
+                      </FieldError>
                     </div>
                     <div className="grid gap-1.5">
                       <Label htmlFor={`field-type-${field.key}`}>Response type</Label>
@@ -293,12 +321,18 @@ export function FinancialProductFormBuilder({
                         id={`field-help-${field.key}`}
                         value={field.help_text ?? ""}
                         disabled={disabled}
+                        maxLength={240}
+                        aria-invalid={Boolean(errors[`field.${sectionIndex}.${fieldIndex}.help`])}
+                        aria-describedby={errors[`field.${sectionIndex}.${fieldIndex}.help`] ? `field-help-${field.key}-error` : undefined}
                         onChange={(event) =>
                           updateField(sectionIndex, fieldIndex, {
                             help_text: event.target.value || null,
                           })
                         }
                       />
+                      <FieldError id={`field-help-${field.key}-error`}>
+                        {errors[`field.${sectionIndex}.${fieldIndex}.help`]}
+                      </FieldError>
                     </div>
                   </div>
 
@@ -310,6 +344,9 @@ export function FinancialProductFormBuilder({
                         value={optionLines(field)}
                         disabled={disabled}
                         rows={3}
+                        maxLength={6000}
+                        aria-invalid={Boolean(errors[`field.${sectionIndex}.${fieldIndex}.options`])}
+                        aria-describedby={errors[`field.${sectionIndex}.${fieldIndex}.options`] ? `field-options-${field.key}-error` : `field-options-${field.key}-help`}
                         placeholder={"salaried | Salaried\nself_employed | Self-employed"}
                         onChange={(event) =>
                           updateField(sectionIndex, fieldIndex, {
@@ -317,9 +354,12 @@ export function FinancialProductFormBuilder({
                           })
                         }
                       />
-                      <p className="text-xs text-text-secondary">
+                      <p id={`field-options-${field.key}-help`} className="text-xs text-text-secondary">
                         One option per line in the format key | Client-facing label.
                       </p>
+                      <FieldError id={`field-options-${field.key}-error`}>
+                        {errors[`field.${sectionIndex}.${fieldIndex}.options`]}
+                      </FieldError>
                     </div>
                   )}
 
@@ -356,7 +396,11 @@ export function FinancialProductFormBuilder({
                           });
                         }}
                       >
-                        <SelectTrigger id={`field-condition-${field.key}`}>
+                        <SelectTrigger
+                          id={`field-condition-${field.key}`}
+                          aria-invalid={Boolean(errors[`field.${sectionIndex}.${fieldIndex}.condition`])}
+                          aria-describedby={errors[`field.${sectionIndex}.${fieldIndex}.condition`] ? `field-condition-${field.key}-error` : undefined}
+                        >
                           <SelectValue placeholder="Always show" />
                         </SelectTrigger>
                         <SelectContent>
@@ -368,6 +412,9 @@ export function FinancialProductFormBuilder({
                           ))}
                         </SelectContent>
                       </Select>
+                      <FieldError id={`field-condition-${field.key}-error`}>
+                        {errors[`field.${sectionIndex}.${fieldIndex}.condition`]}
+                      </FieldError>
                     </div>
                     {controllingField && field.condition && (
                       <div className="grid gap-1.5 md:col-start-2">

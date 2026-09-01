@@ -95,6 +95,18 @@ def validate_provider_logo_key(logo_key: str | None) -> None:
         raise ProviderLogoInvalid
 
 
+async def delete_managed_provider_logo(logo_key: str | None) -> None:
+    """Best-effort cleanup for a provider row that was safely deleted.
+
+    Reviewed repository assets are shared code, not owned objects. Only a
+    canonical managed raster key belongs to the provider lifecycle.
+    """
+    if logo_key is None or not _MANAGED_LOGO_KEY.fullmatch(logo_key):
+        return
+    with suppress(Exception):
+        await asyncio.to_thread(storage.delete_object, logo_key)
+
+
 async def list_public_products(
     db: AsyncSession,
     *,

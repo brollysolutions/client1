@@ -2,7 +2,7 @@
 
 Status: **Derived reconciliation and later product amendment**
 
-As of: **2026-08-21**
+As of: **2026-08-29**
 
 Code baseline: `14773ae` ([PR #151](https://github.com/brollysolutions/client1/pull/151))
 
@@ -478,6 +478,33 @@ Source and approved interpretation:
 
 - [`property-specific-listing-forms-2026-08-21.md`](property-specific-listing-forms-2026-08-21.md)
 
+### CS-016 — Sub Admin-owned Campaign Studio and Media Library
+
+**Decision (2026-08-29):** The Sub Admin team owns banner, authenticated
+coupon-offer, banner-template, and reusable campaign-artwork authoring. Platform
+Admin does not edit campaign fields or browse the Media Library; Admin previews
+the production rendering, approves, requests changes with a note, and may
+soft-remove a campaign with a required audited reason. Creator identity remains
+immutable provenance while editable work is shared by the Sub Admin team.
+
+Both staff experiences reuse the production homepage, section, sponsor, and
+authenticated-dashboard renderers at desktop, tablet, and mobile widths.
+Provider logos remain Admin-governed inside Financial Providers, while property,
+KYC, loan, task, and other private operational media remain purpose-segregated.
+
+**Implementation status:** Implemented in
+[PR #259](https://github.com/brollysolutions/client1/pull/259) on
+`codex/20260828-222513-banners-and-offers-are-managed-by-subadmin`; verification
+evidence is recorded in the living plan and status ledger. The additive
+schema/RLS migration, generated contracts, Campaign
+Studio, approval desk, Media Library, serving exclusions, optimistic versions,
+maker notifications, usage-safe deletion, and three generated starter assets
+implement the decision without changing formal requirement coverage.
+
+Source and approved interpretation:
+
+- [`campaign-studio-media-library-2026-08-29.md`](campaign-studio-media-library-2026-08-29.md)
+
 ## 3. Previously open items settled by current behavior
 
 The following entries may still be labelled “open,” “assumed,” or “pending” in
@@ -492,7 +519,7 @@ explicitly changes it.
 | Telecaller field tasks | A Telecaller may raise a `document_collection` task for an assigned lead; the service assigns it to an active same-line or dual-line Employee by durable round robin, with scheduled no-capacity retry and inactive-assignee repair. Admin sees the relationship read-only. | [`api/v1/telecaller.py`](../../apps/api/app/api/v1/telecaller.py), [`services/telecaller.py`](../../apps/api/app/services/telecaller.py), [`services/employee_assignment.py`](../../apps/api/app/services/employee_assignment.py), [`test_employee_auto_assignment.py`](../../apps/api/app/tests/test_employee_auto_assignment.py) |
 | Document verification owner | A platform Admin verifies task and loan documents. The collecting Employee cannot self-verify. | [`api/v1/document_verification.py`](../../apps/api/app/api/v1/document_verification.py), [`models/task.py`](../../apps/api/app/models/task.py) |
 | Background-check representation | A task has one outcome: `clear`, `flagged`, or `inconclusive`; structured sub-checks are not part of the current model. | [`models/task.py`](../../apps/api/app/models/task.py), [`schemas/employee.py`](../../apps/api/app/schemas/employee.py) |
-| Website content approval | Sub Admin content blocks publish directly; there is no Admin approval gate. | [`api/v1/content.py`](../../apps/api/app/api/v1/content.py), [`test_content_blocks_api.py`](../../apps/api/app/tests/test_content_blocks_api.py) |
+| Website content approval | The staff Website content UI is intentionally removed for both Admin and Sub Admin. Existing content blocks and public rendering remain; at the retained backend boundary, Sub Admin content blocks publish directly with no Admin approval gate. | [`api/v1/content.py`](../../apps/api/app/api/v1/content.py), [`test_content_blocks_api.py`](../../apps/api/app/tests/test_content_blocks_api.py), [`nav-items.ts`](../../apps/web/features/dashboard/nav-items.ts) |
 | Banner precedence | Public banners sort by highest `priority`, then oldest `created_at`, then stable ID. | [`services/public_catalog.py`](../../apps/api/app/services/public_catalog.py), [`test_public_banners.py`](../../apps/api/app/tests/test_public_banners.py) |
 | Client status reasons | The API exposes `status_reason`, and the client loan UI renders it verbatim when present. | [`schemas/loans.py`](../../apps/api/app/schemas/loans.py), [`apps/web/lib/loans.ts`](../../apps/web/lib/loans.ts), [`loans-applications.tsx`](../../apps/web/features/dashboard/loans-applications.tsx) |
 | Referral payout execution | Sub Admin manages bonus configuration; creating the actual referral payout is restricted to platform Admin. | [`api/v1/referral_bonus.py`](../../apps/api/app/api/v1/referral_bonus.py), [`api/v1/referrals.py`](../../apps/api/app/api/v1/referrals.py) |

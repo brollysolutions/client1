@@ -20,11 +20,13 @@ import { SITE_NAME, SITE_URL } from "@/lib/site";
 export const revalidate = 300;
 
 export const metadata: Metadata = {
-  title: "Properties: Buy Verified Property in India",
+  title: "Properties: Buy or Rent Verified Property in India",
   description:
-    "Buy verified flats, plots, villas, and commercial spaces with trusted partners. See what you can buy and how we guide you from first visit to final paperwork.",
+    "Buy or rent verified flats, plots, villas, and commercial spaces with trusted partners. See what is available and how we guide you from first visit to final paperwork.",
   keywords: [
     "buy property",
+    "rent property",
+    "property for rent",
     "buy home",
     "buy flat",
     "buy plot",
@@ -34,7 +36,7 @@ export const metadata: Metadata = {
   ],
   alternates: { canonical: "/real-estate" },
   openGraph: {
-    title: "Properties: Buy Verified Property in India",
+    title: "Properties: Buy or Rent Verified Property in India",
     description:
       "Verified properties and trusted partners in one place, with one point of contact guiding you from first visit to final paperwork.",
     type: "website",
@@ -129,7 +131,7 @@ export default async function RealEstatePage({
                   <PropertyCatalogEmpty />
                 )}
                 <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-                  <TrustStrip eyebrow="Why people trust us" points={RE_TRUST} />
+                  <TrustStrip points={RE_TRUST} />
                 </div>
               </div>
             </div>

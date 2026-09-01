@@ -244,10 +244,18 @@ async def test_admin_approve(client: AsyncClient) -> None:
     body = res.json()
     assert body["status"] == "approved"
     assert body["approved_by_uuid"] == uid
+    notifications = await client.get(
+        "/api/v1/notifications",
+        headers={"Authorization": f"Bearer {_sub_admin_token(uid)}"},
+    )
+    assert any(
+        item["type"] == "campaign_approved" and item["href"] == "/dashboard/campaigns?type=banners"
+        for item in notifications.json()["notifications"]
+    )
 
 
 @pytest.mark.asyncio
-async def test_platform_admin_can_patch_a_banner(client: AsyncClient) -> None:
+async def test_platform_admin_cannot_author_or_patch_a_banner(client: AsyncClient) -> None:
     """PATCH is a sub_admin-only create-time-editing action (require_sub_admin);
     Admin's role in this flow is approve/reject only, never field edits."""
     _, owner_mobile = await full_registration(client, lines=["loans"])
@@ -260,13 +268,19 @@ async def test_platform_admin_can_patch_a_banner(client: AsyncClient) -> None:
     banner_id = created.json()["id"]
     _, admin_mobile = await full_registration(client, lines=["loans"])
     admin_uid = await _auth_user_uuid(admin_mobile)
+    create_res = await client.post(
+        "/api/v1/banners",
+        json=_PAYLOAD,
+        headers={"Authorization": f"Bearer {_admin_token(admin_uid)}"},
+    )
+    assert create_res.status_code == 403
+
     res = await client.patch(
         f"/api/v1/banners/{banner_id}",
         json={"title": "Admin correction"},
         headers={"Authorization": f"Bearer {_admin_token(admin_uid)}"},
     )
-    assert res.status_code == 200, res.text
-    assert res.json()["title"] == "Admin correction"
+    assert res.status_code == 403
 
 
 @pytest.mark.asyncio
@@ -331,6 +345,14 @@ async def test_reject_sets_note(client: AsyncClient) -> None:
     assert res.status_code == 200
     assert res.json()["status"] == "rejected"
     assert res.json()["review_note"] == "Image asset missing."
+    notifications = await client.get(
+        "/api/v1/notifications",
+        headers={"Authorization": f"Bearer {_sub_admin_token(uid)}"},
+    )
+    assert any(
+        item["type"] == "campaign_changes_requested"
+        for item in notifications.json()["notifications"]
+    )
 
 
 @pytest.mark.asyncio
@@ -460,7 +482,13 @@ async def test_sponsor_strip_campaign_is_not_locked_to_one_business_line(
 
     templates = await client.get("/api/v1/banners/templates", headers=headers)
     slots = [item for item in templates.json()["templates"] if item["placement"] == "homepage_ad"]
-    assert len(slots) == 1, "the strip seeds exactly one sponsor slot"
+    expected_themes = next(
+        categories
+        for placement, categories in CATEGORIES_BY_PLACEMENT.items()
+        if placement.value == "homepage_ad"
+    )
+    assert {item["category_key"] for item in slots} == set(expected_themes)
+    sponsor_template = next(item for item in slots if item["category_key"] == "sponsor")
 
     for line in ("loans", "real_estate"):
         created = await client.post(
@@ -469,7 +497,7 @@ async def test_sponsor_strip_campaign_is_not_locked_to_one_business_line(
                 **_PAYLOAD,
                 "business_line": line,
                 "placement": "homepage_ad",
-                "template_id": slots[0]["id"],
+                "template_id": sponsor_template["id"],
             },
             headers=headers,
         )
@@ -540,7 +568,7 @@ async def test_public_campaign_requires_active_matching_template(client: AsyncCl
         for item in templates.json()["templates"]
         if item["placement"] == "homepage" and item["category_key"] == "offers"
     )
-    missing_offer = await client.post(
+    generic_offer_artwork = await client.post(
         "/api/v1/banners",
         json={
             **_PAYLOAD,
@@ -549,7 +577,7 @@ async def test_public_campaign_requires_active_matching_template(client: AsyncCl
         },
         headers=headers,
     )
-    assert missing_offer.status_code == 422
+    assert generic_offer_artwork.status_code == 201, generic_offer_artwork.text
 
     import app.db.session as _session_mod
     from app.models.offer import Offer, OfferStatus
@@ -716,24 +744,83 @@ async def test_reviewed_campaign_replacement_archive_and_draft_delete(client: As
 
 
 @pytest.mark.asyncio
-async def test_template_upload_is_admin_only_and_uses_private_staging(client: AsyncClient) -> None:
+async def test_template_upload_is_sub_admin_only_and_uses_private_staging(
+    client: AsyncClient,
+) -> None:
     _, mobile = await full_registration(client, lines=["loans"])
     uid = await _auth_user_uuid(mobile)
     payload = {"content_type": "image/webp", "filename": "replacement.webp"}
-    denied = await client.post(
+    response = await client.post(
         "/api/v1/banners/templates/image-upload-url",
         json=payload,
         headers={"Authorization": f"Bearer {_sub_admin_token(uid)}"},
     )
-    assert denied.status_code == 403
+    assert response.status_code == 200, response.text
+    assert response.json()["object_key"].startswith("private/banner-templates/staging/")
 
-    response = await client.post(
+    denied = await client.post(
         "/api/v1/banners/templates/image-upload-url",
         json=payload,
         headers={"Authorization": f"Bearer {_admin_token(uid)}"},
     )
-    assert response.status_code == 200, response.text
-    assert response.json()["object_key"].startswith("private/banner-templates/staging/")
+    assert denied.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_banner_patch_rejects_a_stale_team_edit(client: AsyncClient) -> None:
+    _, mobile = await full_registration(client, lines=["loans"])
+    uid = await _auth_user_uuid(mobile)
+    headers = {"Authorization": f"Bearer {_sub_admin_token(uid)}"}
+    created = await client.post("/api/v1/banners", json=_PAYLOAD, headers=headers)
+    assert created.status_code == 201, created.text
+    banner = created.json()
+
+    first = await client.patch(
+        f"/api/v1/banners/{banner['id']}",
+        json={"title": "First team edit", "expected_version": banner["version"]},
+        headers=headers,
+    )
+    assert first.status_code == 200, first.text
+    assert first.json()["version"] == banner["version"] + 1
+
+    stale = await client.patch(
+        f"/api/v1/banners/{banner['id']}",
+        json={"title": "Stale overwrite", "expected_version": banner["version"]},
+        headers=headers,
+    )
+    assert stale.status_code == 409
+
+
+@pytest.mark.asyncio
+async def test_admin_soft_removes_reviewed_banner_and_it_leaves_queue(
+    client: AsyncClient,
+) -> None:
+    _, mobile = await full_registration(client, lines=["loans"])
+    uid = await _auth_user_uuid(mobile)
+    sub_headers = {"Authorization": f"Bearer {_sub_admin_token(uid)}"}
+    admin_headers = {"Authorization": f"Bearer {_admin_token(uid)}"}
+    created = await client.post("/api/v1/banners", json=_PAYLOAD, headers=sub_headers)
+    banner_id = created.json()["id"]
+    await client.post(f"/api/v1/banners/{banner_id}/submit", headers=sub_headers)
+
+    blank_reason = await client.post(
+        f"/api/v1/banners/{banner_id}/remove",
+        json={"note": "   "},
+        headers=admin_headers,
+    )
+    assert blank_reason.status_code == 422
+
+    removed = await client.post(
+        f"/api/v1/banners/{banner_id}/remove",
+        json={"note": "Campaign is no longer valid."},
+        headers=admin_headers,
+    )
+    assert removed.status_code == 200, removed.text
+    assert removed.json()["removed_at"] is not None
+    assert removed.json()["removal_reason"] == "Campaign is no longer valid."
+
+    queue = await client.get("/api/v1/banners", headers=admin_headers)
+    assert banner_id not in {item["id"] for item in queue.json()["banners"]}
 
 
 @pytest.mark.asyncio

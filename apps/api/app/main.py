@@ -22,9 +22,11 @@ from app.api.v1.admin_operations import router as admin_operations_router
 from app.api.v1.admin_vehicle_arrangements import router as admin_vehicle_arrangements_router
 from app.api.v1.agent import router as agent_router
 from app.api.v1.agent_applications import router as agent_applications_router
+from app.api.v1.agent_invites import router as agent_invites_router
 from app.api.v1.auth import router as auth_router
 from app.api.v1.banners import router as banners_router
 from app.api.v1.bookmarks import router as bookmarks_router
+from app.api.v1.campaign_media import router as campaign_media_router
 from app.api.v1.client_lead_details import router as client_lead_details_router
 from app.api.v1.commissions import router as commissions_router
 from app.api.v1.content import router as content_router
@@ -50,6 +52,7 @@ from app.api.v1.referral_bonus import router as referral_bonus_router
 from app.api.v1.referrals import router as referrals_router
 from app.api.v1.reporting import router as reporting_router
 from app.api.v1.site_visits import router as site_visits_router
+from app.api.v1.staff_invites import router as staff_invites_router
 from app.api.v1.sub_admin import router as sub_admin_router
 from app.api.v1.support_tickets import router as support_tickets_router
 from app.api.v1.telecaller import router as telecaller_router
@@ -59,6 +62,14 @@ from app.db.session import engine, get_db
 
 logger = logging.getLogger("app")
 logging.basicConfig(level=settings.LOG_LEVEL.upper())
+
+# Browser API requests are centralized in apps/web/lib/api/client.ts. Its
+# request type and the two direct-to-storage upload callers establish this
+# closed set: storage multipart POSTs bypass the API and have their own CORS
+# policy. Keep this list synchronized with that client boundary.
+CORS_ALLOW_METHODS = ("GET", "POST", "PUT", "PATCH", "DELETE")
+CORS_ALLOW_HEADERS = ("Authorization", "Content-Type", "X-Business-Line")
+CORS_EXPOSE_HEADERS = ("X-Report-Truncated",)
 
 
 @asynccontextmanager
@@ -93,8 +104,9 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.ALLOWED_ORIGINS,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=CORS_ALLOW_METHODS,
+    allow_headers=CORS_ALLOW_HEADERS,
+    expose_headers=CORS_EXPOSE_HEADERS,
 )
 
 app.include_router(auth_router, prefix="/api/v1/auth", tags=["auth"])
@@ -116,6 +128,10 @@ app.include_router(
     tags=["admin"],
 )
 app.include_router(leads_router, prefix="/api/v1/leads", tags=["leads"])
+# Anonymous: a provisioned staff member setting their own password from an
+# Admin-issued invite link. Rate-limited per IP inside the router.
+app.include_router(staff_invites_router, prefix="/api/v1/staff-invites", tags=["staff-invites"])
+app.include_router(agent_invites_router, prefix="/api/v1/agent-invites", tags=["agent-invites"])
 app.include_router(
     agent_applications_router, prefix="/api/v1/agent-applications", tags=["agent-applications"]
 )
@@ -154,6 +170,7 @@ app.include_router(
     tags=["employee"],
 )
 app.include_router(banners_router, prefix="/api/v1/banners", tags=["banners"])
+app.include_router(campaign_media_router, prefix="/api/v1/campaign-media", tags=["campaign-media"])
 app.include_router(offers_router, prefix="/api/v1/offers", tags=["offers"])
 app.include_router(
     personalization_router, prefix="/api/v1/personalization", tags=["personalization"]

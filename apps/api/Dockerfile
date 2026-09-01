@@ -1,40 +1,45 @@
-# Multi-stage: base → dev | prod
-# dev: uv creates /app/.venv (no UV_SYSTEM_PYTHON) so the named volume seeds correctly.
-# prod: UV_SYSTEM_PYTHON=1 installs to system Python; no venv needed in the final image.
+# Multi-stage: fixed Alpine base -> dev | deps -> prod.
+# The production image receives only the frozen virtualenv, never the uv binary
+# or a package-manager invocation at runtime.
 
-FROM python:3.12-slim AS base
+FROM python:3.12-alpine3.23@sha256:31a768b01976652c222e318fe5bd6e7c252f056cbf489c88fa256f1bf0af58e3 AS base
 WORKDIR /app
-
-COPY --from=ghcr.io/astral-sh/uv:0.5 /uv /uvx /bin/
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
 
-# Managed video is decoded and re-encoded before any playback URL exists.
-# Install the distribution-patched binaries in both dev and prod stages.
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends ffmpeg \
-    && rm -rf /var/lib/apt/lists/*
+# Refresh the vulnerable libraries reported in the reviewed base manifest while
+# keeping native media parsers out of the API and scheduler image.
+RUN apk add --no-cache --upgrade \
+    "libcrypto3=3.5.8-r0" \
+    "libssl3=3.5.8-r0" \
+    "sqlite-libs=3.53.4-r0"
+
+FROM ghcr.io/astral-sh/uv:0.5@sha256:7bff3c3776ec467fc1437960f2c469d8beb30f536a6465a3350c647ccd260ec2 AS uv-bin
 
 # ---------- dev ----------
 # No UV_SYSTEM_PYTHON here: uv creates /app/.venv so the api_venv named volume
 # in docker-compose.dev.yml is seeded from the image on first use, preventing
 # the host Windows .venv from leaking in through the source mount.
 FROM base AS dev
+COPY --from=uv-bin /uv /uvx /bin/
 COPY pyproject.toml uv.lock ./
 RUN uv sync --frozen --no-install-project
-# Source is volume-mounted; CMD is set in docker-compose.yml
+# Source is volume-mounted; CMD is set in docker-compose.yml.
 
-# ---------- prod ----------
-FROM base AS prod
-ENV UV_SYSTEM_PYTHON=1
+# ---------- production dependencies ----------
+FROM base AS deps
+COPY --from=uv-bin /uv /uvx /bin/
 COPY pyproject.toml uv.lock ./
 RUN uv sync --frozen --no-dev --no-install-project
 
-COPY . .
+# ---------- production runtime ----------
+FROM base AS prod
+RUN addgroup -S -g 101 app \
+    && adduser -S -D -H -u 100 -G app app
 
-RUN addgroup --system app \
-    && adduser --system --ingroup app --no-create-home app \
-    && chown -R app:app /app
+COPY --from=deps --chown=app:app /app/.venv /app/.venv
+COPY --chown=app:app . .
 
 USER app
+ENV PATH="/app/.venv/bin:${PATH}"

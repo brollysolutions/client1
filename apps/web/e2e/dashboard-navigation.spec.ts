@@ -52,8 +52,15 @@ const scenarios: readonly RoleScenario[] = [
   {
     name: "Sub Admin",
     promote: ["sub_admin"],
-    expected: ["Property listings", "Referral rules", "Banners", "Offers", "Website content"],
-    excluded: ["Financial products", "Leads", "Tasks"],
+    expected: [
+      "Property listings",
+      "Finance overview",
+      "Referral rules",
+      "Banners",
+      "Dashboard offers",
+      "Media library",
+    ],
+    excluded: ["Financial products", "Leads", "Tasks", "Website content"],
     deniedPath: "/dashboard/admin-leads",
   },
   {
@@ -61,11 +68,14 @@ const scenarios: readonly RoleScenario[] = [
     promote: ["admin"],
     expected: [
       "Lead assignments",
+      "Financial products",
       "Users & staff",
       "Payouts",
+      "Referral rules",
+      "Campaign approvals",
     ],
-    excluded: ["Financial products", "Leads", "Tasks", "Website content", "Audit log"],
-    deniedPath: "/dashboard/banners/new",
+    excluded: ["Leads", "Tasks", "Website content", "Audit log"],
+    deniedPath: "/dashboard/leads",
   },
 ];
 
@@ -235,6 +245,49 @@ test.describe("role-aware dashboard navigation", () => {
   // the login and dashboard routes before the role assertions begin.
   test.setTimeout(180_000);
 
+  test("Client dashboard supports bypass navigation and reduced motion", async ({ page, request }) => {
+    const account = await registerClient(request, 50);
+    try {
+      await logIn(page, account);
+
+      // The local Next.js dev toolbar owns a shadow-DOM Tab stop ahead of the
+      // application. Focus the app's source-ordered first link directly, then
+      // verify its visible state and destination behavior.
+      await page.goto("/dashboard");
+      const skipLink = page.getByRole("link", { name: "Skip to main content" });
+      await skipLink.focus();
+      await expect(skipLink).toBeFocused();
+      await expect
+        .poll(() => skipLink.evaluate((element) => element.getBoundingClientRect().top >= 0))
+        .toBe(true);
+      await page.keyboard.press("Enter");
+      await expect(page.locator("#dashboard-main-content")).toBeFocused();
+
+      await page.emulateMedia({ reducedMotion: "reduce" });
+      await expect
+        .poll(() =>
+          page
+            .locator("aside")
+            .first()
+            .evaluate((element) => getComputedStyle(element).transitionProperty),
+        )
+        .toBe("none");
+
+      await page.setViewportSize({ width: 390, height: 844 });
+      await page.getByRole("button", { name: "Open menu" }).click();
+      const mobileWorkspace = page.getByRole("dialog", { name: "Workspace" });
+      await expect(mobileWorkspace).toBeVisible();
+      await expect(mobileWorkspace.getByRole("navigation", { name: "Workspace" })).toBeVisible();
+      await mobileWorkspace.getByRole("button", { name: "Close" }).click();
+      await expect(mobileWorkspace).toBeHidden();
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(
+        true,
+      );
+    } finally {
+      await deleteAccount(request, account);
+    }
+  });
+
   for (const [index, scenario] of scenarios.entries()) {
     test(`${scenario.name} sees only its dashboard capabilities`, async ({ page, request }) => {
       const account = await registerClient(request, index + 100);
@@ -294,13 +347,25 @@ test.describe("role-aware dashboard navigation", () => {
         if (scenario.name === "Admin") {
           await page.goto("/dashboard/operations");
           await expect(page.getByRole("heading", { name: "Operational records", exact: true })).toBeVisible();
-          await expect(page.getByRole("searchbox", { name: "Search loaded operational records" })).toBeVisible();
+          await expect(page.getByRole("searchbox", { name: "Search operational records on this page" })).toBeVisible();
 
           await page.goto("/dashboard/users");
           await expect(page.getByRole("heading", { name: "Users & staff" })).toBeVisible();
-          await expect(page.getByRole("heading", { name: "Create staff account" })).toBeVisible();
           await expect(page.getByRole("heading", { name: "Staff access" })).toBeVisible();
-          await expect(page.locator("main form")).toBeVisible();
+          await page.getByRole("button", { name: "Create staff account", exact: true }).click();
+          const createStaffDialog = page.getByRole("dialog", { name: "Create staff account" });
+          await expect(createStaffDialog.locator("form")).toBeVisible();
+          await createStaffDialog.getByRole("button", { name: "Close staff creation" }).click();
+          await expect(createStaffDialog).toBeHidden();
+
+          await page.goto("/dashboard/campaign-approvals");
+          await expect(
+            page.getByRole("heading", { name: "Campaign approvals", exact: true }),
+          ).toBeVisible();
+          await expect(page.getByRole("button", { name: "New banner", exact: true })).toHaveCount(0);
+          await expect(page.getByRole("button", { name: "New offer", exact: true })).toHaveCount(0);
+          await page.goto("/dashboard/media-library");
+          await expect(page).toHaveURL(/\/dashboard$/);
         }
 
         await page.goto(scenario.deniedPath);
@@ -311,15 +376,12 @@ test.describe("role-aware dashboard navigation", () => {
     });
   }
 
-  test("Sub Admin retains every authoring route", async ({ page, request }) => {
+  test("Sub Admin retains supported authoring routes and retires duplicate pages", async ({ page, request }) => {
     const account = await registerClient(request, 200);
     try {
       promoteAccount(account, scenarios[4]);
       await logIn(page, account);
       for (const authoringRoute of [
-        { path: "/dashboard/banners/new", heading: "New banner", hasBackLink: true },
-        { path: "/dashboard/offers/new", heading: "New offer", hasBackLink: true },
-        { path: "/dashboard/content/new", heading: "New content block", hasBackLink: true },
         { path: "/dashboard/property-submit", heading: "Submit a property", hasBackLink: true },
         {
           path: "/dashboard/referral-rules",
@@ -338,6 +400,10 @@ test.describe("role-aware dashboard navigation", () => {
         }
         await expect(page).toHaveURL(new RegExp(`${authoringRoute.path}$`));
       }
+      for (const retiredPath of ["/dashboard/banners/new", "/dashboard/offers/new"]) {
+        await page.goto(retiredPath);
+        await expect(page.getByRole("heading", { name: "Page not found", exact: true })).toBeVisible();
+      }
     } finally {
       await deleteAccount(request, account);
     }
@@ -350,23 +416,38 @@ test.describe("role-aware dashboard navigation", () => {
       await logIn(page, account);
 
       for (const workspace of [
-        { path: "/dashboard/banners", button: "New banner", heading: "New banner" },
-        { path: "/dashboard/offers", button: "New offer", heading: "New offer" },
-        { path: "/dashboard/content", button: "New block", heading: "New content block" },
-        { path: "/dashboard/referral-rules", button: "New rule", heading: "New bonus rule" },
+        { path: "/dashboard/banners", button: "New banner", heading: "New banner", close: "Close workspace" },
+        { path: "/dashboard/offers", button: "New offer", heading: "New dashboard offer", close: "Close workspace" },
+        { path: "/dashboard/referral-rules", button: "New rule", heading: "New bonus rule", close: "Close referral rule workspace" },
       ]) {
         await page.goto(workspace.path);
         await page.getByRole("button", { name: workspace.button, exact: true }).click();
         const dialog = page.getByRole("dialog");
         await expect(dialog.getByRole("heading", { name: workspace.heading, exact: true }).first()).toBeVisible();
         await expect(dialog.locator("form")).toBeVisible();
-        await dialog.getByRole("button", { name: "Close workspace" }).first().click();
+        await dialog.getByRole("button", { name: workspace.close }).first().click();
         await expect(dialog).toBeHidden();
       }
 
-      await page.goto("/dashboard/content");
-      await page.getByRole("button", { name: "Content guide", exact: true }).click();
-      await expect(page.getByRole("heading", { name: "Website content guide", exact: true })).toBeVisible();
+      await page.goto("/dashboard/media-library");
+      await expect(
+        page.getByRole("heading", { name: "Campaign Media Library", exact: true }),
+      ).toBeVisible();
+      await expect(page.getByRole("button", { name: "Upload artwork", exact: true })).toBeVisible();
+      await expect(page.getByRole("searchbox", { name: "Search media" })).toBeVisible();
+
+      await page.goto("/dashboard/banner-media");
+      await expect(page).toHaveURL(/\/dashboard\/media-library$/);
+      await expect(
+        page.getByRole("heading", { name: "Campaign Media Library", exact: true }),
+      ).toBeVisible();
+
+      // Notification links written before banners and offers became separate
+      // pages still point at /dashboard/campaigns; they must keep resolving.
+      await page.goto("/dashboard/campaigns?type=offers");
+      await expect(page).toHaveURL(/\/dashboard\/offers$/);
+      await page.goto("/dashboard/campaigns?type=banners");
+      await expect(page).toHaveURL(/\/dashboard\/banners$/);
     } finally {
       await deleteAccount(request, account);
     }
@@ -473,7 +554,7 @@ test.describe("role-aware dashboard navigation", () => {
       await expect(page.getByRole("heading", { name: "Explore properties" })).toBeVisible();
       await expect(page.getByRole("button", { name: "Search", exact: true })).toBeVisible();
       await page.getByPlaceholder(/Search by locality/).fill("Baner");
-      await page.getByRole("option", { name: "Baner" }).click();
+      await page.getByRole("option", { name: "Baner", exact: true }).click();
       await expect(page.getByPlaceholder(/Search by locality/)).toHaveValue("Baner");
 
       for (const surface of [
@@ -654,18 +735,18 @@ test.describe("role-aware dashboard navigation", () => {
       await expect(page.getByText("Wakad Gardens").first()).toBeVisible();
       await expect(page.getByText("Baner Heights")).toHaveCount(0);
 
-      // Explore is now where the catalog-browsing surface lives: one carousel
-      // per category (moved here from the old Home), with no separate "Browse
-      // by property type" grid above them. A zero-listing category (houses,
-      // in this stub) still renders its own "No listings yet" state with a
-      // link into the category page, so it stays reachable instead of the row
-      // vanishing outright.
+      // Explore is where the live catalog-browsing surface lives: no separate
+      // Browse-by-type grid and no empty category bands. Home still carries
+      // the permanent category navigation cards, while Explore shows only
+      // categories represented by the live response.
       await page.goto("/dashboard/explore");
       await expect(page.getByRole("heading", { name: "Explore properties" })).toBeVisible();
-      await expect(
-        page.getByRole("link", { name: /Residential Houses/ }).first(),
-      ).toBeVisible();
-      await expect(page.getByText("No listings yet").first()).toBeVisible();
+      await expect(page.getByRole("heading", { name: "Residential Houses" })).toHaveCount(0);
+      await expect(page.getByText("No listings yet")).toHaveCount(0);
+      await expect(page.getByRole("link", { name: "View details" }).first()).toBeVisible();
+      await expect(page.getByRole("button", { name: "Add to compare" }).first()).toBeVisible();
+      await expect(page.getByText("Property preview")).toHaveCount(0);
+      await expect(page.getByRole("button", { name: "Enquire" })).toHaveCount(0);
       await expect(
         page.getByRole("combobox", { name: "Choose property location" }),
       ).toHaveCount(0);

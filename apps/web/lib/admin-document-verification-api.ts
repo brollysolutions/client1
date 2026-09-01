@@ -15,20 +15,40 @@ export type VerifiableDocument = Schemas["VerifiableDocumentRead"];
 export type DocumentSource = Schemas["DocumentSubjectRead"]["source"];
 export type DocumentVerifyRequest = Schemas["DocumentVerifyRequest"];
 
-export const DOCUMENT_SUBJECT_PAGE_LIMIT = 50;
+export const DOCUMENT_SUBJECT_PAGE_LIMIT = 25;
 
+export type DocumentSubjectPage = { subjects: DocumentSubject[]; total: number };
+
+export type DocumentSubjectQuery = {
+  onlyUnverified: boolean;
+  /** Server-side line scope; the route has always accepted it. */
+  businessLine?: "loans" | "real_estate";
+  offset?: number;
+};
+
+/**
+ * `total` is returned so the console can paginate. The route has always sent
+ * both it and an `offset`; this wrapper used to drop the count on the floor and
+ * request a flat 50 rows with no way to reach row 51.
+ */
 export async function listDocumentSubjects(
-  onlyUnverified: boolean,
-): Promise<ApiResponse<DocumentSubject[]>> {
+  query: DocumentSubjectQuery,
+): Promise<ApiResponse<DocumentSubjectPage>> {
   const params = new URLSearchParams({
-    only_unverified: String(onlyUnverified),
+    only_unverified: String(query.onlyUnverified),
     limit: String(DOCUMENT_SUBJECT_PAGE_LIMIT),
+    offset: String(query.offset ?? 0),
   });
+  if (query.businessLine) params.set("business_line", query.businessLine);
   const res = await apiRequest<Schemas["DocumentSubjectListResponse"]>(
     `/api/v1/admin/document-verification/subjects?${params}`,
   );
   if (!res.ok) return res;
-  return { ok: true, status: res.status, data: res.data.subjects };
+  return {
+    ok: true,
+    status: res.status,
+    data: { subjects: res.data.subjects, total: res.data.total },
+  };
 }
 
 export async function listVerifiableDocuments(

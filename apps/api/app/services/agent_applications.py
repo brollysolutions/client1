@@ -25,7 +25,7 @@ import re
 import uuid
 from datetime import UTC, datetime, timedelta
 
-from jose import JWTError
+from jwt import PyJWTError as JWTError
 from sqlalchemy import select, text
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 

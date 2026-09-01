@@ -61,7 +61,12 @@ function isNoRetryRequest(method: string, path: string): boolean {
 
 export type ApiResponse<T> =
   | { ok: true; data: T; status: number }
-  | { ok: false; error: string; status: number };
+  | { ok: false; error: string; status: number; issues?: ApiValidationIssue[] };
+
+export type ApiValidationIssue = {
+  field: string;
+  message: string;
+};
 
 type RequestOptions = {
   method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
@@ -89,6 +94,32 @@ function errorMessage(payload: unknown, status: number): string {
     }
   }
   return "Something didn't work. Please try again.";
+}
+
+function validationIssues(payload: unknown, status: number): ApiValidationIssue[] {
+  if (status !== 422) return [];
+  const detail = (payload as { detail?: unknown } | undefined)?.detail;
+  if (!Array.isArray(detail)) return [];
+
+  const issues: ApiValidationIssue[] = [];
+  for (const item of detail.slice(0, 50)) {
+    if (!item || typeof item !== "object") continue;
+    const { loc, msg } = item as { loc?: unknown; msg?: unknown };
+    if (!Array.isArray(loc) || typeof msg !== "string" || !msg.trim()) continue;
+    const segments = loc
+      .filter((segment): segment is string | number =>
+        typeof segment === "number" ||
+        (typeof segment === "string" && /^[A-Za-z0-9_-]+$/.test(segment)),
+      )
+      .filter((segment, index) =>
+        !(index === 0 && ["body", "query", "path", "header"].includes(String(segment))),
+      );
+    if (segments.length === 0) continue;
+    const field = segments.join(".").slice(0, 240);
+    const message = msg.trim().replace(/^Value error, /, "").slice(0, 500);
+    issues.push({ field, message });
+  }
+  return issues;
 }
 
 function safeParse(text: string): unknown {
@@ -159,7 +190,13 @@ export async function apiRequest<TResponse = undefined>(
 
   const payload = safeParse(await res.text());
   if (!res.ok) {
-    return { ok: false, status: res.status, error: errorMessage(payload, res.status) };
+    const issues = validationIssues(payload, res.status);
+    return {
+      ok: false,
+      status: res.status,
+      error: errorMessage(payload, res.status),
+      ...(issues.length > 0 ? { issues } : {}),
+    };
   }
   return { ok: true, status: res.status, data: payload as TResponse };
 }

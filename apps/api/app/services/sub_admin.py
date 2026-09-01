@@ -25,7 +25,9 @@ from app.models.transaction import Transaction, TransactionType
 from app.schemas.referral_bonus import ReferralPayoutActivityRead
 from app.schemas.sub_admin import PendingApprovalItem, SubAdminHomeResponse
 
-_PENDING_APPROVAL_LIMIT = 10
+# Matches admin_home._PENDING_QUEUE_LIMIT: the same queue seen from the author's
+# end, now rendered as a full-width table rather than a fixed-height scroll box.
+_PENDING_APPROVAL_LIMIT = 30
 _RECENT_PAYOUTS_LIMIT = 5
 
 
@@ -37,6 +39,7 @@ async def get_sub_admin_home(db: AsyncSession, auth_user_uuid: UUID) -> SubAdmin
                 .where(
                     Banner.created_by_uuid == auth_user_uuid,
                     Banner.status == BannerStatus.PENDING_APPROVAL,
+                    Banner.removed_at.is_(None),
                 )
                 .order_by(Banner.created_at.desc())
                 .limit(_PENDING_APPROVAL_LIMIT)
@@ -88,10 +91,14 @@ async def get_sub_admin_home(db: AsyncSession, auth_user_uuid: UUID) -> SubAdmin
     )[:_PENDING_APPROVAL_LIMIT]
 
     live_banners_count = await db.scalar(
-        select(func.count()).select_from(Banner).where(Banner.status == BannerStatus.LIVE)
+        select(func.count())
+        .select_from(Banner)
+        .where(Banner.status == BannerStatus.LIVE, Banner.removed_at.is_(None))
     )
     live_offers_count = await db.scalar(
-        select(func.count()).select_from(Offer).where(Offer.status == OfferStatus.ACTIVE)
+        select(func.count())
+        .select_from(Offer)
+        .where(Offer.status == OfferStatus.ACTIVE, Offer.removed_at.is_(None))
     )
     content_drafts_count = await db.scalar(
         select(func.count())

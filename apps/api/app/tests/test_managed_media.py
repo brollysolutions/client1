@@ -12,7 +12,7 @@ from sqlalchemy import select, text
 from app.models.loan_document import LoanDocument
 from app.models.task import TaskFeedbackMedia
 from app.services import managed_media, storage
-from app.services.media_processing import ScannerUnavailable
+from app.services.media_processing import MediaProcessorUnavailable, ScannerUnavailable
 
 from .test_employee_task_documents import _seed_employee, _seed_task
 
@@ -55,6 +55,32 @@ async def test_scanner_outage_requeues_and_removes_partial_output(
     monkeypatch.setattr(storage, "delete_object", deleted.append)
 
     assert await managed_media._process_one(LoanDocument, max_duration_seconds=120)
+    assert finishes == [{"retry": True}]
+    assert deleted == ["private/x/asset.mp4"]
+
+
+async def test_isolated_processor_outage_requeues_and_removes_partial_output(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    async def claim_one(_model: type):
+        return managed_media.UUID("00000000-0000-0000-0000-000000000001"), "private/x/upload.mp4"
+
+    finishes: list[dict] = []
+
+    async def finish(*_args, **kwargs) -> bool:
+        finishes.append(kwargs)
+        return True
+
+    def unavailable(*_args, **_kwargs):
+        raise MediaProcessorUnavailable
+
+    deleted: list[str] = []
+    monkeypatch.setattr(managed_media, "_claim_one", claim_one)
+    monkeypatch.setattr(managed_media, "_finish", finish)
+    monkeypatch.setattr(managed_media, "process_video_object", unavailable)
+    monkeypatch.setattr(storage, "delete_object", deleted.append)
+
+    assert await managed_media._process_one(LoanDocument, max_duration_seconds=60)
     assert finishes == [{"retry": True}]
     assert deleted == ["private/x/asset.mp4"]
 

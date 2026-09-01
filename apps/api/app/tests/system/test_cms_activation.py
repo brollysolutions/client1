@@ -21,6 +21,7 @@ from httpx import AsyncClient
 from sqlalchemy import delete, select, text
 
 from app.jobs.cms_activation import cms_activation
+from app.models.audit_log import AuditAction, AuditLog
 from app.models.banner import Banner, BannerPlacement, BannerStatus, BannerType
 from app.models.offer import Offer, OfferStatus
 from conftest import full_registration, unique_mobile
@@ -146,6 +147,24 @@ async def _offer_status(offer_id: str) -> str:
         row = await db.scalar(select(Offer).where(Offer.id == uuid.UUID(offer_id)))
         assert row is not None
         return row.status.value
+
+
+async def _offer_audit_actions(offer_id: str) -> list[AuditAction]:
+    import app.db.session as _session_mod
+
+    async with _session_mod.AsyncSessionLocal() as db:
+        return list(
+            (
+                await db.scalars(
+                    select(AuditLog.action)
+                    .where(
+                        AuditLog.entity_type == "offer",
+                        AuditLog.entity_uuid == uuid.UUID(offer_id),
+                    )
+                    .order_by(AuditLog.created_at.asc())
+                )
+            ).all()
+        )
 
 
 async def _delete_banners(*banner_ids: str) -> None:
@@ -322,6 +341,7 @@ async def test_scheduled_offer_activates(client: AsyncClient) -> None:
     try:
         await cms_activation()
         assert await _offer_status(offer_id) == "active"
+        assert AuditAction.OFFER_ACTIVATED in await _offer_audit_actions(offer_id)
     finally:
         await _delete_offers(offer_id)
 
@@ -356,6 +376,7 @@ async def test_active_offer_with_past_end_expires(client: AsyncClient) -> None:
     try:
         await cms_activation()
         assert await _offer_status(offer_id) == "expired"
+        assert AuditAction.OFFER_EXPIRED in await _offer_audit_actions(offer_id)
     finally:
         await _delete_offers(offer_id)
 
@@ -503,7 +524,7 @@ async def test_homepage_ad_replacement_is_safe_across_themes(client: AsyncClient
 
 
 @pytest.mark.asyncio
-async def test_offer_campaign_waits_for_linked_offer_to_be_active(client: AsyncClient) -> None:
+async def test_legacy_offer_link_does_not_gate_banner_activation(client: AsyncClient) -> None:
     author = await _author_uuid(client)
     offer_id = await _seed_offer(author=author, status=OfferStatus.DRAFT)
     banner_id = await _seed_banner(
@@ -515,16 +536,6 @@ async def test_offer_campaign_waits_for_linked_offer_to_be_active(client: AsyncC
     )
     try:
         await cms_activation()
-        assert await _banner_status(banner_id) == "approved"
-
-        import app.db.session as _session_mod
-
-        async with _session_mod.AsyncSessionLocal() as db:
-            offer = await db.get(Offer, uuid.UUID(offer_id))
-            assert offer is not None
-            offer.status = OfferStatus.ACTIVE
-            await db.commit()
-        await cms_activation()
         assert await _banner_status(banner_id) == "live"
     finally:
         await _delete_banners(banner_id)
@@ -532,7 +543,9 @@ async def test_offer_campaign_waits_for_linked_offer_to_be_active(client: AsyncC
 
 
 @pytest.mark.asyncio
-async def test_offer_campaign_with_targeted_offer_stays_approved(client: AsyncClient) -> None:
+async def test_legacy_targeted_offer_link_does_not_gate_banner_activation(
+    client: AsyncClient,
+) -> None:
     author = await _author_uuid(client)
     offer_id = await _seed_offer(
         author=author,
@@ -548,7 +561,7 @@ async def test_offer_campaign_with_targeted_offer_stays_approved(client: AsyncCl
     )
     try:
         await cms_activation()
-        assert await _banner_status(banner_id) == "approved"
+        assert await _banner_status(banner_id) == "live"
     finally:
         await _delete_banners(banner_id)
         await _delete_offers(offer_id)

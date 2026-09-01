@@ -675,6 +675,7 @@ async def test_create_bank(client: AsyncClient) -> None:
     assert body["name"] == name
     assert body["active"] is True
     assert body["application_count"] == 0
+    assert body["offer_count"] == 0
 
 
 @pytest.mark.asyncio
@@ -722,11 +723,68 @@ async def test_patch_bank_unknown_id_404(client: AsyncClient) -> None:
 
 
 @pytest.mark.asyncio
-async def test_delete_bank_not_allowed(client: AsyncClient) -> None:
+async def test_delete_unused_bank_succeeds_and_is_audited(client: AsyncClient) -> None:
     headers = await _admin_headers(client)
     bank = await _create_bank(client, headers)
     res = await client.delete(f"/api/v1/admin/banks/{bank['id']}", headers=headers)
-    assert res.status_code == 405
+    assert res.status_code == 204, res.text
+    listed = await client.get("/api/v1/admin/banks", headers=headers)
+    assert bank["id"] not in {row["id"] for row in listed.json()["banks"]}
+    audit = await _audit_row("bank_deleted", bank["id"])
+    assert audit is not None
+    assert audit["entity_type"] == "bank"
+
+
+@pytest.mark.asyncio
+async def test_delete_bank_with_provider_offer_is_blocked(client: AsyncClient) -> None:
+    headers = await _admin_headers(client)
+    product = await _create_loan_type(client, headers)
+    bank = await _create_bank(client, headers)
+    offer = await client.post(
+        "/api/v1/admin/product-provider-offers",
+        json={
+            "loan_type_id": product["id"],
+            "bank_id": bank["id"],
+            "offer_name": "Configured offer",
+        },
+        headers=headers,
+    )
+    assert offer.status_code == 201, offer.text
+
+    res = await client.delete(f"/api/v1/admin/banks/{bank['id']}", headers=headers)
+    assert res.status_code == 409
+    assert "Disable it instead" in res.json()["detail"]
+
+
+@pytest.mark.asyncio
+async def test_delete_bank_used_by_loan_application_is_blocked(client: AsyncClient) -> None:
+    headers = await _admin_headers(client)
+    bank = await _create_bank(client, headers)
+    auth_uuid, staff_uuid, application_id, _ = await _seed_progressing_application()
+    telecaller_headers = {"Authorization": f"Bearer {_telecaller_token(auth_uuid, staff_uuid)}"}
+    progressed = await client.patch(
+        f"/api/v1/telecaller/loan-applications/{application_id}",
+        json={"status": "submitted_to_bank"},
+        headers=telecaller_headers,
+    )
+    assert progressed.status_code == 200, progressed.text
+    assigned = await client.patch(
+        f"/api/v1/telecaller/loan-applications/{application_id}",
+        json={"bank_id": bank["id"]},
+        headers=telecaller_headers,
+    )
+    assert assigned.status_code == 200, assigned.text
+
+    res = await client.delete(f"/api/v1/admin/banks/{bank['id']}", headers=headers)
+    assert res.status_code == 409
+    assert "Disable it instead" in res.json()["detail"]
+
+
+@pytest.mark.asyncio
+async def test_delete_unknown_bank_is_404(client: AsyncClient) -> None:
+    headers = await _admin_headers(client)
+    res = await client.delete(f"/api/v1/admin/banks/{uuid.uuid4()}", headers=headers)
+    assert res.status_code == 404
 
 
 @pytest.mark.asyncio

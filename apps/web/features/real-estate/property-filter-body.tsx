@@ -14,6 +14,7 @@ import { SearchableSelect } from "@/components/ui/searchable-select";
 import { Slider } from "@/components/ui/slider";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { subtypeGroupsFor, visibleFacets } from "@/lib/property-facet-map";
+import { LISTING_INTENT_OPTIONS } from "@/lib/property-submit";
 import {
   AMENITIES,
   BHK_OPTIONS,
@@ -34,7 +35,7 @@ import {
 // Sections that carry the most intent are open on mount; the long tail
 // (amenities, city, locality) starts collapsed so the sheet stays scannable at
 // 390px instead of running to several screens of scroll.
-const DEFAULT_OPEN = ["type", "subtype", "budget", "bedrooms"];
+const DEFAULT_OPEN = ["intent", "type", "subtype", "budget", "bedrooms"];
 
 // Shell-agnostic grouped facet controls. Rendered inside PropertyFilterSheet;
 // kept separate so the facet set can be reused (e.g. in a future desktop
@@ -98,6 +99,26 @@ export function PropertyFilterBody({
 
   return (
     <Accordion type="multiple" defaultValue={DEFAULT_OPEN} className="w-full">
+      {/* First facet: sale and rent listings price on different scales, so
+          narrowing intent is what makes the price facet below meaningful. */}
+      <FacetSection value="intent" heading="Listing for" count={filters.intent?.length ?? 0}>
+        <ToggleGroup
+          type="multiple"
+          value={filters.intent ?? []}
+          onValueChange={(value) =>
+            setFilters({
+              intent: value.length ? (value as NonNullable<PropertyFilters["intent"]>) : undefined,
+            })
+          }
+        >
+          {LISTING_INTENT_OPTIONS.map((option) => (
+            <ToggleGroupItem key={option.value} value={option.value}>
+              {option.label}
+            </ToggleGroupItem>
+          ))}
+        </ToggleGroup>
+      </FacetSection>
+
       {lockedCategory ? null : (
         <FacetSection value="type" heading="Property type" count={filters.categories?.length ?? 0}>
           <ToggleGroup

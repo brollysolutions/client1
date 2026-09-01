@@ -32,6 +32,7 @@ const CAPABILITIES = {
   subAdmin: { roles: ["sub_admin"] },
   admin: { roles: ["admin"] },
   payouts: { roles: ["admin", "sub_admin"], staffFeature: "payout_requests" },
+  subAdminPayouts: { roles: ["sub_admin"], staffFeature: "payout_requests" },
   cms: { roles: ["sub_admin", "admin"] },
   referralRules: { roles: ["sub_admin", "admin"] },
 } as const satisfies Record<
@@ -258,6 +259,30 @@ export const NAV_ITEMS: readonly NavItem[] = [
     section: "operations",
   },
   {
+    key: "sub-admin-listing-submit",
+    label: "Submit a listing",
+    href: "/dashboard/property-submit",
+    icon: DASHBOARD_ICONS.propertySubmit,
+    capability: "subAdmin",
+    section: "operations",
+  },
+  {
+    key: "sub-admin-finance",
+    label: "Finance overview",
+    href: "/dashboard/finance",
+    icon: DASHBOARD_ICONS.payouts,
+    capability: "subAdmin",
+    section: "finance",
+  },
+  {
+    key: "sub-admin-payouts",
+    label: "Payout requests",
+    href: "/dashboard/payouts",
+    icon: DASHBOARD_ICONS.payouts,
+    capability: "subAdminPayouts",
+    section: "finance",
+  },
+  {
     key: "sub-admin-referral-rules",
     label: "Referral rules",
     href: "/dashboard/referral-rules",
@@ -266,35 +291,39 @@ export const NAV_ITEMS: readonly NavItem[] = [
     section: "finance",
   },
 
-  // Shared CMS views. Sub Admin authors; Admin reviews or oversees according
-  // to the existing route/API behavior.
+  // Campaign production and maker/checker review are intentionally separate.
   {
-    key: "banners",
+    key: "campaign-banners",
     label: "Banners",
     href: "/dashboard/banners",
     icon: DASHBOARD_ICONS.banners,
-    capability: "cms",
-    section: "content",
-  },
-  {
-    key: "offers",
-    label: "Offers",
-    href: "/dashboard/offers",
-    icon: DASHBOARD_ICONS.offers,
-    capability: "cms",
-    section: "content",
-  },
-  {
-    key: "content",
-    label: "Website content",
-    href: "/dashboard/content",
-    icon: DASHBOARD_ICONS.websiteContent,
-    // Admin retains its existing guarded oversight route, but this authoring
-    // workspace is intentionally not surfaced in the Admin navigation.
     capability: "subAdmin",
     section: "content",
   },
-
+  {
+    key: "campaign-offers",
+    label: "Dashboard offers",
+    href: "/dashboard/offers",
+    icon: DASHBOARD_ICONS.offers,
+    capability: "subAdmin",
+    section: "content",
+  },
+  {
+    key: "campaign-media",
+    label: "Media library",
+    href: "/dashboard/media-library",
+    icon: DASHBOARD_ICONS.websiteContent,
+    capability: "subAdmin",
+    section: "content",
+  },
+  {
+    key: "campaign-approvals",
+    label: "Campaign approvals",
+    href: "/dashboard/campaign-approvals",
+    icon: DASHBOARD_ICONS.documentVerification,
+    capability: "admin",
+    section: "content",
+  },
   // Admin operations.
   {
     key: "admin-leads",
@@ -395,19 +424,11 @@ export const NAV_ITEMS: readonly NavItem[] = [
     section: "people",
   },
   {
-    key: "admin-access-control",
-    label: "Access control",
-    href: "/dashboard/access-control",
-    icon: DASHBOARD_ICONS.accessControl,
-    capability: "admin",
-    section: "people",
-  },
-  {
     key: "admin-payouts",
     label: "Payouts",
     href: "/dashboard/payouts",
     icon: DASHBOARD_ICONS.payouts,
-    capability: "payouts",
+    capability: "admin",
     section: "finance",
   },
   {
@@ -466,16 +487,11 @@ export type DashboardRouteRule = {
   capabilities: readonly DashboardCapability[];
 };
 
-// Specific child routes must precede their parent prefix. For example, an
-// Admin can view /banners but only a Sub Admin can author /banners/new.
+// Specific child routes must precede their parent prefix.
 export const DASHBOARD_ROUTE_RULES: readonly DashboardRouteRule[] = [
   { path: "/dashboard", exact: true, capabilities: ["shared"] },
-  { path: "/dashboard/banners/new", exact: true, capabilities: ["subAdmin"] },
-  { path: "/dashboard/content/new", exact: true, capabilities: ["subAdmin"] },
   { path: "/dashboard/leads/new", exact: true, capabilities: ["agent"] },
-  { path: "/dashboard/offers/new", exact: true, capabilities: ["subAdmin"] },
   { path: "/dashboard/operations", exact: true, capabilities: ["admin"] },
-  { path: "/dashboard/access-control", exact: true, capabilities: ["admin"] },
   { path: "/dashboard/admin-leads", exact: true, capabilities: ["admin"] },
   { path: "/dashboard/admin-tasks", exact: true, capabilities: ["admin"] },
   { path: "/dashboard/agent", exact: true, capabilities: ["clientRealEstate"] },
@@ -483,12 +499,17 @@ export const DASHBOARD_ROUTE_RULES: readonly DashboardRouteRule[] = [
   { path: "/dashboard/analytics", exact: true, capabilities: ["admin"] },
   { path: "/dashboard/apply", exact: true, capabilities: ["clientLoans"] },
   { path: "/dashboard/audit-log", exact: true, capabilities: ["admin"] },
-  { path: "/dashboard/banners", capabilities: ["cms"] },
+  { path: "/dashboard/banners", exact: true, capabilities: ["cms"] },
+  { path: "/dashboard/banner-media", exact: true, capabilities: ["cms"] },
+  // /dashboard/campaigns is now a redirect that resolves pre-split notification
+  // links; both roles must be able to reach it to be forwarded on.
+  { path: "/dashboard/campaigns", exact: true, capabilities: ["cms"] },
+  { path: "/dashboard/campaign-approvals", exact: true, capabilities: ["admin"] },
+  { path: "/dashboard/media-library", exact: true, capabilities: ["subAdmin"] },
   { path: "/dashboard/bookmarks", exact: true, capabilities: ["clientRealEstate"] },
   { path: "/dashboard/broadcast", exact: true, capabilities: ["admin"] },
   { path: "/dashboard/commissions", exact: true, capabilities: ["admin"] },
   { path: "/dashboard/compare", exact: true, capabilities: ["clientRealEstate"] },
-  { path: "/dashboard/content", capabilities: ["cms"] },
   { path: "/dashboard/documents", exact: true, capabilities: ["clientLoans"] },
   {
     path: "/dashboard/document-verification",
@@ -500,6 +521,7 @@ export const DASHBOARD_ROUTE_RULES: readonly DashboardRouteRule[] = [
   { path: "/dashboard/properties", capabilities: ["client"] },
   { path: "/dashboard/explore", capabilities: ["client"] },
   { path: "/dashboard/fee-cashbacks", exact: true, capabilities: ["admin"] },
+  { path: "/dashboard/finance", exact: true, capabilities: ["subAdmin"] },
   { path: "/dashboard/leads", capabilities: ["agent", "telecaller"] },
   { path: "/dashboard/loan-applications", exact: true, capabilities: ["admin"] },
   { path: "/dashboard/loan-config", exact: true, capabilities: ["admin"] },
@@ -511,10 +533,10 @@ export const DASHBOARD_ROUTE_RULES: readonly DashboardRouteRule[] = [
     capabilities: ["agentRealEstate", "subAdmin", "admin"],
   },
   { path: "/dashboard/notifications", exact: true, capabilities: ["shared"] },
-  { path: "/dashboard/offers", capabilities: ["cms"] },
-  { path: "/dashboard/payouts", exact: true, capabilities: ["payouts"] },
+  { path: "/dashboard/offers", exact: true, capabilities: ["cms"] },
+  { path: "/dashboard/payouts", exact: true, capabilities: ["admin", "subAdminPayouts"] },
   { path: "/dashboard/property-deals", exact: true, capabilities: ["admin"] },
-  { path: "/dashboard/property-review", exact: true, capabilities: ["admin"] },
+  { path: "/dashboard/property-review", capabilities: ["admin"] },
   {
     path: "/dashboard/property-submit",
     exact: true,

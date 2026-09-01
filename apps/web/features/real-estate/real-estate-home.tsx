@@ -144,7 +144,7 @@ export function RealEstateHome() {
                 ref={inputRef}
                 value={query}
                 onValueChange={(value) => {
-                  setQuery(value);
+                  setQuery(value.slice(0, 100));
                   setSuggestionsOpen(true);
                 }}
                 onFocus={() => setSuggestionsOpen(true)}

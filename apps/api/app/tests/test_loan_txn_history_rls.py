@@ -122,6 +122,7 @@ async def _insert_txn_as(
     staff_profile_uuid: str = "",
     client_profile_uuid: str = "",
     platform_scope: str = "false",
+    bank_name: str | None = "Test Bank",
 ) -> str | None:
     """Attempt an INSERT under the given RLS context. Returns the new row id, or
     None if WITH CHECK silently rejected zero rows affected (shouldn't happen —
@@ -163,10 +164,10 @@ async def _insert_txn_as(
                 text(
                     "INSERT INTO loan_txn_history "
                     "(id, loan_application_uuid, business_line, bank_name, created_at) "
-                    "VALUES (gen_random_uuid(), :app_id, :bl, 'Test Bank', now()) "
+                    "VALUES (gen_random_uuid(), :app_id, :bl, :bank_name, now()) "
                     "RETURNING id"
                 ),
-                {"app_id": application_id, "bl": business_line},
+                {"app_id": application_id, "bl": business_line, "bank_name": bank_name},
             )
             row = result.fetchone()
             return str(row[0]) if row else None
@@ -240,6 +241,25 @@ async def test_assigned_telecaller_can_insert_and_see(client: AsyncClient) -> No
 
     rows = await _select_as(role="telecaller", staff_profile_uuid=staff_uuid)
     assert txn_id in [str(r["id"]) for r in rows]
+
+
+@pytest.mark.asyncio
+async def test_assigned_telecaller_cannot_insert_an_empty_transaction(
+    client: AsyncClient,
+) -> None:
+    _, staff_uuid = await _seed_staff_profile("telecaller", "loans")
+    _, application_id = await _seed_client_with_loan_application(
+        "loans", assigned_telecaller_staff_uuid=staff_uuid
+    )
+
+    with pytest.raises(DBAPIError, match="ck_loan_txn_history_not_empty"):
+        await _insert_txn_as(
+            application_id=application_id,
+            business_line="loans",
+            role="telecaller",
+            staff_profile_uuid=staff_uuid,
+            bank_name=None,
+        )
 
 
 @pytest.mark.asyncio

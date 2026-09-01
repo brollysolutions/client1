@@ -2,7 +2,7 @@
 
 Before this job existed, BannerStatus.LIVE and OfferStatus.EXPIRED were dead enum
 values: services/banners.py's approve_banner terminates at APPROVED, and
-services/offers.py's _TRANSITIONS map gives EXPIRED no incoming edge (it is
+services/offers.py's request transition maps give EXPIRED no incoming edge (it is
 scheduler-owned by design, see that module's comment). This job is that
 scheduler.
 
@@ -28,14 +28,12 @@ free, same as prune_expired_refresh_tokens
 break tests silently no more than it would break production, but it would
 add an unneeded conftest edit.
 
-Idempotent by construction: each UPDATE's WHERE clause tests the exact status
-the same UPDATE then overwrites, so a second run matches zero rows. No
-read-modify-write, so no lost update. max_instances=1 on the scheduler
-registration prevents overlapping runs; an overlap would be safe anyway (row
-locks serialize the two transactions, and the loser re-evaluates its predicate
-against the already-committed row, finding nothing left to do).
+Idempotent by construction: each operation selects only the exact source status
+it then overwrites while holding row locks, so a second run finds nothing left
+to do. max_instances=1 on the scheduler registration prevents overlapping
+runs; the row locks make an overlap safe as well.
 
-All four statements run in ONE transaction (banners then offers, activate
+All four lifecycle operations run in ONE transaction (banners then offers, activate
 before archive/expire within each): a single logical clock tick, so a banner
 and its companion offer that were both due at this tick flip together. Activate-
 before-archive also lets a banner or offer whose starts_at AND ends_at are
@@ -49,7 +47,7 @@ from __future__ import annotations
 import logging
 import time
 
-from sqlalchemy import or_, select, update
+from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql import func
 
@@ -69,6 +67,7 @@ async def _activate_banners(session: AsyncSession) -> int:
             select(Banner)
             .where(
                 Banner.status == BannerStatus.APPROVED,
+                Banner.removed_at.is_(None),
                 or_(Banner.starts_at.is_(None), Banner.starts_at <= func.now()),
             )
             .order_by(Banner.priority.desc(), Banner.created_at.asc(), Banner.id.asc())
@@ -89,13 +88,13 @@ async def _activate_banners(session: AsyncSession) -> int:
                 }
             ):
                 continue
-        if banner.offer_id is not None:
-            offer = await session.get(Offer, banner.offer_id)
-            if offer is None or offer.status != OfferStatus.ACTIVE or offer.audience_rules != {}:
-                continue
+        # Offer links are legacy metadata only. Coupons are now authenticated
+        # dashboard placements, so banner publication must not depend on the
+        # linked offer state or expose its code.
         if banner.category_key is not None:
             live_scope = [
                 Banner.status == BannerStatus.LIVE,
+                Banner.removed_at.is_(None),
                 Banner.placement == banner.placement,
             ]
             # Public sponsor themes share one physical slot. Every other
@@ -140,6 +139,7 @@ async def _archive_banners(session: AsyncSession) -> int:
             select(Banner)
             .where(
                 Banner.status == BannerStatus.LIVE,
+                Banner.removed_at.is_(None),
                 Banner.ends_at.is_not(None),
                 Banner.ends_at <= func.now(),
             )
@@ -163,31 +163,58 @@ async def _archive_banners(session: AsyncSession) -> int:
 
 
 async def _activate_offers(session: AsyncSession) -> int:
-    result = await session.execute(
-        update(Offer)
-        .where(
-            Offer.status == OfferStatus.SCHEDULED,
-            or_(Offer.starts_at.is_(None), Offer.starts_at <= func.now()),
+    offers = (
+        await session.scalars(
+            select(Offer)
+            .where(
+                Offer.status == OfferStatus.SCHEDULED,
+                Offer.removed_at.is_(None),
+                or_(Offer.starts_at.is_(None), Offer.starts_at <= func.now()),
+            )
+            .with_for_update()
         )
-        # Offer has no updated_at column, unlike Banner.
-        .values(status=OfferStatus.ACTIVE)
-        .execution_options(synchronize_session=False)
-    )
-    return result.rowcount
+    ).all()
+    for offer in offers:
+        offer.status = OfferStatus.ACTIVE
+        await record_audit(
+            session,
+            action=AuditAction.OFFER_ACTIVATED,
+            entity_type="offer",
+            entity_uuid=offer.id,
+            actor_uuid=None,
+            actor_role="system",
+            business_line=offer.business_line,
+            detail={"from_status": "scheduled", "to_status": "active", "scheduled": True},
+        )
+    return len(offers)
 
 
 async def _expire_offers(session: AsyncSession) -> int:
-    result = await session.execute(
-        update(Offer)
-        .where(
-            Offer.status == OfferStatus.ACTIVE,
-            Offer.ends_at.is_not(None),
-            Offer.ends_at <= func.now(),
+    offers = (
+        await session.scalars(
+            select(Offer)
+            .where(
+                Offer.status == OfferStatus.ACTIVE,
+                Offer.removed_at.is_(None),
+                Offer.ends_at.is_not(None),
+                Offer.ends_at <= func.now(),
+            )
+            .with_for_update()
         )
-        .values(status=OfferStatus.EXPIRED)
-        .execution_options(synchronize_session=False)
-    )
-    return result.rowcount
+    ).all()
+    for offer in offers:
+        offer.status = OfferStatus.EXPIRED
+        await record_audit(
+            session,
+            action=AuditAction.OFFER_EXPIRED,
+            entity_type="offer",
+            entity_uuid=offer.id,
+            actor_uuid=None,
+            actor_role="system",
+            business_line=offer.business_line,
+            detail={"from_status": "active", "to_status": "expired", "scheduled": True},
+        )
+    return len(offers)
 
 
 async def cms_activation() -> dict[str, int]:

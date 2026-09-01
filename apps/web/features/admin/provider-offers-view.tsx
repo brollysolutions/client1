@@ -1,185 +1,245 @@
 "use client";
 
 import * as React from "react";
-import { Inbox, Loader2, Plus } from "lucide-react";
+import Image from "next/image";
+import { ImageIcon, Landmark, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { FieldError, RequiredIndicator } from "@/components/ui/field-error";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
+  DataTable,
+  DataTablePrimaryCell,
+  type DataColumn,
+} from "@/features/dashboard/data-table";
+import { FetchError } from "@/features/dashboard/fetch-error";
+import {
+  EMPTY_FILTERS,
+  FilterBar,
+  matchesSearch,
+  type FilterBarValue,
+} from "@/features/dashboard/filter-bar";
+import { ListEmptyState, ListLoadingState, ListPagination } from "@/features/dashboard/list-states";
+import { StatusBadge, type StatusTone } from "@/features/dashboard/status-badge";
+import { useFilteredPage } from "@/features/dashboard/use-filtered-page";
+import { isAllowedAssetUrl } from "@/lib/allowed-asset-url";
+import { apiIssuesToFieldErrors, fieldErrorProps, focusFirstInvalidField, type FieldErrors } from "@/lib/form-validation";
+import {
+  getProviderPresentationState,
+  isAvailable,
+  type ProviderPresentationState,
+} from "@/lib/loan-config";
+import {
   createProviderOffer,
   listProviderOffers,
+  setBankAvailability,
   updateProviderOffer,
+  type AdminBank,
+  type AdminLoanType,
   type AdminProviderOffer,
 } from "@/lib/loan-config-api";
+import {
+  validateProviderOfferDraft,
+  type ProviderOfferDraftValues,
+  type ProviderOfferField,
+} from "@/lib/provider-offer-validation";
+import { useBankAvailability } from "./use-bank-availability";
 import { useBanks } from "./use-banks";
-import { useLoanTypes } from "./use-loan-types";
 
-type Draft = {
-  productId: string;
-  providerId: string;
-  name: string;
-  summary: string;
-  order: string;
-  minAmount: string;
-  maxAmount: string;
-  minRate: string;
-  maxRate: string;
-  minTenure: string;
-  maxTenure: string;
-  processingFee: string;
-  eligibility: string;
-  verifiedOn: string;
-  published: boolean;
-};
+type Draft = ProviderOfferDraftValues;
 
-const EMPTY: Draft = {
-  productId: "",
-  providerId: "",
-  name: "",
-  summary: "",
-  order: "1000",
-  minAmount: "",
-  maxAmount: "",
-  minRate: "",
-  maxRate: "",
-  minTenure: "",
-  maxTenure: "",
-  processingFee: "",
-  eligibility: "",
-  verifiedOn: "",
-  published: false,
-};
+const STATUS_OPTIONS = [
+  { value: "live", label: "Live on landing page" },
+  { value: "draft", label: "Draft offer" },
+  { value: "operational", label: "Operational only" },
+  { value: "unavailable", label: "Unavailable" },
+] as const;
 
-const OFFERS_PER_PAGE = 12;
+function emptyDraft(product: AdminLoanType, provider: AdminBank): Draft {
+  return {
+    productId: product.id,
+    providerId: provider.id,
+    name: `${provider.name} ${product.label}`,
+    summary: "",
+    order: "1000",
+    minAmount: "",
+    maxAmount: "",
+    minRate: "",
+    maxRate: "",
+    minTenure: "",
+    maxTenure: "",
+    processingFee: "",
+    eligibility: "",
+    verifiedOn: "",
+    published: false,
+  };
+}
+
+function draftFromOffer(offer: AdminProviderOffer): Draft {
+  return {
+    productId: offer.loan_type_id,
+    providerId: offer.bank_id,
+    name: offer.offer_name,
+    summary: offer.summary ?? "",
+    order: String(offer.display_order),
+    minAmount: offer.min_amount ?? "",
+    maxAmount: offer.max_amount ?? "",
+    minRate: offer.min_interest_rate ?? "",
+    maxRate: offer.max_interest_rate ?? "",
+    minTenure: offer.min_tenure_months == null ? "" : String(offer.min_tenure_months),
+    maxTenure: offer.max_tenure_months == null ? "" : String(offer.max_tenure_months),
+    processingFee: offer.processing_fee_text ?? "",
+    eligibility: offer.eligibility_summary ?? "",
+    verifiedOn: offer.last_verified_at?.slice(0, 10) ?? "",
+    published: offer.published,
+  };
+}
 
 function optionalNumber(value: string): number | null {
   return value.trim() ? Number(value) : null;
 }
 
-function toDateInput(value: string | null | undefined): string {
-  return value ? value.slice(0, 10) : "";
+const STATE_META: Record<ProviderPresentationState, { label: string; tone: StatusTone }> = {
+  live: { label: "Live on landing page", tone: "success" },
+  draft: { label: "Draft offer", tone: "warning" },
+  operational: { label: "Operational only", tone: "info" },
+  unavailable: { label: "Unavailable", tone: "neutral" },
+};
+
+function stateFor(
+  product: AdminLoanType,
+  provider: AdminBank,
+  offer: AdminProviderOffer | undefined,
+  operational: boolean,
+): ProviderPresentationState {
+  return getProviderPresentationState({
+    hasOffer: offer !== undefined,
+    offerPublished: offer?.published ?? false,
+    offerVerified: offer?.last_verified_at != null,
+    productActive: product.active,
+    productPublic: product.public_visible,
+    providerActive: provider.active,
+    operational,
+  });
 }
 
-export function ProviderOffersView() {
-  const { items: products } = useLoanTypes();
-  const { items: providers } = useBanks();
+export function ProviderOffersView({ product }: { product: AdminLoanType }) {
+  const { items: providers, loading: providersLoading, error: providersError, reload: reloadProviders } = useBanks();
+  const { matrix, loading: matrixLoading, error: matrixError, reload: reloadMatrix } = useBankAvailability();
   const [offers, setOffers] = React.useState<AdminProviderOffer[]>([]);
-  const [loading, setLoading] = React.useState(true);
-  const [loadError, setLoadError] = React.useState<string | null>(null);
-  const [query, setQuery] = React.useState("");
-  const [page, setPage] = React.useState(1);
-  const [active, setActive] = React.useState<AdminProviderOffer | null>(null);
-  const [dialogOpen, setDialogOpen] = React.useState(false);
-  const [draft, setDraft] = React.useState<Draft>(EMPTY);
+  const [offersLoading, setOffersLoading] = React.useState(true);
+  const [offersError, setOffersError] = React.useState<string | null>(null);
+  const [filters, setFilters] = React.useState<FilterBarValue>(EMPTY_FILTERS);
+  const [selected, setSelected] = React.useState<AdminBank | null>(null);
+  const [draft, setDraft] = React.useState<Draft | null>(null);
+  const [fieldErrors, setFieldErrors] = React.useState<FieldErrors<ProviderOfferField>>({});
+  const [formError, setFormError] = React.useState<string | null>(null);
   const [busy, setBusy] = React.useState(false);
+  const [availabilityBusy, setAvailabilityBusy] = React.useState(false);
+  const editorRef = React.useRef<HTMLDivElement>(null);
 
-  const reload = React.useCallback(async () => {
-    setLoading(true);
-    setLoadError(null);
+  const reloadOffers = React.useCallback(async () => {
+    setOffersLoading(true);
+    setOffersError(null);
     const response = await listProviderOffers();
-    setLoading(false);
-    if (response.ok) setOffers(response.data);
-    else {
-      setLoadError(response.error);
-      toast.error("Couldn't load provider offers", { description: response.error });
-    }
-  }, []);
-
-  const filteredOffers = React.useMemo(() => {
-    const normalized = query.trim().toLocaleLowerCase("en-IN");
-    if (!normalized) return offers;
-    return offers.filter((offer) =>
-      [offer.offer_name, offer.product_label, offer.provider_name].some((value) =>
-        value.toLocaleLowerCase("en-IN").includes(normalized),
-      ),
-    );
-  }, [offers, query]);
-  const pageCount = Math.max(1, Math.ceil(filteredOffers.length / OFFERS_PER_PAGE));
-  const visibleOffers = filteredOffers.slice(
-    (page - 1) * OFFERS_PER_PAGE,
-    page * OFFERS_PER_PAGE,
-  );
+    setOffersLoading(false);
+    if (response.ok) setOffers(response.data.filter((offer) => offer.loan_type_id === product.id));
+    else setOffersError(response.error);
+  }, [product.id]);
 
   React.useEffect(() => {
-    void reload();
-  }, [reload]);
+    setSelected(null);
+    setDraft(null);
+    void reloadOffers();
+  }, [reloadOffers]);
 
-  function openCreate() {
-    setActive(null);
-    setDraft(EMPTY);
-    setDialogOpen(true);
-  }
+  const offerByProvider = React.useMemo(
+    () => new Map(offers.map((offer) => [offer.bank_id, offer])),
+    [offers],
+  );
 
-  function openEdit(offer: AdminProviderOffer) {
-    setActive(offer);
-    setDraft({
-      productId: offer.loan_type_id,
-      providerId: offer.bank_id,
-      name: offer.offer_name,
-      summary: offer.summary ?? "",
-      order: String(offer.display_order),
-      minAmount: offer.min_amount === null ? "" : String(offer.min_amount),
-      maxAmount: offer.max_amount === null ? "" : String(offer.max_amount),
-      minRate: offer.min_interest_rate === null ? "" : String(offer.min_interest_rate),
-      maxRate: offer.max_interest_rate === null ? "" : String(offer.max_interest_rate),
-      minTenure: offer.min_tenure_months === null ? "" : String(offer.min_tenure_months),
-      maxTenure: offer.max_tenure_months === null ? "" : String(offer.max_tenure_months),
-      processingFee: offer.processing_fee_text ?? "",
-      eligibility: offer.eligibility_summary ?? "",
-      verifiedOn: toDateInput(offer.last_verified_at),
-      published: offer.published,
-    });
-    setDialogOpen(true);
+  const operationalFor = React.useCallback(
+    (providerId: string) => isAvailable(matrix?.entries ?? [], providerId, product.id),
+    [matrix?.entries, product.id],
+  );
+
+  const filteredProviders = React.useMemo(
+    () =>
+      providers.filter((provider) => {
+        const offer = offerByProvider.get(provider.id);
+        const state = stateFor(product, provider, offer, operationalFor(provider.id));
+        if (
+          filters.search &&
+          !matchesSearch(
+            `${provider.name} ${provider.legal_name ?? ""} ${provider.provider_type} ${offer?.offer_name ?? ""}`,
+            filters.search,
+          )
+        ) {
+          return false;
+        }
+        return filters.status === "all" || filters.status === state;
+      }),
+    [filters, offerByProvider, operationalFor, product, providers],
+  );
+
+  const page = useFilteredPage(filteredProviders, filters);
+  const loading = providersLoading || matrixLoading || offersLoading;
+  const loadError = providersError ?? matrixError ?? offersError;
+
+  function selectProvider(provider: AdminBank) {
+    const offer = offerByProvider.get(provider.id);
+    setSelected(provider);
+    setDraft(offer ? draftFromOffer(offer) : emptyDraft(product, provider));
+    setFieldErrors({});
+    setFormError(null);
   }
 
   function update<K extends keyof Draft>(key: K, value: Draft[K]) {
-    setDraft((current) => ({ ...current, [key]: value }));
+    setDraft((current) => (current ? { ...current, [key]: value } : current));
+    setFieldErrors((current) => {
+      if (!(key in current)) return current;
+      const next = { ...current };
+      delete next[key as ProviderOfferField];
+      return next;
+    });
+    setFormError(null);
   }
 
-  async function save() {
-    const displayOrder = Number(draft.order);
-    if (!draft.productId || !draft.providerId || !draft.name.trim()) {
-      toast.error("Choose a product and provider, then add an offer name");
+  async function setOperational(available: boolean) {
+    if (!selected) return;
+    setAvailabilityBusy(true);
+    const response = await setBankAvailability(selected.id, {
+      entries: [{ loan_type_id: product.id, available }],
+    });
+    setAvailabilityBusy(false);
+    if (!response.ok) {
+      toast.error("Couldn't update operational availability", { description: response.error });
       return;
     }
-    if (!Number.isInteger(displayOrder) || displayOrder < 0 || displayOrder > 10000) {
-      toast.error("Display order must be between 0 and 10,000");
-      return;
-    }
-    if (draft.published && !draft.verifiedOn) {
-      toast.error("Published offers need a verification date");
-      return;
-    }
-    const values = [
-      draft.minAmount,
-      draft.maxAmount,
-      draft.minRate,
-      draft.maxRate,
-      draft.minTenure,
-      draft.maxTenure,
-    ].filter(Boolean);
-    if (values.some((value) => !Number.isFinite(Number(value)))) {
-      toast.error("Enter valid numeric terms");
+    toast.success(available ? "Provider available to staff" : "Provider removed from staff assignment");
+    void reloadMatrix();
+  }
+
+  async function saveOffer() {
+    if (!draft || !selected) return;
+    const errors = validateProviderOfferDraft(draft);
+    setFieldErrors(errors);
+    setFormError(null);
+    if (Object.keys(errors).length > 0) {
+      requestAnimationFrame(() => {
+        if (editorRef.current) focusFirstInvalidField(editorRef.current);
+      });
       return;
     }
     const shared = {
       offer_name: draft.name.trim(),
       summary: draft.summary.trim() || null,
       published: draft.published,
-      display_order: displayOrder,
+      display_order: Number(draft.order),
       min_amount: optionalNumber(draft.minAmount),
       max_amount: optionalNumber(draft.maxAmount),
       min_interest_rate: optionalNumber(draft.minRate),
@@ -192,213 +252,336 @@ export function ProviderOffersView() {
         ? new Date(`${draft.verifiedOn}T00:00:00.000Z`).toISOString()
         : null,
     };
+    const existing = offerByProvider.get(selected.id);
     setBusy(true);
-    const response = active
-      ? await updateProviderOffer(active.id, shared)
+    const response = existing
+      ? await updateProviderOffer(existing.id, shared)
       : await createProviderOffer({
-          loan_type_id: draft.productId,
-          bank_id: draft.providerId,
+          loan_type_id: product.id,
+          bank_id: selected.id,
           ...shared,
         });
     setBusy(false);
     if (!response.ok) {
+      setFieldErrors(
+        apiIssuesToFieldErrors(response.issues, {
+          offer_name: "name",
+          summary: "summary",
+          display_order: "order",
+          min_amount: "minAmount",
+          max_amount: "maxAmount",
+          min_interest_rate: "minRate",
+          max_interest_rate: "maxRate",
+          min_tenure_months: "minTenure",
+          max_tenure_months: "maxTenure",
+          processing_fee_text: "processingFee",
+          eligibility_summary: "eligibility",
+          last_verified_at: "verifiedOn",
+        }),
+      );
+      setFormError(response.error);
       toast.error("Couldn't save provider offer", { description: response.error });
       return;
     }
-    toast.success(active ? "Provider offer updated" : "Provider offer added");
-    setDialogOpen(false);
-    void reload();
+    toast.success(existing ? "Provider offer updated" : "Provider offer created");
+    setDraft(draftFromOffer(response.data));
+    void reloadOffers();
   }
 
-  return (
-    <div className="space-y-4">
-      <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
-        <p className="text-sm text-text-secondary">
-          Explicit public product-provider options. Missing operational availability never
-          publishes a provider here, and no offer can contain an external lender link.
-        </p>
-        <Button size="sm" onClick={openCreate}>
-          <Plus className="h-4 w-4" aria-hidden />
-          New offer
-        </Button>
-      </div>
+  const columns = React.useMemo<readonly DataColumn<AdminBank>[]>(
+    () => [
+      {
+        key: "provider",
+        header: "Provider",
+        render: (provider) => (
+          <div className="flex items-center gap-3">
+            <span className="relative flex h-9 w-14 shrink-0 items-center justify-center overflow-hidden rounded-md border border-border bg-white">
+              {provider.logo_url && isAllowedAssetUrl(provider.logo_url) ? (
+                <Image src={provider.logo_url} alt="" fill sizes="56px" className="object-contain p-1" />
+              ) : (
+                <ImageIcon className="h-4 w-4 text-text-secondary" aria-hidden="true" />
+              )}
+            </span>
+            <DataTablePrimaryCell
+              title={provider.name}
+              subtitle={provider.provider_type.replaceAll("_", " ")}
+            />
+          </div>
+        ),
+      },
+      {
+        key: "operational",
+        header: "Staff assignment",
+        render: (provider) => (
+          <StatusBadge tone={operationalFor(provider.id) ? "info" : "neutral"}>
+            {operationalFor(provider.id) ? "Available" : "Unavailable"}
+          </StatusBadge>
+        ),
+      },
+      {
+        key: "public",
+        header: "Public state",
+        render: (provider) => {
+          const state = stateFor(
+            product,
+            provider,
+            offerByProvider.get(provider.id),
+            operationalFor(provider.id),
+          );
+          const meta = STATE_META[state];
+          return <StatusBadge tone={meta.tone}>{meta.label}</StatusBadge>;
+        },
+      },
+    ],
+    [offerByProvider, operationalFor, product],
+  );
 
-      {offers.length > 0 ? (
-        <div className="grid max-w-md gap-1.5">
-          <Label htmlFor="provider-offer-search">Search offers</Label>
-          <Input
-            id="provider-offer-search"
-            type="search"
-            value={query}
-            onChange={(event) => {
-              setQuery(event.target.value);
-              setPage(1);
-            }}
-            placeholder="Product, provider, or offer"
-          />
-        </div>
-      ) : null}
+  const selectedOffer = selected ? offerByProvider.get(selected.id) : undefined;
+  const canPublish = Boolean(product.active && product.public_visible && selected?.active);
+
+  return (
+    <div className="mx-auto max-w-[1320px] space-y-4 pb-6">
+      <section className="rounded-xl border border-brand-cta/25 bg-brand-cta-tint p-4">
+        <h2 className="font-semibold text-text-primary">One provider state, in one place</h2>
+        <p className="mt-1 text-sm leading-6 text-text-secondary">
+          Operational availability controls staff assignment. Only an explicit published offer
+          with a verification date can appear publicly; a missing availability override never
+          publishes a provider.
+        </p>
+      </section>
+
+      <FilterBar
+        value={filters}
+        onChange={setFilters}
+        searchLabel="Search providers for this product"
+        searchPlaceholder="Provider or offer name"
+        statusOptions={STATUS_OPTIONS}
+        statusLabel="provider states"
+        showLine={false}
+        showDates={false}
+      />
 
       {loading ? (
-        <div className="flex justify-center rounded-2xl border border-border bg-card py-16">
-          <Loader2 className="h-6 w-6 animate-spin text-brand-navy" aria-hidden />
-        </div>
+        <ListLoadingState rows={7} />
       ) : loadError ? (
-        <div className="rounded-2xl border border-border bg-card p-8 text-center">
-          <p className="text-sm text-text-secondary">{loadError}</p>
-          <Button variant="outline" className="mt-4" onClick={() => void reload()}>
-            Try again
-          </Button>
-        </div>
-      ) : offers.length === 0 ? (
-        <div className="rounded-2xl border border-border bg-card p-12 text-center">
-          <Inbox className="mx-auto h-8 w-8 text-text-secondary" aria-hidden />
-          <p className="mt-3 font-medium text-text-primary">No provider offers yet</p>
-          <p className="mt-1 text-sm text-text-secondary">
-            Add one after its provider identity and current terms have been verified.
-          </p>
-        </div>
-      ) : filteredOffers.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-border bg-card p-10 text-center">
-          <p className="font-medium text-text-primary">No offers match that search</p>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="mt-2"
-            onClick={() => setQuery("")}
-          >
-            Clear search
-          </Button>
-        </div>
+        <FetchError
+          status={null}
+          message={loadError}
+          onRetry={() => {
+            void reloadProviders();
+            void reloadMatrix();
+            void reloadOffers();
+          }}
+        />
+      ) : providers.length === 0 ? (
+        <ListEmptyState
+          icon={Landmark}
+          title="No providers in the library"
+          description="Add providers and verified logos from the Providers & logos surface first."
+        />
       ) : (
-        <>
-          <ul className="space-y-3">
-            {visibleOffers.map((offer) => (
-              <li key={offer.id}>
-                <button
-                  type="button"
-                  onClick={() => openEdit(offer)}
-                  className="flex w-full items-center justify-between gap-4 rounded-2xl border border-border bg-card p-4 text-left transition-colors hover:border-brand-cta focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-brand-cta/40"
-                >
-                  <div className="min-w-0">
-                    <p className="truncate font-medium text-text-primary">{offer.offer_name}</p>
-                    <p className="mt-1 truncate text-xs text-text-secondary">
-                      {offer.product_label} · {offer.provider_name} · order #{offer.display_order}
-                    </p>
-                    <p className="mt-1 text-xs text-text-secondary">
-                      {offer.last_verified_at
-                        ? `Verified ${new Date(offer.last_verified_at).toLocaleDateString("en-IN")}`
-                        : "Not verified"}
+        <div className="grid min-h-0 gap-5 xl:grid-cols-[minmax(0,0.95fr)_minmax(26rem,1.05fr)]">
+          <section className="overflow-hidden rounded-xl border border-border bg-card">
+            {filteredProviders.length === 0 ? (
+              <ListEmptyState
+                icon={Landmark}
+                title="No providers match these filters"
+                description="Clear or adjust the filters to return to the provider picker."
+                className="m-4"
+              />
+            ) : (
+              <>
+                <DataTable
+                  columns={columns}
+                  rows={page.pageRows}
+                  rowKey={(provider) => provider.id}
+                  onRowClick={selectProvider}
+                  rowActionLabel="Configure provider"
+                  minWidth="min-w-[650px]"
+                />
+                <div className="px-4 pb-4">
+                  <ListPagination page={page.page} total={page.total} onPageChange={page.setPage} />
+                </div>
+              </>
+            )}
+          </section>
+
+          <aside className="min-w-0 xl:sticky xl:top-0 xl:self-start">
+            {selected && draft ? (
+              <div ref={editorRef} className="space-y-5 rounded-xl border border-border bg-card p-5">
+                <div className="flex flex-wrap items-start justify-between gap-3 border-b border-border pb-4">
+                  <div>
+                    <h2 className="font-semibold text-text-primary">{selected.name}</h2>
+                    <p className="mt-1 text-sm text-text-secondary">
+                      {selectedOffer ? "Edit its product-specific offer." : "Create its first draft offer."}
                     </p>
                   </div>
-                  <Badge variant={offer.published ? "default" : "outline"}>
-                    {offer.published ? "Published" : "Draft"}
-                  </Badge>
-                </button>
-              </li>
-            ))}
-          </ul>
-          {pageCount > 1 ? (
-            <nav className="flex items-center justify-between gap-3" aria-label="Provider offers pages">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                disabled={page <= 1}
-                onClick={() => setPage((current) => Math.max(1, current - 1))}
-              >
-                Previous
-              </Button>
-              <span className="text-xs tabular-nums text-text-secondary">
-                Page {page} of {pageCount}
-              </span>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                disabled={page >= pageCount}
-                onClick={() => setPage((current) => Math.min(pageCount, current + 1))}
-              >
-                Next
-              </Button>
-            </nav>
-          ) : null}
-        </>
-      )}
+                  <StatusBadge tone={selected.active ? "success" : "neutral"}>
+                    {selected.active ? "Provider active" : "Provider disabled"}
+                  </StatusBadge>
+                </div>
 
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-h-[92vh] max-w-4xl overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>{active ? "Edit provider offer" : "New provider offer"}</DialogTitle>
-            <DialogDescription>
-              Public terms are informational and must be re-verified when they change.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="grid gap-1.5">
-              <Label htmlFor="offer-product">Financial product</Label>
-              <select id="offer-product" value={draft.productId} onChange={(event) => update("productId", event.target.value)} disabled={Boolean(active)} className="h-10 rounded-md border border-input bg-background px-3 text-sm">
-                <option value="">Choose product</option>
-                {products.map((product) => <option key={product.id} value={product.id}>{product.label}{product.public_visible ? "" : " (not public)"}</option>)}
-              </select>
-            </div>
-            <div className="grid gap-1.5">
-              <Label htmlFor="offer-provider">Provider</Label>
-              <select id="offer-provider" value={draft.providerId} onChange={(event) => update("providerId", event.target.value)} disabled={Boolean(active)} className="h-10 rounded-md border border-input bg-background px-3 text-sm">
-                <option value="">Choose provider</option>
-                {providers.map((provider) => <option key={provider.id} value={provider.id}>{provider.name}{provider.active ? "" : " (disabled)"}</option>)}
-              </select>
-            </div>
-            <div className="grid gap-1.5">
-              <Label htmlFor="offer-name">Offer label</Label>
-              <Input id="offer-name" value={draft.name} onChange={(event) => update("name", event.target.value)} maxLength={160} />
-            </div>
-            <div className="grid gap-1.5">
-              <Label htmlFor="offer-order">Display order</Label>
-              <Input id="offer-order" type="number" min={0} max={10000} value={draft.order} onChange={(event) => update("order", event.target.value)} />
-            </div>
-            <div className="grid gap-1.5 sm:col-span-2">
-              <Label htmlFor="offer-summary">Public summary</Label>
-              <Textarea id="offer-summary" value={draft.summary} onChange={(event) => update("summary", event.target.value)} maxLength={500} rows={3} />
-            </div>
-            {([
-              ["minAmount", "Minimum amount", "number"],
-              ["maxAmount", "Maximum amount", "number"],
-              ["minRate", "Minimum interest rate (%)", "number"],
-              ["maxRate", "Maximum interest rate (%)", "number"],
-              ["minTenure", "Minimum tenure (months)", "number"],
-              ["maxTenure", "Maximum tenure (months)", "number"],
-            ] as const).map(([key, label, type]) => (
-              <div key={key} className="grid gap-1.5">
-                <Label htmlFor={`offer-${key}`}>{label}</Label>
-                <Input id={`offer-${key}`} type={type} min={0} step={key.includes("Rate") ? "0.001" : "1"} value={draft[key]} onChange={(event) => update(key, event.target.value)} />
+                <div className="flex items-start gap-2 rounded-lg border border-border bg-muted/20 p-3">
+                  <Checkbox
+                    id={`operational-${selected.id}`}
+                    checked={operationalFor(selected.id)}
+                    disabled={availabilityBusy}
+                    onCheckedChange={(checked) => void setOperational(checked === true)}
+                  />
+                  <div>
+                    <Label htmlFor={`operational-${selected.id}`} className="font-normal">
+                      Operationally available to staff
+                    </Label>
+                    <p className="mt-1 text-xs leading-5 text-text-secondary">
+                      This affects assignment only. It does not make the provider public.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="grid gap-1.5 sm:col-span-2">
+                    <Label htmlFor="product-provider-offer-name">
+                      Offer label
+                      <RequiredIndicator />
+                    </Label>
+                    <Input
+                      id="product-provider-offer-name"
+                      value={draft.name}
+                      maxLength={160}
+                      onChange={(event) => update("name", event.target.value)}
+                      {...fieldErrorProps("product-provider-offer-name-error", fieldErrors.name)}
+                    />
+                    <FieldError id="product-provider-offer-name-error">{fieldErrors.name}</FieldError>
+                  </div>
+                  <div className="grid gap-1.5 sm:col-span-2">
+                    <Label htmlFor="product-provider-summary">Public summary</Label>
+                    <Textarea
+                      id="product-provider-summary"
+                      value={draft.summary}
+                      rows={3}
+                      maxLength={500}
+                      onChange={(event) => update("summary", event.target.value)}
+                      {...fieldErrorProps("product-provider-summary-error", fieldErrors.summary)}
+                    />
+                    <FieldError id="product-provider-summary-error">{fieldErrors.summary}</FieldError>
+                  </div>
+                  <div className="grid gap-1.5">
+                    <Label htmlFor="product-provider-order">Display order</Label>
+                    <Input
+                      id="product-provider-order"
+                      type="number"
+                      min={0}
+                      max={10_000}
+                      value={draft.order}
+                      onChange={(event) => update("order", event.target.value)}
+                      {...fieldErrorProps("product-provider-order-error", fieldErrors.order)}
+                    />
+                    <FieldError id="product-provider-order-error">{fieldErrors.order}</FieldError>
+                  </div>
+                  <div className="grid gap-1.5">
+                    <Label htmlFor="product-provider-verified">Last verified on</Label>
+                    <Input
+                      id="product-provider-verified"
+                      type="date"
+                      value={draft.verifiedOn}
+                      onChange={(event) => update("verifiedOn", event.target.value)}
+                      {...fieldErrorProps("product-provider-verified-error", fieldErrors.verifiedOn)}
+                    />
+                    <FieldError id="product-provider-verified-error">{fieldErrors.verifiedOn}</FieldError>
+                  </div>
+                  {(
+                    [
+                      ["minAmount", "Minimum amount", "0.01", 999_999_999_999.99],
+                      ["maxAmount", "Maximum amount", "0.01", 999_999_999_999.99],
+                      ["minRate", "Minimum interest rate (%)", "0.001", 100],
+                      ["maxRate", "Maximum interest rate (%)", "0.001", 100],
+                      ["minTenure", "Minimum tenure (months)", "1", 600],
+                      ["maxTenure", "Maximum tenure (months)", "1", 600],
+                    ] as const
+                  ).map(([key, label, step, max]) => (
+                    <div key={key} className="grid gap-1.5">
+                      <Label htmlFor={`product-provider-${key}`}>{label}</Label>
+                      <Input
+                        id={`product-provider-${key}`}
+                        type="number"
+                        min={key.includes("Tenure") ? 1 : 0}
+                        max={max}
+                        step={step}
+                        value={draft[key]}
+                        onChange={(event) => update(key, event.target.value)}
+                        {...fieldErrorProps(`product-provider-${key}-error`, fieldErrors[key])}
+                      />
+                      <FieldError id={`product-provider-${key}-error`}>{fieldErrors[key]}</FieldError>
+                    </div>
+                  ))}
+                  <div className="grid gap-1.5 sm:col-span-2">
+                    <Label htmlFor="product-provider-fee">Processing fee</Label>
+                    <Input
+                      id="product-provider-fee"
+                      value={draft.processingFee}
+                      maxLength={240}
+                      onChange={(event) => update("processingFee", event.target.value)}
+                      {...fieldErrorProps("product-provider-fee-error", fieldErrors.processingFee)}
+                    />
+                    <FieldError id="product-provider-fee-error">{fieldErrors.processingFee}</FieldError>
+                  </div>
+                  <div className="grid gap-1.5 sm:col-span-2">
+                    <Label htmlFor="product-provider-eligibility">Eligibility note</Label>
+                    <Textarea
+                      id="product-provider-eligibility"
+                      value={draft.eligibility}
+                      rows={3}
+                      maxLength={500}
+                      onChange={(event) => update("eligibility", event.target.value)}
+                      {...fieldErrorProps("product-provider-eligibility-error", fieldErrors.eligibility)}
+                    />
+                    <FieldError id="product-provider-eligibility-error">{fieldErrors.eligibility}</FieldError>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-2 rounded-lg border border-border p-3">
+                  <Checkbox
+                    id="product-provider-published"
+                    checked={draft.published}
+                    disabled={!canPublish && !draft.published}
+                    onCheckedChange={(checked) => update("published", checked === true)}
+                  />
+                  <div>
+                    <Label htmlFor="product-provider-published" className="font-normal">
+                      Live on the public product page
+                    </Label>
+                    <p className="mt-1 text-xs leading-5 text-text-secondary">
+                      {canPublish
+                        ? "Requires a verification date. Public display never follows operational availability."
+                        : "Activate and publish the product, and activate this provider, before publishing its offer."}
+                    </p>
+                  </div>
+                </div>
+
+                {formError ? (
+                  <p className="text-sm text-destructive" role="alert">
+                    {formError}
+                  </p>
+                ) : null}
+                <div className="flex justify-end">
+                  <Button onClick={() => void saveOffer()} disabled={busy}>
+                    {busy ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : null}
+                    {selectedOffer ? "Save offer" : "Create draft offer"}
+                  </Button>
+                </div>
               </div>
-            ))}
-            <div className="grid gap-1.5">
-              <Label htmlFor="offer-fee">Processing fee</Label>
-              <Input id="offer-fee" value={draft.processingFee} onChange={(event) => update("processingFee", event.target.value)} maxLength={240} />
-            </div>
-            <div className="grid gap-1.5">
-              <Label htmlFor="offer-verified">Last verified on</Label>
-              <Input id="offer-verified" type="date" value={draft.verifiedOn} onChange={(event) => update("verifiedOn", event.target.value)} />
-            </div>
-            <div className="grid gap-1.5 sm:col-span-2">
-              <Label htmlFor="offer-eligibility">Eligibility note</Label>
-              <Textarea id="offer-eligibility" value={draft.eligibility} onChange={(event) => update("eligibility", event.target.value)} maxLength={500} rows={3} />
-            </div>
-            <div className="flex items-center gap-2 sm:col-span-2">
-              <Checkbox id="offer-published" checked={draft.published} onCheckedChange={(checked) => update("published", checked === true)} />
-              <Label htmlFor="offer-published" className="font-normal">
-                Publish on the product page
-              </Label>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)} disabled={busy}>Cancel</Button>
-            <Button onClick={() => void save()} disabled={busy}>{busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}Save offer</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+            ) : (
+              <div className="rounded-xl border border-dashed border-border bg-card p-10 text-center">
+                <Landmark className="mx-auto h-6 w-6 text-text-secondary" aria-hidden="true" />
+                <h2 className="mt-3 font-semibold text-text-primary">Select a provider</h2>
+                <p className="mt-1 text-sm leading-6 text-text-secondary">
+                  Its operational availability and product-specific public offer will open here.
+                </p>
+              </div>
+            )}
+          </aside>
+        </div>
+      )}
     </div>
   );
 }

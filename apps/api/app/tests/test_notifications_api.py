@@ -70,15 +70,17 @@ async def test_list_empty_for_new_client(client: AsyncClient) -> None:
 
 
 @pytest.mark.asyncio
-async def test_site_visit_create_emits_one_notification(client: AsyncClient) -> None:
+async def test_site_visit_create_emits_one_notification(
+    client: AsyncClient, active_property_id: str
+) -> None:
     token, _ = await full_registration(client, lines=["real_estate"])
     headers = {"Authorization": f"Bearer {token}"}
 
-    await client.post(
+    created = await client.post(
         "/api/v1/site-visits",
         headers=headers,
         json={
-            "property_ref": "prop-42",
+            "property_ref": active_property_id,
             "title": "3BHK Villa",
             "locality": "Whitefield",
             "city": "Bengaluru",
@@ -88,6 +90,7 @@ async def test_site_visit_create_emits_one_notification(client: AsyncClient) -> 
             "preferred_time_slot": "morning",
         },
     )
+    assert created.status_code == 201, created.text
 
     listed = await client.get("/api/v1/notifications", headers=headers)
     notifications = listed.json()["notifications"]
@@ -100,7 +103,9 @@ async def test_site_visit_create_emits_one_notification(client: AsyncClient) -> 
 
 
 @pytest.mark.asyncio
-async def test_site_visit_cancel_emits_notification(client: AsyncClient) -> None:
+async def test_site_visit_cancel_emits_notification(
+    client: AsyncClient, active_property_id: str
+) -> None:
     token, _ = await full_registration(client, lines=["real_estate"])
     headers = {"Authorization": f"Bearer {token}"}
 
@@ -108,7 +113,7 @@ async def test_site_visit_cancel_emits_notification(client: AsyncClient) -> None
         "/api/v1/site-visits",
         headers=headers,
         json={
-            "property_ref": "prop-42",
+            "property_ref": active_property_id,
             "title": "3BHK Villa",
             "locality": "Whitefield",
             "city": "Bengaluru",
@@ -118,6 +123,7 @@ async def test_site_visit_cancel_emits_notification(client: AsyncClient) -> None
             "preferred_time_slot": "morning",
         },
     )
+    assert created.status_code == 201, created.text
     visit_id = created.json()["id"]
     await client.patch(f"/api/v1/site-visits/{visit_id}/cancel", headers=headers)
 

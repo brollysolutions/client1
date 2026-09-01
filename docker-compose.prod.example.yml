@@ -3,7 +3,9 @@
 # config from environment/secrets manager (never baked in), one dedicated scheduler instance.
 services:
   postgres:
-    image: postgres:18
+    # PostgreSQL 18.6 on Alpine 3.24; publish the reviewed wrapper from
+    # docker-compose.runtime-images.yml, then supply its registry manifest hash.
+    image: "${RUNTIME_IMAGE_REGISTRY?set RUNTIME_IMAGE_REGISTRY to the approved registry namespace}/postgres:18.6-alpine3.24-20260830@sha256:${POSTGRES_IMAGE_SHA256?set POSTGRES_IMAGE_SHA256 to the reviewed 64-character registry manifest hash}"
     environment:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
@@ -24,7 +26,8 @@ services:
     restart: always
 
   redis:
-    image: redis:8-alpine
+    # Redis 8.10.1 on supported Alpine 3.23; final manifest digest is mandatory.
+    image: "${RUNTIME_IMAGE_REGISTRY?set RUNTIME_IMAGE_REGISTRY to the approved registry namespace}/redis:8.10.1-alpine3.23-20260830@sha256:${REDIS_IMAGE_SHA256?set REDIS_IMAGE_SHA256 to the reviewed 64-character registry manifest hash}"
     command: ["redis-server", "--save", "", "--appendonly", "no"]
     deploy:
       resources:
@@ -38,7 +41,8 @@ services:
     restart: always
 
   clamav:
-    image: clamav/clamav:1.4
+    # ClamAV 1.4.6 LTS on Alpine 3.24; signatures remain persisted below.
+    image: "${RUNTIME_IMAGE_REGISTRY?set RUNTIME_IMAGE_REGISTRY to the approved registry namespace}/clamav:1.4.6-alpine3.24-20260830@sha256:${CLAMAV_IMAGE_SHA256?set CLAMAV_IMAGE_SHA256 to the reviewed 64-character registry manifest hash}"
     volumes:
       - clamav_data:/var/lib/clamav
     deploy:
@@ -54,7 +58,8 @@ services:
     restart: always
 
   pgbouncer:
-    image: edoburu/pgbouncer:v1.23.1-p3
+    # PgBouncer 1.25.2 on supported Alpine 3.23 (the prior 3.20 base is EOL).
+    image: "${RUNTIME_IMAGE_REGISTRY?set RUNTIME_IMAGE_REGISTRY to the approved registry namespace}/pgbouncer:1.25.2-alpine3.23-20260830@sha256:${PGBOUNCER_IMAGE_SHA256?set PGBOUNCER_IMAGE_SHA256 to the reviewed 64-character registry manifest hash}"
     environment:
       DB_HOST: postgres
       DB_PORT: "5432"
@@ -82,16 +87,52 @@ services:
       retries: 5
     restart: always
 
+  # This is the only image containing FFmpeg. It receives no application
+  # secrets or data-service network and has no persistent or host-mounted
+  # storage. A compromised parser is confined to bounded disposable input,
+  # output, and availability of this one worker.
+  media-runtime:
+    # Publish the reviewed worker from docker-compose.runtime-images.yml, then
+    # supply its final registry manifest hash. Production never builds it.
+    image: "${RUNTIME_IMAGE_REGISTRY?set RUNTIME_IMAGE_REGISTRY to the approved registry namespace}/media-runtime:python3.12-alpine3.23-ffmpeg8-20260831@sha256:${MEDIA_RUNTIME_IMAGE_SHA256?set MEDIA_RUNTIME_IMAGE_SHA256 to the reviewed 64-character registry manifest hash}"
+    init: true
+    user: "10001:10001"
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,mode=1770,uid=10001,gid=10001,noexec,nosuid,nodev
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    cpus: 1.0
+    mem_limit: 768m
+    pids_limit: 64
+    expose:
+      - "8080"
+    networks:
+      - media-control
+    restart: always
+
   api:
     build:
       context: ./apps/api
       target: prod
-    command: uv run --no-sync uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 4
+    init: true
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,mode=1770,uid=100,gid=101,noexec,nosuid,nodev
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 256
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 4
     env_file:
       - ./apps/api/.env.prod
     environment:
       MEDIA_MALWARE_SCAN_MODE: clamav
       CLAMAV_HOST: clamav
+      MEDIA_VIDEO_PROCESSOR_URL: http://media-runtime:8080
     depends_on:
       pgbouncer:
         condition: service_healthy
@@ -103,6 +144,7 @@ services:
       resources:
         limits:
           memory: 1G
+          pids: 256
     healthcheck:
       test: ["CMD", "python", "-c", "import json,sys,urllib.request; r=urllib.request.urlopen('http://localhost:8000/health', timeout=3); sys.exit(0 if r.status==200 and json.load(r).get('status')=='ok' else 1)"]
       interval: 15s
@@ -115,12 +157,24 @@ services:
     build:
       context: ./apps/api
       target: prod
-    command: uv run --no-sync python -m app.scheduler.main
+    init: true
+    read_only: true
+    tmpfs:
+      # Scheduler liveness is intentionally ephemeral and the healthcheck reads
+      # this same bounded path; application state remains in PostgreSQL/Redis.
+      - /tmp:size=64m,mode=1770,uid=100,gid=101,noexec,nosuid,nodev
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 128
+    command: python -m app.scheduler.main
     env_file:
       - ./apps/api/.env.prod
     environment:
       MEDIA_MALWARE_SCAN_MODE: clamav
       CLAMAV_HOST: clamav
+      MEDIA_VIDEO_PROCESSOR_URL: http://media-runtime:8080
     depends_on:
       pgbouncer:
         condition: service_healthy
@@ -128,11 +182,17 @@ services:
         condition: service_healthy
       clamav:
         condition: service_healthy
+      media-runtime:
+        condition: service_healthy
+    networks:
+      - default
+      - media-control
     deploy:
       replicas: 1   # exactly one scheduler instance — never scale this service
       resources:
         limits:
           memory: 1G
+          pids: 128
     healthcheck:
       test: ["CMD", "python", "-c", "import os,time,sys; f='/tmp/scheduler.alive'; sys.exit(0 if os.path.exists(f) and time.time()-os.path.getmtime(f)<150 else 1)"]
       interval: 30s
@@ -159,6 +219,14 @@ services:
         # The ? guard (not :?) errors only when UNSET, so the empty same-origin
         # value is allowed. The env_file below only sets RUNTIME (SSR) values.
         NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL?set NEXT_PUBLIC_API_BASE_URL for the prod web build (empty = same-origin behind nginx)}
+        # Required public identity. `|` separates lines in hours/address. The
+        # web image rejects missing values, placeholder hosts, malformed
+        # phone/email values, and a non-HTTPS site origin.
+        NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL?set NEXT_PUBLIC_SITE_URL to the canonical HTTPS public origin}
+        NEXT_PUBLIC_CONTACT_PHONE: ${NEXT_PUBLIC_CONTACT_PHONE?set NEXT_PUBLIC_CONTACT_PHONE to the verified public international phone number}
+        NEXT_PUBLIC_CONTACT_EMAIL: ${NEXT_PUBLIC_CONTACT_EMAIL?set NEXT_PUBLIC_CONTACT_EMAIL to the verified public support email}
+        NEXT_PUBLIC_CONTACT_HOURS: ${NEXT_PUBLIC_CONTACT_HOURS?set NEXT_PUBLIC_CONTACT_HOURS; use | between display lines}
+        NEXT_PUBLIC_CONTACT_ADDRESS: ${NEXT_PUBLIC_CONTACT_ADDRESS?set NEXT_PUBLIC_CONTACT_ADDRESS; use | between display lines}
         # Origin only (e.g. https://nyc3.digitaloceanspaces.com), same origin
         # SPACES_ENDPOINT_URL resolves to on the API side -- next.config.ts
         # turns this into next/image's remotePatterns entry for banner
@@ -169,6 +237,17 @@ services:
         # allows this value or dev's localhost:9000, and there's no way to
         # notice the gap short of a blank hero card.
         NEXT_PUBLIC_ASSET_HOST: ${NEXT_PUBLIC_ASSET_HOST?set NEXT_PUBLIC_ASSET_HOST to the storage endpoint origin banner images are served from}
+    init: true
+    read_only: true
+    tmpfs:
+      # Next ISR and image responses use the bounded memory cache configured in
+      # next.config.ts; general temporary work is confined to this path.
+      - /tmp:size=64m,mode=1770,uid=100,gid=101,noexec,nosuid,nodev
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 128
     # No command override: the standalone prod image's CMD is `node server.js`
     # (pnpm and package.json scripts are not present in that image).
     #
@@ -187,6 +266,7 @@ services:
       resources:
         limits:
           memory: 1G
+          pids: 128
     healthcheck:
       test: ["CMD", "node", "-e", "const net=require('net'); const s=net.connect(3000,'127.0.0.1',()=>process.exit(0)); s.setTimeout(3000,()=>process.exit(1)); s.on('error',()=>process.exit(1));"]
       interval: 15s
@@ -196,7 +276,8 @@ services:
     restart: always
 
   nginx:
-    image: nginx:1.27-alpine
+    # nginx 1.30.4 stable on Alpine 3.24; includes the July 2026 nginx fixes.
+    image: "${RUNTIME_IMAGE_REGISTRY?set RUNTIME_IMAGE_REGISTRY to the approved registry namespace}/nginx:1.30.4-alpine3.24-20260830@sha256:${NGINX_IMAGE_SHA256?set NGINX_IMAGE_SHA256 to the reviewed 64-character registry manifest hash}"
     ports:
       - "80:80"
       - "443:443"
@@ -222,3 +303,7 @@ services:
 volumes:
   postgres_data:
   clamav_data:
+
+networks:
+  media-control:
+    internal: true

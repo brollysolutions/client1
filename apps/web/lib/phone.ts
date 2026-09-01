@@ -29,3 +29,12 @@ export function formatMobile(raw: string): string {
   if (d.length !== 10) return raw;
   return `+91 ${d.slice(0, 5)} ${d.slice(5)}`;
 }
+
+// wa.me deep link for a stored mobile number, e.g. "9876543210" ->
+// "https://wa.me/919876543210". Goes through normalizeMobile first so this
+// works regardless of how the number happens to be stored, unlike a bare
+// digit-strip of the raw value.
+export function toWaHref(raw: string): string {
+  const d = normalizeMobile(raw);
+  return `https://wa.me/91${d}`;
+}

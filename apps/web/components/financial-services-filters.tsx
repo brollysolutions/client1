@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 // classic JSX transform used by the vitest setup can render this in tests.
 import * as React from "react";
 
+import { CLOSE_BUTTON_CLASS } from "@/components/ui/close-button";
 import { useDebounce } from "@/hooks/use-debounce";
 import type { CatalogueFacets } from "@/lib/financial-catalog";
 import {
@@ -32,7 +33,7 @@ import { cn } from "@/lib/utils";
 const DEBOUNCE_MS = 300;
 
 const PILL_BASE =
-  "inline-flex h-9 shrink-0 cursor-pointer items-center gap-1.5 rounded-full px-3.5 text-sm font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--nav-bg)] motion-reduce:transition-none";
+  "inline-flex h-9 shrink-0 cursor-pointer items-center gap-1.5 rounded-full px-3.5 text-sm font-medium transition-[background-color,border-color,color,box-shadow,transform] duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--nav-bg)] motion-reduce:transition-none";
 
 /** Focus shortcut. Matches the "/" convention used by developer tooling and
  *  is ignored while the reader is typing anywhere else on the page. */
@@ -168,6 +169,7 @@ export function FinancialServicesFilters({
             type="search"
             name="q"
             value={text}
+            maxLength={100}
             onChange={(event) => setText(event.target.value)}
             aria-label="Search financial services"
             aria-keyshortcuts={FOCUS_KEY}
@@ -179,7 +181,7 @@ export function FinancialServicesFilters({
               type="button"
               onClick={clearSearch}
               aria-label="Clear search"
-              className="absolute right-3 top-1/2 flex h-7 w-7 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full text-text-secondary transition-colors hover:bg-brand-blue/10 hover:text-brand-blue focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue motion-reduce:transition-none"
+              className={cn("absolute right-2 top-1/2 -translate-y-1/2", CLOSE_BUTTON_CLASS)}
             >
               <X className="h-4 w-4" aria-hidden />
             </button>

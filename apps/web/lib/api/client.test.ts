@@ -27,6 +27,56 @@ afterEach(() => {
 });
 
 describe("apiRequest 401 -> refresh -> retry", () => {
+  it("preserves sanitized FastAPI field issues on a 422 response", async () => {
+    const fetchMock = vi.fn(async () =>
+      fakeResponse(422, {
+        detail: [
+          { loc: ["body", "destination", "ifsc"], msg: "Field required", type: "missing" },
+          { loc: ["body", "amount_paise"], msg: "Input should be greater than 0", type: "greater_than" },
+        ],
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await apiRequest("/api/v1/payouts", { method: "POST", body: {} });
+
+    expect(result).toEqual({
+      ok: false,
+      status: 422,
+      error: "Field required",
+      issues: [
+        { field: "destination.ifsc", message: "Field required" },
+        { field: "amount_paise", message: "Input should be greater than 0" },
+      ],
+    });
+  });
+
+  it("drops rejected input and malformed validation locations", async () => {
+    const secret = "should-never-reach-the-client-result";
+    const fetchMock = vi.fn(async () =>
+      fakeResponse(422, {
+        detail: [
+          {
+            loc: ["body", "profile", "email"],
+            msg: `Value error, ${"x".repeat(600)}`,
+            input: secret,
+          },
+          { loc: ["body", "field<script>"], msg: "Unsafe field path", input: secret },
+        ],
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await apiRequest("/api/v1/profile", { method: "PATCH", body: {} });
+
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.issues).toEqual([
+      { field: "profile.email", message: "x".repeat(500) },
+    ]);
+    expect(JSON.stringify(result)).not.toContain(secret);
+  });
+
   it("sends the selected operational line", async () => {
     registerTokenGetter(() => "token");
     registerBusinessLineGetter(() => "real_estate");

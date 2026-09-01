@@ -11,7 +11,7 @@ import { useMe } from "@/features/dashboard/me-provider";
 import { PropertyDetailActions } from "@/features/real-estate/property-detail-actions";
 import { useProperties } from "@/features/real-estate/use-properties";
 import { isAllowedAssetUrl } from "@/lib/allowed-asset-url";
-import { formatNumber } from "@/lib/format";
+import { formatCompactINR, formatNumber } from "@/lib/format";
 import { getProperty } from "@/lib/properties-api";
 import { rankSimilarProperties } from "@/lib/similar-properties";
 import type { REListing } from "@/lib/real-estate";
@@ -112,6 +112,15 @@ export function DashboardPropertyDetail({ propertyId }: { propertyId: string }) 
         ...listing,
         constructionStatus: listing.constructionStatus ?? listing.status,
         reraApplicability: listing.reraApplicability ?? "unsure",
+        // The dashboard read carries paise; the shared detail view renders the
+        // same string the public shape already ships pre-formatted.
+        securityDepositDisplay:
+          listing.securityDepositPaise == null
+            ? null
+            : formatCompactINR(listing.securityDepositPaise / 100),
+        minimumLeaseMonths: listing.minimumLeaseMonths ?? null,
+        availableFrom: listing.availableFrom ?? null,
+        listingLinks: listing.listingLinks ?? null,
       }}
       backHref="/dashboard/explore"
       backLabel="Back to Explore"

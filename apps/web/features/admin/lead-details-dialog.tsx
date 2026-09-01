@@ -6,6 +6,7 @@ import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { FieldError, RequiredIndicator } from "@/components/ui/field-error";
 import {
   Dialog,
   DialogContent,
@@ -18,6 +19,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { requiredTextError } from "@/lib/form-validation";
 import {
   getAdminLeadDetails,
   updateAdminLeadDetails,
@@ -44,23 +46,42 @@ function OwnershipBadge({ owner }: { owner?: string }) {
   return <Badge variant="outline">Owner: {owner ? OWNER_LABEL[owner] ?? owner : "None"}</Badge>;
 }
 
+/**
+ * Uncontrolled by default (it renders its own "Correct details" trigger). Pass
+ * `open`/`onOpenChange` to drive it from a clickable table row instead, in
+ * which case the trigger button is dropped.
+ */
 export function LeadDetailsDialog({
   leadId,
   leadName,
   onSaved,
+  open: controlledOpen,
+  onOpenChange,
 }: {
   leadId: string;
   leadName: string | null;
   onSaved?: () => void;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }) {
   const nameId = React.useId();
   const notesId = React.useId();
   const reasonId = React.useId();
-  const [open, setOpen] = React.useState(false);
+  const [uncontrolledOpen, setUncontrolledOpen] = React.useState(false);
+  const controlled = controlledOpen !== undefined;
+  const open = controlled ? controlledOpen : uncontrolledOpen;
+  const setOpen = React.useCallback(
+    (next: boolean) => {
+      if (controlled) onOpenChange?.(next);
+      else setUncontrolledOpen(next);
+    },
+    [controlled, onOpenChange],
+  );
   const [details, setDetails] = React.useState<LeadDetails | null>(null);
   const [name, setName] = React.useState("");
   const [notes, setNotes] = React.useState("");
   const [reason, setReason] = React.useState("");
+  const [reasonError, setReasonError] = React.useState<string>();
   const [loading, setLoading] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
@@ -79,6 +100,7 @@ export function LeadDetailsDialog({
     setName(result.data.name ?? "");
     setNotes(notesFrom(result.data));
     setReason("");
+    setReasonError(undefined);
   }, [leadId]);
 
   React.useEffect(() => {
@@ -89,11 +111,14 @@ export function LeadDetailsDialog({
   const normalizedNotes = notes.trim() || null;
   const nameChanged = details !== null && normalizedName !== details.name;
   const notesChanged = details !== null && normalizedNotes !== (notesFrom(details) || null);
-  const canSave = (nameChanged || notesChanged) && reason.trim().length > 0 && !saving;
+  const canSave = (nameChanged || notesChanged) && !saving;
 
   async function save(event: React.FormEvent) {
     event.preventDefault();
     if (!details || !canSave) return;
+    const validationError = requiredTextError(reason, "Correction reason", 500);
+    setReasonError(validationError);
+    if (validationError) return;
     const payload: AdminLeadDetailsPatch = { reason: reason.trim() };
     if (nameChanged) payload.name = normalizedName;
     if (notesChanged) payload.notes = normalizedNotes;
@@ -114,12 +139,14 @@ export function LeadDetailsDialog({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button type="button" variant="outline">
-          <PencilLine className="h-4 w-4" />
-          Correct details
-        </Button>
-      </DialogTrigger>
+      {controlled ? null : (
+        <DialogTrigger asChild>
+          <Button type="button" variant="outline">
+            <PencilLine className="h-4 w-4" />
+            Correct details
+          </Button>
+        </DialogTrigger>
+      )}
       <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle>Correct lead details</DialogTitle>
@@ -172,18 +199,21 @@ export function LeadDetailsDialog({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor={reasonId}>Correction reason</Label>
+              <Label htmlFor={reasonId}>Correction reason <RequiredIndicator /></Label>
               <Textarea
                 id={reasonId}
                 value={reason}
-                onChange={(event) => setReason(event.target.value)}
+                onChange={(event) => { setReason(event.target.value); setReasonError(undefined); }}
                 maxLength={500}
                 rows={3}
                 required
                 disabled={saving}
                 placeholder="Record how this correction was verified. Do not include unnecessary personal data."
+                aria-invalid={Boolean(reasonError)}
+                aria-describedby={reasonError ? `${reasonId}-error` : `${reasonId}-help`}
               />
-              <p className="text-xs text-text-secondary">
+              <FieldError id={`${reasonId}-error`}>{reasonError}</FieldError>
+              <p id={`${reasonId}-help`} className="text-xs text-text-secondary">
                 The reason and changed field names are written to the audit log; field values are
                 not copied there.
               </p>

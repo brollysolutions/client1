@@ -8,6 +8,7 @@ as an agent/admin for the endpoint under test.
 
 from __future__ import annotations
 
+import json
 import uuid
 from datetime import UTC, datetime, timedelta
 
@@ -21,6 +22,7 @@ from app.models.audit_log import AuditAction, AuditLog
 from app.models.property import Property
 from app.models.property_media import PropertyMedia, PropertySubmissionMedia
 from app.models.property_submission import PropertySubmission
+from app.schemas.property_submissions import SubmissionUpdate
 from app.services import property_submissions as submission_service
 from app.services import storage
 from app.services.media_processing import MalwareDetected
@@ -438,6 +440,165 @@ async def test_owner_updates_and_withdraws_approved_listing(client: AsyncClient)
 
 
 @pytest.mark.asyncio
+async def test_admin_correction_is_reasoned_staged_and_audited(client: AsyncClient) -> None:
+    _, owner_mobile = await full_registration(client, lines=["real_estate"])
+    owner_uid = await _auth_user_uuid(owner_mobile)
+    owner_headers = {"Authorization": f"Bearer {_agent_token(owner_uid)}"}
+    created = await client.post(
+        "/api/v1/property-submissions", json=_payload(owner_uid), headers=owner_headers
+    )
+    submission_id = created.json()["id"]
+
+    _, admin_mobile = await full_registration(client, lines=["real_estate"])
+    admin_uid = await _auth_user_uuid(admin_mobile)
+    admin_headers = {"Authorization": f"Bearer {_admin_token(admin_uid)}"}
+    await _review_rera(client, submission_id, admin_headers)
+    approved = await client.post(
+        f"/api/v1/property-submissions/{submission_id}/approve", headers=admin_headers
+    )
+    assert approved.status_code == 200, approved.text
+    property_id = approved.json()["approved_property_id"]
+
+    import app.db.session as _session_mod
+
+    async with _session_mod.AsyncSessionLocal() as db:
+        media_before = (
+            await db.execute(
+                select(PropertyMedia.id, PropertyMedia.object_key).where(
+                    PropertyMedia.property_uuid == uuid.UUID(property_id)
+                )
+            )
+        ).all()
+
+    generic = await client.patch(
+        f"/api/v1/property-submissions/{submission_id}",
+        json={**_PAYLOAD, "title": "Corrected title"},
+        headers=admin_headers,
+    )
+    assert generic.status_code == 422, generic.text
+
+    with pytest.raises(submission_service.AdminCorrectionReasonRequired):
+        await submission_service.update_submission(
+            uuid.UUID(submission_id),
+            SubmissionUpdate.model_validate(_PAYLOAD),
+            uuid.UUID(admin_uid),
+            actor_role="admin",
+            platform_scope="true",
+            correction_reason="   ",
+            approved_correction_only=True,
+        )
+
+    with pytest.raises(submission_service.AdminCorrectionReasonRequired):
+        await submission_service.update_submission(
+            uuid.UUID(submission_id),
+            SubmissionUpdate.model_validate({**_PAYLOAD, "title": "Bypass attempt"}),
+            uuid.UUID(admin_uid),
+            actor_role="admin",
+            platform_scope="true",
+            correction_reason="A reason without the correction command is insufficient.",
+        )
+
+    with pytest.raises(submission_service.AdminCorrectionReasonRequired):
+        await submission_service.update_submission(
+            uuid.UUID(submission_id),
+            SubmissionUpdate.model_validate({**_PAYLOAD, "title": "Oversized reason"}),
+            uuid.UUID(admin_uid),
+            actor_role="admin",
+            platform_scope="true",
+            correction_reason="x" * 1001,
+            approved_correction_only=True,
+        )
+
+    no_change = await client.patch(
+        f"/api/v1/property-submissions/{submission_id}/correction",
+        json={**_PAYLOAD, "reason": "Checked against the source paperwork."},
+        headers=admin_headers,
+    )
+    assert no_change.status_code == 409, no_change.text
+
+    corrected = await client.patch(
+        f"/api/v1/property-submissions/{submission_id}/correction",
+        json={
+            **_PAYLOAD,
+            "title": "Corrected title",
+            "reason": "Corrected the approved title against the source paperwork.",
+        },
+        headers=admin_headers,
+    )
+    assert corrected.status_code == 200, corrected.text
+    assert corrected.json()["status"] == "pending"
+    assert corrected.json()["rera_verification_status"] == "not_reviewed"
+    assert corrected.json()["approved_property_id"] == property_id
+
+    still_live = await client.get(f"/api/v1/properties/{property_id}", headers=admin_headers)
+    assert still_live.status_code == 200, still_live.text
+    assert still_live.json()["title"] == _PAYLOAD["title"]
+
+    async with _session_mod.AsyncSessionLocal() as db:
+        media_after = (
+            await db.execute(
+                select(PropertyMedia.id, PropertyMedia.object_key).where(
+                    PropertyMedia.property_uuid == uuid.UUID(property_id)
+                )
+            )
+        ).all()
+        audit = await db.scalar(
+            select(AuditLog).where(
+                AuditLog.entity_uuid == uuid.UUID(property_id),
+                AuditLog.action == AuditAction.PROPERTY_LISTING_CORRECTED,
+            )
+        )
+    assert media_after == media_before
+    assert audit is not None
+    assert audit.actor_uuid == uuid.UUID(admin_uid)
+    assert audit.detail == {
+        "operation": "correction_staged",
+        "previous_status": "approved",
+        "changed_fields": ["title"],
+        "reason": "Corrected the approved title against the source paperwork.",
+        "submission_uuid": submission_id,
+        "approved_property_uuid": property_id,
+    }
+
+    await _review_rera(client, submission_id, admin_headers)
+    reapproved = await client.post(
+        f"/api/v1/property-submissions/{submission_id}/approve", headers=admin_headers
+    )
+    assert reapproved.status_code == 200, reapproved.text
+    assert reapproved.json()["approved_property_id"] == property_id
+    live_after_review = await client.get(f"/api/v1/properties/{property_id}", headers=admin_headers)
+    assert live_after_review.json()["title"] == "Corrected title"
+
+
+@pytest.mark.asyncio
+async def test_admin_correction_requires_platform_admin_and_approved_source(
+    client: AsyncClient,
+) -> None:
+    _, mobile = await full_registration(client, lines=["real_estate"])
+    uid = await _auth_user_uuid(mobile)
+    created = await client.post(
+        "/api/v1/property-submissions",
+        json=_payload(uid),
+        headers={"Authorization": f"Bearer {_agent_token(uid)}"},
+    )
+    payload = {**_PAYLOAD, "title": "Correction", "reason": "Verified correction."}
+
+    sub_admin = await client.patch(
+        f"/api/v1/property-submissions/{created.json()['id']}/correction",
+        json=payload,
+        headers={"Authorization": f"Bearer {_sub_admin_token(uid)}"},
+    )
+    assert sub_admin.status_code == 403, sub_admin.text
+
+    admin = await client.patch(
+        f"/api/v1/property-submissions/{created.json()['id']}/correction",
+        json=payload,
+        headers={"Authorization": f"Bearer {_admin_token(uid)}"},
+    )
+    assert admin.status_code == 409, admin.text
+
+
+@pytest.mark.asyncio
 async def test_other_agent_cannot_update_or_withdraw_listing(client: AsyncClient) -> None:
     _, owner_mobile = await full_registration(client, lines=["real_estate"])
     owner_uid = await _auth_user_uuid(owner_mobile)
@@ -602,6 +763,105 @@ async def test_rera_review_is_admin_only_and_validates_exemption(client: AsyncCl
     )
     assert property_response.status_code == 200, property_response.text
     assert property_response.json()["active"] is False
+
+
+@pytest.mark.asyncio
+async def test_rera_verification_can_be_withdrawn(client: AsyncClient) -> None:
+    """Un-verify: an Admin who verified in error has to be able to take it back."""
+    _, mobile = await full_registration(client, lines=["real_estate"])
+    uid = await _auth_user_uuid(mobile)
+    created = await client.post(
+        "/api/v1/property-submissions",
+        json=_payload(uid),
+        headers={"Authorization": f"Bearer {_agent_token(uid)}"},
+    )
+    submission_id = created.json()["id"]
+    admin_headers = {"Authorization": f"Bearer {_admin_token(uid)}"}
+
+    # Nothing has been reviewed yet, so there is nothing to withdraw.
+    nothing_to_withdraw = await client.post(
+        f"/api/v1/property-submissions/{submission_id}/rera-review",
+        json={"status": "not_reviewed", "note": "Premature."},
+        headers=admin_headers,
+    )
+    assert nothing_to_withdraw.status_code == 409
+
+    await _review_rera(client, submission_id, admin_headers)
+    approved = await client.post(
+        f"/api/v1/property-submissions/{submission_id}/approve",
+        headers=admin_headers,
+    )
+    assert approved.status_code == 200, approved.text
+    property_id = approved.json()["approved_property_id"]
+
+    # A withdrawal has to say why, like the other non-obvious outcomes.
+    unexplained = await client.post(
+        f"/api/v1/property-submissions/{submission_id}/rera-review",
+        json={"status": "not_reviewed", "note": None},
+        headers=admin_headers,
+    )
+    assert unexplained.status_code == 422
+
+    withdrawn = await client.post(
+        f"/api/v1/property-submissions/{submission_id}/rera-review",
+        json={"status": "not_reviewed", "note": "Verified against the wrong registry row."},
+        headers=admin_headers,
+    )
+    assert withdrawn.status_code == 200, withdrawn.text
+    assert withdrawn.json()["rera_verification_status"] == "not_reviewed"
+    assert withdrawn.json()["rera_verified_at"] is None
+
+    # The live listing must not keep serving as verified.
+    property_response = await client.get(
+        f"/api/v1/properties/{property_id}",
+        headers=admin_headers,
+    )
+    assert property_response.status_code == 200, property_response.text
+    assert property_response.json()["active"] is False
+    assert property_response.json()["rera_verification_status"] == "not_reviewed"
+
+
+@pytest.mark.asyncio
+async def test_withdrawn_rera_can_be_verified_again(client: AsyncClient) -> None:
+    _, mobile = await full_registration(client, lines=["real_estate"])
+    uid = await _auth_user_uuid(mobile)
+    created = await client.post(
+        "/api/v1/property-submissions",
+        json=_payload(uid),
+        headers={"Authorization": f"Bearer {_agent_token(uid)}"},
+    )
+    submission_id = created.json()["id"]
+    admin_headers = {"Authorization": f"Bearer {_admin_token(uid)}"}
+
+    await _review_rera(client, submission_id, admin_headers)
+    withdrawn = await client.post(
+        f"/api/v1/property-submissions/{submission_id}/rera-review",
+        json={"status": "not_reviewed", "note": "Registry lookup was inconclusive."},
+        headers=admin_headers,
+    )
+    assert withdrawn.status_code == 200, withdrawn.text
+
+    # Approval is blocked again while the claim stands unverified.
+    blocked = await client.post(
+        f"/api/v1/property-submissions/{submission_id}/approve",
+        headers=admin_headers,
+    )
+    assert blocked.status_code == 409
+
+    reverified = await client.post(
+        f"/api/v1/property-submissions/{submission_id}/rera-review",
+        json={"status": "verified", "note": None},
+        headers=admin_headers,
+    )
+    assert reverified.status_code == 200, reverified.text
+    assert reverified.json()["rera_verification_status"] == "verified"
+    assert reverified.json()["rera_verified_at"] is not None
+
+    approved = await client.post(
+        f"/api/v1/property-submissions/{submission_id}/approve",
+        headers=admin_headers,
+    )
+    assert approved.status_code == 200, approved.text
 
 
 @pytest.mark.asyncio
@@ -1131,3 +1391,138 @@ async def test_media_lifecycle_retains_references_and_purges_expired_objects(
     assert active_public[0].object_key not in deleted
     assert recent_orphan_key not in deleted
     assert summary == {"scanned": len(private_objects) + len(public_objects), "deleted": 4}
+
+
+@pytest.mark.asyncio
+async def test_rent_listing_with_links_survives_approval(client: AsyncClient) -> None:
+    """A rental reaches the catalogue with its terms, links, and rent-shaped price.
+
+    The approval path builds the Property row with a hand-written constructor
+    rather than the generic field copy, so a new column can silently fail to
+    cross that seam. This is the test that catches it.
+    """
+    _, mobile = await full_registration(client, lines=["real_estate"])
+    uid = await _auth_user_uuid(mobile)
+    payload = _payload(uid)
+    payload["listing_intent"] = "rent"
+    payload["price_paise"] = 25_000_00
+    payload["security_deposit_paise"] = 1_50_000_00
+    payload["minimum_lease_months"] = 11
+    payload["available_from"] = "2026-10-01"
+    payload["listing_links"] = [
+        {"url": "https://youtu.be/walkthrough"},
+        # Platform is deliberately wrong; the server must overwrite it.
+        {"url": "https://www.instagram.com/reel/tour/", "platform": "youtube"},
+    ]
+    # _payload() is a shallow copy, so replace the nested dict rather than
+    # popping from it — mutating in place would strip sale_type from the shared
+    # module-level _PAYLOAD and break every later test.
+    payload["structured_details"] = {
+        key: value for key, value in payload["structured_details"].items() if key != "sale_type"
+    }
+
+    created = await client.post(
+        "/api/v1/property-submissions",
+        json=payload,
+        headers={"Authorization": f"Bearer {_agent_token(uid)}"},
+    )
+    assert created.status_code == 201, created.text
+    assert created.json()["listing_intent"] == "rent"
+
+    sub_id = created.json()["id"]
+    admin_headers = {"Authorization": f"Bearer {_admin_token(uid)}"}
+    await _review_rera(client, sub_id, admin_headers)
+    approved = await client.post(
+        f"/api/v1/property-submissions/{sub_id}/approve",
+        headers=admin_headers,
+    )
+    assert approved.status_code == 200, approved.text
+
+    property_id = approved.json()["approved_property_id"]
+    prop = await client.get(
+        f"/api/v1/properties/{property_id}",
+        headers=admin_headers,
+    )
+    assert prop.status_code == 200
+    body = prop.json()
+    assert body["listing_intent"] == "rent"
+    # Not "₹0.25 L" — the whole point of the intent-aware formatter.
+    assert body["price_display"] == "₹25,000/month"
+    assert body["security_deposit_paise"] == 1_50_000_00
+    assert body["minimum_lease_months"] == 11
+    assert body["available_from"] == "2026-10-01"
+    assert [link["platform"] for link in body["listing_links"]] == ["youtube", "instagram"]
+
+    # And the anonymous detail shape renders the deposit rather than paise.
+    public = await client.get(f"/api/v1/public/properties/{property_id}")
+    assert public.status_code == 200
+    public_body = public.json()
+    assert public_body["listing_intent"] == "rent"
+    assert public_body["price_display"] == "₹25,000/month"
+    assert public_body["security_deposit_display"] == "₹1.5 L"
+    assert "security_deposit_paise" not in public_body
+    assert len(public_body["listing_links"]) == 2
+
+
+@pytest.mark.asyncio
+async def test_rejects_a_listing_link_outside_the_host_allowlist(client: AsyncClient) -> None:
+    _, mobile = await full_registration(client, lines=["real_estate"])
+    uid = await _auth_user_uuid(mobile)
+    payload = _payload(uid)
+    payload["listing_links"] = [{"url": "https://youtube.com.evil.example/watch"}]
+
+    res = await client.post(
+        "/api/v1/property-submissions",
+        json=payload,
+        headers={"Authorization": f"Bearer {_agent_token(uid)}"},
+    )
+    assert res.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_stored_bad_link_does_not_break_the_submissions_list(client: AsyncClient) -> None:
+    """One off-allowlist stored link must hide itself, not 500 the whole list.
+
+    The allowlist can shrink, and a row written before it did would otherwise be
+    re-validated on every read and take the author's entire submissions page
+    down with it.
+    """
+    _, mobile = await full_registration(client, lines=["real_estate"])
+    uid = await _auth_user_uuid(mobile)
+    payload = _payload(uid)
+    payload["listing_links"] = [{"url": "https://youtu.be/walkthrough"}]
+    created = await client.post(
+        "/api/v1/property-submissions",
+        json=payload,
+        headers={"Authorization": f"Bearer {_agent_token(uid)}"},
+    )
+    assert created.status_code == 201, created.text
+    sub_id = created.json()["id"]
+
+    # Simulate the allowlist shrinking under an already-stored row.
+    import app.db.session as session_module
+
+    async with session_module.AsyncSessionLocal() as session:
+        await session.execute(
+            text("UPDATE property_submissions SET listing_links = :links WHERE id = :id"),
+            {
+                "links": json.dumps(
+                    [
+                        {"url": "https://retired.example/listing", "platform": "youtube"},
+                        {"url": "https://youtu.be/walkthrough", "platform": "youtube"},
+                    ]
+                ),
+                "id": str(sub_id),
+            },
+        )
+        await session.commit()
+
+    headers = {"Authorization": f"Bearer {_agent_token(uid)}"}
+    listed = await client.get("/api/v1/property-submissions?mine=true", headers=headers)
+    assert listed.status_code == 200, listed.text
+    row = next(item for item in listed.json()["submissions"] if item["id"] == sub_id)
+    assert [link["url"] for link in row["listing_links"]] == ["https://youtu.be/walkthrough"]
+
+    detail = await client.get(f"/api/v1/property-submissions/{sub_id}", headers=headers)
+    assert detail.status_code == 200
+    assert len(detail.json()["listing_links"]) == 1

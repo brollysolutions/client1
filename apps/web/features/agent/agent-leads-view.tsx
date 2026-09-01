@@ -5,8 +5,12 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { PhoneCall } from "lucide-react";
 
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { DashboardHeader, DashboardPage, DashboardPanel } from "@/features/dashboard/dashboard-ui";
+import { ListPagination, useListPagination } from "@/features/dashboard/list-pagination";
 import { FetchError } from "@/features/dashboard/fetch-error";
+import { formatMobile } from "@/lib/phone";
 import { cn } from "@/lib/utils";
 
 import { useAgentLeads } from "./use-agent-leads";
@@ -37,22 +41,22 @@ const STATUS_LABEL: Record<string, string> = {
 export function AgentLeadsView() {
   const router = useRouter();
   const { items, loading, error, reload } = useAgentLeads();
+  const { page, pageItems, setPage } = useListPagination(items);
 
   return (
-    <div className="mx-auto w-full max-w-5xl space-y-6 px-4 sm:px-6 lg:px-10">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-semibold text-text-primary">Leads</h1>
-          <p className="text-sm text-text-secondary">Leads you have introduced.</p>
-        </div>
-        <Link
-          href="/dashboard/leads/new"
-          className="inline-flex items-center gap-2 rounded-lg bg-brand-cta px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-cta/90"
-        >
-          <PhoneCall className="h-4 w-4" aria-hidden="true" />
-          Introduce a lead
-        </Link>
-      </div>
+    <DashboardPage>
+      <DashboardHeader
+        title="Leads"
+        description="Leads you have introduced."
+        actions={
+          <Button asChild className="bg-brand-cta text-white hover:bg-brand-cta/90">
+            <Link href="/dashboard/leads/new">
+              <PhoneCall className="h-4 w-4" aria-hidden="true" />
+              Introduce a lead
+            </Link>
+          </Button>
+        }
+      />
 
       {loading ? (
         <Skeleton className="h-40 rounded-xl" />
@@ -69,54 +73,57 @@ export function AgentLeadsView() {
           </p>
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-border bg-card">
-          <table className="w-full text-left text-sm">
-            <thead className="border-b border-border text-xs uppercase tracking-wide text-text-secondary">
-              <tr>
-                <th className="px-5 py-3 font-medium">Lead</th>
-                <th className="px-5 py-3 font-medium">Status</th>
-                <th className="px-5 py-3 font-medium">Registered</th>
-                <th className="px-5 py-3 font-medium">Agent window</th>
-              </tr>
-            </thead>
-            <tbody>
-              {items.map((lead) => (
-                <tr
-                  key={lead.id}
-                  role="link"
-                  tabIndex={0}
-                  onClick={() => router.push(`/dashboard/leads/${lead.id}`)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") router.push(`/dashboard/leads/${lead.id}`);
-                  }}
-                  className="cursor-pointer border-b border-border transition-colors last:border-0 hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue"
-                >
-                  <td className="px-5 py-4">
-                    <p className="font-medium text-text-primary">{lead.name ?? "Unnamed lead"}</p>
-                    <p className="text-xs text-text-secondary">{lead.mobile}</p>
-                  </td>
-                  <td className="px-5 py-4">
-                    <span
-                      className={cn(
-                        "inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium",
-                        STATUS_STYLE[lead.status] ?? "bg-muted text-text-secondary",
-                      )}
-                    >
-                      {STATUS_LABEL[lead.status] ?? lead.status}
-                    </span>
-                  </td>
-                  <td className="px-5 py-4 text-text-secondary">
-                    {lead.registered ? "Account created" : "Not registered yet"}
-                  </td>
-                  <td className="px-5 py-4 text-xs text-text-secondary">
-                    {formatAgentLeadExpiry(lead.status, lead.expires_at, lead.expired_at)}
-                  </td>
+        <DashboardPanel title="Introduced leads" description="Tap a lead to view its details.">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm">
+              <thead className="border-b border-border text-xs uppercase tracking-wide text-text-secondary">
+                <tr>
+                  <th className="px-5 py-3 font-medium">Lead</th>
+                  <th className="px-5 py-3 font-medium">Status</th>
+                  <th className="px-5 py-3 font-medium">Registered</th>
+                  <th className="px-5 py-3 font-medium">Agent window</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {pageItems.map((lead) => (
+                  <tr
+                    key={lead.id}
+                    role="link"
+                    tabIndex={0}
+                    onClick={() => router.push(`/dashboard/leads/${lead.id}`)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") router.push(`/dashboard/leads/${lead.id}`);
+                    }}
+                    className="cursor-pointer border-b border-border transition-colors last:border-0 hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue"
+                  >
+                    <td className="px-5 py-4">
+                      <p className="font-medium text-text-primary">{lead.name ?? "Unnamed lead"}</p>
+                      <p className="text-xs text-text-secondary">{formatMobile(lead.mobile)}</p>
+                    </td>
+                    <td className="px-5 py-4">
+                      <span
+                        className={cn(
+                          "inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium",
+                          STATUS_STYLE[lead.status] ?? "bg-muted text-text-secondary",
+                        )}
+                      >
+                        {STATUS_LABEL[lead.status] ?? lead.status}
+                      </span>
+                    </td>
+                    <td className="px-5 py-4 text-text-secondary">
+                      {lead.registered ? "Account created" : "Not registered yet"}
+                    </td>
+                    <td className="px-5 py-4 text-xs text-text-secondary">
+                      {formatAgentLeadExpiry(lead.status, lead.expires_at, lead.expired_at)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <ListPagination page={page} total={items.length} onPageChange={setPage} label="Introduced leads pages" />
+        </DashboardPanel>
       )}
-    </div>
+    </DashboardPage>
   );
 }

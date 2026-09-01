@@ -16,7 +16,7 @@ from decimal import Decimal
 from typing import Annotated
 from uuid import UUID
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from app.models.property_deal import PropertyDealStatus
 
@@ -52,13 +52,29 @@ class AgentContactRead(BaseModel):
 
 
 class PropertyDealProgressUpdate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     status: PropertyDealStatus | None = None
     status_reason: Annotated[str | None, Field(default=None, max_length=1000)] = None
     price_quoted: Annotated[
-        Decimal | None, Field(default=None, gt=0, le=Decimal("999999999999.99"))
+        Decimal | None,
+        Field(
+            default=None,
+            gt=0,
+            le=Decimal("999999999999.99"),
+            max_digits=14,
+            decimal_places=2,
+        ),
     ] = None
     booking_amount: Annotated[
-        Decimal | None, Field(default=None, gt=0, le=Decimal("999999999999.99"))
+        Decimal | None,
+        Field(
+            default=None,
+            gt=0,
+            le=Decimal("999999999999.99"),
+            max_digits=14,
+            decimal_places=2,
+        ),
     ] = None
     site_visit_uuid: UUID | None = None
 

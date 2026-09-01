@@ -1,17 +1,28 @@
 import type { components } from "@contracts/generated/schema";
 
+import { MAX_LISTING_LINKS, listingLinkError } from "@/lib/listing-links";
 import { propertySubtypeOption } from "@/lib/property-taxonomy";
 
 type Schemas = components["schemas"];
 type SubmissionCreate = Schemas["SubmissionCreate"];
 type SubmissionUpdate = Schemas["SubmissionUpdate"];
 type SubmissionRead = Schemas["SubmissionRead"];
+type ListingIntent = Schemas["ListingIntent"];
 type Furnishing = Schemas["Furnishing"];
 type ConstructionStatus = Schemas["ConstructionStatus"];
 type SubmissionMediaInput = Schemas["SubmissionMediaInput"];
 type PropertySubtype = Schemas["PropertySubtype"];
 type ReraApplicability = Schemas["ReraApplicability"];
 type StructuredDetails = SubmissionCreate["structured_details"];
+
+/**
+ * One combined non-sale intent. Rent and lease share every field captured
+ * here, so the label carries both rather than the taxonomy forking.
+ */
+export const LISTING_INTENT_OPTIONS = [
+  { value: "sale", label: "For sale" },
+  { value: "rent", label: "For rent / lease" },
+] as const satisfies readonly { value: ListingIntent; label: string }[];
 
 export const FURNISHING_OPTIONS = [
   { value: "unfurnished", label: "Not furnished" },
@@ -130,6 +141,7 @@ export const EMPTY_DETAILS: PropertyDetailForm = {
 };
 
 export type SubmitFormState = {
+  listingIntent: ListingIntent;
   title: string;
   type: string;
   location: string;
@@ -142,7 +154,13 @@ export type SubmitFormState = {
   locality: string;
   state: string;
   pincode: string;
+  /** Sale price when the intent is sale; monthly rent when it is rent. */
   priceRupees: string;
+  securityDepositRupees: string;
+  minimumLeaseMonths: string;
+  availableFrom: string;
+  /** Author-entered URLs; blanks are dropped and the platform is server-derived. */
+  listingLinks: string[];
   furnishing: Furnishing | "";
   constructionStatus: ConstructionStatus | "";
   amenities: string[];
@@ -152,6 +170,7 @@ export type SubmitFormState = {
 };
 
 export const EMPTY_FORM: SubmitFormState = {
+  listingIntent: "sale",
   title: "",
   type: "",
   location: "",
@@ -165,6 +184,10 @@ export const EMPTY_FORM: SubmitFormState = {
   state: "",
   pincode: "",
   priceRupees: "",
+  securityDepositRupees: "",
+  minimumLeaseMonths: "",
+  availableFrom: "",
+  listingLinks: [],
   furnishing: "",
   constructionStatus: "",
   amenities: [],
@@ -225,6 +248,9 @@ function localApproval(details: PropertyDetailForm) {
 
 function buildStructuredDetails(form: SubmitFormState): StructuredDetails {
   const details = form.details;
+  // A rental has no new-vs-resale dimension, and the API rejects a sale type on
+  // a rent listing outright.
+  const isRent = form.listingIntent === "rent";
   switch (propertyFormFamily(form.propertySubtype)) {
     case "project":
       return {
@@ -237,7 +263,7 @@ function buildStructuredDetails(form: SubmitFormState): StructuredDetails {
         unit_or_plot_area_sqft: toInt(details.unitAreaSqft),
         uds_sqft: details.udsSqft.trim() ? toInt(details.udsSqft) : null,
         price_per_sqft_paise: toPaise(details.rateRupees),
-        sale_type: details.saleType as Schemas["SaleType"],
+        sale_type: isRent ? null : (details.saleType as Schemas["SaleType"]),
         expected_handover_date: orNull(details.expectedHandoverDate),
         plot_facing: details.plotFacing as Schemas["Facing"],
         entrance_facing: details.facing as Schemas["Facing"],
@@ -266,7 +292,7 @@ function buildStructuredDetails(form: SubmitFormState): StructuredDetails {
         total_area_sqft: toInt(details.totalAreaSqft),
         unit_area_sqft: toInt(details.unitAreaSqft),
         facing: details.facing as Schemas["Facing"],
-        sale_type: details.saleType as Schemas["SaleType"],
+        sale_type: isRent ? null : (details.saleType as Schemas["SaleType"]),
         rental_income_start: details.rentalIncomeStart as Schemas["RentalIncomeStart"],
         monthly_rental_income_paise: optionalPaise(details.monthlyRentalIncomeRupees),
         local_approval: localApproval(details),
@@ -284,7 +310,7 @@ function buildStructuredDetails(form: SubmitFormState): StructuredDetails {
         total_plots: toInt(details.totalPlots),
         facing: details.facing as Schemas["Facing"],
         price_per_sqyd_paise: toPaise(details.rateRupees),
-        sale_type: details.saleType as Schemas["SaleType"],
+        sale_type: isRent ? null : (details.saleType as Schemas["SaleType"]),
         project_status: details.projectStatus as Schemas["PlotProjectStatus"],
         amenities_description: orNull(details.amenitiesDescription),
         about_project: details.about.trim(),
@@ -317,10 +343,17 @@ export function buildSubmissionPayload(
   return { ...buildSubmissionUpdatePayload(form), media };
 }
 
+/** Non-blank authored URLs; the server derives and re-checks the platform. */
+function listingLinksPayload(form: SubmitFormState): Schemas["ListingLink"][] | null {
+  const urls = form.listingLinks.map((url) => url.trim()).filter(Boolean);
+  return urls.length ? urls.map((url) => ({ url })) : null;
+}
+
 export function buildSubmissionUpdatePayload(form: SubmitFormState): SubmissionUpdate {
   const subtype = propertySubtypeOption(form.propertySubtype);
   if (!subtype) throw new Error("A valid property subtype is required.");
   const family = propertyFormFamily(form.propertySubtype);
+  const isRent = form.listingIntent === "rent";
   const areaSqft =
     family === "plot"
       ? toInt(form.details.plotSizeSqyd) * 9
@@ -338,7 +371,14 @@ export function buildSubmissionUpdatePayload(form: SubmitFormState): SubmissionU
     locality: form.locality.trim(),
     state: form.state.trim(),
     pincode: form.pincode.trim(),
+    listing_intent: form.listingIntent,
     price_paise: toPaise(form.priceRupees),
+    // Rent-only, and the API rejects them on a sale listing — so an author who
+    // switches a draft back to Sale must not keep shipping a deposit.
+    security_deposit_paise: isRent ? toPaise(form.securityDepositRupees) : null,
+    minimum_lease_months: isRent ? toInt(form.minimumLeaseMonths) : null,
+    available_from: isRent ? orNull(form.availableFrom) : null,
+    listing_links: listingLinksPayload(form),
     bhk: 0,
     area_sqft: areaSqft,
     furnishing:
@@ -448,6 +488,7 @@ function detailsFromSubmission(submission: SubmissionRead): PropertyDetailForm {
 
 export function submissionToFormState(submission: SubmissionRead): SubmitFormState {
   return {
+    listingIntent: submission.listing_intent,
     title: submission.title,
     type: submission.type,
     location: submission.location,
@@ -461,6 +502,14 @@ export function submissionToFormState(submission: SubmissionRead): SubmitFormSta
     state: submission.state ?? "",
     pincode: submission.pincode,
     priceRupees: String(submission.price_paise / 100),
+    securityDepositRupees:
+      submission.security_deposit_paise === null
+        ? ""
+        : String(submission.security_deposit_paise / 100),
+    minimumLeaseMonths:
+      submission.minimum_lease_months === null ? "" : String(submission.minimum_lease_months),
+    availableFrom: submission.available_from ?? "",
+    listingLinks: (submission.listing_links ?? []).map((link) => link.url),
     furnishing: submission.furnishing ?? "",
     constructionStatus: submission.construction_status ?? "",
     amenities: [...submission.amenities],
@@ -515,7 +564,39 @@ export function validateForm(
     ["reraApplicability", form.reraApplicability, "RERA applicability"],
   ] as const) requireValue(errors, key, value, label);
   if (!/^[1-9]\d{5}$/.test(form.pincode.trim())) errors.pincode = "Enter a valid 6-digit pincode.";
-  requirePositive(errors, "priceRupees", form.priceRupees, "property price");
+  const isRent = form.listingIntent === "rent";
+  requirePositive(
+    errors,
+    "priceRupees",
+    form.priceRupees,
+    isRent ? "monthly rent" : "property price",
+  );
+  if (isRent) {
+    requirePositive(
+      errors,
+      "securityDepositRupees",
+      form.securityDepositRupees,
+      "security deposit",
+    );
+    requirePositive(
+      errors,
+      "minimumLeaseMonths",
+      form.minimumLeaseMonths,
+      "minimum lease duration",
+    );
+  }
+
+  // Mirrors the server allowlist so the author is told here rather than on
+  // submit; the API re-derives and re-checks every link regardless.
+  const enteredLinks = form.listingLinks.filter((url) => url.trim());
+  if (enteredLinks.length > MAX_LISTING_LINKS) {
+    errors.listingLinks = `Add at most ${MAX_LISTING_LINKS} listing links.`;
+  } else {
+    form.listingLinks.forEach((url, index) => {
+      const error = listingLinkError(url);
+      if (error) errors[`listingLink-${index}`] = error;
+    });
+  }
 
   const details = form.details;
   const family = propertyFormFamily(form.propertySubtype);
@@ -527,7 +608,7 @@ export function validateForm(
     if (details.configurations.length === 0) errors.configurations = "Choose a configuration.";
     requirePositive(errors, "unitAreaSqft", details.unitAreaSqft, "unit or plot area");
     requirePositive(errors, "rateRupees", details.rateRupees, "price per square foot");
-    requireValue(errors, "saleType", details.saleType, "Sale type");
+    if (!isRent) requireValue(errors, "saleType", details.saleType, "Sale type");
     requireValue(errors, "facing", details.facing, "Entrance facing");
     requireValue(errors, "about", details.about, "About the project");
     requireValue(errors, "amenitiesDescription", details.amenitiesDescription, "Amenities description");
@@ -560,7 +641,7 @@ export function validateForm(
     requirePositive(errors, "totalAreaSqft", details.totalAreaSqft, "total area");
     requirePositive(errors, "unitAreaSqft", details.unitAreaSqft, "unit area");
     requireValue(errors, "facing", details.facing, "Facing");
-    requireValue(errors, "saleType", details.saleType, "Sale type");
+    if (!isRent) requireValue(errors, "saleType", details.saleType, "Sale type");
     requireValue(errors, "rentalIncomeStart", details.rentalIncomeStart, "Income start");
     requireValue(errors, "about", details.about, "About the property");
     requireValue(errors, "furnishing", form.furnishing, "Furnishing");
@@ -573,7 +654,7 @@ export function validateForm(
     requirePositive(errors, "totalPlots", details.totalPlots, "total plots");
     requireValue(errors, "facing", details.facing, "Facing");
     requirePositive(errors, "rateRupees", details.rateRupees, "price per square yard");
-    requireValue(errors, "saleType", details.saleType, "Sale type");
+    if (!isRent) requireValue(errors, "saleType", details.saleType, "Sale type");
     requireValue(errors, "projectStatus", details.projectStatus, "Project status");
     requireValue(errors, "about", details.about, "About the project");
     validateNarrative(errors, "about", details.about, "About the project", 500);

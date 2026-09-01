@@ -3,7 +3,9 @@
 import * as React from "react";
 import { TriangleAlertIcon, X } from "lucide-react";
 
-import { TRUST_LINE } from "@/lib/site";
+import { CLOSE_BUTTON_CLASS } from "@/components/ui/close-button";
+import { TRUST_LINE } from "@/lib/brand";
+import { cn } from "@/lib/utils";
 
 // The announcement copy — icon + text as one unit — rendered twice inside the
 // mobile/tablet marquee track so the icon scrolls with the message. `inline-flex`
@@ -61,7 +63,7 @@ export function AnnouncementBanner() {
           type="button"
           aria-label="Dismiss announcement"
           onClick={() => setDismissed(true)}
-          className="shrink-0 rounded-md p-1 text-[var(--nav-text)]/70 transition-colors hover:text-[var(--nav-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nav-text)]"
+          className={cn("shrink-0", CLOSE_BUTTON_CLASS)}
         >
           <X className="h-4 w-4" />
         </button>

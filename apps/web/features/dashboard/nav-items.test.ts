@@ -154,24 +154,28 @@ describe("role-aware dashboard navigation", () => {
     ]);
   });
 
-  it("makes the existing Sub Admin surfaces reachable without Client items", () => {
+  it("makes the supported Sub Admin surfaces reachable without Client items", () => {
     expect(navKeys(context("sub_admin"))).toEqual([
       "home",
       "sub-admin-listings",
+      "sub-admin-listing-submit",
+      "sub-admin-finance",
       "sub-admin-referral-rules",
-      "banners",
-      "offers",
-      "content",
+      "campaign-banners",
+      "campaign-offers",
+      "campaign-media",
     ]);
 
     expect(navKeys(context("sub_admin", null, "loans", undefined, ["payout_requests"]))).toEqual([
       "home",
       "sub-admin-listings",
+      "sub-admin-listing-submit",
+      "sub-admin-finance",
+      "sub-admin-payouts",
       "sub-admin-referral-rules",
-      "admin-payouts",
-      "banners",
-      "offers",
-      "content",
+      "campaign-banners",
+      "campaign-offers",
+      "campaign-media",
     ]);
   });
 
@@ -190,14 +194,12 @@ describe("role-aware dashboard navigation", () => {
       "admin-users",
       "admin-agents",
       "admin-support-tickets",
-      "admin-access-control",
       "admin-payouts",
       "admin-commissions",
       "admin-fee-cashbacks",
       "admin-referral-payouts",
       "admin-referral-rules",
-      "banners",
-      "offers",
+      "campaign-approvals",
       "admin-broadcast",
       "admin-analytics",
     ]);
@@ -253,9 +255,28 @@ describe("dashboard direct-route UX access", () => {
 
     expect(isDashboardPathAllowed("/dashboard/banners", context("admin"))).toBe(true);
     expect(isDashboardPathAllowed("/dashboard/banners/new", context("admin"))).toBe(false);
-    expect(isDashboardPathAllowed("/dashboard/banners/new", context("sub_admin"))).toBe(true);
-    expect(isDashboardPathAllowed("/dashboard/content", context("admin"))).toBe(true);
+    expect(isDashboardPathAllowed("/dashboard/banners/new", context("sub_admin"))).toBe(false);
+    expect(isDashboardPathAllowed("/dashboard/offers/new", context("sub_admin"))).toBe(false);
+    expect(isDashboardPathAllowed("/dashboard/banner-media", context("admin"))).toBe(true);
+    expect(isDashboardPathAllowed("/dashboard/banner-media", context("sub_admin"))).toBe(true);
+    // /dashboard/campaigns is a redirect that resolves notification links sent
+    // before banners and offers became separate pages. Both roles have to reach
+    // it to be forwarded; it renders no campaign data of its own.
+    expect(isDashboardPathAllowed("/dashboard/campaigns", context("sub_admin"))).toBe(true);
+    expect(isDashboardPathAllowed("/dashboard/campaigns", context("admin"))).toBe(true);
+    expect(isDashboardPathAllowed("/dashboard/media-library", context("sub_admin"))).toBe(true);
+    expect(isDashboardPathAllowed("/dashboard/media-library", context("admin"))).toBe(false);
+    expect(isDashboardPathAllowed("/dashboard/campaign-approvals", context("admin"))).toBe(true);
+    expect(isDashboardPathAllowed("/dashboard/campaign-approvals", context("sub_admin"))).toBe(false);
+    expect(isDashboardPathAllowed("/dashboard/content", context("admin"))).toBe(false);
+    expect(isDashboardPathAllowed("/dashboard/content", context("sub_admin"))).toBe(false);
     expect(isDashboardPathAllowed("/dashboard/audit-log", context("admin"))).toBe(true);
+    expect(
+      isDashboardPathAllowed("/dashboard/property-review/listing-id/correct", context("admin")),
+    ).toBe(true);
+    expect(
+      isDashboardPathAllowed("/dashboard/property-review/listing-id/correct", context("sub_admin")),
+    ).toBe(false);
   });
 
   it("keeps Client and cross-line features out of staff workspaces", () => {

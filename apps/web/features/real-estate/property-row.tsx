@@ -3,7 +3,6 @@
 // Namespace React import (matching lead-dialog.tsx / hero-carousel.tsx) so the
 // classic JSX transform used by the vitest setup can render this in tests.
 import * as React from "react";
-import Link from "next/link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
 import { PropertyCard } from "@/features/real-estate/property-card";
@@ -17,17 +16,11 @@ export function PropertyRow({
   blurb,
   listings,
   id,
-  href,
 }: {
   heading: string;
   blurb?: string;
   listings: REListing[];
   id?: string;
-  // Category page to link into from the empty state below, so a category with
-  // zero current listings stays reachable instead of silently disappearing
-  // (this row used to return null outright, which erased "houses" and
-  // "commercial" from Explore whenever their live count was zero).
-  href?: string;
 }) {
   const scrollerRef = React.useRef<HTMLDivElement>(null);
 
@@ -60,24 +53,7 @@ export function PropertyRow({
     requestAnimationFrame(step);
   }
 
-  if (listings.length === 0) {
-    return (
-      <section id={id} aria-label={heading} className="w-full scroll-mt-16">
-        <div className="px-4 sm:px-6 lg:px-10">
-          <h3 className="font-heading text-xl font-semibold text-text-primary">{heading}</h3>
-          {blurb ? <p className="mt-1 text-sm text-text-secondary">{blurb}</p> : null}
-          <div className="mt-4 rounded-xl border border-dashed border-border bg-card px-6 py-8 text-center">
-            <p className="text-sm text-text-secondary">No listings yet.</p>
-            {href ? (
-              <Link href={href} className="mt-2 inline-block text-sm font-semibold text-brand-cta hover:underline">
-                Browse {heading}
-              </Link>
-            ) : null}
-          </div>
-        </div>
-      </section>
-    );
-  }
+  if (listings.length === 0) return null;
 
   return (
     <section id={id} aria-label={heading} className="w-full scroll-mt-16">

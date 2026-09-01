@@ -1,9 +1,4 @@
-"""Offers — Sub Admin create/edit + lifecycle-advance (no Admin gate).
-
-Every route runs on the request session under RLS (narrow sub_admin-only
-allowlist — migration b5c6d7e8f9a0). Admin only gets the list/detail GET routes
-(read-only oversight); there is no approve/reject or bypass service here at all.
-"""
+"""Sub Admin offer authoring and Admin approval queue."""
 
 from __future__ import annotations
 
@@ -13,45 +8,110 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app import campaign_artwork
 from app.core.deps import (
     CurrentUser,
     get_active_user,
-    is_platform_admin,
-    require_sub_admin_or_platform_admin,
+    require_platform_admin,
+    require_sub_admin,
 )
 from app.db.session import get_db
+from app.models.audit_log import AuditAction
 from app.models.offer import Offer, OfferStatus
-from app.schemas.offers import OfferCreate, OfferListResponse, OfferRead, OfferUpdate
-from app.schemas.personalization import (
-    AudienceRules,
-    audience_rules_to_storage,
-    audience_rules_valid_for_offer,
+from app.schemas.offers import (
+    OfferCreate,
+    OfferImageUploadRequest,
+    OfferImageUploadResponse,
+    OfferListResponse,
+    OfferRead,
+    OfferRejectRequest,
+    OfferUpdate,
+)
+from app.schemas.personalization import AudienceRules, audience_rules_to_storage
+from app.services.audit_log import record as record_audit
+from app.services.banners import IMAGE_MAX_BYTES, UnsupportedImageType, presign_banner_image_upload
+from app.services.campaign_media import (
+    CampaignMediaInvalid,
+    asset_image_url,
+    resolve_campaign_asset,
 )
 from app.services.offers import (
     OfferIllegalTransition,
-    OfferInvalidAudience,
-    OfferNotOwned,
-    advance_offer,
+    OfferInvalidConfiguration,
+    remove_offer,
+    transition_offer,
 )
 
 router = APIRouter()
+_EDITABLE_STATUSES = (OfferStatus.DRAFT, OfferStatus.REJECTED)
 
-_EDITABLE_STATUSES = (OfferStatus.DRAFT, OfferStatus.SCHEDULED)
+
+def _read(offer: Offer) -> OfferRead:
+    return OfferRead.model_validate(offer, from_attributes=True).model_copy(
+        update={"image_url": asset_image_url(offer.image_key) if offer.image_key else None}
+    )
+
+
+@router.post("/image-upload-url", response_model=OfferImageUploadResponse)
+async def get_offer_image_upload_url(
+    payload: OfferImageUploadRequest,
+    current_user: CurrentUser = Depends(require_sub_admin),
+) -> OfferImageUploadResponse:
+    try:
+        url, fields, object_key = presign_banner_image_upload(
+            payload.content_type, payload.filename
+        )
+    except UnsupportedImageType as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Unsupported image type. Use JPEG, PNG, or WEBP.",
+        ) from exc
+    return OfferImageUploadResponse(
+        object_key=object_key,
+        upload_url=url,
+        fields=fields,
+        max_bytes=IMAGE_MAX_BYTES,
+    )
 
 
 @router.post("", response_model=OfferRead, status_code=status.HTTP_201_CREATED)
 async def create_offer(
     payload: OfferCreate,
-    current_user: CurrentUser = Depends(require_sub_admin_or_platform_admin),
+    current_user: CurrentUser = Depends(require_sub_admin),
     db: AsyncSession = Depends(get_db),
 ) -> OfferRead:
+    try:
+        media_asset = await resolve_campaign_asset(
+            db,
+            asset_id=payload.media_asset_id,
+            business_line=payload.business_line,
+            allowed_usage_types=campaign_artwork.OFFER_USAGE_TYPES,
+        )
+    except CampaignMediaInvalid as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail="Choose an active offer asset for this business line.",
+        ) from exc
     values = payload.model_dump(exclude={"audience_rules"})
+    if media_asset is not None:
+        values["image_key"] = media_asset.image_ref
     values["audience_rules"] = audience_rules_to_storage(payload.audience_rules)
     offer = Offer(created_by_uuid=current_user.id, **values)
     db.add(offer)
+    await db.flush()
+    await record_audit(
+        db,
+        action=AuditAction.OFFER_CREATED,
+        entity_type="offer",
+        entity_uuid=offer.id,
+        actor_uuid=current_user.id,
+        actor_role=current_user.role,
+        business_line=offer.business_line,
+        detail={"status": offer.status.value},
+    )
     await db.commit()
     await db.refresh(offer)
-    return OfferRead.model_validate(offer, from_attributes=True)
+    return _read(offer)
 
 
 @router.get("", response_model=OfferListResponse)
@@ -60,15 +120,11 @@ async def list_offers(
     current_user: CurrentUser = Depends(get_active_user),
     db: AsyncSession = Depends(get_db),
 ) -> OfferListResponse:
-    # RLS scopes the rows: sub_admin and admin see the shared queue, anyone else
-    # sees nothing. Newest first.
-    stmt = select(Offer).order_by(Offer.created_at.desc())
+    stmt = select(Offer).where(Offer.removed_at.is_(None)).order_by(Offer.created_at.desc())
     if status_filter is not None:
         stmt = stmt.where(Offer.status == status_filter)
     rows = (await db.execute(stmt)).scalars().all()
-    return OfferListResponse(
-        offers=[OfferRead.model_validate(r, from_attributes=True) for r in rows]
-    )
+    return OfferListResponse(offers=[_read(row) for row in rows])
 
 
 @router.get("/{offer_id}", response_model=OfferRead)
@@ -77,115 +133,213 @@ async def get_offer(
     current_user: CurrentUser = Depends(get_active_user),
     db: AsyncSession = Depends(get_db),
 ) -> OfferRead:
-    offer = await db.scalar(select(Offer).where(Offer.id == offer_id))
+    offer = await db.scalar(select(Offer).where(Offer.id == offer_id, Offer.removed_at.is_(None)))
     if offer is None:
-        # 404, never 403: an RLS-filtered row is indistinguishable from missing.
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Offer not found.")
-    return OfferRead.model_validate(offer, from_attributes=True)
+    return _read(offer)
 
 
 @router.patch("/{offer_id}", response_model=OfferRead)
 async def update_offer(
     offer_id: UUID,
     payload: OfferUpdate,
-    current_user: CurrentUser = Depends(require_sub_admin_or_platform_admin),
+    current_user: CurrentUser = Depends(require_sub_admin),
     db: AsyncSession = Depends(get_db),
 ) -> OfferRead:
-    offer = await db.scalar(select(Offer).where(Offer.id == offer_id))
+    offer = await db.scalar(
+        select(Offer).where(Offer.id == offer_id, Offer.removed_at.is_(None)).with_for_update()
+    )
     if offer is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Offer not found.")
-    # App-layer guard, mirroring banners' update endpoint: sub_admin's shared-
-    # visibility SELECT sees every offer, so ownership must be checked explicitly
-    # rather than relying on a silent RLS zero-row no-op.
-    if not is_platform_admin(current_user) and offer.created_by_uuid != current_user.id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You can only edit offers you created.",
-        )
     if offer.status not in _EDITABLE_STATUSES:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="This offer cannot be edited from its current status.",
+            detail="Only draft or rejected offers can be edited.",
         )
-    values = payload.model_dump(exclude_unset=True, exclude={"audience_rules"})
+    if payload.expected_version is not None and payload.expected_version != offer.version:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="This campaign changed after you opened it. Refresh before saving.",
+        )
+    media_asset = None
+    if "media_asset_id" in payload.model_fields_set:
+        try:
+            media_asset = await resolve_campaign_asset(
+                db,
+                asset_id=payload.media_asset_id,
+                business_line=offer.business_line,
+                allowed_usage_types=campaign_artwork.OFFER_USAGE_TYPES,
+            )
+        except CampaignMediaInvalid as exc:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                detail="Choose an active offer asset for this business line.",
+            ) from exc
+    values = payload.model_dump(exclude_unset=True, exclude={"audience_rules", "expected_version"})
     if "audience_rules" in payload.model_fields_set and payload.audience_rules is not None:
         values["audience_rules"] = audience_rules_to_storage(payload.audience_rules)
+    if "media_asset_id" in payload.model_fields_set:
+        values["image_key"] = media_asset.image_ref if media_asset else None
     for field, value in values.items():
         setattr(offer, field, value)
-    # OfferUpdate's own validator only sees fields present in THIS request, so a
-    # partial PATCH (e.g. discount_value alone) can't check itself against an
-    # unrelated existing discount_type — re-validate the merged row here.
     if offer.discount_type == "percentage" and offer.discount_value > 100:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="discount_value cannot exceed 100 for a percentage offer.",
         )
     try:
-        rules = AudienceRules.model_validate(offer.audience_rules)
+        AudienceRules.model_validate(offer.audience_rules)
     except ValueError as exc:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="This offer has invalid audience rules.",
         ) from exc
-    if not audience_rules_valid_for_offer(rules):
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-            detail="Targeted offers are available to Clients only.",
-        )
+    await record_audit(
+        db,
+        action=AuditAction.OFFER_UPDATED,
+        entity_type="offer",
+        entity_uuid=offer.id,
+        actor_uuid=current_user.id,
+        actor_role=current_user.role,
+        business_line=offer.business_line,
+        detail={"fields": sorted(values)},
+    )
+    offer.version += 1
     await db.commit()
     await db.refresh(offer)
-    return OfferRead.model_validate(offer, from_attributes=True)
+    return _read(offer)
 
 
-async def _advance(
-    offer_id: UUID, target: OfferStatus, current_user: CurrentUser, db: AsyncSession
+async def _transition(
+    offer_id: UUID,
+    target: OfferStatus,
+    current_user: CurrentUser,
+    db: AsyncSession,
+    *,
+    review_note: str | None = None,
 ) -> OfferRead:
     try:
-        offer = await advance_offer(
-            offer_id, current_user.id, target, db, can_manage_any=is_platform_admin(current_user)
+        offer = await transition_offer(
+            offer_id,
+            current_user.id,
+            current_user.role,
+            target,
+            db,
+            review_note=review_note,
         )
-    except OfferNotOwned as exc:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You can only advance offers you created.",
-        ) from exc
     except OfferIllegalTransition as exc:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="This offer cannot move to that status from its current status.",
         ) from exc
-    except OfferInvalidAudience as exc:
+    except OfferInvalidConfiguration as exc:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-            detail="This offer has invalid audience rules.",
+            detail=(
+                "Add a partner, HTTPS destination, coupon code, artwork, terms, and at least "
+                "one audience role before review or activation."
+            ),
         ) from exc
     if offer is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Offer not found.")
-    return OfferRead.model_validate(offer, from_attributes=True)
+    return _read(offer)
+
+
+@router.post("/{offer_id}/submit", response_model=OfferRead)
+async def submit(
+    offer_id: UUID,
+    current_user: CurrentUser = Depends(require_sub_admin),
+    db: AsyncSession = Depends(get_db),
+) -> OfferRead:
+    return await _transition(offer_id, OfferStatus.PENDING_APPROVAL, current_user, db)
+
+
+@router.post("/{offer_id}/approve", response_model=OfferRead)
+async def approve(
+    offer_id: UUID,
+    current_user: CurrentUser = Depends(require_platform_admin),
+    db: AsyncSession = Depends(get_db),
+) -> OfferRead:
+    return await _transition(offer_id, OfferStatus.APPROVED, current_user, db)
+
+
+@router.post("/{offer_id}/reject", response_model=OfferRead)
+async def reject(
+    offer_id: UUID,
+    payload: OfferRejectRequest,
+    current_user: CurrentUser = Depends(require_platform_admin),
+    db: AsyncSession = Depends(get_db),
+) -> OfferRead:
+    return await _transition(
+        offer_id, OfferStatus.REJECTED, current_user, db, review_note=payload.note
+    )
 
 
 @router.post("/{offer_id}/schedule", response_model=OfferRead)
 async def schedule(
     offer_id: UUID,
-    current_user: CurrentUser = Depends(require_sub_admin_or_platform_admin),
+    current_user: CurrentUser = Depends(require_sub_admin),
     db: AsyncSession = Depends(get_db),
 ) -> OfferRead:
-    return await _advance(offer_id, OfferStatus.SCHEDULED, current_user, db)
+    return await _transition(offer_id, OfferStatus.SCHEDULED, current_user, db)
 
 
 @router.post("/{offer_id}/activate", response_model=OfferRead)
 async def activate(
     offer_id: UUID,
-    current_user: CurrentUser = Depends(require_sub_admin_or_platform_admin),
+    current_user: CurrentUser = Depends(require_sub_admin),
     db: AsyncSession = Depends(get_db),
 ) -> OfferRead:
-    return await _advance(offer_id, OfferStatus.ACTIVE, current_user, db)
+    return await _transition(offer_id, OfferStatus.ACTIVE, current_user, db)
 
 
 @router.post("/{offer_id}/archive", response_model=OfferRead)
 async def archive(
     offer_id: UUID,
-    current_user: CurrentUser = Depends(require_sub_admin_or_platform_admin),
+    current_user: CurrentUser = Depends(require_sub_admin),
     db: AsyncSession = Depends(get_db),
 ) -> OfferRead:
-    return await _advance(offer_id, OfferStatus.ARCHIVED, current_user, db)
+    return await _transition(offer_id, OfferStatus.ARCHIVED, current_user, db)
+
+
+@router.delete("/{offer_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_offer_draft(
+    offer_id: UUID,
+    current_user: CurrentUser = Depends(require_sub_admin),
+    db: AsyncSession = Depends(get_db),
+) -> None:
+    offer = await db.scalar(
+        select(Offer).where(Offer.id == offer_id, Offer.removed_at.is_(None)).with_for_update()
+    )
+    if offer is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Offer not found.")
+    if offer.status != OfferStatus.DRAFT:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Only a never-submitted draft can be deleted.",
+        )
+    await record_audit(
+        db,
+        action=AuditAction.OFFER_DELETED,
+        entity_type="offer",
+        entity_uuid=offer.id,
+        actor_uuid=current_user.id,
+        actor_role=current_user.role,
+        business_line=offer.business_line,
+        detail={"mode": "draft_delete"},
+    )
+    await db.delete(offer)
+    await db.commit()
+
+
+@router.post("/{offer_id}/remove", response_model=OfferRead)
+async def remove(
+    offer_id: UUID,
+    payload: OfferRejectRequest,
+    current_user: CurrentUser = Depends(require_platform_admin),
+    db: AsyncSession = Depends(get_db),
+) -> OfferRead:
+    offer = await remove_offer(offer_id, current_user.id, payload.note, db)
+    if offer is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Offer not found.")
+    return _read(offer)

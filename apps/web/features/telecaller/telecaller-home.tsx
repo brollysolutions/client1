@@ -99,7 +99,6 @@ export function TelecallerHome() {
   return (
     <DashboardPage>
       <DashboardHeader
-        eyebrow={activeLine === "real_estate" ? "Real Estate pipeline" : "Loans pipeline"}
         title="Lead follow-up workspace"
         description="Work the most urgent callbacks first, then keep every assigned lead moving."
         actions={<DashboardTextLink href="/dashboard/leads">Open lead queue</DashboardTextLink>}

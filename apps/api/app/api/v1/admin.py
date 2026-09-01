@@ -31,6 +31,7 @@ from app.models.audit_log import AuditAction
 from app.models.profile import AgentApplication, StaffRole, SubmissionStatus
 from app.models.support_ticket import SupportStatus
 from app.models.task import Task, TaskStatus, TaskType
+from app.models.user import UserStatus
 from app.schemas.admin import (
     AdminAccountDeleteRequest,
     AdminAssignedLeadRead,
@@ -58,14 +59,14 @@ from app.schemas.admin import (
     StaffCreateResponse,
     StaffFeatureUpdateRequest,
 )
+from app.schemas.agent_invites import (
+    AgentInviteCandidateListResponse,
+    AgentInviteCandidateRead,
+    AgentInviteLinkRead,
+)
 from app.schemas.audit_log import AuditLogListResponse, AuditLogRead
 from app.schemas.auth import MessageResponse
 from app.schemas.employee import TaskFeedbackMediaRead
-from app.schemas.field_visibility import (
-    FieldVisibilityEntryRead,
-    FieldVisibilityListResponse,
-    FieldVisibilityUpdateRequest,
-)
 from app.schemas.financial_catalog import (
     AdminProviderOfferListResponse,
     AdminProviderOfferRead,
@@ -91,12 +92,13 @@ from app.schemas.loan_config import (
 )
 from app.schemas.loans import LoanApplicationProgressUpdate
 from app.schemas.property_deals import PropertyDealProgressUpdate
+from app.schemas.staff_invites import StaffInviteLinkRead
 from app.schemas.support_tickets import (
     SupportTicketAdminListResponse,
     SupportTicketAdminRead,
     SupportTicketAdvanceRequest,
 )
-from app.services import storage
+from app.services import agent_invites, staff_invites, storage
 from app.services.account_deletion import (
     AccountAlreadyDeleted,
     AccountNotFound,
@@ -129,16 +131,6 @@ from app.services.admin import (
 from app.services.admin_home import get_admin_home
 from app.services.audit_log import AuditEntryView
 from app.services.audit_log import list_for_admin as list_audit_log
-from app.services.field_visibility import (
-    FieldVisibilityModeNotAllowed,
-    UnknownFieldVisibilityKey,
-)
-from app.services.field_visibility import (
-    list_for_admin as list_field_visibility,
-)
-from app.services.field_visibility import (
-    update_for_admin as update_field_visibility,
-)
 from app.services.financial_catalog import (
     PROVIDER_LOGO_MAX_BYTES,
     ProductOrProviderNotFound,
@@ -182,14 +174,17 @@ from app.services.loan_applications import (
 )
 from app.services.loan_applications import InvalidStatusTransition as InvalidLoanStatusTransition
 from app.services.loan_config import (
+    BankInUse,
     BankNotFound,
     DuplicateBankName,
     DuplicateLoanTypeName,
     InvalidProductForm,
     LoanTypeNotFound,
     bank_application_counts,
+    bank_offer_counts,
     create_bank,
     create_loan_type,
+    delete_bank,
     list_availability_entries,
     list_banks,
     list_loan_types,
@@ -232,72 +227,6 @@ from app.services.task_feedback import list_feedback_media
 from app.services.tasks import list_active_employees, list_tasks_for_admin
 
 router = APIRouter()
-
-
-def _to_field_visibility_read(definition, override) -> FieldVisibilityEntryRead:  # noqa: ANN001
-    return FieldVisibilityEntryRead(
-        id=override.id if override is not None else None,
-        target_role=definition.target_role,
-        entity=definition.entity,
-        field_key=definition.field_key,
-        label=definition.label,
-        mode=override.mode if override is not None else definition.default_mode,
-        default_mode=definition.default_mode,
-        allowed_modes=list(definition.allowed_modes),
-        locked=definition.locked,
-        lock_reason=definition.lock_reason,
-        updated_at=override.updated_at if override is not None else None,
-    )
-
-
-@router.get("/field-visibility", response_model=FieldVisibilityListResponse)
-async def get_field_visibility(
-    current_user: CurrentUser = Depends(require_platform_admin),
-    db: AsyncSession = Depends(get_db),
-) -> FieldVisibilityListResponse:
-    del current_user
-    rows = await list_field_visibility(db)
-    return FieldVisibilityListResponse(
-        entries=[_to_field_visibility_read(definition, override) for definition, override in rows]
-    )
-
-
-@router.put("/field-visibility", response_model=FieldVisibilityEntryRead)
-async def set_field_visibility(
-    payload: FieldVisibilityUpdateRequest,
-    current_user: CurrentUser = Depends(require_platform_admin),
-    db: AsyncSession = Depends(get_db),
-) -> FieldVisibilityEntryRead:
-    try:
-        config = await update_field_visibility(
-            db,
-            target_role=payload.target_role,
-            entity=payload.entity,
-            field_key=payload.field_key,
-            mode=payload.mode,
-            actor_uuid=current_user.id,
-            actor_role=current_user.role,
-        )
-    except UnknownFieldVisibilityKey as exc:
-        raise HTTPException(
-            status.HTTP_422_UNPROCESSABLE_CONTENT,
-            "This field is not part of the supported visibility catalogue.",
-        ) from exc
-    except FieldVisibilityModeNotAllowed as exc:
-        raise HTTPException(
-            status.HTTP_409_CONFLICT,
-            "This visibility mode is not allowed for the selected field.",
-        ) from exc
-
-    rows = await list_field_visibility(db)
-    for definition, override in rows:
-        if (
-            definition.target_role == config.target_role
-            and definition.entity == config.entity
-            and definition.field_key == config.field_key
-        ):
-            return _to_field_visibility_read(definition, override)
-    raise HTTPException(status.HTTP_500_INTERNAL_SERVER_ERROR, "Visibility catalogue mismatch.")
 
 
 @router.get("/home", response_model=AdminHomeResponse)
@@ -389,6 +318,7 @@ async def create_staff_user(
         role=payload.role,
         business_line=profile.business_line,
         staff_code=profile.staff_code,
+        auth_user_uuid=profile.auth_user_uuid,
         temp_password=temp_password,
     )
 
@@ -510,11 +440,40 @@ async def list_users(
     response: Response,
     limit: int = Query(default=50, ge=1, le=200),
     offset: int = Query(default=0, ge=0),
+    search: str | None = Query(default=None, max_length=100),
+    status_filter: (
+        Literal["active", "suspended", "pending_password_reset", "soft_deleted"] | None
+    ) = Query(default=None, alias="status"),
+    role: (
+        Literal["admin", "sub_admin", "telecaller", "employee", "agent", "client"] | None
+    ) = Query(default=None),
+    business_line: Literal["loans", "real_estate"] | None = Query(default=None),
+    created_from: datetime | None = Query(default=None),
+    created_to: datetime | None = Query(default=None),
+    never_logged_in: bool | None = Query(default=None),
     current_user: CurrentUser = Depends(require_platform_admin),  # noqa: ARG001
     db: AsyncSession = Depends(get_db),
 ) -> AdminUserListResponse:
+    """The operational account directory.
+
+    Filtering is server-side because the console pages this list: filtering only
+    the fetched page meant a match on page three was invisible from page one.
+    Every parameter is optional and omitting all of them preserves the original
+    unfiltered behavior.
+    """
     response.headers["Cache-Control"] = "private, no-store"
-    users, total = await list_operational_users(db, limit=limit, offset=offset)
+    users, total = await list_operational_users(
+        db,
+        limit=limit,
+        offset=offset,
+        search=search,
+        statuses=[UserStatus(status_filter)] if status_filter else None,
+        role=role,
+        business_line=business_line,
+        created_from=created_from,
+        created_to=created_to,
+        never_logged_in=never_logged_in,
+    )
     return AdminUserListResponse(
         users=[
             AdminUserRead(
@@ -538,6 +497,116 @@ async def list_users(
     )
 
 
+@router.post(
+    "/users/{auth_user_uuid}/invite-link",
+    response_model=StaffInviteLinkRead,
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_staff_invite_link(
+    auth_user_uuid: UUID,
+    current_user: CurrentUser = Depends(require_platform_admin),
+    db: AsyncSession = Depends(get_db),
+) -> StaffInviteLinkRead:
+    """Issue a first-login link so the temp password never has to be relayed.
+
+    Creating one revokes the invitee's outstanding link: two live links would
+    mean two working credentials for one account. The raw token is returned
+    exactly once, here, and only its SHA-256 hash is stored.
+    """
+    try:
+        link, token = await staff_invites.create_invite_link(
+            db,
+            auth_user_uuid=auth_user_uuid,
+            actor_uuid=current_user.id,
+            actor_role=current_user.role,
+        )
+    except staff_invites.StaffInviteNotAllowed as exc:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            "Only an active staff account that has not set its own password can be invited.",
+        ) from exc
+    return StaffInviteLinkRead(
+        id=link.id,
+        share_path=f"/staff-invite/{token}",
+        expires_at=link.expires_at,
+    )
+
+
+@router.delete("/invite-links/{link_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def revoke_staff_invite_link(
+    link_id: UUID,
+    current_user: CurrentUser = Depends(require_platform_admin),
+    db: AsyncSession = Depends(get_db),
+) -> Response:
+    try:
+        await staff_invites.revoke_invite_link(db, link_uuid=link_id, actor_uuid=current_user.id)
+    except staff_invites.StaffInviteNotFound as exc:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Invitation link not found.") from exc
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.get("/agent-invites", response_model=AgentInviteCandidateListResponse)
+async def list_agent_invite_candidates(
+    current_user: CurrentUser = Depends(require_platform_admin),
+    db: AsyncSession = Depends(get_db),
+) -> AgentInviteCandidateListResponse:
+    """List approved Agents who still need to choose their first password."""
+    candidates = await agent_invites.list_candidates(db)
+    return AgentInviteCandidateListResponse(
+        agents=[
+            AgentInviteCandidateRead.model_validate(candidate, from_attributes=True)
+            for candidate in candidates
+        ]
+    )
+
+
+@router.post(
+    "/agents/{application_id}/invite-link",
+    response_model=AgentInviteLinkRead,
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_agent_invite_link(
+    application_id: UUID,
+    current_user: CurrentUser = Depends(require_platform_admin),
+    db: AsyncSession = Depends(get_db),
+) -> AgentInviteLinkRead:
+    try:
+        link, token = await agent_invites.create_invite_link(
+            db,
+            application_uuid=application_id,
+            actor_uuid=current_user.id,
+            actor_role=current_user.role,
+        )
+    except agent_invites.AgentInviteNotAllowed as exc:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            "Only an active approved Agent who has not set a password can be invited.",
+        ) from exc
+    return AgentInviteLinkRead(
+        id=link.id,
+        share_path=f"/agent-invite/{token}",
+        expires_at=link.expires_at,
+    )
+
+
+@router.delete("/agent-invite-links/{link_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def revoke_agent_invite_link(
+    link_id: UUID,
+    current_user: CurrentUser = Depends(require_platform_admin),
+    db: AsyncSession = Depends(get_db),
+) -> Response:
+    try:
+        await agent_invites.revoke_invite_link(
+            db,
+            link_uuid=link_id,
+            actor_uuid=current_user.id,
+            actor_role=current_user.role,
+        )
+    except agent_invites.AgentInviteNotFound as exc:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Invitation link not found.") from exc
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
 @router.patch("/users/{auth_user_uuid}/status", response_model=AdminUserRead)
 async def update_user_status(
     auth_user_uuid: UUID,
@@ -545,8 +614,6 @@ async def update_user_status(
     current_user: CurrentUser = Depends(require_platform_admin),
     db: AsyncSession = Depends(get_db),
 ) -> AdminUserRead:
-    from app.models.user import UserStatus
-
     try:
         user = await set_operational_user_status(
             db,
@@ -585,17 +652,25 @@ async def update_user_status(
 
 
 @router.get("/agents", response_model=AgentApplicationListResponse)
-async def list_pending_agent_applications(
+async def list_agent_applications(
+    status_filter: Literal["pending", "approved", "rejected", "all"] = Query(
+        default="pending", alias="status"
+    ),
     current_user: CurrentUser = Depends(require_platform_admin),
     db: AsyncSession = Depends(get_db),
 ) -> AgentApplicationListResponse:
-    rows = (
-        await db.scalars(
-            select(AgentApplication)
-            .where(AgentApplication.status == SubmissionStatus.PENDING)
-            .order_by(AgentApplication.created_at.desc())
-        )
-    ).all()
+    """Defaults to the pending queue, which is what the console opens on.
+
+    `status` was previously hardcoded, so an Admin had no way to look back at
+    what they had already approved or rejected. Omitting the parameter keeps the
+    original behavior; `status=all` clears the filter. "all" is an explicit
+    member rather than an empty string because FastAPI validates `""` against
+    the Literal and rejects it rather than reading it as "unset".
+    """
+    statement = select(AgentApplication).order_by(AgentApplication.created_at.desc())
+    if status_filter != "all":
+        statement = statement.where(AgentApplication.status == SubmissionStatus(status_filter))
+    rows = (await db.scalars(statement)).all()
     return AgentApplicationListResponse(
         applications=[AgentApplicationRead.model_validate(r, from_attributes=True) for r in rows]
     )
@@ -896,7 +971,7 @@ async def update_loan_application_progress(
     application_id: UUID,
     payload: LoanApplicationProgressUpdate,
     response: Response,
-    current_user: CurrentUser = Depends(require_platform_admin),  # noqa: ARG001
+    current_user: CurrentUser = Depends(require_platform_admin),
     db: AsyncSession = Depends(get_db),
 ) -> AdminLoanApplicationRead:
     response.headers["Cache-Control"] = "private, no-store"
@@ -905,7 +980,13 @@ async def update_loan_application_progress(
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Loan application not found.")
 
     try:
-        application = await apply_progress_update(db, application, payload)
+        application = await apply_progress_update(
+            db,
+            application,
+            payload,
+            actor_uuid=current_user.id,
+            actor_role=current_user.role,
+        )
     except TerminalApplication as exc:
         raise HTTPException(
             status.HTTP_409_CONFLICT, "This application is already closed."
@@ -952,7 +1033,7 @@ async def list_property_deals(
 async def update_property_deal_progress(
     deal_id: UUID,
     payload: PropertyDealProgressUpdate,
-    current_user: CurrentUser = Depends(require_platform_admin),  # noqa: ARG001
+    current_user: CurrentUser = Depends(require_platform_admin),
     db: AsyncSession = Depends(get_db),
 ) -> AdminPropertyDealRead:
     deal = await get_deal_for_admin(db, deal_id)
@@ -960,7 +1041,13 @@ async def update_property_deal_progress(
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Property deal not found.")
 
     try:
-        deal = await apply_deal_progress_update(db, deal, payload)
+        deal = await apply_deal_progress_update(
+            db,
+            deal,
+            payload,
+            actor_uuid=current_user.id,
+            actor_role=current_user.role,
+        )
     except TerminalDeal as exc:
         raise HTTPException(status.HTTP_409_CONFLICT, "This deal is already closed.") from exc
     except InvalidDealStatusTransition as exc:
@@ -1132,7 +1219,7 @@ def _to_admin_loan_type_read(
     )
 
 
-def _to_admin_bank_read(bank, count: int) -> AdminBankRead:  # noqa: ANN001
+def _to_admin_bank_read(bank, count: int, offer_count: int = 0) -> AdminBankRead:  # noqa: ANN001
     return AdminBankRead(
         id=bank.id,
         name=bank.name,
@@ -1146,6 +1233,7 @@ def _to_admin_bank_read(bank, count: int) -> AdminBankRead:  # noqa: ANN001
         created_at=bank.created_at,
         updated_at=bank.updated_at,
         application_count=count,
+        offer_count=offer_count,
     )
 
 
@@ -1215,7 +1303,12 @@ async def list_admin_banks(
 ) -> AdminBankListResponse:
     banks = await list_banks(db)
     counts = await bank_application_counts(db)
-    return AdminBankListResponse(banks=[_to_admin_bank_read(b, counts.get(b.id, 0)) for b in banks])
+    offer_counts = await bank_offer_counts(db)
+    return AdminBankListResponse(
+        banks=[
+            _to_admin_bank_read(b, counts.get(b.id, 0), offer_counts.get(b.id, 0)) for b in banks
+        ]
+    )
 
 
 @router.post("/banks", response_model=AdminBankRead, status_code=status.HTTP_201_CREATED)
@@ -1263,7 +1356,31 @@ async def update_admin_bank(
             "Use a reviewed built-in logo or the managed provider-logo upload flow.",
         ) from exc
     counts = await bank_application_counts(db)
-    return _to_admin_bank_read(bank, counts.get(bank.id, 0))
+    offer_counts = await bank_offer_counts(db)
+    return _to_admin_bank_read(bank, counts.get(bank.id, 0), offer_counts.get(bank.id, 0))
+
+
+@router.delete("/banks/{bank_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_admin_bank(
+    bank_id: UUID,
+    current_user: CurrentUser = Depends(require_platform_admin),
+    db: AsyncSession = Depends(get_db),
+) -> Response:
+    try:
+        await delete_bank(
+            db,
+            bank_id,
+            actor_uuid=current_user.id,
+            actor_role=current_user.role,
+        )
+    except BankNotFound as exc:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Provider not found.") from exc
+    except BankInUse as exc:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            "This provider is referenced by an application or offer. Disable it instead.",
+        ) from exc
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 def _to_admin_provider_offer_read(
@@ -1410,7 +1527,8 @@ async def set_provider_logo(
             "Logo verification is temporarily unavailable. Please retry.",
         ) from exc
     counts = await bank_application_counts(db)
-    return _to_admin_bank_read(bank, counts.get(bank.id, 0))
+    offer_counts = await bank_offer_counts(db)
+    return _to_admin_bank_read(bank, counts.get(bank.id, 0), offer_counts.get(bank.id, 0))
 
 
 async def _availability_matrix(db: AsyncSession) -> BankAvailabilityMatrixResponse:
@@ -1419,9 +1537,13 @@ async def _availability_matrix(db: AsyncSession) -> BankAvailabilityMatrixRespon
     lt_counts = await loan_type_application_counts(db)
     enquiry_counts = await loan_type_enquiry_counts(db)
     bank_counts = await bank_application_counts(db)
+    bank_offer_count = await bank_offer_counts(db)
     entries = await list_availability_entries(db)
     return BankAvailabilityMatrixResponse(
-        banks=[_to_admin_bank_read(b, bank_counts.get(b.id, 0)) for b in banks],
+        banks=[
+            _to_admin_bank_read(b, bank_counts.get(b.id, 0), bank_offer_count.get(b.id, 0))
+            for b in banks
+        ],
         loan_types=[
             _to_admin_loan_type_read(lt, lt_counts.get(lt.id, 0), enquiry_counts.get(lt.id, 0))
             for lt in loan_types

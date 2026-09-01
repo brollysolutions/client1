@@ -1,6 +1,8 @@
 // Facet option lists and the omnibox suggestion index for the dashboard
 // property search + filter Sheet. Pure data/derivations over REListing so
 // they stay in sync with lib/real-estate.ts without hand duplication.
+import type { components } from "@contracts/generated/schema";
+
 import {
   type Furnishing,
   type ListingStatus,
@@ -8,6 +10,8 @@ import {
   type REListing,
   type RESubtype,
 } from "@/lib/real-estate";
+
+type ListingIntent = components["schemas"]["ListingIntent"];
 
 // nuqs needs literal tuples to build its parsers, but a tuple is exactly the
 // place a contract union drifts unnoticed: `satisfies readonly RECategory[]`
@@ -30,6 +34,8 @@ const exhaustive =
         : { __missingFromTuple: Exclude<U, T[number]> }),
   ): T =>
     values;
+
+export const LISTING_INTENT_VALUES = exhaustive<ListingIntent>()(["sale", "rent"] as const);
 
 export const RE_CATEGORY_VALUES = exhaustive<RECategory>()([
   "houses",

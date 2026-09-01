@@ -14,6 +14,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app import campaign_artwork
 from app.core.deps import (
     CurrentUser,
     get_active_user,
@@ -55,18 +56,30 @@ from app.services.banners import (
     create_template_version,
     presign_banner_image_upload,
     reject_banner,
+    remove_banner,
     submit_banner,
     template_image_url,
     validate_banner_configuration,
+)
+from app.services.campaign_media import (
+    CampaignMediaInvalid,
+    asset_image_url,
+    resolve_campaign_asset,
 )
 
 router = APIRouter()
 
 
+def _read(banner: Banner) -> BannerRead:
+    return BannerRead.model_validate(banner, from_attributes=True).model_copy(
+        update={"image_url": asset_image_url(banner.image_key) if banner.image_key else None}
+    )
+
+
 @router.post("", response_model=BannerRead, status_code=status.HTTP_201_CREATED)
 async def create_banner(
     payload: BannerCreate,
-    current_user: CurrentUser = Depends(require_sub_admin_or_platform_admin),
+    current_user: CurrentUser = Depends(require_sub_admin),
     db: AsyncSession = Depends(get_db),
 ) -> BannerRead:
     try:
@@ -78,6 +91,7 @@ async def create_banner(
             offer_id=payload.offer_id,
             property_id=payload.property_id,
             allow_legacy="placement" not in payload.model_fields_set,
+            has_media_asset=payload.media_asset_id is not None,
         )
     except BannerInvalidConfiguration as exc:
         raise HTTPException(
@@ -86,7 +100,33 @@ async def create_banner(
                 "Banner placement, template, business line, linked Offer, or property is invalid."
             ),
         ) from exc
+    # A public campaign draws its artwork from exactly one source: a governed
+    # category template, or a Media Library asset picked (or uploaded) for this
+    # campaign alone. Accepting both would leave two images competing for one
+    # slot with no rule for which wins.
+    if template is not None and payload.media_asset_id is not None:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail="Choose either a governed template or Media Library artwork, not both.",
+        )
+    try:
+        media_asset = await resolve_campaign_asset(
+            db,
+            asset_id=payload.media_asset_id,
+            business_line=payload.business_line,
+            allowed_usage_types=campaign_artwork.BANNER_USAGE_TYPES_BY_PLACEMENT[payload.placement],
+        )
+    except CampaignMediaInvalid as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail="Choose an active banner asset for this business line.",
+        ) from exc
     values = payload.model_dump(exclude={"audience_rules"})
+    values["media_asset_id"] = template.media_asset_id if template else payload.media_asset_id
+    if template is not None:
+        values["image_key"] = None
+    if media_asset is not None:
+        values["image_key"] = media_asset.image_ref
     values["audience_rules"] = audience_rules_to_storage(payload.audience_rules)
     values["category_key"] = template.category_key if template else None
     banner = Banner(created_by_uuid=current_user.id, **values)
@@ -104,7 +144,7 @@ async def create_banner(
     )
     await db.commit()
     await db.refresh(banner)
-    return BannerRead.model_validate(banner, from_attributes=True)
+    return _read(banner)
 
 
 def _template_read(template: BannerTemplate) -> BannerTemplateRead:
@@ -120,6 +160,7 @@ def _template_read(template: BannerTemplate) -> BannerTemplateRead:
         label=template.label,
         version=template.version,
         image_url=image_url,
+        media_asset_id=template.media_asset_id,
         active=template.active,
         created_at=template.created_at,
     )
@@ -143,7 +184,7 @@ async def list_banner_templates(
 @router.post("/templates", response_model=BannerTemplateRead, status_code=status.HTTP_201_CREATED)
 async def add_banner_template_version(
     payload: BannerTemplateCreate,
-    current_user: CurrentUser = Depends(require_platform_admin),
+    current_user: CurrentUser = Depends(require_sub_admin),
     db: AsyncSession = Depends(get_db),
 ) -> BannerTemplateRead:
     try:
@@ -161,7 +202,7 @@ async def add_banner_template_version(
 @router.post("/templates/image-upload-url", response_model=BannerImageUploadResponse)
 async def get_template_image_upload_url(
     payload: BannerImageUploadRequest,
-    current_user: CurrentUser = Depends(require_platform_admin),
+    current_user: CurrentUser = Depends(require_sub_admin),
 ) -> BannerImageUploadResponse:
     try:
         url, fields, object_key = presign_banner_image_upload(
@@ -180,7 +221,7 @@ async def get_template_image_upload_url(
 @router.post("/image-upload-url", response_model=BannerImageUploadResponse)
 async def get_banner_image_upload_url(
     payload: BannerImageUploadRequest,
-    current_user: CurrentUser = Depends(require_sub_admin_or_platform_admin),
+    current_user: CurrentUser = Depends(require_sub_admin),
 ) -> BannerImageUploadResponse:
     # No DB row yet -- a banner may not exist until after the image is
     # picked (create_banner takes image_key as a plain field). The key
@@ -210,13 +251,11 @@ async def list_banners(
 ) -> BannerListResponse:
     # RLS scopes the rows: sub_admin and admin see the shared queue, anyone else
     # sees nothing. Newest first.
-    stmt = select(Banner).order_by(Banner.created_at.desc())
+    stmt = select(Banner).where(Banner.removed_at.is_(None)).order_by(Banner.created_at.desc())
     if status_filter is not None:
         stmt = stmt.where(Banner.status == status_filter)
     rows = (await db.execute(stmt)).scalars().all()
-    return BannerListResponse(
-        banners=[BannerRead.model_validate(r, from_attributes=True) for r in rows]
-    )
+    return BannerListResponse(banners=[_read(r) for r in rows])
 
 
 @router.get("/{banner_id}", response_model=BannerRead)
@@ -225,30 +264,42 @@ async def get_banner(
     current_user: CurrentUser = Depends(get_active_user),
     db: AsyncSession = Depends(get_db),
 ) -> BannerRead:
-    banner = await db.scalar(select(Banner).where(Banner.id == banner_id))
+    banner = await db.scalar(
+        select(Banner).where(Banner.id == banner_id, Banner.removed_at.is_(None))
+    )
     if banner is None:
         # 404, never 403: an RLS-filtered row is indistinguishable from missing.
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Banner not found.")
-    return BannerRead.model_validate(banner, from_attributes=True)
+    return _read(banner)
 
 
 @router.patch("/{banner_id}", response_model=BannerRead)
 async def update_banner(
     banner_id: UUID,
     payload: BannerUpdate,
-    current_user: CurrentUser = Depends(require_sub_admin_or_platform_admin),
+    current_user: CurrentUser = Depends(require_sub_admin),
     db: AsyncSession = Depends(get_db),
 ) -> BannerRead:
-    banner = await db.scalar(select(Banner).where(Banner.id == banner_id))
-    if banner is None:
+    visible_banner = await db.scalar(
+        select(Banner).where(Banner.id == banner_id, Banner.removed_at.is_(None))
+    )
+    if visible_banner is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Banner not found.")
     # RLS and this application guard both restrict mutation to draft/rejected
     # rows. The queue is intentionally shared across the Sub Admin team, so
     # authorship is audit provenance rather than an edit-authorization boundary.
-    if banner.status not in (BannerStatus.DRAFT, BannerStatus.REJECTED):
+    if visible_banner.status not in (BannerStatus.DRAFT, BannerStatus.REJECTED):
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="This banner cannot be edited from its current status.",
+        )
+    banner = await db.scalar(
+        select(Banner).where(Banner.id == banner_id, Banner.removed_at.is_(None)).with_for_update()
+    )
+    if banner is None or banner.status not in (BannerStatus.DRAFT, BannerStatus.REJECTED):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="This campaign changed after you opened it. Refresh before saving.",
         )
     prospective_template_id = (
         payload.template_id if "template_id" in payload.model_fields_set else banner.template_id
@@ -259,6 +310,11 @@ async def update_banner(
     prospective_property_id = (
         payload.property_id if "property_id" in payload.model_fields_set else banner.property_id
     )
+    prospective_media_asset_id = (
+        payload.media_asset_id
+        if "media_asset_id" in payload.model_fields_set
+        else banner.media_asset_id
+    )
     try:
         template, _, _ = await validate_banner_configuration(
             db,
@@ -267,7 +323,17 @@ async def update_banner(
             template_id=prospective_template_id,
             offer_id=prospective_offer_id,
             property_id=prospective_property_id,
-            allow_legacy=banner.template_id is None and banner.category_key is None,
+            # The legacy escape hatch exists for rows written before placements
+            # and templates existed. A media-backed campaign also has no
+            # template or category, so it must be excluded explicitly --
+            # otherwise clearing media_asset_id would leave a public banner
+            # with no artwork at all.
+            allow_legacy=(
+                banner.template_id is None
+                and banner.category_key is None
+                and banner.media_asset_id is None
+            ),
+            has_media_asset=prospective_media_asset_id is not None,
         )
     except BannerInvalidConfiguration as exc:
         raise HTTPException(
@@ -276,9 +342,42 @@ async def update_banner(
                 "Banner placement, template, business line, linked Offer, or property is invalid."
             ),
         ) from exc
-    values = payload.model_dump(exclude_unset=True, exclude={"audience_rules"})
+    if template is not None and prospective_media_asset_id is not None:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail="Choose either a governed template or Media Library artwork, not both.",
+        )
+    media_asset = None
+    if "media_asset_id" in payload.model_fields_set:
+        try:
+            media_asset = await resolve_campaign_asset(
+                db,
+                asset_id=prospective_media_asset_id,
+                business_line=banner.business_line,
+                allowed_usage_types=campaign_artwork.BANNER_USAGE_TYPES_BY_PLACEMENT[
+                    banner.placement
+                ],
+            )
+        except CampaignMediaInvalid as exc:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                detail="Choose an active banner asset for this business line.",
+            ) from exc
+    if payload.expected_version is not None and payload.expected_version != banner.version:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="This campaign changed after you opened it. Refresh before saving.",
+        )
+    values = payload.model_dump(exclude_unset=True, exclude={"audience_rules", "expected_version"})
     if "audience_rules" in payload.model_fields_set and payload.audience_rules is not None:
         values["audience_rules"] = audience_rules_to_storage(payload.audience_rules)
+    if "media_asset_id" in payload.model_fields_set:
+        values["image_key"] = media_asset.image_ref if media_asset else None
+    # Template-backed campaigns mirror the template's asset; media-backed ones
+    # keep the asset the author chose. Only the template branch may overwrite it.
+    if template is not None:
+        values["media_asset_id"] = template.media_asset_id
+        values["image_key"] = None
     for field, value in values.items():
         setattr(banner, field, value)
     banner.category_key = template.category_key if template else None
@@ -308,15 +407,16 @@ async def update_banner(
         business_line=banner.business_line,
         detail={"placement": banner.placement.value},
     )
+    banner.version += 1
     await db.commit()
     await db.refresh(banner)
-    return BannerRead.model_validate(banner, from_attributes=True)
+    return _read(banner)
 
 
 @router.post("/{banner_id}/submit", response_model=BannerRead)
 async def submit(
     banner_id: UUID,
-    current_user: CurrentUser = Depends(require_sub_admin_or_platform_admin),
+    current_user: CurrentUser = Depends(require_sub_admin),
     db: AsyncSession = Depends(get_db),
 ) -> BannerRead:
     try:
@@ -343,7 +443,7 @@ async def submit(
         ) from exc
     if banner is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Banner not found.")
-    return BannerRead.model_validate(banner, from_attributes=True)
+    return _read(banner)
 
 
 @router.delete("/{banner_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -352,7 +452,7 @@ async def delete_banner_draft(
     current_user: CurrentUser = Depends(require_sub_admin),
     db: AsyncSession = Depends(get_db),
 ) -> None:
-    banner = await db.scalar(select(Banner).where(Banner.id == banner_id))
+    banner = await db.scalar(select(Banner).where(Banner.id == banner_id).with_for_update())
     if banner is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Banner not found.")
     if banner.status != BannerStatus.DRAFT:
@@ -377,7 +477,7 @@ async def delete_banner_draft(
 @router.post("/{banner_id}/archive", response_model=BannerRead)
 async def archive(
     banner_id: UUID,
-    current_user: CurrentUser = Depends(require_sub_admin_or_platform_admin),
+    current_user: CurrentUser = Depends(require_sub_admin),
 ) -> BannerRead:
     try:
         banner = await archive_banner(banner_id, current_user.id, current_user.role)
@@ -388,7 +488,19 @@ async def archive(
         ) from exc
     if banner is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Banner not found.")
-    return BannerRead.model_validate(banner, from_attributes=True)
+    return _read(banner)
+
+
+@router.post("/{banner_id}/remove", response_model=BannerRead)
+async def remove(
+    banner_id: UUID,
+    payload: RejectRequest,
+    current_user: CurrentUser = Depends(require_platform_admin),
+) -> BannerRead:
+    banner = await remove_banner(banner_id, current_user.id, payload.note)
+    if banner is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Banner not found.")
+    return _read(banner)
 
 
 @router.post(
@@ -435,6 +547,7 @@ async def create_replacement(
         subtitle=source.subtitle,
         cta_label=source.cta_label,
         image_key=source.image_key if source.template_id is None else None,
+        media_asset_id=source.media_asset_id,
         deep_link=source.deep_link,
         audience_rules=source.audience_rules,
         priority=source.priority,
@@ -457,7 +570,7 @@ async def create_replacement(
     )
     await db.commit()
     await db.refresh(replacement)
-    return BannerRead.model_validate(replacement, from_attributes=True)
+    return _read(replacement)
 
 
 @router.post("/{banner_id}/approve", response_model=BannerRead)
@@ -485,7 +598,7 @@ async def approve(
         ) from exc
     if banner is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Banner not found.")
-    return BannerRead.model_validate(banner, from_attributes=True)
+    return _read(banner)
 
 
 @router.post("/{banner_id}/reject", response_model=BannerRead)
@@ -504,4 +617,4 @@ async def reject(
         ) from exc
     if banner is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Banner not found.")
-    return BannerRead.model_validate(banner, from_attributes=True)
+    return _read(banner)

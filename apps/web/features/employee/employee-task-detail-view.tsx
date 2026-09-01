@@ -6,6 +6,7 @@ import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { FieldError, RequiredIndicator } from "@/components/ui/field-error";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -16,6 +17,7 @@ import {
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
+import { DashboardBackLink, DashboardPage, DashboardPanel } from "@/features/dashboard/dashboard-ui";
 import { FetchError } from "@/features/dashboard/fetch-error";
 import type { ApiResponse } from "@/lib/api/client";
 import {
@@ -24,6 +26,7 @@ import {
   type ContactShareLink,
   type EmployeeTaskUpdate,
 } from "@/lib/employee-api";
+import { formatMobile, toE164 } from "@/lib/phone";
 
 import { EmployeeTaskDocumentPanel } from "./employee-task-document-panel";
 import { EmployeeTaskFeedbackPanel } from "./employee-task-feedback-panel";
@@ -72,6 +75,8 @@ export function EmployeeTaskDetailView({ taskId }: { taskId: string }) {
   const { task, status, error, errorStatus, retry, updateTask } = useEmployeeTaskDetail(taskId);
   const [notes, setNotes] = React.useState("");
   const [outcome, setOutcome] = React.useState<string>("");
+  const [notesError, setNotesError] = React.useState<string>();
+  const [outcomeError, setOutcomeError] = React.useState<string>();
   const [actingStatus, setActingStatus] = React.useState<string | null>(null);
   const [shareLink, setShareLink] = React.useState<ContactShareLink | null>(null);
   const [sharing, setSharing] = React.useState(false);
@@ -156,11 +161,11 @@ export function EmployeeTaskDetailView({ taskId }: { taskId: string }) {
     opts?: { requireOutcome?: boolean; requireNotes?: boolean },
   ) {
     if (opts?.requireOutcome && !outcome) {
-      toast.error("Choose an outcome before completing this check.");
+      setOutcomeError("Outcome is required to complete this check.");
       return;
     }
     if (opts?.requireNotes && !notes.trim()) {
-      toast.error("Add a note explaining the no-show before continuing.");
+      setNotesError("A note explaining the no-show is required.");
       return;
     }
     setActingStatus(nextStatus ?? "notes");
@@ -180,30 +185,38 @@ export function EmployeeTaskDetailView({ taskId }: { taskId: string }) {
   }
 
   return (
-    <div className="mx-auto w-full max-w-3xl space-y-6 px-4 sm:px-6 lg:px-10">
-      <div>
-        <h1 className="text-2xl font-semibold text-text-primary">
-          {task.lead_name ?? task.lead_mobile ?? "Assigned task"}
-        </h1>
-        {task.lead_mobile ? (
-          <p className="mt-1 text-sm text-text-secondary">{task.lead_mobile}</p>
-        ) : null}
-      </div>
+    <DashboardPage className="max-w-3xl">
+      <DashboardBackLink href="/dashboard/tasks">Back to tasks</DashboardBackLink>
 
-      <div className="rounded-2xl border border-border bg-card p-5">
-        <h2 className="text-sm font-semibold text-text-primary">Lead contact</h2>
+      {/* DashboardPanel titles below render as <h2> — give the page an <h1>
+          so screen-reader heading navigation has a top-level landmark. */}
+      <h1 className="sr-only">{task.lead_name ?? task.lead_mobile ?? "Assigned task"}</h1>
+
+      <DashboardPanel
+        title={task.lead_name ?? task.lead_mobile ?? "Assigned task"}
+        description={task.lead_mobile ? formatMobile(task.lead_mobile) : undefined}
+        action={
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge variant="secondary">{TYPE_LABEL[task.task_type] ?? task.task_type}</Badge>
+            <Badge variant={statusVariant(task.status)}>{STATUS_LABEL[task.status] ?? task.status}</Badge>
+            {task.outcome ? (
+              <Badge variant="outline">{OUTCOME_LABEL[task.outcome] ?? task.outcome}</Badge>
+            ) : null}
+          </div>
+        }
+      >
+        <h2 className="sr-only">Lead contact</h2>
         {task.lead_contact_mode === "allow" && task.lead_mobile ? (
-          <div className="mt-3 flex flex-wrap items-center gap-3">
-            <span className="text-sm text-text-secondary">{task.lead_mobile}</span>
-            <Button asChild size="sm" variant="outline">
-              <a href={`tel:${task.lead_mobile}`}>
+          <div className="flex flex-wrap items-center gap-3">
+            <span className="text-sm text-text-secondary">{formatMobile(task.lead_mobile)}</span>
+            <Button asChild size="icon" variant="outline" aria-label="Call" title="Call">
+              <a href={`tel:${toE164(task.lead_mobile)}`}>
                 <Phone className="h-4 w-4" aria-hidden="true" />
-                Call
               </a>
             </Button>
           </div>
         ) : task.lead_contact_mode === "share_link" ? (
-          <div className="mt-3 space-y-3">
+          <div className="space-y-3">
             <p className="text-sm text-text-secondary">
               The raw number is hidden. Create an expiring platform invitation to share through
               your browser or copy manually.
@@ -243,42 +256,34 @@ export function EmployeeTaskDetailView({ taskId }: { taskId: string }) {
             ) : null}
           </div>
         ) : (
-          <p className="mt-3 flex items-center gap-2 text-sm text-text-secondary">
+          <p className="flex items-center gap-2 text-sm text-text-secondary">
             <ShieldOff className="h-4 w-4" aria-hidden="true" />
             Contact details are hidden by Admin policy.
           </p>
         )}
-      </div>
+      </DashboardPanel>
 
-      <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-border bg-card p-5">
-        <Badge variant="secondary">{TYPE_LABEL[task.task_type] ?? task.task_type}</Badge>
-        <Badge variant={statusVariant(task.status)}>
-          {STATUS_LABEL[task.status] ?? task.status}
-        </Badge>
-        {task.outcome ? (
-          <Badge variant="outline">{OUTCOME_LABEL[task.outcome] ?? task.outcome}</Badge>
-        ) : null}
-      </div>
-
-      <div className="rounded-2xl border border-border bg-card p-5">
-        <h2 className="text-sm font-semibold text-text-primary">Notes</h2>
+      <DashboardPanel title="Notes">
         <Textarea
-          className="mt-3"
           rows={4}
           maxLength={1000}
           value={notes}
           disabled={isTerminal}
-          onChange={(e) => setNotes(e.target.value)}
+          onChange={(e) => { setNotes(e.target.value); setNotesError(undefined); }}
           placeholder="Add details about this task"
+          aria-label="Task notes"
+          aria-invalid={Boolean(notesError)}
+          aria-describedby={notesError ? "employee-task-notes-error" : undefined}
         />
+        <FieldError id="employee-task-notes-error">{notesError}</FieldError>
 
         {!isTerminal && (
           <div className="mt-4 flex flex-wrap items-end gap-3">
             {isBackgroundCheck && wantsCompletion ? (
               <div className="w-48">
-                <Label htmlFor="outcome">Outcome</Label>
-                <Select value={outcome} onValueChange={setOutcome}>
-                  <SelectTrigger id="outcome">
+                <Label htmlFor="outcome">Outcome <RequiredIndicator /></Label>
+                <Select value={outcome} onValueChange={(value) => { setOutcome(value); setOutcomeError(undefined); }}>
+                  <SelectTrigger id="outcome" aria-required="true" aria-invalid={Boolean(outcomeError)} aria-describedby={outcomeError ? "employee-task-outcome-error" : undefined}>
                     <SelectValue placeholder="Choose outcome" />
                   </SelectTrigger>
                   <SelectContent>
@@ -289,6 +294,7 @@ export function EmployeeTaskDetailView({ taskId }: { taskId: string }) {
                     ))}
                   </SelectContent>
                 </Select>
+                <FieldError id="employee-task-outcome-error">{outcomeError}</FieldError>
               </div>
             ) : null}
 
@@ -351,7 +357,7 @@ export function EmployeeTaskDetailView({ taskId }: { taskId: string }) {
             </div>
           </div>
         )}
-      </div>
+      </DashboardPanel>
 
       {isDocumentCollection ? (
         <EmployeeTaskDocumentPanel taskId={task.id} disabled={isTerminal} />
@@ -359,7 +365,7 @@ export function EmployeeTaskDetailView({ taskId }: { taskId: string }) {
       {isPropertyVisit ? (
         <EmployeeTaskFeedbackPanel taskId={task.id} disabled={isTerminal} />
       ) : null}
-    </div>
+    </DashboardPage>
   );
 }
 

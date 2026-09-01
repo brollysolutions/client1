@@ -1,65 +1,86 @@
 "use client";
+/* eslint-disable @next/next/no-img-element */
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { Loader2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 import type { components } from "@contracts/generated/schema";
 
 import { Button } from "@/components/ui/button";
+import { FieldError, RequiredIndicator } from "@/components/ui/field-error";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { DashboardFormPage } from "@/features/dashboard/dashboard-ui";
 import {
-  createBanner,
-  listBannerTemplates,
-  type BannerTemplate,
-} from "@/lib/banners-api";
+  ARTWORK_SURFACES,
+  BANNER_USAGE_TYPES_BY_PLACEMENT,
+  formatTargetSize,
+  primaryUsageType,
+} from "@/lib/campaign-artwork";
+import { createBanner, listBannerTemplates, type BannerTemplate } from "@/lib/banners-api";
 import {
-  isPropertyCampaignTemplate,
   isLegacyPropertyCampaignTemplate,
+  isPropertyCampaignTemplate,
   propertyCampaignHref,
   propertyCampaignImage,
   propertyMatchesCampaign,
 } from "@/lib/banner-properties";
-import { listOffers, type Offer } from "@/lib/offers-api";
+import { apiIssuesToFieldErrors, focusFirstInvalidField, integerError } from "@/lib/form-validation";
 import { getAdminProperties, type AdminProperty } from "@/lib/properties-api";
+import { isSafeLocalHref } from "@/lib/safe-local-href";
+import { cn } from "@/lib/utils";
+
 import { AudienceRuleFields, emptyAudienceRules } from "./audience-rule-fields";
-import { BannerPreview, formatOfferBadge } from "./cms-previews";
-import { CmsPreviewFrame, type PreviewDevice } from "./cms-workspace";
+import { CampaignMediaPicker } from "./campaign-media-picker";
+import { CampaignPreviewPanel } from "./campaign-preview-panel";
+import { BannerPreview, placementLabel } from "./cms-previews";
 import { PropertyCampaignSelect } from "./property-campaign-select";
 
 type Schemas = components["schemas"];
 type Placement = Schemas["BannerPlacement"];
 type BannerType = Schemas["BannerType"];
+type BusinessLine = "loans" | "real_estate" | "both";
 
 // Keyed by Placement rather than a free array: Record<Placement, ...> is
 // exhaustiveness-checked by tsc, so a new placement breaks `pnpm typecheck`
-// instead of silently vanishing from this dropdown and leaving nobody able to
-// author for it. The rendered order comes from PLACEMENTS below.
-const PLACEMENT_META: Record<Placement, { label: string; note: string }> = {
-  homepage: { label: "Homepage", note: "Homepage campaign carousel" },
+// instead of silently vanishing from this picker and leaving nobody able to
+// author for it.
+const PLACEMENT_META: Record<
+  Placement,
+  { label: string; where: string; note: string; thumbnail: string }
+> = {
+  homepage: {
+    label: "Homepage",
+    where: "Home page hero",
+    note: "The full-bleed carousel visitors meet first. Up to seven campaigns rotate here.",
+    thumbnail: "/banner-templates/homepage/general.webp",
+  },
   homepage_ad: {
-    label: "Homepage sponsor ad",
-    note: "One sponsor card above the homepage hero. Only one can be live at a time; to queue the next, open the live one and use Create replacement",
+    label: "Homepage sponsor",
+    where: "Above the Home page hero",
+    note: "One sponsor card at a time. To queue the next, open the live one and use Create replacement.",
+    thumbnail: "/banner-templates/homepage_ad/sponsor.webp",
   },
   financial_services: {
-    label: "Financial services",
-    note: "Immediately below the header, before the Financial Services hero",
+    label: "Financial Services",
+    where: "Below the header on /loans",
+    note: "Loans-line campaigns, shown before the Financial Services hero.",
+    thumbnail: "/banner-templates/financial_services/home-loan.webp",
   },
   properties: {
     label: "Properties",
-    note: "Immediately below the header, before the Properties hero",
+    where: "Below the header on /real-estate",
+    note: "Real Estate campaigns, shown before the Properties hero.",
+    thumbnail: "/banner-templates/properties/apartments.webp",
   },
-  dashboard: { label: "Authenticated dashboard", note: "Client and Agent dashboards" },
+  dashboard: {
+    label: "Signed-in dashboard",
+    where: "Client and Agent dashboards",
+    note: "Only signed-in users see this, and it can be targeted at specific audiences.",
+    thumbnail: "/banner-templates/dashboard/loan-progress.webp",
+  },
 };
 
 const PLACEMENT_ORDER: readonly Placement[] = [
@@ -70,20 +91,35 @@ const PLACEMENT_ORDER: readonly Placement[] = [
   "dashboard",
 ];
 
-const PLACEMENTS: readonly { value: Placement; label: string; note: string }[] =
-  PLACEMENT_ORDER.map((value) => ({ value, ...PLACEMENT_META[value] }));
-
-const LINE_OPTIONS = [
+const LINE_OPTIONS: readonly { value: BusinessLine; label: string }[] = [
+  { value: "both", label: "Both lines" },
   { value: "loans", label: "Loans" },
   { value: "real_estate", label: "Real Estate" },
-  { value: "both", label: "Both lines" },
-] as const;
-
-const TYPE_OPTIONS: readonly { value: BannerType; label: string }[] = [
-  { value: "default", label: "Default" },
-  { value: "personalized", label: "Personalized" },
-  { value: "action", label: "Action" },
 ];
+
+const TYPE_OPTIONS: readonly { value: BannerType; label: string; note: string }[] = [
+  { value: "default", label: "Standard", note: "Shown to everyone who reaches the dashboard." },
+  {
+    value: "personalized",
+    label: "Targeted",
+    note: "Shown only to the audience you choose below.",
+  },
+  { value: "action", label: "Action", note: "Prompts one specific next step." },
+];
+
+const STEPS = [
+  { key: "where", label: "Where" },
+  { key: "artwork", label: "Artwork" },
+  { key: "message", label: "Message" },
+] as const;
+type StepKey = (typeof STEPS)[number]["key"];
+
+/** Line forced by the placement, or null when the author may choose. */
+function forcedLine(placement: Placement): BusinessLine | null {
+  if (placement === "financial_services") return "loans";
+  if (placement === "properties") return "real_estate";
+  return null;
+}
 
 export function BannerForm({
   embedded = false,
@@ -95,16 +131,15 @@ export function BannerForm({
   onDirtyChange?: (dirty: boolean) => void;
 } = {}) {
   const router = useRouter();
+  const [step, setStep] = React.useState<StepKey>("where");
   const [placement, setPlacement] = React.useState<Placement>("homepage");
-  const [businessLine, setBusinessLine] = React.useState<"loans" | "real_estate" | "both">(
-    "both",
-  );
+  const [businessLine, setBusinessLine] = React.useState<BusinessLine>("both");
   const [bannerType, setBannerType] = React.useState<BannerType>("default");
   const [templateId, setTemplateId] = React.useState("");
-  const [offerId, setOfferId] = React.useState("");
   const [propertyId, setPropertyId] = React.useState("");
+  const [mediaAssetId, setMediaAssetId] = React.useState("");
+  const [mediaPreviewUrl, setMediaPreviewUrl] = React.useState<string | null>(null);
   const [templates, setTemplates] = React.useState<BannerTemplate[]>([]);
-  const [offers, setOffers] = React.useState<Offer[]>([]);
   const [properties, setProperties] = React.useState<AdminProperty[]>([]);
   const [catalogLoading, setCatalogLoading] = React.useState(true);
   const [title, setTitle] = React.useState("");
@@ -115,46 +150,45 @@ export function BannerForm({
   const [audienceRules, setAudienceRules] = React.useState(emptyAudienceRules);
   const [startsAt, setStartsAt] = React.useState("");
   const [endsAt, setEndsAt] = React.useState("");
-  const [scheduleError, setScheduleError] = React.useState<string>();
+  const [fieldErrors, setFieldErrors] = React.useState<Record<string, string>>({});
   const [submitting, setSubmitting] = React.useState(false);
-  const [previewDevice, setPreviewDevice] = React.useState<PreviewDevice>("desktop");
+  const formRef = React.useRef<HTMLFormElement>(null);
 
   React.useEffect(() => {
     let cancelled = false;
-    void Promise.all([listBannerTemplates(), listOffers(), getAdminProperties()]).then(([templateResult, offerResult, propertyResult]) => {
-      if (cancelled) return;
-      setCatalogLoading(false);
-      if (templateResult.ok) setTemplates(templateResult.data);
-      else toast.error("Could not load banner templates", { description: templateResult.error });
-      if (offerResult.ok) {
-        setOffers(
-          offerResult.data.filter(
-            (offer) => offer.status === "scheduled" || offer.status === "active",
-          ),
-        );
-      } else {
-        toast.error("Could not load offers", { description: offerResult.error });
-      }
-      if (propertyResult.ok) {
-        setProperties(propertyResult.data.filter((property) => property.active));
-      } else {
-        toast.error("Could not load properties", { description: propertyResult.error });
-      }
-    });
+    void Promise.all([listBannerTemplates(), getAdminProperties()]).then(
+      ([templateResult, propertyResult]) => {
+        if (cancelled) return;
+        setCatalogLoading(false);
+        if (templateResult.ok) setTemplates(templateResult.data);
+        else toast.error("Could not load category artwork", { description: templateResult.error });
+        if (propertyResult.ok) {
+          setProperties(propertyResult.data.filter((property) => property.active));
+        } else {
+          toast.error("Could not load properties", { description: propertyResult.error });
+        }
+      },
+    );
     return () => {
       cancelled = true;
     };
   }, []);
 
-  React.useEffect(() => {
+  const isPublic = placement !== "dashboard";
+
+  function choosePlacement(next: Placement) {
+    setPlacement(next);
+    // Artwork is surface-specific: a 5:2 section image cannot follow the author
+    // to the 9:5 hero, so every artwork choice resets with the placement.
     setTemplateId("");
-    setOfferId("");
     setPropertyId("");
-    if (placement === "financial_services") setBusinessLine("loans");
-    if (placement === "properties") setBusinessLine("real_estate");
-    if (placement === "dashboard" && bannerType === "personalized") return;
-    if (placement !== "dashboard" && bannerType === "personalized") setBannerType("default");
-  }, [bannerType, placement]);
+    setMediaAssetId("");
+    setMediaPreviewUrl(null);
+    const locked = forcedLine(next);
+    if (locked) setBusinessLine(locked);
+    if (next !== "dashboard" && bannerType === "personalized") setBannerType("default");
+    setFieldErrors({});
+  }
 
   const placementTemplates = React.useMemo(
     () =>
@@ -165,9 +199,7 @@ export function BannerForm({
     [placement, templates],
   );
   const selectedTemplate = templates.find((template) => template.id === templateId);
-  const selectedOffer = offers.find((offer) => offer.id === offerId);
   const selectedProperty = properties.find((property) => property.id === propertyId);
-  const needsOffer = selectedTemplate?.category_key === "offers";
   const allowsProperty = isPropertyCampaignTemplate(selectedTemplate);
   const matchingProperties = React.useMemo(
     () =>
@@ -176,18 +208,16 @@ export function BannerForm({
         : [],
     [properties, selectedTemplate],
   );
-  const matchingOffers = offers.filter(
-    (offer) => businessLine === "both" || offer.business_line === "both" || offer.business_line === businessLine,
-  );
-  const isPublic = placement !== "dashboard";
+
+  const hasArtwork = Boolean(templateId || mediaAssetId);
   const dirty = Boolean(
     title ||
       subtitle ||
       ctaLabel ||
       deepLink ||
       templateId ||
-      offerId ||
       propertyId ||
+      mediaAssetId ||
       priority !== "0" ||
       startsAt ||
       endsAt ||
@@ -197,18 +227,91 @@ export function BannerForm({
   );
   React.useEffect(() => onDirtyChange?.(dirty), [dirty, onDirtyChange]);
 
-  async function onSubmit(event: React.FormEvent) {
-    event.preventDefault();
-    if (!title.trim()) return void toast.error("Title is required.");
-    if (isPublic && !templateId) return void toast.error("Choose a template.");
-    if (needsOffer && !offerId) return void toast.error("Choose the Offer this banner promotes.");
-    if (startsAt && endsAt && new Date(endsAt) <= new Date(startsAt)) {
-      setScheduleError("End must be after start.");
+  function selectTemplate(id: string) {
+    setTemplateId(id);
+    // The API accepts exactly one artwork source per campaign.
+    setMediaAssetId("");
+    setMediaPreviewUrl(null);
+    setPropertyId("");
+    setFieldErrors((current) => {
+      const next = { ...current };
+      delete next.artwork;
+      return next;
+    });
+  }
+
+  function selectMedia(id: string, url: string | null) {
+    setMediaAssetId(id);
+    setMediaPreviewUrl(url);
+    if (id) {
+      setTemplateId("");
+      setPropertyId("");
+    }
+    setFieldErrors((current) => {
+      const next = { ...current };
+      delete next.artwork;
+      return next;
+    });
+  }
+
+  function validateStep(target: StepKey): Record<string, string> {
+    if (target === "artwork") {
+      return hasArtwork ? {} : { artwork: "Choose artwork for this campaign." };
+    }
+    if (target === "message") {
+      const next: Record<string, string> = {};
+      if (!title.trim()) next.title = "Title is required.";
+      if (deepLink.trim() && !isSafeLocalHref(deepLink.trim())) {
+        next.deepLink = "Use a same-site path beginning with one slash.";
+      }
+      const priorityError = integerError(priority, "Priority", {
+        required: true,
+        min: 0,
+        max: 2_147_483_647,
+      });
+      if (priorityError) next.priority = priorityError;
+      if (startsAt && endsAt && new Date(endsAt) <= new Date(startsAt)) {
+        next.schedule = "End must be after start.";
+      }
+      if (bannerType === "personalized" && !audienceRules.user_types?.length) {
+        next.audience = "Choose who should see this targeted banner.";
+      }
+      return next;
+    }
+    return {};
+  }
+
+  function goNext() {
+    const stepIndex = STEPS.findIndex((item) => item.key === step);
+    const current = STEPS[stepIndex].key;
+    // "Where" has a default for every field, so only later steps can block.
+    const errors = current === "where" ? {} : validateStep(current);
+    setFieldErrors(errors);
+    if (Object.keys(errors).length > 0) {
+      requestAnimationFrame(() => {
+        if (formRef.current) focusFirstInvalidField(formRef.current);
+      });
       return;
     }
-    setScheduleError(undefined);
-    if (bannerType === "personalized" && !audienceRules.user_types?.length) {
-      return void toast.error("Choose who should see this personalized banner.");
+    setStep(STEPS[Math.min(stepIndex + 1, STEPS.length - 1)].key);
+  }
+
+  function goBack() {
+    const stepIndex = STEPS.findIndex((item) => item.key === step);
+    setStep(STEPS[Math.max(stepIndex - 1, 0)].key);
+  }
+
+  async function onSubmit(event: React.FormEvent) {
+    event.preventDefault();
+    const errors = { ...validateStep("artwork"), ...validateStep("message") };
+    setFieldErrors(errors);
+    if (Object.keys(errors).length > 0) {
+      if (errors.artwork) setStep("artwork");
+      else setStep("message");
+      requestAnimationFrame(() => {
+        if (formRef.current) focusFirstInvalidField(formRef.current);
+      });
+      return;
     }
 
     setSubmitting(true);
@@ -216,13 +319,14 @@ export function BannerForm({
       placement,
       business_line: businessLine,
       banner_type: bannerType,
-      template_id: isPublic ? templateId : null,
-      offer_id: needsOffer ? offerId : null,
+      template_id: templateId || null,
+      offer_id: null,
       property_id: allowsProperty && propertyId ? propertyId : null,
       title: title.trim(),
       subtitle: subtitle.trim() || null,
       cta_label: ctaLabel.trim() || null,
       image_key: null,
+      media_asset_id: mediaAssetId || null,
       deep_link: propertyId ? null : deepLink.trim() || null,
       audience_rules: bannerType === "personalized" ? audienceRules : emptyAudienceRules(),
       priority: Number(priority) || 0,
@@ -231,6 +335,16 @@ export function BannerForm({
     });
     setSubmitting(false);
     if (!result.ok) {
+      const serverErrors = apiIssuesToFieldErrors(result.issues, {
+        title: "title",
+        template_id: "artwork",
+        media_asset_id: "artwork",
+        deep_link: "deepLink",
+        priority: "priority",
+        starts_at: "schedule",
+        ends_at: "schedule",
+      });
+      if (Object.keys(serverErrors).length > 0) setFieldErrors(serverErrors);
       toast.error("Could not create banner", { description: result.error });
       return;
     }
@@ -241,22 +355,27 @@ export function BannerForm({
     else router.push("/dashboard/banners");
   }
 
+  const previewImage =
+    propertyCampaignImage(selectedProperty, selectedTemplate) ??
+    selectedTemplate?.image_url ??
+    mediaPreviewUrl;
+
   return (
     <DashboardFormPage
-      eyebrow="Campaign content"
       title="New banner"
-      description="Select the governed artwork, then write the campaign message that appears over it."
+      description="Choose where the campaign runs, pick its artwork, then write the message."
       backHref="/dashboard/banners"
       backLabel="Back to banners"
-      formTitle="Banner configuration"
-      formDescription="Admin approval is required before this banner can go live."
+      formTitle="Banner"
+      formDescription="Saved as a private draft. Admin approval is required before it goes live."
       embedded={embedded}
-      aside={
-        <CmsPreviewFrame
-          title="Exact banner preview"
-          description="The selected artwork and live HTML copy use the public banner composition."
-          device={previewDevice}
-          onDeviceChange={setPreviewDevice}
+      wide
+    >
+      <form ref={formRef} className="space-y-6" onSubmit={onSubmit} noValidate>
+        <StepIndicator current={step} onSelect={setStep} hasArtwork={hasArtwork} />
+
+        <CampaignPreviewPanel
+          caption={placementLabel(placement)}
         >
           <BannerPreview
             context={isPublic ? "public" : "dashboard"}
@@ -266,183 +385,535 @@ export function BannerForm({
               title,
               subtitle: subtitle || null,
               cta_label: selectedProperty ? ctaLabel || "Enquire now" : ctaLabel || null,
-              deep_link: selectedProperty ? propertyCampaignHref(selectedProperty) : deepLink || null,
-              image_url:
-                propertyCampaignImage(selectedProperty, selectedTemplate) ??
-                selectedTemplate?.image_url,
-              offer_badge: formatOfferBadge(selectedOffer),
+              deep_link: selectedProperty
+                ? propertyCampaignHref(selectedProperty)
+                : deepLink || null,
+              image_url: previewImage,
               rera_verified: selectedProperty?.rera_verification_status === "verified",
             }}
           />
-        </CmsPreviewFrame>
-      }
-    >
-      <form className="space-y-6" onSubmit={onSubmit}>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div>
-            <Label htmlFor="placement">Placement</Label>
-            <Select value={placement} onValueChange={(value) => setPlacement(value as Placement)}>
-              <SelectTrigger id="placement"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {PLACEMENTS.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <p className="mt-1 text-xs text-text-secondary">
-              {PLACEMENTS.find((option) => option.value === placement)?.note}
-            </p>
-          </div>
-          <div>
-            <Label htmlFor="business-line">Business line</Label>
-            <Select
-              value={businessLine}
-              disabled={placement === "financial_services" || placement === "properties"}
-              onValueChange={(value) => setBusinessLine(value as typeof businessLine)}
+        </CampaignPreviewPanel>
+
+        {step === "where" ? (
+          <StepPanel
+            title="Where should this campaign appear?"
+            description="Each surface has its own shape and audience, so this decides which artwork you can use."
+          >
+            <div
+              role="radiogroup"
+              aria-label="Placement"
+              className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3"
             >
-              <SelectTrigger id="business-line"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {LINE_OPTIONS.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
+              {PLACEMENT_ORDER.map((value) => {
+                const meta = PLACEMENT_META[value];
+                const selected = placement === value;
+                const surface = ARTWORK_SURFACES[primaryUsageType(value)];
+                return (
+                  <button
+                    key={value}
+                    type="button"
+                    role="radio"
+                    aria-checked={selected}
+                    onClick={() => choosePlacement(value)}
+                    className={cn(
+                      "overflow-hidden rounded-xl border bg-background text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                      selected
+                        ? "border-[var(--nav-primary)] ring-2 ring-[var(--nav-primary)]/25"
+                        : "border-border hover:border-[var(--nav-primary)]/40",
+                    )}
+                  >
+                    <span className={cn("relative block w-full bg-muted", surface.aspectClass)}>
+                      <img
+                        src={meta.thumbnail}
+                        alt=""
+                        width={surface.width}
+                        height={surface.height}
+                        loading="lazy"
+                        decoding="async"
+                        className="absolute inset-0 h-full w-full object-cover"
+                      />
+                      {selected ? (
+                        <span className="absolute right-2 top-2 grid h-6 w-6 place-items-center rounded-full bg-[var(--nav-primary)] text-white">
+                          <Check className="h-3.5 w-3.5" aria-hidden />
+                        </span>
+                      ) : null}
+                    </span>
+                    <span className="block space-y-1 p-3">
+                      <span className="block text-sm font-semibold text-text-primary">
+                        {meta.label}
+                      </span>
+                      <span className="block text-xs text-text-secondary">{meta.where}</span>
+                      <span className="block text-xs leading-5 text-text-secondary">
+                        {meta.note}
+                      </span>
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
 
-        {isPublic ? (
-          <div>
-            <Label htmlFor="banner-template">Artwork template</Label>
-            <Select
-              value={templateId || undefined}
-              onValueChange={(value) => {
-                setTemplateId(value);
-                setOfferId("");
-                setPropertyId("");
-              }}
-              disabled={catalogLoading}
-            >
-              <SelectTrigger id="banner-template">
-                <SelectValue placeholder={catalogLoading ? "Loading templates…" : "Choose a category"} />
-              </SelectTrigger>
-              <SelectContent>
-                {placementTemplates.map((template) => (
-                  <SelectItem key={template.id} value={template.id}>
-                    {template.label} · version {template.version}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <p className="mt-1 text-xs text-text-secondary">
-              Artwork is controlled by Admin. Your title, subtitle, and button remain editable HTML.
-            </p>
-          </div>
-        ) : (
-          <div>
-            <Label htmlFor="banner-type">Dashboard banner type</Label>
-            <Select value={bannerType} onValueChange={(value) => setBannerType(value as BannerType)}>
-              <SelectTrigger id="banner-type"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {TYPE_OPTIONS.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        )}
+            <div className="rounded-xl border border-border p-4">
+              <Label>Business line</Label>
+              {forcedLine(placement) ? (
+                <p className="mt-2 inline-flex items-center gap-2 rounded-full bg-[var(--nav-tint)] px-3 py-1 text-sm font-medium text-[var(--nav-primary)]">
+                  {LINE_OPTIONS.find((option) => option.value === forcedLine(placement))?.label}
+                  <span className="text-xs font-normal text-text-secondary">
+                    set by this placement
+                  </span>
+                </p>
+              ) : (
+                <div
+                  role="radiogroup"
+                  aria-label="Business line"
+                  className="mt-2 flex flex-wrap gap-2"
+                >
+                  {LINE_OPTIONS.map((option) => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      role="radio"
+                      aria-checked={businessLine === option.value}
+                      onClick={() => setBusinessLine(option.value)}
+                      className={cn(
+                        "rounded-full border px-4 py-1.5 text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                        businessLine === option.value
+                          ? "border-[var(--nav-primary)] bg-[var(--nav-tint)] text-[var(--nav-primary)]"
+                          : "border-border text-text-secondary hover:border-[var(--nav-primary)]/40",
+                      )}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
 
-        {needsOffer ? (
-          <div>
-            <Label htmlFor="linked-offer">Linked Offer</Label>
-            <Select value={offerId || undefined} onValueChange={setOfferId}>
-              <SelectTrigger id="linked-offer"><SelectValue placeholder="Choose an active or scheduled Offer" /></SelectTrigger>
-              <SelectContent>
-                {matchingOffers.map((offer) => (
-                  <SelectItem key={offer.id} value={offer.id}>{offer.title}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <p className="mt-1 text-xs text-text-secondary">
-              The public badge is generated from this Offer and disappears if the Offer is no longer active.
-            </p>
-          </div>
+            {placement === "dashboard" ? (
+              <div className="rounded-xl border border-border p-4">
+                <Label>Banner kind</Label>
+                <div
+                  role="radiogroup"
+                  aria-label="Banner kind"
+                  className="mt-2 grid gap-2 sm:grid-cols-3"
+                >
+                  {TYPE_OPTIONS.map((option) => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      role="radio"
+                      aria-checked={bannerType === option.value}
+                      onClick={() => setBannerType(option.value)}
+                      className={cn(
+                        "rounded-lg border p-3 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                        bannerType === option.value
+                          ? "border-[var(--nav-primary)] bg-[var(--nav-tint)]/50"
+                          : "border-border hover:border-[var(--nav-primary)]/40",
+                      )}
+                    >
+                      <span className="block text-sm font-medium text-text-primary">
+                        {option.label}
+                      </span>
+                      <span className="mt-0.5 block text-xs leading-5 text-text-secondary">
+                        {option.note}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+          </StepPanel>
         ) : null}
 
-        {allowsProperty ? (
-          <div>
-            <Label htmlFor="linked-property">Advertised property (optional)</Label>
-            <PropertyCampaignSelect
-              id="linked-property"
-              properties={matchingProperties}
-              value={propertyId}
-              onChange={setPropertyId}
-              disabled={catalogLoading}
+        {step === "artwork" ? (
+          <StepPanel
+            title="Choose the artwork"
+            description={`${ARTWORK_SURFACES[primaryUsageType(placement)].label} · ${formatTargetSize(
+              ARTWORK_SURFACES[primaryUsageType(placement)],
+            )}. Pick a ready-made image or upload your own.`}
+          >
+            {isPublic && placementTemplates.length > 0 ? (
+              <section className="space-y-3">
+                <div className="flex items-baseline justify-between gap-3">
+                  <h4 className="text-sm font-semibold text-text-primary">Category artwork</h4>
+                  <span className="text-xs text-text-secondary">{placementTemplates.length}</span>
+                </div>
+                <p className="-mt-2 text-xs text-text-secondary">
+                  Reviewed artwork for each public category. Choosing one also decides which
+                  listings the campaign may promote.
+                </p>
+                <div
+                  role="radiogroup"
+                  aria-label="Category artwork"
+                  className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4"
+                >
+                  {placementTemplates.map((template) => {
+                    const selected = templateId === template.id;
+                    return (
+                      <button
+                        key={template.id}
+                        type="button"
+                        role="radio"
+                        aria-checked={selected}
+                        onClick={() => selectTemplate(template.id)}
+                        className={cn(
+                          "overflow-hidden rounded-xl border bg-background text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                          selected
+                            ? "border-[var(--nav-primary)] ring-2 ring-[var(--nav-primary)]/25"
+                            : "border-border hover:border-[var(--nav-primary)]/40",
+                        )}
+                      >
+                        <span
+                          className={cn(
+                            "relative block w-full bg-muted",
+                            ARTWORK_SURFACES[primaryUsageType(placement)].aspectClass,
+                          )}
+                        >
+                          <img
+                            src={template.image_url}
+                            alt=""
+                            width={ARTWORK_SURFACES[primaryUsageType(placement)].width}
+                            height={ARTWORK_SURFACES[primaryUsageType(placement)].height}
+                            loading="lazy"
+                            decoding="async"
+                            className="absolute inset-0 h-full w-full object-cover"
+                          />
+                          {selected ? (
+                            <span className="absolute right-2 top-2 grid h-6 w-6 place-items-center rounded-full bg-[var(--nav-primary)] text-white">
+                              <Check className="h-3.5 w-3.5" aria-hidden />
+                            </span>
+                          ) : null}
+                        </span>
+                        <span className="block space-y-1 p-2.5">
+                          <span className="block truncate text-xs font-medium text-text-primary">
+                            {template.label}
+                          </span>
+                          <span className="block text-[11px] text-text-secondary">
+                            Version {template.version}
+                          </span>
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </section>
+            ) : null}
+
+            <CampaignMediaPicker
+              usageTypes={BANNER_USAGE_TYPES_BY_PLACEMENT[placement]}
+              businessLine={businessLine}
+              value={mediaAssetId}
+              onChange={(id, asset) => selectMedia(id, asset?.image_url ?? null)}
+              label={isPublic ? "Media Library artwork" : "Artwork"}
+              invalid={Boolean(fieldErrors.artwork)}
+              describedBy={fieldErrors.artwork ? "banner-artwork-error" : undefined}
             />
-            <p className="mt-1 text-xs text-text-secondary">
-              The approved property cover, enquiry destination, and RERA VERIFIED badge are generated from this listing.
-            </p>
-          </div>
+            <FieldError id="banner-artwork-error">{fieldErrors.artwork}</FieldError>
+
+            {allowsProperty ? (
+              <div className="rounded-xl border border-border p-4">
+                <Label htmlFor="linked-property">Advertised property (optional)</Label>
+                <PropertyCampaignSelect
+                  id="linked-property"
+                  properties={matchingProperties}
+                  value={propertyId}
+                  onChange={setPropertyId}
+                  disabled={catalogLoading}
+                />
+                <p className="mt-2 text-xs text-text-secondary">
+                  The approved cover image, enquiry destination, and RERA VERIFIED badge are
+                  generated from the listing rather than typed here.
+                </p>
+              </div>
+            ) : null}
+          </StepPanel>
         ) : null}
 
-        <div>
-          <Label htmlFor="title">Title</Label>
-          <Input id="title" value={title} onChange={(event) => setTitle(event.target.value)} maxLength={500} />
-        </div>
-        <div>
-          <Label htmlFor="subtitle">Subtitle</Label>
-          <Input id="subtitle" value={subtitle} onChange={(event) => setSubtitle(event.target.value)} maxLength={300} />
-        </div>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div>
-            <Label htmlFor="cta-label">Button label</Label>
-            <Input id="cta-label" value={ctaLabel} onChange={(event) => setCtaLabel(event.target.value)} maxLength={40} />
-          </div>
-          <div>
-            <Label htmlFor="deep-link">Internal destination</Label>
-            <Input
-              id="deep-link"
-              placeholder="/loans"
-              value={selectedProperty ? propertyCampaignHref(selectedProperty) : deepLink}
-              onChange={(event) => setDeepLink(event.target.value)}
-              maxLength={1000}
-              disabled={Boolean(selectedProperty)}
-            />
-          </div>
-        </div>
-        <p className="-mt-3 text-xs text-text-secondary">
-          {selectedProperty
-            ? "Property enquiries always use the server-generated contact destination."
-            : "Use a same-site path beginning with one slash. Unsafe or incomplete links do not render a button."}
-        </p>
+        {step === "message" ? (
+          <StepPanel
+            title="Write the message"
+            description="This copy sits over the artwork. Keep it short enough to read at a glance."
+          >
+            <div className="grid gap-4">
+              <div>
+                <Label htmlFor="title">
+                  Title
+                  <RequiredIndicator />
+                </Label>
+                <Input
+                  id="title"
+                  name="title"
+                  value={title}
+                  onChange={(event) => {
+                    setTitle(event.target.value);
+                    setFieldErrors((current) => {
+                      const next = { ...current };
+                      delete next.title;
+                      return next;
+                    });
+                  }}
+                  maxLength={500}
+                  aria-invalid={Boolean(fieldErrors.title)}
+                  aria-describedby={fieldErrors.title ? "banner-title-error" : undefined}
+                />
+                <FieldError id="banner-title-error" className="mt-1">
+                  {fieldErrors.title}
+                </FieldError>
+              </div>
+              <div>
+                <Label htmlFor="subtitle">Subtitle</Label>
+                <Input
+                  id="subtitle"
+                  name="subtitle"
+                  value={subtitle}
+                  onChange={(event) => setSubtitle(event.target.value)}
+                  maxLength={300}
+                />
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <Label htmlFor="cta-label">Button label</Label>
+                  <Input
+                    id="cta-label"
+                    name="cta_label"
+                    value={ctaLabel}
+                    onChange={(event) => setCtaLabel(event.target.value)}
+                    maxLength={40}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="deep-link">Button destination</Label>
+                  <Input
+                    id="deep-link"
+                    name="deep_link"
+                    placeholder="/loans"
+                    value={selectedProperty ? propertyCampaignHref(selectedProperty) : deepLink}
+                    onChange={(event) => {
+                      setDeepLink(event.target.value);
+                      setFieldErrors((current) => {
+                        const next = { ...current };
+                        delete next.deepLink;
+                        return next;
+                      });
+                    }}
+                    maxLength={1000}
+                    disabled={Boolean(selectedProperty)}
+                    aria-invalid={Boolean(fieldErrors.deepLink)}
+                    aria-describedby={["deep-link-help", fieldErrors.deepLink && "deep-link-error"]
+                      .filter(Boolean)
+                      .join(" ")}
+                  />
+                </div>
+              </div>
+              <p id="deep-link-help" className="-mt-2 text-xs text-text-secondary">
+                {selectedProperty
+                  ? "Property enquiries always use the server-generated contact destination."
+                  : "A same-site path beginning with one slash. Without a valid label and destination, no button is rendered."}
+              </p>
+              <FieldError id="deep-link-error">{fieldErrors.deepLink}</FieldError>
+            </div>
 
-        {placement === "dashboard" && bannerType === "personalized" ? (
-          <AudienceRuleFields value={audienceRules} onChange={setAudienceRules} required disabled={submitting} />
+            {placement === "dashboard" && bannerType === "personalized" ? (
+              <div
+                className="rounded-xl border border-border p-4"
+                aria-invalid={Boolean(fieldErrors.audience)}
+                aria-describedby={fieldErrors.audience ? "banner-audience-error" : undefined}
+              >
+                <AudienceRuleFields
+                  value={audienceRules}
+                  onChange={(next) => {
+                    setAudienceRules(next);
+                    setFieldErrors((current) => {
+                      const updated = { ...current };
+                      delete updated.audience;
+                      return updated;
+                    });
+                  }}
+                  required
+                  disabled={submitting}
+                />
+                <FieldError id="banner-audience-error">{fieldErrors.audience}</FieldError>
+              </div>
+            ) : null}
+
+            <div className="rounded-xl border border-border p-4">
+              <h4 className="text-sm font-semibold text-text-primary">Order and schedule</h4>
+              <div className="mt-3 grid gap-4 sm:grid-cols-3">
+                <div>
+                  <Label htmlFor="priority">Priority</Label>
+                  <Input
+                    id="priority"
+                    name="priority"
+                    inputMode="numeric"
+                    value={priority}
+                    onChange={(event) => {
+                      setPriority(event.target.value.replace(/\D/g, ""));
+                      setFieldErrors((current) => {
+                        const next = { ...current };
+                        delete next.priority;
+                        return next;
+                      });
+                    }}
+                    aria-invalid={Boolean(fieldErrors.priority)}
+                    aria-describedby={fieldErrors.priority ? "banner-priority-error" : undefined}
+                  />
+                  <FieldError id="banner-priority-error" className="mt-1">
+                    {fieldErrors.priority}
+                  </FieldError>
+                </div>
+                <div>
+                  <Label htmlFor="starts-at">Goes live at</Label>
+                  <Input
+                    id="starts-at"
+                    name="starts_at"
+                    type="datetime-local"
+                    value={startsAt}
+                    onChange={(event) => {
+                      setStartsAt(event.target.value);
+                      setFieldErrors((current) => {
+                        const next = { ...current };
+                        delete next.schedule;
+                        return next;
+                      });
+                    }}
+                    aria-invalid={Boolean(fieldErrors.schedule)}
+                    aria-describedby={fieldErrors.schedule ? "banner-schedule-error" : undefined}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="ends-at">Archives at</Label>
+                  <Input
+                    id="ends-at"
+                    name="ends_at"
+                    type="datetime-local"
+                    value={endsAt}
+                    onChange={(event) => {
+                      setEndsAt(event.target.value);
+                      setFieldErrors((current) => {
+                        const next = { ...current };
+                        delete next.schedule;
+                        return next;
+                      });
+                    }}
+                    aria-invalid={Boolean(fieldErrors.schedule)}
+                    aria-describedby={fieldErrors.schedule ? "banner-schedule-error" : undefined}
+                  />
+                </div>
+              </div>
+              <p className="mt-2 text-xs text-text-secondary">
+                Leave both blank to publish on the next scheduler tick after approval, with no
+                automatic end.
+              </p>
+              <FieldError id="banner-schedule-error">{fieldErrors.schedule}</FieldError>
+            </div>
+          </StepPanel>
         ) : null}
 
-        <div className="grid gap-4 sm:grid-cols-3">
-          <div>
-            <Label htmlFor="priority">Priority</Label>
-            <Input id="priority" inputMode="numeric" value={priority} onChange={(event) => setPriority(event.target.value.replace(/\D/g, ""))} />
-          </div>
-          <div>
-            <Label htmlFor="starts-at">Goes live at</Label>
-            <Input id="starts-at" type="datetime-local" value={startsAt} onChange={(event) => setStartsAt(event.target.value)} />
-          </div>
-          <div>
-            <Label htmlFor="ends-at">Archives at</Label>
-            <Input id="ends-at" type="datetime-local" value={endsAt} onChange={(event) => setEndsAt(event.target.value)} />
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border pt-4">
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={goBack}
+            disabled={step === "where" || submitting}
+          >
+            <ArrowLeft className="h-4 w-4" aria-hidden />
+            Back
+          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            {step === "artwork" ? (
+              <Button type="submit" variant="outline" disabled={submitting || catalogLoading}>
+                {submitting ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : null}
+                Save draft
+              </Button>
+            ) : null}
+            {step === "message" ? (
+              <Button type="submit" disabled={submitting || catalogLoading}>
+                {submitting ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : null}
+                {submitting ? "Saving…" : "Save draft"}
+              </Button>
+            ) : (
+              <Button type="button" onClick={goNext} disabled={catalogLoading}>
+                Next
+                <ArrowRight className="h-4 w-4" aria-hidden />
+              </Button>
+            )}
           </div>
         </div>
-        <p className="-mt-3 text-xs text-text-secondary">
-          Leave the dates blank to publish on the next scheduler tick after approval with no automatic end.
-        </p>
-        {scheduleError ? <p className="text-sm text-destructive">{scheduleError}</p> : null}
-
-        <Button type="submit" disabled={submitting || catalogLoading} className="w-full sm:w-auto">
-          {submitting ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : null}
-          {submitting ? "Saving draft…" : "Save draft"}
-        </Button>
       </form>
     </DashboardFormPage>
+  );
+}
+
+function StepIndicator({
+  current,
+  onSelect,
+  hasArtwork,
+}: {
+  current: StepKey;
+  onSelect: (step: StepKey) => void;
+  hasArtwork: boolean;
+}) {
+  const currentIndex = STEPS.findIndex((item) => item.key === current);
+  return (
+    <ol className="flex flex-wrap items-center gap-2" aria-label="Banner steps">
+      {STEPS.map((item, index) => {
+        const state = index === currentIndex ? "current" : index < currentIndex ? "done" : "todo";
+        // Going forward past Artwork without artwork would leave the author on a
+        // step whose Save is guaranteed to bounce them back.
+        const reachable = index <= currentIndex || (index === 2 ? hasArtwork : true);
+        return (
+          <li key={item.key} className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => reachable && onSelect(item.key)}
+              disabled={!reachable}
+              aria-current={state === "current" ? "step" : undefined}
+              className={cn(
+                "inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50",
+                state === "current"
+                  ? "border-[var(--nav-primary)] bg-[var(--nav-tint)] font-medium text-[var(--nav-primary)]"
+                  : "border-border text-text-secondary hover:border-[var(--nav-primary)]/40",
+              )}
+            >
+              <span
+                className={cn(
+                  "grid h-5 w-5 place-items-center rounded-full text-[11px] font-semibold",
+                  state === "done"
+                    ? "bg-[var(--nav-primary)] text-white"
+                    : state === "current"
+                      ? "bg-[var(--nav-primary)] text-white"
+                      : "bg-muted text-text-secondary",
+                )}
+              >
+                {state === "done" ? <Check className="h-3 w-3" aria-hidden /> : index + 1}
+              </span>
+              {item.label}
+            </button>
+            {index < STEPS.length - 1 ? (
+              <span aria-hidden className="h-px w-4 bg-border sm:w-8" />
+            ) : null}
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
+
+function StepPanel({
+  title,
+  description,
+  children,
+}: {
+  title: string;
+  description: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="space-y-4">
+      <div>
+        <h3 className="font-heading text-base font-semibold text-text-primary">{title}</h3>
+        <p className="mt-1 text-sm leading-6 text-text-secondary">{description}</p>
+      </div>
+      {children}
+    </section>
   );
 }

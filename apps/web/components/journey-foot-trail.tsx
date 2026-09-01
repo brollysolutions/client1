@@ -123,7 +123,7 @@ export function JourneyFootTrail() {
         <path
           ref={pathRef}
           d={d}
-          stroke="#4274D9"
+          stroke="#315FC7"
           strokeOpacity="0.16"
           strokeWidth="2"
           strokeDasharray="1 11"
@@ -134,7 +134,7 @@ export function JourneyFootTrail() {
         <svg
           key={i}
           viewBox="0 0 24 34"
-          className="absolute text-[#4274D9]"
+          className="absolute text-[#315FC7]"
           style={{
             left: f.x,
             top: f.y,

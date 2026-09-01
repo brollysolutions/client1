@@ -30,6 +30,13 @@ LOGIN_RATE_IP = "login_rate_ip:{ip}"
 LEAD_RATE_IP = "lead_rate_ip:{ip}"
 LEAD_RATE_MOBILE = "lead_rate_mobile:{mobile}"
 CONTACT_INVITATION_RATE_IP = "contact_invitation_rate_ip:{ip}"
+# Separate budgets: a page load must not consume the budget for setting a
+# password. One shared counter would let a handful of previews lock a legitimate
+# invitee out of accepting their own invitation.
+STAFF_INVITE_PREVIEW_RATE_IP = "staff_invite_preview_rate_ip:{ip}"
+STAFF_INVITE_ACCEPT_RATE_IP = "staff_invite_accept_rate_ip:{ip}"
+AGENT_INVITE_PREVIEW_RATE_IP = "agent_invite_preview_rate_ip:{ip}"
+AGENT_INVITE_ACCEPT_RATE_IP = "agent_invite_accept_rate_ip:{ip}"
 JWT_BLACKLIST = "jwt_blacklist:{jti}"
 REG_DATA = "reg_data:{mobile}"
 
@@ -96,6 +103,7 @@ TTL_LOGIN_LOCK = 15 * 60  # 15 min lockout
 TTL_LOGIN_RATE_IP = 60 * 60  # 1 h rolling per-IP failed-login window
 TTL_LEAD_RATE = 60 * 60  # 1 h rolling window, both lead-form caps
 TTL_CONTACT_INVITATION_RATE = 60 * 60  # 1 h public token-validation window
+TTL_STAFF_INVITE_RATE = 60 * 60  # 1 h public staff-invite token window
 TTL_AGENT_APPLY_RATE = 60 * 60  # 1 h rolling window, submit per-IP cap
 TTL_AGENT_APPLY_PRESIGN = 15 * 60  # matches the ticket's own 15 min exp
 TTL_AGENT_APPLY_OTP_DAILY = 24 * 60 * 60  # 24 h daily cap, purpose-scoped
@@ -225,6 +233,22 @@ def lead_rate_mobile_key(mobile: str) -> str:
 
 def contact_invitation_rate_ip_key(ip: str) -> str:
     return CONTACT_INVITATION_RATE_IP.format(ip=ip)
+
+
+def staff_invite_preview_rate_ip_key(ip: str) -> str:
+    return STAFF_INVITE_PREVIEW_RATE_IP.format(ip=ip)
+
+
+def staff_invite_accept_rate_ip_key(ip: str) -> str:
+    return STAFF_INVITE_ACCEPT_RATE_IP.format(ip=ip)
+
+
+def agent_invite_preview_rate_ip_key(ip: str) -> str:
+    return AGENT_INVITE_PREVIEW_RATE_IP.format(ip=ip)
+
+
+def agent_invite_accept_rate_ip_key(ip: str) -> str:
+    return AGENT_INVITE_ACCEPT_RATE_IP.format(ip=ip)
 
 
 def jwt_blacklist_key(jti: str) -> str:

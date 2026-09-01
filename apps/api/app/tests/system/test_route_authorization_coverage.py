@@ -51,6 +51,17 @@ PUBLIC_ROUTES = frozenset(
         "POST /api/v1/mobile-change/initiate",
         "POST /api/v1/mobile-change/resend",
         "POST /api/v1/mobile-change/verify",
+        # Staff first-login invite: the holder has an account but no password yet,
+        # so there is no session to scope. Both routes take a hashed, single-use,
+        # expiring token, are IP rate-limited, and touch only the one identity that
+        # token resolves to; neither reads or writes any other business table.
+        "GET /api/v1/staff-invites/{token}",
+        "POST /api/v1/staff-invites/{token}/accept",
+        # Approved-Agent first-login uses the same reviewed boundary as staff:
+        # a hashed, expiring, single-use token scopes the anonymous request to
+        # one pending-password identity, with separate preview/accept IP caps.
+        "GET /api/v1/agent-invites/{token}",
+        "POST /api/v1/agent-invites/{token}/accept",
         # Prospective-agent intake: applicant has no account until approval.
         "POST /api/v1/agent-applications",
         "POST /api/v1/agent-applications/otp/initiate",
@@ -59,7 +70,6 @@ PUBLIC_ROUTES = frozenset(
         "POST /api/v1/agent-applications/uploads/presign",
         # Public marketing/catalog surfaces — published content only.
         "GET /api/v1/public/banners",
-        "GET /api/v1/public/offers",
         "GET /api/v1/public/properties",
         "GET /api/v1/public/properties/{property_id}",
         "GET /api/v1/public/content-blocks",

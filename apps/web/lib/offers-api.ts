@@ -1,7 +1,4 @@
-// Offers client for the Sub Admin content surface + Admin read-only oversight.
-//
-// Thin typed wrapper over /api/v1/offers via lib/api/client.ts. Mirrors
-// lib/banners-api.ts's shape, minus approve/reject (offers has no Admin gate).
+// Offers client for Sub Admin authoring and the Admin approval queue.
 
 import type { components } from "@contracts/generated/schema";
 
@@ -39,6 +36,41 @@ export async function scheduleOffer(id: string): Promise<ApiResponse<Offer>> {
   return apiRequest<Offer>(`/api/v1/offers/${id}/schedule`, {
     method: "POST",
   });
+}
+
+export async function getOfferImageUploadUrl(
+  payload: Schemas["OfferImageUploadRequest"],
+): Promise<ApiResponse<Schemas["OfferImageUploadResponse"]>> {
+  return apiRequest<Schemas["OfferImageUploadResponse"]>(`/api/v1/offers/image-upload-url`, {
+    method: "POST",
+    body: payload,
+  });
+}
+
+export async function submitOffer(id: string): Promise<ApiResponse<Offer>> {
+  return apiRequest<Offer>(`/api/v1/offers/${id}/submit`, { method: "POST" });
+}
+
+export async function approveOffer(id: string): Promise<ApiResponse<Offer>> {
+  return apiRequest<Offer>(`/api/v1/offers/${id}/approve`, { method: "POST" });
+}
+
+export async function rejectOffer(id: string, note: string): Promise<ApiResponse<Offer>> {
+  return apiRequest<Offer>(`/api/v1/offers/${id}/reject`, {
+    method: "POST",
+    body: { note },
+  });
+}
+
+export async function removeOffer(id: string, note: string): Promise<ApiResponse<Offer>> {
+  return apiRequest<Offer>(`/api/v1/offers/${id}/remove`, {
+    method: "POST",
+    body: { note },
+  });
+}
+
+export async function deleteOffer(id: string): Promise<ApiResponse<undefined>> {
+  return apiRequest<undefined>(`/api/v1/offers/${id}`, { method: "DELETE" });
 }
 
 export async function activateOffer(id: string): Promise<ApiResponse<Offer>> {

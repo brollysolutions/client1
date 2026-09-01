@@ -190,8 +190,8 @@ async def test_insert_check_rejects_foreign_creator(client: AsyncClient) -> None
 
 
 @pytest.mark.asyncio
-async def test_insert_rejected_for_non_sub_admin(client: AsyncClient) -> None:
-    """Denial by absence: an admin has SELECT oversight but no INSERT policy."""
+async def test_platform_admin_can_insert(client: AsyncClient) -> None:
+    """Platform Admin keeps the governed CMS override granted by the API."""
     _, mobile = await full_registration(client, lines=["loans"])
     uid = await _auth_user_uuid(mobile)
 
@@ -199,15 +199,15 @@ async def test_insert_rejected_for_non_sub_admin(client: AsyncClient) -> None:
     try:
         async with engine.begin() as conn:
             await _set_context(conn, uid, "admin", "both", "true")
-            with pytest.raises(Exception):  # noqa: B017 — asyncpg row-security violation
-                await conn.execute(
-                    text(
-                        "INSERT INTO referral_bonus_config "
-                        "(id, business_line, bonus_amount, rule, active, created_by_uuid) "
-                        "VALUES (gen_random_uuid(), 'loans', 500, '{}'::jsonb, true, :uuid)"
-                    ),
-                    {"uuid": uid},
-                )
+            result = await conn.execute(
+                text(
+                    "INSERT INTO referral_bonus_config "
+                    "(id, business_line, bonus_amount, rule, active, created_by_uuid) "
+                    "VALUES (gen_random_uuid(), 'loans', 500, '{}'::jsonb, true, :uuid)"
+                ),
+                {"uuid": uid},
+            )
+            assert result.rowcount == 1
     finally:
         await engine.dispose()
 

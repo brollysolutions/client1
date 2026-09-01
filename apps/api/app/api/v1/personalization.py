@@ -23,7 +23,8 @@ from app.schemas.personalization import (
     PersonalizationPreferenceRead,
     PersonalizationPreferenceUpdate,
 )
-from app.services import personalization, storage
+from app.services import personalization
+from app.services.campaign_media import asset_image_url
 
 router = APIRouter()
 
@@ -31,10 +32,10 @@ router = APIRouter()
 async def require_personalization_viewer(
     current_user: CurrentUser = Depends(get_active_user),
 ) -> CurrentUser:
-    if current_user.role not in ("client", "agent"):
+    if current_user.role not in ("client", "agent", "employee", "telecaller"):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Personalized placements are available to Clients and Agents only.",
+            detail="Dashboard placements are available to Dhanadhara user accounts only.",
         )
     return current_user
 
@@ -159,7 +160,7 @@ async def get_placements(
                 subtitle=banner.subtitle,
                 cta_label=banner.cta_label,
                 deep_link=banner.deep_link,
-                image_url=storage.public_asset_url(banner.image_key) if banner.image_key else None,
+                image_url=asset_image_url(banner.image_key) if banner.image_key else None,
             )
             for banner in banners
         ],
@@ -171,6 +172,11 @@ async def get_placements(
                 discount_type=offer.discount_type,
                 discount_value=offer.discount_value,
                 code=offer.code,
+                partner_name=offer.partner_name or "",
+                redemption_url=offer.redemption_url or "",
+                terms_summary=offer.terms_summary or "",
+                terms_url=offer.terms_url,
+                image_url=asset_image_url(offer.image_key) or "",
             )
             for offer in offers
         ],

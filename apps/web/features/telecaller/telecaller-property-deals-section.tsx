@@ -6,6 +6,7 @@ import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { FieldError, RequiredIndicator } from "@/components/ui/field-error";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -14,6 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { DashboardPanel } from "@/features/dashboard/dashboard-ui";
 import {
   PropertyDealProgressControls,
   STATUS_LABEL,
@@ -34,6 +36,7 @@ function CreateDealForm({
   const [loadingProperties, setLoadingProperties] = React.useState(true);
   const [propertyId, setPropertyId] = React.useState("");
   const [saving, setSaving] = React.useState(false);
+  const [propertyError, setPropertyError] = React.useState<string>();
 
   React.useEffect(() => {
     let active = true;
@@ -50,7 +53,7 @@ function CreateDealForm({
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!propertyId) {
-      toast.error("Choose a property");
+      setPropertyError("Choose a property.");
       return;
     }
     setSaving(true);
@@ -71,9 +74,9 @@ function CreateDealForm({
       aria-label={`Open a property deal for lead ${leadId}`}
     >
       <div className="min-w-56 flex-1">
-        <Label htmlFor="deal-property">Property</Label>
-        <Select value={propertyId} onValueChange={setPropertyId} disabled={loadingProperties}>
-          <SelectTrigger id="deal-property" className="w-full">
+        <Label htmlFor={`deal-property-${leadId}`}>Property<RequiredIndicator /></Label>
+        <Select value={propertyId} onValueChange={(value) => { setPropertyId(value); setPropertyError(undefined); }} disabled={loadingProperties}>
+          <SelectTrigger id={`deal-property-${leadId}`} className="w-full" aria-required="true" aria-invalid={Boolean(propertyError)} aria-describedby={propertyError ? `deal-property-${leadId}-error` : undefined}>
             <SelectValue
               placeholder={loadingProperties ? "Loading properties..." : "Choose a property"}
             />
@@ -86,6 +89,7 @@ function CreateDealForm({
             ))}
           </SelectContent>
         </Select>
+        <FieldError id={`deal-property-${leadId}-error`} className="mt-1">{propertyError}</FieldError>
       </div>
       <Button type="submit" size="sm" disabled={saving || loadingProperties}>
         {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
@@ -110,13 +114,11 @@ export function TelecallerPropertyDealsSection({
   ) => Promise<ApiResponse<unknown>>;
 }) {
   return (
-    <div className="rounded-2xl border border-border bg-card p-5">
-      <h2 className="text-lg font-semibold text-text-primary">Property deals</h2>
-
+    <DashboardPanel title="Property deals">
       {deals.length === 0 ? (
-        <p className="mt-3 text-sm text-text-secondary">No property deal opened on this lead yet.</p>
+        <p className="text-sm text-text-secondary">No property deal opened on this lead yet.</p>
       ) : (
-        <div className="mt-4 space-y-5">
+        <div className="space-y-5">
           {deals.map((deal) => (
             <div key={deal.id} className="rounded-xl border border-border p-4">
               <div className="flex flex-wrap items-center justify-between gap-2">
@@ -136,6 +138,6 @@ export function TelecallerPropertyDealsSection({
       )}
 
       <CreateDealForm leadId={leadId} onCreate={onCreateDeal} />
-    </div>
+    </DashboardPanel>
   );
 }

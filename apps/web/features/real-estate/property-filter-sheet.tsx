@@ -59,7 +59,6 @@ export function PropertyFilterSheet({
       <SheetContent
         side="right"
         className="flex w-full flex-col gap-0 bg-dash-rail p-0 sm:max-w-md"
-        closeButtonClassName="cursor-pointer rounded-md p-1 hover:bg-brand-cta-tint hover:text-brand-cta focus:ring-brand-cta"
       >
         <SheetHeader className="border-b border-border px-6 py-5 text-left">
           <SheetTitle>All filters</SheetTitle>

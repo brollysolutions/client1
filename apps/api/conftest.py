@@ -5,11 +5,13 @@ from __future__ import annotations
 import contextlib
 import os
 import uuid
+from collections.abc import AsyncIterator
 
 import pytest
 import pytest_asyncio
 import redis.asyncio as aioredis
 from httpx import ASGITransport, AsyncClient
+from sqlalchemy import delete, select, update
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from sqlalchemy.pool import NullPool
 
@@ -48,6 +50,12 @@ def _force_mock_otp_channels() -> None:
     # per-account limits remain active; only the cross-test IP aggregate is
     # raised here because that module has no rate-limit assertions of its own.
     settings.MOBILE_CHANGE_RATE_LIMIT_PER_IP = 1_000_000
+    # Staff invite links are exercised across many synthetic accounts through the
+    # same ASGITransport IP. The real caps stay meaningful in production; only the
+    # cross-test aggregate is raised, and test_staff_invite_links.py has no
+    # rate-limit assertions of its own.
+    settings.STAFF_INVITE_PREVIEW_RATE_LIMIT_PER_IP = 1_000_000
+    settings.STAFF_INVITE_ACCEPT_RATE_LIMIT_PER_IP = 1_000_000
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -200,6 +208,85 @@ async def client(live_app):
         base_url="https://test",
     ) as ac:
         yield ac
+
+
+@pytest_asyncio.fixture
+async def active_property_id() -> str:
+    """Create one canonical active listing for API journeys that require a UUID."""
+    import app.db.session as _session_mod
+    from app.models.property import Property
+
+    async with _session_mod.AsyncSessionLocal() as db:
+        property_listing = Property(
+            business_line="real_estate",
+            active=True,
+            title="Canonical 3BHK Villa",
+            type="Villa",
+            location="Verified Locality, Verified City",
+            price_display="₹1.2 Cr",
+            category="villas",
+            city="Verified City",
+            locality="Verified Locality",
+            pincode="560001",
+            price_paise=1_200_000_000,
+            bhk=3,
+            area_sqft=1800,
+            amenities=[],
+            age_years=0,
+            rera_applicability="unsure",
+            rera_verification_status="not_reviewed",
+            details={},
+        )
+        db.add(property_listing)
+        await db.commit()
+        property_id = property_listing.id
+    try:
+        yield str(property_id)
+    finally:
+        async with _session_mod.AsyncSessionLocal() as db:
+            await db.execute(delete(Property).where(Property.id == property_id))
+            await db.commit()
+
+
+@pytest_asyncio.fixture
+async def isolated_active_employees() -> AsyncIterator[None]:
+    """Temporarily remove Employee capacity for deterministic retry-pool tests."""
+    import app.db.session as _session_mod
+    from app.models.profile import ProfileStatus, StaffProfile, StaffRole
+
+    async with _session_mod.AsyncSessionLocal() as db:
+        previously_active = set(
+            (
+                await db.scalars(
+                    select(StaffProfile.id).where(
+                        StaffProfile.role == StaffRole.EMPLOYEE,
+                        StaffProfile.status == ProfileStatus.ACTIVE,
+                    )
+                )
+            ).all()
+        )
+        await db.execute(
+            update(StaffProfile)
+            .where(StaffProfile.role == StaffRole.EMPLOYEE)
+            .values(status=ProfileStatus.INACTIVE)
+        )
+        await db.commit()
+    try:
+        yield
+    finally:
+        async with _session_mod.AsyncSessionLocal() as db:
+            await db.execute(
+                update(StaffProfile)
+                .where(StaffProfile.role == StaffRole.EMPLOYEE)
+                .values(status=ProfileStatus.INACTIVE)
+            )
+            if previously_active:
+                await db.execute(
+                    update(StaffProfile)
+                    .where(StaffProfile.id.in_(previously_active))
+                    .values(status=ProfileStatus.ACTIVE)
+                )
+            await db.commit()
 
 
 # ---------------------------------------------------------------------------
