@@ -8,9 +8,9 @@ const MAX_RELEASE_CLIENT_DELAY_MS = 5_000;
  * enables this before navigation so client-readiness assertions cannot pass by
  * runner timing alone. Application responses and test retries stay unchanged.
  */
-export async function installReleaseClientDelay(page: Page): Promise<void> {
+export async function installReleaseClientDelay(page: Page): Promise<boolean> {
   const rawDelay = process.env[RELEASE_CLIENT_DELAY_ENV];
-  if (rawDelay == null || rawDelay === "") return;
+  if (rawDelay == null || rawDelay === "") return false;
 
   const delayMs = Number(rawDelay);
   if (
@@ -22,12 +22,13 @@ export async function installReleaseClientDelay(page: Page): Promise<void> {
       `${RELEASE_CLIENT_DELAY_ENV} must be an integer from 0 to ${MAX_RELEASE_CLIENT_DELAY_MS}`,
     );
   }
-  if (delayMs === 0) return;
+  if (delayMs === 0) return false;
 
   await page.route("**/_next/static/chunks/**", async (route) => {
     await new Promise((resolve) => setTimeout(resolve, delayMs));
     await route.continue();
   });
+  return true;
 }
 
 /** Wait until the catalogue's client-only keyboard effect owns the input. */
@@ -35,6 +36,7 @@ export async function focusCatalogueAfterHydration(
   page: Page,
   search: Locator,
 ): Promise<void> {
+  await expect(search).toBeEnabled({ timeout: 30_000 });
   await expect(async () => {
     await page.keyboard.press("/");
     await expect(search).toBeFocused({ timeout: 500 });
@@ -42,7 +44,10 @@ export async function focusCatalogueAfterHydration(
 }
 
 /** Select a React-owned toggle, retrying only while its state did not change. */
-export async function selectToggleAfterHydration(toggle: Locator): Promise<void> {
+export async function selectToggleAfterHydration(
+  toggle: Locator,
+): Promise<void> {
+  await expect(toggle).toBeEnabled({ timeout: 30_000 });
   await expect(async () => {
     if ((await toggle.getAttribute("aria-pressed")) !== "true") {
       await toggle.click();

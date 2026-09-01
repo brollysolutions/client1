@@ -9,31 +9,35 @@ Evidence baseline: `abcc1fd`
 verified Admin operational-visibility work in
 [PR #173](https://github.com/brollysolutions/client1/pull/173).
 
-**Production-browser hydration synchronization repaired locally — [PR #280](https://github.com/brollysolutions/client1/pull/280) — launch remains NO-GO:**
-the first hosted CI run after runner capacity returned passed the complete
-repository verification but failed two of four no-retry production-artifact
-journeys. Both tests acted on useful server-rendered controls without proving
-that their React handlers and initial client traffic had settled. A controlled
-delayed-chunk probe reproduces the catalogue failure with no console error: the
-search value changes while the URL remains `/loans`; the normal probe reaches
-`/loans?q=insurance`. The release journeys now wait for network quiescence and
-observable component-owned state—the catalogue keyboard-focus effect and the
-registration service-line `aria-pressed` transition—before typing or submitting.
-Hosted CI adds a bounded 1.5-second client-chunk delay, so this boundary is
-exercised deterministically while Playwright retries remain zero.
+**Residual production-browser interaction readiness is repaired locally - PR pending - launch remains NO-GO:**
+merge-result CI run `33464102303` passed the repository-wide verification and
+browser install, then reproducibly failed the same two of four no-retry
+production-artifact journeys. The prior network, focus, and pressed-state probes
+proved only partial client ownership: the catalogue's controlled input and the
+registration first step could be actionable before their passive initialization
+commit completed. The catalogue search and clear controls now stay disabled and
+the search form stays `aria-busy` until its client effect runs. Registration
+does the same for first-step fields, service-line toggles, referral input, and
+submit until saved/new wizard initialization finishes. Delayed release journeys
+start at response commit, wait for that explicit enabled boundary, and retain
+zero retries and all original behavior assertions.
 
-Fresh evidence passes three repeated delayed-hydration runs at 12/12, the normal
-production-image journeys at 4/4, and the final rebuilt strict Linux image at
-4/4 under the same delay. Web lint, strict typecheck, 91 files / 602 unit tests,
-the 94-route production build/export, and all 44 repository script tests pass
-with one expected Windows POSIX-resource skip. No application component, API,
-auth mock response, endpoint, schema, migration, generated contract, auth/RLS,
-business-line, PII/KYC, upload, payout/webhook, cookie, dependency, runtime,
-deployment, registry, or approval behavior changes. Fork PRs currently report
-no hosted checks (as also observed on PRs #278 and #279), so the merge-result
-`main` CI run remains the final hosted evidence. After it passes, the next
-engineering step is the exact-candidate release rehearsal; external production
-and human gates still keep launch NO-GO.
+Fresh final-source evidence passes changed-file ESLint, strict typecheck, all 91
+web test files / 602 tests, all 44 repository script tests with one expected
+Windows POSIX-resource skip, and `git diff --check`. Strict Linux image
+`085d12ec2b28...` compiles, type-validates, generates all 94 routes, and exports.
+The immediately preceding exact image passes delayed and normal browser gates at
+4/4 each; the final image's post-export browser execution is explicitly not
+claimed because Docker's API crashed after C: reached zero free bytes. Design
+review removed an attempted component-level no-JavaScript fallback after direct
+browser evidence showed the enclosing streamed Suspense payload is itself
+hidden without JavaScript; that scope reduction is the sole change after the
+passing browser artifact. No API/auth mock response, endpoint, schema,
+migration, generated contract, auth/RLS, business-line, PII/KYC, upload,
+payout/webhook, cookie, dependency, runtime, deployment, registry, or approval
+boundary changes. Fork PRs still expose no hosted checks, so merge-result `main`
+CI remains the required final engineering evidence and the exact-candidate
+rehearsal remains blocked.
 
 **Production runtime least privilege complete locally — [PR #279](https://github.com/brollysolutions/client1/pull/279) — launch remains NO-GO:**
 `security/api-web-runtime-hardening` closes both engineering follow-ups from

@@ -79,8 +79,11 @@ test("catalogue cards and provider applications remain inside Dhanadhara", async
 });
 
 test("catalogue results filter as you type under a sticky, button-free bar", async ({ page }) => {
-  await installReleaseClientDelay(page);
-  await page.goto("/loans", { waitUntil: "networkidle", timeout: 90_000 });
+  const delayed = await installReleaseClientDelay(page);
+  await page.goto("/loans", {
+    waitUntil: delayed ? "commit" : "domcontentloaded",
+    timeout: 90_000,
+  });
 
   const catalogue = page.locator("#financial-services-catalogue");
   const bar = catalogue.locator('form[role="search"]');

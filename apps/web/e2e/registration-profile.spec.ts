@@ -89,11 +89,17 @@ test("registration saves Salaried and a manually searched location", async ({ pa
     });
   });
 
-  await installReleaseClientDelay(page);
-  await page.goto("/register", { waitUntil: "networkidle", timeout: 90_000 });
-  // Server-rendered controls are visible before their React handlers attach.
-  // Prove client ownership through the toggle's pressed state before entering
-  // controlled field values or submitting the form.
+  const delayed = await installReleaseClientDelay(page);
+  await page.goto("/register", {
+    waitUntil: delayed ? "commit" : "domcontentloaded",
+    timeout: 90_000,
+  });
+  // The client-rendered form can become visible before its passive
+  // initialization completes. Prove that commit finished, then exercise the
+  // toggle's controlled pressed state before entering or submitting values.
+  await expect(page.locator("form").first()).toHaveAttribute("aria-busy", "false", {
+    timeout: 30_000,
+  });
   await selectToggleAfterHydration(page.getByRole("button", { name: "Loans" }));
   await page.getByLabel("First name").fill("Browser");
   await page.getByLabel("Last name").fill("Profile");
