@@ -11,6 +11,11 @@ import { CLOSE_BUTTON_CLASS } from "@/components/ui/close-button";
 import { useDebounce } from "@/hooks/use-debounce";
 import type { CatalogueFacets } from "@/lib/financial-catalog";
 import {
+  consumeCatalogueScroll,
+  persistCatalogueScroll,
+  scheduleCatalogueNavigationFallback,
+} from "@/lib/financial-catalogue-navigation";
+import {
   CATALOGUE_CATEGORIES,
   CATEGORY_PILL_LABEL,
   catalogueHref,
@@ -68,6 +73,8 @@ export function FinancialServicesFilters({
   const router = useRouter();
   const [pending, startTransition] = React.useTransition();
   const inputRef = React.useRef<HTMLInputElement>(null);
+  const recoveryTimerRef = React.useRef<number | null>(null);
+  const recoveryHrefRef = React.useRef<string | null>(null);
   const [interactive, setInteractive] = React.useState(false);
 
   const serverQuery = q ?? "";
@@ -84,14 +91,45 @@ export function FinancialServicesFilters({
   // client commit completes.
   React.useEffect(() => setInteractive(true), []);
 
+  React.useEffect(() => {
+    const scrollY = consumeCatalogueScroll(window.sessionStorage);
+    if (scrollY === null) return;
+    const frame = window.requestAnimationFrame(() => window.scrollTo({ top: scrollY }));
+    return () => window.cancelAnimationFrame(frame);
+  }, []);
+
+  const cancelRecovery = React.useCallback(() => {
+    if (recoveryTimerRef.current === null) return;
+    window.clearTimeout(recoveryTimerRef.current);
+    recoveryTimerRef.current = null;
+  }, []);
+
   const navigate = React.useCallback(
     (href: string) => {
       // scroll: false keeps the sticky bar and the results the reader is
       // already looking at exactly where they are while the server re-renders.
+      cancelRecovery();
+      recoveryHrefRef.current = href;
       startTransition(() => router.replace(href, { scroll: false }));
+      recoveryTimerRef.current = scheduleCatalogueNavigationFallback(href, {
+        currentHref: () => `${window.location.pathname}${window.location.search}`,
+        currentScrollY: () => window.scrollY,
+        persistScroll: (scrollY) => persistCatalogueScroll(window.sessionStorage, scrollY),
+        replaceLocation: (destination) => window.location.replace(destination),
+        schedule: (callback, delayMs) => window.setTimeout(callback, delayMs),
+      });
     },
-    [router],
+    [cancelRecovery, router],
   );
+
+  React.useEffect(() => {
+    const currentHref = `${window.location.pathname}${window.location.search}`;
+    if (recoveryHrefRef.current !== currentHref) return;
+    cancelRecovery();
+    recoveryHrefRef.current = null;
+  }, [serverQuery, category, cancelRecovery]);
+
+  React.useEffect(() => cancelRecovery, [cancelRecovery]);
 
   React.useEffect(() => {
     if (serverQuery === appliedRef.current) return;
