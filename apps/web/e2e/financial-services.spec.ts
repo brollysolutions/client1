@@ -1,5 +1,10 @@
 import { expect, test } from "@playwright/test";
 
+import {
+  focusCatalogueAfterHydration,
+  installReleaseClientDelay,
+} from "./helpers/release-client-readiness";
+
 test.describe.configure({ timeout: 120_000 });
 
 test("Home restores the Loans band and places calculators after Properties", async ({
@@ -74,7 +79,8 @@ test("catalogue cards and provider applications remain inside Dhanadhara", async
 });
 
 test("catalogue results filter as you type under a sticky, button-free bar", async ({ page }) => {
-  await page.goto("/loans", { waitUntil: "domcontentloaded", timeout: 90_000 });
+  await installReleaseClientDelay(page);
+  await page.goto("/loans", { waitUntil: "networkidle", timeout: 90_000 });
 
   const catalogue = page.locator("#financial-services-catalogue");
   const bar = catalogue.locator('form[role="search"]');
@@ -95,6 +101,10 @@ test("catalogue results filter as you type under a sticky, button-free bar", asy
   // Typing alone updates the URL and the rendered results, with no click.
   const before = await catalogue.locator("article").count();
   expect(before).toBeGreaterThan(4);
+  // The page is useful before hydration, so DOM readiness alone does not prove
+  // that React owns this controlled input. The "/" focus shortcut is attached
+  // by the same client island and is an observable readiness boundary.
+  await focusCatalogueAfterHydration(page, search);
   await search.fill("insurance");
   await expect(page).toHaveURL(/\/loans\?q=insurance$/, { timeout: 30_000 });
   await expect
