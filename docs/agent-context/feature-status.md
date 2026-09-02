@@ -7,9 +7,9 @@ As of: **2026-09-02**
 Evidence baseline: `8c31b82` (`upstream/main`, including
 [PR #286](https://github.com/brollysolutions/client1/pull/286)), plus the
 PII-minimized Admin financial-service enquiry oversight delivery on
-`feat/admin-financial-enquiry-visibility` ([PR TBD](https://github.com/brollysolutions/client1/pulls)).
+`feat/admin-financial-enquiry-visibility` ([PR #287](https://github.com/brollysolutions/client1/pull/287)).
 
-**Admin financial-service enquiry oversight is complete — [PR TBD](https://github.com/brollysolutions/client1/pulls):**
+**Admin financial-service enquiry oversight is complete — [PR #287](https://github.com/brollysolutions/client1/pull/287):**
 platform Admin can inspect submitted credit-card and insurance requests in a
 read-only Card & insurance tab within Operational records. The paginated API
 query selects only enquiry id, public product label/category, immutable status,
@@ -4015,7 +4015,7 @@ business-line segregation remain non-negotiable compatibility constraints.
 
 - **Admin financial-service enquiry oversight** (FR-2.2) is delivered locally
   on `feat/admin-financial-enquiry-visibility`
-  ([PR TBD](https://github.com/brollysolutions/client1/pulls)). The existing
+  ([PR #287](https://github.com/brollysolutions/client1/pull/287)). The existing
   Operational records workspace gains a generated-contract-backed Card &
   insurance tab. Its explicit-column query returns only record id, public
   product metadata, immutable status/version, and submission time; applicant
